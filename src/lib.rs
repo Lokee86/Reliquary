@@ -231,6 +231,8 @@ mod cva_memory_vectors;
 mod cva_open_route;
 #[path = "facade/cva_packed_vectors.rs"]
 mod cva_packed_vectors;
+#[path = "facade/cva_principal_repack.rs"]
+mod cva_principal_repack;
 #[path = "facade/cva_reconcile.rs"]
 mod cva_reconcile;
 #[path = "facade/cva_reconcile_archive.rs"]
@@ -873,6 +875,7 @@ pub use context_engine::{
     request_context, request_messages,
 };
 pub use cva_error::CvaError;
+pub use cva_principal_repack::PrincipalBackfillRepackResult;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
 pub use cva_reconcile_error::CvaReconcileError;
