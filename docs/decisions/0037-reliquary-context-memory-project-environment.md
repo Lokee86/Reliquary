@@ -6,7 +6,7 @@ Supersedes the Warlock-owned repository/runtime portions of [ADR 0017](0017-cva-
 
 ## Status
 
-Accepted — 2026-09-24. Runtime-host topology, REL reconciliation/recovery, the Project Environment, managed conversation/session lifecycle, cross-owner semantic access, and deterministic Context Engine policy are now implemented in Reliquary; remaining migration phases preserve existing storage formats and public runtime compatibility.
+Accepted — 2026-09-24. The ownership migration is complete: runtime-host topology, REL reconciliation/recovery, Project Environment mechanics, managed conversation/session lifecycle, cross-owner semantic access, deterministic Context Engine policy, and the corresponding Warlock cleanup are implemented. Remaining work is new semantic capability construction (cross-scope Entity identity, Relationship/Observation composition, then Ego), not further ownership evacuation.
 
 ## Context
 

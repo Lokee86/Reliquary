@@ -8,11 +8,17 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 ## Overview
 
-Reliquary remains the purpose-built semantic/storage subsystem inside Warlock. Project-file history belongs to Lore or Git; REL/PHY retain independent semantic state and history. Future work should deepen that separation rather than rebuilding project VCS inside Reliquary.
+Reliquary is the purpose-built semantic/storage/runtime library embedded by Warlock. Its semantics do not depend upward on Warlock. Project-file history belongs to Lore or Git through Reliquary's Project Environment; REL/PHY retain independent semantic state and history.
 
-The immediate priorities are to finish the remaining project-repository boundary cleanup, narrow REL/PHY synchronization to semantic-database concerns, complete the application/runtime surfaces Warlock still needs, and then build higher-level context composition such as Ego on top of stable owner-local retrieval.
+The immediate semantic sequence is now: finish cross-scope Entity identity, then Relationship/Observation composition, then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete.
 
-## Immediate priorities
+## Current semantic sequence
+
+1. **Cross-scope Entity identity.** Complete global Entity UUID sets, deterministic eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, repair, and Pass 1d against the graph-aware host. Calibrate on frozen Ellis and 28-day corpora before promotion.
+2. **Relationship/Observation composition.** Build Relationship visibility/synthesis and Observation composition over stable cross-owner Entity identity, preserving active-PHY/authorized-REL privacy and provenance.
+3. **Ego.** Implement owner-local synthesis scheduling, graph-aware context assembly, deterministic current-REL Cross-chat selection, budgeting, PHY participation, and context projection. Ego is intentionally last so it composes the completed semantic substrate rather than constraining it prematurely.
+
+## Additional backlog
 
 ### 1. Retire duplicate project-file VCS responsibilities
 
@@ -27,7 +33,7 @@ Candidates include:
 
 Do **not** collapse the REL semantic timeline into project-repository history. Preserve Memory revisions, Graph versions, Episode/transcript history, provenance, semantic supersession, vector generations, crash recovery, and other semantic/database-local history.
 
-Project creation, repository discovery, Lore/Git mutation policy, upload materialization, and repository checkout behavior are Warlock responsibilities governed by [ADR 0027](decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md) and [ADR 0028](decisions/0028-project-folder-and-repository-bootstrap-contract.md), not new Reliquary semantic owners.
+Project creation/adoption semantics, repository discovery and identity validation, Lore/Git mutation policy, upload materialization, exact historical reads, and repository correlation are Reliquary Project Environment responsibilities under [ADR 0037](decisions/0037-reliquary-context-memory-project-environment.md). Warlock may supply machine-local project paths and coordinate/present those operations.
 
 ### 2. Re-scope REL/PHY synchronization
 
@@ -133,7 +139,7 @@ Reliquary already has typed durable scope identity; future work is about how tho
 
 Near-term scope work should:
 
-- support hierarchy among multiple active RELs so project context does not cross-contaminate while Organization scopes can own Projects;
+- expose editing/inspection surfaces for the already-implemented REL dependency topology without weakening cycle rejection, dependencies-before-dependent ordering, or sibling isolation;
 - keep durable ownership separate from retrieval visibility and mutation authority;
 - define scope creation/editing and hierarchy-management surfaces;
 - extend learned-state routing beyond the current conservative User/Project boundary only when the destination authority rules are explicit;
@@ -144,12 +150,11 @@ Relationship-specific semantic state is reactivated by [ADR 0034](decisions/0034
 
 ## Reliquary / Phylactery product transition
 
-Remaining product/migration work:
+Remaining product/compatibility work:
 
-1. update all Warlock file creation/open/association UX to use authoritative typed REL/PHY identity before retrieval/context assembly;
-2. warn when filename hints disagree with authoritative internal type/scope;
-3. define cross-file Memory/source export and lineage semantics between REL and PHY; and
-4. decide whether the internal/back-compat `Cva` terminology should eventually be removed from public-facing APIs and documentation.
+1. warn when filename hints disagree with authoritative internal type/scope;
+2. define cross-file Memory/source export and lineage semantics between REL and PHY; and
+3. decide whether the internal/back-compat `Cva` terminology should eventually be removed from public-facing APIs and documentation.
 
 Do not implement `.phy` as a Project Reliquary with provenance fields merely made nullable. Shared mechanics and separate semantic validation remain required.
 
@@ -209,17 +214,14 @@ The shipped design and validation history belong to current architecture/referen
 
 Implement the Entity/Relationship/Observation semantic layer defined by [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md), [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md), and the detailed [Perception subsystem plan](perception-subsystem-plan.md).
 
-The implementation sequence is:
+Entity-mention enrichment and owner-local Entity pass 1 are implemented. The remaining sequence is:
 
-1. add post-extraction Insomnia Entity-mention enrichment without moving Entity authority into Insomnia, and supply lexical locality from a deterministic disposable Memory index rather than model-generated terms;
-2. implement Perception pass 1 for owner-local Entity synthesis, association, durable identity, and ambiguity preservation;
-3. implement the ADR 0034 Relationship lane: sparse typed Relationship containers over owner-qualified Entity references, cross-owner references without cross-owner Dream edges, relationship-local derived state, and the active-PHY/authorized-REL visibility boundary;
-4. extend derived Communities into a multi-resolution semantic hierarchy: recursive Leiden subdivision for genuine subcommunities, a Community meta-graph for meaningful super-communities, lineage/naming/inspection semantics across persisted levels, coarse -> normal -> fine routing, and ephemeral bounded local processing neighbourhoods for oversized irreducible leaves;
-5. implement Observation persistence and pass 3 for bounded multi-Memory extrapolation with exact support/derivation lineage;
-6. implement pass 4 to generate and separately embed high-recall Observation routing receptors;
-7. implement pass 2 as strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/Relationship-routed candidates rather than an all-Observation scan;
-8. add mutation-threshold and wall-time Observation reconsideration, where zero relevant wall-time mutations deterministically mark stale and non-zero mutations trigger semantic reconsideration; and
-9. add persistent Entity/Observation ambiguity plus deterministic runtime clarification injection on later relevant user turns.
+1. complete cross-scope Entity identity (Pass 1d): global Entity UUID sets, eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, reconciliation/repair, and audit against frozen Ellis and 28-day corpora;
+2. complete the ADR 0034 Relationship semantic layer above the existing sparse REL/PHY Relationship storage: synthesis/materialization, relationship-local derived state, cross-owner visibility, and active-PHY/authorized-REL privacy enforcement;
+3. implement Observation persistence and bounded multi-Memory extrapolation with exact support/derivation lineage;
+4. add separately embedded high-recall Observation routing receptors and strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/Relationship-routed candidates rather than an all-Observation scan;
+5. add mutation-threshold and wall-time Observation reconsideration plus persistent Entity/Observation ambiguity and deterministic runtime clarification injection; and
+6. extend derived Communities into a multi-resolution semantic hierarchy only where measured routing/scale evidence justifies it, preserving lineage/naming/inspection semantics and bounded local processing neighbourhoods for oversized irreducible leaves.
 
 Perception must preserve these scaling boundaries:
 
@@ -265,8 +267,8 @@ Current Ego status:
 - Memory-Web synthesis policy is designed but synthesis inference, activity accounting, and refresh scheduling are not implemented;
 - Personality ownership and evidence boundaries are settled, but synthesis mechanics, refresh policy, user-edit interaction, output shape, and budget remain unresolved;
 - deterministic Cross-chat selection policy is designed but not implemented;
-- multi-REL hierarchy/context composition and explicit PHY context composition remain unimplemented; and
-- final Ego context assembly, budgeting calibration, and Warlock prompt injection remain unimplemented.
+- Ego has not yet consumed the implemented REL dependency closure and host-owned PHY to assemble context packages; and
+- final Ego context assembly, runtime scheduling, budgeting calibration, Cross-chat materialization, and host-facing context projection remain unimplemented.
 
 Next, Ego should:
 
@@ -274,13 +276,13 @@ Next, Ego should:
 - implement initial and batched-refresh Memory-Web synthesis using the activity-relative policy;
 - design Personality synthesis mechanics separately: Personality is PHY-owned, persisted in PHY, derived only from PHY behavioural evidence such as communication/process/relationship preferences and recurring behaviour, and never from REL/project state; generic user biography remains ordinary PHY Web state rather than Personality evidence;
 - implement deterministic Cross-chat context from existing REL conversation-compaction records, ordered by most recent conversation activity rather than creation time, within the remaining Ego injection budget;
-- compose multiple active RELs according to explicit hierarchy rather than indiscriminate union;
-- include user-global Phylactery context through an explicit owner lane; and
+- consume the graph host's active-REL dependency closure in deterministic dependency order rather than rebuilding topology inside Ego;
+- project the host-owned Phylactery through explicit role/privacy policy; and
 - keep source/provenance access available without flooding the default prompt.
 
 The Web-synthesis rationale, measurements, rejected alternatives, and calibration sequence are recorded in [Ego Memory-Web synthesis plan](ego-web-synthesis-plan.md). Cross-chat selection and budgeting are recorded in [Ego Cross-chat context plan](ego-cross-chat-context-plan.md).
 
-Detailed Ego context-assembly policy is owned by Warlock's Ego architecture. Reliquary owns the durable owner-local records and lower-level synthesis/retrieval primitives needed by that host policy.
+Ego context-assembly policy is Reliquary-owned under the graph-aware host boundary established by ADR 0037. Warlock's Ego document is a host-facing integration contract; it must not become a second source of semantic policy.
 
 ## Storage, scale, and historical recovery
 
@@ -315,7 +317,7 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 
 ## Open decisions
 
-- Exact hierarchy representation and context-resolution policy for multiple active RELs and Organization-owned Projects.
+- Exact Ego projection/retention policy across the already-implemented active-REL dependency closure and host-owned PHY.
 - Cross-file Memory/source lineage and export permissions among REL and PHY owners.
 - Whether `Cva` remains only an internal/back-compat term.
 - How learned-state ownership expands beyond User/Project without conflating ownership with governance or authorization.

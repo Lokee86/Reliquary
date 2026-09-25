@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted and implemented — 2026-08-26.
+Accepted for durable header UUID identity — 2026-08-26. The typed REL class/prefix scheme in this ADR was superseded by ADR 0029 on 2026-09-04: new homogeneous RELs use `rel-<uuid>`, while legacy typed RELs retain `proj-`/`org-`/`con-` only to preserve historical identity. The `phy-<uuid>` Phylactery identity and header-UUID durability remain current.
 
 Supersedes the WorkspaceMetadata identity/type portions of ADR 0017 and the WorkspaceMetadata reconciliation boundary in ADR 0019. Their remaining product-host and reconciliation decisions stay in force.
 
@@ -20,7 +20,7 @@ The same metadata record also carried a display name and one workspace type. Dis
 
 Every newly created typed REL or PHY receives a UUID in the container header before creation returns.
 
-The canonical durable owner ID is derived from authoritative type/scope plus that UUID:
+At the time of this decision, the canonical durable owner ID was derived from authoritative type/scope plus that UUID:
 
 ```text
 Project REL       proj-<uuid>
