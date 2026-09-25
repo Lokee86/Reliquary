@@ -476,10 +476,11 @@ Entity owner format marker:
 8 bytes   "CVAENTF1"
 ```
 
-Entity revision payload:
+Current Entity revision payload:
 ```text
-8 bytes   "CVAENTR1"
-32 bytes  EntityId
+8 bytes   "CVAENTR2"
+32 bytes  owner-local EntityId
+16 bytes  global Entity UUID
 u64       Entity revision
 i64       created_at_ns
 i64       updated_at_ns
@@ -492,6 +493,8 @@ string    semantic summary
 string    mutation_id
 ```
 
+Legacy `CVAENTR1` records omit the 16-byte global UUID and remain readable. They reopen with an explicitly missing global UUID until `backfill_entity_global_ids` publishes one new revision per current legacy Entity. Backfill does not compare Entities across owners or infer cross-scope equivalence. Ordinary Entities receive a random UUID at first materialization; reserved principal Entities derive a deterministic UUID from their durable `phy-UUID` identity.
+
 Entity publication metadata:
 ```text
 8 bytes   "CVAENTV1"
@@ -501,7 +504,7 @@ u64       record chunk offset
 u64       record payload length
 ```
 
-Entity versions begin at `1` and are dense. One Entity revision consumes one owner-global semantic version and one Entity-local version. A record without matching version metadata is inert. Automatically assigned `EntityId` is SHA-256 over the domain separator `"reliquary-entity-id\0"` plus mutation-ID length and bytes. Canonical name, aliases, kind, and summary may change across revisions without changing Entity identity; `created_at_ns` is invariant for an existing Entity. Aliases are normalized, sorted, unique, and bounded. Entity records intentionally contain no supporting Memory IDs or graph adjacency; Memory↔Entity association belongs to Graph. Legacy REL/PHY files without this owner reopen with an empty EntityStore.
+Entity versions begin at `1` and are dense. One Entity revision consumes one owner-global semantic version and one Entity-local version. A record without matching version metadata is inert. Automatically assigned owner-local `EntityId` is SHA-256 over the domain separator `"reliquary-entity-id\0"` plus mutation-ID length and bytes. The global Entity UUID is a separate durable cross-scope identity token: it does not replace owner-local `EntityId` or ownership, is preserved through revisions/reopen/migration/reconciliation, and is not currently used to infer cross-owner equivalence. Canonical name, aliases, kind, and summary may change across revisions without changing either identity; `created_at_ns` is invariant for an existing Entity. Aliases are normalized, sorted, unique, and bounded. Entity records intentionally contain no supporting Memory IDs or graph adjacency; Memory↔Entity association belongs to Graph. Legacy REL/PHY files without this owner reopen with an empty EntityStore.
 
 ### Graph
 Format marker:

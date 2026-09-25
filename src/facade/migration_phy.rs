@@ -76,8 +76,12 @@ pub(super) fn migrate(
         output
             .container
             .set_next_transaction_time_override(transaction_time_ns);
-        let result =
-            output.publish_entity(Some(entity.id), entity.revision.saturating_sub(1), draft);
+        let result = output.replay_entity_revision(
+            entity.id,
+            entity.revision.saturating_sub(1),
+            draft,
+            entity.global_id,
+        );
         output.container.clear_next_transaction_time_override();
         op(result)?;
     }

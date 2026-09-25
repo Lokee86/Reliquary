@@ -19,6 +19,11 @@ fn entity_identity_metadata_and_alias_candidates_survive_reopen() {
     assert!(created);
     assert_eq!(alpha.canonical_name, "Alpha");
     assert_eq!(alpha.aliases, vec!["A", "Alpha"]);
+    let alpha_global_id = alpha.global_id.expect("new Entity must have global UUID");
+    assert_eq!(
+        uuid::Uuid::from_bytes(alpha_global_id.0).get_version(),
+        Some(uuid::Version::Random)
+    );
 
     let second_id = EntityId([9; 32]);
     rel.publish_entity(Some(second_id), 0, draft("Alpha", vec!["A"], "service", 1))
@@ -31,6 +36,7 @@ fn entity_identity_metadata_and_alias_candidates_survive_reopen() {
         .unwrap();
     assert!(created);
     assert_eq!(updated.id, alpha.id);
+    assert_eq!(updated.global_id, Some(alpha_global_id));
     assert_eq!(updated.revision, 2);
 
     let candidates = rel.entity_candidates_for_surface("alpha", 8);
@@ -135,6 +141,80 @@ fn divergent_reconcile_replays_right_entity_revision() {
         merged.entity(right_entity.id).unwrap().canonical_name,
         "Right"
     );
+    assert_eq!(
+        merged.entity(left_entity.id).unwrap().global_id,
+        left_entity.global_id
+    );
+    assert_eq!(
+        merged.entity(right_entity.id).unwrap().global_id,
+        right_entity.global_id
+    );
+}
+
+#[test]
+fn legacy_entity_record_can_be_backfilled_once_with_global_uuid() {
+    let path = temp_path("entity-global-id-backfill.rel");
+    let mut rel = Cva::create_project(&path).unwrap();
+    let id = EntityId([7; 32]);
+    let payload = legacy_entity_record(
+        id,
+        "Legacy",
+        "project",
+        "Legacy Entity.",
+        "legacy-entity-record",
+    );
+    let record = rel.container.append(&payload).unwrap();
+    let global_version = rel.container.allocate_version().unwrap();
+    rel.container
+        .append(&crate::entity_codec::encode_version(
+            crate::entity_codec::EntityVersion {
+                global_version,
+                entity_version: 1,
+                record,
+            },
+        ))
+        .unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+
+    let mut reopened = Cva::open(&path).unwrap();
+    let legacy = reopened.entity(id).unwrap();
+    assert_eq!(legacy.global_id, None);
+    assert_eq!(reopened.backfill_entity_global_ids().unwrap(), 1);
+    let backfilled = reopened.entity(id).unwrap();
+    let global_id = backfilled.global_id.expect("backfill must assign UUID");
+    assert_eq!(backfilled.revision, 2);
+    assert_eq!(reopened.backfill_entity_global_ids().unwrap(), 0);
+    reopened.sync().unwrap();
+    drop(reopened);
+
+    let reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.entity(id).unwrap().global_id, Some(global_id));
+}
+
+fn legacy_entity_record(
+    id: EntityId,
+    canonical_name: &str,
+    kind: &str,
+    summary: &str,
+    mutation_id: &str,
+) -> Vec<u8> {
+    let mut out = b"CVAENTR1".to_vec();
+    out.extend_from_slice(&id.0);
+    out.extend_from_slice(&1_u64.to_le_bytes());
+    out.extend_from_slice(&1_i64.to_le_bytes());
+    out.extend_from_slice(&1_i64.to_le_bytes());
+    write_legacy_string(&mut out, canonical_name);
+    out.extend_from_slice(&0_u16.to_le_bytes());
+    write_legacy_string(&mut out, kind);
+    write_legacy_string(&mut out, summary);
+    write_legacy_string(&mut out, mutation_id);
+    out
+}
+
+fn write_legacy_string(out: &mut Vec<u8>, value: &str) {
+    out.extend_from_slice(&(value.len() as u32).to_le_bytes());
+    out.extend_from_slice(value.as_bytes());
 }
 
 #[test]

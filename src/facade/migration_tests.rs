@@ -225,6 +225,10 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
     assert_eq!(migrated.graph_stats().memory_active_relations, 1);
     assert_eq!(migrated.entity(entity.id).unwrap().canonical_name, "Helix");
     assert_eq!(
+        migrated.entity(entity.id).unwrap().global_id,
+        entity.global_id
+    );
+    assert_eq!(
         migrated.entity_associations_for_memory(a.id),
         vec![entity.id]
     );

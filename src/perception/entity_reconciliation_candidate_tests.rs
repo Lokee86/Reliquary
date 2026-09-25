@@ -1,11 +1,12 @@
 use crate::entity_candidate_test_support::entity_draft;
 use crate::entity_reconciliation_candidates::reconciliation_candidates;
-use crate::{Entity, EntityId};
+use crate::{Entity, EntityGlobalId, EntityId};
 
 fn entity(name: &str, kind: &str, seed: u8) -> Entity {
     let draft = entity_draft(name, &[], "summary", seed as i64);
     Entity {
         id: EntityId([seed; 32]),
+        global_id: Some(EntityGlobalId([seed; 16])),
         revision: 1,
         canonical_name: draft.canonical_name,
         aliases: draft.aliases,

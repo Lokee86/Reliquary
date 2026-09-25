@@ -1,5 +1,5 @@
 use crate::{
-    Cva, EntityDraft, EntityId, EntityResolutionDecision, EntityResolutionOutcome,
+    Cva, EntityDraft, EntityGlobalId, EntityId, EntityResolutionDecision, EntityResolutionOutcome,
     EntityResolutionReason, EntityResolverError, Memory, MemoryEntityMentionKey,
     MemoryEntityResolutionStatus, Phylactery,
 };
@@ -13,6 +13,14 @@ pub(crate) fn principal_entity_id(principal_id: &str) -> EntityId {
     hash.update((principal_id.len() as u64).to_le_bytes());
     hash.update(principal_id.as_bytes());
     EntityId(hash.finalize().into())
+}
+
+pub(crate) fn principal_entity_global_id(principal_id: &str) -> EntityGlobalId {
+    let uuid = uuid::Uuid::new_v5(
+        &uuid::Uuid::NAMESPACE_OID,
+        format!("reliquary-principal-entity:{principal_id}").as_bytes(),
+    );
+    EntityGlobalId(*uuid.as_bytes())
 }
 
 pub(crate) fn is_owner_relative_principal_surface(value: &str) -> bool {

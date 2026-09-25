@@ -1,4 +1,6 @@
-use crate::entity_principal::{PRINCIPAL_ENTITY_KIND, principal_entity_id};
+use crate::entity_principal::{
+    PRINCIPAL_ENTITY_KIND, principal_entity_global_id, principal_entity_id,
+};
 use crate::entity_reconciliation_candidates::reconciliation_candidates;
 use crate::{
     Cva, EntityDraft, EntityError, EntityId, EntityResolutionDecision, EntityResolutionReason,
@@ -28,6 +30,10 @@ fn rel_owner_relative_mention_materializes_isolated_principal_entity() {
     assert_eq!(outcome.entity_id, Some(entity_id));
 
     let entity = rel.entity(entity_id).unwrap();
+    assert_eq!(
+        entity.global_id,
+        Some(principal_entity_global_id(PRINCIPAL_A))
+    );
     assert_eq!(entity.kind, PRINCIPAL_ENTITY_KIND);
     assert_eq!(entity.canonical_name, PRINCIPAL_A);
     assert_eq!(
@@ -126,6 +132,7 @@ fn principal_profile_updates_aliases_without_changing_identity() {
     );
     let renamed = rel.entity(entity_id).unwrap();
     assert_eq!(renamed.id, entity_id);
+    assert_eq!(renamed.global_id, first.global_id);
     assert_eq!(renamed.canonical_name, PRINCIPAL_A);
     assert_eq!(renamed.aliases, vec!["Example Renamed"]);
     assert!(!renamed.aliases.contains(&"Example User".to_string()));

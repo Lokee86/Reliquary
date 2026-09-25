@@ -931,8 +931,8 @@ pub use entity_candidate_model::{
 };
 pub use entity_error::EntityError;
 pub use entity_model::{
-    Entity, EntityDraft, EntityId, EntityMergeOutcome, EntityRef, EntityStats, MAX_ENTITY_ALIASES,
-    MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome, EntityRef, EntityStats,
+    MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
 pub use entity_reconciliation_error::EntityReconciliationError;
 pub use entity_reconciliation_model::{

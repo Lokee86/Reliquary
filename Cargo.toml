@@ -62,7 +62,7 @@ regex = "1"
 leiden-rs = { version = "0.8.1", default-features = false }
 time = { version = "0.3", features = ["parsing"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
-uuid = { version = "1", features = ["v4"] }
+uuid = { version = "1", features = ["v4", "v5"] }
 
 [dev-dependencies]
 serde = { version = "1", features = ["derive"] }

@@ -6,6 +6,9 @@ pub const MAX_ENTITY_ALIASES: usize = 32;
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EntityId(pub [u8; 32]);
 
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct EntityGlobalId(pub [u8; 16]);
+
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct EntityRef {
     pub owner_id: String,
@@ -26,6 +29,7 @@ pub struct EntityDraft {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Entity {
     pub id: EntityId,
+    pub global_id: Option<EntityGlobalId>,
     pub revision: u64,
     pub canonical_name: String,
     pub aliases: Vec<String>,
@@ -59,6 +63,7 @@ pub struct EntityMergeOutcome {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct EntityRecord {
     pub id: EntityId,
+    pub global_id: Option<EntityGlobalId>,
     pub revision: u64,
     pub canonical_name: String,
     pub aliases: Vec<String>,

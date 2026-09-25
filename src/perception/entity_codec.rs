@@ -1,8 +1,9 @@
 use crate::entity_model::EntityRecord;
-use crate::{EntityError, EntityId, ObjectRef};
+use crate::{EntityError, EntityGlobalId, EntityId, ObjectRef};
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVAENTF1";
-const RECORD_MAGIC: [u8; 8] = *b"CVAENTR1";
+const RECORD_MAGIC_V1: [u8; 8] = *b"CVAENTR1";
+const RECORD_MAGIC_V2: [u8; 8] = *b"CVAENTR2";
 const VERSION_MAGIC: [u8; 8] = *b"CVAENTV1";
 const TOMBSTONE_MAGIC: [u8; 8] = *b"CVAENTT1";
 
@@ -29,9 +30,13 @@ pub(crate) fn decode_format(bytes: &[u8]) -> bool {
 }
 
 pub(crate) fn encode_record(record: &EntityRecord) -> Result<Vec<u8>, EntityError> {
-    let mut out = Vec::with_capacity(256);
-    out.extend_from_slice(&RECORD_MAGIC);
+    let global_id = record
+        .global_id
+        .ok_or(EntityError::InvalidField("Entity global UUID"))?;
+    let mut out = Vec::with_capacity(272);
+    out.extend_from_slice(&RECORD_MAGIC_V2);
     out.extend_from_slice(&record.id.0);
+    out.extend_from_slice(&global_id.0);
     out.extend_from_slice(&record.revision.to_le_bytes());
     out.extend_from_slice(&record.created_at_ns.to_le_bytes());
     out.extend_from_slice(&record.updated_at_ns.to_le_bytes());
@@ -44,17 +49,42 @@ pub(crate) fn encode_record(record: &EntityRecord) -> Result<Vec<u8>, EntityErro
 }
 
 pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<EntityRecord>, EntityError> {
-    if bytes.len() < 8 || bytes[..8] != RECORD_MAGIC {
+    if bytes.len() < 8 {
         return Ok(None);
     }
-    if bytes.len() < 64 {
-        return Err(EntityError::CorruptRecord("short Entity record"));
-    }
+    let (global_id, revision_offset) = if bytes[..8] == RECORD_MAGIC_V2 {
+        if bytes.len() < 80 {
+            return Err(EntityError::CorruptRecord("short Entity record"));
+        }
+        (
+            Some(EntityGlobalId(bytes[40..56].try_into().unwrap())),
+            56_usize,
+        )
+    } else if bytes[..8] == RECORD_MAGIC_V1 {
+        if bytes.len() < 64 {
+            return Err(EntityError::CorruptRecord("short Entity record"));
+        }
+        (None, 40_usize)
+    } else {
+        return Ok(None);
+    };
     let id = EntityId(bytes[8..40].try_into().unwrap());
-    let revision = u64::from_le_bytes(bytes[40..48].try_into().unwrap());
-    let created_at_ns = i64::from_le_bytes(bytes[48..56].try_into().unwrap());
-    let updated_at_ns = i64::from_le_bytes(bytes[56..64].try_into().unwrap());
-    let mut cursor = 64;
+    let revision = u64::from_le_bytes(
+        bytes[revision_offset..revision_offset + 8]
+            .try_into()
+            .unwrap(),
+    );
+    let created_at_ns = i64::from_le_bytes(
+        bytes[revision_offset + 8..revision_offset + 16]
+            .try_into()
+            .unwrap(),
+    );
+    let updated_at_ns = i64::from_le_bytes(
+        bytes[revision_offset + 16..revision_offset + 24]
+            .try_into()
+            .unwrap(),
+    );
+    let mut cursor = revision_offset + 24;
     let canonical_name = read_string(bytes, &mut cursor)?;
     let aliases = read_strings(bytes, &mut cursor)?;
     let kind = read_string(bytes, &mut cursor)?;
@@ -65,6 +95,7 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<EntityRecord>, Entity
     }
     Ok(Some(EntityRecord {
         id,
+        global_id,
         revision,
         canonical_name,
         aliases,

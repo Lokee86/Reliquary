@@ -42,6 +42,7 @@ pub(crate) fn read_entity_tail(
             record.entity_version = version.entity_version;
             EntityReplayMutation::Revision(Entity {
                 id: record.id,
+                global_id: record.global_id,
                 revision: record.revision,
                 canonical_name: record.canonical_name,
                 aliases: record.aliases,
@@ -94,10 +95,11 @@ pub(crate) fn replay_entity_tail(
                     destination,
                     revision.transaction_time_ns,
                     |destination| {
-                        destination.publish_entity(
-                            Some(entity.id),
+                        destination.replay_entity_revision(
+                            entity.id,
                             entity.revision.saturating_sub(1),
                             draft,
+                            entity.global_id,
                         )
                     },
                 )?

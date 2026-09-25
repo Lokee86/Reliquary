@@ -1,4 +1,6 @@
-use crate::{Cva, Entity, EntityDraft, EntityError, EntityId, EntityStats, Phylactery};
+use crate::{
+    Cva, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId, EntityStats, Phylactery,
+};
 
 macro_rules! impl_owner {
     ($owner:ty, $reject_principal:expr) => {
@@ -16,6 +18,55 @@ macro_rules! impl_owner {
                 }
                 self.entities
                     .publish(&mut self.container, id, expected_revision, draft)
+            }
+
+            pub(crate) fn replay_entity_revision(
+                &mut self,
+                id: EntityId,
+                expected_revision: u64,
+                draft: EntityDraft,
+                global_id: Option<EntityGlobalId>,
+            ) -> Result<(Entity, bool), EntityError> {
+                self.entities.publish_with_global_id(
+                    &mut self.container,
+                    Some(id),
+                    expected_revision,
+                    draft,
+                    global_id,
+                )
+            }
+
+            pub fn backfill_entity_global_ids(&mut self) -> Result<usize, EntityError> {
+                let missing: Vec<_> = self
+                    .entities()
+                    .into_iter()
+                    .filter(|entity| entity.global_id.is_none())
+                    .collect();
+                for entity in &missing {
+                    self.publish_entity(
+                        Some(entity.id),
+                        entity.revision,
+                        EntityDraft {
+                            canonical_name: entity.canonical_name.clone(),
+                            aliases: entity.aliases.clone(),
+                            kind: entity.kind.clone(),
+                            summary: entity.summary.clone(),
+                            mutation_id: format!(
+                                "entity-global-uuid-backfill:{}:{}",
+                                entity
+                                    .id
+                                    .0
+                                    .iter()
+                                    .map(|byte| format!("{byte:02x}"))
+                                    .collect::<String>(),
+                                entity.revision + 1
+                            ),
+                            created_at_ns: entity.created_at_ns,
+                            updated_at_ns: entity.updated_at_ns,
+                        },
+                    )?;
+                }
+                Ok(missing.len())
             }
 
             pub fn entity(&self, id: EntityId) -> Result<Entity, EntityError> {

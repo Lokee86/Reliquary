@@ -29,10 +29,15 @@ pub(super) fn normalize_draft(draft: &mut EntityDraft) -> Result<(), EntityError
 }
 
 pub(super) fn validate_record(record: &EntityRecord) -> Result<(), EntityError> {
-    if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
-        && record.id != crate::entity_principal::principal_entity_id(&record.canonical_name)
-    {
-        return Err(EntityError::InvalidField("principal Entity ID"));
+    if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+        if record.id != crate::entity_principal::principal_entity_id(&record.canonical_name) {
+            return Err(EntityError::InvalidField("principal Entity ID"));
+        }
+        if record.global_id.is_some_and(|global_id| {
+            global_id != crate::entity_principal::principal_entity_global_id(&record.canonical_name)
+        }) {
+            return Err(EntityError::InvalidField("principal Entity global UUID"));
+        }
     }
     validate_fields(
         &record.canonical_name,

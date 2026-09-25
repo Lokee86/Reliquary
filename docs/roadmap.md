@@ -14,7 +14,7 @@ The immediate semantic sequence is now: finish cross-scope Entity identity, then
 
 ## Current semantic sequence
 
-1. **Cross-scope Entity identity.** Complete global Entity UUID sets, deterministic eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, repair, and Pass 1d against the graph-aware host. Calibrate on frozen Ellis and 28-day corpora before promotion.
+1. **Cross-scope Entity identity.** The durable per-Entity global UUID substrate and legacy backfill are implemented. Complete the Relationship-driven cross-scope comparison/reconciliation lane: deterministic eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, repair, and Pass 1d against the graph-aware host. Calibrate on frozen Ellis and 28-day corpora before promotion.
 2. **Relationship/Observation composition.** Build Relationship visibility/synthesis and Observation composition over stable cross-owner Entity identity, preserving active-PHY/authorized-REL privacy and provenance.
 3. **Ego.** Implement owner-local synthesis scheduling, graph-aware context assembly, deterministic current-REL Cross-chat selection, budgeting, PHY participation, and context projection. Ego is intentionally last so it composes the completed semantic substrate rather than constraining it prematurely.
 
@@ -216,7 +216,7 @@ Implement the Entity/Relationship/Observation semantic layer defined by [ADR 003
 
 Entity-mention enrichment and owner-local Entity pass 1 are implemented. The remaining sequence is:
 
-1. complete cross-scope Entity identity (Pass 1d): global Entity UUID sets, eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, reconciliation/repair, and audit against frozen Ellis and 28-day corpora;
+1. complete cross-scope Entity identity (Pass 1d): the global UUID substrate/backfill is implemented; add Relationship-driven eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, reconciliation/repair, and audit against frozen Ellis and 28-day corpora;
 2. complete the ADR 0034 Relationship semantic layer above the existing sparse REL/PHY Relationship storage: synthesis/materialization, relationship-local derived state, cross-owner visibility, and active-PHY/authorized-REL privacy enforcement;
 3. implement Observation persistence and bounded multi-Memory extrapolation with exact support/derivation lineage;
 4. add separately embedded high-recall Observation routing receptors and strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/Relationship-routed candidates rather than an all-Observation scan;

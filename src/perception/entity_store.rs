@@ -7,7 +7,7 @@ use crate::entity_codec::{
     EntityTombstone, EntityVersion, encode_format, encode_record, encode_tombstone, encode_version,
 };
 use crate::entity_model::EntityRecord;
-use crate::{Container, Entity, EntityDraft, EntityError, EntityId};
+use crate::{Container, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};
 use validation::{normalize_draft, validate_record};
@@ -49,7 +49,18 @@ impl EntityStore {
         container: &mut Container,
         id: Option<EntityId>,
         expected_revision: u64,
+        draft: EntityDraft,
+    ) -> Result<(Entity, bool), EntityError> {
+        self.publish_with_global_id(container, id, expected_revision, draft, None)
+    }
+
+    pub(crate) fn publish_with_global_id(
+        &mut self,
+        container: &mut Container,
+        id: Option<EntityId>,
+        expected_revision: u64,
         mut draft: EntityDraft,
+        requested_global_id: Option<EntityGlobalId>,
     ) -> Result<(Entity, bool), EntityError> {
         normalize_draft(&mut draft)?;
         let id = if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
@@ -80,6 +91,21 @@ impl EntityStore {
         if current.is_some_and(|record| record.created_at_ns != draft.created_at_ns) {
             return Err(EntityError::InvalidField("Entity created_at"));
         }
+        let global_id = match current.and_then(|record| record.global_id) {
+            Some(existing) => {
+                if requested_global_id.is_some_and(|requested| requested != existing) {
+                    return Err(EntityError::InvalidField("Entity global UUID"));
+                }
+                existing
+            }
+            None => requested_global_id.unwrap_or_else(|| {
+                if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+                    crate::entity_principal::principal_entity_global_id(&draft.canonical_name)
+                } else {
+                    EntityGlobalId(*uuid::Uuid::new_v4().as_bytes())
+                }
+            }),
+        };
 
         let revision = expected_revision
             .checked_add(1)
@@ -91,6 +117,7 @@ impl EntityStore {
 
         let mut record = EntityRecord {
             id,
+            global_id: Some(global_id),
             revision,
             canonical_name: draft.canonical_name,
             aliases: draft.aliases,
@@ -319,6 +346,7 @@ fn entity_id(mutation_id: &str) -> EntityId {
 fn resolve(record: &EntityRecord) -> Entity {
     Entity {
         id: record.id,
+        global_id: record.global_id,
         revision: record.revision,
         canonical_name: record.canonical_name.clone(),
         aliases: record.aliases.clone(),
