@@ -3,7 +3,6 @@ use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::conversation_compaction_store::ConversationCompactionStore;
 use crate::cva_memory_publish::publish_memory_parts;
-use crate::dream_cooldown::DreamCooldownStore;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::echo_store::EchoStore;
@@ -17,6 +16,7 @@ use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
 use crate::rel_metadata_store::RelMetadataStore;
@@ -36,7 +36,7 @@ pub struct Cva {
     pub(crate) graph: GraphStore,
     pub(crate) communities: CommunityStore,
     pub(crate) duplicate_index: DuplicateIndex,
-    pub(crate) dream_cooldowns: DreamCooldownStore,
+    pub(crate) processing_epochs: ProcessingEpochStore,
     pub(crate) dream_pairs: DreamPairStore,
     pub(crate) insomnia: InsomniaStore,
     pub(crate) lexical_index: LexicalIndex,

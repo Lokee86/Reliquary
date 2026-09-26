@@ -1,6 +1,5 @@
 use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::dream_cooldown::DreamCooldownStore;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
@@ -12,6 +11,7 @@ use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
+use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::relationship_store::RelationshipStore;
 use crate::{
     Container, Memory, MemoryBodyId, MemoryDraft, MemoryError, MemoryId, MemoryStats,
@@ -25,7 +25,7 @@ pub struct Phylactery {
     pub(crate) graph: GraphStore,
     pub(crate) communities: CommunityStore,
     pub(crate) duplicate_index: DuplicateIndex,
-    pub(crate) dream_cooldowns: DreamCooldownStore,
+    pub(crate) processing_epochs: ProcessingEpochStore,
     pub(crate) dream_pairs: DreamPairStore,
     pub(crate) packed_vectors: PackedVectorStore,
     pub(crate) memory_vectors: MemoryVectorStore,

@@ -12,6 +12,29 @@ fn dream_processing_lane_has_stable_id_one() {
 }
 
 #[test]
+fn dream_checkpoint_is_stored_in_generic_processing_epoch_state() {
+    let path = test_path("dream-processing-epoch-store.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut cva,
+        "generic-processing-state",
+        "Generic processing state",
+        "Dream checkpoint ownership",
+        0,
+        45 * DAY_NS,
+    );
+
+    assert!(cva.mark_dream_processed(id, 3, 95 * DAY_NS).unwrap());
+    let state = cva
+        .processing_epochs
+        .state(id, DREAM_PROCESSING_LANE)
+        .unwrap();
+    assert_eq!(state.satisfied_through_epoch, 3);
+    assert_eq!(state.cadence_version, 1);
+    assert_eq!(state.checkpoint_at_ns, Some(95 * DAY_NS));
+}
+
+#[test]
 fn provenance_age_selects_one_current_epoch_without_backlog() {
     assert_eq!(DEFAULT_DREAM_REPROCESS_COOLDOWN_NS, 30 * DAY_NS);
     assert_eq!(dream_epoch(10 * DAY_NS, 9 * DAY_NS), 0);

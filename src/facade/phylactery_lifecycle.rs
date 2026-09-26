@@ -1,7 +1,6 @@
 use crate::community_store::{CommunityOpenState, CommunityStore};
 use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::dream_cooldown::DreamCooldownStore;
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::ego_store::EgoStore;
@@ -18,6 +17,7 @@ use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::phylactery_profile_store::PhylacteryProfileStore;
+use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::relationship_rebuild::RelationshipOpenState;
 use crate::relationship_store::RelationshipStore;
 use crate::{Container, ContainerIdentity, FileKind, Phylactery, PhylacteryError};
@@ -67,7 +67,7 @@ impl Phylactery {
         let lexical_index = LexicalIndex::default();
         let mut graph = GraphStore::empty();
         let communities = CommunityStore::default();
-        let dream_cooldowns = DreamCooldownStore::default();
+        let processing_epochs = ProcessingEpochStore::default();
         let dream_pairs = DreamPairStore::default();
         let packed_vectors = PackedVectorStore::default();
         let memory_vectors = MemoryVectorStore::default();
@@ -94,7 +94,7 @@ impl Phylactery {
             graph,
             communities,
             duplicate_index: DuplicateIndex::empty(),
-            dream_cooldowns,
+            processing_epochs,
             dream_pairs,
             packed_vectors,
             memory_vectors,
@@ -115,7 +115,7 @@ impl Phylactery {
         let mut memory_vector_state = MemoryVectorOpenState::new();
         let mut profile_state = CompatibilityProfileOpenState::new();
         let mut phylactery_profile = PhylacteryProfileStore::default();
-        let mut dream_cooldowns = DreamCooldownStore::default();
+        let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut ego = EgoStore::phylactery();
         let mut entity_state = EntityOpenState::new();
@@ -135,7 +135,7 @@ impl Phylactery {
             phylactery_profile
                 .ingest(payload)
                 .map_err(PhylacteryError::Profile)?;
-            dream_cooldowns.ingest(payload)?;
+            processing_epochs.ingest(payload)?;
             dream_pairs.ingest(payload)?;
             ego.ingest(payload)?;
             entity_resolutions.ingest(payload)?;
@@ -171,7 +171,7 @@ impl Phylactery {
         let lexical_index = LexicalIndex::default();
         ego.validate_memory_version(memories.memory_version())?;
         validate_phylactery_provenance(&memories)?;
-        dream_cooldowns.validate(&memories)?;
+        processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         let graph = graph_state.finish(&memories, &entities)?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
@@ -197,7 +197,7 @@ impl Phylactery {
             graph,
             communities,
             duplicate_index: DuplicateIndex::empty(),
-            dream_cooldowns,
+            processing_epochs,
             dream_pairs,
             packed_vectors,
             memory_vectors,
