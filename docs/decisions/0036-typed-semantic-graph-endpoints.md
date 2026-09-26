@@ -12,15 +12,17 @@ Accepted — 2026-09-17. Typed node identity/catalogue, durable Entity owner, an
 
 Reliquary's Graph is already an independent semantic owner backed by Arcana's repository-agnostic graph kernel. The implemented wrapper historically restricted every durable Graph endpoint to a same-owner `MemoryId` because Dream was the only semantic producer using it.
 
-ADR 0033 adds two sibling first-class semantic objects:
+ADR 0033 adds Entity and Observation identities to the owner-local typed Graph catalogue:
 
 ```text
 Memory | Entity | Observation
 ```
 
-Entities and Observations are intended to function as real semantic nodes, not caches or Memory subtypes. Keeping separate hidden adjacency structures for Memory-to-Entity and support/derivation topology would duplicate the graph machinery that Arcana already supplies and would prevent one coherent semantic topology.
+The catalogue is a **topology type system**, not a claim that every node kind is propositional. Memories and Observations are propositional nodes. Entities are referential/traversal nodes: they carry durable identity and connect propositions that concern the same referent, but Entity existence is not itself evidentiary authority.
 
-At the same time, node kinds do not share identical authority or lifecycle rules. Memory, Entity, and Observation records remain purpose-built semantic domains even when they share graph identity/topology machinery.
+Keeping separate hidden adjacency structures for Memory-to-Entity and Observation support/derivation topology would duplicate the graph machinery that Arcana already supplies and would prevent one coherent typed topology.
+
+The node kinds retain purpose-built authority and lifecycle rules even though they share graph identity/traversal machinery.
 
 ## Decision
 
@@ -80,7 +82,7 @@ Relation-record generalization is a separate implementation step and must preser
 ## Consequences
 
 - Arcana is reused rather than replaced.
-- Memory, Entity, and Observation can share one topology/traversal substrate without sharing object lifecycle semantics.
+- Memory, Entity, and Observation can share one topology/traversal substrate without implying that Entity nodes are propositional evidence or that the node kinds share lifecycle semantics.
 - Entity associations do not require a second hidden adjacency database.
 - Observation support/topology can later use the same graph substrate where its semantic contract is truly edge-shaped.
 - ADR 0034 relational-Observation participant profiles remain distinct from ordinary Graph edges; cross-owner participant references do not create cross-owner Arcana topology.

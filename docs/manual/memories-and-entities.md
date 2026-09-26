@@ -4,13 +4,15 @@ Parent index: [Reliquary operator manual](INDEX.md)
 
 ## Purpose
 
-Show how to create, revise, inspect, and connect the two currently durable semantic node owners.
+Show how to create, revise, inspect, and connect the two currently durable Memory/Entity owners while preserving their different semantic roles.
 
 ## Overview
 
-Memory and Entity are sibling semantic objects with separate authority. Memory is source-grounded proposition state; Entity is canonical state for a **continuing identity**.
+Memory is source-grounded **proposition state**. Entity is canonical **referential/traversal state** for a continuing identity. They share typed Graph/topology machinery, but an Entity does not itself assert a proposition or become standalone Observation evidence.
 
-A stable identifier alone does not make something an Entity. Individual commits/revisions, builds, benchmark/test runs, snapshots, requests/responses, transactions, deployment instances, and one-off sessions normally remain in Memory/provenance.\n\nFine-grained implementation referents are also not promoted merely because they can be named precisely. A first mention of a function, field, constant, input action, minor file, UI control, small helper, or similar implementation detail normally stays as an extracted Memory mention plus `Pending(recurrence_required)`. A second compatible Memory can promote the referent; the earlier pending mention is then eligible to resolve to the same Entity. Repositories, continuing files/directories, services, components, people, projects, tools, and other identities that can recur and accumulate observations are appropriate Entity candidates.
+A stable identifier alone does not make something an Entity. Individual commits/revisions, builds, benchmark/test runs, snapshots, requests/responses, transactions, deployment instances, and one-off sessions normally remain in Memory/provenance.
+
+Fine-grained implementation referents are also not promoted merely because they can be named precisely. A first mention of a function, field, constant, input action, minor file, UI control, small helper, or similar implementation detail normally stays as an extracted Memory mention plus `Pending(recurrence_required)`. A second compatible Memory can promote the referent; the earlier pending mention is then eligible to resolve to the same Entity. Repositories, continuing files/directories, services, components, people, projects, tools, and other identities that can recur and accumulate observations are appropriate Entity candidates.
 
 ## Publish a Memory
 

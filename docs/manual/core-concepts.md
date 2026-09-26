@@ -34,19 +34,21 @@ A Memory is a source-grounded proposition extracted from user-authoritative sour
 
 ### Entity
 
-An Entity is a durable canonical referent mentioned by Memories: a person, project, service, file-like referent, organization, and so on.
+An Entity is a durable canonical referent: a person, project, service, file-like referent, organization, place, and so on.
 
-Entity is a sibling semantic object, not a subtype of Memory.
+Entity is a first-class **referential/traversal object**, not a proposition and not a subtype of Memory. It supplies durable identity, routing, participant binding, and graph traversal between propositions that refer to the same thing.
 
 Current Entity storage supports stable IDs, metadata revisions, canonical names, aliases, persistence/reopen, migration/reconciliation, and Graph association.
 
 ### Observation
 
-An Observation is intended to be a higher-order proposition inferred from multiple pieces of knowledge. The semantic node kind exists, but there is not yet a durable Observation owner or accepted production relation family. Treat Observation workflows as planned.
+An Observation is a derived higher-order proposition inferred from Memories and/or other Observations with exact support/derivation lineage. Memories and Observations are the propositional nodes used by Observation reasoning; Entity nodes only route/constrain that reasoning.
+
+Relationship-class knowledge is represented as a relational Observation with structured Entity participants. Observation storage/synthesis is not yet implemented; treat these workflows as accepted planned architecture rather than current product behavior.
 
 ### Graph
 
-Graph owns semantic relationships between owner-local semantic nodes.
+Graph owns semantic relationships/topology between owner-local typed graph nodes. The technical `SemanticNodeRef` catalogue includes Memory, Entity, and Observation kinds even though only Memories and Observations are propositional.
 
 Current relation families include:
 
@@ -69,7 +71,9 @@ Dream reasons over Memory relationships and publishes verified Memory-to-Memory 
 
 ### Perception
 
-Perception owns Entities and future Observations. Durable Entity storage, Memory-to-Entity Graph associations, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, deterministic per-mention processor persistence, and long-lived post-Dream runtime scheduling are implemented for Entity pass 1. The organic zero-Entity bootstrap is corpus-proven. Relationship and Observation passes remain future work.
+Perception owns durable Entity referential state and future Observation propositional state. Durable Entity storage, Memory-to-Entity Graph associations, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, deterministic per-mention processor persistence, and long-lived post-Dream runtime scheduling are implemented.
+
+Planned Observation processing uses fully processed Memories/Observations as anchors, separate contribution/ordinary-synthesis/relational-synthesis calls, staggered Exploitation and Exploration discovery, bounded recent comparison history, multiple candidate-selection lanes, and reasoning-directed evidence expansion. Relational Observations share Observation authority/lifecycle but cannot recursively synthesize another relational Observation.
 
 ### Durable vs derived
 

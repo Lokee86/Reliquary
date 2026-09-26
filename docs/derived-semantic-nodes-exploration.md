@@ -4,11 +4,13 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Status
 
-Exploratory design record — 2026-09-08. This is not implemented architecture and does not yet authorize a persistent-format or Graph-model change.
+Exploratory design record — 2026-09-08. This is historical design input, not current implementation authority.
+
+The terminology in this record predates the accepted Perception distinction. Where it loosely groups Entity and Observation as equivalent "semantic nodes," current ADRs supersede that wording: **Memories and Observations are propositional nodes; Entities are referential/traversal nodes that carry identity and routing structure but do not themselves assert propositions.**
 
 ## Overview
 
-This retained exploration captured the first-class Entity/Observation idea before Perception was accepted. It is historical design input rather than current implementation authority; the accepted direction now lives in ADR 0033, ADR 0034, and the Perception subsystem plan.
+This retained exploration captured the first-class Entity/Observation idea before Perception was accepted. The accepted direction now lives in ADR 0033, ADR 0034, ADR 0036, and the Perception subsystem plan. Preserve this file as design history rather than retroactively treating its earlier terminology as current architecture.
 
 ## Purpose
 

@@ -212,37 +212,43 @@ The shipped design and validation history belong to current architecture/referen
 
 ## Perception
 
-Implement the Entity/Observation semantic layer defined by [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md), with ADR 0034's relational-Observation specialization and privacy rules, following the detailed [Perception subsystem plan](perception-subsystem-plan.md).
+Implement the referential-Entity / propositional-Observation architecture defined by [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md), with ADR 0034's relational-Observation specialization and privacy rules, following the detailed [Perception subsystem plan](perception-subsystem-plan.md).
 
-Entity-mention enrichment and owner-local Entity pass 1 are implemented. The remaining sequence is:
+Entity-mention enrichment and owner-local Entity processing are implemented. Remaining work is:
 
 1. complete cross-scope Entity identity (Pass 1d): the global UUID substrate/backfill is implemented; add relational-evidence-driven eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, reconciliation/repair, and audit against frozen Ellis and 28-day corpora;
-2. define the unified Observation owner and converge the existing sparse REL/PHY `RelationshipStore` into a relational-Observation profile keyed by Observation identity rather than an independent semantic authority;
-3. implement bounded multi-Memory Observation extrapolation as two scheduled lanes: immediate **Exploitation** for each newly integrated Memory plus provenance-epoch reprocessing, and delayed **Exploration** beginning at the Memory's next cooldown epoch; both lanes reuse Dream's provenance-anchored epoch model but maintain Perception-local processing state;
-4. implement Exploitation context scaling from whole-Web bootstrap -> containing Community -> containing subcommunity -> bounded local neighbourhood, while allowing budgeted traversal beyond the initial region during evidence gathering;
-5. implement Exploration context construction from stochastic/diversity/novelty signals plus a cheap Decision-style relatedness probe, using bounded recent-run/context history rather than a permanent settled-pair ledger;
-6. implement staged Observation formation: candidate proposal -> evidence expansion -> reasoning-specific derivation -> independent verification -> publication, with exact many-to-many typed support/derivation lineage and sparse relational-Observation synthesis under active-PHY/authorized-REL privacy;
-7. add separately embedded high-recall Observation routing receptors and strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/relational-participant-routed candidates rather than an all-Observation scan;
-8. add mutation-threshold and wall-time Observation reconsideration plus persistent Entity/Observation ambiguity and deterministic runtime clarification injection; and
-9. extend derived Communities into a multi-resolution semantic hierarchy only where measured routing/scale evidence justifies it, preserving lineage/naming/inspection semantics and bounded local processing neighbourhoods for oversized irreducible leaves.
+2. define the unified Observation owner and converge the sparse REL/PHY RelationshipStore into a relational-Observation profile keyed by Observation identity rather than an independent semantic authority;
+3. implement fully processed **Memory and Observation propositional anchors**; Entity creation remains traversal/referential state and does not independently anchor Observation synthesis;
+4. implement staggered synthesis scheduling: immediate **Exploitation** for new anchors, then per-mode cadence C; **Exploration** is offset by C / 2 and then recurs on the same cadence;
+5. implement whole-Web bootstrap while the authorized propositional Web fits, then the four Exploitation candidate lanes: Entity bridge, source neighbourhood, Web-structure/regional neighbourhood, and derivation neighbourhood;
+6. implement distinct candidate-generation and context/inference budgets, bounded Exploitation overflow, recent Exploitation/Exploration comparison ledgers, and multiple narrow comparison jobs per anchor round;
+7. implement Exploration lanes for Exploitation overflow, semantic similarity, lexical similarity, cross-region sampling, and random sampling, with optional cheap Decision/Jev routing probes;
+8. implement separate **ordinary Observation synthesis** and **relational Observation synthesis** model contracts under either Exploitation or Exploration; relational synthesis requires at least two distinct durable Entity participants and may not consume relational Observations as relational-synthesis evidence;
+9. implement staged formation: discovery selection -> proposal -> reasoning-directed evidence expansion -> deductive/inductive/abductive/abstractive derivation -> independent verification -> publication, with exact many-to-many lineage and transitive-overlap accounting;
+10. implement high-recall Observation receptors plus strict pairwise **propositional anchor <-> existing Observation** contribution, including Observation anchors with bounded support-lineage hydration;
+11. add target-Observation mutation thresholds/reconsideration, class-sensitive wall-time staleness policy, persistent Entity/Observation ambiguity, and deterministic runtime clarification injection; and
+12. extend derived Communities into a multi-resolution hierarchy only where measured routing/retrieval value justifies it. Communities remain one Web-structure/regional signal rather than the primary Observation candidate mechanism.
 
-Perception must preserve these scaling boundaries:
+Perception must preserve these boundaries:
 
-- new Memory processing is the ordinary new-Observation discovery trigger; lower-level Graph/Entity/Community mutations do not recursively schedule synthesis;
-- whole-Web processing is permitted while the relevant Web fits the synthesis budget; Communities become a scaling/routing mechanism only when needed;
-- Exploitation runs immediately for new Memories and may recur on provenance-anchored cooldown epochs; Exploration begins only at the next epoch and then recurs on the same cadence;
-- Exploration has no permanent settled-pair ledger; only bounded recent comparison/context history suppresses immediate repetition;
-- Community boundaries are not hard inference boundaries: budgeted traversal may cross them while gathering evidence;
-- no exhaustive `new Memory x all Observations` inference path;
-- no exhaustive Entity-pair relational-Observation inference path and no automatic relational proposition per Entity pair;
+- Memories and Observations are propositional reasoning nodes; Entities are referential/traversal nodes and do not enter synthesis as standalone evidence;
+- newly published Observations may become anchors for higher-order reasoning after their own required processing completes;
+- lower-level Graph/Entity/Community mutations do not recursively schedule synthesis by themselves;
+- whole-Web bootstrap is permitted only while the authorized propositional Web fits the configured context budget;
+- outside bootstrap, Exploitation requires an independent structural/provenance/derivation reason for comparison; embedding similarity alone is not an Exploitation justification;
+- Exploration is intentionally wide-ranging and uses bounded recent comparison history rather than a permanent settled-pair ledger or a theoretical "ever Exploitation-eligible" blacklist;
+- candidates omitted by Exploitation budget remain recoverable, including through the Exploitation-overflow Exploration lane;
+- candidate-generation budgets and model-context/inference budgets are distinct;
+- Communities are not hard inference boundaries and are not the primary Observation selector;
+- no exhaustive anchor-by-all-Observations contribution scan;
+- no exhaustive Entity-pair relational-Observation path and no automatic relation per Entity pair;
+- no relational Observation used as evidence/anchor for new relational-Observation synthesis;
 - no non-active PHY relational-Observation traversal through shared REL Entities;
-- no forced/fake Leiden subdivisions or super-community groupings solely to meet context/presentation budgets;
-- no promotion of scan-and-merge reduction intermediates into semantic hierarchy; multi-resolution structure must be derived independently from graph/community state;
-- no routing receptor as evidentiary authority;
+- no routing receptor or Decision/Jev probe as evidentiary authority;
 - no deletion/invalidation of Observations merely because confirming evidence failed to arrive; and
 - no general curiosity/open-question framework beyond Entity/Observation ambiguity in the initial subsystem.
 
-Scale/quality gates should measure receptor recall, pairwise false positives, whole-Web/bootstrap cost, Exploitation context coverage, Exploration bridge yield/diversity/repetition, multi-resolution Community/local-neighbourhood coverage, traversal budget effectiveness, reasoning/verification precision, hierarchy stability/lineage quality, inference cost growth, and stale-Observation lifecycle behavior before tuning thresholds or adding broader inference.
+Scale/quality gates should measure receptor recall, contribution false positives, whole-Web/bootstrap cost, per-lane Exploitation yield and starvation, Exploitation-overflow recovery, Exploration diversity/repetition/bridge yield, recent-ledger behavior, comparison-context cost, reasoning-specific precision, evidence-expansion effectiveness, cascade depth/fan-out, duplicate rejection, transitive-provenance double-count prevention, relational-synthesis gating, and class-sensitive stale-Observation lifecycle behavior before tuning thresholds or adding broader inference.
 
 ## Memory-web and retrieval integration
 

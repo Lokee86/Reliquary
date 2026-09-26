@@ -6,7 +6,7 @@ Implementation planning: [Perception subsystem plan](../perception-subsystem-pla
 
 ## Status
 
-Accepted — 2026-09-08; semantic model amended 2026-09-25.
+Accepted — 2026-09-08; semantic model amended 2026-09-25; relational candidate/synthesis constraints and shared Exploitation/Exploration discovery model amended 2026-09-26.
 
 The owner-local Relationship persistence foundation implemented on 2026-09-23 remains valid storage work, but **Relationship is no longer a sibling semantic object beside Observation**. Relationship semantics are now defined as a specialized **relational Observation**: an Observation whose proposition describes a durable connection among two or more resolved Entities.
 
@@ -77,10 +77,12 @@ Relational Observations use the same Observation semantics for:
 - exact support/derivation lineage;
 - contradiction, qualification, ambiguity, and supersession;
 - mutation-driven reconsideration;
-- wall-time staleness;
+- Observation lifecycle/currentness policy;
 - user authorship/correction;
 - Chronos valid-time interpretation; and
 - routing receptors where future evidence may materially bear on the proposition.
+
+Relational classes may specialize **whether wall-time staleness is applicable** without creating a separate lifecycle system. Current-state relationships may need wall-time currentness checks, while durable/historical relationship classes may reasonably be immune to staleness-by-time alone. The exact class/policy mapping remains calibration/design work; valid-time closure and semantic staleness must remain distinct concepts.
 
 ### Structured participants do not replace the proposition
 
@@ -99,11 +101,22 @@ The structured profile can support deterministic lookup and privacy composition.
 
 ### Relational Observations are sparse and semantically materialized
 
-Entity existence does not imply a relational Observation. Reliquary must not materialize one for every Entity pair or possible participant set.
+Entity existence does not imply a relational Observation. Reliquary must not materialize one for every Entity pair or possible participant set, and an Entities-only context can never establish a proposition because Entities are referential/traversal nodes rather than evidence.
 
-Candidate discovery is bounded to affected evidence and resolved Entities. Explicit durable relational facts may justify immediate synthesis. Otherwise repeated or convergent evidence may be needed before a useful higher-order relational proposition exists.
+Relational synthesis uses the same Exploitation and Exploration discovery modes as ordinary Observation synthesis, but it has a specialized candidate/output contract:
 
-This is a specialized candidate-generation path inside Observation extrapolation, not an all-Entity-pairs inference pass and not a separate semantic synthesis subsystem.
+- the propositional anchor must reference at least one durable Entity;
+- the selected propositional context must introduce at least one other distinct durable Entity;
+- a published relational Observation must carry at least two distinct canonical Entity participants; and
+- a relational Observation is not eligible as evidence/anchor for synthesizing another relational Observation.
+
+Memories and ordinary Observations may provide relational evidence. Relational Observations may still contribute to ordinary higher-order Observations and may themselves receive new evidence through contribution/reconsideration.
+
+The two-participant rule is a deterministic shape invariant only. Whether the evidence actually establishes a useful relationship remains semantic judgment.
+
+A cheap Decision/Jev-style relatedness gate may reject clearly unpromising relational candidate contexts before heavier synthesis. Its score is routing metadata only and cannot establish the relational proposition.
+
+This is a specialized candidate-generation and model-call path inside unified Observation processing, not an all-Entity-pairs inference pass and not an independent semantic authority.
 
 ### Participants use owner-qualified Entity identity
 
@@ -203,19 +216,16 @@ Their evidence remains ordinary owner-qualified semantic evidence and their life
 
 Perception owns relational Observation synthesis because it depends on resolved Entity identity and higher-order semantic judgment.
 
-Candidate discovery may use:
+Relational candidate discovery shares the same high-level discovery modes as ordinary Observation synthesis:
 
-- explicit relational language;
-- resolved participant Entities;
-- repeated co-occurrence or role evidence;
-- Dream graph locality;
-- lexical locality;
-- existing relational Observations; and
-- exact support/dependency changes.
+- **Exploitation** follows strongly justified Entity, source, Web-structure/regional, and derivation routes;
+- **Exploration** may use Exploitation overflow, semantic/lexical similarity, cross-region sampling, and random comparison under bounded recent-comparison history.
+
+The Entity bridge is particularly important for relational synthesis because canonical Entity identity supplies participant routing without making the Entity itself evidence.
 
 The actual semantic output is still an Observation proposition with support lineage. Specialized participant extraction/classification may accompany that proposition, but no independent Relationship truth object is created.
 
-Existing-Observation contribution remains the ordinary pairwise `Memory <-> Observation` contract, including relational Observations. New relational propositions are created through bounded Observation extrapolation.
+Existing-Observation contribution uses the ordinary pairwise `propositional anchor <-> Observation` contract, including relational Observations as targets. Memories and ordinary Observations may support, challenge, qualify, or otherwise mutate a relational Observation and thereby trigger its reconsideration. Relational Observations may contribute to ordinary Observations but are excluded from new relational-Observation synthesis.
 
 ## Existing Relationship persistence foundation
 
@@ -241,15 +251,16 @@ Historical replay may continue to preserve existing Relationship records during 
 
 ## Consequences
 
-Perception has two first-class semantic object families rather than three:
+Perception has one derived propositional family plus durable referential identity:
 
 ```text
-Entity
-Observation
+Entity                         = referential/traversal node
+Memory                         = source-grounded propositional node
+Observation                    = derived propositional node
     └── relational specialization ("Relationship")
 ```
 
-This removes duplicated lifecycle, provenance, ambiguity, reconsideration, and temporal semantics between Relationships and Observations.
+This removes duplicated lifecycle, provenance, ambiguity, reconsideration, and temporal semantics between Relationships and Observations while preserving Entity identity as traversal/participant structure rather than proposition authority.
 
 Relational knowledge still gets the structure it needs for participant queries, role/cardinality validation, cross-owner references, portable REL state, and active-PHY privacy.
 
@@ -292,9 +303,10 @@ Rejected. Relational Observations need structured semantics and provenance, not 
 - unified Observation persistence schema and stable Observation identity;
 - migration/convergence of the implemented `RelationshipStore` and `RelationshipId` foundation into relational Observation representation;
 - participant-role and cardinality vocabulary;
-- sparse relational candidate-generation/materialization thresholds;
-- exact support/derivation representation for relational Observations, including non-Memory semantic evidence;
+- sparse relational candidate-generation/materialization thresholds and per-lane budgets;
+- exact support/derivation representation for relational Observations, including ordinary-Observation evidence while excluding relational-Observation-to-relational-Observation synthesis;
 - receptor generation and contribution routing for relational Observations;
+- relationship-class wall-time-staleness applicability, including durable/historical classes that should not decay merely because time passes;
 - active-PHY plus authorized-REL composition APIs;
 - authorization policy beyond the owner-visibility baseline; and
 - Ego retrieval/context rules over the effective relational-Observation view.
@@ -305,7 +317,10 @@ Implementation must protect at minimum:
 
 - no semantic Relationship authority independent of Observation;
 - no relational Observation creation solely because Entities exist;
+- at least two distinct canonical Entity participants for every published relational Observation;
+- no relational Observation used as evidence/anchor for synthesizing another relational Observation;
 - no all-Entity-pairs inference path;
+- both Exploitation and Exploration may derive relational Observations under the same relational gates;
 - exact Observation support/derivation lineage for relational propositions;
 - durable participant identity through owner-qualified Entity references;
 - separate personal, organization, and project relational Observations for the same participants;
