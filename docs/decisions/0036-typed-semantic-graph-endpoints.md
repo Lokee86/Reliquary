@@ -61,7 +61,7 @@ Sharing Graph storage does not merge those semantic responsibilities.
 
 The semantic Graph remains owner-local to one REL or PHY. A bare `SemanticNodeRef` is meaningful only inside that durable owner.
 
-ADR 0034 cross-owner Relationships remain separate first-class containers using owner-qualified Entity references. This ADR does not create cross-owner Arcana edges or allow one owner's Graph to traverse another owner's private state.
+ADR 0034 relational Observations may carry owner-qualified Entity references across mounted owners, but those cross-owner participant references remain payload/provenance references rather than Arcana edges. Relationship is not a fourth Graph node kind or a semantic object sibling to Observation. This ADR does not create cross-owner Arcana edges or allow one owner's Graph to traverse another owner's private state.
 
 ## Communities
 
@@ -83,7 +83,7 @@ Relation-record generalization is a separate implementation step and must preser
 - Memory, Entity, and Observation can share one topology/traversal substrate without sharing object lifecycle semantics.
 - Entity associations do not require a second hidden adjacency database.
 - Observation support/topology can later use the same graph substrate where its semantic contract is truly edge-shaped.
-- Rich ADR 0034 Relationship containers remain distinct from ordinary Graph edges.
+- ADR 0034 relational-Observation participant profiles remain distinct from ordinary Graph edges; cross-owner participant references do not create cross-owner Arcana topology.
 - Dream can later consume Entity IDs as a deterministic candidate-routing signal without owning Entity resolution.
 - Existing Dream behavior remains valid as the Memory-only projection of the broader semantic Graph.
 

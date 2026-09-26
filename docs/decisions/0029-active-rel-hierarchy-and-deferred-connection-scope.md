@@ -54,7 +54,7 @@ The Phylactery remains the separate user-owned durable scope. This ADR removes c
 
 The earlier idea of a special relationship/Connection **REL owner** is not part of the active model. Old Connection-typed files remain readable as legacy RELs.
 
-ADR 0034 subsequently reactivates relationship-specific semantic state as a separate sparse Relationship layer over owner-qualified Entity references. That layer may span REL/PHY Entity identities and carry bounded relationship-local derived state, but it does not reintroduce Connection as a REL class or give each relationship an independent Memory Web.
+ADR 0034 subsequently reactivates relationship-specific semantics as **relational Observations** with structured owner-qualified Entity participants. Those Observations may span mounted REL/PHY Entity identities while remaining owned by one ordinary REL or PHY; they do not reintroduce Connection as a REL class, create a third Perception semantic object family, or give each relationship an independent Memory Web. The previously implemented `RelationshipStore` is transitional persistence to be converged with Observation.
 
 ## Consequences
 
@@ -93,7 +93,7 @@ Rejected. It creates sibling/project cross-contamination and makes mounting a RE
 - [ADR 0021 — Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md)
 - [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
 - [Roadmap](../roadmap.md)
-- [ADR 0034 — Cross-owner Relationship graph and active-PHY privacy boundary](0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
+- [ADR 0034 — Cross-owner relational Observations and active-PHY privacy boundary](0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
 - [Architecture](../architecture.md)
 
 ## Notes

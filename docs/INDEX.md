@@ -12,7 +12,7 @@
 - [Community scan-and-merge benchmark — 2026-08-27](community-scan-merge-benchmark-2026-08-27.md) — synthetic scaling and modularity comparison for community algorithm v2 against monolithic Leiden.
 - [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md) — small owner-split routing and synthetic scale evidence that established the requirements for a larger real Memory-Web validation.
 - [Community routing validation — 2026-08-29](community-routing-validation-2026-08-29.md) — five-fold 1,087-Memory validation of four-sub-centroid/top-4 routing, end-to-end traversal quality, vector-work reduction, and context-diversity checks.
-- [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) — retained scope-ownership rationale, REL/PHY authority separation, dependency-based REL composition, and the ADR 0034 owner-local/cross-owner-referential Relationship layer.
+- [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) — retained scope-ownership rationale, REL/PHY authority separation, dependency-based REL composition, and ADR 0034 cross-owner relational-Observation privacy/reference rules.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.
@@ -25,9 +25,10 @@
 - [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.
 - [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
 - [Chronos subsystem plan](chronos-subsystem-plan.md) — shared temporal architecture and implementation status: deterministic core/coverage, corpus-calibrated indication detection, unresolved-only verified inference, and Insomnia Memory persistence are implemented; Perception integration and measured coverage expansion remain.
-- [Perception subsystem plan](perception-subsystem-plan.md) — accepted architecture and staged implementation record; Entity pass 1 and its post-Dream runtime scheduling are implemented, while Relationship/Observation synthesis, routing receptors, and ambiguity clarification remain staged work.
+- [Perception subsystem plan](perception-subsystem-plan.md) — accepted architecture and staged implementation record; Entity pass 1 and its post-Dream runtime scheduling are implemented, while Observation synthesis (including relational Observations), persistence convergence, routing receptors, and ambiguity clarification remain staged work.
 - [Entity mention resolution state](entity-resolution-state.md) — current per-mention resolution persistence/lifecycle, evidence-driven wake/retry, and runtime scheduling contract.
 - [Derived semantic nodes exploration](derived-semantic-nodes-exploration.md) — exploratory Entity/Observation graph-node model, semantic authority, user authorship, derivation provenance, and Hindsight/Honcho boundary.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
+- [External research references](references/INDEX.md) — preserved third-party papers and research snapshots used as supporting design/evaluation evidence; not canonical project architecture.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.

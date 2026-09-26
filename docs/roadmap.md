@@ -10,12 +10,12 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 Reliquary is the purpose-built semantic/storage/runtime library embedded by Warlock. Its semantics do not depend upward on Warlock. Project-file history belongs to Lore or Git through Reliquary's Project Environment; REL/PHY retain independent semantic state and history.
 
-The immediate semantic sequence is now: finish cross-scope Entity identity, then Relationship/Observation composition, then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete.
+The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete.
 
 ## Current semantic sequence
 
-1. **Cross-scope Entity identity.** The durable per-Entity global UUID substrate and legacy backfill are implemented. Complete the Relationship-driven cross-scope comparison/reconciliation lane: deterministic eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, repair, and Pass 1d against the graph-aware host. Calibrate on frozen Ellis and 28-day corpora before promotion.
-2. **Relationship/Observation composition.** Build Relationship visibility/synthesis and Observation composition over stable cross-owner Entity identity, preserving active-PHY/authorized-REL privacy and provenance.
+1. **Cross-scope Entity identity.** The durable per-Entity global UUID substrate and legacy backfill are implemented. Complete the relational-evidence-driven cross-scope comparison/reconciliation lane: deterministic eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, repair, and Pass 1d against the graph-aware host. Calibrate on frozen Ellis and 28-day corpora before promotion.
+2. **Observation composition.** Build Observation persistence, bounded synthesis, and relational-Observation specialization over stable cross-owner Entity identity, preserving active-PHY/authorized-REL privacy and exact provenance.
 3. **Ego.** Implement owner-local synthesis scheduling, graph-aware context assembly, deterministic current-REL Cross-chat selection, budgeting, PHY participation, and context projection. Ego is intentionally last so it composes the completed semantic substrate rather than constraining it prematurely.
 
 ## Additional backlog
@@ -146,7 +146,7 @@ Near-term scope work should:
 - keep governed Organization state distinct from learned observations; and
 - define explicit cross-file Memory/source export and lineage semantics.
 
-Relationship-specific semantic state is reactivated by [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md), but **not** as a Connection REL class. The deterministic sparse Relationship owner is now implemented in both REL and PHY: owner-qualified Entity participants, owner-qualified Memory evidence, revisions/local clocks, reopen, local-reference validation, Entity-merge retargeting, migration, divergent reconciliation, and physical reclamation are covered. The remaining B2 work is semantic synthesis/materialization, lifecycle/relationship-local derived state, and runtime composition/privacy enforcement for active PHY plus authorized active RELs. Existing legacy Connection-typed REL identity remains compatibility-only.
+ADR 0034 now defines relationship-specific knowledge as **relational Observations**, not a Connection REL class or a sibling Relationship semantic object. The existing sparse `RelationshipStore` is implemented in both REL and PHY with owner-qualified Entity participants, Memory evidence, revisions/local clocks, reopen, local-reference validation, Entity-merge retargeting, migration, divergent reconciliation, and physical reclamation. Treat that implementation as transitional relational-profile persistence. Remaining work is to converge it with the Observation owner before synthesis, then implement unified Observation lifecycle/provenance/receptors plus active-PHY/authorized-REL relational-Observation composition/privacy. Existing legacy Connection-typed REL identity remains compatibility-only.
 
 ## Reliquary / Phylactery product transition
 
@@ -212,29 +212,37 @@ The shipped design and validation history belong to current architecture/referen
 
 ## Perception
 
-Implement the Entity/Relationship/Observation semantic layer defined by [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md), [ADR 0034](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md), and the detailed [Perception subsystem plan](perception-subsystem-plan.md).
+Implement the Entity/Observation semantic layer defined by [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md), with ADR 0034's relational-Observation specialization and privacy rules, following the detailed [Perception subsystem plan](perception-subsystem-plan.md).
 
 Entity-mention enrichment and owner-local Entity pass 1 are implemented. The remaining sequence is:
 
-1. complete cross-scope Entity identity (Pass 1d): the global UUID substrate/backfill is implemented; add Relationship-driven eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, reconciliation/repair, and audit against frozen Ellis and 28-day corpora;
-2. complete the ADR 0034 Relationship semantic layer above the existing sparse REL/PHY Relationship storage: synthesis/materialization, relationship-local derived state, cross-owner visibility, and active-PHY/authorized-REL privacy enforcement;
-3. implement Observation persistence and bounded multi-Memory extrapolation with exact support/derivation lineage;
-4. add separately embedded high-recall Observation routing receptors and strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/Relationship-routed candidates rather than an all-Observation scan;
-5. add mutation-threshold and wall-time Observation reconsideration plus persistent Entity/Observation ambiguity and deterministic runtime clarification injection; and
-6. extend derived Communities into a multi-resolution semantic hierarchy only where measured routing/scale evidence justifies it, preserving lineage/naming/inspection semantics and bounded local processing neighbourhoods for oversized irreducible leaves.
+1. complete cross-scope Entity identity (Pass 1d): the global UUID substrate/backfill is implemented; add relational-evidence-driven eligible-owner candidate generation, dirty triggering, pair fingerprints/receipts, reconciliation/repair, and audit against frozen Ellis and 28-day corpora;
+2. define the unified Observation owner and converge the existing sparse REL/PHY `RelationshipStore` into a relational-Observation profile keyed by Observation identity rather than an independent semantic authority;
+3. implement bounded multi-Memory Observation extrapolation as two scheduled lanes: immediate **Exploitation** for each newly integrated Memory plus provenance-epoch reprocessing, and delayed **Exploration** beginning at the Memory's next cooldown epoch; both lanes reuse Dream's provenance-anchored epoch model but maintain Perception-local processing state;
+4. implement Exploitation context scaling from whole-Web bootstrap -> containing Community -> containing subcommunity -> bounded local neighbourhood, while allowing budgeted traversal beyond the initial region during evidence gathering;
+5. implement Exploration context construction from stochastic/diversity/novelty signals plus a cheap Decision-style relatedness probe, using bounded recent-run/context history rather than a permanent settled-pair ledger;
+6. implement staged Observation formation: candidate proposal -> evidence expansion -> reasoning-specific derivation -> independent verification -> publication, with exact many-to-many typed support/derivation lineage and sparse relational-Observation synthesis under active-PHY/authorized-REL privacy;
+7. add separately embedded high-recall Observation routing receptors and strict pairwise `Memory <-> Observation` contribution inference over receptor/entity/dependency/relational-participant-routed candidates rather than an all-Observation scan;
+8. add mutation-threshold and wall-time Observation reconsideration plus persistent Entity/Observation ambiguity and deterministic runtime clarification injection; and
+9. extend derived Communities into a multi-resolution semantic hierarchy only where measured routing/scale evidence justifies it, preserving lineage/naming/inspection semantics and bounded local processing neighbourhoods for oversized irreducible leaves.
 
 Perception must preserve these scaling boundaries:
 
+- new Memory processing is the ordinary new-Observation discovery trigger; lower-level Graph/Entity/Community mutations do not recursively schedule synthesis;
+- whole-Web processing is permitted while the relevant Web fits the synthesis budget; Communities become a scaling/routing mechanism only when needed;
+- Exploitation runs immediately for new Memories and may recur on provenance-anchored cooldown epochs; Exploration begins only at the next epoch and then recurs on the same cadence;
+- Exploration has no permanent settled-pair ledger; only bounded recent comparison/context history suppresses immediate repetition;
+- Community boundaries are not hard inference boundaries: budgeted traversal may cross them while gathering evidence;
 - no exhaustive `new Memory x all Observations` inference path;
-- no exhaustive Entity-pair Relationship inference path and no automatic Relationship-per-Entity materialization;
-- no non-active PHY Relationship traversal through shared REL Entities;
+- no exhaustive Entity-pair relational-Observation inference path and no automatic relational proposition per Entity pair;
+- no non-active PHY relational-Observation traversal through shared REL Entities;
 - no forced/fake Leiden subdivisions or super-community groupings solely to meet context/presentation budgets;
 - no promotion of scan-and-merge reduction intermediates into semantic hierarchy; multi-resolution structure must be derived independently from graph/community state;
 - no routing receptor as evidentiary authority;
 - no deletion/invalidation of Observations merely because confirming evidence failed to arrive; and
 - no general curiosity/open-question framework beyond Entity/Observation ambiguity in the initial subsystem.
 
-Scale/quality gates should measure receptor recall, pairwise false positives, multi-resolution Community/local-neighbourhood coverage, hierarchy stability/lineage quality, inference cost growth, and stale-Observation lifecycle behavior before tuning thresholds or adding broader inference.
+Scale/quality gates should measure receptor recall, pairwise false positives, whole-Web/bootstrap cost, Exploitation context coverage, Exploration bridge yield/diversity/repetition, multi-resolution Community/local-neighbourhood coverage, traversal budget effectiveness, reasoning/verification precision, hierarchy stability/lineage quality, inference cost growth, and stale-Observation lifecycle behavior before tuning thresholds or adding broader inference.
 
 ## Memory-web and retrieval integration
 
@@ -242,7 +250,7 @@ Future integration work:
 
 - attach reusable `MemoryRetrievalIndex` lifecycle to Ego/runtime so repeated queries reuse derived indexes and rebuild deterministically when stale;
 - compose owner-local REL and PHY retrieval above those primitives without creating cross-owner Dream/Graph authority;
-- compose the effective Relationship graph separately from active-PHY Relationships plus authorized active-REL Relationships, preserving Relationship-owner visibility and portable shared REL state;
+- compose the effective relational-Observation view from active-PHY plus authorized active-REL Observations, preserving Observation-owner visibility and portable shared REL state without creating a universal persisted Relationship graph;
 - measure release-mode latency against `GlobalExact` during rollout;
 - consider explicit lower-cost routing modes only if production economics justify them;
 - tune the implemented Community-lineage continuation/material-change thresholds only from real archive behavior; continuity-preserving Community IDs remain unnecessary while derived lineage is sufficient;

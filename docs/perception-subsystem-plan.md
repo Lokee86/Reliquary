@@ -8,13 +8,13 @@ Shared temporal dependency: [ADR 0035 — Chronos](decisions/0035-chronos-shared
 
 ## Status
 
-Accepted architecture; implementation is in progress. Insomnia Entity-mention enrichment and Perception Milestone B's Entity owner, typed Graph association, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, deterministic persistence, per-mention resolution state, and long-lived post-Dream runtime scheduling are implemented. The full 41-case frozen zero-Entity bootstrap converges from no preconstructed Entities and survives reopen. Relationship/Observation passes remain planned.
+Accepted architecture; implementation is in progress. Insomnia Entity-mention enrichment and Perception Milestone B's Entity owner, typed Graph association, bounded candidate retrieval, zero-candidate Admission, calibrated V4 identity resolution, deterministic persistence, per-mention resolution state, and long-lived post-Dream runtime scheduling are implemented. The full 41-case frozen zero-Entity bootstrap converges from no preconstructed Entities and survives reopen. Observation synthesis remains planned; ADR 0034 now defines Relationships as a relational Observation specialization. The existing Relationship persistence foundation is transitional storage to converge with the Observation owner before synthesis ships.
 
 This document owns the implementation shape for Perception. ADR 0033 owns the architectural decision and rationale. Current shipped/proven behavior is also reflected in the architecture, API, manual, and limitation docs.
 
 ## Overview
 
-Perception is the planned post-Dream semantic layer for durable Entities, sparse owner-qualified Relationships, and synthesized Observations. It uses bounded deterministic routing and inference rather than full-corpus reasoning.
+Perception is the planned post-Dream semantic layer for durable Entities and synthesized Observations. Relational knowledge is represented as a structured Observation specialization over owner-qualified Entity participants rather than as a third semantic object family. Perception uses bounded deterministic routing and inference rather than full-corpus reasoning.
 
 ## Purpose
 
@@ -23,8 +23,9 @@ Perception materializes semantic structure implicit in the organized Memory Web 
 Initial semantic objects:
 
 - **Entities** — durable canonical referents whose metadata and relationships may change without changing identity.
-- **Relationships** — sparse typed semantic containers over owner-qualified Entity references. Relationships may carry bounded relationship-local derived state and may reference Entities across mounted REL/PHY Memory Webs without becoming independent Memory Webs.
 - **Observations** — contingent higher-order propositions synthesized from existing semantic evidence.
+
+A **relational Observation** is an Observation whose proposition describes a durable connection among two or more Entities. It may carry structured owner-qualified participants, roles, and relation classification for routing/inspection/privacy, but it uses the same support, lifecycle, ambiguity, temporal, and reconsideration semantics as every other Observation.
 
 Perception is not another full-corpus reasoning layer. Deterministic routing, Dream structure, mutation state, and wall time bound its inference.
 
@@ -38,9 +39,12 @@ Archive/source
     -> durable Memory publication
     -> Dream Memory-Web organization (consumes Chronos)
     -> Perception 1: Entity synthesis/association/disambiguation
-    -> Perception Relationship lane: sparse relationship synthesis/maintenance
     -> Perception 2: existing Observation contribution
+       -> includes relational Observations
     -> Perception 3: new Observation extrapolation
+       -> immediate Exploitation around the incoming Memory
+       -> delayed cooldown-epoch Exploration outside established locality
+       -> includes sparse relational-Observation synthesis
        -> Chronos higher-order temporal analysis when indicated
     -> Perception 4: Observation receptor generation
 ```
@@ -84,19 +88,19 @@ Entities are durable referents. Sarah remains the same Entity through employer, 
 
 Entity metadata/relationships are therefore mutable independently of Entity existence. The design should support multiple semantic centroids or equivalent multi-context representation where one referent spans materially different contexts.
 
-## Relationship lane — sparse cross-owner relational state
+## Relational Observation specialization — sparse cross-owner relational state
 
-After Entity resolution, Perception may materialize or update Relationships defined by ADR 0034.
+After Entity resolution, Observation synthesis may create or update relational Observations under ADR 0034.
 
-A Relationship is not created for every Entity or every possible Entity pair. Candidate discovery is bounded to affected resolved Entities and evidence. Explicit durable relational facts may materialize a Relationship immediately; otherwise repeated relational evidence may need to cross a configured materiality/frequency threshold.
+A relational Observation is not created for every Entity or every possible Entity pair. Candidate discovery is bounded to affected resolved Entities and evidence. Explicit durable relational facts may justify immediate synthesis; otherwise repeated or convergent evidence may be required before a useful higher-order relational proposition exists.
 
-Relationship participants are owner-qualified Entity references and may span currently mounted REL/PHY Memory Webs. The Relationship itself remains owned by one REL or PHY. Visibility follows that owner, not the visibility of its participant Entities.
+Relational Observation participants are owner-qualified Entity references and may span currently mounted REL/PHY Memory Webs. The Observation itself remains owned by one REL or PHY. Visibility follows that Observation owner, not the visibility of participant Entities.
 
-The runtime privacy rule is strict: only the active PHY contributes private Relationship state; authorized active RELs contribute their shared Relationship state. Non-active PHY Relationship layers are never traversed as bridges through shared Entities.
+The runtime privacy rule is strict: only the active PHY contributes private relational Observations; authorized active RELs contribute their shared relational Observations. Non-active PHY state is never traversed as a bridge through shared Entities.
 
-Relationship-local state may include relational Observations, directional perspective state, participant roles, classification, evidence references, and compact synthesized state. It must not acquire raw Memories, an independent Dream graph, Communities, or its own recursive Perception scheduler.
+Participant roles, relation classification, and compact presentation state are structured Observation metadata. They do not create a nested semantic owner, separate lifecycle, separate provenance model, independent Dream graph, Communities, or recursive Perception scheduler.
 
-This lane does not alter Dream's same-owner Memory-to-Memory relationship authority.
+This specialization does not alter Dream's same-owner Memory-to-Memory relationship authority.
 
 ## Pass 2 — Existing Observation contribution
 
@@ -129,17 +133,58 @@ Routing receptors are routing metadata only. They are never evidentiary authorit
 
 ## Pass 3 — New Observation extrapolation
 
-This pass asks whether the changed Memory Web now supports a higher-order proposition that no individual Memory explicitly represents.
+This pass asks whether the Memory Web around an eligible Memory now supports a higher-order proposition that no individual Memory explicitly represents.
 
-It runs independently of pass 2: one Memory may support an existing Observation and also help establish another.
+It runs independently of pass 2: one Memory may support an existing Observation and also help establish another. New Memory publication is the ordinary discovery trigger; lower-level Graph, Entity, Community, and Observation mutations do not recursively trigger new-Observation synthesis. Those changes alter the Web that a later eligible pass sees.
 
-Observation extrapolation is bounded multi-Memory inference over Dream's structural organization.
+Pass 3 has two scheduling lanes:
+
+- **Exploitation** runs immediately after a new Memory has completed Dream and Entity resolution, then becomes eligible again on the same provenance-anchored cooldown-epoch cadence used by Dream maintenance.
+- **Exploration** does not run immediately. A new Memory first becomes eligible for Exploration at its next processing/cooldown epoch, then remains periodically eligible on the same cadence.
+
+The two lanes share the epoch model but maintain separate Perception processing history. A successful pass satisfies only the current epoch; missed epochs do not accumulate as backlog.
+
+Exploitation re-runs because the Memory body is immutable while its useful surrounding Web is not. Later Memories, Dream structure, Entity resolution, and Community evolution may make an Observation inferable that was not inferable on the Memory's first pass.
+
+Exploration deliberately probes outside the strongest existing organization so that Community boundaries and current Graph topology cannot permanently hide cross-domain or weakly connected structure. It must not use Dream's permanent settled-pair ledger. Instead it keeps only bounded recent Exploration history per Memory/run so recently repeated comparison contexts can be deprioritized and then fall away naturally.
+
+### Bootstrap and exploitation context construction
+
+Community hierarchy is a scaling mechanism, not a bootstrap prerequisite.
+
+For an eligible anchor Memory:
+
+1. if the currently relevant owner-local Memory Web fits the synthesis context budget, Exploitation uses the whole Web;
+2. otherwise select the smallest genuine containing Community that fits;
+3. if the containing Community is too large, descend through genuine subcommunities containing the anchor until one fits;
+4. if the deepest genuine containing Community is still too large, build an ephemeral bounded neighbourhood around the anchor.
+
+No unrelated Memories are added merely to fill unused context budget. Strong boundary evidence may still be reached through bounded traversal during reasoning.
+
+The practical scaling path is therefore:
+
+```text
+whole relevant Web
+    -> containing Community
+    -> containing subcommunity
+    -> ephemeral bounded neighbourhood
+```
+
+### Exploration context construction
+
+Exploration builds bounded cross-Web comparison contexts using signals deliberately different from ordinary locality. Randomness is an explicit routing signal, alongside future diversity/novelty signals that prove useful.
+
+A cheap Decision-style probe may judge whether an exploratory Memory combination is meaningfully connected enough to justify expansion. The probe is routing metadata only: its confidence does not establish an Observation or semantic relationship. Low-value probes are discarded for that run; promising probes expand context around their endpoints and enter the normal synthesis/evidence pipeline.
+
+Exploration records bounded recent run/context history, not permanent unordered-pair completion. The same Memories may therefore be reconsidered later under different surrounding evidence without causing the same comparison groups to dominate every epoch.
+
+Exact exploration sampling weights, probe model/threshold, and recent-history depth are calibration parameters rather than semantic authority.
 
 ### Multi-resolution Community hierarchy
 
 The current flat Community layer is insufficient as an inference boundary for large RELs/PHYs.
 
-Communities are **derived semantic structure**. They are inferred from the organization of the semantic Graph and therefore carry meaningful information about how Memories cohere, but they do not create, override, or replace Memory, Entity, Observation, or Relationship authority.
+Communities are **derived semantic structure**. They are inferred from the organization of the semantic Graph and therefore carry meaningful information about how Memories cohere, but they do not create, override, or replace Memory, Entity, or Observation authority.
 
 Community processing should expose multiple useful resolutions:
 
@@ -168,13 +213,31 @@ Neighbourhood construction may use bounded combinations of:
 
 The neighbourhood is a processing window only, with no Community identity or semantic authority.
 
-The same bounded-neighbourhood mechanism can support initial Observation discovery and later extrapolation triggered by changed Memories. Existing-Observation contribution remains the separate receptor-routed pairwise pass.
+The same bounded-neighbourhood mechanism supports Exploitation when genuine Community structure remains too large. Existing-Observation contribution remains the separate receptor-routed pairwise pass.
 
-### Synthesis contract
+### Bounded traversal during formation
 
-The model receives the bounded set and may emit zero or more candidate Observations plus exact supporting semantic objects.
+The initially selected context is a starting region, not an assertion that all relevant evidence is already present.
 
-A candidate must be a useful abstraction, pattern, implication, or other higher-order proposition rather than a paraphrase of one supplied Memory.
+During candidate formation and evidence gathering, the reasoner may traverse the authorized Memory Web within an explicit search/context budget. Traversal may follow Graph neighbours, Community parent/child boundaries, shared Entities, deterministic lexical routes, semantic-search backstops, or promising Exploration bridges. Traversal may cross the initial Community when the evidence justifies it.
+
+Only semantic objects actually used to establish or challenge the proposition become support/derivation inputs. Temporary traversal context has no authority of its own.
+
+### Synthesis and verification contract
+
+New-Observation formation is staged rather than one monolithic inference call:
+
+1. **proposal** — inspect the bounded starting context and propose zero or more higher-order candidate propositions;
+2. **evidence expansion** — for each candidate, deliberately gather support, contradiction, qualification, and alternative evidence through bounded traversal;
+3. **reasoning/derivation** — apply the appropriate reasoning mode to determine what the gathered evidence actually warrants;
+4. **verification** — independently judge the candidate against its claimed derivation and exact evidence;
+5. **publication** — persist only candidates that pass verification, with exact lineage.
+
+Reasoning modes may include synthesis/abstraction, deduction, induction, and bounded hypothesis/abduction. Their exact algorithms and acceptance criteria are separate calibration work; a generic confidence score must not substitute for reasoning-specific validation.
+
+A candidate must add useful semantic structure beyond a raw restatement of supplied evidence. Ordinary Observations should be abstractions, patterns, implications, or other higher-order propositions rather than paraphrases of one Memory. A relational Observation may be supported by one explicit durable relational Memory when canonical Entity participants/roles supply the additional structured semantics; the source Memory remains the grounding authority.
+
+Evidence is many-to-many. One Memory may materially contribute to multiple Observations, and one Observation may depend on multiple Memories or other authorized semantic objects. Contribution is typed per Observation/evidence relation; reuse of one Memory across Observations does not create independent corroboration within any single Observation.
 
 Persisted Observations retain exact support/derivation lineage. Independent support paths remain distinguishable rather than collapsing to a count.
 
@@ -235,13 +298,18 @@ Initial scope stops here. Do not generalize this into a universal curiosity/open
 - Insomnia owns source-grounded Memory extraction and Entity-mention metadata extraction; it consumes Chronos during eligible Memory processing. Lexical Memory routing is deterministic derived indexing, not Insomnia model output.
 - Dream owns Memory-to-Memory semantic relationship authority and Community organization; it consumes Chronos for temporal candidate/context reasoning.
 - Chronos owns shared temporal detection, normalization, parsing, resolution, comparison, and bounded temporal-inference mechanics; it owns no semantic objects or transaction clock.
-- Perception owns Entity, Relationship, and Observation semantic objects plus Entity/Observation ambiguity state; it consumes Chronos for Observation temporal interpretation.
-- Relationship participants are owner-qualified Entity references; Relationship ownership and visibility are independent of participant-Entity visibility.
-- Only the active PHY may contribute private Relationship state to normal runtime composition; authorized REL Relationship state may be shared/portable across users.
+- Perception owns Entity and Observation semantic objects plus Entity/Observation ambiguity state; it consumes Chronos for Observation temporal interpretation.
+- Relationship is a relational Observation specialization, not a sibling semantic authority.
+- Relational Observation participants are owner-qualified Entity references; Observation ownership and visibility are independent of participant-Entity visibility.
+- Only the active PHY may contribute private relational Observations to normal runtime composition; authorized REL relational Observations may be shared/portable across users.
 - Community detection and hierarchy remain derived semantic organization, never independent semantic authority.
-- Sub-/super-Community levels may be persisted, named, lineaged, traversed, and used for routing, but cannot create or override Memory/Entity/Observation/Relationship truth.
+- Sub-/super-Community levels may be persisted, named, lineaged, traversed, and used for routing, but cannot create or override Memory/Entity/Observation truth.
 - Scan-and-merge reduction intermediates are execution machinery and must not be promoted into semantic hierarchy without an independent graph-derived hierarchy pass.
 - Processing neighbourhoods are ephemeral and never fake Communities.
+- New Memory publication is the ordinary Pass-3 discovery trigger; lower-level semantic mutations do not recursively schedule new-Observation synthesis.
+- Exploitation runs immediately for new Memories and may re-run on provenance-anchored cooldown epochs; Exploration begins no earlier than the next epoch and then uses the same cadence.
+- Exploration is bounded and may use stochastic/diversity routing, but it does not persist a permanent settled-pair ledger; only bounded recent comparison/context history is retained for repetition control.
+- Community structure narrows Exploitation at scale but is not an inference boundary; bounded traversal may cross Communities when evidence warrants it.
 - Routing receptors are metadata, never evidence.
 - Pairwise Observation contribution and multi-Memory extrapolation remain separate contracts.
 - Observation support lineage resolves to real owner-qualified semantic objects.
@@ -273,14 +341,14 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 - **Deferred pending measurement:** Entity vector/centroid routing. No all-Entity semantic scan or per-query Entity re-embedding is used as a substitute.
 - **Implemented:** long-lived runtime scheduling after Dream for REL and attached PHY. Dream completion enqueues mentions on the processed source and bounded affected candidate Memories; same-surface and candidate-Entity evidence events wake relevant unresolved mentions through derived reverse indexes. Startup performs one recovery scan of active Dream-processed Memories, terminal states are not rerun, unchanged candidate/context fingerprints suppress inference, model calls occur outside owner locks, and stale prepared snapshots are rejected before persistence.
 
-### B2 — Relationship owner and synthesis lane
+### B2 — Relational Observation persistence convergence
 
-- **Implemented foundation:** durable Relationship IDs/revisions, dense owner-local `relationship_version`, open classification string, n-ary owner-qualified `EntityRef` participants with optional roles, owner-qualified `MemoryRef` evidence, bounded compact summary, REL/PHY reopen, global-version validation, migration, divergent reconciliation, physical reclamation, and deterministic query-by-participant.
-- **Implemented foundation:** local references validate against the containing owner while cross-owner references may remain dangling; Entity merge retargets only participant refs owned by the merging owner, leaving foreign-owner refs untouched.
-- **Implemented foundation:** the same Relationship identity may exist independently in REL and PHY because containment owns the semantic view; no cross-owner Arcana/Graph edge is introduced.
-- **Remaining synthesis:** sparse Relationship materialization from explicit or repeated relational evidence without an all-Entity-pairs path.
-- **Remaining runtime:** active-PHY privacy and authorized-REL composition fixtures/view.
-- **Remaining derived state:** lifecycle/cardinality policy and bounded relationship-local Observations/perspectives without creating nested Memory Webs.
+- **Implemented transitional foundation:** durable Relationship IDs/revisions, dense owner-local `relationship_version`, open classification string, n-ary owner-qualified `EntityRef` participants with optional roles, owner-qualified `MemoryRef` evidence, bounded compact summary, REL/PHY reopen, global-version validation, migration, divergent reconciliation, physical reclamation, and deterministic query-by-participant.
+- **Implemented transitional foundation:** local references validate against the containing owner while cross-owner references may remain dangling; Entity merge retargets only participant refs owned by the merging owner, leaving foreign-owner refs untouched.
+- **Semantic amendment:** these records no longer define a separate Relationship semantic authority. They are provisional structured storage/indexing for the relational Observation profile.
+- **Before synthesis:** converge this persistence with the Observation owner, either by folding relational fields into Observation records or by keying a tightly coupled relational-profile record to one Observation identity.
+- **Remaining synthesis:** relational propositions are produced through bounded Observation extrapolation, not an independent Relationship synthesis lane and never an all-Entity-pairs path.
+- **Remaining runtime:** active-PHY privacy and authorized-REL relational-Observation composition fixtures/view.
 
 ### C — Multi-resolution Communities and local neighbourhoods
 
@@ -324,8 +392,8 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 
 ## Open implementation decisions
 
-- Persistent schemas for Observation, ambiguity, and receptor state; Entity and Relationship base persistence are implemented.
-- Relationship role/cardinality policy and materialization thresholds; owner-qualified `EntityRef` representation and dangling-reference behavior are implemented.
+- Persistent schemas for Observation, relational-Observation profile, ambiguity, and receptor state; Entity persistence is implemented and the existing Relationship persistence is transitional input to this design.
+- Relational participant role/cardinality policy and materialization thresholds; owner-qualified `EntityRef` representation and dangling-reference behavior are already implemented in the transitional Relationship substrate.
 - Dedicated Perception model route vs General/Dream fallback.
 - Entity candidate thresholds and multi-centroid maintenance.
 - Multi-resolution Community criteria: recursive split stopping rules, Community meta-graph construction/weighting, super-Community resolution/stopping rules, and processing-neighbourhood budget.
@@ -337,12 +405,12 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 
 ## Notes
 
-Perception is partially implemented: Entity pass 1 and the Relationship persistence foundation are production code, while Relationship synthesis/runtime composition and Observation/ambiguity passes remain staged. The earlier derived-semantic-nodes exploration is retained as design history; ADRs 0033–0035 and this plan own the current accepted direction.
+Perception is partially implemented: Entity pass 1 is production code, and the existing Relationship persistence foundation is production storage now designated as transitional relational-Observation substrate. Observation synthesis, relational-profile convergence/runtime composition, receptors, and ambiguity remain staged. The earlier derived-semantic-nodes exploration is retained as design history; ADRs 0033–0035 and this plan own the current accepted direction.
 
 ## Related docs
 
 - [ADR 0033](decisions/0033-perception-entities-observations-and-ambiguity.md)
-- [ADR 0034 — cross-owner Relationship graph and active-PHY privacy](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
+- [ADR 0034 — cross-owner relational Observations and active-PHY privacy](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
 - [ADR 0035 — Chronos shared temporal semantics](decisions/0035-chronos-shared-temporal-semantics.md)
 - [Chronos subsystem plan](chronos-subsystem-plan.md)
 - [ADR 0012 — Insomnia memory authority](decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md)

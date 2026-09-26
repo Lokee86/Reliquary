@@ -1,4 +1,4 @@
-# ADR 0034: Cross-owner Relationship graph and active-PHY privacy boundary
+# ADR 0034: Cross-owner relational Observations and active-PHY privacy boundary
 
 Parent index: [Architectural decisions](INDEX.md)
 
@@ -6,296 +6,322 @@ Implementation planning: [Perception subsystem plan](../perception-subsystem-pla
 
 ## Status
 
-Accepted — 2026-09-08. Persistence foundation implemented 2026-09-23; synthesis/runtime composition remains in progress.
+Accepted — 2026-09-08; semantic model amended 2026-09-25.
 
-Amends ADR 0029 by reactivating relationship-specific semantic state without reintroducing Connection REL classes. Amends ADR 0033 by adding Relationship synthesis/maintenance as Perception-owned semantic structure after Entity resolution.
+The owner-local Relationship persistence foundation implemented on 2026-09-23 remains valid storage work, but **Relationship is no longer a sibling semantic object beside Observation**. Relationship semantics are now defined as a specialized **relational Observation**: an Observation whose proposition describes a durable connection among two or more resolved Entities.
+
+The existing `RelationshipStore`, `RelationshipId`, participant indexes, evidence references, migration/reconciliation support, and active-PHY privacy work are therefore treated as a provisional structured persistence/indexing foundation to be converged with the Observation owner before semantic synthesis is implemented. No new independent Relationship lifecycle or synthesis authority should be built on top of it.
+
+This ADR continues to amend ADR 0029 by reactivating relationship-specific semantic state without reintroducing Connection REL classes, and it amends ADR 0033 by defining the relational specialization of Observation plus its cross-owner reference/privacy rules.
 
 ## Context
 
-ADR 0021 explored a dedicated Connection Reliquary whose durable state belonged to a relationship. ADR 0029 correctly rejected Connection as a behavioral REL class and made current RELs homogeneous, but deliberately mothballed the underlying relationship-state problem until a concrete requirement existed.
+ADR 0021 explored a dedicated Connection Reliquary whose durable state belonged to a relationship. ADR 0029 correctly rejected Connection as a behavioral REL class and made current RELs homogeneous, while leaving the underlying relational-knowledge problem unresolved.
 
-That requirement is now concrete.
+That problem is real, but a separate third Perception semantic category is unnecessary.
 
-The same people may participate in materially different relationships across personal, organizational, and project contexts. For example, Sarah may work in the Vancouver office with her husband, brother, sister, and children. The Vancouver organization legitimately needs shared business relationship state about those people. Sarah may also have private family knowledge about the same people that must not be exposed to another Vancouver employee such as Bob. Project-specific working relationships may differ again from both the organization-wide and personal relationships.
+These propositions have the same fundamental semantic shape:
 
-A single global Entity model cannot safely collapse those contexts. A separate REL per person or per relationship is also impractical: it creates a new full Memory Web for every durable connection, complicates portability, and turns semantic relationships into heavyweight storage owners.
+```text
+Postgres handles all data through the Rails API.
+Bob is Sarah's father-in-law.
+Sarah has hiring authority at the Vancouver office.
+```
 
-The required abstraction is therefore a sparse Relationship layer over Entities that continue to exist in their ordinary REL/PHY Memory Webs.
+Each is a proposition inferred or retained from evidence. The latter two happen to describe relationships among durable Entities and benefit from structured participant/role metadata, but that does not make them a different kind of knowledge from other Observations.
+
+The required abstraction is therefore:
+
+```text
+Observation
+├── ordinary higher-order proposition
+└── relational Observation
+    ├── participant EntityRefs[]
+    ├── optional participant roles
+    └── optional relation classification
+```
+
+A relational Observation can still require specialized routing, indexing, privacy composition, and structured fields. Those are representation and processing specializations, not separate semantic authority.
 
 ## Decision
 
-### Relationship is a first-class semantic container, not a REL/PHY owner
+### Relationship is a specialized Observation
 
-A **Relationship** is a durable, typed association among one or more existing Entities. It may retain relationship-local derived state, but it is not a Reliquary, Phylactery, Community, or independent Memory Web.
+A **Relationship** is the structured relational form of an Observation whose proposition concerns a durable connection among two or more Entities.
 
 Conceptually:
 
 ```text
-Relationship {
+Observation {
     id
     owner
-    kind / classification
-    participants[]
-    participant roles / cardinality
-    evidence references
-    relationship-local derived state
+    proposition
+    support / derivation
+    lifecycle / chronology
+    receptors / ambiguity
+    ...
+}
+
+RelationalObservationProfile {
+    participants: EntityRef[]
+    participant_roles[]
+    classification
 }
 ```
 
-The persistence foundation now uses an owner-local revisioned Relationship record. `RelationshipId` is a stable 32-byte ID, containment supplies the Relationship owner, participants are canonicalized `EntityRef { owner_id, entity_id }` values with optional roles, evidence is canonicalized `MemoryRef { owner_id, memory_id }`, and each revision carries open-string kind/classification, bounded compact summary, mutation identity, timestamps, one dense `relationship_version`, and one file-global semantic version. The vocabulary/materialization policy remains open rather than being encoded as a closed enum.
+"Relationship" remains acceptable shorthand for this relational profile in APIs, indexes, migration code, and user-facing presentation where useful. It does **not** denote an independent semantic object family with its own truth, provenance, reconsideration, or lifecycle model.
 
-A Relationship may contain or index relational Observations, directional perspective state, standing commitments, synthesized relationship state, or similar derived knowledge whose subject is the relationship itself rather than one participant in isolation. It does not own source transcripts, raw Memories, an independent Dream graph, Leiden Communities, or another recursive Perception universe.
+Relational Observations use the same Observation semantics for:
 
-### Entities remain in their original Memory Webs
+- proposition authority;
+- exact support/derivation lineage;
+- contradiction, qualification, ambiguity, and supersession;
+- mutation-driven reconsideration;
+- wall-time staleness;
+- user authorship/correction;
+- Chronos valid-time interpretation; and
+- routing receptors where future evidence may materially bear on the proposition.
 
-Creating or using a Relationship does not copy an Entity into a new semantic owner.
+### Structured participants do not replace the proposition
 
-Relationship participants are **owner-qualified Entity references**. A Relationship may therefore refer to Entities that live in different REL/PHY Memory Webs while those Entities retain their original identity, metadata, evidence, and owner authority.
+Entity participants, roles, and classification make relational Observations easier to route and inspect, but they do not constitute the semantic claim by themselves.
 
-Conceptually:
+For example:
 
 ```text
-PHY Sarah / Entity Sarah ---------\
-                                    > Relationship R
-Vancouver REL / Entity Brother ---/
+participants = [Bob, Sarah]
+classification = family
+roles = [father-in-law, child-in-law]
+proposition = "Bob is Sarah's father-in-law."
 ```
 
-The Relationship layer is therefore cross-REL/PHY referential, but ordinary Memory Graph authority remains owner-local. This ADR does not authorize persisted cross-owner Dream Memory-to-Memory edges or cross-owner Community structure.
+The structured profile can support deterministic lookup and privacy composition. The proposition plus support lineage remains the semantic knowledge.
 
-### Relationships are sparse and semantically materialized
+### Relational Observations are sparse and semantically materialized
 
-Entity existence does not imply Relationship existence. Reliquary must not create one Relationship container for every Entity or every possible Entity pair.
+Entity existence does not imply a relational Observation. Reliquary must not materialize one for every Entity pair or possible participant set.
 
-A Relationship is materialized only when evidence establishes durable relational meaning worth preserving. Explicit durable statements such as spouse, sibling, manager, client, owner, or project membership may be sufficient immediately. Otherwise repeated relational evidence may cross a configured materiality/frequency threshold before a Relationship is created.
+Candidate discovery is bounded to affected evidence and resolved Entities. Explicit durable relational facts may justify immediate synthesis. Otherwise repeated or convergent evidence may be needed before a useful higher-order relational proposition exists.
 
-The model must support n-ary Relationships where the semantics are genuinely collective rather than forcing all state into pairwise edges. Relationship kinds may define participant roles and cardinality constraints, but the implementation must not require a closed subclass for every business or social relation.
+This is a specialized candidate-generation path inside Observation extrapolation, not an all-Entity-pairs inference pass and not a separate semantic synthesis subsystem.
 
-### Relationship ownership provides semantic disentanglement
+### Participants use owner-qualified Entity identity
 
-The same real-world participants may legitimately have different Relationships owned by different scopes.
+A relational Observation may refer to Entities that live in different mounted REL/PHY Memory Webs.
+
+Participant references are owner-qualified:
+
+```text
+EntityRef {
+    owner_id
+    entity_id
+}
+```
+
+The Observation itself is still owned by exactly one REL or PHY. Cross-owner Entity references do not transfer Entity ownership and do not authorize cross-owner Dream Memory edges or cross-owner Community structure.
+
+Where ordinary owner-local Graph topology can represent same-owner Observation/Entity relations, Perception may publish those typed edges under ADR 0036. Cross-owner participant references remain explicit payload/provenance references rather than Arcana edges spanning owners.
+
+### Observation ownership provides semantic disentanglement
+
+The same real-world Entities may participate in distinct relational Observations owned by different scopes.
 
 For example:
 
 ```text
 Sarah PHY
-    Sarah <-> Brother     sibling / private family state
+    "Sarah and Brother are siblings."          private personal Observation
 
 Vancouver Office REL
-    Sarah <-> Brother     coworker / shared business state
+    "Sarah and Brother work together."         shared organization Observation
 
 Project Phoenix REL
-    Sarah <-> Brother     project-specific working state
+    "Sarah reviews Brother's Phoenix changes." project-specific Observation
 ```
 
-These are not competing copies of one universal Relationship. They are owner-local relational views backed by the evidence available to that owner.
+These are not competing copies of one universal Relationship. They are owner-local propositions backed by the evidence legitimately available to each owner.
 
-The owner answers **which semantic world knows this relationship state**. The participant Entity references answer **who or what the relationship concerns**.
+The owner answers **which semantic world knows this proposition**. Participant references answer **which Entities the proposition concerns**.
 
-### REL-owned relationship state is portable shared context
+### REL-owned relational Observations are portable shared context
 
-A REL carries the Relationship state that legitimately belongs to that REL.
+A REL carries relational Observations that legitimately belong to that REL.
 
-If Bob and Sarah both open the Vancouver Office REL, both may access Vancouver-owned business Relationships involving Sarah, her brother, husband, sister, children, Bob, or other organization Entities, subject to the normal access policy for that REL.
+If Bob and Sarah both open the Vancouver Office REL, both may access Vancouver-owned relational Observations according to the normal access policy for that REL. The REL must not depend on Sarah's PHY to explain shared business knowledge.
 
-The Vancouver REL must not depend on Sarah's PHY to explain its shared business relationship state. The REL is portable with its own organizational evidence, Entities, and Relationships.
+A mounted active PHY may contribute additional private relational Observations at runtime without transferring them into the REL.
 
-If Sarah later opens the same Vancouver REL on another machine together with Sarah's PHY, the shared Vancouver relationship layer composes with Sarah's private relationship layer at runtime. The REL itself remains unchanged and does not absorb Sarah's private graph.
+### PHY-owned relational Observations are private to the active PHY
 
-### PHY-owned relationship state is private to the active PHY
-
-PHY relationship state is cross-PHY compatible in representation but **not cross-PHY visible**.
-
-At runtime, only the currently active PHY may contribute private Relationship state. A non-active user's PHY must never be traversed, queried, or used as a bridge merely because it refers to Entities also present in an open REL.
-
-Therefore Bob opening the Vancouver REL may learn organization-owned facts such as who works with whom, but cannot obtain Sarah's private family observations, personal perspective state, or other Sarah-PHY relationship data.
+Only the currently active PHY may contribute private relational Observations to normal runtime composition. A non-active user's PHY must never be traversed, queried, or used as a bridge merely because it references Entities also visible in an open REL.
 
 The governing rule is:
 
-> **Relationship visibility follows Relationship owner visibility. Entity visibility does not grant visibility into another owner's Relationships.**
+> **Relational-Observation visibility follows Observation-owner visibility. Entity visibility does not grant visibility into another owner's Observations.**
 
-And for PHY specifically:
+For PHY state specifically:
 
-> **Exactly one active PHY contributes private relationship state to normal runtime composition.**
+> **Exactly one active PHY contributes private relational Observations to normal runtime composition.**
 
-### Effective relationship topology is runtime-composed
+### Effective relational topology is a runtime-composed view
 
-There is no single persisted universal relationship graph spanning every user's PHY and every REL.
+There is no single persisted universal Relationship graph spanning every user's PHY and every REL.
 
-The runtime computes an **effective Relationship graph** from the Relationship layers of the owners currently permitted in context:
+The runtime may derive an **effective relational-Observation view** from currently permitted Observation owners:
 
 ```text
-EffectiveRelationshipGraph =
-    ActivePHY.Relationships
+EffectiveRelationalObservations =
+    ActivePHY.relational_observations
     union
-    PermittedActiveRELs.Relationships
+    PermittedActiveRELs.relational_observations
 ```
 
-`PermittedActiveRELs` includes the active REL set and whatever dependency/ancestry closure the normal context resolver authorizes. Sibling or inactive RELs do not enter merely because they contain matching Entities.
+`PermittedActiveRELs` follows the normal active-REL/dependency authorization rules. Sibling or inactive RELs do not participate merely because they contain matching Entities.
 
-This graph is a composed view. It does not transfer Relationship ownership, merge underlying Memory Webs, canonicalize private state across users, or publish new cross-owner Dream edges.
+This composed view does not transfer ownership, merge underlying Memory Webs, canonicalize private state across users, or publish cross-owner Dream/Arcana edges.
 
 ### References may cross ownership; visibility never does
 
-A Relationship owned by one permitted owner may use owner-qualified Entity references that resolve into another mounted/permitted Memory Web. Such a reference may be temporarily unresolved when the referenced owner is not mounted.
+A relational Observation owned by one permitted owner may contain owner-qualified Entity references that resolve into another mounted/permitted owner. Such references may remain temporarily unresolved when the referenced owner is not mounted.
 
-Cross-owner references do not imply reciprocal access. Opening one endpoint's owner cannot be used to discover or traverse an otherwise inaccessible Relationship owner.
+Cross-owner references do not imply reciprocal access. Opening or seeing a participant Entity cannot reveal an otherwise inaccessible Observation owner.
 
-This is analogous to a foreign reference whose target identity is stable while authority remains with the object that owns the record.
+### Relational Observations do not become nested Memory Webs
 
-### Relationship-local derived state does not become another Memory Web
-
-Relationships need enough internal state to be useful semantic containers, but implementation must deliberately prevent them from recursively becoming miniature Reliquaries.
-
-A Relationship may own/index:
-
-- participant references and roles;
-- classification/type metadata;
-- evidence/support references;
-- relational Observations;
-- directional observer/observed or perspective state where useful;
-- compact synthesized current relationship state; and
-- lifecycle/material-change metadata.
-
-A Relationship does **not** independently own:
+Relational Observations may carry structured participant metadata and compact presentation state, but they do not acquire:
 
 - Archive/source payloads;
-- raw Memories;
-- an arbitrary Memory-to-Memory Dream Graph;
-- independent Leiden Community hierarchies;
-- nested Relationship Memory Webs; or
-- an independent full Perception/Dream scheduler.
+- raw Memory ownership;
+- an independent Dream graph;
+- Leiden Communities;
+- nested Relationship graphs; or
+- an independent Perception scheduler.
 
-Any relationship-local Observation remains backed by semantic objects in normal owners through exact provenance/support references.
+Their evidence remains ordinary owner-qualified semantic evidence and their lifecycle remains Observation lifecycle.
 
-### Perception owns Relationship synthesis and maintenance
+### Perception owns synthesis and maintenance
 
-Relationship materialization depends on resolved Entity identity and therefore belongs after Perception's Entity resolution seam rather than in Insomnia or Dream.
+Perception owns relational Observation synthesis because it depends on resolved Entity identity and higher-order semantic judgment.
 
-Perception may use Insomnia Entity mentions, post-Dream Memory structure, resolved Entities, explicit relational language, participant frequency, and existing Relationship state to build a bounded candidate set. Probabilistic inference is used only where semantic judgment is required: whether a durable Relationship exists, its participant roles/classification, and whether new evidence materially changes relationship-local state.
+Candidate discovery may use:
 
-Candidate discovery must remain sparse and local to affected Entities/evidence. No all-Entity-pairs inference pass is permitted.
+- explicit relational language;
+- resolved participant Entities;
+- repeated co-occurrence or role evidence;
+- Dream graph locality;
+- lexical locality;
+- existing relational Observations; and
+- exact support/dependency changes.
 
-The exact ordering relative to Observation contribution/extrapolation may be refined during implementation, but Relationship synthesis is a distinct semantic lane from Dream's Memory-to-Memory relation classifier.
+The actual semantic output is still an Observation proposition with support lineage. Specialized participant extraction/classification may accompany that proposition, but no independent Relationship truth object is created.
 
-## Example: Vancouver office portability and privacy
+Existing-Observation contribution remains the ordinary pairwise `Memory <-> Observation` contract, including relational Observations. New relational propositions are created through bounded Observation extrapolation.
 
-Shared Vancouver Office REL state may contain:
+## Existing Relationship persistence foundation
 
-```text
-Sarah works-with Brother
-Sarah works-with Husband
-Bob works-with Brother
-Brother participates-in Project Phoenix
-```
+The implemented REL/PHY substrate currently provides:
 
-Sarah's PHY may separately contain:
+- stable owner-local `RelationshipId` and revisions;
+- dense `relationship_version`;
+- open classification strings;
+- n-ary owner-qualified `EntityRef` participants with optional roles;
+- owner-qualified `MemoryRef` evidence;
+- bounded summaries;
+- reopen/global-version validation;
+- migration and divergent reconciliation;
+- physical reclamation;
+- deterministic query-by-participant; and
+- local Entity-merge participant retargeting.
 
-```text
-Sarah sibling-of Brother
-Sarah spouse-of Husband
-Sarah parent-of Child
-private relationship Observations and perspectives
-```
+That work remains useful because relational Observations need structured participant indexing, owner-qualified references, and robust persistence/reconciliation.
 
-When Bob opens the Vancouver REL:
+However, this storage shape predates the semantic unification in this amendment. Before relational synthesis ships, implementation must decide how it converges with the Observation owner. Acceptable implementation shapes include folding these fields into Observation persistence or retaining a tightly coupled relational-profile record keyed by one Observation identity. What is no longer acceptable is treating the existing Relationship record as a separate semantic authority with an independent proposition/lifecycle/support model.
 
-```text
-Bob PHY + Vancouver REL
-    -> Bob's private Relationship layer
-    -> Vancouver shared Relationship layer
-    -> no Sarah-PHY Relationship state
-```
-
-When Sarah opens the same Vancouver REL:
-
-```text
-Sarah PHY + Vancouver REL
-    -> Sarah's private Relationship layer
-    -> Vancouver shared Relationship layer
-    -> no Bob-PHY Relationship state
-```
-
-The same portable REL therefore presents the shared organization relationships to both users while each active PHY contributes a different private relational overlay.
+Historical replay may continue to preserve existing Relationship records during the transition. New semantic synthesis must target the unified Observation model.
 
 ## Consequences
 
-The former Connection REL requirement is replaced by a lighter semantic container that preserves relational locality without creating another `.rel` file or full Memory Web for every person/connection.
+Perception has two first-class semantic object families rather than three:
 
-Organization/project relationship knowledge remains portable with the REL that owns it. Personal relationship knowledge remains portable with the PHY that owns it.
+```text
+Entity
+Observation
+    └── relational specialization ("Relationship")
+```
 
-The same participant set can have distinct personal, organization, and project Relationships without semantic collision.
+This removes duplicated lifecycle, provenance, ambiguity, reconsideration, and temporal semantics between Relationships and Observations.
 
-Cross-owner relationship queries become possible without weakening ordinary owner-local Dream/Graph authority.
+Relational knowledge still gets the structure it needs for participant queries, role/cardinality validation, cross-owner references, portable REL state, and active-PHY privacy.
 
-Ego may later use the effective Relationship graph as a routing/context signal while continuing to compose normal Memory/Observation evidence from authorized owners.
+Ego may later use the effective relational-Observation view as a routing/context signal while composing normal Memory/Observation evidence from authorized owners.
 
-The model introduces a new privacy-critical traversal boundary: implementation must check Relationship-owner visibility before dereferencing or surfacing relationship-local state.
+The existing Relationship persistence foundation becomes migration/convergence work rather than justification for a separate semantic layer.
 
 ## Rejected alternatives
 
+### Keep Relationship as a sibling Perception semantic object
+
+Rejected. A Relationship is itself a proposition about a connection among Entities. Giving it a separate semantic owner duplicates Observation authority, provenance, lifecycle, reconsideration, ambiguity, and temporal semantics.
+
 ### Restore Connection as a special REL class
 
-Rejected. ADR 0029's homogeneous REL decision remains correct. A dedicated Connection REL would create heavyweight files and independent Memory Webs for semantic objects that normally need only bounded relationship-local derived state.
+Rejected. ADR 0029's homogeneous REL decision remains correct. Relational Observations belong to ordinary REL/PHY owners.
 
-### Create one Relationship container per Entity
+### Create one Relationship record per Entity pair
 
-Rejected. Entity identity and relational meaning are different concerns. Relationships are materialized only when durable relational evidence warrants them.
+Rejected. Entity identity and relational knowledge are different concerns. A relational Observation is created only when evidence establishes a useful proposition.
 
 ### One global persisted relationship graph across all PHYs
 
-Rejected. This would make private user relationship state discoverable through shared Entities and would couple unrelated users' personal graphs.
+Rejected. This would make private user state discoverable through shared Entities and couple unrelated owners' semantic worlds.
 
-### Copy personal Entity/relationship state into a shared Organization REL
+### Copy private relational state into a shared Organization REL
 
-Rejected. The organization must own its own legitimate shared business knowledge. User-private state remains in the user's PHY and composes only for that active user.
+Rejected. Shared REL knowledge and private PHY knowledge remain independently owned even when they concern the same Entities.
 
-### Keep all relationship state as ordinary Entity metadata
+### Keep relational state as Entity metadata
 
-Rejected. Relational state often belongs to the interaction among participants rather than any participant individually, and the same participants can have materially different relationships in personal, organization, and project contexts.
+Rejected. A proposition about two or more Entities is not metadata belonging to any one participant.
 
 ### Treat every relationship as an independent nested Memory Web
 
-Rejected for practicality. Nested full semantic graphs multiply Dream/Perception/community maintenance and create recursive ownership/synchronization problems without evidence that relationship-local state requires those capabilities.
+Rejected. Relational Observations need structured semantics and provenance, not recursive Reliquaries.
 
 ## Open implementation questions
 
-- initial Relationship type/classification and participant-role vocabulary;
-- cardinality constraints and higher-level n-ary Relationship policy beyond the implemented n-ary participant representation;
-- materialization thresholds for explicit versus repeated relational evidence;
-- representation of relationship-local Observations, perspective state, and synthesized summaries;
-- Relationship lifecycle, stale/retired state, and historical retention;
-- deterministic candidate indexes and bounded Perception inference contracts;
-- how Relationship evidence/support participates in Observation receptors and reconsideration;
-- Ego retrieval/context rules over the effective Relationship graph; and
-- authorization policy for shared REL relationship state beyond the owner-visibility baseline fixed here.
-
-## Implemented persistence foundation
-
-The REL/PHY substrate now provides Relationship create/revise/read/list/query-by-participant, owner-qualified participant/evidence persistence, current local-reference validation with foreign dangling-reference tolerance, historical replay for migration/reconciliation, reopen/global-version validation, divergent REL reconciliation, REL/PHY migration preservation, physical reclamation relocation, and local Entity-merge participant retargeting. Historical replay preserves revision truth without weakening current-state validation: an older revision may reference an Entity retired later, while the final current Relationship must resolve to current local objects. The same participant/Relationship identity may be stored independently by different owners without semantic collision.
-
-This does **not** yet implement candidate discovery, semantic materialization inference, lifecycle/staleness, relationship-local Observations/perspectives, authorization policy, or the effective active-PHY + permitted-REL runtime-composition view.
+- unified Observation persistence schema and stable Observation identity;
+- migration/convergence of the implemented `RelationshipStore` and `RelationshipId` foundation into relational Observation representation;
+- participant-role and cardinality vocabulary;
+- sparse relational candidate-generation/materialization thresholds;
+- exact support/derivation representation for relational Observations, including non-Memory semantic evidence;
+- receptor generation and contribution routing for relational Observations;
+- active-PHY plus authorized-REL composition APIs;
+- authorization policy beyond the owner-visibility baseline; and
+- Ego retrieval/context rules over the effective relational-Observation view.
 
 ## Verification
 
 Implementation must protect at minimum:
 
-- no Relationship creation solely because an Entity exists;
+- no semantic Relationship authority independent of Observation;
+- no relational Observation creation solely because Entities exist;
 - no all-Entity-pairs inference path;
+- exact Observation support/derivation lineage for relational propositions;
 - durable participant identity through owner-qualified Entity references;
-- separate personal, organization, and project Relationships for the same participants;
+- separate personal, organization, and project relational Observations for the same participants;
 - REL portability without a dependency on another user's PHY;
-- shared REL relationship visibility for authorized users;
-- strict exclusion of non-active PHY Relationship state;
-- no traversal from a visible Entity into an inaccessible Relationship owner;
-- runtime composition from active PHY plus permitted active RELs only;
-- no cross-owner Dream Memory edges or Community authority introduced by this layer; and
-- relationship-local derived state retaining exact evidence/provenance links to ordinary semantic owners.
+- shared REL Observation visibility for authorized users;
+- strict exclusion of non-active PHY private Observations;
+- no traversal from a visible Entity into an inaccessible Observation owner;
+- runtime composition from active PHY plus permitted active RELs only; and
+- no cross-owner Dream Memory edges or Community authority introduced by relational Observation support.
 
 ## Related docs
 
 - [ADR 0021 — Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md)
 - [ADR 0029 — Homogeneous Reliquaries and dependency-based context inheritance](0029-active-rel-hierarchy-and-deferred-connection-scope.md)
 - [ADR 0033 — Perception entities, observations, and ambiguity handling](0033-perception-entities-observations-and-ambiguity.md)
+- [ADR 0036 — Typed semantic Graph endpoints over Arcana](0036-typed-semantic-graph-endpoints.md)
 - [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
 - [Perception subsystem plan](../perception-subsystem-plan.md)
 - [Roadmap](../roadmap.md)

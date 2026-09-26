@@ -6,15 +6,15 @@ Supersedes the Warlock-owned repository/runtime portions of [ADR 0017](0017-cva-
 
 ## Status
 
-Accepted — 2026-09-24. The ownership migration is complete: runtime-host topology, REL reconciliation/recovery, Project Environment mechanics, managed conversation/session lifecycle, cross-owner semantic access, deterministic Context Engine policy, and the corresponding Warlock cleanup are implemented. Remaining work is new semantic capability construction (cross-scope Entity identity, Relationship/Observation composition, then Ego), not further ownership evacuation.
+Accepted — 2026-09-24. The ownership migration is complete: runtime-host topology, REL reconciliation/recovery, Project Environment mechanics, managed conversation/session lifecycle, cross-owner semantic access, deterministic Context Engine policy, and the corresponding Warlock cleanup are implemented. Remaining work is new semantic capability construction (cross-scope Entity identity, Observation composition including relational Observations, then Ego), not further ownership evacuation.
 
 ## Context
 
-Reliquary began as a purpose-built semantic database embedded by Warlock. It now owns Archive history, Memories, Echo, Ego state, Perception Entities, Relationships, semantic Graph state, vectors, Dream/Insomnia processing, provenance, project-revision correlations, and repository-backed project-file references.
+Reliquary began as a purpose-built semantic database embedded by Warlock. It now owns Archive history, Memories, Echo, Ego state, Perception Entities, the transitional Relationship persistence substrate, semantic Graph state, vectors, Dream/Insomnia processing, provenance, project-revision correlations, and repository-backed project-file references. ADR 0034 now assigns the eventual relational semantics to Observation rather than to an independent Relationship object family.
 
 Warlock subsequently accumulated the multi-REL runtime topology and the other half of the Project environment: mounted REL/PHY state, active-REL selection, dependency traversal, cross-owner retrieval fan-out, repository discovery and validation, Lore/Git mutation mechanics, repository-backed attachment ingestion, historical project-file reads, reconciliation orchestration, and substantial conversation/context policy.
 
-That split makes Reliquary semantics depend on a particular host application. Ego, cross-scope Entity resolution, Relationship composition, provenance, and contextual retrieval all require graph-aware access to neighboring REL owners. Implementing those capabilities in Warlock would make the host application the semantic owner and would prevent Reliquary from functioning as a coherent standalone Rust library.
+That split makes Reliquary semantics depend on a particular host application. Ego, cross-scope Entity resolution, relational-Observation composition, provenance, and contextual retrieval all require graph-aware access to neighboring REL owners. Implementing those capabilities in Warlock would make the host application the semantic owner and would prevent Reliquary from functioning as a coherent standalone Rust library.
 
 The repository correlation already persisted by Reliquary is not incidental metadata. A Project REL records exact associations between a REL semantic cut and a Lore/Git revision, and ProjectFileRef records identify exact historical repository content. The code that consumes and maintains those semantics belongs with the environment that owns them.
 
@@ -71,7 +71,7 @@ Mounted siblings are not automatically ambient. Explicit owner-qualified operati
 
 ### Ownership and dependencies
 
-- Reliquary can implement Ego, cross-scope Entities, Relationships, context assembly, and provenance without calling upward into Warlock.
+- Reliquary can implement Ego, cross-scope Entities, relational Observations, context assembly, and provenance without calling upward into Warlock.
 - Warlock becomes a thinner coordinator/presenter instead of a second Reliquary semantic owner.
 - Lore becomes a Reliquary dependency for the managed Project environment; Git integration likewise moves with that environment implementation.
 - Provider implementations remain outside Reliquary behind existing typed endpoint traits.
@@ -146,4 +146,4 @@ The staged migration must protect at minimum:
 - [ADR 0027 — Warlock project repositories and Reliquary storage boundary](0027-warlock-project-repositories-and-reliquary-storage-boundary.md)
 - [ADR 0028 — Project folder and repository bootstrap contract](0028-project-folder-and-repository-bootstrap-contract.md)
 - [ADR 0029 — Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md)
-- [ADR 0034 — Cross-owner Relationship graph and active-PHY privacy boundary](0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
+- [ADR 0034 — Cross-owner relational Observations and active-PHY privacy boundary](0034-cross-owner-relationship-graph-and-active-phy-privacy.md)

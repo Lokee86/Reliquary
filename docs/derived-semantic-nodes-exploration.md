@@ -227,7 +227,7 @@ Only then decide whether Reliquary needs a shared derivation-provenance primitiv
 
 - [Perception subsystem plan](perception-subsystem-plan.md)
 - [ADR 0033 — Perception Entities, Observations, and ambiguity](decisions/0033-perception-entities-observations-and-ambiguity.md)
-- [ADR 0034 — cross-owner Relationship graph and active-PHY privacy](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
+- [ADR 0034 — cross-owner relational Observations and active-PHY privacy](decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
 - [ADR 0035 — Chronos shared temporal semantics](decisions/0035-chronos-shared-temporal-semantics.md)
 
 ## Notes

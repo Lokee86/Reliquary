@@ -168,6 +168,8 @@ Public Entity models are `EntityId`, `EntityDraft`, `Entity`, `EntityStats`, and
 
 ### Relationships
 
+The following API is the currently implemented **transitional relational-profile persistence surface**. ADR 0034 now defines Relationship semantically as a specialized Observation; this API remains valid implementation state until it is converged with the Observation owner, and new semantic lifecycle/synthesis authority must not be added here independently.
+
 Public Relationship models are `EntityRef`, `RelationshipId`, `RelationshipParticipant`, `RelationshipDraft`, `Relationship`, `RelationshipStats`, and `RelationshipError`. REL and PHY expose `publish_relationship(id, expected_revision, draft)`, `relationship(id)`, `relationships()`, `relationships_for_entity(entity_ref)`, `relationship_version()`, and `relationship_stats()`.
 
 A new Relationship may omit its ID and receives deterministic identity from the creation mutation ID; later revisions require the exact current revision and preserve the original creation timestamp. Participants are canonicalized/deduplicated owner-qualified `EntityRef` values with optional open-string roles; evidence is canonicalized owner-qualified `MemoryRef` values. References whose `owner_id` equals the containing REL/PHY must resolve to a current local object at publication and reopen; a retired local Entity ID is rejected rather than silently redirected. Cross-owner references are intentionally permitted to remain unresolved until that owner is mounted. One revision consumes one file-global semantic version and one dense Relationship-local version.
