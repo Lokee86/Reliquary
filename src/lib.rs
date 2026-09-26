@@ -92,6 +92,8 @@ mod chronos_normalize;
 mod chronos_number;
 #[path = "chronos/chronos_parser.rs"]
 mod chronos_parser;
+#[path = "chronos/chronos_processing_epoch.rs"]
+mod chronos_processing_epoch;
 #[path = "chronos/chronos_recurrence.rs"]
 mod chronos_recurrence;
 #[path = "chronos/chronos_recurrence_interval.rs"]
@@ -1136,6 +1138,9 @@ mod chronos_event_relative_tests;
 #[cfg(test)]
 #[path = "chronos/chronos_inference_tests.rs"]
 mod chronos_inference_tests;
+#[cfg(test)]
+#[path = "chronos/chronos_processing_epoch_tests.rs"]
+mod chronos_processing_epoch_tests;
 #[cfg(test)]
 #[path = "chronos/chronos_relative_tests.rs"]
 mod chronos_relative_tests;

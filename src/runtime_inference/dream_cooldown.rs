@@ -1,3 +1,6 @@
+use crate::chronos_processing_epoch::{
+    ProcessingCadence, cadence_elapsed, epoch_has_advanced, processing_epoch,
+};
 use crate::dream_source_time::{memory_source_timestamp_ns, reliquary_source_timestamp_ns};
 use crate::memory_store::MemoryStore;
 use crate::{Container, Cva, Memory, MemoryError, MemoryId, Phylactery};
@@ -204,10 +207,13 @@ pub(crate) fn merge_state(
     }
 }
 
+fn dream_cadence() -> ProcessingCadence {
+    ProcessingCadence::new(DEFAULT_DREAM_REPROCESS_COOLDOWN_NS)
+        .expect("Dream reprocess cadence must be positive")
+}
+
 pub(crate) fn dream_epoch(source_time_ns: i64, now_ns: i64) -> u64 {
-    let elapsed = (now_ns as i128 - source_time_ns as i128).max(0);
-    let epoch = elapsed / DEFAULT_DREAM_REPROCESS_COOLDOWN_NS as i128;
-    epoch.min(u64::MAX as i128) as u64
+    processing_epoch(source_time_ns, now_ns, dream_cadence())
 }
 
 pub(crate) fn eligible_dream_epoch(
@@ -228,18 +234,16 @@ pub(crate) fn eligible_dream_epoch(
     }
 
     if let Some(source_time_ns) = source_time_ns {
-        let current_epoch = dream_epoch(source_time_ns, now_ns);
         let satisfied_epoch = last_processed
             .map(|state| state.epoch)
             .unwrap_or_else(|| dream_epoch(source_time_ns, memory.updated_at_ns));
-        return (current_epoch > satisfied_epoch).then_some(current_epoch);
+        return epoch_has_advanced(source_time_ns, satisfied_epoch, now_ns, dream_cadence());
     }
 
     let last_processed_ns = last_processed
         .and_then(|state| state.processed_at_ns)
         .unwrap_or(memory.updated_at_ns);
-    let elapsed = now_ns as i128 - last_processed_ns as i128;
-    (elapsed >= DEFAULT_DREAM_REPROCESS_COOLDOWN_NS as i128).then_some(0)
+    cadence_elapsed(last_processed_ns, now_ns, dream_cadence()).then_some(0)
 }
 
 pub(crate) fn unix_now_ns() -> i64 {
