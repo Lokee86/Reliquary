@@ -1,7 +1,7 @@
 use crate::memory_store::MemoryStore;
 use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::{Container, MemoryError, MemoryId};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 const PROCESSING_EPOCH_MAGIC: [u8; 8] = *b"CVAPEP01";
 const PROCESSING_EPOCH_RECORD_LEN: usize = 63;
@@ -107,7 +107,28 @@ impl ProcessingEpochStore {
     }
 }
 
-fn merge_same_cadence(
+pub(crate) fn merge_processing_epoch_records(
+    records: impl IntoIterator<Item = (MemoryId, ProcessingLaneId, ProcessingEpochState)>,
+) -> Result<Vec<(MemoryId, ProcessingLaneId, ProcessingEpochState)>, MemoryError> {
+    let mut merged = BTreeMap::new();
+    for (memory_id, lane_id, state) in records {
+        let key = (memory_id.0, lane_id.0);
+        match merged.get(&key).copied() {
+            Some((_, _, current)) => {
+                let state = merge_same_cadence(current, state).ok_or(MemoryError::InvalidField(
+                    "Processing epoch cadence version",
+                ))?;
+                merged.insert(key, (memory_id, lane_id, state));
+            }
+            None => {
+                merged.insert(key, (memory_id, lane_id, state));
+            }
+        }
+    }
+    Ok(merged.into_values().collect())
+}
+
+pub(crate) fn merge_same_cadence(
     left: ProcessingEpochState,
     right: ProcessingEpochState,
 ) -> Option<ProcessingEpochState> {

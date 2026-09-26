@@ -1,4 +1,4 @@
-use super::{MigrationError, op, require_same};
+use super::{MigrationError, op, processing_epochs_for_migration, require_same};
 use crate::cva_reconcile_archive::{
     read_archive_tail, replay_archive_tail, replay_file_memory_links,
 };
@@ -30,7 +30,12 @@ pub(super) fn migrate(
     let generations = source.vector_generations.generations().to_vec();
     let compactions = source.conversation_compactions.all_records();
     let echo = source.echo_records();
-    let dream_cooldowns = source.dream_cooldown_records();
+    let processing_epochs = source.processing_epochs.records();
+    let processing_epochs = processing_epochs_for_migration(
+        &mut source.container,
+        &source.memories,
+        processing_epochs,
+    )?;
     let dream_pairs = source.dream_pair_records();
     let entity_resolutions = source.entity_resolution_records();
     let metadata = source.rel_metadata();
@@ -84,12 +89,10 @@ pub(super) fn migrate(
         op(output.import_entity_resolution(resolution))?;
     }
     op(replay_graph_tail(&mut output, &graph))?;
-    for (id, state) in dream_cooldowns {
-        let processed_at_ns = match state.processed_at_ns {
-            Some(value) => value,
-            None => op(output.memory(id))?.updated_at_ns,
-        };
-        op(output.mark_dream_processed(id, state.epoch, processed_at_ns))?;
+    for (memory_id, lane_id, state) in processing_epochs {
+        op(output
+            .processing_epochs
+            .put(&mut output.container, memory_id, lane_id, state))?;
     }
     for (left, right) in dream_pairs {
         op(output.mark_dream_pair_evaluated(left, right))?;

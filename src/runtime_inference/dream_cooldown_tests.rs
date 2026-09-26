@@ -1,6 +1,6 @@
 use crate::dream_candidate_test_support::{memory_with_source_time, test_path};
 use crate::dream_cooldown::{DREAM_PROCESSING_LANE, dream_epoch};
-use crate::processing_epoch_model::ProcessingLaneId;
+use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::{Cva, DEFAULT_DREAM_REPROCESS_COOLDOWN_NS, MemoryDraft, Phylactery};
 use std::fs;
 
@@ -202,6 +202,124 @@ fn divergent_reconcile_keeps_highest_epoch_and_latest_processing_time() {
         merged.dream_eligible_epoch(id, 120 * DAY_NS).unwrap(),
         Some(4)
     );
+}
+
+#[test]
+fn divergent_reconcile_merges_generic_processing_lane_independently() {
+    let left = test_path("processing-epoch-second-lane-left.cva");
+    let right = left.with_file_name("processing-epoch-second-lane-right.cva");
+    let output = left.with_file_name("processing-epoch-second-lane-merged.cva");
+    let mut base = Cva::create_project(&left).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut base,
+        "second-lane-reconcile",
+        "Second lane",
+        "Generic maintenance state",
+        0,
+        45 * DAY_NS,
+    );
+    let memory_version = base.memory_version();
+    let memory_revision = base.memory(id).unwrap().revision;
+    base.sync().unwrap();
+    drop(base);
+    fs::copy(&left, &right).unwrap();
+
+    let lane = ProcessingLaneId(2);
+    let mut left_cva = Cva::open(&left).unwrap();
+    left_cva
+        .processing_epochs
+        .put(
+            &mut left_cva.container,
+            id,
+            lane,
+            ProcessingEpochState {
+                satisfied_through_epoch: 5,
+                cadence_version: 7,
+                checkpoint_at_ns: Some(50 * DAY_NS),
+            },
+        )
+        .unwrap();
+    left_cva.sync().unwrap();
+    drop(left_cva);
+
+    let mut right_cva = Cva::open(&right).unwrap();
+    right_cva
+        .processing_epochs
+        .put(
+            &mut right_cva.container,
+            id,
+            lane,
+            ProcessingEpochState {
+                satisfied_through_epoch: 3,
+                cadence_version: 7,
+                checkpoint_at_ns: Some(95 * DAY_NS),
+            },
+        )
+        .unwrap();
+    right_cva.sync().unwrap();
+    drop(right_cva);
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+    let mut merged = Cva::open(output).unwrap();
+    assert_eq!(
+        merged.processing_epochs.state(id, lane),
+        Some(ProcessingEpochState {
+            satisfied_through_epoch: 5,
+            cadence_version: 7,
+            checkpoint_at_ns: Some(95 * DAY_NS),
+        })
+    );
+    assert_eq!(
+        merged.processing_epochs.state(id, DREAM_PROCESSING_LANE),
+        None
+    );
+    assert_eq!(merged.memory_version(), memory_version);
+    assert_eq!(merged.memory(id).unwrap().revision, memory_revision);
+}
+
+#[test]
+fn divergent_reconcile_rejects_processing_cadence_version_conflict() {
+    let left = test_path("processing-epoch-cadence-conflict-left.cva");
+    let right = left.with_file_name("processing-epoch-cadence-conflict-right.cva");
+    let output = left.with_file_name("processing-epoch-cadence-conflict-merged.cva");
+    let mut base = Cva::create_project(&left).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut base,
+        "cadence-conflict",
+        "Cadence conflict",
+        "Generic maintenance state",
+        0,
+        45 * DAY_NS,
+    );
+    base.sync().unwrap();
+    drop(base);
+    fs::copy(&left, &right).unwrap();
+
+    let lane = ProcessingLaneId(2);
+    for (path, cadence_version) in [(&left, 1), (&right, 2)] {
+        let mut cva = Cva::open(path).unwrap();
+        cva.processing_epochs
+            .put(
+                &mut cva.container,
+                id,
+                lane,
+                ProcessingEpochState {
+                    satisfied_through_epoch: 1,
+                    cadence_version,
+                    checkpoint_at_ns: Some(50 * DAY_NS),
+                },
+            )
+            .unwrap();
+        cva.sync().unwrap();
+    }
+
+    let error = Cva::reconcile(&left, &right, &output).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("Processing epoch cadence version")
+    );
+    assert!(!output.exists());
 }
 
 #[test]

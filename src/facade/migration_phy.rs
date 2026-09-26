@@ -1,4 +1,4 @@
-use super::{MigrationError, op, require_same};
+use super::{MigrationError, op, processing_epochs_for_migration, require_same};
 use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
 use crate::{
     Container, EntityDraft, GraphRelationOrigin, Memory, MemoryDraft, Phylactery,
@@ -24,7 +24,12 @@ pub(super) fn migrate(
     let profiles = source.compatibility_profiles.profiles();
     let packed_infos = source.packed_vectors.infos();
     let memory_vector_infos = source.memory_vectors.infos();
-    let dream_cooldowns = source.dream_cooldown_records();
+    let processing_epochs = source.processing_epochs.records();
+    let processing_epochs = processing_epochs_for_migration(
+        &mut source.container,
+        &source.memories,
+        processing_epochs,
+    )?;
     let dream_pairs = source.dream_pair_records();
     let entity_resolutions = source.entity_resolution_records();
 
@@ -119,12 +124,10 @@ pub(super) fn migrate(
         output.container.clear_next_transaction_time_override();
         op(result)?;
     }
-    for (id, state) in dream_cooldowns {
-        let processed_at_ns = match state.processed_at_ns {
-            Some(value) => value,
-            None => op(output.memory(id))?.updated_at_ns,
-        };
-        op(output.mark_dream_processed(id, state.epoch, processed_at_ns))?;
+    for (memory_id, lane_id, state) in processing_epochs {
+        op(output
+            .processing_epochs
+            .put(&mut output.container, memory_id, lane_id, state))?;
     }
     for (left, right) in dream_pairs {
         op(output.mark_dream_pair_evaluated(left, right))?;

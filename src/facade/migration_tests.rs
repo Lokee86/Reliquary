@@ -1,9 +1,11 @@
+use crate::dream_cooldown::DREAM_PROCESSING_LANE;
 use crate::memory_model::memory_body_id;
 use crate::{
-    CHRONOS_INFERENCE_CONTRACT_VERSION, Cva, EchoEvent, EchoEventKind, EntityDraft, FragmentConfig,
-    GraphRelationKind, MemoryDraft, MemoryTemporalInference, MigrationError, Phylactery,
-    ReliquaryScopeKind, SimulatedEmbeddingEndpoint, TemporalIndicationKind, TemporalInference,
-    TemporalInferenceResolution, VectorNormalization, migrate_file,
+    CHRONOS_INFERENCE_CONTRACT_VERSION, Container, Cva, EchoEvent, EchoEventKind, EntityDraft,
+    FragmentConfig, GraphRelationKind, MemoryDraft, MemoryId, MemoryTemporalInference,
+    MigrationError, Phylactery, ReliquaryScopeKind, SimulatedEmbeddingEndpoint,
+    TemporalIndicationKind, TemporalInference, TemporalInferenceResolution, VectorNormalization,
+    migrate_file,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -39,6 +41,26 @@ fn draft(mutation: &str, memory_type: &str, content: &str) -> MemoryDraft {
         created_at_ns: 1,
         updated_at_ns: 1,
     }
+}
+
+fn append_legacy_dream_v1(container: &mut Container, id: MemoryId, epoch: u64) {
+    let mut payload = b"CVADREM1".to_vec();
+    payload.extend_from_slice(&id.0);
+    payload.extend_from_slice(&epoch.to_le_bytes());
+    container.append(&payload).unwrap();
+}
+
+fn append_legacy_dream_v2(
+    container: &mut Container,
+    id: MemoryId,
+    epoch: u64,
+    processed_at_ns: i64,
+) {
+    let mut payload = b"CVADREM2".to_vec();
+    payload.extend_from_slice(&id.0);
+    payload.extend_from_slice(&epoch.to_le_bytes());
+    payload.extend_from_slice(&processed_at_ns.to_le_bytes());
+    container.append(&payload).unwrap();
 }
 
 fn append_legacy_workspace_id(cva: &mut Cva, id: &str) {
@@ -257,7 +279,8 @@ fn legacy_rel_migration_preserves_dream_maintenance_state() {
     let (b, _) = rel
         .publish_memory(None, 0, draft("dream:b", "project", "B"))
         .unwrap();
-    rel.mark_dream_processed(a.id, 3, 456).unwrap();
+    append_legacy_dream_v1(&mut rel.container, a.id, 3);
+    append_legacy_dream_v2(&mut rel.container, b.id, 2, 456);
     rel.mark_dream_pair_evaluated(a.id, b.id).unwrap();
     rel.sync().unwrap();
     drop(rel);
@@ -270,7 +293,23 @@ fn legacy_rel_migration_preserves_dream_maintenance_state() {
             .into_iter()
             .find(|(id, _)| *id == a.id)
             .map(|(_, state)| (state.epoch, state.processed_at_ns)),
-        Some((3, Some(456)))
+        Some((3, Some(1)))
+    );
+    assert_eq!(
+        migrated
+            .dream_cooldown_records()
+            .into_iter()
+            .find(|(id, _)| *id == b.id)
+            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
+        Some((2, Some(456)))
+    );
+    assert_eq!(
+        migrated
+            .processing_epochs
+            .state(a.id, DREAM_PROCESSING_LANE)
+            .unwrap()
+            .cadence_version,
+        1
     );
     assert_eq!(migrated.dream_pair_records().len(), 1);
 }

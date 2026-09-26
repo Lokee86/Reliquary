@@ -2,7 +2,6 @@ use crate::chronos_processing_epoch::{
     ProcessingCadence, cadence_elapsed, epoch_has_advanced, processing_epoch,
 };
 use crate::memory_source_time::{memory_source_timestamp_ns, reliquary_memory_source_timestamp_ns};
-use crate::memory_store::MemoryStore;
 use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::{Container, Cva, Memory, MemoryError, MemoryId, Phylactery};
@@ -12,7 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 const DREAM_COOLDOWN_MAGIC_V1: [u8; 8] = *b"CVADREM1";
 const DREAM_COOLDOWN_MAGIC_V2: [u8; 8] = *b"CVADREM2";
 pub(crate) const DREAM_PROCESSING_LANE: ProcessingLaneId = ProcessingLaneId(1);
-const DREAM_CADENCE_VERSION: u32 = 1;
+pub(crate) const DREAM_CADENCE_VERSION: u32 = 1;
 pub const DEFAULT_DREAM_REPROCESS_COOLDOWN_NS: i64 = 30 * 24 * 60 * 60 * 1_000_000_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -22,11 +21,11 @@ pub(crate) struct DreamCooldownState {
 }
 
 #[derive(Default)]
-pub(crate) struct DreamCooldownStore {
+pub(crate) struct LegacyDreamCooldownStore {
     states: HashMap<MemoryId, DreamCooldownState>,
 }
 
-impl DreamCooldownStore {
+impl LegacyDreamCooldownStore {
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
         if payload.len() < 8 {
             return Ok(());
@@ -63,10 +62,6 @@ impl DreamCooldownStore {
         Ok(())
     }
 
-    pub(crate) fn state(&self, id: MemoryId) -> Option<DreamCooldownState> {
-        self.states.get(&id).copied()
-    }
-
     pub(crate) fn records(&self) -> Vec<(MemoryId, DreamCooldownState)> {
         let mut records: Vec<_> = self
             .states
@@ -76,49 +71,17 @@ impl DreamCooldownStore {
         records.sort_by_key(|(id, _)| id.0);
         records
     }
+}
 
-    pub(crate) fn validate(&self, memories: &MemoryStore) -> Result<(), MemoryError> {
-        if self
-            .states
-            .keys()
-            .all(|memory_id| memories.contains_memory(*memory_id))
-        {
-            Ok(())
-        } else {
-            Err(MemoryError::CorruptRecord(
-                "Dream cooldown references a missing Memory",
-            ))
-        }
+pub(crate) fn legacy_dream_cooldown_records(
+    container: &mut Container,
+) -> Result<Vec<(MemoryId, DreamCooldownState)>, MemoryError> {
+    let mut store = LegacyDreamCooldownStore::default();
+    for chunk in container.chunks()? {
+        let payload = container.read(chunk)?;
+        store.ingest(&payload)?;
     }
-
-    pub(crate) fn put(
-        &mut self,
-        container: &mut Container,
-        id: MemoryId,
-        state: DreamCooldownState,
-    ) -> Result<bool, MemoryError> {
-        if self
-            .state(id)
-            .is_some_and(|current| merge_state(current, state) == current)
-        {
-            return Ok(false);
-        }
-        let merged = self
-            .state(id)
-            .map(|current| merge_state(current, state))
-            .unwrap_or(state);
-        let Some(processed_at_ns) = merged.processed_at_ns else {
-            return Err(MemoryError::InvalidField("Dream processed timestamp"));
-        };
-        let mut payload = Vec::with_capacity(56);
-        payload.extend_from_slice(&DREAM_COOLDOWN_MAGIC_V2);
-        payload.extend_from_slice(&id.0);
-        payload.extend_from_slice(&merged.epoch.to_le_bytes());
-        payload.extend_from_slice(&processed_at_ns.to_le_bytes());
-        container.append(&payload)?;
-        self.states.insert(id, merged);
-        Ok(true)
-    }
+    Ok(store.records())
 }
 
 pub(crate) fn merge_state(
