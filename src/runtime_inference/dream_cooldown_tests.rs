@@ -8,9 +8,28 @@ const DAY_NS: i64 = 24 * 60 * 60 * 1_000_000_000;
 #[test]
 fn provenance_age_selects_one_current_epoch_without_backlog() {
     assert_eq!(DEFAULT_DREAM_REPROCESS_COOLDOWN_NS, 30 * DAY_NS);
+    assert_eq!(dream_epoch(10 * DAY_NS, 9 * DAY_NS), 0);
     assert_eq!(dream_epoch(0, 45 * DAY_NS), 1);
     assert_eq!(dream_epoch(0, 60 * DAY_NS), 2);
     assert_eq!(dream_epoch(0, 95 * DAY_NS), 3);
+}
+
+#[test]
+fn reliquary_cooldown_uses_authoritative_archive_source_time() {
+    let path = test_path("dream-cooldown-authoritative-source.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory_with_source_time(
+        &mut cva,
+        "authoritative-source",
+        "Authoritative source",
+        "Historical knowledge",
+        0,
+        40 * DAY_NS,
+        45 * DAY_NS,
+    );
+
+    assert_eq!(cva.dream_eligible_epoch(id, 59 * DAY_NS).unwrap(), None);
+    assert_eq!(cva.dream_eligible_epoch(id, 60 * DAY_NS).unwrap(), Some(2));
 }
 
 #[test]
@@ -50,8 +69,10 @@ fn cooldown_marker_survives_reopen_and_skips_missed_epochs() {
         45 * DAY_NS,
     );
     let memory_version = cva.memory_version();
+    let memory_revision = cva.memory(id).unwrap().revision;
     assert!(cva.mark_dream_processed(id, 1, 45 * DAY_NS).unwrap());
     assert_eq!(cva.memory_version(), memory_version);
+    assert_eq!(cva.memory(id).unwrap().revision, memory_revision);
     cva.sync().unwrap();
     drop(cva);
 
@@ -59,6 +80,7 @@ fn cooldown_marker_survives_reopen_and_skips_missed_epochs() {
     assert_eq!(cva.dream_eligible_epoch(id, 45 * DAY_NS).unwrap(), None);
     assert_eq!(cva.dream_eligible_epoch(id, 95 * DAY_NS).unwrap(), Some(3));
     assert!(cva.mark_dream_processed(id, 3, 95 * DAY_NS).unwrap());
+    assert_eq!(cva.memory(id).unwrap().revision, memory_revision);
     assert_eq!(cva.dream_eligible_epoch(id, 95 * DAY_NS).unwrap(), None);
 }
 
@@ -100,7 +122,7 @@ fn phylactery_cooldown_state_survives_reopen() {
 }
 
 #[test]
-fn divergent_reconcile_keeps_the_highest_satisfied_epoch() {
+fn divergent_reconcile_keeps_highest_epoch_and_latest_processing_time() {
     let left = test_path("dream-cooldown-left.cva");
     let right = left.with_file_name("dream-cooldown-right.cva");
     let output = left.with_file_name("dream-cooldown-merged.cva");
@@ -118,8 +140,8 @@ fn divergent_reconcile_keeps_the_highest_satisfied_epoch() {
     fs::copy(&left, &right).unwrap();
 
     for (path, epoch, processed_at_ns, node) in [
-        (&left, 1, 45 * DAY_NS, "left-node"),
-        (&right, 3, 95 * DAY_NS, "right-node"),
+        (&left, 3, 45 * DAY_NS, "left-node"),
+        (&right, 1, 95 * DAY_NS, "right-node"),
     ] {
         let mut cva = Cva::open(path).unwrap();
         cva.mark_dream_processed(id, epoch, processed_at_ns)
@@ -154,7 +176,7 @@ fn divergent_reconcile_keeps_the_highest_satisfied_epoch() {
 }
 
 #[test]
-fn provenance_less_memory_uses_last_dream_time_as_recurring_fallback() {
+fn provenance_less_memory_uses_updated_time_then_last_dream_time_as_fallback() {
     let path = test_path("dream-cooldown-no-provenance.cva");
     let mut cva = Cva::create(path).unwrap();
     let draft = MemoryDraft {
@@ -182,6 +204,8 @@ fn provenance_less_memory_uses_last_dream_time_as_recurring_fallback() {
     };
     let id = cva.publish_memory(None, 0, draft).unwrap().0.id;
 
+    assert_eq!(cva.dream_eligible_epoch(id, 39 * DAY_NS).unwrap(), None);
+    assert_eq!(cva.dream_eligible_epoch(id, 40 * DAY_NS).unwrap(), Some(0));
     assert!(cva.mark_dream_processed(id, 0, 50 * DAY_NS).unwrap());
     assert_eq!(cva.dream_eligible_epoch(id, 79 * DAY_NS).unwrap(), None);
     assert_eq!(cva.dream_eligible_epoch(id, 80 * DAY_NS).unwrap(), Some(0));
