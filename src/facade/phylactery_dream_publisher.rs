@@ -1,5 +1,5 @@
 use crate::dream_owner_publisher::publish_dream_pair as publish_dream_pair_from_parts;
-use crate::dream_source_time::memory_source_timestamp_ns;
+use crate::memory_source_time::memory_source_timestamp_ns;
 use crate::{
     DreamPairClassification, DreamPairVerification, DreamPublicationError, DreamPublicationOutcome,
     DreamVerificationPolicy, Memory, Phylactery,

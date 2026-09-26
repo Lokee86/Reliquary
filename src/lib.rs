@@ -325,8 +325,6 @@ mod dream_publisher;
 mod dream_publisher_error;
 #[path = "runtime_inference/dream_publisher_model.rs"]
 mod dream_publisher_model;
-#[path = "runtime_inference/dream_source_time.rs"]
-mod dream_source_time;
 #[path = "runtime_inference/dream_temporal.rs"]
 mod dream_temporal;
 #[path = "runtime_inference/dream_verifier.rs"]
@@ -616,6 +614,8 @@ mod memory_routing_codec;
 mod memory_routing_model;
 #[path = "retrieval/memory_search.rs"]
 mod memory_search;
+#[path = "memory/memory_source_time.rs"]
+mod memory_source_time;
 #[path = "memory/memory_store.rs"]
 mod memory_store;
 #[path = "memory/memory_temporal_codec.rs"]
@@ -1372,6 +1372,9 @@ mod memory_retrieval_tests;
 #[cfg(test)]
 #[path = "memory/memory_routing_tests.rs"]
 mod memory_routing_tests;
+#[cfg(test)]
+#[path = "memory/memory_source_time_tests.rs"]
+mod memory_source_time_tests;
 #[cfg(test)]
 #[path = "memory/memory_temporal_inference_tests.rs"]
 mod memory_temporal_inference_tests;

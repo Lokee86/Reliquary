@@ -1,5 +1,5 @@
 use crate::chronos::{analyze, analyze_with_inference};
-use crate::dream_source_time::reliquary_source_timestamp_ns;
+use crate::memory_source_time::reliquary_memory_source_timestamp_ns;
 use crate::{Cva, DreamTemporalAnalysis, Memory, MemoryError, MemoryId};
 
 impl Cva {
@@ -9,7 +9,7 @@ impl Cva {
     ) -> Result<DreamTemporalAnalysis, MemoryError> {
         let memory = self.memories.memory(&mut self.container, memory_id)?;
         let body_id = self.memories.current_body_id(memory_id)?;
-        let source_timestamp_ns = reliquary_source_timestamp_ns(&self.archive, &memory);
+        let source_timestamp_ns = reliquary_memory_source_timestamp_ns(&self.archive, &memory);
         Ok(analyze_memory_temporal(
             &memory,
             body_id,

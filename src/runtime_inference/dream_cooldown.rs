@@ -1,7 +1,7 @@
 use crate::chronos_processing_epoch::{
     ProcessingCadence, cadence_elapsed, epoch_has_advanced, processing_epoch,
 };
-use crate::dream_source_time::{memory_source_timestamp_ns, reliquary_source_timestamp_ns};
+use crate::memory_source_time::{memory_source_timestamp_ns, reliquary_memory_source_timestamp_ns};
 use crate::memory_store::MemoryStore;
 use crate::{Container, Cva, Memory, MemoryError, MemoryId, Phylactery};
 use std::collections::{HashMap, HashSet};
@@ -261,7 +261,7 @@ impl Cva {
         now_ns: i64,
     ) -> Result<Option<u64>, MemoryError> {
         let memory = self.memory(id)?;
-        let source_time = reliquary_source_timestamp_ns(&self.archive, &memory);
+        let source_time = reliquary_memory_source_timestamp_ns(&self.archive, &memory);
         Ok(eligible_dream_epoch(
             &memory,
             source_time,
