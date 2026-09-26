@@ -3,165 +3,66 @@ use crate::chronos_processing_epoch::{
 };
 use crate::memory_source_time::{memory_source_timestamp_ns, reliquary_memory_source_timestamp_ns};
 use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
-use crate::processing_epoch_store::ProcessingEpochStore;
-use crate::{Container, Cva, Memory, MemoryError, MemoryId, Phylactery};
-use std::collections::HashMap;
+use crate::{Cva, Memory, MemoryError, MemoryId, Phylactery};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-const DREAM_COOLDOWN_MAGIC_V1: [u8; 8] = *b"CVADREM1";
-const DREAM_COOLDOWN_MAGIC_V2: [u8; 8] = *b"CVADREM2";
 pub(crate) const DREAM_PROCESSING_LANE: ProcessingLaneId = ProcessingLaneId(1);
 pub(crate) const DREAM_CADENCE_VERSION: u32 = 1;
 pub const DEFAULT_DREAM_REPROCESS_COOLDOWN_NS: i64 = 30 * 24 * 60 * 60 * 1_000_000_000;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct DreamCooldownState {
-    pub(crate) epoch: u64,
-    pub(crate) processed_at_ns: Option<i64>,
-}
-
-#[derive(Default)]
-pub(crate) struct LegacyDreamCooldownStore {
-    states: HashMap<MemoryId, DreamCooldownState>,
-}
-
-impl LegacyDreamCooldownStore {
-    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
-        if payload.len() < 8 {
-            return Ok(());
-        }
-        let (id, state) = if payload[..8] == DREAM_COOLDOWN_MAGIC_V2 {
-            if payload.len() != 56 {
-                return Err(MemoryError::CorruptRecord("invalid Dream cooldown record"));
-            }
-            (
-                MemoryId(payload[8..40].try_into().unwrap()),
-                DreamCooldownState {
-                    epoch: u64::from_le_bytes(payload[40..48].try_into().unwrap()),
-                    processed_at_ns: Some(i64::from_le_bytes(payload[48..56].try_into().unwrap())),
-                },
-            )
-        } else if payload[..8] == DREAM_COOLDOWN_MAGIC_V1 {
-            if payload.len() != 48 {
-                return Err(MemoryError::CorruptRecord("invalid Dream cooldown record"));
-            }
-            (
-                MemoryId(payload[8..40].try_into().unwrap()),
-                DreamCooldownState {
-                    epoch: u64::from_le_bytes(payload[40..48].try_into().unwrap()),
-                    processed_at_ns: None,
-                },
-            )
-        } else {
-            return Ok(());
-        };
-        self.states
-            .entry(id)
-            .and_modify(|current| *current = merge_state(*current, state))
-            .or_insert(state);
-        Ok(())
-    }
-
-    pub(crate) fn records(&self) -> Vec<(MemoryId, DreamCooldownState)> {
-        let mut records: Vec<_> = self
-            .states
-            .iter()
-            .map(|(id, state)| (*id, *state))
-            .collect();
-        records.sort_by_key(|(id, _)| id.0);
-        records
-    }
-}
-
-pub(crate) fn legacy_dream_cooldown_records(
-    container: &mut Container,
-) -> Result<Vec<(MemoryId, DreamCooldownState)>, MemoryError> {
-    let mut store = LegacyDreamCooldownStore::default();
-    for chunk in container.chunks()? {
-        let payload = container.read(chunk)?;
-        store.ingest(&payload)?;
-    }
-    Ok(store.records())
-}
-
-pub(crate) fn merge_state(
-    left: DreamCooldownState,
-    right: DreamCooldownState,
-) -> DreamCooldownState {
-    DreamCooldownState {
-        epoch: left.epoch.max(right.epoch),
-        processed_at_ns: match (left.processed_at_ns, right.processed_at_ns) {
-            (Some(left), Some(right)) => Some(left.max(right)),
-            (Some(value), None) | (None, Some(value)) => Some(value),
-            (None, None) => None,
-        },
-    }
-}
-
-fn dream_cooldown_state(state: ProcessingEpochState) -> DreamCooldownState {
-    DreamCooldownState {
-        epoch: state.satisfied_through_epoch,
-        processed_at_ns: state.checkpoint_at_ns,
-    }
-}
-
-fn dream_processing_state(state: DreamCooldownState) -> ProcessingEpochState {
-    ProcessingEpochState {
-        satisfied_through_epoch: state.epoch,
-        cadence_version: DREAM_CADENCE_VERSION,
-        checkpoint_at_ns: state.processed_at_ns,
-    }
-}
-
-fn dream_cooldown_records(
-    processing_epochs: &ProcessingEpochStore,
-) -> Vec<(MemoryId, DreamCooldownState)> {
-    processing_epochs
-        .records()
-        .into_iter()
-        .filter_map(|(memory_id, lane_id, state)| {
-            (lane_id == DREAM_PROCESSING_LANE).then_some((memory_id, dream_cooldown_state(state)))
-        })
-        .collect()
-}
 
 fn dream_cadence() -> ProcessingCadence {
     ProcessingCadence::new(DEFAULT_DREAM_REPROCESS_COOLDOWN_NS)
         .expect("Dream reprocess cadence must be positive")
 }
 
+fn dream_processing_state(epoch: u64, processed_at_ns: i64) -> ProcessingEpochState {
+    ProcessingEpochState {
+        satisfied_through_epoch: epoch,
+        cadence_version: DREAM_CADENCE_VERSION,
+        checkpoint_at_ns: Some(processed_at_ns),
+    }
+}
+
 pub(crate) fn dream_epoch(source_time_ns: i64, now_ns: i64) -> u64 {
     processing_epoch(source_time_ns, now_ns, dream_cadence())
 }
 
-pub(crate) fn eligible_dream_epoch(
+fn eligible_dream_epoch(
     memory: &Memory,
     source_time_ns: Option<i64>,
-    last_processed: Option<DreamCooldownState>,
+    last_processed: Option<ProcessingEpochState>,
     now_ns: i64,
-) -> Option<u64> {
+) -> Result<Option<u64>, MemoryError> {
     if memory.archived {
-        return None;
+        return Ok(None);
     }
     if memory.lifecycle_state == "extracted" {
-        return Some(
+        return Ok(Some(
             source_time_ns
                 .map(|source_time| dream_epoch(source_time, now_ns))
                 .unwrap_or(0),
-        );
+        ));
+    }
+    if last_processed.is_some_and(|state| state.cadence_version != DREAM_CADENCE_VERSION) {
+        return Err(MemoryError::InvalidField("Dream cadence version"));
     }
 
     if let Some(source_time_ns) = source_time_ns {
         let satisfied_epoch = last_processed
-            .map(|state| state.epoch)
+            .map(|state| state.satisfied_through_epoch)
             .unwrap_or_else(|| dream_epoch(source_time_ns, memory.updated_at_ns));
-        return epoch_has_advanced(source_time_ns, satisfied_epoch, now_ns, dream_cadence());
+        return Ok(epoch_has_advanced(
+            source_time_ns,
+            satisfied_epoch,
+            now_ns,
+            dream_cadence(),
+        ));
     }
 
     let last_processed_ns = last_processed
-        .and_then(|state| state.processed_at_ns)
+        .and_then(|state| state.checkpoint_at_ns)
         .unwrap_or(memory.updated_at_ns);
-    cadence_elapsed(last_processed_ns, now_ns, dream_cadence()).then_some(0)
+    Ok(cadence_elapsed(last_processed_ns, now_ns, dream_cadence()).then_some(0))
 }
 
 pub(crate) fn unix_now_ns() -> i64 {
@@ -180,14 +81,12 @@ impl Cva {
     ) -> Result<Option<u64>, MemoryError> {
         let memory = self.memory(id)?;
         let source_time = reliquary_memory_source_timestamp_ns(&self.archive, &memory);
-        Ok(eligible_dream_epoch(
+        eligible_dream_epoch(
             &memory,
             source_time,
-            self.processing_epochs
-                .state(id, DREAM_PROCESSING_LANE)
-                .map(dream_cooldown_state),
+            self.processing_epochs.state(id, DREAM_PROCESSING_LANE),
             now_ns,
-        ))
+        )
     }
 
     pub(crate) fn mark_dream_processed(
@@ -203,15 +102,8 @@ impl Cva {
             &mut self.container,
             id,
             DREAM_PROCESSING_LANE,
-            dream_processing_state(DreamCooldownState {
-                epoch,
-                processed_at_ns: Some(processed_at_ns),
-            }),
+            dream_processing_state(epoch, processed_at_ns),
         )
-    }
-
-    pub(crate) fn dream_cooldown_records(&self) -> Vec<(MemoryId, DreamCooldownState)> {
-        dream_cooldown_records(&self.processing_epochs)
     }
 
     pub(crate) fn dream_was_processed(&self, id: MemoryId) -> bool {
@@ -228,14 +120,12 @@ impl Phylactery {
         now_ns: i64,
     ) -> Result<Option<u64>, MemoryError> {
         let memory = self.memory(id)?;
-        Ok(eligible_dream_epoch(
+        eligible_dream_epoch(
             &memory,
             memory_source_timestamp_ns(&memory),
-            self.processing_epochs
-                .state(id, DREAM_PROCESSING_LANE)
-                .map(dream_cooldown_state),
+            self.processing_epochs.state(id, DREAM_PROCESSING_LANE),
             now_ns,
-        ))
+        )
     }
 
     pub(crate) fn mark_dream_processed(
@@ -251,10 +141,7 @@ impl Phylactery {
             &mut self.container,
             id,
             DREAM_PROCESSING_LANE,
-            dream_processing_state(DreamCooldownState {
-                epoch,
-                processed_at_ns: Some(processed_at_ns),
-            }),
+            dream_processing_state(epoch, processed_at_ns),
         )
     }
 
@@ -262,9 +149,5 @@ impl Phylactery {
         self.processing_epochs
             .state(id, DREAM_PROCESSING_LANE)
             .is_some_and(|state| state.checkpoint_at_ns.is_some())
-    }
-
-    pub(crate) fn dream_cooldown_records(&self) -> Vec<(MemoryId, DreamCooldownState)> {
-        dream_cooldown_records(&self.processing_epochs)
     }
 }

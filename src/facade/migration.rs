@@ -1,11 +1,12 @@
+#[path = "migration_dream_cooldown.rs"]
+mod dream_cooldown_legacy;
 #[path = "migration_phy.rs"]
 mod phy;
 #[path = "migration_rel.rs"]
 mod rel;
 
-use crate::dream_cooldown::{
-    DREAM_CADENCE_VERSION, DREAM_PROCESSING_LANE, legacy_dream_cooldown_records,
-};
+use self::dream_cooldown_legacy::legacy_dream_cooldown_records;
+use crate::dream_cooldown::{DREAM_CADENCE_VERSION, DREAM_PROCESSING_LANE};
 use crate::memory_store::MemoryStore;
 use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::processing_epoch_store::merge_processing_epoch_records;

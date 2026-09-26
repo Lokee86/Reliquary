@@ -1,4 +1,4 @@
-use crate::dream_candidate_test_support::{memory_with_source_time, test_path};
+use crate::dream_candidate_test_support::{memory, memory_with_source_time, test_path};
 use crate::dream_cooldown::{DREAM_PROCESSING_LANE, dream_epoch};
 use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::{Cva, DEFAULT_DREAM_REPROCESS_COOLDOWN_NS, MemoryDraft, Phylactery};
@@ -59,6 +59,22 @@ fn reliquary_cooldown_uses_authoritative_archive_source_time() {
 
     assert_eq!(cva.dream_eligible_epoch(id, 59 * DAY_NS).unwrap(), None);
     assert_eq!(cva.dream_eligible_epoch(id, 60 * DAY_NS).unwrap(), Some(2));
+}
+
+#[test]
+fn archived_memory_is_never_dream_eligible() {
+    let path = test_path("dream-cooldown-archived.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory(
+        &mut cva,
+        "archived-cooldown",
+        "Archived",
+        "Archived knowledge",
+        0,
+        true,
+    );
+
+    assert_eq!(cva.dream_eligible_epoch(id, 90 * DAY_NS).unwrap(), None);
 }
 
 #[test]
@@ -189,14 +205,12 @@ fn divergent_reconcile_keeps_highest_epoch_and_latest_processing_time() {
 
     Cva::reconcile(&left, &right, &output).unwrap();
     let mut merged = Cva::open(output).unwrap();
-    assert_eq!(
-        merged
-            .dream_cooldown_records()
-            .into_iter()
-            .find(|(memory_id, _)| *memory_id == id)
-            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
-        Some((3, Some(95 * DAY_NS)))
-    );
+    let state = merged
+        .processing_epochs
+        .state(id, DREAM_PROCESSING_LANE)
+        .unwrap();
+    assert_eq!(state.satisfied_through_epoch, 3);
+    assert_eq!(state.checkpoint_at_ns, Some(95 * DAY_NS));
     assert_eq!(merged.dream_eligible_epoch(id, 95 * DAY_NS).unwrap(), None);
     assert_eq!(
         merged.dream_eligible_epoch(id, 120 * DAY_NS).unwrap(),
@@ -320,6 +334,38 @@ fn divergent_reconcile_rejects_processing_cadence_version_conflict() {
             .contains("Processing epoch cadence version")
     );
     assert!(!output.exists());
+}
+
+#[test]
+fn dream_rejects_persisted_cadence_version_mismatch_when_state_is_used() {
+    let path = test_path("dream-cooldown-cadence-mismatch.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut cva,
+        "cadence-mismatch",
+        "Cadence mismatch",
+        "Persisted Dream state from another policy version",
+        0,
+        45 * DAY_NS,
+    );
+    cva.processing_epochs
+        .put(
+            &mut cva.container,
+            id,
+            DREAM_PROCESSING_LANE,
+            ProcessingEpochState {
+                satisfied_through_epoch: 1,
+                cadence_version: 2,
+                checkpoint_at_ns: Some(45 * DAY_NS),
+            },
+        )
+        .unwrap();
+
+    let error = cva.dream_eligible_epoch(id, 60 * DAY_NS).unwrap_err();
+    assert!(matches!(
+        error,
+        crate::MemoryError::InvalidField("Dream cadence version")
+    ));
 }
 
 #[test]

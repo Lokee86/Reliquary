@@ -256,14 +256,12 @@ fn legacy_typed_phy_migration_preserves_owned_state() {
     );
     assert_eq!(migrated.compatibility_profile_stats().profiles, 1);
     assert_eq!(migrated.memory_vector_stats().bindings, 2);
-    assert_eq!(
-        migrated
-            .dream_cooldown_records()
-            .into_iter()
-            .find(|(id, _)| *id == a.id)
-            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
-        Some((2, Some(123)))
-    );
+    let state = migrated
+        .processing_epochs
+        .state(a.id, DREAM_PROCESSING_LANE)
+        .unwrap();
+    assert_eq!(state.satisfied_through_epoch, 2);
+    assert_eq!(state.checkpoint_at_ns, Some(123));
     assert_eq!(migrated.dream_pair_records().len(), 1);
 }
 
@@ -287,22 +285,18 @@ fn legacy_rel_migration_preserves_dream_maintenance_state() {
 
     migrate_file(&source, &output).unwrap();
     let migrated = Cva::open(&output).unwrap();
-    assert_eq!(
-        migrated
-            .dream_cooldown_records()
-            .into_iter()
-            .find(|(id, _)| *id == a.id)
-            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
-        Some((3, Some(1)))
-    );
-    assert_eq!(
-        migrated
-            .dream_cooldown_records()
-            .into_iter()
-            .find(|(id, _)| *id == b.id)
-            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
-        Some((2, Some(456)))
-    );
+    let a_state = migrated
+        .processing_epochs
+        .state(a.id, DREAM_PROCESSING_LANE)
+        .unwrap();
+    assert_eq!(a_state.satisfied_through_epoch, 3);
+    assert_eq!(a_state.checkpoint_at_ns, Some(1));
+    let b_state = migrated
+        .processing_epochs
+        .state(b.id, DREAM_PROCESSING_LANE)
+        .unwrap();
+    assert_eq!(b_state.satisfied_through_epoch, 2);
+    assert_eq!(b_state.checkpoint_at_ns, Some(456));
     assert_eq!(
         migrated
             .processing_epochs
