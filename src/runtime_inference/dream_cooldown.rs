@@ -3,12 +3,14 @@ use crate::chronos_processing_epoch::{
 };
 use crate::memory_source_time::{memory_source_timestamp_ns, reliquary_memory_source_timestamp_ns};
 use crate::memory_store::MemoryStore;
+use crate::processing_epoch_model::ProcessingLaneId;
 use crate::{Container, Cva, Memory, MemoryError, MemoryId, Phylactery};
 use std::collections::HashMap;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const DREAM_COOLDOWN_MAGIC_V1: [u8; 8] = *b"CVADREM1";
 const DREAM_COOLDOWN_MAGIC_V2: [u8; 8] = *b"CVADREM2";
+pub(crate) const DREAM_PROCESSING_LANE: ProcessingLaneId = ProcessingLaneId(1);
 pub const DEFAULT_DREAM_REPROCESS_COOLDOWN_NS: i64 = 30 * 24 * 60 * 60 * 1_000_000_000;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

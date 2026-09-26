@@ -1,9 +1,15 @@
 use crate::dream_candidate_test_support::{memory_with_source_time, test_path};
-use crate::dream_cooldown::dream_epoch;
+use crate::dream_cooldown::{DREAM_PROCESSING_LANE, dream_epoch};
+use crate::processing_epoch_model::ProcessingLaneId;
 use crate::{Cva, DEFAULT_DREAM_REPROCESS_COOLDOWN_NS, MemoryDraft, Phylactery};
 use std::fs;
 
 const DAY_NS: i64 = 24 * 60 * 60 * 1_000_000_000;
+
+#[test]
+fn dream_processing_lane_has_stable_id_one() {
+    assert_eq!(DREAM_PROCESSING_LANE, ProcessingLaneId(1));
+}
 
 #[test]
 fn provenance_age_selects_one_current_epoch_without_backlog() {
