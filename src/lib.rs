@@ -700,6 +700,8 @@ mod phylactery_profile_model;
 mod phylactery_profile_store;
 #[path = "memory/processing_epoch_model.rs"]
 mod processing_epoch_model;
+#[path = "memory/processing_epoch_store.rs"]
+mod processing_epoch_store;
 #[path = "project_environment.rs"]
 mod project_environment;
 #[cfg(test)]
@@ -1418,6 +1420,9 @@ mod phylactery_tests;
 #[cfg(test)]
 #[path = "memory/processing_epoch_model_tests.rs"]
 mod processing_epoch_model_tests;
+#[cfg(test)]
+#[path = "memory/processing_epoch_store_tests.rs"]
+mod processing_epoch_store_tests;
 #[cfg(test)]
 #[path = "archive/project_file_attachment_tests.rs"]
 mod project_file_attachment_tests;
