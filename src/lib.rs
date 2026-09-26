@@ -311,6 +311,8 @@ mod dream_owner_publisher;
 mod dream_owner_vectors;
 #[path = "runtime_inference/dream_pair_context.rs"]
 mod dream_pair_context;
+#[path = "runtime_inference/dream_pair_history.rs"]
+mod dream_pair_history;
 #[path = "runtime_inference/dream_processor.rs"]
 mod dream_processor;
 #[path = "runtime_inference/dream_processor_error.rs"]

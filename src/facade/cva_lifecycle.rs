@@ -9,8 +9,9 @@ use crate::conversation_compaction_store::{
 };
 use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::cva_open_route::{OpenRecordRoute, classify_open_record};
-use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
+use crate::dream_cooldown::DreamCooldownStore;
 use crate::dream_duplicate_index::DuplicateIndex;
+use crate::dream_pair_history::DreamPairStore;
 use crate::echo_store::EchoStore;
 use crate::ego_store::EgoStore;
 use crate::entity_rebuild::EntityOpenState;
