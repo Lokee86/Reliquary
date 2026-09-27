@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-OUT = Path("..") / "continuity-memory-v2" / "fixtures" / "local" / "calibration" / "entity-store-resolution-large-v1"
+OUT = Path("..") / "Reliquary" / "fixtures" / "local" / "calibration" / "entity-store-resolution-large-v1"
 
 COUNTS = {
     "same_name_same_type": 30,

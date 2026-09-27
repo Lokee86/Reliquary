@@ -40,7 +40,7 @@ The Rust package/crate and user-facing development surfaces adopt the new name:
 
 The rename does **not** by itself change storage-format identity or deterministic identity domains. Existing `.cva` format markers, `CVA*` record magic, `CVCFG` config framing, and established hash/domain-separation constants remain stable unless a separate versioned format/identity decision changes them. ADR 0020 now establishes `.rel` and `.phy` as the future product file identities, but it likewise leaves the exact physical header/schema migration to implementation work. Historical benchmark/source snapshots retain the names present in their captured source material.
 
-The repository checkout/remote name may remain `continuity-memory-v2` as a technical legacy path until repository hosting and linked-worktree migration are handled separately. That path is not the product identity.
+Repository hosting and the local checkout now use the `Reliquary` name. The legacy `continuity-memory-v2` repository path is retired; historical benchmark/source snapshots may still contain the old path as captured source material.
 
 ## Consequences
 

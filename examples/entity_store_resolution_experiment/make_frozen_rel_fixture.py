@@ -1,8 +1,8 @@
 import json, re
 from pathlib import Path
 
-SRC = Path(r"C:\!bin\workspace\continuity-memory-v2\fixtures\local\calibration\insomnia-entity-v2")
-OUT = Path(r"C:\!bin\workspace\continuity-memory-v2\fixtures\local\calibration\entity-store-resolution-frozen-rel-v1")
+SRC = Path(r"C:\!bin\workspace\Reliquary\fixtures\local\calibration\insomnia-entity-v2")
+OUT = Path(r"C:\!bin\workspace\Reliquary\fixtures\local\calibration\entity-store-resolution-frozen-rel-v1")
 OWNER = "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b"
 MEM = {r["memory_id"]: r for r in map(json.loads, (SRC/"candidates.jsonl").read_text(encoding="utf-8").splitlines())}
 SHADOW = {r["memory_id"]: r for r in map(json.loads, (SRC/"runs"/"shadow-sol-low-entity-reusable-v2-2026-09-17"/"results.jsonl").read_text(encoding="utf-8").splitlines())}

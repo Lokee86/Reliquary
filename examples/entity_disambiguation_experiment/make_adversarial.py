@@ -1,5 +1,5 @@
 import json, pathlib
-OUT=pathlib.Path(r"..\continuity-memory-v2\fixtures\local\calibration\entity-disambiguation-adversarial-v1")
+OUT=pathlib.Path(r"..\Reliquary\fixtures\local\calibration\entity-disambiguation-adversarial-v1")
 G=[
 ("g01","Phoenix","Project Phoenix is the deployment modernization project for billing.","Phoenix is the destination city for next month's expo.","The Phoenix project cannot deploy until the CI failure is fixed.","resolve_existing",0),
 ("g02","Jordan","Jordan Lee is a backend developer who reviews authentication pull requests.","Jordan is the country being evaluated for regional distribution.","Jordan approved the authentication pull request.","resolve_existing",0),

@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-OUT = Path(r"..\continuity-memory-v2\fixtures\local\calibration\entity-store-resolution-adversarial-v1")
+OUT = Path(r"..\Reliquary\fixtures\local\calibration\entity-store-resolution-adversarial-v1")
 CASES = [
 ("Phoenix","project","city","Phoenix project deployment is blocked by a CI failure.","resolve_existing","a"),
 ("Jordan","person","country","Jordan approved the authentication pull request.","resolve_existing","a"),
