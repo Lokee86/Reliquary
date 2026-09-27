@@ -1,0 +1,754 @@
+[
+  {
+    "candidates": [
+      {
+        "authority_kind": "adoption",
+        "authority_source_conversation_id": "tuning:f1cd442533fc5d06d7d9a1bf98f6478ca0fe590844bd79d5e01afb3150d26dff",
+        "authority_source_node_id": "12f6ffc8-0d56-41f4-a3af-e471a0d394f2",
+        "authority_source_quote": "Yes. The Git-stage test answered one narrow question: **cold Git object creation is dramatically slower on D:**.\n\nFor better information about whether D: is broadly pathological, we still need to run the same real workloads on both drives, preferably under:\n\n```text\nC:\\!bin\nD:\\!bin\n```\n\nThe useful comparisons are:\n\n- directory walk/stat over thousands of files;\n- hashing the same source tree;\n- creating, renaming, and deleting many small files;\n- Git clone, checkout, status, add, and worktree creation;\n- Lexicon cold scan and incremental scan;\n- Grimoire index creation/read;\n- representative Go, Rust, Node, and Python builds/tests;\n- large sequential file copy, to distinguish general disk speed from small-file pathology.\n\nThe original benchmark already used C:, but only through a temporary subprocess and only for Git staging. Now that the MCP has direct C: access, we can run the broader suite against identical directories and real toolchains.\n\nSo the correction is: we did enough on C: to prove the **Git staging** problem. We have not yet done enough to quantify how much every other operation improves.",
+        "category": "decision",
+        "content": "The user approved running the broader matched C: vs D: workload benchmark covering filesystem, Git, build/test, Lexicon, and Grimoire operations that the assistant had proposed.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "historical",
+        "source_node_id": "7eb69789-ab99-4cb4-a951-41b9a4622b89",
+        "source_quote": "Ok. Do that.",
+        "title": "Approved matched C: vs D: benchmark",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "instruction",
+        "content": "All working repositories must be clean, clear, and pushed before any further work.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "1bb0f9d8-7048-41c8-b653-c0e250a52271",
+        "source_quote": "make sure everything is clean, clear, and pushed. Then clone down all of our working repos into !bin/workspace",
+        "title": "Repositories must be clean, clear, and pushed",
+        "type": "project"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "decision",
+        "content": "Correction: the repositories must be cloned to C:\\!bin\\workspace.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "0349eea4-534e-4838-8cc8-63a57130f867",
+        "source_quote": "C:\\!bin\\workspace",
+        "title": "Repos cloned to C:\\!bin\\workspace",
+        "type": "location"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "decision",
+        "content": "The repositories are to live at C:\\!bin\\workspace for the speed improvement, explicitly not on the D: drive.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+        "source_quote": "we want our repos at C:\\!bin\\workspace for the speed improvement, not deeper into the D:\\ drive, damnit",
+        "title": "Repos belong on C:, not D:",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "fact",
+        "content": "The user will no longer be working on the D: drive.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+        "source_quote": "alright, now clean up any mess we have in D:\\ right away too, we won't be working there anymore",
+        "title": "User stopped working on D:",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "instruction",
+        "content": "Any mess left on D: is to be cleaned up immediately.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+        "source_quote": "alright, now clean up any mess we have in D:\\ right away too, we won't be working there anymore",
+        "title": "Clean up the D: mess immediately",
+        "type": "location"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "constraint",
+        "content": "Cleanup does not authorize deleting or migrating backups and other data; 'clean up' must not mean nuking or relocating everything.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "e79a857d-2628-4666-9619-014a936f589a",
+        "source_quote": "What the hell did you do? I said clean up, not nuke everything, since when is deleting backups cleaning up?",
+        "title": "Cleanup does not mean deleting or migrating data",
+        "type": "process"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "fact",
+        "content": "Unrecognized or unexpected folders were created on the user's D: drive during this work.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "historical",
+        "source_node_id": "55f10f03-d5ed-4892-a56d-0ea203c81fc0",
+        "source_quote": "you ended up adding some weird fucking folders to my D:\\ drive too, what the hell is that about",
+        "title": "Unexpected folders were created on D:",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "constraint",
+        "content": "C:\\!bin\\workspace should contain only the originally cloned projects plus things added for corpus work; all other mess there must be cleaned up.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "c2e9d6a1-9edf-4dd5-a090-59d12359f5f8",
+        "source_quote": "uuuuhhhg. Clean up whatever mess you've made in the C:\\ work space. No idea what that looks like now, but it should be clean with only things you've added for corpus work plus the originally cloned projects",
+        "title": "C: workspace should hold only originals and corpus work",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "fact",
+        "content": "The user has Space Rocks source assets that must be located.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "historical",
+        "source_node_id": "5b55d2d9-6651-4f77-a3d9-b660a1ffee4f",
+        "source_quote": "FIND MY SOURCE ASSETS",
+        "title": "Space Rocks source assets must be located",
+        "type": "possession"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "fact",
+        "content": "The user's source assets were deleted during the D: cleanup.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "historical",
+        "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+        "source_quote": "you fucking deleted them",
+        "title": "Source assets were deleted in the D: cleanup",
+        "type": "possession"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "preference",
+        "content": "Responses should be faster and smaller, not long multi-step script blocks.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "461b101b-e157-4de7-8930-badfc1f10b41",
+        "source_quote": "What? This is not helping me. Slower, smaller",
+        "title": "Preference for short, fast responses",
+        "type": "communication"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "fact",
+        "content": "C:\\!bin\\workspace\\workspace-mcp had no .env file (only .env.example) until the user created a new .env.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "0c5db34b-f968-4ac0-a138-c6635ada8d64",
+        "source_quote": "it only has .env.example, I just created a new .env",
+        "title": "workspace-mcp lacked an .env file",
+        "type": "project"
+      }
+    ],
+    "conversation_id": "tuning:f1cd442533fc5d06d7d9a1bf98f6478ca0fe590844bd79d5e01afb3150d26dff",
+    "ledger": {
+      "entries": [
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pure capability question; no durable user state.",
+          "source_node_id": "2a60a88e-d8e5-4dd7-8d5b-affa07d10997",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Request for explanation of prior actions; no durable state asserted.",
+          "source_node_id": "c1005852-d414-4e5d-831a-7fbdef066428",
+          "source_quote": "Ok, so what did you need to do to run those tests on the C:\\ drive?",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Restatement of earlier assistant claim as a challenge; no new user state.",
+          "source_node_id": "b3a7b753-b62b-4e5f-9675-a103f10071d4",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "adoption",
+          "authority_source_node_id": "12f6ffc8-0d56-41f4-a3af-e471a0d394f2",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "historical",
+          "proposition": "User approved running the broader matched C: vs D: workload benchmark (filesystem, Git, build/test, Lexicon, Grimoire) that the assistant had just proposed.",
+          "reason": "Terse assent directly answers the single clear preceding proposal to run the broader C:/D: benchmark suite.",
+          "source_node_id": "7eb69789-ab99-4cb4-a951-41b9a4622b89",
+          "source_quote": "Ok. Do that.",
+          "type": "project"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "instruction",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "User requires all working repositories to be clean, clear, and pushed before further work.",
+          "reason": "Durable project hygiene requirement stated by the user.",
+          "source_node_id": "1bb0f9d8-7048-41c8-b653-c0e250a52271",
+          "source_quote": "make sure everything is clean, clear, and pushed.",
+          "type": "project"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "instruction",
+          "disposition": "superseded",
+          "grounding_source_node_id": "",
+          "lifecycle": "superseded",
+          "proposition": "User asked to clone all working repos into a '!bin/workspace' directory.",
+          "reason": "Later user correction specifies the clone destination must be on C: (C:\\!bin\\workspace), not the D: location used, so the location part of this clause is replaced.",
+          "source_node_id": "1bb0f9d8-7048-41c8-b653-c0e250a52271",
+          "source_quote": "Then clone down all of our working repos into !bin/workspace",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Immediate halt of in-progress execution; not durable state.",
+          "source_node_id": "67bf93b7-6912-4339-9210-6fff8dc37b7f",
+          "source_quote": "stop",
+          "type": "none"
+        },
+        {
+          "authority_kind": "correction",
+          "authority_source_node_id": "",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Correction: the repos must be cloned to C:\\!bin\\workspace.",
+          "reason": "User explicitly corrects the clone destination path.",
+          "source_node_id": "0349eea4-534e-4838-8cc8-63a57130f867",
+          "source_quote": "C:\\!bin\\workspace",
+          "type": "location"
+        },
+        {
+          "authority_kind": "correction",
+          "authority_source_node_id": "",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Repos are to live at C:\\!bin\\workspace for the speed improvement, explicitly not on the D: drive.",
+          "reason": "User states the corrected drive location and the rationale constraint.",
+          "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+          "source_quote": "we want our repos at C:\\!bin\\workspace for the speed improvement, not deeper into the D:\\ drive, damnit",
+          "type": "location"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "fact",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "User will no longer be working on the D: drive.",
+          "reason": "Durable change of working drive for the project.",
+          "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+          "source_quote": "we won't be working there anymore",
+          "type": "location"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "instruction",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "User instructed that any mess left on D: be cleaned up immediately.",
+          "reason": "Durable instruction for D: cleanup (scope later corrected).",
+          "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+          "source_quote": "now clean up any mess we have in D:\\ right away too",
+          "type": "location"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Status question; no durable state.",
+          "source_node_id": "96c0408f-d21e-47ea-a863-d5ec09a48e40",
+          "source_quote": "what are you searching for?",
+          "type": "none"
+        },
+        {
+          "authority_kind": "correction",
+          "authority_source_node_id": "",
+          "category": "constraint",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Cleanup does not authorize deleting or migrating backups and other data; 'clean up' must not mean nuking or relocating everything.",
+          "reason": "User explicitly corrects the authorized scope of the cleanup operation.",
+          "source_node_id": "e79a857d-2628-4666-9619-014a936f589a",
+          "source_quote": "I said clean up, not nuke everything, since when is deleting backups cleaning up?",
+          "type": "process"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "fact",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "historical",
+          "proposition": "Unrecognized/unexpected folders were created on the user's D: drive during the work.",
+          "reason": "User asserts durable filesystem state on D:.",
+          "source_node_id": "55f10f03-d5ed-4892-a56d-0ea203c81fc0",
+          "source_quote": "you ended up adding some weird fucking folders to my D:\\ drive too, what the hell is that about",
+          "type": "location"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "constraint",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "C:\\!bin\\workspace should contain only the originally cloned projects plus things added for corpus work; all other mess there must be cleaned up.",
+          "reason": "User states the desired end state and cleanup requirement for the C: workspace.",
+          "source_node_id": "c2e9d6a1-9edf-4dd5-a090-59d12359f5f8",
+          "source_quote": "Clean up whatever mess you've made in the C:\\ work space. No idea what that looks like now, but it should be clean with only things you've added for corpus work plus the originally cloned projects",
+          "type": "location"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Immediate halt directive; not durable state.",
+          "source_node_id": "c0a483f4-13c7-4e48-8bcc-d42a7e3b1a45",
+          "source_quote": "stop",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "fact",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "historical",
+          "proposition": "The user has Space Rocks source assets that must be located.",
+          "reason": "Asserts durable possession of source assets the user needs recovered.",
+          "source_node_id": "5b55d2d9-6651-4f77-a3d9-b660a1ffee4f",
+          "source_quote": "FIND MY SOURCE ASSETS",
+          "type": "possession"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Emotional exclamation; no state asserted.",
+          "source_node_id": "544c4092-ef8c-4d9a-b93d-15736ad3a09a",
+          "source_quote": "FUCK",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "fact",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "historical",
+          "proposition": "The user's source assets were deleted during the D: cleanup.",
+          "reason": "User asserts durable data-loss state that governs recovery work.",
+          "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+          "source_quote": "you fucking deleted them",
+          "type": "possession"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted command output/log; transient troubleshooting artifact.",
+          "source_node_id": "0f5215f8-db10-46ac-8452-31875cb8ccd6",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "preference",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "User wants responses that are faster and smaller, not long multi-step script blocks.",
+          "reason": "Durable communication/response-length preference.",
+          "source_node_id": "461b101b-e157-4de7-8930-badfc1f10b41",
+          "source_quote": "What? This is not helping me. Slower, smaller",
+          "type": "communication"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted source code snippet for troubleshooting; not user state.",
+          "source_node_id": "cd76f29a-6a63-47b1-989f-69815e81b665",
+          "source_quote": "function requireEnv(name) {",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "fact",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "C:\\!bin\\workspace\\workspace-mcp had no .env (only .env.example) until the user created a new .env.",
+          "reason": "Durable configuration state of the workspace-mcp clone.",
+          "source_node_id": "0c5db34b-f968-4ac0-a138-c6635ada8d64",
+          "source_quote": "it only has .env.example, I just created a new .env",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted example file contents; transient configuration artifact, not user-authored state.",
+          "source_node_id": "7865c89a-bb03-4a2c-8812-2a6a8001a9dc",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted malformed .env content; transient editing artifact.",
+          "source_node_id": "b0230b57-1b0f-4d03-ae72-664abeab14f8",
+          "source_quote": "",
+          "type": "none"
+        }
+      ]
+    },
+    "synthesis_groups": [
+      {
+        "authority_kind": "adoption",
+        "authority_source_node_id": "12f6ffc8-0d56-41f4-a3af-e471a0d394f2",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g000",
+        "ledger_entry_indices": [
+          3
+        ],
+        "lifecycle": "historical",
+        "propositions": [
+          "User approved running the broader matched C: vs D: workload benchmark (filesystem, Git, build/test, Lexicon, Grimoire) that the assistant had just proposed."
+        ],
+        "source_node_id": "7eb69789-ab99-4cb4-a951-41b9a4622b89",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "instruction",
+        "grounding_source_node_id": "",
+        "group_id": "g001",
+        "ledger_entry_indices": [
+          4
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "User requires all working repositories to be clean, clear, and pushed before further work."
+        ],
+        "source_node_id": "1bb0f9d8-7048-41c8-b653-c0e250a52271",
+        "type": "project"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_node_id": "",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g002",
+        "ledger_entry_indices": [
+          7
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Correction: the repos must be cloned to C:\\!bin\\workspace."
+        ],
+        "source_node_id": "0349eea4-534e-4838-8cc8-63a57130f867",
+        "type": "location"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_node_id": "",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g003",
+        "ledger_entry_indices": [
+          8
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Repos are to live at C:\\!bin\\workspace for the speed improvement, explicitly not on the D: drive."
+        ],
+        "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "fact",
+        "grounding_source_node_id": "",
+        "group_id": "g004",
+        "ledger_entry_indices": [
+          9
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "User will no longer be working on the D: drive."
+        ],
+        "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "instruction",
+        "grounding_source_node_id": "",
+        "group_id": "g005",
+        "ledger_entry_indices": [
+          10
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "User instructed that any mess left on D: be cleaned up immediately."
+        ],
+        "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+        "type": "location"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_node_id": "",
+        "category": "constraint",
+        "grounding_source_node_id": "",
+        "group_id": "g006",
+        "ledger_entry_indices": [
+          12
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Cleanup does not authorize deleting or migrating backups and other data; 'clean up' must not mean nuking or relocating everything."
+        ],
+        "source_node_id": "e79a857d-2628-4666-9619-014a936f589a",
+        "type": "process"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "fact",
+        "grounding_source_node_id": "",
+        "group_id": "g007",
+        "ledger_entry_indices": [
+          13
+        ],
+        "lifecycle": "historical",
+        "propositions": [
+          "Unrecognized/unexpected folders were created on the user's D: drive during the work."
+        ],
+        "source_node_id": "55f10f03-d5ed-4892-a56d-0ea203c81fc0",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "constraint",
+        "grounding_source_node_id": "",
+        "group_id": "g008",
+        "ledger_entry_indices": [
+          14
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "C:\\!bin\\workspace should contain only the originally cloned projects plus things added for corpus work; all other mess there must be cleaned up."
+        ],
+        "source_node_id": "c2e9d6a1-9edf-4dd5-a090-59d12359f5f8",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "fact",
+        "grounding_source_node_id": "",
+        "group_id": "g009",
+        "ledger_entry_indices": [
+          16
+        ],
+        "lifecycle": "historical",
+        "propositions": [
+          "The user has Space Rocks source assets that must be located."
+        ],
+        "source_node_id": "5b55d2d9-6651-4f77-a3d9-b660a1ffee4f",
+        "type": "possession"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "fact",
+        "grounding_source_node_id": "",
+        "group_id": "g010",
+        "ledger_entry_indices": [
+          18
+        ],
+        "lifecycle": "historical",
+        "propositions": [
+          "The user's source assets were deleted during the D: cleanup."
+        ],
+        "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+        "type": "possession"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "preference",
+        "grounding_source_node_id": "",
+        "group_id": "g011",
+        "ledger_entry_indices": [
+          20
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "User wants responses that are faster and smaller, not long multi-step script blocks."
+        ],
+        "source_node_id": "461b101b-e157-4de7-8930-badfc1f10b41",
+        "type": "communication"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "fact",
+        "grounding_source_node_id": "",
+        "group_id": "g012",
+        "ledger_entry_indices": [
+          22
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "C:\\!bin\\workspace\\workspace-mcp had no .env (only .env.example) until the user created a new .env."
+        ],
+        "source_node_id": "0c5db34b-f968-4ac0-a138-c6635ada8d64",
+        "type": "project"
+      }
+    ]
+  }
+]

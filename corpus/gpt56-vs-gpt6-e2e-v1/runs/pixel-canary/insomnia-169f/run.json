@@ -1,0 +1,414 @@
+[
+  {
+    "candidates": [
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "constraint",
+        "content": "The asteroid collision polygons need to be drawn/created in the viewport (editor), not defined purely in code.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "e0a1a9df-3387-42f2-ad10-086fd119bbaf",
+        "source_quote": "ok, but I need the viewport to create multiple polygons",
+        "title": "Asteroid collision polygons must be drawn in editor",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "decision",
+        "content": "Asteroid visual appearance can be decided by the client; collision variant must be handled on the server to remain authoritative.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "dea65ebd-e1fc-44bf-a38c-998dd36326bf",
+        "source_quote": "they'll have to because of different collision shapes won't they? I mean realistically teh appearance of an asteroid is irrelevant and something often decided by the client, but collision would have to be handled on the server to keep it authoritave right?",
+        "title": "Asteroid appearance client-side, collision server-authoritative",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "instruction",
+        "content": "Spawn logic must be established before update logic is an issue; spawn first, then update.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "396cd220-ad35-4d8c-b192-b14f9f8668f7",
+        "source_quote": "uh... I think you're getting ahead of the process here, pretty sure both of these things need to spawn before updating them is an issue",
+        "title": "Spawn before update for game objects",
+        "type": "process"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "constraint",
+        "content": "Asteroids must spawn off-screen, travel in a randomish direction toward the player, have random size between 1 and 4, and use a random texture with matching collision.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "29f3fbbf-6589-4ddb-933e-fc3fd20835f7",
+        "source_quote": "ok, let's handle asteroid spawning/de-spawning for now. I need them to spawn off-screen, travel in a randomish direction towards the player, have a random size between 1 and 4, and a random texture with matching collision (that part should be handled in the asteroid script already).",
+        "title": "Asteroid spawning behavior constraints",
+        "type": "project"
+      }
+    ],
+    "conversation_id": "tuning:169f0343d6032757c9324d29a7c2922125c340e90971b8c426d145bd0a21380c",
+    "ledger": {
+      "entries": [
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about implementation approach; the factual statement about Sprite2D limitation is general engine knowledge, not user-authoritative durable state.",
+          "source_node_id": "ce02427a-041d-4cc4-9433-4a9d7b4506bd",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "constraint",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "The asteroid collision polygons need to be drawn/created in the viewport (editor), not defined purely in code.",
+          "reason": "User asserts a design requirement: they need viewport-based polygon creation for the asteroid system.",
+          "source_node_id": "e0a1a9df-3387-42f2-ad10-086fd119bbaf",
+          "source_quote": "I need the viewport to create multiple polygons",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question asking what a node type is; no durable state asserted.",
+          "source_node_id": "8d4c0cfb-3623-4fcd-9a60-7cbadb036349",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Confirmation-seeking question about architecture; not asserting the architecture.",
+          "source_node_id": "18416049-20c8-4d49-b1db-a5b239788546",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Observation that a prior script won't work; not asserting durable state, just noting a change is needed.",
+          "source_node_id": "4e8c2b52-1448-4ad4-a603-2b02e8008450",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question asking what node a script is attached to; no durable state.",
+          "source_node_id": "0979638d-33bb-4466-a2f0-296f5f823413",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "User pasted default Godot template code and asked why it was generated; pasted code and question are transient.",
+          "source_node_id": "f498a2fb-36a2-44e5-86a1-6fbd28fc7acf",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "User pasted their current script and asked for explanation; the pasted code is transient reference, not an assertion of new durable state.",
+          "source_node_id": "07517c2d-7acd-4d5d-9dcc-406e8a64316b",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Confirmation question about instantiation requiring an index; not asserting durable state.",
+          "source_node_id": "8c70492d-6ea0-4303-8830-a857f88f68c1",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Asteroid visual appearance can be decided by the client; collision variant must be handled on the server to remain authoritative.",
+          "reason": "User asserts a clear architectural design decision separating visual (client) and collision (server) responsibilities.",
+          "source_node_id": "dea65ebd-e1fc-44bf-a38c-998dd36326bf",
+          "source_quote": "realistically teh appearance of an asteroid is irrelevant and something often decided by the client, but collision would have to be handled on the server to keep it authoritave",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Confirmation question about bullet scene parenting; not asserting the answer.",
+          "source_node_id": "7fd83c33-5a1f-43d0-9d0b-916f84d0efed",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Confirmation question about bullet scene not being in the tree initially; not asserting durable state.",
+          "source_node_id": "281ac451-7a5c-4bba-98ab-84066f51d310",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question asking how to create a new scene in Godot; no durable state.",
+          "source_node_id": "3466f027-4e5d-4857-8618-31e3135c9106",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Completion receipt ('bullet and asteroid scenes are built') plus a question about next steps; checkpoint position is not durable state.",
+          "source_node_id": "01c3ae75-e432-435d-a847-1bcb420380ac",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "instruction",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Spawn logic must be established before update logic is an issue; spawn first, then update.",
+          "reason": "User asserts a process/order decision: spawning must be done before updating is relevant.",
+          "source_node_id": "396cd220-ad35-4d8c-b192-b14f9f8668f7",
+          "source_quote": "pretty sure both of these things need to spawn before updating them is an issue",
+          "type": "process"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Clarification question about the approach; not asserting the approach as decided.",
+          "source_node_id": "3f14825f-4960-4507-9a0c-e743b99cc940",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "constraint",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Asteroids must spawn off-screen, travel in a randomish direction toward the player, have random size between 1 and 4, and use a random texture with matching collision.",
+          "reason": "User explicitly states the design requirements for asteroid spawning behavior.",
+          "source_node_id": "29f3fbbf-6589-4ddb-933e-fc3fd20835f7",
+          "source_quote": "I need them to spawn off-screen, travel in a randomish direction towards the player, have a random size between 1 and 4, and a random texture with matching collision",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Per rule 7, 'I thought we were going to X; now you're saying Y?' reports uncertainty about prior plans and does NOT establish X.",
+          "source_node_id": "b44fe6bb-a074-48fa-ab12-0c9189f1d5b0",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about whether a spawner scene is needed; not asserting durable state.",
+          "source_node_id": "2a3fa852-d97f-4cfb-a0dd-647ff52d65ef",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Request for the assistant to write a prompt; no durable user state.",
+          "source_node_id": "ae765cfd-9cdf-45ed-b781-89b5a7c40e29",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question asking if a database is too slow for game world objects; no durable assertion.",
+          "source_node_id": "4ca275e0-12e1-4475-8cdf-d2668dd8dcdf",
+          "source_quote": "",
+          "type": "none"
+        }
+      ]
+    },
+    "synthesis_groups": [
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "constraint",
+        "grounding_source_node_id": "",
+        "group_id": "g000",
+        "ledger_entry_indices": [
+          1
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "The asteroid collision polygons need to be drawn/created in the viewport (editor), not defined purely in code."
+        ],
+        "source_node_id": "e0a1a9df-3387-42f2-ad10-086fd119bbaf",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g001",
+        "ledger_entry_indices": [
+          9
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Asteroid visual appearance can be decided by the client; collision variant must be handled on the server to remain authoritative."
+        ],
+        "source_node_id": "dea65ebd-e1fc-44bf-a38c-998dd36326bf",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "instruction",
+        "grounding_source_node_id": "",
+        "group_id": "g002",
+        "ledger_entry_indices": [
+          14
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Spawn logic must be established before update logic is an issue; spawn first, then update."
+        ],
+        "source_node_id": "396cd220-ad35-4d8c-b192-b14f9f8668f7",
+        "type": "process"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "constraint",
+        "grounding_source_node_id": "",
+        "group_id": "g003",
+        "ledger_entry_indices": [
+          16
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Asteroids must spawn off-screen, travel in a randomish direction toward the player, have random size between 1 and 4, and use a random texture with matching collision."
+        ],
+        "source_node_id": "29f3fbbf-6589-4ddb-933e-fc3fd20835f7",
+        "type": "project"
+      }
+    ]
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "episodes": 1,
+  "memories": 7,
+  "metadata_model": "stealth/pixel-canary",
+  "model": "stealth/pixel-canary",
+  "reasoning_effort": "low",
+  "semantic_model": "stealth/pixel-canary",
+  "synthesis_model": "stealth/pixel-canary",
+  "workers": 1
+}

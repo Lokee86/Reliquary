@@ -1,0 +1,56 @@
+{
+  "groups": {
+    "g000": {
+      "content": "The user approved running the broader matched C: vs D: workload benchmark covering filesystem, Git, build/test, Lexicon, and Grimoire operations that the assistant had proposed.",
+      "title": "Approved matched C: vs D: benchmark"
+    },
+    "g001": {
+      "content": "All working repositories must be clean, clear, and pushed before any further work.",
+      "title": "Repositories must be clean, clear, and pushed"
+    },
+    "g002": {
+      "content": "Correction: the repositories must be cloned to C:\\!bin\\workspace.",
+      "title": "Repos cloned to C:\\!bin\\workspace"
+    },
+    "g003": {
+      "content": "The repositories are to live at C:\\!bin\\workspace for the speed improvement, explicitly not on the D: drive.",
+      "title": "Repos belong on C:, not D:"
+    },
+    "g004": {
+      "content": "The user will no longer be working on the D: drive.",
+      "title": "User stopped working on D:"
+    },
+    "g005": {
+      "content": "Any mess left on D: is to be cleaned up immediately.",
+      "title": "Clean up the D: mess immediately"
+    },
+    "g006": {
+      "content": "Cleanup does not authorize deleting or migrating backups and other data; 'clean up' must not mean nuking or relocating everything.",
+      "title": "Cleanup does not mean deleting or migrating data"
+    },
+    "g007": {
+      "content": "Unrecognized or unexpected folders were created on the user's D: drive during this work.",
+      "title": "Unexpected folders were created on D:"
+    },
+    "g008": {
+      "content": "C:\\!bin\\workspace should contain only the originally cloned projects plus things added for corpus work; all other mess there must be cleaned up.",
+      "title": "C: workspace should hold only originals and corpus work"
+    },
+    "g009": {
+      "content": "The user has Space Rocks source assets that must be located.",
+      "title": "Space Rocks source assets must be located"
+    },
+    "g010": {
+      "content": "The user's source assets were deleted during the D: cleanup.",
+      "title": "Source assets were deleted in the D: cleanup"
+    },
+    "g011": {
+      "content": "Responses should be faster and smaller, not long multi-step script blocks.",
+      "title": "Preference for short, fast responses"
+    },
+    "g012": {
+      "content": "C:\\!bin\\workspace\\workspace-mcp had no .env file (only .env.example) until the user created a new .env.",
+      "title": "workspace-mcp lacked an .env file"
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "accuracy": 0.875,
+  "cases": 8,
+  "correct": 7,
+  "create_new": 3,
+  "model": "stealth/space-bunny-alpha",
+  "reject": 3,
+  "unresolved": 2
+}

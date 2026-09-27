@@ -1,0 +1,20 @@
+{
+  "groups": {
+    "g000": {
+      "content": "The only release tagged on BrowserOS's GitHub is the BrowserClaw extension, correcting the assistant's earlier claim about BrowserOS releases.",
+      "title": "BrowserClaw extension is the only tagged BrowserOS GitHub release"
+    },
+    "g001": {
+      "content": "The MCP browser adapter must be fixed to point at BrowserClaw's actual endpoint and port instead of 9000.",
+      "title": "Fix MCP browser adapter to target BrowserClaw's real port"
+    },
+    "g002": {
+      "content": "Lexicon uses a single shared C-family adapter for C and C++ rather than separate C and C++ adapters, with each file's language reported as c or cpp.",
+      "title": "Lexicon uses one shared C-family adapter for C and C++"
+    },
+    "g003": {
+      "content": "Proceed with calibrating the C-family Lexicon adapter using git.git and CBM as the calibration corpora.",
+      "title": "Calibrate C-family adapter on git.git and CBM"
+    }
+  }
+}

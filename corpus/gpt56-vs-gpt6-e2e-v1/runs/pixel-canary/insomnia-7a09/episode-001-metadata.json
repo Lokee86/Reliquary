@@ -1,0 +1,44 @@
+{
+  "groups": {
+    "g000": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g001": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g002": {
+      "category": "fact",
+      "lifecycle": "historical",
+      "type": "education"
+    },
+    "g003": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "employment"
+    },
+    "g004": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "education"
+    },
+    "g005": {
+      "category": "preference",
+      "lifecycle": "current",
+      "type": "employment"
+    },
+    "g006": {
+      "category": "instruction",
+      "lifecycle": "current",
+      "type": "communication"
+    },
+    "g007": {
+      "category": "preference",
+      "lifecycle": "current",
+      "type": "other"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "groups": {
+    "g000": {
+      "content": "A single Sprite2D cannot hold multiple textures, so multiple collision polygons must be creatable and drawable in the editor viewport for the asteroid.",
+      "title": "Multiple editor-drawable collision polygons required for asteroid"
+    },
+    "g001": {
+      "content": "The asteroid script extends CharacterBody2D and implements set_asteroid_variant(index). It uses a $CollisionVariants node holding CollisionPolygon2D templates and a preloaded list of four asteroid textures, wrapping the index, and copies the matched template polygon's points into the active $CollisionPolygon2D.",
+      "title": "Asteroid variant script structure"
+    },
+    "g002": {
+      "content": "Because asteroid variants have different collision shapes, the collision-relevant variant must be decided authoritatively on the server. Asteroid appearance is gameplay-irrelevant and may often be decided by the client.",
+      "title": "Server authority over asteroid collision variant"
+    },
+    "g003": {
+      "content": "The Bullet scene and the Asteroid scene have been built in Godot.",
+      "title": "Bullet and Asteroid scenes built"
+    },
+    "g004": {
+      "content": "Bullets and asteroids must first be spawned locally in Godot; integration cannot be implemented before spawning works.",
+      "title": "Spawn locally in Godot before networking integration"
+    },
+    "g005": {
+      "content": "Current scope is limited to asteroid spawning and despawning.",
+      "title": "Scope limited to asteroid spawn/despawn"
+    },
+    "g006": {
+      "content": "Asteroids must spawn off-screen, travel in a roughly random direction toward the player, have a random size between 1 and 4, and use a random texture with matching collision shape, which the asteroid script already handles.",
+      "title": "Asteroid spawn and movement requirements"
+    }
+  }
+}

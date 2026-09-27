@@ -1,0 +1,257 @@
+{
+  "model": "stealth/space-bunny-alpha",
+  "cases": 10,
+  "correct": 9,
+  "accuracy": 0.9,
+  "context_note": "Replayed from collated Memory title/content; unavailable historical auxiliary context omitted.",
+  "results": [
+    {
+      "id": "web-010",
+      "expected": "related",
+      "actual": "related",
+      "matched": true,
+      "relation": "topical",
+      "direction": "undirected",
+      "evidence": [
+        {
+          "side": "a",
+          "quote": "GDScript input packet"
+        },
+        {
+          "side": "b",
+          "quote": "Compatibility-first packet migration"
+        }
+      ],
+      "raw": {
+        "relation": "topical",
+        "direction": "undirected",
+        "evidence": [
+          {
+            "side": "a",
+            "quote": "GDScript input packet"
+          },
+          {
+            "side": "b",
+            "quote": "Compatibility-first packet migration"
+          }
+        ]
+      }
+    },
+    {
+      "id": "web-021",
+      "expected": "related",
+      "actual": "related",
+      "matched": true,
+      "relation": "topical",
+      "direction": "undirected",
+      "evidence": [
+        {
+          "side": "a",
+          "quote": "WebSocket connection established"
+        },
+        {
+          "side": "b",
+          "quote": "The functionality implemented through the current stage appears to work adequately."
+        }
+      ],
+      "raw": {
+        "relation": "topical",
+        "direction": "undirected",
+        "evidence": [
+          {
+            "side": "a",
+            "quote": "WebSocket connection established"
+          },
+          {
+            "side": "b",
+            "quote": "The functionality implemented through the current stage appears to work adequately."
+          }
+        ]
+      }
+    },
+    {
+      "id": "web-023",
+      "expected": "related",
+      "actual": "unrelated",
+      "matched": false,
+      "relation": "none",
+      "direction": "none",
+      "evidence": [],
+      "raw": {
+        "relation": "none",
+        "direction": "none",
+        "evidence": []
+      }
+    },
+    {
+      "id": "web-032",
+      "expected": "related",
+      "actual": "related",
+      "matched": true,
+      "relation": "topical",
+      "direction": "undirected",
+      "evidence": [
+        {
+          "side": "a",
+          "quote": "The client is sending the input packet."
+        },
+        {
+          "side": "b",
+          "quote": "Packet migration requires a separate, stricter compatibility-preserving track rather than the prototype simple packet generator."
+        }
+      ],
+      "raw": {
+        "relation": "topical",
+        "direction": "undirected",
+        "evidence": [
+          {
+            "side": "a",
+            "quote": "The client is sending the input packet."
+          },
+          {
+            "side": "b",
+            "quote": "Packet migration requires a separate, stricter compatibility-preserving track rather than the prototype simple packet generator."
+          }
+        ]
+      }
+    },
+    {
+      "id": "web-034",
+      "expected": "related",
+      "actual": "related",
+      "matched": true,
+      "relation": "topical",
+      "direction": "undirected",
+      "evidence": [
+        {
+          "side": "a",
+          "quote": "Default to concise responses unless the user requests detail or the subject genuinely warrants a longer answer."
+        },
+        {
+          "side": "b",
+          "quote": "Prefer more, smaller implementation prompts because they usually use less usage."
+        }
+      ],
+      "raw": {
+        "relation": "topical",
+        "direction": "undirected",
+        "evidence": [
+          {
+            "side": "a",
+            "quote": "Default to concise responses unless the user requests detail or the subject genuinely warrants a longer answer."
+          },
+          {
+            "side": "b",
+            "quote": "Prefer more, smaller implementation prompts because they usually use less usage."
+          }
+        ]
+      }
+    },
+    {
+      "id": "web-029",
+      "expected": "related",
+      "actual": "related",
+      "matched": true,
+      "relation": "topical",
+      "direction": "undirected",
+      "evidence": [
+        {
+          "side": "a",
+          "quote": "Use Git and CBM to calibrate the C side of the C-family Lexicon adapter."
+        },
+        {
+          "side": "b",
+          "quote": "C:\\!bin\\workspace should contain only the originally cloned projects and items added for corpus work."
+        }
+      ],
+      "raw": {
+        "relation": "topical",
+        "direction": "undirected",
+        "evidence": [
+          {
+            "side": "a",
+            "quote": "Use Git and CBM to calibrate the C side of the C-family Lexicon adapter."
+          },
+          {
+            "side": "b",
+            "quote": "C:\\!bin\\workspace should contain only the originally cloned projects and items added for corpus work."
+          }
+        ]
+      }
+    },
+    {
+      "id": "web-019",
+      "expected": "unrelated",
+      "actual": "unrelated",
+      "matched": true,
+      "relation": "none",
+      "direction": "none",
+      "evidence": [],
+      "raw": {
+        "relation": "none",
+        "direction": "none",
+        "evidence": []
+      }
+    },
+    {
+      "id": "web-038",
+      "expected": "unrelated",
+      "actual": "unrelated",
+      "matched": true,
+      "relation": "none",
+      "direction": "none",
+      "evidence": [],
+      "raw": {
+        "relation": "none",
+        "direction": "none",
+        "evidence": []
+      }
+    },
+    {
+      "id": "web-039",
+      "expected": "unrelated",
+      "actual": "unrelated",
+      "matched": true,
+      "relation": "none",
+      "direction": "none",
+      "evidence": [],
+      "raw": {
+        "relation": "none",
+        "direction": "none",
+        "evidence": []
+      }
+    },
+    {
+      "id": "web-031",
+      "expected": "related",
+      "actual": "related",
+      "matched": true,
+      "relation": "topical",
+      "direction": "undirected",
+      "evidence": [
+        {
+          "side": "a",
+          "quote": "workspace should contain only the originally cloned projects and items added for corpus work."
+        },
+        {
+          "side": "b",
+          "quote": "A new .env file was created in the workspace-mcp repository."
+        }
+      ],
+      "raw": {
+        "relation": "topical",
+        "direction": "undirected",
+        "evidence": [
+          {
+            "side": "a",
+            "quote": "workspace should contain only the originally cloned projects and items added for corpus work."
+          },
+          {
+            "side": "b",
+            "quote": "A new .env file was created in the workspace-mcp repository."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "groups": {
+    "g000": {
+      "content": "User accepted a surface-level web-based code review of the creatureServer repo.",
+      "title": "creatureServer review approach accepted"
+    },
+    "g001": {
+      "content": "The creatureServer project has been mothballed.",
+      "title": "creatureServer project mothballed"
+    },
+    "g002": {
+      "content": "creatureServer was the user's first self-directed build, not a guided course project or tutorial.",
+      "title": "creatureServer was first self-directed build"
+    },
+    "g003": {
+      "content": "The user has 20 years of experience in the trades.",
+      "title": "20 years trades experience"
+    },
+    "g004": {
+      "content": "The user identifies as a high-transfer contextual learner.",
+      "title": "High-transfer contextual learner"
+    },
+    "g005": {
+      "content": "The user believes knowing how to code is not the most important skill in today's software engineering.",
+      "title": "Coding not the primary skill in modern software engineering"
+    },
+    "g006": {
+      "content": "Responses should be concise by default; provide detail only when specifically asked or when the response genuinely warrants it.",
+      "title": "Concise responses by default"
+    },
+    "g007": {
+      "content": "The user finds animosity toward genAI usage amusing and equates it with historical tradesmen resisting power tools while ignoring benefits.",
+      "title": "GenAI animosity equated with historical tool resistance"
+    }
+  }
+}

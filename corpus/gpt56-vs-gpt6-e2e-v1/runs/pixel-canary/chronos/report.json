@@ -1,0 +1,65 @@
+{
+  "cases": 8,
+  "inference_cases": 6,
+  "model": "stealth/pixel-canary",
+  "results": [
+    {
+      "memory_id": "271c6f895ca56c7d801f8208b1557da8b431f4452715c37598b1582aebff5b20",
+      "needs_inference": false
+    },
+    {
+      "error": null,
+      "memory_id": "a6221680b07e765cc26f2bd6ef0be883a800e7815f38cc81b97933167a354c41",
+      "needs_inference": true,
+      "resolutions": [
+        {
+          "canonical_expression": "May 16, 2026",
+          "end_byte": 62,
+          "evidence": "Saturday",
+          "kind": "Calendar",
+          "start_byte": 54
+        }
+      ],
+      "resolved_count": 1
+    },
+    {
+      "error": "invalid Chronos inference: canonical expression for u000 is not deterministically resolvable as the source temporal kind",
+      "memory_id": "1eb1ffda044ae7b86b8a4cf621fd18f106fe06c07b9715e12a9f8c22cd8999d7",
+      "needs_inference": true,
+      "resolutions": [],
+      "resolved_count": 0
+    },
+    {
+      "memory_id": "a1acb98970e8fae64975ebdebc35c2a148d27843b29c9fce7d5fe10fa2201c74",
+      "needs_inference": false
+    },
+    {
+      "error": "invalid Chronos inference: canonical expression for u000 is not deterministically resolvable as the source temporal kind",
+      "memory_id": "2c24867d2111283af5bec750a21fe68cb00d801ca8757673ee8ce1c9b44273c6",
+      "needs_inference": true,
+      "resolutions": [],
+      "resolved_count": 0
+    },
+    {
+      "error": "invalid Chronos inference: canonical expression for u000 is not deterministically resolvable as the source temporal kind",
+      "memory_id": "38780bdba6bb2e2807e33e8cd51693c594b72df46d3af019e242d8a0f2af81ca",
+      "needs_inference": true,
+      "resolutions": [],
+      "resolved_count": 0
+    },
+    {
+      "error": "invalid Chronos inference: canonical expression for u000 is not deterministically resolvable as the source temporal kind",
+      "memory_id": "3cdef708ca5bb30f4158f6f3f3bf878899392d0c4439525f7335ebe9f2ecc58d",
+      "needs_inference": true,
+      "resolutions": [],
+      "resolved_count": 0
+    },
+    {
+      "error": "invalid Chronos inference: canonical expression for u000 is not deterministically resolvable as the source temporal kind",
+      "memory_id": "4422cbe0984dcd1fd6678e1ad8a60e5ba617d22aa4559ce10951cc2047b76820",
+      "needs_inference": true,
+      "resolutions": [],
+      "resolved_count": 0
+    }
+  ]
+}

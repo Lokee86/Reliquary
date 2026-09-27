@@ -1,0 +1,20 @@
+{
+  "groups": {
+    "g000": {
+      "content": "The asteroid collision polygons need to be drawn/created in the viewport (editor), not defined purely in code.",
+      "title": "Asteroid collision polygons must be drawn in editor"
+    },
+    "g001": {
+      "content": "Asteroid visual appearance can be decided by the client; collision variant must be handled on the server to remain authoritative.",
+      "title": "Asteroid appearance client-side, collision server-authoritative"
+    },
+    "g002": {
+      "content": "Spawn logic must be established before update logic is an issue; spawn first, then update.",
+      "title": "Spawn before update for game objects"
+    },
+    "g003": {
+      "content": "Asteroids must spawn off-screen, travel in a randomish direction toward the player, have random size between 1 and 4, and use a random texture with matching collision.",
+      "title": "Asteroid spawning behavior constraints"
+    }
+  }
+}

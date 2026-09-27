@@ -1,0 +1,40 @@
+{
+  "groups": {
+    "g000": {
+      "content": "The user's Go backend project creatureServer (https://github.com/Lokee86/creatureServer) has been mothballed.",
+      "title": "creatureServer project is mothballed"
+    },
+    "g001": {
+      "content": "creatureServer (https://github.com/Lokee86/creatureServer) is the user's first project that was not a guided course project or a tutorial.",
+      "title": "creatureServer was the user's first non-tutorial project"
+    },
+    "g002": {
+      "content": "The user has 20 years of experience in the trades.",
+      "title": "User has 20 years of trade experience"
+    },
+    "g003": {
+      "content": "The user considers themselves a high-transfer contextual learner.",
+      "title": "User is a high-transfer contextual learner"
+    },
+    "g004": {
+      "content": "The user experienced the scaling-complexity transition in their project, particularly in 2025.",
+      "title": "User hit the scaling-complexity transition in 2025"
+    },
+    "g005": {
+      "content": "The user's view: knowing how to code is not really that important in today's software engineering.",
+      "title": "User's view: coding skill is no longer the main priority"
+    },
+    "g006": {
+      "content": "Responses should be more concise by default unless the user asks for more detail or the response genuinely warrants it; the user does not want multi-page responses for every reply.",
+      "title": "User wants concise responses by default"
+    },
+    "g007": {
+      "content": "The user finds the rampant hate and animosity toward genAI usage funny, equating those people with 1940s-50s tradesmen who disparaged apprentices for using power tools while ignoring the obvious benefits.",
+      "title": "User compares genAI critics to 1940s-50s tradesmen resisting power tools"
+    },
+    "g008": {
+      "content": "The user's view: new tools cause many fundamental skills to disappear — for example, in carpentry few practitioners can efficiently use a handsaw, drive nails by hand, make limited use of a string line, or use a plumb bob.",
+      "title": "User's view: new tools erode fundamental skills like carpentry hand skills"
+    }
+  }
+}

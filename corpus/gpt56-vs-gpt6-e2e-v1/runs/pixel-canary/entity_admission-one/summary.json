@@ -1,0 +1,9 @@
+{
+  "accuracy": 1.0,
+  "cases": 1,
+  "correct": 1,
+  "create_new": 1,
+  "model": "stealth/pixel-canary",
+  "reject": 0,
+  "unresolved": 0
+}

@@ -1,0 +1,182 @@
+{
+  "accuracy": 1.0,
+  "cases": 10,
+  "context_note": "Replayed from collated Memory title/content; unavailable historical auxiliary context omitted.",
+  "correct": 10,
+  "model": "stealth/pixel-canary",
+  "results": [
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-010",
+      "matched": true,
+      "raw": {
+        "direction": "b_to_a",
+        "evidence": [
+          {
+            "quote": "Compatibility-first packet migration",
+            "side": "b"
+          },
+          {
+            "quote": "GDScript input packet",
+            "side": "a"
+          }
+        ],
+        "relation": "factual"
+      }
+    },
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-021",
+      "matched": true,
+      "raw": {
+        "direction": "undirected",
+        "evidence": [
+          {
+            "quote": "WebSocket connection established",
+            "side": "a"
+          },
+          {
+            "quote": "Current implementation status",
+            "side": "b"
+          }
+        ],
+        "relation": "topical"
+      }
+    },
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-023",
+      "matched": true,
+      "raw": {
+        "direction": "a_to_b",
+        "evidence": [
+          {
+            "quote": "compatibility-first packet migration approach",
+            "side": "a"
+          },
+          {
+            "quote": "The client is sending the input packet.",
+            "side": "b"
+          }
+        ],
+        "relation": "factual"
+      }
+    },
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-032",
+      "matched": true,
+      "raw": {
+        "direction": "b_to_a",
+        "evidence": [
+          {
+            "quote": "The client is sending the input packet.",
+            "side": "a"
+          },
+          {
+            "quote": "Packet migration requires a separate, stricter compatibility-preserving track rather than the prototype simple packet generator.",
+            "side": "b"
+          }
+        ],
+        "relation": "factual"
+      }
+    },
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-034",
+      "matched": true,
+      "raw": {
+        "direction": "undirected",
+        "evidence": [
+          {
+            "quote": "Default to concise responses unless the user requests detail or the subject genuinely warrants a longer answer.",
+            "side": "a"
+          },
+          {
+            "quote": "Prefer more, smaller implementation prompts because they usually use less usage.",
+            "side": "b"
+          }
+        ],
+        "relation": "topical"
+      }
+    },
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-029",
+      "matched": true,
+      "raw": {
+        "direction": "undirected",
+        "evidence": [
+          {
+            "quote": "C-family adapter calibration corpus",
+            "side": "a"
+          },
+          {
+            "quote": "items added for corpus work",
+            "side": "b"
+          }
+        ],
+        "relation": "topical"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "unrelated",
+      "id": "web-019",
+      "matched": true,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "unrelated",
+      "id": "web-038",
+      "matched": true,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "unrelated",
+      "expected": "unrelated",
+      "id": "web-039",
+      "matched": true,
+      "raw": {
+        "direction": "none",
+        "evidence": [],
+        "relation": "none"
+      }
+    },
+    {
+      "actual": "related",
+      "expected": "related",
+      "id": "web-031",
+      "matched": true,
+      "raw": {
+        "direction": "undirected",
+        "evidence": [
+          {
+            "quote": "C:\\!bin\\workspace should contain only the originally cloned projects and items added for corpus work.",
+            "side": "a"
+          },
+          {
+            "quote": "A new .env file was created in the workspace-mcp repository.",
+            "side": "b"
+          }
+        ],
+        "relation": "topical"
+      }
+    }
+  ]
+}

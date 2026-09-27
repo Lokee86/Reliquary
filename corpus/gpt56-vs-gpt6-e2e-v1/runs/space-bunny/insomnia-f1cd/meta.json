@@ -1,0 +1,10 @@
+{
+  "episodes": 1,
+  "memories": 13,
+  "metadata_model": "stealth/space-bunny-alpha",
+  "model": "stealth/space-bunny-alpha",
+  "reasoning_effort": "low",
+  "semantic_model": "stealth/space-bunny-alpha",
+  "synthesis_model": "stealth/space-bunny-alpha",
+  "workers": 4
+}

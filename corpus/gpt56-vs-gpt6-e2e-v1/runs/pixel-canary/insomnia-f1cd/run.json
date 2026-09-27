@@ -1,0 +1,549 @@
+[
+  {
+    "candidates": [
+      {
+        "authority_kind": "correction",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "decision",
+        "content": "Working repos should be at C:\\!bin\\workspace.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "0349eea4-534e-4838-8cc8-63a57130f867",
+        "source_quote": "C:\\!bin\\workspace",
+        "title": "Working repo location corrected to C:\\!bin\\workspace",
+        "type": "location"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "constraint",
+        "content": "Repos must be at C:\\!bin\\workspace for speed improvement, not on the D: drive.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+        "source_quote": "we want our repos at C:\\!bin\\workspace for the speed improvement, not deeper into the D:\\ drive, damnit",
+        "title": "Repos must be on C: not D: for speed",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "decision",
+        "content": "D: drive is no longer the working location.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+        "source_quote": "alright, now clean up any mess we have in D:\\ right away too, we won't be working there anymore",
+        "title": "D: drive is no longer the working location",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "instruction",
+        "content": "Clean up does not authorize deleting backups.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "e79a857d-2628-4666-9619-014a936f589a",
+        "source_quote": "What the hell did you do? I said clean up, not nuke everything, since when is deleting backups cleaning up?",
+        "title": "Clean up does not authorize deleting backups",
+        "type": "process"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "constraint",
+        "content": "C:\\!bin\\workspace should contain only corpus-work additions and the originally cloned projects.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "c2e9d6a1-9edf-4dd5-a090-59d12359f5f8",
+        "source_quote": "uuuuhhhg. Clean up whatever mess you've made in the C:\\ work space. No idea what that looks like now, but it should be clean with only things you've added for corpus work plus the originally cloned projects",
+        "title": "C:\\!bin\\workspace should contain only corpus-work additions and originally cloned projects",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "correction",
+        "content": "Source assets were deleted during the D: cleanup.",
+        "grounding_source_conversation_id": "tuning:f1cd442533fc5d06d7d9a1bf98f6478ca0fe590844bd79d5e01afb3150d26dff",
+        "grounding_source_node_id": "5b55d2d9-6651-4f77-a3d9-b660a1ffee4f",
+        "grounding_source_quote": "FIND MY SOURCE ASSETS",
+        "lifecycle": "historical",
+        "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+        "source_quote": "you fucking deleted them",
+        "title": "Source assets deleted during D: cleanup",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_conversation_id": "",
+        "authority_source_node_id": "",
+        "authority_source_quote": "",
+        "category": "preference",
+        "content": "User prefers smaller and slower-paced responses.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "461b101b-e157-4de7-8930-badfc1f10b41",
+        "source_quote": "What? This is not helping me. Slower, smaller",
+        "title": "User prefers smaller and slower-paced responses",
+        "type": "communication"
+      }
+    ],
+    "conversation_id": "tuning:f1cd442533fc5d06d7d9a1bf98f6478ca0fe590844bd79d5e01afb3150d26dff",
+    "ledger": {
+      "entries": [
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Simple question about capability, no durable state asserted.",
+          "source_node_id": "2a60a88e-d8e5-4dd7-8d5b-affa07d10997",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about past process; no durable state asserted.",
+          "source_node_id": "c1005852-d414-4e5d-831a-7fbdef066428",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Challenge/clarification questioning a prior assistant statement; no user-authored durable state.",
+          "source_node_id": "b3a7b753-b62b-4e5f-9675-a103f10071d4",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "One-time task execution instruction; not durable after benchmark is complete.",
+          "source_node_id": "7eb69789-ab99-4cb4-a951-41b9a4622b89",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Transient execution instruction to commit and push outstanding work; not durable state.",
+          "source_node_id": "1bb0f9d8-7048-41c8-b653-c0e250a52271",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "decision",
+          "disposition": "superseded",
+          "grounding_source_node_id": "",
+          "lifecycle": "superseded",
+          "proposition": "Working repos should be cloned into !bin/workspace",
+          "reason": "Later user turns (f7e3145e, 0349eea4) specify C:\\!bin\\workspace explicitly, superseding the ambiguous drive in this instruction.",
+          "source_node_id": "1bb0f9d8-7048-41c8-b653-c0e250a52271",
+          "source_quote": "clone down all of our working repos into !bin/workspace",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Stop command; transient execution control, no durable state.",
+          "source_node_id": "67bf93b7-6912-4339-9210-6fff8dc37b7f",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "correction",
+          "authority_source_node_id": "",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Working repos should be at C:\\!bin\\workspace",
+          "reason": "User corrects the drive from the assistant's D:\\ assumption to C: for the workspace location.",
+          "source_node_id": "0349eea4-534e-4838-8cc8-63a57130f867",
+          "source_quote": "C:\\!bin\\workspace",
+          "type": "location"
+        },
+        {
+          "authority_kind": "correction",
+          "authority_source_node_id": "",
+          "category": "constraint",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Repos must be at C:\\!bin\\workspace for speed improvement, not on the D: drive",
+          "reason": "User explicitly corrects the drive with stated reason (speed) and explicit constraint against D:.",
+          "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+          "source_quote": "we want our repos at C:\\!bin\\workspace for the speed improvement, not deeper into the D:\\ drive",
+          "type": "location"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "D: drive is no longer the working location",
+          "reason": "User states as durable fact that work will no longer occur on D:.",
+          "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+          "source_quote": "we won't be working there anymore",
+          "type": "location"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about current activity; no durable state.",
+          "source_node_id": "96c0408f-d21e-47ea-a863-d5ec09a48e40",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "instruction",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Clean up does not authorize deleting backups",
+          "reason": "User explicitly establishes a boundary: 'clean up' must not be interpreted as deleting backups.",
+          "source_node_id": "e79a857d-2628-4666-9619-014a936f589a",
+          "source_quote": "I said clean up, not nuke everything",
+          "type": "process"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Complaint/question about unexpected folders; no durable state asserted by user.",
+          "source_node_id": "55f10f03-d5ed-4892-a56d-0ea203c81fc0",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "constraint",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "C:\\!bin\\workspace should contain only corpus-work additions and the originally cloned projects",
+          "reason": "User defines the desired clean contents of C:\\!bin\\workspace as a durable constraint.",
+          "source_node_id": "c2e9d6a1-9edf-4dd5-a090-59d12359f5f8",
+          "source_quote": "it should be clean with only things you've added for corpus work plus the originally cloned projects",
+          "type": "location"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Stop command; transient execution control.",
+          "source_node_id": "c0a483f4-13c7-4e48-8bcc-d42a7e3b1a45",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Imperative search request; the request itself is not durable state.",
+          "source_node_id": "5b55d2d9-6651-4f77-a3d9-b660a1ffee4f",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Expletive; no propositional content.",
+          "source_node_id": "544c4092-ef8c-4d9a-b93d-15736ad3a09a",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "correction",
+          "disposition": "retain",
+          "grounding_source_node_id": "5b55d2d9-6651-4f77-a3d9-b660a1ffee4f",
+          "lifecycle": "historical",
+          "proposition": "Source assets were deleted during the D: cleanup",
+          "reason": "User asserts as fact that source assets were deleted; grounding resolves 'them' to the source assets named in the preceding turn.",
+          "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+          "source_quote": "you fucking deleted them",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted terminal output showing transient startup errors; no durable state asserted.",
+          "source_node_id": "0f5215f8-db10-46ac-8452-31875cb8ccd6",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "direct",
+          "authority_source_node_id": "",
+          "category": "preference",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "User prefers smaller and slower-paced responses",
+          "reason": "User expresses a communication style preference in response to overly detailed output.",
+          "source_node_id": "461b101b-e157-4de7-8930-badfc1f10b41",
+          "source_quote": "Slower, smaller",
+          "type": "communication"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted code output for diagnostic purposes; transient.",
+          "source_node_id": "cd76f29a-6a63-47b1-989f-69815e81b665",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Transient setup state during troubleshooting; not durable after configuration is complete.",
+          "source_node_id": "0c5db34b-f968-4ac0-a138-c6635ada8d64",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted file content for diagnostic context; transient.",
+          "source_node_id": "7865c89a-bb03-4a2c-8812-2a6a8001a9dc",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Pasted file content showing transient configuration state; no durable assertion by user.",
+          "source_node_id": "b0230b57-1b0f-4d03-ae72-664abeab14f8",
+          "source_quote": "",
+          "type": "none"
+        }
+      ]
+    },
+    "synthesis_groups": [
+      {
+        "authority_kind": "correction",
+        "authority_source_node_id": "",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g000",
+        "ledger_entry_indices": [
+          7
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Working repos should be at C:\\!bin\\workspace"
+        ],
+        "source_node_id": "0349eea4-534e-4838-8cc8-63a57130f867",
+        "type": "location"
+      },
+      {
+        "authority_kind": "correction",
+        "authority_source_node_id": "",
+        "category": "constraint",
+        "grounding_source_node_id": "",
+        "group_id": "g001",
+        "ledger_entry_indices": [
+          8
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Repos must be at C:\\!bin\\workspace for speed improvement, not on the D: drive"
+        ],
+        "source_node_id": "f7e3145e-e136-45d8-8878-656208ea00f7",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g002",
+        "ledger_entry_indices": [
+          9
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "D: drive is no longer the working location"
+        ],
+        "source_node_id": "a8edd5ac-aac2-43d3-8d00-aefe19f1333e",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "instruction",
+        "grounding_source_node_id": "",
+        "group_id": "g003",
+        "ledger_entry_indices": [
+          11
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Clean up does not authorize deleting backups"
+        ],
+        "source_node_id": "e79a857d-2628-4666-9619-014a936f589a",
+        "type": "process"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "constraint",
+        "grounding_source_node_id": "",
+        "group_id": "g004",
+        "ledger_entry_indices": [
+          13
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "C:\\!bin\\workspace should contain only corpus-work additions and the originally cloned projects"
+        ],
+        "source_node_id": "c2e9d6a1-9edf-4dd5-a090-59d12359f5f8",
+        "type": "location"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "correction",
+        "grounding_source_node_id": "5b55d2d9-6651-4f77-a3d9-b660a1ffee4f",
+        "group_id": "g005",
+        "ledger_entry_indices": [
+          17
+        ],
+        "lifecycle": "historical",
+        "propositions": [
+          "Source assets were deleted during the D: cleanup"
+        ],
+        "source_node_id": "6b580263-1b75-4995-ba16-ba6a6cdcff0d",
+        "type": "project"
+      },
+      {
+        "authority_kind": "direct",
+        "authority_source_node_id": "",
+        "category": "preference",
+        "grounding_source_node_id": "",
+        "group_id": "g006",
+        "ledger_entry_indices": [
+          19
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "User prefers smaller and slower-paced responses"
+        ],
+        "source_node_id": "461b101b-e157-4de7-8930-badfc1f10b41",
+        "type": "communication"
+      }
+    ]
+  }
+]

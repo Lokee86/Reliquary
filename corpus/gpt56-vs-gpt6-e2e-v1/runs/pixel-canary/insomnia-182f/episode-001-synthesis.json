@@ -1,0 +1,12 @@
+{
+  "groups": {
+    "g000": {
+      "content": "Add a shared C/C++ 'c-family' Lexicon adapter with shared ownership and output schema.",
+      "title": "C-family Lexicon adapter adopted"
+    },
+    "g001": {
+      "content": "Calibrate the C-family adapter using Git and CBM as calibration corpora.",
+      "title": "C-family calibration corpora adopted"
+    }
+  }
+}

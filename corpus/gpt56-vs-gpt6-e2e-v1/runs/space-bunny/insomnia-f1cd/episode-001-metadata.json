@@ -1,0 +1,69 @@
+{
+  "groups": {
+    "g000": {
+      "category": "decision",
+      "lifecycle": "historical",
+      "type": "project"
+    },
+    "g001": {
+      "category": "instruction",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g002": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g003": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g004": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g005": {
+      "category": "instruction",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g006": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "process"
+    },
+    "g007": {
+      "category": "fact",
+      "lifecycle": "historical",
+      "type": "location"
+    },
+    "g008": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g009": {
+      "category": "fact",
+      "lifecycle": "historical",
+      "type": "possession"
+    },
+    "g010": {
+      "category": "fact",
+      "lifecycle": "historical",
+      "type": "possession"
+    },
+    "g011": {
+      "category": "preference",
+      "lifecycle": "current",
+      "type": "communication"
+    },
+    "g012": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    }
+  }
+}

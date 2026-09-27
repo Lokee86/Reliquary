@@ -1,0 +1,324 @@
+[
+  {
+    "candidates": [
+      {
+        "authority_kind": "adoption",
+        "authority_source_conversation_id": "tuning:182f64633555a03dd4a48b982323c23d36d3a9fb1fc2442e3c62660ef6d74e19",
+        "authority_source_node_id": "7ff95a69-4fbe-41a3-aecd-40a9e059b84c",
+        "authority_source_quote": "No. **C and C++ should be one Lexicon adapter**, with shared ownership and output schema.\n\nInternally, it will still need separate language handling because C++ is not merely a superset that can always be parsed as C:\n\n- Separate parser/grammar selection for `.c` versus `.cc`, `.cpp`, `.cxx`, etc.\n- Shared handling for headers, with language inferred from includers, project configuration, or heuristics\n- C++-specific symbols: namespaces, classes, templates, overloads, methods, inheritance\n- C-specific constructs: tagged structs/unions, function prototypes, translation-unit linkage\n- Shared preprocessor, include graph, macros, declarations, definitions, calls, and type relationships\n- Optional `compile_commands.json` support for include paths, defines, language standard, and per-file flags\n\nSo structurally:\n\n```text\nLexicon C-family adapter\n├── common preprocessing/include handling\n├── C parser and normalization\n├── C++ parser and normalization\n└── shared C-family relationship extraction\n```\n\nThat avoids duplicated include/preprocessor logic while still acknowledging that the two grammars and semantic models differ. I would expose it as something like `c-family`, but report each file’s actual language as `c` or `cpp` in the normalized output.",
+        "category": "decision",
+        "content": "Add a shared C/C++ 'c-family' Lexicon adapter with shared ownership and output schema.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "8bb025fb-ed6d-49c2-9449-e6c1317782d2",
+        "source_quote": "Fuckit, add that",
+        "title": "C-family Lexicon adapter adopted",
+        "type": "project"
+      },
+      {
+        "authority_kind": "adoption",
+        "authority_source_conversation_id": "tuning:182f64633555a03dd4a48b982323c23d36d3a9fb1fc2442e3c62660ef6d74e19",
+        "authority_source_node_id": "d8c0020d-27f0-4a6a-bb0c-4d6aec716756",
+        "authority_source_quote": "**Git + CBM would be a solid initial C calibration corpus.**\n\nThey complement each other:\n\n- **Git:** large, old, portability-heavy C with macros, conditional compilation, function pointers, generated files, unusual build conventions, and many cross-file relationships.\n- **CBM:** smaller, more modern application-style C with clearer subsystem boundaries and architecture-level relationships.\n\nThat gives you both hostile real-world C and comparatively clean modern C.\n\nBut it would **not calibrate the C++ half** of `c-family`. Both are overwhelmingly C. I’d treat the progression as:\n\n1. Calibrate C against Git + CBM.\n2. Add one medium-sized C++ repository for classes, templates, overloads, namespaces, inheritance, and header-heavy design.\n3. Add a larger ugly C++ repository later as a stress corpus.\n\nSomething like **fmt or Catch2** would be a reasonable first C++ corpus. Godot or LLVM would be useful later, but they are too large and complex to be the first calibration target.\n\nAlso, calibration should use judged queries/expected relationships, not merely “the adapter completed without errors.” Git and CBM are enough to build a useful C judgement set, but two repositories alone are still easy to overfit.",
+        "category": "decision",
+        "content": "Calibrate the C-family adapter using Git and CBM as calibration corpora.",
+        "grounding_source_conversation_id": "",
+        "grounding_source_node_id": "",
+        "grounding_source_quote": "",
+        "lifecycle": "current",
+        "source_node_id": "0ef14b07-dcc9-48f0-91a6-8f547021d006",
+        "source_quote": "sounds good, calibrate away, you know what to do",
+        "title": "C-family calibration corpora adopted",
+        "type": "project"
+      }
+    ],
+    "conversation_id": "tuning:182f64633555a03dd4a48b982323c23d36d3a9fb1fc2442e3c62660ef6d74e19",
+    "ledger": {
+      "entries": [
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about BrowserOS capabilities; no durable user state asserted.",
+          "source_node_id": "2f5556e7-5819-459f-a941-d6bc4e473dd7",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Observation/question about external GitHub releases; not durable user state.",
+          "source_node_id": "ffa62d38-91d3-4999-821d-da1af897beab",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Execution request to check tool registry.",
+          "source_node_id": "86b7aef9-132a-48f4-9ca9-fe54f7de75ab",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Execution request to try @Workspace.",
+          "source_node_id": "435a677d-b9e2-403b-8e6a-fd15fa5ea2ef",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Request for a test action; transient instruction.",
+          "source_node_id": "d7e148e4-44d8-4a41-b93f-2ad348458d05",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Execution request to retry.",
+          "source_node_id": "260acd59-9875-4d16-8faa-86a0e3f1d510",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Clarification request; no durable state.",
+          "source_node_id": "cf069148-26c7-4d3c-ae0b-be2250c46a64",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Transient execution instruction to fix a port; once executed, no longer durable state.",
+          "source_node_id": "688ec735-79d0-45e7-b492-a29606f60413",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Execution request to check result.",
+          "source_node_id": "a8707425-d800-4366-a4b0-00f2402f7b6a",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about an external product's model size; no durable user state.",
+          "source_node_id": "b23486c1-08b5-47d8-99af-308746de2883",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about an external product's implementation language; no durable user state.",
+          "source_node_id": "f951a879-c65a-475a-9d94-36a022a8c7c5",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question seeking confirmation about C/C++ adapter design; not asserting a decision.",
+          "source_node_id": "65158c8a-0ef7-4ff6-8978-40e771bbe258",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "adoption",
+          "authority_source_node_id": "7ff95a69-4fbe-41a3-aecd-40a9e059b84c",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Add a shared C/C++ 'c-family' Lexicon adapter with shared ownership and output schema.",
+          "reason": "User explicitly accepts the assistant's proposal to add a unified C/C++ c-family adapter to Lexicon.",
+          "source_node_id": "8bb025fb-ed6d-49c2-9449-e6c1317782d2",
+          "source_quote": "Fuckit, add that",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question seeking confirmation about git.git language; no durable user state.",
+          "source_node_id": "c2fb9133-e409-4d38-b25f-3c7ba786bb08",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question seeking the assistant's opinion on calibration corpus suitability.",
+          "source_node_id": "5065da18-2b5b-470c-809f-8d7b199e1c61",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question about whether C++ calibration transfers to C; no durable assertion.",
+          "source_node_id": "39d139e6-8518-4416-a5d0-36a25174431f",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question/request for information about where to obtain git.git.",
+          "source_node_id": "82eb945a-9047-48a4-aca2-98b67c14d674",
+          "source_quote": "",
+          "type": "none"
+        },
+        {
+          "authority_kind": "adoption",
+          "authority_source_node_id": "d8c0020d-27f0-4a6a-bb0c-4d6aec716756",
+          "category": "decision",
+          "disposition": "retain",
+          "grounding_source_node_id": "",
+          "lifecycle": "current",
+          "proposition": "Calibrate the C-family adapter using Git and CBM as calibration corpora.",
+          "reason": "User explicitly accepts the assistant's proposed calibration plan (Git + CBM) with 'sounds good, calibrate away, you know what to do'.",
+          "source_node_id": "0ef14b07-dcc9-48f0-91a6-8f547021d006",
+          "source_quote": "sounds good, calibrate away, you know what to do",
+          "type": "project"
+        },
+        {
+          "authority_kind": "none",
+          "authority_source_node_id": "",
+          "category": "none",
+          "disposition": "omit",
+          "grounding_source_node_id": "",
+          "lifecycle": "none",
+          "proposition": "",
+          "reason": "Question seeking the assistant's assessment of further improvement potential.",
+          "source_node_id": "96463a97-7c41-4f6c-bb24-0080722f04f0",
+          "source_quote": "",
+          "type": "none"
+        }
+      ]
+    },
+    "synthesis_groups": [
+      {
+        "authority_kind": "adoption",
+        "authority_source_node_id": "7ff95a69-4fbe-41a3-aecd-40a9e059b84c",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g000",
+        "ledger_entry_indices": [
+          12
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Add a shared C/C++ 'c-family' Lexicon adapter with shared ownership and output schema."
+        ],
+        "source_node_id": "8bb025fb-ed6d-49c2-9449-e6c1317782d2",
+        "type": "project"
+      },
+      {
+        "authority_kind": "adoption",
+        "authority_source_node_id": "d8c0020d-27f0-4a6a-bb0c-4d6aec716756",
+        "category": "decision",
+        "grounding_source_node_id": "",
+        "group_id": "g001",
+        "ledger_entry_indices": [
+          17
+        ],
+        "lifecycle": "current",
+        "propositions": [
+          "Calibrate the C-family adapter using Git and CBM as calibration corpora."
+        ],
+        "source_node_id": "0ef14b07-dcc9-48f0-91a6-8f547021d006",
+        "type": "project"
+      }
+    ]
+  }
+]

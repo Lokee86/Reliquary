@@ -1,0 +1,24 @@
+{
+  "calls": 12,
+  "candidate_count_average": 1.0,
+  "candidate_count_total": 7,
+  "consensus_decision_distribution": {
+    "create_new": 0,
+    "reject": 2,
+    "resolve_existing": 3,
+    "unresolved": 2
+  },
+  "errors": 0,
+  "model": "stealth/space-bunny-alpha",
+  "non_invariant_count": 0,
+  "order_invariant_count": 7,
+  "order_invariant_rate": 1.0,
+  "permutation_decision_distribution": {
+    "create_new": 0,
+    "reject": 2,
+    "resolve_existing": 3,
+    "unresolved": 7
+  },
+  "queries": 7,
+  "reasoning_effort": "low"
+}

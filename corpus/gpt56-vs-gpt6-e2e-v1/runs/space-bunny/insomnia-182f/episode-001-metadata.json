@@ -1,0 +1,24 @@
+{
+  "groups": {
+    "g000": {
+      "category": "correction",
+      "lifecycle": "current",
+      "type": "product"
+    },
+    "g001": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g002": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g003": {
+      "category": "commitment",
+      "lifecycle": "future",
+      "type": "project"
+    }
+  }
+}

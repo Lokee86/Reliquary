@@ -1,0 +1,49 @@
+{
+  "groups": {
+    "g000": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g001": {
+      "category": "fact",
+      "lifecycle": "historical",
+      "type": "project"
+    },
+    "g002": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "employment"
+    },
+    "g003": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "identity"
+    },
+    "g004": {
+      "category": "fact",
+      "lifecycle": "historical",
+      "type": "project"
+    },
+    "g005": {
+      "category": "preference",
+      "lifecycle": "current",
+      "type": "other"
+    },
+    "g006": {
+      "category": "instruction",
+      "lifecycle": "current",
+      "type": "communication"
+    },
+    "g007": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "other"
+    },
+    "g008": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "other"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+[
+  {
+    "authority_kind": "adoption",
+    "authority_source_conversation_id": "tuning:182f64633555a03dd4a48b982323c23d36d3a9fb1fc2442e3c62660ef6d74e19",
+    "authority_source_node_id": "7ff95a69-4fbe-41a3-aecd-40a9e059b84c",
+    "authority_source_quote": "No. **C and C++ should be one Lexicon adapter**, with shared ownership and output schema.\n\nInternally, it will still need separate language handling because C++ is not merely a superset that can always be parsed as C:\n\n- Separate parser/grammar selection for `.c` versus `.cc`, `.cpp`, `.cxx`, etc.\n- Shared handling for headers, with language inferred from includers, project configuration, or heuristics\n- C++-specific symbols: namespaces, classes, templates, overloads, methods, inheritance\n- C-specific constructs: tagged structs/unions, function prototypes, translation-unit linkage\n- Shared preprocessor, include graph, macros, declarations, definitions, calls, and type relationships\n- Optional `compile_commands.json` support for include paths, defines, language standard, and per-file flags\n\nSo structurally:\n\n```text\nLexicon C-family adapter\n├── common preprocessing/include handling\n├── C parser and normalization\n├── C++ parser and normalization\n└── shared C-family relationship extraction\n```\n\nThat avoids duplicated include/preprocessor logic while still acknowledging that the two grammars and semantic models differ. I would expose it as something like `c-family`, but report each file’s actual language as `c` or `cpp` in the normalized output.",
+    "category": "decision",
+    "content": "Add a shared C/C++ 'c-family' Lexicon adapter with shared ownership and output schema.",
+    "content_source_node_id": "7ff95a69-4fbe-41a3-aecd-40a9e059b84c",
+    "grounding_source_conversation_id": "",
+    "grounding_source_node_id": "",
+    "grounding_source_quote": "",
+    "lifecycle": "current",
+    "source_node_id": "8bb025fb-ed6d-49c2-9449-e6c1317782d2",
+    "source_quote": "Fuckit, add that",
+    "title": "C-family Lexicon adapter adopted",
+    "type": "project"
+  },
+  {
+    "authority_kind": "adoption",
+    "authority_source_conversation_id": "tuning:182f64633555a03dd4a48b982323c23d36d3a9fb1fc2442e3c62660ef6d74e19",
+    "authority_source_node_id": "d8c0020d-27f0-4a6a-bb0c-4d6aec716756",
+    "authority_source_quote": "**Git + CBM would be a solid initial C calibration corpus.**\n\nThey complement each other:\n\n- **Git:** large, old, portability-heavy C with macros, conditional compilation, function pointers, generated files, unusual build conventions, and many cross-file relationships.\n- **CBM:** smaller, more modern application-style C with clearer subsystem boundaries and architecture-level relationships.\n\nThat gives you both hostile real-world C and comparatively clean modern C.\n\nBut it would **not calibrate the C++ half** of `c-family`. Both are overwhelmingly C. I’d treat the progression as:\n\n1. Calibrate C against Git + CBM.\n2. Add one medium-sized C++ repository for classes, templates, overloads, namespaces, inheritance, and header-heavy design.\n3. Add a larger ugly C++ repository later as a stress corpus.\n\nSomething like **fmt or Catch2** would be a reasonable first C++ corpus. Godot or LLVM would be useful later, but they are too large and complex to be the first calibration target.\n\nAlso, calibration should use judged queries/expected relationships, not merely “the adapter completed without errors.” Git and CBM are enough to build a useful C judgement set, but two repositories alone are still easy to overfit.",
+    "category": "decision",
+    "content": "Calibrate the C-family adapter using Git and CBM as calibration corpora.",
+    "content_source_node_id": "d8c0020d-27f0-4a6a-bb0c-4d6aec716756",
+    "grounding_source_conversation_id": "",
+    "grounding_source_node_id": "",
+    "grounding_source_quote": "",
+    "lifecycle": "current",
+    "source_node_id": "0ef14b07-dcc9-48f0-91a6-8f547021d006",
+    "source_quote": "sounds good, calibrate away, you know what to do",
+    "title": "C-family calibration corpora adopted",
+    "type": "project"
+  }
+]

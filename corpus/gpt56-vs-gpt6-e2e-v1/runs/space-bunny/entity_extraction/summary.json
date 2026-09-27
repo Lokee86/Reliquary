@@ -1,0 +1,19 @@
+{
+  "cases": 10,
+  "entities": {
+    "exact_case_rate": 0.4,
+    "exact_cases": 4,
+    "f1": 0.6666666666666666,
+    "fn": 15,
+    "fp": 5,
+    "precision": 0.8,
+    "recall": 0.5714285714285714,
+    "tp": 20,
+    "zero_entity_accuracy": 1.0,
+    "zero_entity_cases": 2,
+    "zero_entity_correct": 2
+  },
+  "errors": 0,
+  "model": "stealth/space-bunny-alpha",
+  "reasoning_effort": "low"
+}

@@ -1,0 +1,39 @@
+{
+  "groups": {
+    "g000": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g001": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g002": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g003": {
+      "category": "instruction",
+      "lifecycle": "current",
+      "type": "communication"
+    },
+    "g004": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "location"
+    },
+    "g005": {
+      "category": "fact",
+      "lifecycle": "historical",
+      "type": "project"
+    },
+    "g006": {
+      "category": "preference",
+      "lifecycle": "current",
+      "type": "communication"
+    }
+  }
+}

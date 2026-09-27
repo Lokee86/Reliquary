@@ -1,0 +1,24 @@
+{
+  "calls": 3,
+  "candidate_count_average": 0.0,
+  "candidate_count_total": 0,
+  "consensus_decision_distribution": {
+    "create_new": 2,
+    "reject": 1,
+    "resolve_existing": 0,
+    "unresolved": 0
+  },
+  "errors": 0,
+  "model": "stealth/pixel-canary",
+  "non_invariant_count": 0,
+  "order_invariant_count": 3,
+  "order_invariant_rate": 1.0,
+  "permutation_decision_distribution": {
+    "create_new": 2,
+    "reject": 1,
+    "resolve_existing": 0,
+    "unresolved": 0
+  },
+  "queries": 3,
+  "reasoning_effort": "low"
+}

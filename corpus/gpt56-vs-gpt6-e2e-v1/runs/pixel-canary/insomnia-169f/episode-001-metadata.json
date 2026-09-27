@@ -1,0 +1,24 @@
+{
+  "groups": {
+    "g000": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g001": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g002": {
+      "category": "instruction",
+      "lifecycle": "current",
+      "type": "process"
+    },
+    "g003": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "project"
+    }
+  }
+}

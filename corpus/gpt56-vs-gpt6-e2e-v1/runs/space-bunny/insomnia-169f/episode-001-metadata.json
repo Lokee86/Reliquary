@@ -1,0 +1,39 @@
+{
+  "groups": {
+    "g000": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g001": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g002": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g003": {
+      "category": "fact",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g004": {
+      "category": "instruction",
+      "lifecycle": "current",
+      "type": "process"
+    },
+    "g005": {
+      "category": "decision",
+      "lifecycle": "current",
+      "type": "project"
+    },
+    "g006": {
+      "category": "constraint",
+      "lifecycle": "current",
+      "type": "project"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "format": "gpt56-vs-gpt6-e2e-v1-space-bunny",
+  "model": "stealth/space-bunny-alpha",
+  "reasoning_effort": "low",
+  "status": "completed_with_dream_text_only_proxy",
+  "total_cases": 62,
+  "stages": {
+    "insomnia": {
+      "space_bunny": {
+        "anchor_fidelity": "100%",
+        "state_coverage": "100%",
+        "omit_cleanliness": "100%",
+        "authority": "87.5%",
+        "grounding": "75%",
+        "metadata": "62.5%",
+        "guards": "100%"
+      },
+      "gpt6": {
+        "anchor_fidelity": "100%",
+        "state_coverage": "100%",
+        "omit_cleanliness": "100%",
+        "authority": "100%",
+        "grounding": "87.5%",
+        "metadata": "75%",
+        "guards": "100%"
+      },
+      "note": "Space Bunny preserved all selected state/omit decisions but added one authority, one grounding, and one metadata contract miss versus GPT-6."
+    },
+    "entity_extraction": {
+      "gpt5_6": {"exact": "6/10", "precision": 0.8378378378, "recall": 0.8857142857, "f1": 0.8611111111},
+      "gpt6": {"exact": "6/10", "precision": 0.8484848485, "recall": 0.8, "f1": 0.8235294118},
+      "space_bunny": {"exact": "4/10", "precision": 0.8, "recall": 0.5714285714, "f1": 0.6666666667, "zero_entity_accuracy": 1.0, "errors": 0}
+    },
+    "entity_admission": {
+      "gpt5_6": {"correct": "8/8"},
+      "gpt6": {"correct": "7/8"},
+      "space_bunny": {"correct": "7/8", "miss": "presenter: create_new -> unresolved (recurrence_required)"}
+    },
+    "entity_disambiguation": {
+      "gpt5_6": {"correct": "6/6"},
+      "gpt6": {"correct": "6/6"},
+      "space_bunny": {"correct": "6/6"}
+    },
+    "entity_resolution": {
+      "gpt5_6": {"correct": "9/10", "misses": ["zero_candidate:frozen-038"]},
+      "gpt6": {"correct": "8/10", "misses": ["frozen_rel:frozen-040", "zero_candidate:frozen-038"]},
+      "space_bunny": {
+        "correct": "7/10",
+        "misses": ["frozen_rel:frozen-039", "frozen_rel:frozen-040", "zero_candidate:frozen-038"],
+        "order_invariant": "10/10",
+        "false_merges": 0
+      }
+    },
+    "chronos": {
+      "gpt6": {"inference_cases": 6, "verifier_safe": 1, "invalid_output_errors": 5},
+      "space_bunny": {"inference_cases": 6, "verifier_safe": 2, "invalid_output_errors": 4},
+      "note": "One Space Bunny case produced a verified Saturday calendar resolution and one safely remained empty; four canonical expressions failed deterministic verification."
+    },
+    "dream": {
+      "gpt5_6": {"exact_pair_gate_runs": ["37/40", "39/40", "38/40"], "population_gate": "96/98"},
+      "gpt6": {"selected_text_pair_proxy": "5/10", "related": "2/7", "unrelated": "3/3"},
+      "space_bunny": {"selected_text_pair_proxy": "9/10", "related": "6/7", "unrelated": "3/3", "miss": "web-023"},
+      "note": "Space Bunny and GPT-6 are directly comparable on this selected text-only proxy. Historical GPT-5.6 full-context results are not directly comparable."
+    }
+  },
+  "overall": {
+    "signal": "mixed",
+    "strongest_space_bunny_result": "Dream text-only proxy: 9/10 versus GPT-6 5/10",
+    "weakest_space_bunny_result": "Entity extraction: 4/10 exact, F1 0.667",
+    "compatibility_concerns": [
+      "Chronos deterministic canonical-expression verification",
+      "Entity extraction recall",
+      "Entity final resolution",
+      "Insomnia provenance/metadata contracts"
+    ]
+  }
+}
