@@ -92,6 +92,8 @@ mod chronos_normalize;
 mod chronos_number;
 #[path = "chronos/chronos_parser.rs"]
 mod chronos_parser;
+#[path = "chronos/chronos_processing_epoch.rs"]
+mod chronos_processing_epoch;
 #[path = "chronos/chronos_recurrence.rs"]
 mod chronos_recurrence;
 #[path = "chronos/chronos_recurrence_interval.rs"]
@@ -309,6 +311,8 @@ mod dream_owner_publisher;
 mod dream_owner_vectors;
 #[path = "runtime_inference/dream_pair_context.rs"]
 mod dream_pair_context;
+#[path = "runtime_inference/dream_pair_history.rs"]
+mod dream_pair_history;
 #[path = "runtime_inference/dream_processor.rs"]
 mod dream_processor;
 #[path = "runtime_inference/dream_processor_error.rs"]
@@ -323,8 +327,6 @@ mod dream_publisher;
 mod dream_publisher_error;
 #[path = "runtime_inference/dream_publisher_model.rs"]
 mod dream_publisher_model;
-#[path = "runtime_inference/dream_source_time.rs"]
-mod dream_source_time;
 #[path = "runtime_inference/dream_temporal.rs"]
 mod dream_temporal;
 #[path = "runtime_inference/dream_verifier.rs"]
@@ -614,6 +616,8 @@ mod memory_routing_codec;
 mod memory_routing_model;
 #[path = "retrieval/memory_search.rs"]
 mod memory_search;
+#[path = "memory/memory_source_time.rs"]
+mod memory_source_time;
 #[path = "memory/memory_store.rs"]
 mod memory_store;
 #[path = "memory/memory_temporal_codec.rs"]
@@ -694,6 +698,10 @@ mod phylactery_profile_codec;
 mod phylactery_profile_model;
 #[path = "facade/phylactery_profile_store.rs"]
 mod phylactery_profile_store;
+#[path = "memory/processing_epoch_model.rs"]
+mod processing_epoch_model;
+#[path = "memory/processing_epoch_store.rs"]
+mod processing_epoch_store;
 #[path = "project_environment.rs"]
 mod project_environment;
 #[cfg(test)]
@@ -1137,6 +1145,9 @@ mod chronos_event_relative_tests;
 #[path = "chronos/chronos_inference_tests.rs"]
 mod chronos_inference_tests;
 #[cfg(test)]
+#[path = "chronos/chronos_processing_epoch_tests.rs"]
+mod chronos_processing_epoch_tests;
+#[cfg(test)]
 #[path = "chronos/chronos_relative_tests.rs"]
 mod chronos_relative_tests;
 #[cfg(test)]
@@ -1368,6 +1379,9 @@ mod memory_retrieval_tests;
 #[path = "memory/memory_routing_tests.rs"]
 mod memory_routing_tests;
 #[cfg(test)]
+#[path = "memory/memory_source_time_tests.rs"]
+mod memory_source_time_tests;
+#[cfg(test)]
 #[path = "memory/memory_temporal_inference_tests.rs"]
 mod memory_temporal_inference_tests;
 #[cfg(test)]
@@ -1403,6 +1417,12 @@ mod phylactery_dream_tests;
 #[cfg(test)]
 #[path = "facade/phylactery_tests.rs"]
 mod phylactery_tests;
+#[cfg(test)]
+#[path = "memory/processing_epoch_model_tests.rs"]
+mod processing_epoch_model_tests;
+#[cfg(test)]
+#[path = "memory/processing_epoch_store_tests.rs"]
+mod processing_epoch_store_tests;
 #[cfg(test)]
 #[path = "archive/project_file_attachment_tests.rs"]
 mod project_file_attachment_tests;

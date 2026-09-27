@@ -62,6 +62,10 @@ mod tests {
             OpenRecordRoute::Fallback
         );
         assert_eq!(
+            classify_open_record(b"CVAPEP01payload"),
+            OpenRecordRoute::Fallback
+        );
+        assert_eq!(
             classify_open_record(b"CVACMP1\0payload"),
             OpenRecordRoute::Fallback
         );

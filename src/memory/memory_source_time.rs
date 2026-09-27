@@ -4,7 +4,10 @@ pub(crate) fn memory_source_timestamp_ns(memory: &Memory) -> Option<i64> {
     memory.source_time_ns
 }
 
-pub(crate) fn reliquary_source_timestamp_ns(archive: &Archive, memory: &Memory) -> Option<i64> {
+pub(crate) fn reliquary_memory_source_timestamp_ns(
+    archive: &Archive,
+    memory: &Memory,
+) -> Option<i64> {
     if let (Some(conversation), Some(node_id)) = (
         memory.content_source_conversation_id.as_deref(),
         memory.content_source_node_id.as_deref(),

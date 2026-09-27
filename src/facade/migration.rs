@@ -1,9 +1,16 @@
+#[path = "migration_dream_cooldown.rs"]
+mod dream_cooldown_legacy;
 #[path = "migration_phy.rs"]
 mod phy;
 #[path = "migration_rel.rs"]
 mod rel;
 
-use crate::{Container, ContainerIdentity, FileKind, ReliquaryScopeKind};
+use self::dream_cooldown_legacy::legacy_dream_cooldown_records;
+use crate::dream_cooldown::{DREAM_CADENCE_VERSION, DREAM_PROCESSING_LANE};
+use crate::memory_store::MemoryStore;
+use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
+use crate::processing_epoch_store::merge_processing_epoch_records;
+use crate::{Container, ContainerIdentity, FileKind, MemoryId, ReliquaryScopeKind};
 use sha2::{Digest, Sha256};
 use std::fmt;
 use std::fs;
@@ -202,6 +209,37 @@ fn reject_invalid_paths(source: &Path, output: &Path) -> Result<(), MigrationErr
         });
     }
     Ok(())
+}
+
+pub(super) fn processing_epochs_for_migration(
+    container: &mut Container,
+    memories: &MemoryStore,
+    current: Vec<(MemoryId, ProcessingLaneId, ProcessingEpochState)>,
+) -> Result<Vec<(MemoryId, ProcessingLaneId, ProcessingEpochState)>, MigrationError> {
+    let mut records = current;
+    for (memory_id, legacy) in op(legacy_dream_cooldown_records(container))? {
+        let updated_at_ns = memories
+            .records()
+            .iter()
+            .filter(|record| record.id == memory_id)
+            .max_by_key(|record| record.revision)
+            .map(|record| record.updated_at_ns)
+            .ok_or_else(|| {
+                MigrationError::Operation(
+                    "legacy Dream cooldown references a missing Memory".into(),
+                )
+            })?;
+        records.push((
+            memory_id,
+            DREAM_PROCESSING_LANE,
+            ProcessingEpochState {
+                satisfied_through_epoch: legacy.epoch,
+                cadence_version: DREAM_CADENCE_VERSION,
+                checkpoint_at_ns: Some(legacy.processed_at_ns.unwrap_or(updated_at_ns)),
+            },
+        ));
+    }
+    op(merge_processing_epoch_records(records))
 }
 
 pub(super) fn require_same<T: Eq + fmt::Debug>(

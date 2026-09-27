@@ -1,16 +1,80 @@
-use crate::dream_candidate_test_support::{memory_with_source_time, test_path};
-use crate::dream_cooldown::dream_epoch;
+use crate::dream_candidate_test_support::{memory, memory_with_source_time, test_path};
+use crate::dream_cooldown::{DREAM_PROCESSING_LANE, dream_epoch};
+use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::{Cva, DEFAULT_DREAM_REPROCESS_COOLDOWN_NS, MemoryDraft, Phylactery};
 use std::fs;
 
 const DAY_NS: i64 = 24 * 60 * 60 * 1_000_000_000;
 
 #[test]
+fn dream_processing_lane_has_stable_id_one() {
+    assert_eq!(DREAM_PROCESSING_LANE, ProcessingLaneId(1));
+}
+
+#[test]
+fn dream_checkpoint_is_stored_in_generic_processing_epoch_state() {
+    let path = test_path("dream-processing-epoch-store.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut cva,
+        "generic-processing-state",
+        "Generic processing state",
+        "Dream checkpoint ownership",
+        0,
+        45 * DAY_NS,
+    );
+
+    assert!(cva.mark_dream_processed(id, 3, 95 * DAY_NS).unwrap());
+    let state = cva
+        .processing_epochs
+        .state(id, DREAM_PROCESSING_LANE)
+        .unwrap();
+    assert_eq!(state.satisfied_through_epoch, 3);
+    assert_eq!(state.cadence_version, 1);
+    assert_eq!(state.checkpoint_at_ns, Some(95 * DAY_NS));
+}
+
+#[test]
 fn provenance_age_selects_one_current_epoch_without_backlog() {
     assert_eq!(DEFAULT_DREAM_REPROCESS_COOLDOWN_NS, 30 * DAY_NS);
+    assert_eq!(dream_epoch(10 * DAY_NS, 9 * DAY_NS), 0);
     assert_eq!(dream_epoch(0, 45 * DAY_NS), 1);
     assert_eq!(dream_epoch(0, 60 * DAY_NS), 2);
     assert_eq!(dream_epoch(0, 95 * DAY_NS), 3);
+}
+
+#[test]
+fn reliquary_cooldown_uses_authoritative_archive_source_time() {
+    let path = test_path("dream-cooldown-authoritative-source.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory_with_source_time(
+        &mut cva,
+        "authoritative-source",
+        "Authoritative source",
+        "Historical knowledge",
+        0,
+        40 * DAY_NS,
+        45 * DAY_NS,
+    );
+
+    assert_eq!(cva.dream_eligible_epoch(id, 59 * DAY_NS).unwrap(), None);
+    assert_eq!(cva.dream_eligible_epoch(id, 60 * DAY_NS).unwrap(), Some(2));
+}
+
+#[test]
+fn archived_memory_is_never_dream_eligible() {
+    let path = test_path("dream-cooldown-archived.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory(
+        &mut cva,
+        "archived-cooldown",
+        "Archived",
+        "Archived knowledge",
+        0,
+        true,
+    );
+
+    assert_eq!(cva.dream_eligible_epoch(id, 90 * DAY_NS).unwrap(), None);
 }
 
 #[test]
@@ -50,8 +114,10 @@ fn cooldown_marker_survives_reopen_and_skips_missed_epochs() {
         45 * DAY_NS,
     );
     let memory_version = cva.memory_version();
+    let memory_revision = cva.memory(id).unwrap().revision;
     assert!(cva.mark_dream_processed(id, 1, 45 * DAY_NS).unwrap());
     assert_eq!(cva.memory_version(), memory_version);
+    assert_eq!(cva.memory(id).unwrap().revision, memory_revision);
     cva.sync().unwrap();
     drop(cva);
 
@@ -59,6 +125,7 @@ fn cooldown_marker_survives_reopen_and_skips_missed_epochs() {
     assert_eq!(cva.dream_eligible_epoch(id, 45 * DAY_NS).unwrap(), None);
     assert_eq!(cva.dream_eligible_epoch(id, 95 * DAY_NS).unwrap(), Some(3));
     assert!(cva.mark_dream_processed(id, 3, 95 * DAY_NS).unwrap());
+    assert_eq!(cva.memory(id).unwrap().revision, memory_revision);
     assert_eq!(cva.dream_eligible_epoch(id, 95 * DAY_NS).unwrap(), None);
 }
 
@@ -100,7 +167,7 @@ fn phylactery_cooldown_state_survives_reopen() {
 }
 
 #[test]
-fn divergent_reconcile_keeps_the_highest_satisfied_epoch() {
+fn divergent_reconcile_keeps_highest_epoch_and_latest_processing_time() {
     let left = test_path("dream-cooldown-left.cva");
     let right = left.with_file_name("dream-cooldown-right.cva");
     let output = left.with_file_name("dream-cooldown-merged.cva");
@@ -118,8 +185,8 @@ fn divergent_reconcile_keeps_the_highest_satisfied_epoch() {
     fs::copy(&left, &right).unwrap();
 
     for (path, epoch, processed_at_ns, node) in [
-        (&left, 1, 45 * DAY_NS, "left-node"),
-        (&right, 3, 95 * DAY_NS, "right-node"),
+        (&left, 3, 45 * DAY_NS, "left-node"),
+        (&right, 1, 95 * DAY_NS, "right-node"),
     ] {
         let mut cva = Cva::open(path).unwrap();
         cva.mark_dream_processed(id, epoch, processed_at_ns)
@@ -138,14 +205,12 @@ fn divergent_reconcile_keeps_the_highest_satisfied_epoch() {
 
     Cva::reconcile(&left, &right, &output).unwrap();
     let mut merged = Cva::open(output).unwrap();
-    assert_eq!(
-        merged
-            .dream_cooldown_records()
-            .into_iter()
-            .find(|(memory_id, _)| *memory_id == id)
-            .map(|(_, state)| (state.epoch, state.processed_at_ns)),
-        Some((3, Some(95 * DAY_NS)))
-    );
+    let state = merged
+        .processing_epochs
+        .state(id, DREAM_PROCESSING_LANE)
+        .unwrap();
+    assert_eq!(state.satisfied_through_epoch, 3);
+    assert_eq!(state.checkpoint_at_ns, Some(95 * DAY_NS));
     assert_eq!(merged.dream_eligible_epoch(id, 95 * DAY_NS).unwrap(), None);
     assert_eq!(
         merged.dream_eligible_epoch(id, 120 * DAY_NS).unwrap(),
@@ -154,7 +219,157 @@ fn divergent_reconcile_keeps_the_highest_satisfied_epoch() {
 }
 
 #[test]
-fn provenance_less_memory_uses_last_dream_time_as_recurring_fallback() {
+fn divergent_reconcile_merges_generic_processing_lane_independently() {
+    let left = test_path("processing-epoch-second-lane-left.cva");
+    let right = left.with_file_name("processing-epoch-second-lane-right.cva");
+    let output = left.with_file_name("processing-epoch-second-lane-merged.cva");
+    let mut base = Cva::create_project(&left).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut base,
+        "second-lane-reconcile",
+        "Second lane",
+        "Generic maintenance state",
+        0,
+        45 * DAY_NS,
+    );
+    let memory_version = base.memory_version();
+    let memory_revision = base.memory(id).unwrap().revision;
+    base.sync().unwrap();
+    drop(base);
+    fs::copy(&left, &right).unwrap();
+
+    let lane = ProcessingLaneId(2);
+    let mut left_cva = Cva::open(&left).unwrap();
+    left_cva
+        .processing_epochs
+        .put(
+            &mut left_cva.container,
+            id,
+            lane,
+            ProcessingEpochState {
+                satisfied_through_epoch: 5,
+                cadence_version: 7,
+                checkpoint_at_ns: Some(50 * DAY_NS),
+            },
+        )
+        .unwrap();
+    left_cva.sync().unwrap();
+    drop(left_cva);
+
+    let mut right_cva = Cva::open(&right).unwrap();
+    right_cva
+        .processing_epochs
+        .put(
+            &mut right_cva.container,
+            id,
+            lane,
+            ProcessingEpochState {
+                satisfied_through_epoch: 3,
+                cadence_version: 7,
+                checkpoint_at_ns: Some(95 * DAY_NS),
+            },
+        )
+        .unwrap();
+    right_cva.sync().unwrap();
+    drop(right_cva);
+
+    Cva::reconcile(&left, &right, &output).unwrap();
+    let mut merged = Cva::open(output).unwrap();
+    assert_eq!(
+        merged.processing_epochs.state(id, lane),
+        Some(ProcessingEpochState {
+            satisfied_through_epoch: 5,
+            cadence_version: 7,
+            checkpoint_at_ns: Some(95 * DAY_NS),
+        })
+    );
+    assert_eq!(
+        merged.processing_epochs.state(id, DREAM_PROCESSING_LANE),
+        None
+    );
+    assert_eq!(merged.memory_version(), memory_version);
+    assert_eq!(merged.memory(id).unwrap().revision, memory_revision);
+}
+
+#[test]
+fn divergent_reconcile_rejects_processing_cadence_version_conflict() {
+    let left = test_path("processing-epoch-cadence-conflict-left.cva");
+    let right = left.with_file_name("processing-epoch-cadence-conflict-right.cva");
+    let output = left.with_file_name("processing-epoch-cadence-conflict-merged.cva");
+    let mut base = Cva::create_project(&left).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut base,
+        "cadence-conflict",
+        "Cadence conflict",
+        "Generic maintenance state",
+        0,
+        45 * DAY_NS,
+    );
+    base.sync().unwrap();
+    drop(base);
+    fs::copy(&left, &right).unwrap();
+
+    let lane = ProcessingLaneId(2);
+    for (path, cadence_version) in [(&left, 1), (&right, 2)] {
+        let mut cva = Cva::open(path).unwrap();
+        cva.processing_epochs
+            .put(
+                &mut cva.container,
+                id,
+                lane,
+                ProcessingEpochState {
+                    satisfied_through_epoch: 1,
+                    cadence_version,
+                    checkpoint_at_ns: Some(50 * DAY_NS),
+                },
+            )
+            .unwrap();
+        cva.sync().unwrap();
+    }
+
+    let error = Cva::reconcile(&left, &right, &output).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("Processing epoch cadence version")
+    );
+    assert!(!output.exists());
+}
+
+#[test]
+fn dream_rejects_persisted_cadence_version_mismatch_when_state_is_used() {
+    let path = test_path("dream-cooldown-cadence-mismatch.cva");
+    let mut cva = Cva::create(path).unwrap();
+    let id = memory_with_persisted_source_time(
+        &mut cva,
+        "cadence-mismatch",
+        "Cadence mismatch",
+        "Persisted Dream state from another policy version",
+        0,
+        45 * DAY_NS,
+    );
+    cva.processing_epochs
+        .put(
+            &mut cva.container,
+            id,
+            DREAM_PROCESSING_LANE,
+            ProcessingEpochState {
+                satisfied_through_epoch: 1,
+                cadence_version: 2,
+                checkpoint_at_ns: Some(45 * DAY_NS),
+            },
+        )
+        .unwrap();
+
+    let error = cva.dream_eligible_epoch(id, 60 * DAY_NS).unwrap_err();
+    assert!(matches!(
+        error,
+        crate::MemoryError::InvalidField("Dream cadence version")
+    ));
+}
+
+#[test]
+fn provenance_less_memory_uses_updated_time_then_last_dream_time_as_fallback() {
     let path = test_path("dream-cooldown-no-provenance.cva");
     let mut cva = Cva::create(path).unwrap();
     let draft = MemoryDraft {
@@ -182,6 +397,8 @@ fn provenance_less_memory_uses_last_dream_time_as_recurring_fallback() {
     };
     let id = cva.publish_memory(None, 0, draft).unwrap().0.id;
 
+    assert_eq!(cva.dream_eligible_epoch(id, 39 * DAY_NS).unwrap(), None);
+    assert_eq!(cva.dream_eligible_epoch(id, 40 * DAY_NS).unwrap(), Some(0));
     assert!(cva.mark_dream_processed(id, 0, 50 * DAY_NS).unwrap());
     assert_eq!(cva.dream_eligible_epoch(id, 79 * DAY_NS).unwrap(), None);
     assert_eq!(cva.dream_eligible_epoch(id, 80 * DAY_NS).unwrap(), Some(0));

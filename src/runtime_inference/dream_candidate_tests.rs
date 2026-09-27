@@ -1,6 +1,6 @@
 use crate::dream_candidate_test_support::{install_vectors, memory, test_path};
 use crate::dream_owner_candidates::dream_memory_context as dream_memory_context_from_parts;
-use crate::dream_source_time::memory_source_timestamp_ns;
+use crate::memory_source_time::memory_source_timestamp_ns;
 use crate::{Cva, DreamCandidateConfig, GraphRelationKind, MemoryDraft};
 
 #[test]

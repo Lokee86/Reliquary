@@ -1,4 +1,4 @@
-use crate::dream_source_time::reliquary_source_timestamp_ns;
+use crate::memory_source_time::reliquary_memory_source_timestamp_ns;
 use crate::{Cva, DreamLifecycleError, GraphRelation, GraphRelationKind, Memory, MemoryId};
 use std::collections::{HashSet, VecDeque};
 
@@ -119,7 +119,7 @@ fn representative_key(cva: &Cva, memory: &Memory) -> (u8, i64, [u8; 32]) {
     };
     (
         state_rank,
-        reliquary_source_timestamp_ns(&cva.archive, memory).unwrap_or(i64::MAX),
+        reliquary_memory_source_timestamp_ns(&cva.archive, memory).unwrap_or(i64::MAX),
         memory.id.0,
     )
 }

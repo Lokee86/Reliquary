@@ -9,8 +9,8 @@ use crate::conversation_compaction_store::{
 };
 use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::cva_open_route::{OpenRecordRoute, classify_open_record};
-use crate::dream_cooldown::{DreamCooldownStore, DreamPairStore};
 use crate::dream_duplicate_index::DuplicateIndex;
+use crate::dream_pair_history::DreamPairStore;
 use crate::echo_store::EchoStore;
 use crate::ego_store::EgoStore;
 use crate::entity_rebuild::EntityOpenState;
@@ -29,6 +29,7 @@ use crate::memory_vector_rebuild::MemoryVectorOpenState;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
+use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
 use crate::rel_metadata_store::RelMetadataStore;
@@ -144,7 +145,7 @@ impl Cva {
         let memories = MemoryStore::empty();
         let mut graph = GraphStore::empty();
         let communities = CommunityStore::default();
-        let dream_cooldowns = DreamCooldownStore::default();
+        let processing_epochs = ProcessingEpochStore::default();
         let dream_pairs = DreamPairStore::default();
         let insomnia = InsomniaStore::empty();
         let lexical_index = LexicalIndex::default();
@@ -180,7 +181,7 @@ impl Cva {
             archive,
             memories,
             duplicate_index: DuplicateIndex::empty(),
-            dream_cooldowns,
+            processing_epochs,
             dream_pairs,
             graph,
             communities,
@@ -225,7 +226,7 @@ impl Cva {
         let mut project_history = ProjectHistoryStore::default();
         let mut project_files = ProjectFileStore::default();
         let mut rel_metadata = RelMetadataStore::default();
-        let mut dream_cooldowns = DreamCooldownStore::default();
+        let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             match classify_open_record(payload) {
@@ -262,7 +263,7 @@ impl Cva {
                     rel_metadata
                         .ingest(payload)
                         .map_err(CvaError::RelMetadata)?;
-                    dream_cooldowns.ingest(payload)?;
+                    processing_epochs.ingest(payload)?;
                     dream_pairs.ingest(payload)?;
                 }
             }
@@ -287,7 +288,7 @@ impl Cva {
         )?;
         ego.validate_memory_version(memories.memory_version())?;
         memories.validate_provenance(&archive)?;
-        dream_cooldowns.validate(&memories)?;
+        processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         validate_file_memory_targets(&archive, &memories)?;
         let graph = graph_state.finish(&memories, &entities)?;
@@ -330,7 +331,7 @@ impl Cva {
             archive,
             memories,
             duplicate_index: DuplicateIndex::empty(),
-            dream_cooldowns,
+            processing_epochs,
             dream_pairs,
             graph,
             communities,
