@@ -247,6 +247,31 @@ fn visible_archive_search_uses_dependency_closure_and_excludes_phylactery() {
 }
 
 #[test]
+fn owner_archive_search_falls_back_to_lexical_without_embedding_route() {
+    let (rel, rel_id) = project("archive-lexical-fallback.prj.rel");
+    let rel = seed_archive(rel, "lexical-fallback");
+
+    let mut host = ReliquaryRuntimeHost::new(
+        ReliquaryRuntimeRoutes::default(),
+        one_worker(),
+        EpisodePolicy::default(),
+    );
+    host.mount_rel(InteractionRuntime::new(rel)).unwrap();
+    host.set_active_rel(&rel_id).unwrap();
+
+    let result = host
+        .search_archive_owner(&rel_id, "lexical-fallback", 5)
+        .unwrap();
+
+    assert!(
+        result.error.is_none(),
+        "archive search error: {:?}",
+        result.error
+    );
+    assert!(!result.hits.is_empty());
+}
+
+#[test]
 fn visible_semantic_searches_validate_their_owned_bounds() {
     let host = ReliquaryRuntimeHost::new(
         ReliquaryRuntimeRoutes::default(),

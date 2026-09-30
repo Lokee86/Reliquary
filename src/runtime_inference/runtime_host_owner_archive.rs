@@ -88,11 +88,9 @@ impl ReliquaryRuntimeHost {
         if query.trim().is_empty() {
             return Ok(None);
         }
-        let endpoint = self.embedding_route()?.ok_or_else(|| {
-            ReliquaryRuntimeHostError::Operation(
-                "live semantic search requires an embedding route".into(),
-            )
-        })?;
+        let Some(endpoint) = self.embedding_route()? else {
+            return Ok(None);
+        };
         let profile = self.ensure_reliquary_embedding_profile_for(owner_id)?;
         let has_generation = self.with_runtime_for(owner_id, |runtime| {
             Ok(runtime.cva().current_vector_generation(profile).is_some())
