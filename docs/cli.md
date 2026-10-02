@@ -105,6 +105,10 @@ cargo test --manifest-path cli/Cargo.toml --locked
 
 Repository verification also performs command-level smoke tests for REL create/info/verify and PHY create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
 
+## Build dependency alignment
+
+The detachable CLI is a Cargo root. It repeats Reliquary's vendored quinn-proto override because Cargo does not inherit dependency-root patches. Its lockfile resolves the same immutable Arcana revision as the library, including the v2 indexed metadata reader. This is build compatibility; CLI/storage semantic ownership is unchanged.
+
 ## Related docs
 
 - [Architecture](architecture.md)

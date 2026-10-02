@@ -411,6 +411,10 @@ The post-reorganization dependency audit does **not** justify a crate split. Raw
 
 Critical architecture invariants are mapped to focused verification in [Behavioral contracts](behavioral-contracts.md). The primary owner-level suites include Container/REL/PHY lifecycle tests, Project-history and Project-file attachment tests, Archive/conversation/interaction tests, Echo tests, Memory/Graph/Community/retrieval tests, Insomnia/Dream/runtime-host tests, vector/compatibility/retrieval tests, and reconciliation/promotion tests. The [Maintainer map](maintainer-map.md) routes each change area to the narrower verification surface.
 
+## Arcana dependency compatibility
+
+Reliquary pins Arcana revision `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`, supporting repository manifest v2 and transferable indexed metadata readers. Reliquary continues to use Arcana graph primitives beneath its own semantic graph owner; repository inspection and render lifetimes belong to downstream consumers. Warlock must pin this exact Arcana revision so shared graph types resolve through one crate instance. The dependency alignment is protected by the semantic-graph/storage library suite and the downstream Cargo dependency-tree check.
+
 ## Related docs
 - [Storage format](storage-format.md)
 - [Local configuration](configuration.md)

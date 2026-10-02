@@ -457,6 +457,10 @@ The calibration also exposed deterministic coverage gaps rather than detector-th
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
 - `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.
 
+## Arcana dependency compatibility verification
+
+When aligning Arcana with a downstream application, keep the library and detachable CLI lockfiles on the same exact revision and run the CLI checks with --locked after resolution. The CLI manifest must repeat the Lore-compatible vendored quinn-proto patch; a dependency's Cargo patches do not propagate to the executable root. Validate the library suite, CLI suite and downstream dependency tree together. Report the [existing profiler allocator conflict](current-limitations.md#verification-limits) separately when the full test command is blocked; do not equate the library and CLI results with a passing full suite. Use isolated build output when another checkout is compiling against a shared target cache.
+
 ## Related docs
 
 - [Architecture](architecture.md)

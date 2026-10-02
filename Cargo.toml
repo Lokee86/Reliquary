@@ -49,7 +49,7 @@ path = "examples/entity_jev_resolution_experiment/main.rs"
 required-features = ["entity-calibration"]
 
 [dependencies]
-arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "9ebccd6e7d089b98a8992c5451ba57f903f295fb" }
+arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3" }
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
 lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
 sha2 = "0.10"

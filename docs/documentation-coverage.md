@@ -77,6 +77,10 @@ Only implemented code belongs in this matrix. Future-only product/runtime work i
 
 New production modules require canonical owners. New persistence records update storage-format documentation. New stateful/recovery boundaries update architecture and behavioral contracts in the same change. New product/runtime code must move from roadmap-only status into this matrix when it becomes concrete.
 
+## Arcana dependency and CLI build coverage
+
+[Architecture](architecture.md) owns the exact Arcana compatibility boundary. [CLI](cli.md) and [Development](development.md) cover the detachable Cargo root and its repeated vendored transport override. Dependency alignment does not transfer repository inspection or renderer lifetime authority into Reliquary.
+
 ## Related docs
 
 - [Documentation policy](documentation-policy.md)
