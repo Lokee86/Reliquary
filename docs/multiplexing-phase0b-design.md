@@ -69,13 +69,13 @@ Executed on 2026-10-03 in the isolated worktree at baseline `a6f580c`:
 | `cargo test --locked --lib --tests` | Library 767/768; Lore historical-read test failed with Windows file-sharing error 32; integration tests not reached |
 | `cargo test --locked --lib runtime_host_` | 43/44; provider-backpressure first-wave timing assertion failed (passed in broader library run) |
 | Combined Cargo reference/activity test attempt | Initial compile timed out at 120s; retry cancelled during Lore dependency rebuild before tests; no Cargo test pass claimed |
-| Warlock `cargo check --locked` at existing pinned revisions | Missing dependency/rmeta artifacts; single-job retry cancelled after 6m16s while compiling dependencies, no source/API diagnostic |
+| Warlock `cargo check --offline --locked -j 1` at existing pinned revisions | **Passed** on warm-cache retry after narrow cleanup of stale ICU dependency artifacts; 15 non-blocking warnings. Earlier cold attempts failed before source or exhausted the build window. This does not prove compile compatibility with future upgraded Reliquary/Arcana revisions. |
 | Warlock `cargo tree --locked --offline -i arcana` | Passed, one Arcana revision shared by Warlock and its currently pinned Reliquary |
 | Warlock `npm run build` | Passed, TypeScript/Vite production bundle |
 | G6 pinned source-drift script and negative tests | Passed, exact 58-file Warlock direct-import inventory and pins match; five Python assertions passed; cannot replace a Rust compiler or target-interface conformance test |
 | `cargo fmt --check` and both documentation policy checks | Passed |
 
-The six reference fixtures passed standalone without dependency linkage; Cargo integration remains incomplete. Full production and downstream gates are not green. No production concurrency guarantee is inferred from a passing reference model. A source-backed design gate can be settled while runtime implementation and its release tests remain pending.
+The six reference fixtures passed standalone without dependency linkage; Cargo integration remains incomplete. Existing pinned Warlock source, Rust check, frontend and exact single-Arcana dependency graph now have independently recorded **passing** baselines. Full production and **migrated-version** downstream integration gates are not green. No production concurrency guarantee is inferred from a passing reference model. A source-backed design gate can be settled while runtime implementation and its release tests remain pending.
 
 **Readiness:** design packages and reference oracles are available for review; production migration is pending, and the broad hard-cut/release gate remains closed by the red or incomplete baselines above. No grant, journal, filesystem durability or consumer conformance guarantee is promoted to shipped behavior.
 
