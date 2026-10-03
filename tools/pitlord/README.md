@@ -4,6 +4,7 @@ Reliquary composes the shared Laughing Skull architecture-core Pitlord policy wi
 
 `semantic.json` assigns every authored Rust file under `src/` to exactly one architectural owner. The owners describe current responsibility seams inside the still-single Rust crate; they do not claim that those seams are already separate crates:
 
+- `freshness`: REL-local scores, admission, immutable receipts, canonical replay and bounded propagation;
 - `container`: physical REL/PHY substrate and global ordering;
 - `archive`: source history, conversation state, Episodes, attachments, Echo, and repository correlations;
 - `memory`: authoritative Memory state;
@@ -14,6 +15,9 @@ Reliquary composes the shared Laughing Skull architecture-core Pitlord policy wi
 - `ego`: Identity/Personality/Anchor/synthesis persistence;
 - `runtime-inference`: Insomnia, Dream, providers, and RuntimeHost orchestration;
 - `config-security`: machine-local configuration and credential/key state;
+- `context-engine`: provider-neutral context/evidence and compaction policy;
+- `project-environment`: Lore/Git bootstrap, identity and attachment adapters;
+- `staleness`: pure typed clock and review-threshold arithmetic;
 - `facade`: public Reliquary/Cva/Phylactery composition, migration, and reconciliation.
 
 The source tree is physically grouped by the same owners under `src/`. Pitlord owns those directories as coarse regions, with `src/lib.rs` explicitly facade-owned at the crate root. This remains one Rust crate: the directory layout exposes responsibility and makes ownership/dependency analysis cheap without implying a crate split.

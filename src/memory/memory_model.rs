@@ -2,7 +2,7 @@ use crate::EpisodeId;
 use crate::memory_routing_model::MemoryRoutingMetadata;
 use sha2::{Digest, Sha256};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct MemoryId(pub [u8; 32]);
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

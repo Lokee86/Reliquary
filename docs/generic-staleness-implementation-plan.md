@@ -2,7 +2,9 @@
 
 Parent: [Documentation index](INDEX.md). Companion policy: [Memory Freshness contract](memory-staleness-plan.md). Existing foundation: [REL activity clock Phase 1](rel-activity-clock-implementation-plan.md).
 
-**Status (2026-10-03):** The prior per-Memory generic-review/Perception-revalidation design is **superseded**. This is the normative implementation sequence for deterministic Memory Freshness. Phase 1's accepted-REL-turn counter exists. Prior steps 2.1/2.2 (optional Archive counter materialization) may proceed independently if still justified; step 2.3's pure typed-clock evaluator exists with incomplete integration verification. **Old steps 2.4–2.7 have been withdrawn and must not be implemented as previously written.** Freshness itself is not implemented by this document. Recheck the working tree and concurrent branches before starting any phase: unrelated source and documentation modifications are present.
+**Status (2026-10-03):** The prior per-Memory generic-review/Perception-revalidation design is **superseded**. The deterministic Freshness engine, owner-local journal/API, Dream first-settlement adapters, accepted-use receipt API, and score/state query are now implemented in source. This remains a partial rollout: accepted-use receipts are not emitted by a universal delivered-context consumer, no live Ego consumer is yet wired to the selection helper, and historical calibration has not been performed. The new deterministic synthetic acceptance test checks topology/worker equivalence and score boundaries; it is not calibration evidence. Phase 1's accepted-REL-turn counter remains authoritative. Prior steps 2.1/2.2 (optional Archive counter materialization) may proceed independently if justified; step 2.3's pure typed-clock evaluator remains separate. **Old steps 2.4–2.7 have been withdrawn and must not be implemented as previously written.** See phase status below and [Current limitations](current-limitations.md) for verification gaps.
+
+**Execution checkpoint (2026-10-03):** R1 buildability and R2/R3 focused crash/event gates have collected passing evidence. R4–R6 library contracts and integrated root suites now pass; [core verification](freshness-core-release-verification-2026-10-03.md) owns remaining gates and commit status. The [completion execution specification](freshness-completion-execution-plan-2026-10-03.md) is the current implementation handoff for R4–R7 and the separate F8 semantic/import extension; the [dated remaining-work inventory](freshness-remaining-work-2026-10-03.md) retains historical checkpoint details. The accepted policy and F1–F8 requirements below remain authoritative.
 
 ## Purpose
 
@@ -155,41 +157,54 @@ Use **one first-cycle linkage event per newly created Memory's settled initial D
 
 **Cross-phase acceptance:** F1 golden reference cases cover unlinked creation, admission at nonzero turn, unrelated clock progress before admission, first-link publication versus retries/rewires, access consumption versus internal reads, remainder-preserving decay, +100/-100 saturation, +25/+50 propagation, multiple roots/paths, a Dormant intermediate, Community departure/return and deterministic path maxima. F2 builds the real owner-local score/anchor API; F3 binds both Dream commit paths and the eventual true access consumer; F4 differential-tests the concurrently evaluated graph against this reference; F5 validates crash/reconcile/repack and clock mapping. The now-superseded per-Memory generic review scheduler and mandatory Perception stale-Memory audit are **not** implementation dependencies.
 
-### F2 — Owner-local Freshness state and pure lazy-decay engine
+### F2 — Owner-local Freshness state and pure lazy-decay engine — implemented; root contracts verified
 
 - Implement signed score, **explicit admission REL-turn anchor**, accounted-turn remainder, checked decay, derived state and event idempotency metadata separate from semantic Memory revisions; creation alone never starts decay before Web admission.
 - Implement read-only current/historical policy with explicit clock cuts; build rebuildable per-owner due-transition index and test boundary under backlog without eager per-turn updates.
 - Implement explicit legacy enrollment; preserve existing opening semantics and do not mutate source files on ordinary open. Establish a small focused direct owner-local API, not a new public orchestration framework.
 
-### F3 — Dream/Insomnia/access event adapters and duplicate folding
+### F3 — Dream/access event adapters and duplicate folding — implemented; recovery/root contracts verified
 
 - At grouped/direct first Memory publication initialize `+100` without decay or propagation for `extracted` Memories. Admit at first successful settled nonarchived Dream `knowledge`/`canonical` state (including zero-link), or at first direct publication already in an explicitly active state. On **both** Dream execution paths, emit one multi-root `+50` event only for genuine first-cycle committed links to pre-existing Memories; recover provisional edges from an earlier failed attempt and emit no event for an unlinked settlement. Add the narrow accepted-consumption receipt before enabling +25 access; internal reads/search results are never implicit access.
 - Integrate Dream's actual duplicate component/canonical-owner decisions, including arbitrary chain length, merging/intermediate insertions, existing canonical reinforcement and no rewiring-only events.
 - Use one owner-validated event identity/provenance path; test retries, independently new duplicates, archived entries and graph/snapshot mismatch.
 
-### F4 — Concurrent deterministic propagation
+### F4 — Concurrent deterministic propagation — implemented; exhaustive differential oracle passed
 
 - Implement bounded worker-pool, descending score-frontier expansion and deterministic maxima; pin graph and originating Community per event.
 - Compare against a deliberately simple serial reference across cycles, long/branchy paths, complete/dense Communities, overlapping events, cross-Community paths and duplicate folding. Verify independent worker counts/schedules produce byte-for-byte equivalent final score projections.
 - Ensure graph reads/work scheduling do not monopolize Container mutation locks. Benchmark real event workloads before adding caches, distance cutoffs or precomputed all-pairs reachability.
 
-### F5 — Atomic event publication and restart recovery
+### F5 — Atomic event publication and restart recovery — implemented; atomic publication/crash recovery verified
 
 - Persist events/effects or equivalent replayable atomic batches with expected owner/version checks, crash markers and compact checkpoints as needed.
 - Integrate deferred Dream settlement, producer retries and idempotent backfill. Reopen validates no partial event and exactly one application per committed originating identity.
 - Add copy/repack/reclamation/fresh-migration/append-only and divergent reconciliation preservation tests against source logical history. Do not confuse snapshot history, score anchors and unrelated global Memory versions.
 
-### F6 — Lifecycle deadline index and Ego integration
+### F6 — Lifecycle deadline index and Ego query — partial; consumer selection remains future work
 
-- Support due-only boundary notifications and cheap lazy score reads. Integrate Ego's graded score priority without excluding mandatory full-Web audit/keep lanes when the Web is small.
+- The derived Cva due dispatcher processes at most 64 exact transitions per accepted activity callback and rebuilds on reopen; delivery is at-least-once/coalescing. `select_ego_routine_context` implements full-Web-if-fits, hard-keeps, and graded score fill; connect a real Ego consumer without excluding coverage/mandatory audit lanes.
 - Test Dormant retrieval, access reinvigoration over repeated events, direct positive-root event semantics, independently archived/superseded Memories, and behavior with Perception disabled.
 - Preserve summary regeneration clocks/queues as a **different** Ego concern.
 
-### F7 — Calibration, documentation and closeout
+### F7 — Calibration, documentation and closeout — in progress; historical calibration unavailable
 
 - Run pure/serial/parallel differential tests, Archive and Dream regression suites, REL open/replay and storage-transform gates, Ego selection fixtures and long-running fixture measurements.
-- Measure p50/p95/p99 touched nodes, examined edges, maximum frontier, cost/event and end-to-end Insomnia/Dream latency; record bounded-worker speedup and contention rather than asserting parallelism is always faster.
+- Measure p50/p95/p99 touched nodes, examined edges, maximum frontier, cost/event and end-to-end Insomnia/Dream latency; record bounded-worker speedup and contention rather than asserting parallelism is always faster. `examples/freshness_calibration.rs` profiles hypothetical roots against hash-verified 14-day, 28-day and Ellis REL current graph topology; this is prospective workload profiling, not historical score-trajectory calibration because fixtures lack time-positioned admission/link/access receipts.
 - Run format checks, available Cargo test gates and repository documentation validators. Record pre-existing worktree/build issues and concurrency collisions; do not claim green integration without completed verification. Update `architecture.md`, `storage-format.md`, `api.md` and `current-limitations.md` **only when corresponding code actually ships**.
+
+### F8 — Semantic activity relevance reinforcement (new extension; not implemented)
+
+**Dependency:** Complete and verify the existing F2-F7 event/order/recovery boundaries first. This is a distinct ingestion-time lane, not a resurrection of the old periodic model-audit plan. The authoritative decision is [ADR 0039's semantic extension](decisions/0039-unified-deterministic-memory-freshness.md).
+
+1. **Input and eligibility:** After a genuine accepted REL turn, use available embeddings for the ingested turn's fragments (not generated retrieval/summarization echoes), search the authorized Memory Web against compatible Memory vectors and initially admit cosine matches >=0.75. Enforce owner/REL access boundaries, compatible vector generations/profile handling and eligible Memory lifecycle/exclusion policy. Benchmark a bounded index/candidate search rather than a full cross-product of turns and all Memory vectors.
+2. **Scoring:** Deduplicate by Memory ID across fragments, take the maximum qualifying similarity and grant at most one *local* similarity-weighted bonus per Memory per accepted turn; clamp to the existing -100..+100 score and preserve its ten-turn decay remainder. Calibrate the threshold, bonus function and interaction cap with real corpus distributions before fixing policy constants. Never use the +25 delivered-use or +50 Dream-link principal as an implicit semantic bonus.
+3. **Event separation:** Semantic reinforcement must **not propagate**, create secondary events, or imply delivered/accepted use. An independently accepted delivery of that Memory can still take the established +25 propagating lane, subject to combined caps and genuine separate evidence. Newly extracted Memories already start at +100 and must not reinforce themselves during their source turn.
+4. **Durability without a new ledger:** Reuse the existing Freshness owner-local state, policy version, accepted-turn ordering, minimal journal/receipt machinery where unavoidable for crash-safe idempotence, and score publication; discard transient similarity hits. No additional reinforcement ledger, parallel score, fabricated access history or Memory semantic revision. Specify stable event source identity across retries, delayed ingest, reconcile/repack and vector-profile changes without growing an unbounded in-memory receipt map.
+5. **Imports and migrations:** Existing imported/legacy Memories may have no historical accepted-use evidence. Do not synthesize historical accesses or backdate score boosts. Authorize a one-time deduplicated relevance bootstrap from *genuinely accepted* imported source fragments and supported first-cycle Dream-link evidence only, following current admission/legacy-enrollment authority; exclude self-matches and same-batch amplification. Archive regeneration and repeated import/recovery must restore or replay the original logical state, **not credit another semantic activity pass**. Resolve source/import IDs and cut semantics explicitly before implementation.
+6. **Acceptance:** Tests must cover just-below/at/above threshold, multiple fragments, one-match/one-turn rule, score saturation and decay remainder, negative/dormant reactivation, semantic-neighbor non-propagation, independent subsequent delivered-use propagation, authorization/profile mismatches, generation changes, empty/incompatible vectors, retries/crash prefixes, fresh imports without historical access, and archive regeneration/reconcile idempotence. Measure candidate volume, throughput and false-positive match rates before enabling production ingest.
+
+**Status boundary:** F8 is an accepted design extension, not current behavior. Do not modify F2-F7 recovery claims, existing graph/event principals, or current API/storage reference documentation before corresponding code ships.
 
 ## 5. Acceptance matrix
 

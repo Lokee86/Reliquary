@@ -224,6 +224,9 @@ impl Cva {
             bodies: Vec::new(),
             records: Vec::new(),
             routing_metadata: Vec::new(),
+            freshness_birth_turn: None,
+            freshness_policy_version: None,
+            freshness_birth_memory_ids: Vec::new(),
         };
         let payload = encode_completion(&completion)
             .map_err(|_| InsomniaError::InvalidField("completion record"))?;

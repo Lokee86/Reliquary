@@ -2,7 +2,7 @@
 
 Parent: [Documentation index](INDEX.md). Canonical detailed specification and implementation order: [Unified Freshness implementation plan](generic-staleness-implementation-plan.md). Source authority: [REL accepted-turn activity clock](rel-activity-clock-implementation-plan.md).
 
-**Status:** Newly agreed design, not yet implemented. This document replaces the prior “activity staleness and provenance-qualified Memory audit” policy. Its old periodic per-Memory review cutoff, Perception/Chronos qualification gate and distinct rolling Community/access counters are **superseded**. The REL activity counter is already implemented; ongoing optional Archive checkpoint and typed-clock work is separate.
+**Status (2026-10-03):** Accepted policy with partial implementation. Owner-local scores/admission anchors, lazy decay, derived boundary index, bounded deterministic propagation, durable event/pass journals, direct publication and Dream adapters, explicit accepted-use receipts, and a graded Ego selection helper are implemented in source; root correctness/recovery verification passed; remaining release gates are recorded in [core verification](freshness-core-release-verification-2026-10-03.md). No live context-delivery producer or Ego consumer is wired. Historical score-trajectory calibration remains unavailable because frozen REL fixtures lack time-positioned admission, Dream-link, and accepted-use events. This document replaces the prior “activity staleness and provenance-qualified Memory audit” policy. Its old periodic per-Memory review cutoff, Perception/Chronos qualification gate and distinct rolling Community/access counters are **superseded**. The REL activity counter is already implemented; ongoing optional Archive checkpoint and typed-clock work is separate.
 
 ## Purpose
 
@@ -64,6 +64,12 @@ Ego may use the score to rank/shape the routine working Memory Web. Freshness do
 
 REL and PHY are distinct owners. The REL accepted-turn clock cannot simply be shared with a PHY or transferred from one project's activity into another. This design initially covers REL-local Memories. PHY scoring requires an independently justified owner-local source and explicit separate policy, not assumed wall time or indiscriminate Memory-version ticks.
 
+## Planned extension: semantic activity relevance (accepted design; not implemented)
+
+In addition to actual accepted Memory use and first-cycle Dream linkage, genuine ingested-turn fragments may directly reinforce **already-existing** eligible Memories whose compatible embeddings have cosine similarity **>=0.75** (initial threshold, to be calibrated). Multiple fragment matches collapse to the strongest similarity per Memory and at most one local, similarity-weighted bonus per accepted REL turn. The curve, combined cap and profile compatibility rules remain F8 calibration/implementation decisions. This is a direct relevance signal, **never a propagation event or a substitute for accepted context/use**; independent real delivery may still trigger existing +25 graph propagation. New Memories start at +100 and are excluded from their own turn's relevance matching.
+
+Reuse the current score, owner-REL clock, lazy decay and existing durability/receipt contract. **No separate semantic ledger or access history**: discard search candidates after applying the update; if crash-safe replay requires durable identity, use the existing Freshness event machinery and bounded receipt strategy. In imports or archive regeneration, do not infer historical access from reconstructed Archive content. Only genuinely accepted, deduplicated semantic input and actual Dream evidence may provide a one-time import relevance bootstrap; pure archive regeneration must not re-award bonuses. See [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md) and [F8](generic-staleness-implementation-plan.md) for ownership, gates and required acceptance tests.
+
 ## Verification and calibration
 
 The authoritative source history and grouped Insomnia completion format distinguish **new Memories** from later semantic revisions. Measured first-cycle REL generation:
@@ -92,4 +98,4 @@ The existing source path was inspected for F1: grouped/direct first Memory publi
 
 ## Notes
 
-This document describes an accepted design, not shipped implementation. The detailed plan's F1 verification gate will freeze edge cases such as propagation through nonpositive intermediate recipients before production integration; initial numerical settings remain calibratable.
+This document remains the normative behavior contract. The pure score and propagation engine now has a synthetic differential acceptance oracle, while owner/reopen/reclaim and event tests passed integrated root verification. Fixture Graph topology supports prospective hypothetical-event workload profiling only; initial numerical settings remain uncalibrated without time-positioned historical admission, link, and accepted-use events. See [Current limitations](current-limitations.md) and the detailed [implementation plan](generic-staleness-implementation-plan.md).

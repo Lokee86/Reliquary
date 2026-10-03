@@ -1,5 +1,21 @@
 #[path = "archive/archive.rs"]
 pub mod archive;
+#[path = "freshness/mod.rs"]
+pub mod freshness;
+pub use freshness::{
+    CommunityMembership, FreshnessBoundaryIndex, FreshnessError, FreshnessRecord, FreshnessState,
+    MemoryAdjacency, PropagationError, PropagationEvent, propagate,
+};
+#[path = "freshness_due.rs"]
+mod freshness_due;
+pub use freshness_due::{
+    FreshnessDue, FreshnessDueDispatcher, FreshnessRefresh, FreshnessReversal,
+};
+#[path = "freshness_dream_journal.rs"]
+mod freshness_dream_journal;
+#[path = "freshness_storage.rs"]
+mod freshness_storage;
+pub use freshness_dream_journal::InitialDreamPass;
 #[path = "archive/archive_activity.rs"]
 mod archive_activity;
 #[path = "archive/archive_codec.rs"]
@@ -219,12 +235,18 @@ mod cva_ego;
 mod cva_error;
 #[path = "facade/cva_file_memory.rs"]
 mod cva_file_memory;
+#[path = "facade/cva_freshness.rs"]
+mod cva_freshness;
 #[path = "facade/cva_global_validation.rs"]
 mod cva_global_validation;
 #[path = "facade/cva_graph.rs"]
 mod cva_graph;
 #[path = "facade/cva_lifecycle.rs"]
 mod cva_lifecycle;
+pub use cva_freshness::{FreshnessEventCut, FreshnessEventProof};
+#[path = "facade/cva_freshness_due.rs"]
+mod cva_freshness_due;
+pub use cva_freshness_due::FreshnessTransitionNotice;
 #[path = "facade/cva_memory_publish.rs"]
 mod cva_memory_publish;
 #[path = "facade/cva_memory_retrieval.rs"]
@@ -249,6 +271,8 @@ mod cva_reconcile_conflict_map;
 mod cva_reconcile_entity;
 #[path = "facade/cva_reconcile_error.rs"]
 mod cva_reconcile_error;
+#[path = "facade/cva_reconcile_freshness.rs"]
+mod cva_reconcile_freshness;
 #[path = "facade/cva_reconcile_graph.rs"]
 mod cva_reconcile_graph;
 #[path = "facade/cva_reconcile_interaction.rs"]
@@ -301,6 +325,8 @@ mod dream_community_naming_schema;
 mod dream_cooldown;
 #[path = "runtime_inference/dream_duplicate_index.rs"]
 mod dream_duplicate_index;
+#[path = "runtime_inference/dream_freshness.rs"]
+mod dream_freshness;
 #[path = "runtime_inference/dream_lifecycle.rs"]
 mod dream_lifecycle;
 #[path = "runtime_inference/dream_lifecycle_error.rs"]
@@ -319,6 +345,9 @@ mod dream_owner_vectors;
 mod dream_pair_context;
 #[path = "runtime_inference/dream_pair_history.rs"]
 mod dream_pair_history;
+#[path = "runtime_inference/freshness_access.rs"]
+mod freshness_access;
+pub use freshness_access::{AcceptedMemoryUseReceipt, EgoFreshnessCandidate, EgoMemoryFreshness};
 #[path = "runtime_inference/dream_processor.rs"]
 mod dream_processor;
 #[path = "runtime_inference/dream_processor_error.rs"]

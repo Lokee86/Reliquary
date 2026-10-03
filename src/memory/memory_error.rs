@@ -20,12 +20,16 @@ pub enum MemoryError {
     RoutingMetadataConflict,
     InvalidProvenance,
     InvalidVersion,
+    Freshness(String),
     VersionExhausted,
 }
 
 impl fmt::Display for MemoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "memory error: {self:?}")
+        match self {
+            Self::Freshness(error) => write!(f, "memory Freshness initialization failed: {error}"),
+            _ => write!(f, "memory error: {self:?}"),
+        }
     }
 }
 

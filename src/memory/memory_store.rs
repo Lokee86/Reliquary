@@ -22,6 +22,15 @@ pub(crate) struct MemoryStore {
     next_memory_version: u64,
 }
 
+pub(crate) enum PublishPreflight {
+    Retry(Memory),
+    New {
+        record: MemoryRecord,
+        next_memory_version: u64,
+        body_id: MemoryBodyId,
+    },
+}
+
 impl MemoryStore {
     pub(crate) fn empty() -> Self {
         Self {
@@ -84,71 +93,106 @@ impl MemoryStore {
         source_ref: Option<MemorySourceRef>,
         temporal_inference: Option<MemoryTemporalInference>,
     ) -> Result<(Memory, bool), MemoryError> {
-        validate_draft(&draft)?;
-        validate_source_ref(source_ref.as_ref())?;
-        let candidate_body_id = memory_body_id(&draft.title, &draft.content);
-        if let Some(inference) = temporal_inference.as_ref() {
-            validate_temporal_inference_binding(
-                candidate_body_id,
-                draft.source_time_ns,
-                inference,
-            )?;
+        let preflight = self.preflight_publish(
+            container,
+            id,
+            expected_revision,
+            &draft,
+            source_ref.as_ref(),
+            temporal_inference.as_ref(),
+        )?;
+        let (mut record, next_memory_version) = match preflight {
+            PublishPreflight::Retry(existing) => return Ok((existing, false)),
+            PublishPreflight::New {
+                record,
+                next_memory_version,
+                ..
+            } => (record, next_memory_version),
+        };
+        self.put_body(container, &draft.title, &draft.content)?;
+        let record_chunk = container.append(&encode_record(&record)?)?;
+        let global_version = container.allocate_version()?;
+        container.append(&encode_version(MemoryVersion {
+            global_version,
+            memory_version: record.memory_version,
+            record: record_chunk,
+        }))?;
+        record.global_version = global_version;
+        self.insert(record.clone())?;
+        self.next_memory_version = next_memory_version;
+        self.resolve_record(container, &record)
+            .map(|memory| (memory, true))
+    }
+
+    pub(crate) fn preflight_publish(
+        &self,
+        container: &mut Container,
+        id: Option<MemoryId>,
+        expected_revision: u64,
+        draft: &MemoryDraft,
+        source_ref: Option<&MemorySourceRef>,
+        temporal_inference: Option<&MemoryTemporalInference>,
+    ) -> Result<PublishPreflight, MemoryError> {
+        validate_draft(draft)?;
+        validate_source_ref(source_ref)?;
+        let body_id = memory_body_id(&draft.title, &draft.content);
+        if let Some(inference) = temporal_inference {
+            validate_temporal_inference_binding(body_id, draft.source_time_ns, inference)?;
         }
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
             let existing = self.resolve_record(container, &self.records[index])?;
             let source_matches = source_ref
-                .as_ref()
                 .is_none_or(|source_ref| existing.source_ref.as_ref() == Some(source_ref));
             let inference_matches = temporal_inference
-                .as_ref()
                 .is_none_or(|inference| existing.temporal_inference.as_ref() == Some(inference));
-            return if same_draft(&existing, &draft) && source_matches && inference_matches {
-                Ok((existing, false))
+            return if same_draft(&existing, draft) && source_matches && inference_matches {
+                Ok(PublishPreflight::Retry(existing))
             } else {
                 Err(MemoryError::MutationConflict)
             };
         }
-        let id = id.unwrap_or_else(|| memory_id(&draft.mutation_id));
+        let target_id = id.unwrap_or_else(|| memory_id(&draft.mutation_id));
         let current_revision = self
             .current
-            .get(&id)
+            .get(&target_id)
             .map(|index| self.records[*index].revision)
             .unwrap_or(0);
         if current_revision != expected_revision {
             return Err(MemoryError::RevisionConflict);
         }
+        if let Some(index) = self.current.get(&target_id).copied()
+            && self.records[index].body_id != body_id
+        {
+            return Err(MemoryError::SemanticMutation);
+        }
         let revision = expected_revision
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
-        if let Some(index) = self.current.get(&id).copied() {
-            if self.records[index].body_id != candidate_body_id {
-                return Err(MemoryError::SemanticMutation);
-            }
-        }
-        let source_ref = source_ref.or_else(|| {
-            self.current
-                .get(&id)
-                .and_then(|index| self.records[*index].source_ref.clone())
-        });
-        let temporal_inference = match temporal_inference {
-            Some(inference) => Some(inference),
-            None => self.current.get(&id).and_then(|index| {
-                self.records[*index]
-                    .temporal_inference
-                    .clone()
-                    .filter(|inference| {
-                        inference.body_id == candidate_body_id
-                            && inference.source_time_ns == draft.source_time_ns
-                    })
-            }),
-        };
-        let body_id = self.put_body(container, &draft.title, &draft.content)?;
         let memory_version = self.next_memory_version;
         let next_memory_version = memory_version
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
-        let mut record = MemoryRecord {
-            id,
+        let bytes = memory_body_bytes(&draft.title, &draft.content);
+        if self.bodies.contains_key(&body_id) && self.body_bytes(container, body_id)? != bytes {
+            return Err(MemoryError::HashCollision);
+        }
+        let source_ref = source_ref.cloned().or_else(|| {
+            self.current
+                .get(&target_id)
+                .and_then(|index| self.records[*index].source_ref.clone())
+        });
+        let temporal_inference = temporal_inference.cloned().or_else(|| {
+            self.current.get(&target_id).and_then(|index| {
+                self.records[*index]
+                    .temporal_inference
+                    .clone()
+                    .filter(|value| {
+                        value.body_id == body_id && value.source_time_ns == draft.source_time_ns
+                    })
+            })
+        });
+        let record = MemoryRecord {
+            id: target_id,
             revision,
             body_id,
             category: draft.category.clone(),
@@ -175,18 +219,16 @@ impl MemoryStore {
             global_version: 0,
             memory_version,
         };
-        let record_chunk = container.append(&encode_record(&record)?)?;
-        let global_version = container.allocate_version()?;
-        container.append(&encode_version(MemoryVersion {
-            global_version,
-            memory_version,
-            record: record_chunk,
-        }))?;
-        record.global_version = global_version;
-        self.insert(record.clone())?;
-        self.next_memory_version = next_memory_version;
-        self.resolve_record(container, &record)
-            .map(|memory| (memory, true))
+        encode_body(body_id, &bytes)?;
+        encode_record(&record)?;
+        if container.next_version_candidate().checked_add(1).is_none() {
+            return Err(MemoryError::VersionExhausted);
+        }
+        Ok(PublishPreflight::New {
+            record,
+            next_memory_version,
+            body_id,
+        })
     }
 
     pub(crate) fn memory(
@@ -222,6 +264,26 @@ impl MemoryStore {
 
     pub(crate) fn contains_memory(&self, id: MemoryId) -> bool {
         self.current.contains_key(&id)
+    }
+
+    pub(crate) fn current_mutation_id(&self, id: MemoryId) -> Option<&str> {
+        self.current
+            .get(&id)
+            .map(|index| self.records[*index].mutation_id.as_str())
+    }
+
+    pub(crate) fn first_mutation_id(&self, id: MemoryId) -> Option<&str> {
+        self.records
+            .iter()
+            .find(|record| record.id == id && record.revision == 1)
+            .map(|record| record.mutation_id.as_str())
+    }
+
+    pub(crate) fn first_global_version(&self, id: MemoryId) -> Option<u64> {
+        self.records
+            .iter()
+            .find(|record| record.id == id && record.revision == 1)
+            .map(|record| record.global_version)
     }
 
     pub(crate) fn contains_body(&self, id: MemoryBodyId) -> bool {

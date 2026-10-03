@@ -55,6 +55,11 @@ pub struct Cva {
     pub(crate) project_history: ProjectHistoryStore,
     pub(crate) project_files: ProjectFileStore,
     pub(crate) rel_metadata: RelMetadataStore,
+    pub(crate) freshness: crate::freshness_storage::FreshnessStore,
+    pub(crate) dream_freshness: crate::freshness_dream_journal::DreamFreshnessJournal,
+    pub(crate) freshness_due: crate::FreshnessDueDispatcher,
+    pub(crate) freshness_notifications:
+        std::collections::BTreeMap<MemoryId, crate::cva_freshness_due::FreshnessNotificationState>,
 }
 
 impl Cva {
@@ -169,18 +174,18 @@ impl Cva {
         timestamp_ns: i64,
         content: &str,
     ) -> Result<Node, ArchiveError> {
-        self.archive
-            .append_node(
-                &mut self.container,
-                id,
-                conversation_id,
-                parent_id,
-                role,
-                principal_id,
-                timestamp_ns,
-                content,
-            )
-            .map(|accepted| accepted.value)
+        let accepted = self.archive.append_node(
+            &mut self.container,
+            id,
+            conversation_id,
+            parent_id,
+            role,
+            principal_id,
+            timestamp_ns,
+            content,
+        )?;
+        self.freshness_on_accepted_activity(self.archive.rel_turn_count());
+        Ok(accepted.value)
     }
 
     pub fn append_branch(&mut self, branch: Branch) -> Result<(), ArchiveError> {
@@ -350,14 +355,46 @@ impl Cva {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
-        publish_memory_parts(
+        let preflight = crate::cva_memory_publish::preflight_memory_parts(
+            &self.archive,
+            &mut self.memories,
+            &mut self.container,
+            id,
+            expected_revision,
+            &draft,
+        )?;
+        let target_id = match preflight {
+            crate::memory_store::PublishPreflight::Retry(memory) => memory.id,
+            crate::memory_store::PublishPreflight::New { record, .. } => record.id,
+        };
+        let first_creation = !self.memories.contains_memory(target_id);
+        let active_at_birth =
+            !draft.archived && matches!(draft.lifecycle_state.as_str(), "knowledge" | "canonical");
+        let accepted_turn = self.archive.rel_turn_count();
+        if first_creation && self.owner_uuid().is_some() {
+            self.freshness_prepare_memory_publication(
+                target_id,
+                &draft.mutation_id,
+                accepted_turn,
+                active_at_birth,
+            )
+            .map_err(|error| MemoryError::Freshness(error.to_string()))?;
+        }
+        let (memory, changed) = publish_memory_parts(
             &self.archive,
             &mut self.memories,
             &mut self.container,
             id,
             expected_revision,
             draft,
-        )
+        )?;
+        if self.owner_uuid().is_some()
+            && ((first_creation && changed) || self.freshness_has_pending_publication(memory.id))
+        {
+            self.freshness_initialize(memory.id)
+                .map_err(|error| MemoryError::Freshness(error.to_string()))?;
+        }
+        Ok((memory, changed))
     }
 
     pub fn memory(&mut self, id: MemoryId) -> Result<Memory, MemoryError> {

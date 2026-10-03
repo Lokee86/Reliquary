@@ -112,9 +112,20 @@ pub(super) fn commit_project(
         return Ok(false);
     }
     let policy = DreamVerificationPolicy::default();
+    let source_id = snapshot.candidates.source.memory.id;
+    crate::dream_freshness::begin_initial_pass(
+        &mut runtime.cva,
+        source_id,
+        snapshot
+            .candidates
+            .candidates
+            .iter()
+            .map(|candidate| candidate.context.memory.id),
+    )
+    .map_err(operation)?;
     for (classification, verification) in evaluated {
         let graph_version = runtime.cva.graph_version();
-        runtime
+        let publication = runtime
             .cva
             .publish_dream_pair(
                 &classification,
@@ -123,12 +134,43 @@ pub(super) fn commit_project(
                 graph_version,
             )
             .map_err(operation)?;
+        crate::dream_freshness::record_publication_roots(&mut runtime.cva, source_id, &publication)
+            .map_err(operation)?;
     }
-    let source_id = snapshot.candidates.source.memory.id;
-    runtime
+    if let Some(pass) = runtime.cva.pending_initial_dream_pass(source_id) {
+        let settlement_turn = runtime.cva.rel_turn_count();
+        runtime
+            .cva
+            .accept_initial_dream_settlement(&pass.pass_id, settlement_turn)
+            .map_err(operation)?;
+    }
+    let lifecycle = runtime
         .cva
         .reconcile_dream_lifecycle(source_id)
         .map_err(operation)?;
+    let active_admission = !lifecycle.source.archived
+        && matches!(
+            lifecycle.source.lifecycle_state.as_str(),
+            "knowledge" | "canonical"
+        );
+    let freshness_work = crate::dream_freshness::prepare_initial_settlement(
+        &mut runtime.cva,
+        source_id,
+        active_admission,
+    )
+    .map_err(operation)?;
+    drop(runtime);
+    let freshness_result = freshness_work
+        .map(|work| work.evaluate(crate::freshness::default_worker_count()))
+        .transpose()
+        .map_err(operation)?;
+    let mut runtime = shared
+        .runtime
+        .lock()
+        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+    if let Some(result) = freshness_result {
+        result.commit(&mut runtime.cva).map_err(operation)?;
+    }
     runtime
         .cva
         .mark_dream_processed(source_id, snapshot.dream_epoch, unix_now_ns())

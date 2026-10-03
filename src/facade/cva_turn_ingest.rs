@@ -10,8 +10,11 @@ impl Cva {
         &mut self,
         turn: IncomingTurn,
     ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
-        self.archive
-            .ingest_turn(&mut self.container, &self.project_files, turn)
+        let accepted = self
+            .archive
+            .ingest_turn(&mut self.container, &self.project_files, turn)?;
+        self.freshness_on_accepted_activity(self.archive.rel_turn_count());
+        Ok(accepted)
     }
 
     pub fn files_for_source(&self, conversation_id: &str, node_id: &str) -> Vec<StoredFile> {

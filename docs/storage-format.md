@@ -715,6 +715,40 @@ N bytes   contiguous rows
 ```
 `row_bytes = dimensions * scalar_width`; matrix length must equal `row_count * row_bytes`. Scalar tags: `1=i8`, `2=u8`, `3=i16`, `4=u16`, `5=i32`, `6=u32`, `7=i64`, `8=u64`, `9=f16`, `10=bf16`, `11=f32`, `12=f64`.
 Packed-vector ID is SHA-256 over `"CVA-PACKED-VECTOR-V1\0"`, dimensions, scalar tag, and exact matrix bytes.
+### Dream Freshness pass journal (`CVDREAM1`)
+
+Each chunk begins with eight-byte magic, sixteen-byte owner UUID and a u8 kind. Strings are u32-length UTF-8; Memory IDs are 32 bytes; numeric turns/versions are little-endian u64; sets are u32-count sorted unique IDs.
+
+| Kind | Payload and authority |
+| --- | --- |
+| 0 | Begin: pass ID, source ID, first revision (1), original turn, semantic Graph baseline, eligible pre-existing IDs |
+| 1 | Roots: pass ID and eligible root set |
+| 2 | Settled: pass ID, closing an accepted begun pass |
+| 3 | Legacy acceptance: pass ID and first settlement turn; it lacks current graph evidence |
+| 4 | Publication intent: Memory ID, first mutation ID, accepted birth turn, u8 admit-at-birth flag |
+| 5 | Intent consumption: Memory ID and matching mutation ID |
+| 6 | Reconciliation replay of settled pass ID |
+| 7 | Reconciliation replay of publication birth ID |
+| 8 | Current acceptance: pass ID, settlement turn, semantic Graph cut, Memory graph version, optional Community generation and matching Memory graph version (one presence tag and two u64s) |
+
+Reopen validates complete framing, owner/source identity, first revision, root membership, immutable acceptance and exact Community proof. Direct birth intent is derived only when the matching first accepted Memory revision exists at its proven Archive cut; orphan intent grants no score. Grouped completion supplies its own atomic birth proof. Recovery uses original accepted graph topology and settlement turn, excludes the newborn cohort and publishes at most one effect event before closing the pass. Current acceptance retains both semantic and Memory Graph cuts because they serve different owners.
+
+Strict copy/repack/reclamation preserve these chunks. Divergent reconciliation replays settled identities, original birth/admission flags and immutable effect/proof provenance at exact rebased Archive cuts. Pending first passes or publication intents remain explicitly unsupported and are rejected before output; a missing historical proof is not substituted by current topology.
+
+### Memory Freshness journal (`CVAFRS02`)
+
+Freshness is owner-local metadata separate from immutable Memory bodies and semantic revisions. The owner pins a validated policy in `CVAFRP01`: eight-byte magic, sixteen-byte owner UUID, little-endian u16 policy version, u64 turns per decay point and four i16 values for access/linkage principals and local/outside hop costs. Policy becomes immutable before enrollment; inconsistent owner/policy records cause reopen to fail.
+
+Every `CVAFRS02` record begins with eight-byte magic, sixteen-byte owner UUID and a u8 kind. Kind 0 initializes a Memory (32-byte ID, u64 accepted turn, score/admission/accounting record); kind 1 admits it (ID and record). A record contains i16 score and optional admitted/accounted u64 turns, each encoded as a zero/one tag followed by the value when present. Kind 2 stores an event; kind 3 stores an atomic accepted-use batch; kind 4 stores a separate accepted-use receipt for reconciliation replay. Strings use a u32 byte length followed by UTF-8. Counts are u32.
+
+An event carries event ID, destination-local u64 turn, producer kind (1 Dream, 2 accepted use), original source ID, sixteen-byte origin owner, original u64 accepted turn and u64 policy version, then graph proof (u64 graph version, optional u64 Community generation and Community graph version), followed by ordered (32-byte Memory ID, i16 positive effect) pairs. Postimages are derived, not serialized. A use batch carries use ID, accepted turn, source policy version, sorted unique source IDs and one event per source. Kind 4 has the same receipt fields without constituent events; those events must already be accepted. Accepted-use event IDs hex-encode the owner, UTF-8 use ID and Memory ID. Dream event IDs bind the owner and first-pass source.
+
+Append plus sync precedes acceptance. Validation rejects malformed framing, unknown kinds, truncation/trailing bytes, duplicate recipients, invalid births/admission anchors, principal/provenance/proof violations, and conflicting stable identities. Unsupported `CVAFRS*` prototypes, including `CVAFRS01`, require explicit migration and fail closed. Legacy owners without UUIDs require migration before new enrollment.
+
+Canonical projection orders births and admission before eligible events at their logical cut, and orders events by (accepted destination turn, event ID), independently of disk arrival. Historical reads scan only the accepted physical prefix. A 128-entry/256-KiB recent receipt cache accelerates retries; older exact identities stream from the durable owner. Reopen temporarily indexes validated receipt payloads on disk and replays effects once; this disposable index is removed when rebuild finishes. Large canonical histories use bounded 256-KiB sorted runs and pairwise merges in disposable scratch storage. These projections are rebuildable and never owner authority. There is no persisted checkpoint or retention policy; history grows with accepted mutations. Reconciliation preserves original provenance/effects while rebasing destination turns through exact Archive source identities, without rerunning graph propagation.
+
+See [Architecture](architecture.md), [Rust API](api.md) and [core verification](freshness-core-release-verification-2026-10-03.md).
+
 ### Memory Vectors
 Format marker:
 ```text
@@ -820,7 +854,7 @@ optional string last error
 
 Current successful Episode completion:
 ```text
-8 bytes   "CVAINSC5"
+8 bytes   "CVAINSC6"
 32 bytes  EpisodeId
 u32       attempt number
 i64       started_at_ns
@@ -853,17 +887,19 @@ repeated embedded routing metadata:
     u32   encoded routing-metadata length
     N     complete "CVAMRTE1" payload
 ```
+V6 appends `u64 freshness_birth_turn + u64 freshness_policy_version + u32 birth-ID count + N*32 Memory IDs` after routing metadata. IDs equal the exact unique revision-1 records in the completion. This atomic proof initializes extracted births at +100 without admission and reconstructs cohort membership without a repair write. V5 lacks the trailer and never fabricates legacy birth proof. An empty V6 cohort conveys no new enrollment.
+
 The embedded global-version count must equal the newly published local Memory-record count. For a non-empty local publication, record global versions are contiguous beginning at the stored first version. A completion with no new local REL Memories consumes no REL global versions even when it records external Memory references.
 
-`CVAINSC5` is the physical and logical visibility boundary for the REL side of an Insomnia success. Its `transaction_time_ns` is sampled by the Container immediately before publication and applies to every embedded global version in that atomic completion. New local content-addressed Memory bodies, their Memory records, their body-bound routing metadata, their global-version allocation, owner-qualified external Memory references, and the compact successful Episode receipt all live inside this one outer REL chunk. No standalone local Memory-body, Memory-record, Memory-version, routing-metadata, or `CVAVERS2` chunk is emitted before it. Embedded bodies are indexed by `MemoryBodyId` against the outer completion `ChunkRef`; body resolution reads that completion chunk and selects the matching embedded body by ID. Existing local bodies may be referenced without being re-embedded. Embedded routing metadata is validated only after its referenced Memory record/body has been reconstructed, but becomes visible from the same outer completion transaction.
+`CVAINSC6` is the physical and logical visibility boundary for the REL side of an Insomnia success. Its `transaction_time_ns` is sampled by the Container immediately before publication and applies to every embedded global version in that atomic completion. New local content-addressed Memory bodies, their Memory records, their body-bound routing metadata, their global-version allocation, owner-qualified external Memory references, and the compact successful Episode receipt all live inside this one outer REL chunk. No standalone local Memory-body, Memory-record, Memory-version, routing-metadata, or `CVAVERS2` chunk is emitted before it. Embedded bodies are indexed by `MemoryBodyId` against the outer completion `ChunkRef`; body resolution reads that completion chunk and selects the matching embedded body by ID. Existing local bodies may be referenced without being re-embedded. Embedded routing metadata is validated only after its referenced Memory record/body has been reconstructed, but becomes visible from the same outer completion transaction.
 
 An external Memory reference is `string owner_id + 32-byte MemoryId`. The current routed implementation uses it for User-owned PHY Memories. Those Memories are published and synced in the PHY before the REL completion is appended, and are not REL semantic/version state. If the process fails after PHY publication but before the REL receipt, retry reuses the deterministic Memory mutation ID and accepts the existing PHY Memory only when its routed semantics match.
 
-If a `CVAINSC5` append is interrupted, ordinary trailing-chunk recovery removes the incomplete outer REL chunk, leaving no orphan local REL body, record, routing attachment, or global-version ticket. The Episode therefore reopens as Pending and can be retried safely. Any already-synced external PHY Memory/routing attachment remains durable and is reused by that retry. A valid completed transaction reconstructs all new local Memories, their embedded routing metadata, plus the successful receipt and its external references together.
+If a `CVAINSC6` append is interrupted, ordinary trailing-chunk recovery removes the incomplete outer REL chunk, leaving no orphan local REL body, record, routing attachment, or global-version ticket. The Episode therefore reopens as Pending and can be retried safely. Any already-synced external PHY Memory/routing attachment remains durable and is reused by that retry. A valid completed transaction reconstructs all new local Memories, their embedded routing metadata, plus the successful receipt and its external references together.
 
-`CVAINSC4` remains decodable with the same transaction timestamp, owner-qualified external Memory references, and atomic local Memory transaction as current V5, but it predates embedded routing metadata and therefore reopens with none from that completion. `CVAINSC3` retains external Memory references but predates explicit transaction time, so its embedded versions reopen with unknown transaction timestamps. `CVAINSC2` has the same embedded local Memory transaction but no external-reference section and likewise has no transaction-time mapping. `CVAINSC1` also remains decodable; in that older format, content-addressed Memory bodies and standalone global-version tickets may precede the completion chunk. V1/V2 completions reopen with an empty external-reference list. Current processing writes only `CVAINSC5`.
+`CVAINSC4` remains decodable with the same transaction timestamp, owner-qualified external Memory references, and atomic local Memory transaction as V5/V6, but it predates embedded routing metadata and therefore reopens with none from that completion. `CVAINSC3` retains external Memory references but predates explicit transaction time, so its embedded versions reopen with unknown transaction timestamps. `CVAINSC2` has the same embedded local Memory transaction but no external-reference section and likewise has no transaction-time mapping. `CVAINSC1` also remains decodable; in that older format, content-addressed Memory bodies and standalone global-version tickets may precede the completion chunk. V1/V2 completions reopen with an empty external-reference list. Current identified owners write `CVAINSC6`; V5 remains decodable and is emitted when no owner birth proof is available.
 
-The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as one compact `CVAINSC5` REL transaction, with any routed external owner publication already durable.
+The older `CVAINSA1` attempt record remains decodable so existing same-format development files can reopen, but current processing no longer emits it. Retryable failures are runtime-only and add no persistent record. A final Terminal outcome currently persists as one `CVAINSW1` record; a successful outcome persists as one compact `CVAINSC6` REL transaction for identified owners, with any routed external owner publication already durable.
 
 Optional values use a one-byte `0`/`1` presence flag followed by the encoded value when present.
 

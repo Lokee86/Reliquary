@@ -17,6 +17,8 @@ use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
 use crate::file_memory_link_store::validate_file_memory_targets;
+use crate::freshness_dream_journal::DreamFreshnessJournal;
+use crate::freshness_storage::FreshnessStore;
 use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
 use crate::insomnia::rebuild::InsomniaOpenState;
@@ -164,6 +166,10 @@ impl Cva {
         let project_history = ProjectHistoryStore::default();
         let project_files = ProjectFileStore::default();
         let rel_metadata = RelMetadataStore::default();
+        let mut freshness = FreshnessStore::new(container.owner_uuid());
+        freshness.bind_history_path(container.path(), 0);
+        let dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
+        let freshness_due = crate::FreshnessDueDispatcher::default();
         archive.initialize_history_format(&mut container)?;
         memories.initialize(&mut container)?;
         graph.initialize(&mut container)?;
@@ -202,6 +208,10 @@ impl Cva {
             project_history,
             project_files,
             rel_metadata,
+            freshness,
+            dream_freshness,
+            freshness_due,
+            freshness_notifications: std::collections::BTreeMap::new(),
         })
     }
 
@@ -226,6 +236,9 @@ impl Cva {
         let mut project_history = ProjectHistoryStore::default();
         let mut project_files = ProjectFileStore::default();
         let mut rel_metadata = RelMetadataStore::default();
+        let mut freshness = FreshnessStore::default();
+        freshness.bind_history_path(path.as_ref(), 0);
+        let mut dream_freshness = DreamFreshnessJournal::default();
         let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
@@ -263,6 +276,20 @@ impl Cva {
                     rel_metadata
                         .ingest(payload)
                         .map_err(CvaError::RelMetadata)?;
+                    if let Some(completion) =
+                        crate::insomnia::completion::decode_completion(payload)
+                            .map_err(|message| CvaError::Freshness(message.into()))?
+                        && completion.freshness_birth_turn.is_some()
+                        && !completion.freshness_birth_memory_ids.is_empty()
+                    {
+                        freshness.freeze_derived_birth_policy();
+                    }
+                    if payload.starts_with(b"CVAFRP01") {
+                        freshness.ingest(payload).map_err(CvaError::Freshness)?;
+                    }
+                    dream_freshness
+                        .ingest(payload)
+                        .map_err(CvaError::Freshness)?;
                     processing_epochs.ingest(payload)?;
                     dream_pairs.ingest(payload)?;
                 }
@@ -276,6 +303,12 @@ impl Cva {
                 "file is not a Reliquary",
             ));
         }
+        freshness
+            .bind_owner(container.owner_uuid())
+            .map_err(CvaError::Freshness)?;
+        dream_freshness
+            .bind_owner(container.owner_uuid())
+            .map_err(CvaError::Freshness)?;
         let archive = archive_state.finish()?;
         archive.validate_references(&project_files)?;
         let memories = memory_state.finish(&mut container)?;
@@ -296,6 +329,118 @@ impl Cva {
         let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
         insomnia.rebuild_schedule(&archive)?;
+        freshness.begin_rebuild();
+        if let Some(owner) = container.owner_uuid() {
+            for (id, mutation, turn, admitted) in dream_freshness.pending_initializations() {
+                if memories.first_mutation_id(id) == Some(mutation.as_str()) {
+                    let first_global = memories.first_global_version(id).ok_or_else(|| {
+                        CvaError::Freshness("birth lacks accepted first Memory revision".into())
+                    })?;
+                    let archive_version = archive
+                        .record_versions()
+                        .iter()
+                        .filter(|record| record.global_version < first_global)
+                        .map(|record| record.archive_version)
+                        .max()
+                        .unwrap_or(0);
+                    if turn != archive.activity_cut_at_archive_version(archive_version)? {
+                        return Err(CvaError::Freshness(
+                            "publication birth differs from accepted first Memory activity cut"
+                                .into(),
+                        ));
+                    }
+                    freshness
+                        .derive_birth(owner, id, turn, admitted)
+                        .map_err(CvaError::Freshness)?;
+                } else if memories.contains_memory(id) {
+                    return Err(CvaError::Freshness(
+                        "publication intent differs from accepted first Memory mutation".into(),
+                    ));
+                }
+            }
+            container.visit_payloads::<CvaError>(|object, payload| {
+                let location = object.legacy_bytes();
+                let end = u64::from_le_bytes(location[..8].try_into().unwrap())
+                    + 8
+                    + u64::from_le_bytes(location[8..].try_into().unwrap());
+                if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
+                    .map_err(|message| CvaError::Freshness(message.into()))?
+                    && let Some(turn) = completion.freshness_birth_turn
+                {
+                    if completion.freshness_policy_version
+                        != Some(crate::freshness::FRESHNESS_POLICY_VERSION as u64)
+                        || turn > archive.rel_turn_count()
+                    {
+                        return Err(CvaError::Freshness(
+                            "grouped birth proof has invalid policy or activity cut".into(),
+                        ));
+                    }
+                    if !completion.freshness_birth_memory_ids.is_empty() {
+                        let archive_version = archive
+                            .record_versions()
+                            .iter()
+                            .filter(|record| {
+                                record.global_version < completion.global_version_start
+                            })
+                            .map(|record| record.archive_version)
+                            .max()
+                            .unwrap_or(0);
+                        if turn != archive.activity_cut_at_archive_version(archive_version)? {
+                            return Err(CvaError::Freshness(
+                                "grouped birth differs from accepted completion activity cut"
+                                    .into(),
+                            ));
+                        }
+                    }
+                    for id in completion.freshness_birth_memory_ids {
+                        let record = completion
+                            .records
+                            .iter()
+                            .find(|record| record.id == id && record.revision == 1)
+                            .ok_or_else(|| {
+                                CvaError::Freshness(
+                                    "grouped birth proof lacks accepted first Memory record".into(),
+                                )
+                            })?;
+                        if memories.first_mutation_id(id) != Some(record.mutation_id.as_str()) {
+                            return Err(CvaError::Freshness(
+                                "grouped birth differs from accepted first Memory identity".into(),
+                            ));
+                        }
+                        freshness
+                            .derive_birth(owner, id, turn, false)
+                            .map_err(CvaError::Freshness)?;
+                        dream_freshness.derive_publication_birth(id);
+                    }
+                }
+                freshness
+                    .ingest_scanned(payload, end)
+                    .map_err(CvaError::Freshness)?;
+                Ok(())
+            })?;
+        } else {
+            container.visit_payloads::<CvaError>(|object, payload| {
+                let location = object.legacy_bytes();
+                let end = u64::from_le_bytes(location[..8].try_into().unwrap())
+                    + 8
+                    + u64::from_le_bytes(location[8..].try_into().unwrap());
+                freshness
+                    .ingest_scanned(payload, end)
+                    .map_err(CvaError::Freshness)
+            })?;
+        }
+        freshness.finish_rebuild().map_err(CvaError::Freshness)?;
+        let mut freshness_due = crate::FreshnessDueDispatcher::default();
+        freshness_due
+            .rebuild(
+                freshness
+                    .records()
+                    .iter()
+                    .map(|(id, record)| (*id, *record)),
+                archive.rel_turn_count(),
+                &freshness.policy(),
+            )
+            .map_err(|error| CvaError::Freshness(error.to_string()))?;
         let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
@@ -352,6 +497,10 @@ impl Cva {
             project_history,
             project_files,
             rel_metadata,
+            freshness,
+            dream_freshness,
+            freshness_due,
+            freshness_notifications: std::collections::BTreeMap::new(),
         })
     }
 }
