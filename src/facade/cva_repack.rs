@@ -92,13 +92,14 @@ impl Cva {
         if reopened.owner_uuid() != self.owner_uuid()
             || reopened.latest_global_version() != self.latest_global_version()
             || reopened.archive_version() != self.archive_version()
+            || !self.archive.activity_history_matches(&reopened.archive)
             || reopened.memory_version() != self.memory_version()
             || reopened.graph_version() != self.graph_version()
         {
             drop(reopened);
             let _ = fs::remove_file(output_path);
             return Err(CvaError::Repack(
-                "repacked REL changed owner or semantic version state".into(),
+                "repacked REL changed owner, semantic versions or activity history".into(),
             ));
         }
         drop(reopened);

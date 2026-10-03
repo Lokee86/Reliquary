@@ -74,6 +74,7 @@ impl Cva {
         if reopened.owner_uuid() != self.owner_uuid()
             || reopened.latest_global_version() != self.latest_global_version()
             || reopened.archive_version() != self.archive_version()
+            || !self.archive.activity_history_matches(&reopened.archive)
             || reopened.memory_version() != self.memory_version()
             || reopened.entity_version() != self.entity_version()
             || reopened.graph_version() != self.graph_version()
@@ -82,7 +83,7 @@ impl Cva {
             drop(reopened);
             let _ = fs::remove_file(output_path);
             return Err(CvaError::Repack(
-                "principal backfill changed owner or semantic version state".into(),
+                "principal backfill changed owner, semantic versions or activity history".into(),
             ));
         }
 

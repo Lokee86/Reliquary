@@ -14,13 +14,39 @@ impl NodeIndex {
     }
 
     pub(crate) fn get(&self, conversation_id: &str, id: &str) -> Option<&Node> {
-        let hash = self.lookup.hash(&(conversation_id, id));
-        self.lookup
-            .find(hash, |index| {
-                let node = &self.records[index];
-                node.conversation_id == conversation_id && node.id == id
-            })
+        self.ordinal(conversation_id, id)
             .map(|index| &self.records[index])
+    }
+
+    pub(crate) fn ordinal(&self, conversation_id: &str, id: &str) -> Option<usize> {
+        let hash = self.lookup.hash(&(conversation_id, id));
+        self.lookup.find(hash, |index| {
+            let node = &self.records[index];
+            node.conversation_id == conversation_id && node.id == id
+        })
+    }
+
+    pub(crate) fn prepare_insert(&mut self, node: &Node) -> Result<bool, ArchiveError> {
+        if let Some(existing) = self.get(&node.conversation_id, &node.id) {
+            return if existing == node {
+                Ok(false)
+            } else {
+                Err(ArchiveError::ConflictingNode)
+            };
+        }
+        self.records
+            .len()
+            .checked_add(1)
+            .ok_or(ArchiveError::IndexCapacityExhausted)?;
+        self.records
+            .try_reserve(1)
+            .map_err(|_| ArchiveError::IndexCapacityExhausted)?;
+        let records = &self.records;
+        self.lookup.try_reserve_insert(|state, found| {
+            let node = &records[found];
+            state.hash_one(&(node.conversation_id.as_str(), node.id.as_str()))
+        })?;
+        Ok(true)
     }
 
     pub(crate) fn insert(&mut self, node: Node) -> Result<bool, ArchiveError> {

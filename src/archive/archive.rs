@@ -13,6 +13,7 @@ use crate::{
 pub struct Archive {
     pub(crate) contents: ContentIndex,
     pub(crate) nodes: NodeIndex,
+    pub(crate) activity: crate::archive_activity::ArchiveActivityIndex,
     pub(crate) branches: BranchIndex,
     pub(crate) conversations: ConversationMetadataIndex,
     pub(crate) fragments: FragmentIndex,
@@ -35,7 +36,7 @@ impl Archive {
         principal_id: Option<String>,
         timestamp_ns: i64,
         content: &str,
-    ) -> Result<Node, ArchiveError> {
+    ) -> Result<crate::archive_activity::TurnAcceptance<Node>, ArchiveError> {
         validate_text(&id, "node id")?;
         validate_text(&conversation_id, "conversation id")?;
         validate_text(&role, "role")?;
@@ -54,19 +55,18 @@ impl Archive {
             timestamp_ns,
             content_id,
         };
-        if let Some(existing) = self.nodes.get(&node.conversation_id, &node.id) {
-            return if existing == &node {
-                Ok(existing.clone())
-            } else {
-                Err(ArchiveError::ConflictingNode)
-            };
-        }
-
+        let Some(prepared) = self.activity.prepare_node(&mut self.nodes, &node)? else {
+            let ordinal = self.nodes.ordinal(&node.conversation_id, &node.id).unwrap();
+            return Ok(self.activity.acceptance(node, ordinal, false));
+        };
+        let ordinal = self.nodes.len();
+        let payload = encode_node(&node)?;
         self.put_content(container, content_id, content)?;
-        let record = container.append(&encode_node(&node)?)?;
-        self.publish_record(container, record)?;
+        let record = container.append(&payload)?;
+        let version = self.publish_record(container, record)?;
         self.nodes.insert(node.clone())?;
-        Ok(node)
+        self.activity.commit_new(prepared, version.archive_version);
+        Ok(self.activity.acceptance(node, ordinal, true))
     }
 
     pub(crate) fn append_branch(

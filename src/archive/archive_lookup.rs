@@ -54,6 +54,35 @@ impl DenseLookup {
         self.len += 1;
     }
 
+    pub(crate) fn try_reserve_insert(
+        &mut self,
+        mut hash_at: impl FnMut(&RandomState, usize) -> u64,
+    ) -> Result<(), crate::ArchiveError> {
+        let capacity_error = || crate::ArchiveError::IndexCapacityExhausted;
+        let next = self.len.checked_add(1).ok_or_else(capacity_error)?;
+        let load = next.checked_mul(10).ok_or_else(capacity_error)?;
+        let limit = self.slots.len().checked_mul(7).ok_or_else(capacity_error)?;
+        if !self.slots.is_empty() && load < limit {
+            return Ok(());
+        }
+        let new_len = if self.slots.is_empty() {
+            8
+        } else {
+            self.slots.len().checked_mul(2).ok_or_else(capacity_error)?
+        };
+        let mut replacement = Vec::new();
+        replacement
+            .try_reserve_exact(new_len)
+            .map_err(|_| capacity_error())?;
+        replacement.resize(new_len, 0);
+        let old = std::mem::replace(&mut self.slots, replacement);
+        for index_plus_one in old.into_iter().filter(|value| *value != 0) {
+            let index = index_plus_one - 1;
+            self.place(hash_at(&self.state, index), index);
+        }
+        Ok(())
+    }
+
     fn needs_growth(&self) -> bool {
         self.slots.is_empty() || (self.len + 1) * 10 >= self.slots.len() * 7
     }

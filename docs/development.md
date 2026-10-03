@@ -81,6 +81,8 @@ cargo run --release --example archive_open_profile -- <archive.cva> [runs]
 
 The benchmark is standalone and reports median/p90 `Cva::open` time plus allocator-tracked retained and peak additional bytes.
 
+The test-only REL activity profiler avoids the standalone allocator conflict. Run `cargo test --lib archive_activity::measurement_tests -- --nocapture` with `REL_ACTIVITY_FIXTURES` set to semicolon-separated frozen REL paths (PowerShell: `$env:REL_ACTIVITY_FIXTURES='C:\path\first.rel;C:\path\second.rel'`). Without that variable it validates a disposable 512-turn mixed-role, mixed-format fixture. It verifies every version-linked cut and first identity position against an independent ledger and inspects hash-verified disposable copies, leaving original permissions and bytes unchanged. Both source and copy hashes are checked before/after. Hashing/copying warms the file cache before the three measured opens. Output reports three-run median total reopen time, nine-run median NodeIndex replay with/without canonical activity preflight/accounting, their signed per-node timing difference, and exact activity-vector used/capacity bytes plus struct size. Node cloning/destruction are outside replay timing. The replay difference estimates in-memory live accounting overhead; it excludes payload decoding, file I/O and sync. Timings are informational, have no pass/fail threshold, and must name the build profile and host conditions when reported. See [activity-clock validation](rel-activity-clock-implementation-plan.md).
+
 Entity calibration harvest:
 
 ```text

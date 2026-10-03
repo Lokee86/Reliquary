@@ -78,10 +78,17 @@ fn session_chains_messages_and_resumes_from_durable_leaf_after_reopen() {
     resumed
         .begin_message("s1", "a1".into(), InteractionRole::Agent, 20)
         .unwrap();
-    resumed.append_text("s1", "a1", "Answer").unwrap();
+    resumed
+        .append_checkpointed_text("s1", "a1", "Answer")
+        .unwrap();
+    assert_eq!(resumed.cva().rel_turn_count(), 1);
+    assert_eq!(resumed.cva().activity_position_for_turn("s1", "a1"), None);
     let receipt = resumed.complete_message("s1", "a1").unwrap();
     assert_eq!(receipt.turn.node.parent_id.as_deref(), Some("u1"));
     assert_eq!(receipt.turn.node.role, "assistant");
+    assert!(receipt.inserted);
+    assert_eq!(receipt.activity_position, Some(2));
+    assert_eq!(receipt.rel_turn_count, 2);
 
     let bad = resumed.open_session("s2".into(), Some("missing".into()));
     assert!(matches!(bad, Err(InteractionError::MissingResumeMessage)));
@@ -174,6 +181,9 @@ fn live_completion_preserves_durable_receipt_when_scheduling_fails() {
         )
         .unwrap();
     assert_eq!(completion.receipt.archive_version, 1);
+    assert!(completion.receipt.inserted);
+    assert_eq!(completion.receipt.activity_position, Some(1));
+    assert_eq!(completion.receipt.rel_turn_count, 1);
     assert!(matches!(
         completion.scheduling,
         Err(InteractionError::Insomnia(_))

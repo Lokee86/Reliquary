@@ -118,7 +118,12 @@ pub(super) fn migrate(
         .owner_id()
         .ok_or_else(|| MigrationError::Operation("migrated REL has no owner ID".into()))?;
     drop(output);
-    op(Cva::open(output_path))?;
+    let reopened = op(Cva::open(output_path))?;
+    if !source.archive.activity_order_matches(&reopened.archive) {
+        return Err(MigrationError::Operation(
+            "migrated REL changed eligible activity identities or acceptance order".into(),
+        ));
+    }
     Ok(owner_id)
 }
 

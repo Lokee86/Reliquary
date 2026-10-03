@@ -151,13 +151,22 @@ fn classify(common: usize, left: usize, right: usize) -> CvaRelation {
     }
 }
 
-fn copy_and_validate(source: &Path, output: &Path) -> Result<(), CvaReconcileError> {
+pub(crate) fn copy_and_validate(source: &Path, output: &Path) -> Result<(), CvaReconcileError> {
     fs::copy(source, output)?;
-    if let Err(error) = Cva::open(output) {
+    let validated = (|| {
+        let source = Cva::open(source)?;
+        let reopened = Cva::open(output)?;
+        if !source.archive.activity_history_matches(&reopened.archive) {
+            return Err(CvaReconcileError::Archive(
+                crate::ArchiveError::CorruptRecord("copied REL activity history changed"),
+            ));
+        }
+        Ok(())
+    })();
+    if validated.is_err() {
         let _ = fs::remove_file(output);
-        return Err(error.into());
     }
-    Ok(())
+    validated
 }
 
 pub(crate) fn with_replayed_transaction_time<T, E>(

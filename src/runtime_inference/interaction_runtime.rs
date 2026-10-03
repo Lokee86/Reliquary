@@ -10,6 +10,12 @@ use std::collections::HashMap;
 pub struct InteractionReceipt {
     pub turn: IngestedTurn,
     pub archive_version: u64,
+    /// Whether Archive accepted a novel logical Node in this operation.
+    pub inserted: bool,
+    /// The eligible turn's original REL-local activity position, including replay.
+    pub activity_position: Option<u64>,
+    /// REL activity count at canonical acceptance, acknowledged after sync.
+    pub rel_turn_count: u64,
 }
 
 #[derive(Debug)]
@@ -32,11 +38,14 @@ impl InteractionRuntime {
     }
 
     pub fn accept_turn(&mut self, turn: InteractionTurn) -> Result<InteractionReceipt, CvaError> {
-        let turn = self.cva.ingest_turn(turn.into())?;
+        let accepted = self.cva.ingest_turn_with_receipt(turn.into())?;
         self.cva.sync()?;
         Ok(InteractionReceipt {
-            turn,
+            turn: accepted.value,
             archive_version: self.cva.archive_version(),
+            inserted: accepted.inserted,
+            activity_position: accepted.activity_position,
+            rel_turn_count: accepted.rel_turn_count,
         })
     }
 

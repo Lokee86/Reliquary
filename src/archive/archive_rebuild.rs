@@ -14,6 +14,7 @@ use std::collections::{HashMap, HashSet};
 pub(crate) struct ArchiveOpenState {
     contents: ContentIndex,
     nodes: NodeIndex,
+    activity: crate::archive_activity::ArchiveActivityIndex,
     branches: BranchIndex,
     conversations: ConversationMetadataIndex,
     fragments: FragmentIndex,
@@ -33,6 +34,7 @@ impl ArchiveOpenState {
         Self {
             contents: Default::default(),
             nodes: Default::default(),
+            activity: Default::default(),
             branches: Default::default(),
             conversations: Default::default(),
             fragments: Default::default(),
@@ -94,6 +96,7 @@ impl ArchiveOpenState {
         Ok(Archive {
             contents: self.contents,
             nodes: self.nodes,
+            activity: self.activity,
             branches: self.branches,
             conversations: self.conversations,
             fragments: self.fragments,
@@ -145,7 +148,14 @@ impl ArchiveOpenState {
         archive_version: u64,
     ) -> Result<(), ArchiveError> {
         match record {
-            ArchiveRecord::Node(node) => self.nodes.insert(node).map(|_| ()),
+            ArchiveRecord::Node(node) => {
+                let prepared = self.activity.prepare_node(&mut self.nodes, &node)?;
+                let inserted = self.nodes.insert(node)?;
+                if let Some(prepared) = prepared.filter(|_| inserted) {
+                    self.activity.commit_new(prepared, archive_version);
+                }
+                Ok(())
+            }
             ArchiveRecord::Branch(branch) => {
                 self.branches.put(branch);
                 Ok(())
@@ -163,12 +173,16 @@ impl ArchiveOpenState {
                 let conversation_id = turn.node.conversation_id.clone();
                 let node_id = turn.node.id.clone();
                 let file_ids = turn.attachments.iter().map(|file| file.id).collect();
-                self.nodes.insert(turn.node)?;
+                let prepared = self.activity.prepare_node(&mut self.nodes, &turn.node)?;
+                let inserted = self.nodes.insert(turn.node)?;
                 for file in turn.attachments {
                     self.files.insert(file)?;
                 }
                 self.source_attachments
                     .insert(&conversation_id, &node_id, file_ids)?;
+                if let Some(prepared) = prepared.filter(|_| inserted) {
+                    self.activity.commit_new(prepared, archive_version);
+                }
                 Ok(())
             }
             ArchiveRecord::FileMemoryLink(link) => {

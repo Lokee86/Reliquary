@@ -131,8 +131,20 @@ pub(crate) fn reconcile_diverged(
         }
 
         output.sync()?;
+        let reopened = Cva::open(output_path)?;
+        if !output.archive.activity_history_matches(&reopened.archive)
+            || !reopened
+                .archive
+                .activity_merge_order_matches(&left.archive, &right.archive)
+        {
+            return Err(CvaReconcileError::Archive(
+                crate::ArchiveError::CorruptRecord(
+                    "reconciled REL activity order or recovered history changed",
+                ),
+            ));
+        }
+        drop(reopened);
         drop(output);
-        Cva::open(output_path)?;
         Ok((
             archive_records,
             memory_result,
@@ -282,9 +294,7 @@ fn replay_profiles(
 
 fn replace_with_left(left_path: &Path, output_path: &Path) -> Result<(), CvaReconcileError> {
     fs::remove_file(output_path)?;
-    fs::copy(left_path, output_path)?;
-    Cva::open(output_path)?;
-    Ok(())
+    crate::cva_reconcile::copy_and_validate(left_path, output_path)
 }
 
 fn has_derived_vector_state(cva: &Cva) -> bool {

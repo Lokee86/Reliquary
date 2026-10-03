@@ -50,11 +50,12 @@ impl Cva {
             archive_version: Some(reopened.archive_version()),
             vector_version: Some(reopened.vector_version()),
         };
+        let activity_matches = self.archive.activity_history_matches(&reopened.archive);
         drop(reopened);
-        if actual != expected {
+        if actual != expected || !activity_matches {
             let _ = fs::remove_file(output_path.as_ref());
             return Err(CvaError::Repack(
-                "reclaimed REL changed owner or semantic version state".into(),
+                "reclaimed REL changed owner, semantic versions or activity history".into(),
             ));
         }
         Ok(report)

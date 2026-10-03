@@ -169,16 +169,18 @@ impl Cva {
         timestamp_ns: i64,
         content: &str,
     ) -> Result<Node, ArchiveError> {
-        self.archive.append_node(
-            &mut self.container,
-            id,
-            conversation_id,
-            parent_id,
-            role,
-            principal_id,
-            timestamp_ns,
-            content,
-        )
+        self.archive
+            .append_node(
+                &mut self.container,
+                id,
+                conversation_id,
+                parent_id,
+                role,
+                principal_id,
+                timestamp_ns,
+                content,
+            )
+            .map(|accepted| accepted.value)
     }
 
     pub fn append_branch(&mut self, branch: Branch) -> Result<(), ArchiveError> {

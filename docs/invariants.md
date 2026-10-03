@@ -17,7 +17,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 3. **Stable IDs cross database boundaries.** Cross-indexing uses IDs, not shared mutable semantic objects.
 4. **The physical substrate has no semantic dependency knowledge.**
 5. **No generalized semantic dependency engine.**
-6. **Derived state remains derived.** Indexes/checkpoints/caches cannot become authority by persistence alone.
+6. **Derived state remains derived.** Indexes/checkpoints/caches cannot become authority by persistence alone. The REL activity projection is owned only by Archive and derived from first accepted eligible logical identities in validated Archive publication order; it neither creates a separately persisted counter nor substitutes for source-time evidence. Cva, runtime and Ego may read or report it but do not advance it.
 7. **Runtime work state is not semantic authority.**
 8. **Prefer concrete duplication over speculative semantic generalization.**
 9. **Previous Reliquary code has no automatic authority.**

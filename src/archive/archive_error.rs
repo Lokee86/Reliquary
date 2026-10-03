@@ -42,6 +42,8 @@ pub enum ArchiveError {
     ConflictingArchiveFormat,
     InvalidArchiveRecordVersion,
     ArchiveVersionExhausted,
+    ActivityPositionExhausted,
+    IndexCapacityExhausted,
 }
 
 impl fmt::Display for ArchiveError {

@@ -1,5 +1,7 @@
 #[path = "archive/archive.rs"]
 pub mod archive;
+#[path = "archive/archive_activity.rs"]
+mod archive_activity;
 #[path = "archive/archive_codec.rs"]
 mod archive_codec;
 #[path = "archive/archive_conversation.rs"]
@@ -201,6 +203,8 @@ mod credential_codec;
 mod credential_crypto;
 #[path = "facade/cva.rs"]
 pub mod cva;
+#[path = "facade/cva_activity.rs"]
+mod cva_activity;
 #[path = "facade/cva_archive_vectors.rs"]
 mod cva_archive_vectors;
 #[path = "facade/cva_communities.rs"]
@@ -743,6 +747,8 @@ mod relationship_owner;
 mod relationship_rebuild;
 #[path = "perception/relationship_store.rs"]
 mod relationship_store;
+#[path = "facade/review_clocks.rs"]
+mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
 mod runtime_config;
 #[path = "runtime_inference/runtime_host.rs"]
@@ -767,6 +773,7 @@ mod semantic_search_error;
 mod semantic_search_model;
 #[path = "archive/source_attachment_index.rs"]
 mod source_attachment_index;
+pub mod staleness;
 #[path = "facade/storage_reclamation.rs"]
 mod storage_reclamation;
 #[path = "facade/storage_reclamation_scan.rs"]

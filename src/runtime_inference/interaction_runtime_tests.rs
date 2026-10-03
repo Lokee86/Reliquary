@@ -38,6 +38,9 @@ fn normalized_turn_is_durably_acknowledged() {
 
     let receipt = runtime.accept_turn(user_turn()).unwrap();
     assert_eq!(receipt.archive_version, 1);
+    assert!(receipt.inserted);
+    assert_eq!(receipt.activity_position, Some(1));
+    assert_eq!(receipt.rel_turn_count, 1);
     assert_eq!(receipt.turn.node.id, "message-1");
     assert_eq!(receipt.turn.node.conversation_id, "session-1");
     assert_eq!(receipt.turn.node.role, "user");
@@ -70,6 +73,10 @@ fn replayed_normalized_turn_is_idempotent() {
     let first = runtime.accept_turn(user_turn()).unwrap();
     let second = runtime.accept_turn(user_turn()).unwrap();
 
+    assert!(first.inserted);
+    assert!(!second.inserted);
+    assert_eq!(second.activity_position, Some(1));
+    assert_eq!(second.rel_turn_count, 1);
     assert_eq!(second.turn, first.turn);
     assert_eq!(second.archive_version, first.archive_version);
     assert_eq!(runtime.cva().stats().nodes, 1);
@@ -100,6 +107,9 @@ fn normalized_agent_role_maps_to_archive_assistant_role() {
     assert_eq!(receipt.turn.node.role, "assistant");
     assert_eq!(receipt.turn.node.parent_id.as_deref(), Some("message-1"));
     assert_eq!(receipt.archive_version, 2);
+    assert!(receipt.inserted);
+    assert_eq!(receipt.activity_position, Some(2));
+    assert_eq!(receipt.rel_turn_count, 2);
 }
 
 #[test]
@@ -128,6 +138,13 @@ fn checkpointed_stream_survives_reopen_as_interrupted() {
     assert_eq!(live.len(), 2);
     assert_eq!(live[1].content, "Partial answer");
     assert_eq!(live[1].status, InteractionTurnStatus::Streaming);
+    assert_eq!(runtime.cva().rel_turn_count(), 1);
+    assert_eq!(
+        runtime
+            .cva()
+            .activity_position_for_turn("session-1", "message-2"),
+        None
+    );
     drop(runtime);
 
     let cva = Cva::open(path).unwrap();
@@ -141,6 +158,68 @@ fn checkpointed_stream_survives_reopen_as_interrupted() {
     assert_eq!(recovered.len(), 2);
     assert_eq!(recovered[1].content, "Partial answer");
     assert_eq!(recovered[1].status, InteractionTurnStatus::Interrupted);
+    assert_eq!(reopened.cva().rel_turn_count(), 1);
+    assert_eq!(
+        reopened
+            .cva()
+            .activity_position_for_turn("session-1", "message-2"),
+        None
+    );
+}
+
+#[test]
+fn runtime_receipt_retains_first_position_and_reports_current_count_after_reopen() {
+    let path = test_path();
+    let mut cva = Cva::create(&path).unwrap();
+    // An imported Node reaches the same canonical identity seam as live delivery.
+    let mut first = user_turn();
+    first.attachments.clear();
+    cva.append_node(
+        first.message_id.clone(),
+        first.session_id.clone(),
+        None,
+        "user".into(),
+        first.timestamp_ns,
+        &first.content,
+    )
+    .unwrap();
+    let mut runtime = InteractionRuntime::new(cva);
+    let replay = runtime.accept_turn(first.clone()).unwrap();
+    assert!(!replay.inserted);
+    assert_eq!(
+        (replay.activity_position, replay.rel_turn_count),
+        (Some(1), 1)
+    );
+    let mut next = first.clone();
+    next.message_id = "message-2".into();
+    next.role = InteractionRole::Agent;
+    let accepted = runtime.accept_turn(next).unwrap();
+    assert!(accepted.inserted);
+    assert_eq!(
+        (accepted.activity_position, accepted.rel_turn_count),
+        (Some(2), 2)
+    );
+    runtime
+        .cva
+        .store_file("metadata.txt".into(), None, b"metadata")
+        .unwrap();
+    runtime.cva.sync().unwrap();
+    drop(runtime);
+    let mut reopened = InteractionRuntime::new(Cva::open(&path).unwrap());
+    let replay = reopened.accept_turn(first.clone()).unwrap();
+    assert!(!replay.inserted);
+    assert_eq!(
+        (replay.activity_position, replay.rel_turn_count),
+        (Some(1), 2)
+    );
+    assert!(replay.archive_version > replay.rel_turn_count);
+    let version = reopened.cva().archive_version();
+    first.content = "conflicting body".into();
+    assert!(reopened.accept_turn(first).is_err());
+    assert_eq!(reopened.cva().archive_version(), version);
+    assert_eq!(reopened.cva().rel_turn_count(), 2);
+    drop(reopened);
+    fs::remove_dir_all(path.parent().unwrap()).unwrap();
 }
 
 #[test]
@@ -203,7 +282,11 @@ fn completed_stream_replaces_checkpoint_without_duplicate_transcript_turn() {
     runtime
         .append_checkpointed_text("session-1", "message-2", "Complete answer")
         .unwrap();
-    runtime.complete_message("session-1", "message-2").unwrap();
+    assert_eq!(runtime.cva().rel_turn_count(), 1);
+    let receipt = runtime.complete_message("session-1", "message-2").unwrap();
+    assert!(receipt.inserted);
+    assert_eq!(receipt.activity_position, Some(2));
+    assert_eq!(receipt.rel_turn_count, 2);
 
     let transcript = runtime
         .conversation_transcript("session-1", "message-2")

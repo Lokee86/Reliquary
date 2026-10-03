@@ -11,7 +11,7 @@ impl Archive {
         container: &mut Container,
         project_files: &ProjectFileStore,
         incoming: IncomingTurn,
-    ) -> Result<IngestedTurn, ArchiveError> {
+    ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
         validate_text(&incoming.id, "node id")?;
         validate_text(&incoming.conversation_id, "conversation id")?;
         validate_text(&incoming.role, "role")?;
@@ -83,17 +83,39 @@ impl Archive {
             if current.is_some_and(|existing_ids| existing_ids == ids)
                 || (current.is_none() && ids.is_empty())
             {
-                return Ok(ingested);
+                let ordinal = self
+                    .nodes
+                    .ordinal(&ingested.node.conversation_id, &ingested.node.id)
+                    .unwrap();
+                return Ok(self.activity.acceptance(ingested, ordinal, false));
             }
             return Err(ArchiveError::ConflictingTurnIngest);
         }
 
+        let file_ids = ingested
+            .attachments
+            .iter()
+            .map(|file| file.id)
+            .collect::<Vec<_>>();
+        if self
+            .source_attachments
+            .get(&ingested.node.conversation_id, &ingested.node.id)
+            .is_some_and(|existing| existing != file_ids)
+        {
+            return Err(ArchiveError::ConflictingTurnIngest);
+        }
+        let prepared_activity = self
+            .activity
+            .prepare_node(&mut self.nodes, &ingested.node)?
+            .expect("novel turn was validated above");
+        let ordinal = self.nodes.len();
+        let payload = encode_ingested_turn(&ingested)?;
         self.put_content(container, ingested.node.content_id, &incoming.content)?;
         for (file, bytes) in &prepared {
             self.put_content_bytes(container, file.content_id, bytes)?;
         }
-        let record = container.append(&encode_ingested_turn(&ingested)?)?;
-        self.publish_record(container, record)?;
+        let record = container.append(&payload)?;
+        let version = self.publish_record(container, record)?;
         self.nodes.insert(ingested.node.clone())?;
         for file in &ingested.attachments {
             self.files.insert(file.clone())?;
@@ -101,9 +123,11 @@ impl Archive {
         self.source_attachments.insert(
             &ingested.node.conversation_id,
             &ingested.node.id,
-            ingested.attachments.iter().map(|file| file.id).collect(),
+            file_ids,
         )?;
-        Ok(ingested)
+        self.activity
+            .commit_new(prepared_activity, version.archive_version);
+        Ok(self.activity.acceptance(ingested, ordinal, true))
     }
 
     pub(crate) fn files_for_source(&self, conversation_id: &str, node_id: &str) -> Vec<StoredFile> {

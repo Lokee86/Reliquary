@@ -8,6 +8,7 @@ impl Archive {
         Self {
             contents: Default::default(),
             nodes: Default::default(),
+            activity: Default::default(),
             branches: Default::default(),
             conversations: Default::default(),
             fragments: Default::default(),
