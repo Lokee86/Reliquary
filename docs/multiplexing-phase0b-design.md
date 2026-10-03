@@ -17,7 +17,8 @@ This is future architecture, prepared separately on `design/multiplexing-phase0b
 | G1 | [Conversation coordination and REL-wide journal](multiplexing-phase0b-conversation.md) | `tests/multiplexing_phase0b_conversation_contract.rs`, `tests/multiplexing_phase0b_journal_contract.rs` |
 | G2 | [Personal publication](multiplexing-phase0b-personal-publication.md) | `tests/multiplexing_phase0b_personal_contract.rs` |
 | G3/G4 | [Events and authorization](multiplexing-phase0b-events-authorization.md) | `tests/multiplexing_phase0b_events_auth_contract.rs` |
-| G5/G6 | [Lifecycle and consumers](multiplexing-phase0b-lifecycle-consumers.md) | `tests/multiplexing_phase0b_lifecycle_contract.rs` |
+| G5 | [Lifecycle and owner fencing](multiplexing-phase0b-lifecycle-consumers.md) | `tests/multiplexing_phase0b_lifecycle_contract.rs` |
+| G6 | [Source-backed consumer verification and migration gates](multiplexing-phase0b-consumer-verification.md) | `scripts/verify_multiplexing_phase0b_consumers.py`, `tests/test_multiplexing_phase0b_consumer_audit.py` plus pinned Warlock Cargo/TypeScript baseline |
 | Host recovery | Stage handoff contract below | `tests/multiplexing_phase0b_host_contract.rs` |
 
 ## Cross-contract rules
@@ -69,6 +70,9 @@ Executed on 2026-10-03 in the isolated worktree at baseline `a6f580c`:
 | `cargo test --locked --lib runtime_host_` | 43/44; provider-backpressure first-wave timing assertion failed (passed in broader library run) |
 | Combined Cargo reference/activity test attempt | Initial compile timed out at 120s; retry cancelled during Lore dependency rebuild before tests; no Cargo test pass claimed |
 | Warlock `cargo check --locked` at existing pinned revisions | Missing dependency/rmeta artifacts; single-job retry cancelled after 6m16s while compiling dependencies, no source/API diagnostic |
+| Warlock `cargo tree --locked --offline -i arcana` | Passed, one Arcana revision shared by Warlock and its currently pinned Reliquary |
+| Warlock `npm run build` | Passed, TypeScript/Vite production bundle |
+| G6 pinned source-drift script and negative tests | Passed, source inventory/pins match and four Python assertions passed; cannot replace a Rust compiler or target-interface conformance test |
 | `cargo fmt --check` and both documentation policy checks | Passed |
 
 The six reference fixtures passed standalone without dependency linkage; Cargo integration remains incomplete. Full production and downstream gates are not green. No production concurrency guarantee is inferred from a passing reference model. A source-backed design gate can be settled while runtime implementation and its release tests remain pending.

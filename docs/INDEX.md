@@ -26,6 +26,7 @@
 - [Multiplexing Phase 0B personal publication](multiplexing-phase0b-personal-publication.md) — immutable principal attribution, private destination routing and frozen cross-owner recovery plans.
 - [Multiplexing Phase 0B events and authorization](multiplexing-phase0b-events-authorization.md) — mutation coverage, separate feeds, atomic snapshots, grants, revocation and reconnect contracts.
 - [Multiplexing Phase 0B lifecycle and consumers](multiplexing-phase0b-lifecycle-consumers.md) — owner fencing, quiescence, short operation leases and actual Warlock consumer migration.
+- [Multiplexing Phase 0B G6 consumer verification](multiplexing-phase0b-consumer-verification.md) — source-backed Warlock dependency/caller baseline, authority matrix, executable drift audit, known build exceptions and per-phase integration gates.
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — future GatewayRuntime/InstanceRuntime authority split, REL updates, active conversation streams and staged whole-stack implementation.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
 - [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).
