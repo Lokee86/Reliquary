@@ -57,7 +57,7 @@ That Ego budget contains:
 - Identity;
 - Personality;
 - Anchors;
-- Memory-Web synthesis; and
+- Memory-Web Summary; and
 - Cross-chat context.
 
 Cross-chat receives the remaining budget after the higher-priority Ego layers are placed. The 20% value is a ceiling, not a target; Ego should not pad context merely to consume the allowance.
@@ -71,9 +71,9 @@ belong to the current conversation context, not Ego.
 
 ## Relationship to other Ego layers
 
-Cross-chat and Memory-Web synthesis solve different continuity problems.
+Cross-chat and the Memory-Web Summary solve different continuity problems.
 
-- Memory-Web synthesis is durable project/user orientation over Memory state.
+- The Memory-Web Summary is durable, user-relative project orientation over shared REL Memory state.
 - Cross-chat context preserves recent conversational state from other sessions in the same REL.
 - Current-session compaction preserves continuity inside the current conversation.
 - Retrieval remains available for deeper historical detail that is absent from default injection.
@@ -85,14 +85,15 @@ Cross-chat should not try to determine whether prior conversation material has b
 Implementation still needs measured choices for:
 
 - the exact usable-input-context calculation for providers whose output shares the context window;
-- fixed/minimum allocations, if any, among Identity, Personality, Anchors, Web synthesis, and Cross-chat;
+- fixed/minimum allocations, if any, among Identity, Personality, Anchors, Memory-Web Summary, and Cross-chat;
 - whether uncompacted tails are always included or only when a selected compaction does not reach the conversation tip;
 - deterministic truncation when one compaction/tail exceeds the remaining Cross-chat budget; and
 - treatment of conversations that are currently open elsewhere in the same REL.
 
 ## Related docs
 
-- [Ego Memory-Web synthesis plan](ego-web-synthesis-plan.md)
+- [Ego Memory-Web summary plan](ego-web-synthesis-plan.md)
+- [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md)
 - [Roadmap](roadmap.md)
 - [Storage format](storage-format.md)
 - [Current limitations](current-limitations.md)
