@@ -17,3 +17,8 @@ reliquary-memory = { path = ".." }
 rpassword = "7"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+# Match the parent package: Lore needs the vendor-patched QUIC transport API.
+# The CLI is a standalone Cargo root, so the parent's patch does not propagate.
+[patch.crates-io]
+quinn-proto = { path = "../vendor/quinn-proto" }

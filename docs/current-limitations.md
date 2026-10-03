@@ -17,9 +17,9 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 - Explicit migration into the new 40-byte typed owner-ID header is implemented through `migration::migrate_file` and the repo-local `migrate` command. Migration semantically repacks legacy 16-byte Project CVAs and earlier 24-byte typed REL/PHY files into a separate output file; files already carrying an owner UUID are rejected as already current. REL migration preserves the existing concrete owner histories, including Relationships, and vector/profile state; PHY migration preserves its Memory, Entity, Relationship, Graph, packed-vector, Memory-vector, and profile owners. The Graph owner remains a narrow compatibility exception: pre-Graph CVAs reopen with empty Graph state and write the Graph format marker lazily on the first graph mutation.
 - The physical scanner materializes each chunk transiently, so a very large matrix object can create a large peak allocation even though matrix bytes are not retained in the reopen index.
 
-## CLI dependency verification gap
+## CLI dependency verification
 
-The separate CLI manifest does not mirror the library manifest's vendored `quinn-proto` patch. Locked CLI check/test currently fail in `lore-transport` on missing `TransportConfig::max_rtt` and `TransportErrorCode::is_crypto` methods. The root-patched library passed 760 tests during Phase 1.6, and all ten activity contracts passed. The Phase 1.5 production check passed; Phase 1.6 retries encountered missing cached dependency artifacts. This existing packaging gap was observed during activity-clock verification; CLI dependency repair is separate work.
+The standalone CLI previously omitted the library's vendored `quinn-proto` patch, causing missing `TransportConfig::max_rtt` and `TransportErrorCode::is_crypto` methods in `lore-transport`. The CLI manifest now mirrors the root patch, with its independent lockfile updated accordingly; `cargo check --manifest-path cli/Cargo.toml` has passed. Locked CLI check/test and full integration tests require separate verification. The original Phase 1.6 library run reported 760 passing tests and all ten activity contracts passed; later test retries hit dependency artifact errors unrelated to the activity semantics.
 
 ## Full test example verification gap
 
