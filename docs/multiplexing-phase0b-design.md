@@ -14,7 +14,7 @@ This is future architecture, prepared separately on `design/multiplexing-phase0b
 
 | Gate | Canonical contract | Executable reference fixture |
 | --- | --- | --- |
-| G1 | [Conversation coordination](multiplexing-phase0b-conversation.md) | `tests/multiplexing_phase0b_conversation_contract.rs` |
+| G1 | [Conversation coordination and REL-wide journal](multiplexing-phase0b-conversation.md) | `tests/multiplexing_phase0b_conversation_contract.rs`, `tests/multiplexing_phase0b_journal_contract.rs` |
 | G2 | [Personal publication](multiplexing-phase0b-personal-publication.md) | `tests/multiplexing_phase0b_personal_contract.rs` |
 | G3/G4 | [Events and authorization](multiplexing-phase0b-events-authorization.md) | `tests/multiplexing_phase0b_events_auth_contract.rs` |
 | G5/G6 | [Lifecycle and consumers](multiplexing-phase0b-lifecycle-consumers.md) | `tests/multiplexing_phase0b_lifecycle_contract.rs` |
@@ -25,7 +25,7 @@ This is future architecture, prepared separately on `design/multiplexing-phase0b
 1. Durable REL/PHY owner identity, verified principal, transient instance, durable conversation/branch, submission, generation, and view attachment are different identities. A principal binding cannot be supplied or changed by an untrusted request.
 2. Every request carries an authenticated instance context; the authoritative owner revalidates grants and owner mount epoch at admission, dispatch and publication. A captured context preserves attribution, but never freezes permission through revocation.
 3. Each mounted owner has one execution; each active continuation has one writer/coordinator. Views neither duplicate writable InteractionRuntime sessions nor own shutdown or cancellation.
-4. The native provisional journal is operational durability outside Archive history. Archive alone commits conversation turns/activity. Stable submission-to-turn identities reconcile a committed Archive turn when a later journal receipt is absent.
+4. The native provisional journal is operational durability outside Archive history. Archive alone commits conversation turns/activity. **One journal owner per REL serializes transitions and whole-REL compaction across all its independent conversation coordinators; entries and tombstones use `(conversation_id, submission_id)` identity.** No per-conversation lock can append to or compact that shared file. Stable submission-to-turn identities reconcile a committed Archive turn when a later journal receipt is absent.
 5. Cancellation acknowledgment must describe the transition it won. Cancelled pending work is never dispatched; already-running work has an honest cooperative-interruption outcome. Unknown external completion blocks replay.
 6. All accepted native pending work remains durable through gateway restart and owner quiescence. Host-owned upstream work stays under that host's persistence contract until explicit stage handoff. Cancellation is reconciled before either stage resumes.
 7. Source authorship, generation initiator and personal-publication destination are independent. Destination PHY follows verified provenance and mapping; neither selected PHY nor parent turn grants another person's identity.
@@ -48,7 +48,7 @@ The fixture tests local recovery, handoff crash windows, receiving-owner cancell
 
 - **0B integration:** review all contracts together, run reference fixtures and existing production characterization, record honest blockers.
 - **1A authority foundation:** introduce keyed gateway owner/instance identities, grants, epoch tokens and quiescence at their final owners. No legacy/new mutable authority synchronization.
-- **1B coordinator:** establish native journal, shared continuation, writer admission, durable cancellation/finalization and view attachments before moving managed selectors.
+- **1B coordinator:** establish the single REL journal owner and complete REL-wide compaction/recovery, independent conversation continuations, writer admission, durable cancellation/finalization and view attachments before moving managed selectors. Verify no nested journal/semantic-owner locks or lost events across replacement.
 - **1C instance routing:** move active REL and per-REL managed selection into InstanceRuntime and enforce context on every user-facing ambient/explicit route.
 - **2 personal publication:** route multi-principal work through source-supported destinations and cross-owner receipts; deduplicate per-PHY processing.
 - **3/4 expansion:** complete visible branching and subscriptions at the authoritative mutation boundaries; no global version poll substitute.
@@ -61,7 +61,7 @@ Executed on 2026-10-03 in the isolated worktree at baseline `a6f580c`:
 
 | Check | Outcome |
 | --- | --- |
-| Five std-only fixtures, `rustc --edition=2024 --deny warnings --test` | 56 passed: conversation 13, events/auth 10, host 18, lifecycle 7, personal 8 |
+| Six std-only fixtures, `rustc --edition=2024 --deny warnings --test` | 62 passed: conversation 13, REL journal/compaction 6, events/auth 10, host 18, lifecycle 7, personal 8 (G1 journal extension verified independently) |
 | `cargo check --locked` | Passed |
 | `cargo test --locked --test multiplexing_baseline_contract` | Passed, 1 test |
 | `cargo test --locked` | Failed in existing examples: competing global allocator in archive_open_profile; insomnia_stress could not locate reliquary_memory |
@@ -71,7 +71,7 @@ Executed on 2026-10-03 in the isolated worktree at baseline `a6f580c`:
 | Warlock `cargo check --locked` at existing pinned revisions | Missing dependency/rmeta artifacts; single-job retry cancelled after 6m16s while compiling dependencies, no source/API diagnostic |
 | `cargo fmt --check` and both documentation policy checks | Passed |
 
-The five reference fixtures passed standalone without dependency linkage; Cargo integration remains incomplete. Full production and downstream gates are not green. No production concurrency guarantee is inferred from a passing reference model. A source-backed design gate can be settled while runtime implementation and its release tests remain pending.
+The six reference fixtures passed standalone without dependency linkage; Cargo integration remains incomplete. Full production and downstream gates are not green. No production concurrency guarantee is inferred from a passing reference model. A source-backed design gate can be settled while runtime implementation and its release tests remain pending.
 
 **Readiness:** design packages and reference oracles are available for review; production migration is pending, and the broad hard-cut/release gate remains closed by the red or incomplete baselines above. No grant, journal, filesystem durability or consumer conformance guarantee is promoted to shipped behavior.
 
