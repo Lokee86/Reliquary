@@ -43,6 +43,67 @@ WARLOCK_SEAMS: dict[str, dict[str, tuple[str, ...]]] = {
     },
 }
 
+DIRECT_RELIQUARY_IMPORT_FILES = frozenset({
+    "chat_compaction_runtime.rs",
+    "chat_context.rs",
+    "chat_context_config.rs",
+    "chat_context_echo.rs",
+    "chat_context_echo_tests.rs",
+    "chat_context_state.rs",
+    "chat_context_tests.rs",
+    "chat_echo.rs",
+    "chat_echo_retrieval_tests.rs",
+    "chat_inference.rs",
+    "conversation.rs",
+    "conversation_echo_tests.rs",
+    "conversation_tests.rs",
+    "file_content.rs",
+    "graph_render_edge_materialization_tests.rs",
+    "graph_render_edge_projection_tests.rs",
+    "graph_render_manifest_tests.rs",
+    "graph_render_reuse_tests.rs",
+    "graph_render_style_tests.rs",
+    "model_tests.rs",
+    "provider_token_count.rs",
+    "provider_token_count_tests.rs",
+    "reliquary_embedding.rs",
+    "reliquary_embedding_http.rs",
+    "reliquary_embedding_response.rs",
+    "reliquary_embedding_tests.rs",
+    "reliquary_general.rs",
+    "reliquary_routes.rs",
+    "workspace.rs",
+    "workspace_archive_search.rs",
+    "workspace_archive_search_tests.rs",
+    "workspace_echo.rs",
+    "workspace_graph_render_adapter.rs",
+    "workspace_graph_render_adapter_tests.rs",
+    "workspace_graph_render_style.rs",
+    "workspace_knowledge.rs",
+    "workspace_knowledge_parse.rs",
+    "workspace_knowledge_provenance.rs",
+    "workspace_knowledge_tests.rs",
+    "workspace_memory_provenance.rs",
+    "workspace_memory_provenance_tests.rs",
+    "workspace_memory_provenance_view.rs",
+    "workspace_memory_search.rs",
+    "workspace_memory_search_tests.rs",
+    "workspace_open.rs",
+    "workspace_project_adoption.rs",
+    "workspace_project_adoption_in_place_tests.rs",
+    "workspace_project_adoption_tests.rs",
+    "workspace_project_checkpoint_tests.rs",
+    "workspace_project_create.rs",
+    "workspace_project_create_tests.rs",
+    "workspace_project_git_create_tests.rs",
+    "workspace_project_manual_lore_tests.rs",
+    "workspace_project_open_validation_tests.rs",
+    "workspace_reconciliation_view.rs",
+    "workspace_replace_tests.rs",
+    "workspace_set.rs",
+    "workspace_tests.rs",
+})
+
 PIN_RE = {
     "reliquary": r'reliquary-memory\s*=\s*\{[^}]*?rev\s*=\s*"([0-9a-f]{40})"',
     "arcana": r'(?m)^arcana\s*=\s*\{[^}]*?rev\s*=\s*"([0-9a-f]{40})"',
@@ -86,8 +147,22 @@ def run(warlock: pathlib.Path) -> dict[str, object]:
                     "review migration impact before updating this manifest"
                 )
             verified[area].append(filename)
+    source_root = warlock / "src-tauri" / "src"
+    imported_files = {
+        path.relative_to(source_root).as_posix()
+        for path in source_root.rglob("*.rs")
+        if "reliquary_memory::" in path.read_text(encoding="utf-8")
+    }
+    if imported_files != DIRECT_RELIQUARY_IMPORT_FILES:
+        raise AssertionError(
+            "Warlock direct Reliquary import inventory changed: "
+            f"added={sorted(imported_files - DIRECT_RELIQUARY_IMPORT_FILES)}, "
+            f"removed={sorted(DIRECT_RELIQUARY_IMPORT_FILES - imported_files)}; "
+            "re-audit all direct consumers before the gateway hard cut"
+        )
     return {
         "consumer": "Warlock-v2",
+        "direct_import_file_count": len(imported_files),
         "status": "source inventory verified; no build or runtime-conformance claim",
         "reliquary_revision": reliquary_rev,
         "direct_arcana_revision": direct_arcana,

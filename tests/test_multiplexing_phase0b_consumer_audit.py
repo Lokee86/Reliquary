@@ -25,9 +25,11 @@ class WarlockSourceAuditTests(unittest.TestCase):
         shutil.copyfile(source / "src-tauri/Cargo.toml", manifest)
         target = self.warlock / "src-tauri/src"
         target.mkdir(parents=True, exist_ok=True)
+        inventory = set(audit.DIRECT_RELIQUARY_IMPORT_FILES)
         for files in audit.WARLOCK_SEAMS.values():
-            for filename in files:
-                shutil.copyfile(source / "src-tauri/src" / filename, target / filename)
+            inventory.update(files)
+        for filename in inventory:
+            shutil.copyfile(source / "src-tauri/src" / filename, target / filename)
 
     def test_frozen_current_consumer_source_matches_its_pins(self) -> None:
         result = audit.run(self.warlock)
@@ -49,6 +51,13 @@ class WarlockSourceAuditTests(unittest.TestCase):
             encoding="utf-8",
         )
         with self.assertRaisesRegex(AssertionError, "missing inspected integration landmarks"):
+            audit.run(self.warlock)
+
+    def test_new_direct_import_forces_a_complete_consumer_reaudit(self) -> None:
+        (self.warlock / "src-tauri/src/new_reliquary_consumer.rs").write_text(
+            "use reliquary_memory::Cva;\n", encoding="utf-8"
+        )
+        with self.assertRaisesRegex(AssertionError, "direct Reliquary import inventory changed"):
             audit.run(self.warlock)
 
     def test_missing_downstream_checkout_does_not_pass_the_source_audit(self) -> None:

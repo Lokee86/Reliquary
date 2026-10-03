@@ -72,7 +72,7 @@ Executed on 2026-10-03 in the isolated worktree at baseline `a6f580c`:
 | Warlock `cargo check --locked` at existing pinned revisions | Missing dependency/rmeta artifacts; single-job retry cancelled after 6m16s while compiling dependencies, no source/API diagnostic |
 | Warlock `cargo tree --locked --offline -i arcana` | Passed, one Arcana revision shared by Warlock and its currently pinned Reliquary |
 | Warlock `npm run build` | Passed, TypeScript/Vite production bundle |
-| G6 pinned source-drift script and negative tests | Passed, source inventory/pins match and four Python assertions passed; cannot replace a Rust compiler or target-interface conformance test |
+| G6 pinned source-drift script and negative tests | Passed, exact 58-file Warlock direct-import inventory and pins match; five Python assertions passed; cannot replace a Rust compiler or target-interface conformance test |
 | `cargo fmt --check` and both documentation policy checks | Passed |
 
 The six reference fixtures passed standalone without dependency linkage; Cargo integration remains incomplete. Full production and downstream gates are not green. No production concurrency guarantee is inferred from a passing reference model. A source-backed design gate can be settled while runtime implementation and its release tests remain pending.
