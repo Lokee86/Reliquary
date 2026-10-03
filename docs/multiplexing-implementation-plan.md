@@ -88,6 +88,10 @@ The old ReliquaryRuntimeHost is a source of behavior to migrate, **not** a perma
 
 Resolve the six source-backed blocking gates in [the readiness review](multiplexing-readiness-review.md): shared conversation execution/attachment, multi-principal Insomnia routing and recovery, mutation coverage for REL events, enforceable authorization/revocation, quiescence and lock/single-writer scope, and actual downstream consumer/baseline verification. Produce state machines, matrices, concrete interface contracts and adversarial fixture definitions, not just diagrams. **Gate: no broad implementation until these are settled and baseline tests actually run.**
 
+### Phase 0B integration record (2026-10-03)
+
+The [Phase 0B design package](multiplexing-phase0b-design.md) now specifies the six gates with five executable reference fixtures. Review its cross-contract rules and verification record before implementation. Production migration remains pending; existing baseline and consumer build failures keep the broad hard-cut gate closed. The canonical dependency order is authority foundation, coordinator, then instance selector routing.
+
 ### Phase 1 — Gateway/instance authority extraction
 
 - **1.1** Define exact public/internal GatewayRuntime and InstanceRuntime ownership contracts and errors, including native queue semantics, per-capability host integration/authority negotiation, explicit stage handoffs and immediate startup reconnect/reconciliation hook. Gateway retains the existing keyed REL executions, routes and policy; introduce keyed PHY execution/instance attachment shapes at their **final owner**, even if first implementation supports a narrow test configuration.

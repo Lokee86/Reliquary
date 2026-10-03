@@ -77,6 +77,10 @@ The safe sequence is:
 
 This review identifies **known blockers**, not every downstream defect. It is deliberately stricter than the earlier eight-phase overview.
 
+## Phase 0B follow-up (2026-10-03)
+
+The [integrated design package](multiplexing-phase0b-design.md) supplies concrete G1–G6 mechanisms, mutation/consumer matrices and executable reference models. These settle the design proposals for review; they do not prove production enforcement. The broad hard-cut verdict remains **NOT READY** while recorded production baseline and downstream compile gates are red or incomplete. Use the package's verification record for executed outcomes rather than the earlier unrun baseline.
+
 ## Related docs
 
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md)

@@ -170,6 +170,10 @@ Before persistent checkpoints are added, larger-scale benchmarks must show that 
 - [Versioning and rollback plan](version-history-plan.md)
 - [Development](development.md)
 
+## Future multiplexing reference oracles
+
+[Phase 0B design contracts](multiplexing-phase0b-design.md) include five std-only reference fixtures under `tests/multiplexing_phase0b_*_contract.rs`. They test proposed conversation, personal-publication, events/authorization, lifecycle and host-handoff rules. They are future architecture oracles, separate from the current-behavior matrix above; runtime conformance requires tests against the eventual GatewayRuntime interface.
+
 ## Notes
 
 A tracked integer watermark is not by itself a historical materialization API; tests distinguish stored ordering metadata from features not yet exposed.

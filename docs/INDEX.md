@@ -21,6 +21,11 @@
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
 - [Multiplexing Phase 0 audited baseline](multiplexing-phase0-baseline.md) — current runtime singleton/owner inventory, impact radius, existing characterization tests and migration verification gates.
 - [Multiplexing readiness review](multiplexing-readiness-review.md) — source-backed pre-implementation blockers and required design/verification gates.
+- [Multiplexing Phase 0B contracts and handoff](multiplexing-phase0b-design.md) — integrated design contracts, executable reference oracles and verification status before the runtime hard cut.
+- [Multiplexing Phase 0B conversation coordination](multiplexing-phase0b-conversation.md) — durable provisional queue, cancellation/finalization, shared generation/view and branch policy contracts.
+- [Multiplexing Phase 0B personal publication](multiplexing-phase0b-personal-publication.md) — immutable principal attribution, private destination routing and frozen cross-owner recovery plans.
+- [Multiplexing Phase 0B events and authorization](multiplexing-phase0b-events-authorization.md) — mutation coverage, separate feeds, atomic snapshots, grants, revocation and reconnect contracts.
+- [Multiplexing Phase 0B lifecycle and consumers](multiplexing-phase0b-lifecycle-consumers.md) — owner fencing, quiescence, short operation leases and actual Warlock consumer migration.
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — future GatewayRuntime/InstanceRuntime authority split, REL updates, active conversation streams and staged whole-stack implementation.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
 - [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).

@@ -88,3 +88,7 @@ This work is an independent whole-stack initiative. Ego is an ordinary consumer 
 - **Per-instance copy of REL or PHY execution:** rejected; duplicates mutable authority, background processing, indexes and conflict handling.
 - **Send every generation to everyone accessing a REL:** rejected; stream delivery is conversation-subscription-scoped even though general REL updates are broadcast broadly.
 - **Make Ego or Warlock the multiplexing owner:** rejected; this is Reliquary-wide execution machinery, while applications remain hosts and semantic subsystems remain consumers.
+
+## Phase 0B design elaboration (2026-10-03)
+
+The [integrated design contracts](../multiplexing-phase0b-design.md) define conversation coordination, durable provisional/owner-operation journals, personal-publication provenance, feed continuity, grant leases, lifecycle fencing and host handoff. These are target contracts, not shipped runtime behavior. The original implementation approval gate remains pending the package's recorded baseline and consumer checks.

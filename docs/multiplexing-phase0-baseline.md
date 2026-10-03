@@ -110,6 +110,19 @@ Phase 0 planning and new test authoring are complete. The new characterization t
 - Lexicon reports no snapshot for this checkout. Arcana evidence unavailable; direct source and existing tests supply the audit evidence.
 - No existing production runtime, semantic, storage or persistence implementation was changed by this Phase 0 work. Automated verification remains an outstanding exit item until the shared build lock and unrelated documentation state permit a clean run.
 
+## Phase 0B executed follow-up (2026-10-03)
+
+The earlier 2026-10-02 record is historical. The separate `design/multiplexing-phase0b` worktree at `a6f580c` executed the current baseline and integrated [design contracts](multiplexing-phase0b-design.md).
+
+- The existing multiplexing baseline passed (1 test); `cargo check --locked` passed.
+- Five std-only reference fixtures compiled warning-free and passed 56 tests. These are model oracles, not runtime conformance tests.
+- Full `cargo test --locked` failed in existing example builds (allocator conflict and missing reliquary_memory). The library/test run passed 767/768 library tests; Lore historical reads failed with Windows file-sharing error 32. The runtime-host filter passed 43/44; its backpressure first-wave assertion failed, although that test passed in the broader library run.
+- Cargo execution of the combined reference/activity tests remained incomplete: an initial dependency rebuild timed out and the second was cancelled during Lore compilation without test results.
+- Warlock's initial isolated compile failed on missing dependency artifacts. Its single-job retry was cancelled after 6m16s while still compiling dependencies, so the downstream compile baseline is inconclusive.
+- `cargo fmt --check` passed after formatting the fixtures for the crate's 2024 edition. Both documentation policy checks (structural and `--changed-from origin/main`) passed.
+
+Documentation impact: five future-architecture pages and their index, plan, readiness review, ADR, behavioral-contract reference and this baseline record. No shipped-behavior claims were added. Architecture impact: no production source ownership/API/storage changes; architecture snapshot refresh is not applicable. Known gaps are runtime implementation, journal/platform crash tests, real adapter conformance, baseline failures and downstream compile/test/frontend verification.
+
 ## Related docs
 
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md)
