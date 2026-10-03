@@ -6,7 +6,7 @@ Implementation plan: [Perception subsystem plan](../perception-subsystem-plan.md
 
 ## Status
 
-Accepted — 2026-09-08; relational-Observation model amended 2026-09-25; propositional-anchor, Exploitation/Exploration candidate-lane, staggered scheduling, and staged reasoning architecture amended 2026-09-26. Entity pass 1 is implemented; the pre-amendment Relationship persistence foundation exists under ADR 0034; Observation/ambiguity synthesis remains staged.
+Accepted — 2026-09-08; relational-Observation model amended 2026-09-25; propositional-anchor, Exploitation/Exploration candidate-lane, staggered scheduling and staged reasoning architecture amended 2026-09-26. The provenance-qualified stale-Memory audit proposal added 2026-10-01 was **superseded by ADR 0039 on 2026-10-03**. Entity pass 1 is implemented; Observation/ambiguity synthesis remains staged, and no mandatory Perception Memory-refresh audit is planned.
 
 Amends ADR 0012 by adding Insomnia metadata enrichment after Memory extraction, and ADR 0025 by allowing multi-resolution Community structure as derived routing infrastructure without making Communities the primary Observation-selection boundary or turning processing windows into semantic Communities. ADR 0034 defines cross-owner relational semantics as a specialized Observation form over owner-qualified Entity references without changing Dream's owner-local Memory-Graph authority. ADR 0035 assigns Observation temporal interpretation to the shared Chronos subsystem rather than a Perception-local temporal stack.
 
@@ -214,6 +214,10 @@ For example, an Observation such as "Sarah has hiring authority at the Vancouver
 Receptor generation should favor **recall over precision**. A false-positive receptor match costs one bounded contribution comparison; a false negative can hide relevant evidence from that Observation until another routing path exposes it.
 
 The exact vector-search implementation is an indexing choice, not semantic authority. The architectural requirement is that routine contribution inference remain bounded rather than growing linearly with the total Observation population.
+
+## Historical stale-Memory audit proposal — superseded by ADR 0039
+
+This ADR once proposed a distinct Perception/Chronos provenance-qualified stale-Memory audit tied to generic REL review deadlines. That proposal is retained here solely as design history and is **not** an implementation requirement. [ADR 0039](0039-unified-deterministic-memory-freshness.md) supersedes it: Memory Freshness is an owner-local deterministic event/graph relevance score with natural REL-turn decay and no required Perception or Chronos gate. Perception's independently justified Observation reasoning and semantic/provenance analysis remain unchanged. The [current Memory Freshness contract](../memory-staleness-plan.md) and [implementation plan](../generic-staleness-implementation-plan.md) are authoritative.
 
 ## Observation lifecycle and reconsideration
 

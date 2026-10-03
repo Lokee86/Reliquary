@@ -75,6 +75,8 @@ Chronos may compare supporting Memory intervals/patterns, derive Observation val
 
 Deterministic Chronos products remain derived and need not be persisted. Any non-deterministically inferred temporal conclusion that becomes part of durable Perception state must be tied to the semantic inputs/version that justified it.
 
+Chronos remains responsible for interpreting occurrence and valid time in **Observation** synthesis and reconsideration. The earlier proposal for a mandatory Chronos-qualified Perception audit before a Memory can regain relevance has been **superseded**: [Memory Freshness](memory-staleness-plan.md) now derives attention/context relevance deterministically from REL turns, direct access and existing Dream graph activity. Perception does not own this counter or its lifecycle.
+
 ## Pass 1 — Entity synthesis, association, disambiguation
 
 Perception consumes Insomnia-extracted Entity mentions against the post-Dream Memory Web.
@@ -340,6 +342,12 @@ Each receptor is embedded independently and mapped back to the Observation. Rece
 
 Generation favors recall over precision: a false positive costs one bounded pairwise comparison; a false negative may hide relevant evidence indefinitely.
 
+## Historical note — proposed stale-Memory audit withdrawn
+
+An earlier design proposed a periodic Perception pass that validated recent source-specific work, with Chronos-verified event time, before resetting a Memory's staleness baseline. **That pass is no longer part of the planned Memory Freshness architecture.** The accepted [unified Freshness design](generic-staleness-implementation-plan.md) replaces periodic per-Memory reviews with deterministic -100..+100 scores, REL-turn decay, access and new-Memory linkage events, graph-distance propagation and fixed originating-Community locality.
+
+This change does **not** remove Perception's Observation synthesis, semantic reconsideration, independent contradiction analysis or Chronos temporal responsibilities. A future optional Perception evidence event must be explicitly designed if there is a demonstrated need; it is not a prerequisite, default inference pass or automatic Freshness reset.
+
 ## Observation lifecycle
 
 Observations are retained historical semantic objects and should normally be archived/retained rather than deleted.
@@ -484,6 +492,10 @@ Milestone **B — Entity owner and pass 1** is now implemented as an explicit ow
 - Add class-sensitive wall-time currentness policy; do not stale durable/historical classes merely because time passes.
 - Keep Chronos valid-time separate from Observation currentness/staleness.
 - Add Entity/Observation clarification triggers and runtime injection.
+
+### F2 — Withdrawn historical step: stale-Memory revalidation
+
+The former mandatory audit, provenance/Chronos freshness-reset gate and generic `MemoryReconsideration` schedule are **superseded**. Implement the [unified Memory Freshness plan](generic-staleness-implementation-plan.md) in the Memory/Graph activity owner, not as a new Perception pass. Observation-specific temporal reasoning and reconsideration remain under steps E/F.
 
 ### G — Scale and quality validation
 

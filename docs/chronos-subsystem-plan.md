@@ -121,6 +121,8 @@ Perception consumes Chronos after selecting bounded evidence for Observation syn
 
 Perception still owns the Observation being synthesized.
 
+**Memory Freshness design update:** The previously proposed mandatory stale-Memory reinforcement audit and its Chronos event-window gate have been withdrawn. Memory relevance now follows deterministic REL activity and graph events under [Memory Freshness](memory-staleness-plan.md). Chronos still distinguishes source/event, transaction/import and claim-valid times for Memory interpretation and Observation synthesis; none of these times is a Freshness decay clock.
+
 ## Persistence policy
 
 Deterministic Chronos products remain derived by default. Do not persist parsed anchors, normalized typos, recurrence patterns, or deterministic intervals merely to avoid cheap recomputation.
@@ -173,7 +175,7 @@ A deterministic cache is permitted as disposable optimization state, never seman
 
 ### E — Perception integration
 
-- Add Chronos input/output to Observation processing contracts.
+- Add Chronos input/output to Observation processing contracts; the former stale-Memory reinforcement audit is superseded by the separate deterministic [Memory Freshness design](memory-staleness-plan.md).
 - Define deterministic multi-evidence temporal synthesis.
 - Use fallback inference only for unresolved semantics.
 
