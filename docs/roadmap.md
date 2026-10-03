@@ -133,6 +133,36 @@ Complete production hardening:
 - crash-safe restart/recovery for host-owned background work; and
 - authentication/authorization only if a future local IPC/API boundary is introduced.
 
+### 9. Someday: configurable VCS management
+
+Allow project-history backend selection and project-history management policy to vary independently rather than permanently equating Git with hands-off operation.
+
+Target policy shape:
+
+- backend remains `lore | git`;
+- management becomes an explicit project policy such as `manual | assisted | automatic`;
+- Git commit, push, and worktree management remain separately configurable capabilities rather than one broad automation switch;
+- a practical Git progression may therefore range from observe-only, through managed local checkpoint/commit with human push, to explicitly authorized managed commit + push;
+- Lore may remain the integrated/default managed backend while still satisfying the same higher-level revision/provenance contract.
+
+Managed Git must preserve repository ownership and unrelated user state:
+
+- never implement automation as an unconditional `git add .`;
+- record the operation's base revision and capture only the operation-owned delta;
+- preserve unrelated pre-existing dirty files and the user's live index;
+- prefer plumbing/temporary-index techniques when needed to commit an owned delta without perturbing unrelated staged state;
+- do not label dirty working-tree bytes as immutable `HEAD` content; exact provenance must distinguish working state from committed revision state;
+- make repository mutation operations idempotent with stable operation IDs and payload hashes so retries cannot manufacture duplicate history;
+- keep `push` an independently authorized escalation beyond local commit;
+- keep worktree creation/reuse/removal as a separate opt-in policy, with repository identity based on lineage rather than machine-local checkout paths; and
+- never remove dirty or otherwise unreconciled work as part of automatic cleanup.
+
+Above the backend seam, Reliquary should consume the same durable revision abstraction regardless of provider: repository identity, exact revision/file resolution, working-state capture when authorized, diff/change attribution, and `ProjectRevisionCorrelation`. Managed Lore may materialize a Lore revision while managed Git may materialize a Git commit; semantic ownership remains in REL/PHY either way.
+
+Recovery must also be backend-neutral. If repository capture and semantic correlation do not complete atomically, persist enough idempotent operation state to reconcile the exact repository revision later rather than inferring from whatever the current checkout happens to contain.
+
+This is deliberately deferred product work, not a requirement for the current Project Environment cutover. The current conservative Git behavior remains valid until an explicit managed-Git policy and its dirty-state, index-isolation, retry, recovery, and worktree tests are designed and accepted.
+
 ## Scope and ownership evolution
 
 Reliquary already has typed durable scope identity; future work is about how those owners are composed and governed.
@@ -162,6 +192,8 @@ Do not implement `.phy` as a Project Reliquary with provenance fields merely mad
 
 Routine prompt tuning on the adversarial fixture remains frozen. Future work is validation or a new measured capability boundary:
 
+- implement the [explicit Memory commit plan](insomnia-explicit-memory-commit-plan.md), upgrading the existing `create_memory` seam so an explicit retention request closes the current uncovered Episode tail, queues it immediately, and gives that Insomnia run a hard success contract requiring at least one accepted canonical Memory with provenance to the initiating turn;
+- expose that same narrow operation through the shared live runtime/tool adapter for explicit user- or model-initiated retention without granting either caller direct Memory-write authority;
 - run the full 66-Episode gold-v3 corpus as milestone confirmation;
 - recalibrate worker concurrency and model/reasoning cost for the selected production route mix; and
 - add targeted verifier/repair, selective voting, deterministic clause preprocessing, ambiguity routing, supersession resolution, provenance verification, or stronger/fine-tuned selection only when production failures justify the added inference.
@@ -264,37 +296,52 @@ Future integration work:
 - add incremental Community maintenance only if measured scan-and-merge cost becomes material; and
 - preserve explicit user Community names as derived semantic metadata only, never Memory-Web authority; current lineage inheritance must remain conservative around ambiguous splits/merges.
 
+## Deterministic Memory Freshness and retained source-progress infrastructure
+
+The former per-Memory review-deadline/provenance-audit policy is **superseded** by the accepted [Memory Freshness contract](memory-staleness-plan.md) and its [detailed implementation plan](generic-staleness-implementation-plan.md). The Archive-owned REL accepted-turn clock is already implemented. Every REL Memory will have one signed -100..+100 Freshness score, initialized to +100 on creation **without propagation** (new Memories initially have no connections), with decay starting upon first successful Dream settlement into active `knowledge`/`canonical` for ordinary extracted Memories (even if no links), or immediately for explicitly active first direct publications, at one point per 10 subsequent accepted owner-REL turns. The derived states are Fresh (+1..+100), Stale (-50..0), and Dormant (-100..-51). Direct access adds +25; **actual committed first-cycle Dream relationships** (including newly recognized duplicate relationships) reinforce linked existing information by +50 and then propagate. Admission alone never propagates, and an unlinked new Memory cannot reinforce anything. Event propagation subtracts 5 per hop inside the fixed originating Community, 10 per hop outside it. Each Memory receives only the strongest reinforcement path **once per originating event**. Dream supplies topology/duplicate decisions, not numerical edge strengths or a freshness-triggered model pass.
+
+The implementation starts with bounded **concurrent**, deterministic propagation, lazy decay, sparse indexed lifecycle boundaries, duplicate-chain canonical reinforcement and owner-local idempotent event-batch persistence/recovery. Freshness is contextual relevance and context control, not verified factual truth; Ego uses it as a graded selection input while preserving full-Web-if-economical, mandatory broad audit, searchable Dormant Memories and protected keep lanes. Perception and Chronos no longer gate Freshness transitions.
+
+**Retain separately:** existing REL activity Phase 1, independently justified optional Archive counter materialization, completed-but-not-fully-integrated typed source clock arithmetic and Ego's distinct REL/PHY summary refresh rules. The former generic per-Memory `next_review_at` scheduler and mandatory Perception stale-Memory audit are withdrawn. PHY-specific Freshness awaits its own authorized activity source.
+
+Implementation order: existing clock/checkpoint work (as justified); F1 policy/event identity; F2 score state and lazy decay; F3 Insomnia/Dream/access and duplicate adapters; F4 deterministic concurrent propagation; F5 durable crash/replay and history transformations; F6 lifecycle index and Ego selection; F7 measured fixture calibration and integration. The 14-/28-day and Ellis historical Insomnia rates provide baseline inputs, not pre-approved parameters for all users.
+
 ## Ego
 
 The first Ego substrate is implemented in this branch. REL/PHY persist owner-local Anchors and cached web synthesis; PHY additionally persists Personality and multiple stable Identity documents with one explicit active selection. Identity records have stable IDs, independent revisions/tombstones, explicit no-op-safe activation, legacy single-Identity compatibility, and a compatibility accessor/mutator for the active Identity. These durable records deliberately do not yet perform inference, scheduling, cross-owner assembly, or prompt injection.
 
-Memory-Web synthesis now has a concrete design direction. REL synthesis should use a bounded REL-local activity window rather than calendar age, so dormant projects do not decay and activity in another REL cannot displace their state. Objective preprocessing is limited to explicit validity such as archived/historical exclusion and Dream-owned duplicate collapse; categories/types remain synthesis structure rather than deterministic relevance filters.
+The target project Memory-Web Summary is now explicitly **user-relative**. Shared evidence remains REL-owned, including conversation records/tails, Memories, vectors, Graph/Communities, and chronology. REL conversation records carry PHY identity, so Ego can derive the active user's recent conversation tails from shared REL state. Those tails should seed multiple recent-activity semantic centroids that deterministically route older/current REL Memories into a bounded working Web. Cold state remains searchable and exclusion from the working Web is not a semantic invalidation claim.
 
-Refresh is intentionally batched. Let `W` be the synthesis activity window, `N` a considerably smaller activity-unit check interval, and `M` the accumulated Memory-Web mutation threshold. Every `N` activity units, Ego performs only a cheap deterministic change check; it resynthesizes from the current `W`-unit window only after the accumulated mutation delta reaches `M`. Below `M`, the delta carries forward. There is no age-based refresh backstop: `W` bounds synthesis input and is not a maximum synthesis lifetime.
+The summary pipeline is staged rather than one-shot: (1) broad mandatory-coverage Memory-Web audit, (2) separate candidate selection, (3) source-grounded summary generation for selected candidates, and (4) reconciliation/final assembly. The audit itself does **not** summarize. Its job is discovery/segmentation. The audit processes controlled, likely overlapping batches while exposing full-REL `memory_search`; the controller must ensure every working-Web Memory is surfaced as mandatory core material at least once before completion.
 
-The exact activity-unit definition plus calibrated `W`/`N`/`M` values remain measurement work. PHY must be measured separately before inheriting the REL policy; the current 28-day PHY is much smaller than the REL stress case.
+Refresh is owner-specific and queued. REL-backed project summaries use a durable incoming-turn activity clock: one count for each previously unseen logical user or agent turn successfully accepted into that REL, independent of physical stored-turn de-duplication, compaction, or ingest retries. `W` is a recent-turn window used for conversation-tail relevance, not the refresh interval. A fresh REL queues its first Ego generation once it has 25 eligible durable Memories. Thereafter refresh is due after percentage growth from the last successful source turn count, capped by an absolute maximum turn delta. PHY-local Ego freshness instead uses the PHY Memory version/mutation index: it becomes eligible on the first useful Memory mutation and then refreshes after percentage Memory-version growth capped by an absolute mutation delta; raw Graph churn does not independently drive PHY freshness. Becoming due queues Ego rather than invoking it immediately. The processing coordinator must first complete the semantic work required through the marked Episode/source boundary; for REL-backed work this means Insomnia through that Episode and all Dream work required by that Insomnia output. The marked boundary prevents newer activity from starving a due refresh. There is no wall-clock age backstop. The target project-summary perspective belongs with PHY even though its evidence is REL-owned; exact PHY-owned per-REL summary persistence/keying remains future work.
 
 Current Ego status:
 
 - durable owner-local Ego persistence is implemented for PHY Identity/Personality, PHY/REL Anchors, and cached owner-local Memory-Web synthesis;
 - multi-Identity PHY support is implemented in this branch, including stable Identity IDs, one explicit active selection, swapping, independent revisions/tombstones, and legacy single-Identity compatibility;
-- Memory-Web synthesis policy is designed but synthesis inference, activity accounting, and refresh scheduling are not implemented;
+- the target Memory-Web Summary policy is designed at the architecture level, but recent-tail centroid routing, working-Web selection, mandatory audit traversal, candidate selection, summary inference, reconciliation, activity accounting, target PHY persistence, and refresh scheduling are not implemented;
 - Personality ownership and evidence boundaries are settled, but synthesis mechanics, refresh policy, user-edit interaction, output shape, and budget remain unresolved;
 - deterministic Cross-chat selection policy is designed but not implemented;
-- Ego has not yet consumed the implemented REL dependency closure and host-owned PHY to assemble context packages; and
+- Ego has not yet consumed the implemented REL dependency closure and host-owned PHY to assemble context packages; cross-REL summary inclusion, including separately authorized reverse/dependent selection, is designed but unimplemented; and
 - final Ego context assembly, runtime scheduling, budgeting calibration, Cross-chat materialization, and host-facing context projection remain unimplemented.
 
 Next, Ego should:
 
-- implement and calibrate REL-local activity units against the existing 28-day high-activity stress fixture;
-- implement initial and batched-refresh Memory-Web synthesis using the activity-relative policy;
+- complete the [Archive-owned REL activity clock Phase 1](rel-activity-clock-implementation-plan.md), then calibrate the recent-turn window `W`, REL percentage/cap refresh cadence, and active-PHY selection of recent REL conversation tails;
+- derive and calibrate multiple recent-activity centroids plus deterministic Memory relevance/working-Web admission, using Chronos/lifecycle keep lanes while keeping cold state searchable;
+- implement the mandatory-coverage audit controller with adaptive batches, overlap/context, persistent discovered-thread state, and full-Web `memory_search`;
+- implement candidate selection separately from audit and summary generation;
+- implement source-grounded candidate summaries plus final reconciliation, with explicit tests preventing summary inference from silently becoming Observation inference;
+- resolve PHY-owned per-REL Memory-Web Summary persistence/keying over the current substrate;
 - design Personality synthesis mechanics separately: Personality is PHY-owned, persisted in PHY, derived only from PHY behavioural evidence such as communication/process/relationship preferences and recurring behaviour, and never from REL/project state; generic user biography remains ordinary PHY Web state rather than Personality evidence;
 - implement deterministic Cross-chat context from existing REL conversation-compaction records, ordered by most recent conversation activity rather than creation time, within the remaining Ego injection budget;
 - consume the graph host's active-REL dependency closure in deterministic dependency order rather than rebuilding topology inside Ego;
+- select relevant existing active-PHY per-REL summaries from authorized dependency scopes and separately authorized reverse/dependent scopes without automatic sibling access, cross-owner synthesis, or an independent context budget;
 - project the host-owned Phylactery through explicit role/privacy policy; and
 - keep source/provenance access available without flooding the default prompt.
 
-The Web-synthesis rationale, measurements, rejected alternatives, and calibration sequence are recorded in [Ego Memory-Web synthesis plan](ego-web-synthesis-plan.md). Cross-chat selection and budgeting are recorded in [Ego Cross-chat context plan](ego-cross-chat-context-plan.md).
+The Memory-Web Summary rationale, measurements, staged audit/candidate/summary architecture, and calibration sequence are recorded in [Ego Memory-Web summary plan](ego-web-synthesis-plan.md). Cross-chat selection and budgeting are recorded in [Ego Cross-chat context plan](ego-cross-chat-context-plan.md). Bidirectional authorized summary selection (distinct from synthesis and from dependency inheritance) is recorded in [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md).
 
 Ego context-assembly policy is Reliquary-owned under the graph-aware host boundary established by ADR 0037. Warlock's Ego document is a host-facing integration contract; it must not become a second source of semantic policy.
 
@@ -342,7 +389,8 @@ New semantic owners remain purpose-built, use stable cross-owner IDs, and do not
 - Artifact provenance vocabulary across uploaded, generated, imported, and provider-managed artifacts.
 - Archive checkpoint representation, packing/compression choices, and retention policy.
 - Whole-REL restore/timeline terminology and retention semantics.
-- Exact REL-local activity-unit definition and measured `W`/`N`/`M` Ego Web-synthesis calibration.
+- Exact recent-turn window `W`; REL refresh fraction and maximum turn delta; PHY Memory-version refresh fraction and maximum mutation delta; and pending Ego refresh/coalescing policy. REL bootstrap is fixed at 25 eligible durable Memories, while PHY bootstrap begins on its first eligible Memory mutation.
+- Calibrate unified Memory Freshness event frequency, duplicate-component reinforcement, 10-turn decay, outside-origin-Community propagation and score distribution; settle PHY-specific owner-local activity only when justified. Protected Ego keep lanes and relevance weighting remain independent of factual truth.
 - Personality behavioural-evidence selection details, refresh policy, user-edit authority, output shape, and budget; ownership and PHY-only evidence scope are settled.
 - Ego context-budget calibration around the approximately 20% usable-input ceiling, including deterministic Cross-chat allocation after Identity/Personality/Anchors/Web synthesis; current-session compaction remains outside Ego.
 

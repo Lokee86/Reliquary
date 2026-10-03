@@ -19,9 +19,17 @@
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
+- [Multiplexing Phase 0 audited baseline](multiplexing-phase0-baseline.md) — current runtime singleton/owner inventory, impact radius, existing characterization tests and migration verification gates.
+- [Multiplexing readiness review](multiplexing-readiness-review.md) — source-backed pre-implementation blockers and required design/verification gates.
+- [Multiplexing implementation plan](multiplexing-implementation-plan.md) — future GatewayRuntime/InstanceRuntime authority split, REL updates, active conversation streams and staged whole-stack implementation.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
-- [Ego Memory-Web synthesis plan](ego-web-synthesis-plan.md) — activity-relative REL synthesis design, refresh policy, stress-fixture measurements, and Personality boundary.
+- [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).
+- [REL activity clock Phase 1 spec](rel-activity-clock-implementation-plan.md) — novel-turn accounting across both Archive write paths, logical historical cuts, reopen, repack and reconciliation gates.
+- [Insomnia explicit Memory commit plan](insomnia-explicit-memory-commit-plan.md) — future stronger explicit-retention contract using existing Episode/Insomnia authority and provenance.
+- [Unified Memory Freshness implementation plan](generic-staleness-implementation-plan.md) — canonical implementation sequence, deterministic parallel propagation and duplicate reinforcement, lazy decay, durable event recovery, retained Archive activity/checkpoint work and separate optional Ego clock utility (planned).
+- [Ego Memory-Web summary plan](ego-web-synthesis-plan.md) — user-relative working-Web selection from recent REL conversation tails, mandatory broad audit, separate candidate selection, source-grounded summary generation, refresh policy, measurements, and Personality boundary.
 - [Ego Cross-chat context plan](ego-cross-chat-context-plan.md) — deterministic selection of recent active REL conversation compactions within the Ego context budget.
+- [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md) — future selection of existing user-relative summaries across explicitly authorized REL dependency and reverse/dependent scopes; no default combined synthesis.
 - [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.
 - [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
 - [Chronos subsystem plan](chronos-subsystem-plan.md) — shared temporal architecture and implementation status: deterministic core/coverage, corpus-calibrated indication detection, unresolved-only verified inference, and Insomnia Memory persistence are implemented; Perception integration and measured coverage expansion remain.
