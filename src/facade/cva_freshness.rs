@@ -850,6 +850,7 @@ impl Cva {
                 community_snapshots_encountered: Some(trace_communities),
                 community_snapshots_matched: Some(trace_community_matches),
                 version_filtered_records: Some(trace_filtered),
+                ..Default::default()
             },
         );
         if !community_found {
@@ -957,6 +958,7 @@ impl Cva {
                 community_snapshots_encountered: None,
                 community_snapshots_matched: None,
                 version_filtered_records: Some(trace_filtered),
+                ..Default::default()
             },
         );
         Ok(roots)

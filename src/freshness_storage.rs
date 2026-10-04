@@ -106,6 +106,7 @@ pub(crate) struct FreshnessStore {
     admissions: BTreeMap<MemoryId, FreshnessRecord>,
     recent: std::collections::VecDeque<(JournalEntry, usize)>,
     recent_bytes: usize,
+    receipt_membership: membership::ReceiptMembership,
     history_path: Option<std::path::PathBuf>,
     history_limit: u64,
     latest_event: Option<(u64, String)>,
@@ -114,6 +115,8 @@ pub(crate) struct FreshnessStore {
 
 const RECENT_LIMIT: usize = 128;
 const RECENT_BYTES: usize = 256 * 1024;
+#[path = "freshness/freshness_storage_membership.rs"]
+mod membership;
 #[path = "freshness/freshness_storage_ordering.rs"]
 mod ordering;
 #[path = "freshness/freshness_storage_rebuild.rs"]
@@ -125,20 +128,47 @@ impl FreshnessStore {
     pub(crate) fn new(owner_uuid: Option<[u8; 16]>) -> Self {
         Self {
             owner_uuid,
+            receipt_membership: membership::ReceiptMembership::empty_complete(),
             policy: FreshnessPolicy::default_v1(),
             ..Self::default()
         }
     }
     pub(crate) fn bind_history_path(&mut self, path: impl AsRef<std::path::Path>, limit: u64) {
+        if limit != self.history_limit
+            || self
+                .history_path
+                .as_ref()
+                .is_some_and(|old| old != path.as_ref())
+        {
+            self.receipt_membership.invalidate();
+        }
         self.history_path = Some(path.as_ref().to_path_buf());
         self.history_limit = limit;
     }
     pub(crate) fn begin_rebuild(&mut self) {
+        self.receipt_membership.invalidate();
         self.rebuild_receipts = Some(std::sync::Arc::new(rebuild::RebuildReceipts::new()));
     }
     pub(crate) fn finish_rebuild(&mut self) -> Result<(), String> {
-        self.records = self.canonical_projection(u64::MAX, None, u64::MAX, &[])?;
+        let records = self.canonical_projection(u64::MAX, None, u64::MAX, &[])?;
+        // A negative hint is safe only after the complete accepted prefix has
+        // been scanned. Stage both derived outputs before changing live state.
+        let mut membership = membership::ReceiptMembership::default();
+        self.scan_entries(|entry| {
+            if let Some((id, _, _, _)) = use_fields(&entry) {
+                membership.insert(0, id);
+            }
+            for_each_event(&entry, &mut |event| {
+                if let JournalEntry::Event { event_id, .. } = event {
+                    membership.insert(1, event_id);
+                }
+                Ok(())
+            })
+        })?;
+        membership.finish_rebuild();
+        self.records = records;
         self.rebuild_receipts = None;
+        self.receipt_membership = membership;
         Ok(())
     }
     pub(crate) fn policy(&self) -> FreshnessPolicy {
@@ -245,72 +275,93 @@ impl FreshnessStore {
         }
     }
     fn find_event(&self, id: &str) -> Result<Option<JournalEntry>, String> {
-        for (entry, _) in self.recent.iter().rev() {
-            if let Some(event) = event_in(entry, id) {
-                return Ok(Some(event.clone()));
-            }
-        }
-        if let Some(index) = &self.rebuild_receipts {
-            return index.find("event", id);
-        }
-        let mut found = None;
-        self.scan_entries(|entry| {
-            if let Some(event) = event_in(&entry, id) {
-                if found
-                    .as_ref()
-                    .is_some_and(|old| !event_receipts_equal(old, event))
-                {
-                    return Err("conflicting durable Freshness event identities".into());
+        crate::freshness_trace::measure("freshness.lookup.event", || {
+            for (entry, _) in self.recent.iter().rev() {
+                if let Some(event) = event_in(entry, id) {
+                    return Ok(Some(event.clone()));
                 }
-                found = Some(event.clone());
             }
-            Ok(())
-        })?;
-        Ok(found)
+            if !self.receipt_membership.may_contain(1, id) {
+                return Ok(None);
+            }
+            if let Some(index) = &self.rebuild_receipts {
+                return index.find("event", id);
+            }
+            let mut found = None;
+            self.scan_entries(|entry| {
+                if let Some(event) = event_in(&entry, id) {
+                    if found
+                        .as_ref()
+                        .is_some_and(|old| !event_receipts_equal(old, event))
+                    {
+                        return Err("conflicting durable Freshness event identities".into());
+                    }
+                    found = Some(event.clone());
+                }
+                Ok(())
+            })?;
+            Ok(found)
+        })
     }
     fn find_use(&self, id: &str) -> Result<Option<JournalEntry>, String> {
-        for (entry, _) in self.recent.iter().rev() {
-            if use_fields(entry).is_some_and(|(key, _, _, _)| key == id) {
-                return Ok(Some(entry.clone()));
-            }
-        }
-        if let Some(index) = &self.rebuild_receipts {
-            return index.find("use", id);
-        }
-        let mut found = None;
-        self.scan_entries(|entry| {
-            if use_fields(&entry).is_some_and(|(key, _, _, _)| key == id) {
-                if found
-                    .as_ref()
-                    .is_some_and(|old| !use_receipts_equal(old, &entry))
-                {
-                    return Err("conflicting durable accepted-use identities".into());
+        crate::freshness_trace::measure("freshness.lookup.use", || {
+            for (entry, _) in self.recent.iter().rev() {
+                if use_fields(entry).is_some_and(|(key, _, _, _)| key == id) {
+                    return Ok(Some(entry.clone()));
                 }
-                found = Some(entry);
             }
-            Ok(())
-        })?;
-        Ok(found)
+            if !self.receipt_membership.may_contain(0, id) {
+                return Ok(None);
+            }
+            if let Some(index) = &self.rebuild_receipts {
+                return index.find("use", id);
+            }
+            let mut found = None;
+            self.scan_entries(|entry| {
+                if use_fields(&entry).is_some_and(|(key, _, _, _)| key == id) {
+                    if found
+                        .as_ref()
+                        .is_some_and(|old| !use_receipts_equal(old, &entry))
+                    {
+                        return Err("conflicting durable accepted-use identities".into());
+                    }
+                    found = Some(entry);
+                }
+                Ok(())
+            })?;
+            Ok(found)
+        })
     }
     fn remember(&mut self, entry: JournalEntry) -> Result<(), String> {
-        if let Some(index) = &self.rebuild_receipts {
-            index.remember(&entry)?;
-        }
-        let bytes = receipt_bytes(&entry);
-        if bytes > RECENT_BYTES {
-            return Ok(());
-        }
-        while self.recent.len() >= RECENT_LIMIT
-            || self.recent_bytes.saturating_add(bytes) > RECENT_BYTES
-        {
-            let Some((_, old)) = self.recent.pop_front() else {
-                break;
-            };
-            self.recent_bytes -= old;
-        }
-        self.recent_bytes += bytes;
-        self.recent.push_back((entry, bytes));
-        Ok(())
+        crate::freshness_trace::measure("freshness.receipt.remember", || {
+            if let Some(index) = &self.rebuild_receipts {
+                index.remember(&entry)?;
+            }
+            if let Some((id, _, _, _)) = use_fields(&entry) {
+                self.receipt_membership.insert(0, id);
+            }
+            for_each_event(&entry, &mut |event| {
+                if let JournalEntry::Event { event_id, .. } = event {
+                    self.receipt_membership.insert(1, event_id);
+                }
+                Ok(())
+            })?;
+            let bytes = receipt_bytes(&entry);
+            if bytes > RECENT_BYTES {
+                return Ok(());
+            }
+            while self.recent.len() >= RECENT_LIMIT
+                || self.recent_bytes.saturating_add(bytes) > RECENT_BYTES
+            {
+                let Some((_, old)) = self.recent.pop_front() else {
+                    break;
+                };
+                self.recent_bytes -= old;
+            }
+            self.recent_bytes += bytes;
+            self.recent.push_back((entry, bytes));
+            Ok(())
+        })
     }
     #[cfg(test)]
     pub(crate) fn recent_receipt_stats(&self) -> (usize, usize) {
@@ -340,7 +391,8 @@ impl FreshnessStore {
         if payload.get(..8) != Some(MAGIC.as_slice()) {
             return Ok(());
         }
-        let (owner, entry) = decode(payload)?;
+        let (owner, entry) =
+            crate::freshness_trace::measure("freshness.payload.decode", || decode(payload))?;
         if self.owner_uuid.is_some_and(|id| id != owner) {
             return Err("Freshness metadata belongs to another durable owner".into());
         }
@@ -488,7 +540,10 @@ impl FreshnessStore {
                     }
                     self.validate_event_entry(owner, event)?;
                 }
-                let projected = self.project_with_events(events)?;
+                let projected =
+                    crate::freshness_trace::measure("freshness.use.ingest_projection", || {
+                        self.project_with_events(events)
+                    })?;
                 self.records = projected;
                 for event in events {
                     let key = event_sort_key(event);
@@ -544,18 +599,19 @@ impl FreshnessStore {
         Ok(())
     }
     fn validate_event_entry(&self, owner: [u8; 16], event: &JournalEntry) -> Result<(), String> {
-        let JournalEntry::Event {
-            event_id,
-            turn,
-            provenance,
-            proof,
-            effects,
-            ..
-        } = event
-        else {
-            return Err("expected Freshness event".into());
-        };
-        if event_id.is_empty()
+        crate::freshness_trace::measure("freshness.event.validation", || {
+            let JournalEntry::Event {
+                event_id,
+                turn,
+                provenance,
+                proof,
+                effects,
+                ..
+            } = event
+            else {
+                return Err("expected Freshness event".into());
+            };
+            if event_id.is_empty()
             || effects.is_empty()
             || provenance.source_id.trim().is_empty()
             || provenance.origin_owner != owner
@@ -565,107 +621,113 @@ impl FreshnessStore {
             // validate exact equality before committing a new source event.
             || !(1..=2).contains(&provenance.producer_kind)
             || provenance.policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
-        {
-            return Err("invalid Freshness event source provenance".into());
-        }
-        validate_proof(*proof)?;
-        match provenance.producer_kind {
-            1 => {
-                // A Dream event is identified by the owner's exact initial pass,
-                // never by a caller-supplied unrelated string.
-                let expected_prefix = format!("dream-initial:{}:", hex_bytes(&owner));
-                if provenance.source_id != *event_id
-                    || !event_id.starts_with(&expected_prefix)
-                    || event_id.len() != expected_prefix.len() + 64
-                    || !event_id[expected_prefix.len()..]
-                        .bytes()
-                        .all(|byte| byte.is_ascii_hexdigit())
-                {
-                    return Err("Freshness Dream event is not an owner-bound first-pass ID".into());
+            {
+                return Err("invalid Freshness event source provenance".into());
+            }
+            validate_proof(*proof)?;
+            match provenance.producer_kind {
+                1 => {
+                    // A Dream event is identified by the owner's exact initial pass,
+                    // never by a caller-supplied unrelated string.
+                    let expected_prefix = format!("dream-initial:{}:", hex_bytes(&owner));
+                    if provenance.source_id != *event_id
+                        || !event_id.starts_with(&expected_prefix)
+                        || event_id.len() != expected_prefix.len() + 64
+                        || !event_id[expected_prefix.len()..]
+                            .bytes()
+                            .all(|byte| byte.is_ascii_hexdigit())
+                    {
+                        return Err(
+                            "Freshness Dream event is not an owner-bound first-pass ID".into()
+                        );
+                    }
+                    let suffix = &event_id[expected_prefix.len()..];
+                    let mut source = [0u8; 32];
+                    for (index, byte) in source.iter_mut().enumerate() {
+                        *byte = u8::from_str_radix(&suffix[index * 2..index * 2 + 2], 16)
+                            .map_err(|_| "invalid Dream source ID")?;
+                    }
+                    if !self
+                        .births
+                        .get(&MemoryId(source))
+                        .is_some_and(|(birth, _)| birth <= turn)
+                        || !effects
+                            .values()
+                            .any(|amount| *amount == self.policy.linkage_principal)
+                    {
+                        return Err(
+                            "Freshness Dream event lacks a born source or first-link principal"
+                                .into(),
+                        );
+                    }
                 }
-                let suffix = &event_id[expected_prefix.len()..];
-                let mut source = [0u8; 32];
-                for (index, byte) in source.iter_mut().enumerate() {
-                    *byte = u8::from_str_radix(&suffix[index * 2..index * 2 + 2], 16)
-                        .map_err(|_| "invalid Dream source ID")?;
-                }
-                if !self
-                    .births
-                    .get(&MemoryId(source))
-                    .is_some_and(|(birth, _)| birth <= turn)
-                    || !effects
+                2 => {
+                    // A standalone accepted-use event (during reconcile replay) must
+                    // still identify a genuine source root. The enclosing receipt
+                    // is checked at the owner boundary before replay.
+                    if !effects.iter().any(|(id, amount)| {
+                        *amount == self.policy.access_principal
+                            && accepted_event_id(owner, &provenance.source_id, *id) == *event_id
+                    }) || effects
                         .values()
-                        .any(|amount| *amount == self.policy.linkage_principal)
-                {
-                    return Err(
-                        "Freshness Dream event lacks a born source or first-link principal".into(),
-                    );
+                        .any(|amount| *amount > self.policy.access_principal)
+                    {
+                        return Err("Freshness accepted-use event lacks its claimed source".into());
+                    }
+                }
+                _ => unreachable!(),
+            }
+            for (id, amount) in effects {
+                if *amount <= 0 || *amount > self.policy.linkage_principal {
+                    return Err("Freshness event exceeds pinned principal bound".into());
+                }
+                if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {
+                    return Err("Freshness event precedes accepted Memory birth".into());
                 }
             }
-            2 => {
-                // A standalone accepted-use event (during reconcile replay) must
-                // still identify a genuine source root. The enclosing receipt
-                // is checked at the owner boundary before replay.
-                if !effects.iter().any(|(id, amount)| {
-                    *amount == self.policy.access_principal
-                        && accepted_event_id(owner, &provenance.source_id, *id) == *event_id
-                }) || effects
-                    .values()
-                    .any(|amount| *amount > self.policy.access_principal)
-                {
-                    return Err("Freshness accepted-use event lacks its claimed source".into());
-                }
-            }
-            _ => unreachable!(),
-        }
-        for (id, amount) in effects {
-            if *amount <= 0 || *amount > self.policy.linkage_principal {
-                return Err("Freshness event exceeds pinned principal bound".into());
-            }
-            if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {
-                return Err("Freshness event precedes accepted Memory birth".into());
-            }
-        }
-        Ok(())
+            Ok(())
+        })
     }
     fn project_with_events(
         &self,
         events: &[JournalEntry],
     ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
-        // Validated receipts are replayed once after the accepted owner scan.
-        if self.rebuild_receipts.is_some() {
-            return Ok(self.records.clone());
-        }
-        let mut ordered = events.iter().collect::<Vec<_>>();
-        ordered.sort_by_key(|e| event_sort_key(e));
-        if ordered.first().is_none_or(|e| {
-            self.latest_event
-                .as_ref()
-                .is_none_or(|last| event_sort_key(e) > *last)
-        }) && ordered.iter().all(|e| match e {
-            JournalEntry::Event { turn, effects, .. } => effects.keys().all(|id| {
-                self.records
-                    .get(id)
-                    .is_some_and(|record| record.accounted_turn.is_none_or(|at| at <= *turn))
-            }),
-            _ => false,
-        }) {
-            let mut records = self.records.clone();
-            for event in ordered {
-                let JournalEntry::Event { turn, effects, .. } = event else {
-                    unreachable!()
-                };
-                for (id, amount) in effects {
-                    records
-                        .get_mut(id)
-                        .ok_or("Freshness event references unenrolled Memory")?
-                        .reinforce_with_policy(*amount, *turn, &self.policy)
-                        .map_err(|e| e.to_string())?;
-                }
+        crate::freshness_trace::measure("freshness.projection", || {
+            // Validated receipts are replayed once after the accepted owner scan.
+            if self.rebuild_receipts.is_some() {
+                return Ok(self.records.clone());
             }
-            return Ok(records);
-        }
-        self.canonical_projection(u64::MAX, None, u64::MAX, events)
+            let mut ordered = events.iter().collect::<Vec<_>>();
+            ordered.sort_by_key(|e| event_sort_key(e));
+            if ordered.first().is_none_or(|e| {
+                self.latest_event
+                    .as_ref()
+                    .is_none_or(|last| event_sort_key(e) > *last)
+            }) && ordered.iter().all(|e| match e {
+                JournalEntry::Event { turn, effects, .. } => effects.keys().all(|id| {
+                    self.records
+                        .get(id)
+                        .is_some_and(|record| record.accounted_turn.is_none_or(|at| at <= *turn))
+                }),
+                _ => false,
+            }) {
+                let mut records = self.records.clone();
+                for event in ordered {
+                    let JournalEntry::Event { turn, effects, .. } = event else {
+                        unreachable!()
+                    };
+                    for (id, amount) in effects {
+                        records
+                            .get_mut(id)
+                            .ok_or("Freshness event references unenrolled Memory")?
+                            .reinforce_with_policy(*amount, *turn, &self.policy)
+                            .map_err(|e| e.to_string())?;
+                    }
+                }
+                return Ok(records);
+            }
+            self.canonical_projection(u64::MAX, None, u64::MAX, events)
+        })
     }
     fn canonical_projection(
         &self,
@@ -674,56 +736,58 @@ impl FreshnessStore {
         graph: u64,
         extra: &[JournalEntry],
     ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
-        let mut projected = self
-            .births
-            .iter()
-            .filter(|(_, (turn, _))| *turn <= through)
-            .map(|(id, (_, record))| (*id, *record))
-            .collect::<BTreeMap<_, _>>();
-        let mut admissions = self
-            .admissions
-            .iter()
-            .filter_map(|(id, r)| {
-                r.admitted_at_turn
-                    .filter(|at| *at <= through)
-                    .map(|at| (at, *id))
-            })
-            .collect::<Vec<_>>();
-        admissions.sort();
-        let mut admit_index = 0;
-        ordering::ordered_events(self, through, before, graph, extra, |event| {
-            let JournalEntry::Event { turn, effects, .. } = event else {
-                unreachable!()
-            };
-            while admit_index < admissions.len() && admissions[admit_index].0 <= *turn {
-                let (at, id) = admissions[admit_index];
-                projected
-                    .get_mut(&id)
-                    .ok_or("Freshness admission precedes accepted birth")?
-                    .admit(at)
-                    .map_err(|e| e.to_string())?;
-                admit_index += 1;
-            }
-            for (id, amount) in effects {
-                if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {
-                    return Err("Freshness event precedes accepted Memory birth".into());
+        crate::freshness_trace::measure("freshness.projection.canonical", || {
+            let mut projected = self
+                .births
+                .iter()
+                .filter(|(_, (turn, _))| *turn <= through)
+                .map(|(id, (_, record))| (*id, *record))
+                .collect::<BTreeMap<_, _>>();
+            let mut admissions = self
+                .admissions
+                .iter()
+                .filter_map(|(id, r)| {
+                    r.admitted_at_turn
+                        .filter(|at| *at <= through)
+                        .map(|at| (at, *id))
+                })
+                .collect::<Vec<_>>();
+            admissions.sort();
+            let mut admit_index = 0;
+            ordering::ordered_events(self, through, before, graph, extra, |event| {
+                let JournalEntry::Event { turn, effects, .. } = event else {
+                    unreachable!()
+                };
+                while admit_index < admissions.len() && admissions[admit_index].0 <= *turn {
+                    let (at, id) = admissions[admit_index];
+                    projected
+                        .get_mut(&id)
+                        .ok_or("Freshness admission precedes accepted birth")?
+                        .admit(at)
+                        .map_err(|e| e.to_string())?;
+                    admit_index += 1;
                 }
+                for (id, amount) in effects {
+                    if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {
+                        return Err("Freshness event precedes accepted Memory birth".into());
+                    }
+                    projected
+                        .get_mut(id)
+                        .ok_or("Freshness event references unenrolled Memory at cut")?
+                        .reinforce_with_policy(*amount, *turn, &self.policy)
+                        .map_err(|e| e.to_string())?;
+                }
+                Ok(())
+            })?;
+            for (at, id) in &admissions[admit_index..] {
                 projected
                     .get_mut(id)
-                    .ok_or("Freshness event references unenrolled Memory at cut")?
-                    .reinforce_with_policy(*amount, *turn, &self.policy)
+                    .ok_or("Freshness admission precedes accepted birth")?
+                    .admit(*at)
                     .map_err(|e| e.to_string())?;
             }
-            Ok(())
-        })?;
-        for (at, id) in &admissions[admit_index..] {
-            projected
-                .get_mut(id)
-                .ok_or("Freshness admission precedes accepted birth")?
-                .admit(*at)
-                .map_err(|e| e.to_string())?;
-        }
-        Ok(projected)
+            Ok(projected)
+        })
     }
     pub(crate) fn prepare_event_postimages_for(
         &self,
@@ -1032,14 +1096,16 @@ impl FreshnessStore {
         sources: &[MemoryId],
         version: u64,
     ) -> Result<(), String> {
-        if id.trim().is_empty()
-            || sources.is_empty()
-            || sources.windows(2).any(|p| p[0] >= p[1])
-            || version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
-        {
-            return Err("invalid accepted-use identity or policy".into());
-        }
-        Ok(())
+        crate::freshness_trace::measure("freshness.use.validation", || {
+            if id.trim().is_empty()
+                || sources.is_empty()
+                || sources.windows(2).any(|p| p[0] >= p[1])
+                || version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+            {
+                return Err("invalid accepted-use identity or policy".into());
+            }
+            Ok(())
+        })
     }
     pub(crate) fn prepare_accepted_use_batch(
         &self,
@@ -1050,58 +1116,62 @@ impl FreshnessStore {
         proof: FreshnessEventProof,
         effects: Vec<BTreeMap<MemoryId, i16>>,
     ) -> Result<Vec<u8>, String> {
-        self.validate_use_identity(
-            &use_id,
-            &sources,
-            crate::freshness::FRESHNESS_POLICY_VERSION as u64,
-        )?;
-        if self.owner_uuid != Some(owner) || effects.len() != sources.len() {
-            return Err("accepted-use owner/source count mismatch".into());
-        }
-        validate_proof(proof)?;
-        if self.find_use(&use_id)?.is_some() {
-            return Err("accepted-use receipt already exists".into());
-        }
-        let mut events = Vec::with_capacity(sources.len());
-        for (source, effects) in sources.iter().zip(effects) {
-            if effects.get(source) != Some(&self.policy.access_principal)
-                || effects.values().any(|v| *v > self.policy.access_principal)
-            {
-                return Err("accepted-use effects lack eligible source principal".into());
+        crate::freshness_trace::measure("freshness.use.prepare", || {
+            self.validate_use_identity(
+                &use_id,
+                &sources,
+                crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+            )?;
+            if self.owner_uuid != Some(owner) || effects.len() != sources.len() {
+                return Err("accepted-use owner/source count mismatch".into());
             }
-            let event_id = accepted_event_id(owner, &use_id, *source);
-            if self.find_event(&event_id)?.is_some() {
-                return Err("accepted-use source event exists without receipt".into());
+            validate_proof(proof)?;
+            if self.find_use(&use_id)?.is_some() {
+                return Err("accepted-use receipt already exists".into());
             }
-            let provenance = FreshnessEventProvenance {
-                producer_kind: 2,
-                source_id: use_id.clone(),
-                origin_owner: owner,
-                accepted_turn: turn,
-                policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
-            };
-            let event = JournalEntry::Event {
-                event_id,
-                turn,
-                provenance,
-                proof,
-                effects,
-                records: BTreeMap::new(),
-            };
-            self.validate_event_entry(owner, &event)?;
-            events.push(event);
-        }
-        self.project_with_events(&events)?;
-        Ok(encode(
-            owner,
-            &JournalEntry::AcceptedUseBatch {
-                use_id,
-                turn,
-                sources,
-                policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
-                events,
-            },
-        ))
+            let mut events = Vec::with_capacity(sources.len());
+            for (source, effects) in sources.iter().zip(effects) {
+                if effects.get(source) != Some(&self.policy.access_principal)
+                    || effects.values().any(|v| *v > self.policy.access_principal)
+                {
+                    return Err("accepted-use effects lack eligible source principal".into());
+                }
+                let event_id = accepted_event_id(owner, &use_id, *source);
+                if self.find_event(&event_id)?.is_some() {
+                    return Err("accepted-use source event exists without receipt".into());
+                }
+                let provenance = FreshnessEventProvenance {
+                    producer_kind: 2,
+                    source_id: use_id.clone(),
+                    origin_owner: owner,
+                    accepted_turn: turn,
+                    policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+                };
+                let event = JournalEntry::Event {
+                    event_id,
+                    turn,
+                    provenance,
+                    proof,
+                    effects,
+                    records: BTreeMap::new(),
+                };
+                self.validate_event_entry(owner, &event)?;
+                events.push(event);
+            }
+            crate::freshness_trace::measure("freshness.use.preappend_projection", || {
+                self.project_with_events(&events)
+            })?;
+            Ok(encode(
+                owner,
+                &JournalEntry::AcceptedUseBatch {
+                    use_id,
+                    turn,
+                    sources,
+                    policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+                    events,
+                },
+            ))
+        })
     }
     pub(crate) fn encode_initialize(
         &self,
@@ -1224,87 +1294,119 @@ impl FreshnessStore {
     }
 }
 fn encode(owner: [u8; 16], entry: &JournalEntry) -> Vec<u8> {
-    let mut out = Vec::new();
-    out.extend_from_slice(MAGIC);
-    out.extend_from_slice(&owner);
-    match entry {
-        JournalEntry::Initialize {
-            memory_id,
-            turn,
-            record,
-        } => {
-            out.push(0);
-            out.extend_from_slice(&memory_id.0);
-            out.extend_from_slice(&turn.to_le_bytes());
-            put_record(&mut out, *record);
-        }
-        JournalEntry::Admit { memory_id, record } => {
-            out.push(1);
-            out.extend_from_slice(&memory_id.0);
-            put_record(&mut out, *record);
-        }
-        JournalEntry::Event {
-            event_id,
-            turn,
-            provenance,
-            proof,
-            effects,
-            records,
-        } => {
-            out.push(2);
-            put_event(
-                &mut out, event_id, *turn, provenance, *proof, effects, records,
-            );
-        }
-        JournalEntry::AcceptedUseReceipt {
-            use_id,
-            turn,
-            sources,
-            policy_version,
-        } => {
-            out.push(4);
-            put_bytes(&mut out, use_id.as_bytes());
-            out.extend_from_slice(&turn.to_le_bytes());
-            out.extend_from_slice(&policy_version.to_le_bytes());
-            out.extend_from_slice(&(sources.len() as u32).to_le_bytes());
-            for source in sources {
-                out.extend_from_slice(&source.0);
+    crate::freshness_trace::measure("freshness.payload.encode", || {
+        let mut out = Vec::new();
+        out.extend_from_slice(MAGIC);
+        out.extend_from_slice(&owner);
+        match entry {
+            JournalEntry::Initialize {
+                memory_id,
+                turn,
+                record,
+            } => {
+                out.push(0);
+                out.extend_from_slice(&memory_id.0);
+                out.extend_from_slice(&turn.to_le_bytes());
+                put_record(&mut out, *record);
             }
-        }
-        JournalEntry::AcceptedUseBatch {
-            use_id,
-            turn,
-            sources,
-            policy_version,
-            events,
-        } => {
-            out.push(3);
-            put_bytes(&mut out, use_id.as_bytes());
-            out.extend_from_slice(&turn.to_le_bytes());
-            out.extend_from_slice(&policy_version.to_le_bytes());
-            out.extend_from_slice(&(sources.len() as u32).to_le_bytes());
-            for source in sources {
-                out.extend_from_slice(&source.0);
+            JournalEntry::Admit { memory_id, record } => {
+                out.push(1);
+                out.extend_from_slice(&memory_id.0);
+                put_record(&mut out, *record);
             }
-            out.extend_from_slice(&(events.len() as u32).to_le_bytes());
-            for event in events {
-                if let JournalEntry::Event {
-                    event_id,
-                    turn,
-                    provenance,
-                    proof,
-                    effects,
-                    records,
-                } = event
-                {
-                    put_event(
-                        &mut out, event_id, *turn, provenance, *proof, effects, records,
-                    );
+            JournalEntry::Event {
+                event_id,
+                turn,
+                provenance,
+                proof,
+                effects,
+                records,
+            } => {
+                out.push(2);
+                put_event(
+                    &mut out, event_id, *turn, provenance, *proof, effects, records,
+                );
+            }
+            JournalEntry::AcceptedUseReceipt {
+                use_id,
+                turn,
+                sources,
+                policy_version,
+            } => {
+                out.push(4);
+                put_bytes(&mut out, use_id.as_bytes());
+                out.extend_from_slice(&turn.to_le_bytes());
+                out.extend_from_slice(&policy_version.to_le_bytes());
+                out.extend_from_slice(&(sources.len() as u32).to_le_bytes());
+                for source in sources {
+                    out.extend_from_slice(&source.0);
+                }
+            }
+            JournalEntry::AcceptedUseBatch {
+                use_id,
+                turn,
+                sources,
+                policy_version,
+                events,
+            } => {
+                out.push(3);
+                put_bytes(&mut out, use_id.as_bytes());
+                out.extend_from_slice(&turn.to_le_bytes());
+                out.extend_from_slice(&policy_version.to_le_bytes());
+                out.extend_from_slice(&(sources.len() as u32).to_le_bytes());
+                for source in sources {
+                    out.extend_from_slice(&source.0);
+                }
+                out.extend_from_slice(&(events.len() as u32).to_le_bytes());
+                for event in events {
+                    if let JournalEntry::Event {
+                        event_id,
+                        turn,
+                        provenance,
+                        proof,
+                        effects,
+                        records,
+                    } = event
+                    {
+                        put_event(
+                            &mut out, event_id, *turn, provenance, *proof, effects, records,
+                        );
+                    }
                 }
             }
         }
-    }
-    out
+        #[cfg(feature = "freshness-performance-trace")]
+        {
+            let (event_count, effect_count) = match entry {
+                JournalEntry::Event { effects, .. } => (1, effects.len()),
+                JournalEntry::AcceptedUseBatch { events, .. } => (
+                    events.len(),
+                    events
+                        .iter()
+                        .map(|event| {
+                            if let JournalEntry::Event { effects, .. } = event {
+                                effects.len()
+                            } else {
+                                0
+                            }
+                        })
+                        .sum(),
+                ),
+                _ => (0, 0),
+            };
+            crate::freshness_trace::record(
+                "freshness.payload.shape",
+                0,
+                crate::freshness_trace::Counts {
+                    payload_bytes: Some(out.len() as u64),
+                    event_count: Some(event_count as u64),
+                    effect_count: Some(effect_count as u64),
+                    ..Default::default()
+                },
+            );
+        }
+        out
+    })
 }
 
 fn put_event(

@@ -5,6 +5,8 @@
 pub(crate) struct Counts {
     pub payload_bytes: Option<u64>,
     pub object_bytes: Option<u64>,
+    pub event_count: Option<u64>,
+    pub effect_count: Option<u64>,
     pub chunks_visited: Option<u64>,
     pub graph_mutations_decoded: Option<u64>,
     pub community_snapshots_encountered: Option<u64>,
@@ -19,7 +21,7 @@ mod enabled {
 
     struct Frame {
         operation: &'static str,
-        rows: Vec<String>,
+        rows: std::collections::BTreeMap<&'static str, (u128, u64, Counts)>,
     }
     thread_local! {
         static FRAMES: RefCell<Vec<Frame>> = const { RefCell::new(Vec::new()) };
@@ -44,7 +46,16 @@ mod enabled {
                 PENDING.with(|pending| {
                     let mut pending = pending.borrow_mut();
                     if pending.len() < 64 {
-                        pending.push((frame.operation, frame.rows));
+                        pending.push((
+                            frame.operation,
+                            frame
+                                .rows
+                                .into_iter()
+                                .map(|(stage, (elapsed, calls, counts))| {
+                                    row(stage, elapsed, calls, counts)
+                                })
+                                .collect(),
+                        ));
                     }
                 });
             });
@@ -57,20 +68,23 @@ mod enabled {
             FRAMES.with(|frames| {
                 frames.borrow_mut().push(Frame {
                     operation,
-                    rows: Vec::new(),
+                    rows: std::collections::BTreeMap::new(),
                 })
             });
         }
         Scope { enabled }
     }
 
-    fn row(stage: &'static str, elapsed_ns: u128, counts: Counts) -> String {
+    fn row(stage: &'static str, elapsed_ns: u128, calls: u64, counts: Counts) -> String {
         format!(
-            "{{\"stage\":\"{}\",\"elapsed_ns\":{},\"payload_bytes\":{},\"object_bytes\":{},\"chunks_visited\":{},\"graph_mutations_decoded\":{},\"community_snapshots_encountered\":{},\"community_snapshots_matched\":{},\"version_filtered_records\":{}}}",
+            "{{\"stage\":\"{}\",\"elapsed_ns\":{},\"calls\":{},\"payload_bytes\":{},\"object_bytes\":{},\"event_count\":{},\"effect_count\":{},\"chunks_visited\":{},\"graph_mutations_decoded\":{},\"community_snapshots_encountered\":{},\"community_snapshots_matched\":{},\"version_filtered_records\":{}}}",
             stage,
             elapsed_ns,
+            calls,
             option(counts.payload_bytes),
             option(counts.object_bytes),
+            option(counts.event_count),
+            option(counts.effect_count),
             option(counts.chunks_visited),
             option(counts.graph_mutations_decoded),
             option(counts.community_snapshots_encountered),
@@ -93,12 +107,43 @@ mod enabled {
     }
 
     pub(crate) fn record(stage: &'static str, elapsed_ns: u128, counts: Counts) {
-        let row = row(stage, elapsed_ns, counts);
         FRAMES.with(|frames| {
             if let Some(frame) = frames.borrow_mut().last_mut() {
-                if frame.rows.len() < 256 {
-                    frame.rows.push(row);
+                if frame.rows.len() >= 64 && !frame.rows.contains_key(stage) {
+                    return;
                 }
+                let entry = frame
+                    .rows
+                    .entry(stage)
+                    .or_insert_with(|| (0, 0, Counts::default()));
+                entry.0 = entry.0.saturating_add(elapsed_ns);
+                entry.1 = entry.1.saturating_add(1);
+                fn add(target: &mut Option<u64>, value: Option<u64>) {
+                    if let Some(value) = value {
+                        *target = Some(target.unwrap_or(0).saturating_add(value));
+                    }
+                }
+                add(&mut entry.2.payload_bytes, counts.payload_bytes);
+                add(&mut entry.2.object_bytes, counts.object_bytes);
+                add(&mut entry.2.event_count, counts.event_count);
+                add(&mut entry.2.effect_count, counts.effect_count);
+                add(&mut entry.2.chunks_visited, counts.chunks_visited);
+                add(
+                    &mut entry.2.graph_mutations_decoded,
+                    counts.graph_mutations_decoded,
+                );
+                add(
+                    &mut entry.2.community_snapshots_encountered,
+                    counts.community_snapshots_encountered,
+                );
+                add(
+                    &mut entry.2.community_snapshots_matched,
+                    counts.community_snapshots_matched,
+                );
+                add(
+                    &mut entry.2.version_filtered_records,
+                    counts.version_filtered_records,
+                );
             }
         });
     }

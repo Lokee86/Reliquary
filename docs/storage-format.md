@@ -715,7 +715,7 @@ N bytes   contiguous rows
 ```
 `row_bytes = dimensions * scalar_width`; matrix length must equal `row_count * row_bytes`. Scalar tags: `1=i8`, `2=u8`, `3=i16`, `4=u16`, `5=i32`, `6=u32`, `7=i64`, `8=u64`, `9=f16`, `10=bf16`, `11=f32`, `12=f64`.
 Packed-vector ID is SHA-256 over `"CVA-PACKED-VECTOR-V1\0"`, dimensions, scalar tag, and exact matrix bytes.
-Freshness P2 changes only transient event scheduling and whether diagnostic counters are collected. It adds no persisted chunk, magic, version, or score-policy change.
+Freshness P2 changes only transient event scheduling and whether diagnostic counters are collected. P4 adds a fixed 8,192-byte receipt membership bitset and completeness flag as owner-local, rebuildable acceleration state; it is never serialized, and exact positive lookup and canonical replay still read the accepted journal. These phases add no persisted chunk, magic, version, identity encoding, accepted effect, or score-policy change.
 
 ### Dream Freshness pass journal (`CVDREAM1`)
 

@@ -24,8 +24,14 @@ fn sample(stage: &str, elapsed_ns: u128, events: usize, roots: usize) {
     } else {
         events as f64 * 1_000_000_000.0 / elapsed_ns as f64
     };
+    let (graph_nodes, active_memory_edges, published_memories) =
+        if std::env::var_os("RELIQUARY_FRESHNESS_HISTORY_DEPTH").is_some() {
+            (0, 0, 64)
+        } else {
+            (12, 15, 68)
+        };
     println!(
-        "{{\"kind\":\"freshness_operation_sample\",\"scenario\":\"deterministic_synthetic_rel\",\"stage\":\"{stage}\",\"elapsed_ns\":{elapsed_ns},\"event_count\":{events},\"events_per_second\":{rate},\"root_count\":{roots},\"community_snapshot\":\"absent; all origins unknown\",\"graph_nodes\":68,\"active_memory_edges\":15,\"runtime_mutex_wait_ns\":null,\"real_host_latency_ns\":null}}"
+        "{{\"kind\":\"freshness_operation_sample\",\"scenario\":\"deterministic_synthetic_rel\",\"stage\":\"{stage}\",\"elapsed_ns\":{elapsed_ns},\"event_count\":{events},\"events_per_second\":{rate},\"root_count\":{roots},\"community_snapshot\":\"absent; all origins unknown\",\"graph_nodes\":{graph_nodes},\"active_memory_edges\":{active_memory_edges},\"published_memories\":{published_memories},\"runtime_mutex_wait_ns\":null,\"real_host_latency_ns\":null}}"
     );
 }
 
@@ -55,6 +61,86 @@ fn draft(mutation_id: &str, title: &str) -> MemoryDraft {
     }
 }
 
+fn history_sample(
+    mut cva: Cva,
+    roots: Vec<MemoryId>,
+    path: &std::path::Path,
+    depth: usize,
+    batch: usize,
+) -> Result<(), Box<dyn Error>> {
+    if ![1, 4, 16, 64].contains(&batch) {
+        return Err("history batch must be 1/4/16/64".into());
+    }
+    let owner_uuid = cva.owner_uuid().ok_or("owner missing")?;
+    for index in 0..depth {
+        cva.record_accepted_memory_use(
+            AcceptedMemoryUseReceipt {
+                owner_uuid,
+                accepted_turn: cva.rel_turn_count(),
+                use_id: format!("history-use-{index:08}"),
+                memories: vec![roots[index % roots.len()]],
+            },
+            1,
+        )?;
+    }
+    // Clear bounded seed traces before timing the selected stationary history cut.
+    cva.freshness_trace_flush();
+    let receipt = AcceptedMemoryUseReceipt {
+        owner_uuid,
+        accepted_turn: cva.rel_turn_count(),
+        use_id: format!("history-use-{depth:08}"),
+        memories: roots[..batch].to_vec(),
+    };
+    let bytes_before = fs::metadata(path)?.len();
+    let started = Instant::now();
+    let applied = cva.record_accepted_memory_use(receipt.clone(), 4)?;
+    sample(
+        "history_accepted_use",
+        started.elapsed().as_nanos(),
+        applied,
+        batch,
+    );
+    cva.freshness_trace_flush();
+    let bytes_after = fs::metadata(path)?.len();
+    let started = Instant::now();
+    if cva.record_accepted_memory_use(receipt, 4)? != 0 {
+        return Err("exact retry reinforced twice".into());
+    }
+    sample(
+        "history_exact_retry",
+        started.elapsed().as_nanos(),
+        0,
+        batch,
+    );
+    cva.freshness_trace_flush();
+    let records = roots
+        .iter()
+        .map(|id| cva.freshness_record(*id))
+        .collect::<Vec<_>>();
+    let historical = roots
+        .iter()
+        .map(|id| cva.freshness_record_at(*id, 0))
+        .collect::<Result<Vec<_>, _>>()?;
+    drop(cva);
+    let reopened = Cva::open(path)?;
+    let after = roots
+        .iter()
+        .map(|id| reopened.freshness_record(*id))
+        .collect::<Vec<_>>();
+    if records != after {
+        return Err("history records changed on reopen".into());
+    }
+    println!(
+        "{}",
+        serde_json::json!({
+            "kind": "freshness_history_identity", "history_depth": depth, "batch": batch,
+            "payload_bytes": bytes_after - bytes_before - 8, "events": applied,
+            "records": format!("{records:?}"), "historical_records": format!("{historical:?}")
+        })
+    );
+    Ok(())
+}
+
 fn run() -> Result<(), Box<dyn Error>> {
     let path: PathBuf =
         std::env::temp_dir().join(format!("freshness-baseline-{}.rel", Uuid::new_v4()));
@@ -71,6 +157,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         roots.push(root.id);
     }
     let owner_uuid = cva.owner_uuid().ok_or("new REL has no owner UUID")?;
+    if let Ok(depth) = std::env::var("RELIQUARY_FRESHNESS_HISTORY_DEPTH") {
+        let depth = depth.parse::<usize>()?;
+        let batch = std::env::var("RELIQUARY_FRESHNESS_HISTORY_BATCH")?.parse::<usize>()?;
+        return history_sample(cva, roots, &path, depth, batch);
+    }
     let mut dream_sources = Vec::new();
     for root_count in [1_usize, 2, 4, 8] {
         let mutation_id = format!("trace-dream-source-{root_count:02}-v1");

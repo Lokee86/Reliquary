@@ -6,7 +6,7 @@ Parent: [Documentation index](INDEX.md).
 
 Finish the remaining Freshness performance work through P4 without reviving the speculative machinery removed from the roadmap.
 
-This plan is a handoff/execution specification. It begins from accepted P1 commit `cdb0716412cba07fba61a820b88139e9bccfa19a`, the current uncommitted P2 delta in `C:\!bin\workspace\Reliquary-freshness-performance`, and the accepted P0 measurement evidence. Stop after P4 acceptance. P5/P6, Ego delivery, F8 semantic reinforcement and historical-import simulation are outside this plan.
+This plan records the completed execution. It began from accepted P1 commit `cdb0716412cba07fba61a820b88139e9bccfa19a`, the then-uncommitted P2 delta in `C:\!bin\workspace\Reliquary-freshness-performance`, and the accepted P0 measurement evidence. Stop after P4 acceptance. P5/P6, Ego delivery, F8 semantic reinforcement and historical-import simulation are outside this plan.
 
 The governing rule is simple: **measure first, retain only machinery that pays for itself**.
 
@@ -23,7 +23,7 @@ P0 is accepted and identified the useful performance facts:
 - append/sync was comparatively small;
 - historical Dream preparation measured milliseconds on the small fixture but large-history scaling is still unknown.
 
-Execution checkpoint 2026-10-04: P1 and fixed-rule P2 are accepted; P3 is documented as deferred/no change. The adaptive estimator and exploratory tooling have been removed. P4 profiling is next. See the P2 verification report for final evidence and limitations.
+Execution checkpoint 2026-10-04: P1 and fixed-rule P2 are accepted; P3 is deferred/no change; P4 is accepted with one fixed, rebuildable negative receipt membership hint after profiling identified repeated normal-path durable scans as dominant. Both preappend and ingest projections remain intact. The [P2 report](freshness-performance-p2-verification-2026-10-03.md) and [P4 report](freshness-performance-p4-verification-2026-10-04.md) freeze evidence and limits. This execution is complete and stops here; P5/P6, F8 and Ego delivery remain outside scope.
 
 ## Non-negotiable invariants
 

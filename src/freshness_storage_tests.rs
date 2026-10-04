@@ -652,3 +652,155 @@ fn long_owner_reopen_keeps_finite_receipts_and_exact_evicted_retry() {
     }
     std::fs::remove_file(path).unwrap();
 }
+
+#[test]
+fn membership_hint_preserves_evicted_retry_collision_history_and_rebuild() {
+    let path =
+        std::env::temp_dir().join(format!("freshness-membership-{}.rel", uuid::Uuid::new_v4()));
+    let mut container = crate::Container::create(&path).unwrap();
+    let mut store = enrolled();
+    // Exact scan fallback needs a valid physical prefix, even with no receipts.
+    container.append(b"membership-fixture").unwrap();
+    container.sync().unwrap();
+    store.bind_history_path(&path, std::fs::metadata(&path).unwrap().len());
+    store.finish_rebuild().unwrap();
+    let owner = [7; 16];
+    let source = MemoryId([1; 32]);
+    let proof = FreshnessEventProof {
+        graph_version: 0,
+        community_generation: None,
+        community_graph_version: None,
+    };
+    for n in 0..160 {
+        let payload = store
+            .prepare_accepted_use_batch(
+                owner,
+                format!("hint-{n:08}"),
+                n * 17,
+                vec![source],
+                proof,
+                vec![BTreeMap::from([(source, 25)])],
+            )
+            .unwrap();
+        let mut without_hint = store.clone();
+        without_hint.receipt_membership.invalidate();
+        let exact_payload = without_hint
+            .prepare_accepted_use_batch(
+                owner,
+                format!("hint-{n:08}"),
+                n * 17,
+                vec![source],
+                proof,
+                vec![BTreeMap::from([(source, 25)])],
+            )
+            .unwrap();
+        assert_eq!(
+            payload, exact_payload,
+            "hint changed immutable effects/proof/receipt encoding"
+        );
+        container.append(&payload).unwrap();
+        container.sync().unwrap();
+        store.ingest_appended(&payload).unwrap();
+    }
+    let mut exact = store.clone();
+    exact.receipt_membership.invalidate();
+    for (id, turn) in [
+        ("hint-00000000", 0),
+        ("hint-00000159", 159 * 17),
+        ("unseen", 0),
+    ] {
+        assert_eq!(
+            store.resolve_accepted_use(id, turn, &[source]).unwrap(),
+            exact.resolve_accepted_use(id, turn, &[source]).unwrap()
+        );
+    }
+    assert!(
+        store
+            .resolve_accepted_use("hint-00000000", 1, &[source])
+            .is_err()
+    );
+    let event_id = accepted_event_id(owner, "hint-00000000", source);
+    assert_eq!(
+        store.find_event(&event_id).unwrap(),
+        exact.find_event(&event_id).unwrap()
+    );
+    assert!(store.find_event(&event_id).unwrap().is_some());
+    assert_eq!(
+        store.records_at(17 * 80).unwrap(),
+        exact.records_at(17 * 80).unwrap()
+    );
+    assert_eq!(store.recent_receipt_stats(), exact.recent_receipt_stats());
+    assert!(store.recent_receipt_stats().0 <= 128);
+    assert!(store.recent_receipt_stats().1 <= 256 * 1024);
+    let mut rebuilt = enrolled();
+    rebuilt.bind_history_path(&path, 0);
+    rebuilt.begin_rebuild();
+    container
+        .visit_payloads::<crate::CvaError>(|object, payload| {
+            let location = object.legacy_bytes();
+            let end = u64::from_le_bytes(location[..8].try_into().unwrap())
+                + 8
+                + u64::from_le_bytes(location[8..].try_into().unwrap());
+            rebuilt
+                .ingest_scanned(payload, end)
+                .map_err(crate::CvaError::Freshness)
+        })
+        .unwrap();
+    rebuilt.finish_rebuild().unwrap();
+    assert_eq!(rebuilt.records, store.records);
+    assert_eq!(
+        rebuilt
+            .resolve_accepted_use("hint-00000000", 0, &[source])
+            .unwrap(),
+        store
+            .resolve_accepted_use("hint-00000000", 0, &[source])
+            .unwrap()
+    );
+    assert_eq!(
+        rebuilt.records_at(17 * 80).unwrap(),
+        store.records_at(17 * 80).unwrap()
+    );
+    // A rebind to an unobserved prefix must restore the exact scan fallback.
+    rebuilt.bind_history_path(&path, 0);
+    assert!(rebuilt.receipt_membership.may_contain(0, "never-seen"));
+    drop(container);
+    std::fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn rejected_preparation_and_ingest_do_not_change_membership_or_records() {
+    let mut store = enrolled();
+    let source = MemoryId([1; 32]);
+    let proof = FreshnessEventProof {
+        graph_version: 0,
+        community_generation: None,
+        community_graph_version: None,
+    };
+    let before = format!("{:?}", store);
+    assert!(
+        store
+            .prepare_accepted_use_batch(
+                [8; 16],
+                "bad-owner".into(),
+                0,
+                vec![source],
+                proof,
+                vec![BTreeMap::from([(source, 25)])]
+            )
+            .is_err()
+    );
+    assert_eq!(format!("{:?}", store), before);
+    let payload = store
+        .prepare_accepted_use_batch(
+            [7; 16],
+            "unappended".into(),
+            0,
+            vec![source],
+            proof,
+            vec![BTreeMap::from([(source, 25)])],
+        )
+        .unwrap();
+    assert_eq!(format!("{:?}", store), before);
+    assert!(store.ingest(&payload[..payload.len() - 1]).is_err());
+    assert_eq!(format!("{:?}", store), before);
+}

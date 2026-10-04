@@ -174,6 +174,10 @@ Before whole-CVA rollback ships, tests must define timeline selection across Arc
 
 Before persistent checkpoints are added, larger-scale benchmarks must show that the remaining single-pass scan cost justifies the additional derived-state machinery.
 
+## Freshness bounded receipt lookup
+
+A fixed negative membership hint may skip a durable scan only for a proven absent use/event identity in the validated owner-local prefix. Positive/incomplete/saturated hints retain exact lookup; path/prefix rebind invalidates the hint and a complete rebuild re-enables it. The recent receipt cache remains 128 entries/256 KiB; the extra bitset is fixed at 8,192 bytes plus its completeness flag. `freshness_storage::tests::membership_hint_preserves_evicted_retry_collision_history_and_rebuild` compares exact encoded effects/receipts with hints disabled and covers evicted use/event retries, collisions, historical records, rebuild and bounds. `rejected_preparation_and_ingest_do_not_change_membership_or_records` checks no mutation on rejection or unappended preparation; membership unit tests cover incomplete and saturated hints. Actual final-source outcomes belong to [P4 verification](freshness-performance-p4-verification-2026-10-04.md).
+
 ## Freshness independent performance oracle
 
 Independent oracle tests compare exact maps and input order. Fixed-seed batches exercise both sides of the 16-event threshold. Internal fixed-planner tests inject event counts 0/1/15/16/17, caller caps 0/1/2/4/8/64 and hardware budgets 0/1/2/4/8. Candidate/stats paths preserve empty, excluded and disconnected outputs; invalid policy/principals reject before dispatch; all worker handles join before WorkerFailure is returned. Public statistics remain per-event serial-frontier counts. See the [P2 verification report](freshness-performance-p2-verification-2026-10-03.md).

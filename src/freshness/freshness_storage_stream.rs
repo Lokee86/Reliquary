@@ -13,12 +13,21 @@ pub(crate) fn scan_entries(
     prefix_end: u64,
     mut visitor: impl FnMut([u8; 16], JournalEntry) -> Result<(), String>,
 ) -> Result<(), String> {
+    #[cfg(feature = "freshness-performance-trace")]
+    let started = std::time::Instant::now();
+    #[cfg(feature = "freshness-performance-trace")]
+    let (mut bytes, mut chunks) = (0u64, 0u64);
     let mut container =
         Container::open_read_only_for_scan(path).map_err(|error| error.to_string())?;
     let mut callback_error: Option<String> = None;
 
     container
         .visit_payloads_through::<CvaError>(prefix_end, |_, payload| {
+            #[cfg(feature = "freshness-performance-trace")]
+            {
+                bytes += payload.len() as u64;
+                chunks += 1;
+            }
             if callback_error.is_some() {
                 return Ok(());
             }
@@ -43,5 +52,15 @@ pub(crate) fn scan_entries(
         })
         .map_err(|error| error.to_string())?;
 
+    #[cfg(feature = "freshness-performance-trace")]
+    crate::freshness_trace::record(
+        "freshness.history.scan",
+        started.elapsed().as_nanos(),
+        crate::freshness_trace::Counts {
+            payload_bytes: Some(bytes),
+            chunks_visited: Some(chunks),
+            ..Default::default()
+        },
+    );
     callback_error.map_or(Ok(()), Err)
 }
