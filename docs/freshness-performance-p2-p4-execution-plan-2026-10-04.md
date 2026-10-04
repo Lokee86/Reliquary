@@ -453,3 +453,5 @@ Temporary P2 adaptive-estimator tooling should not survive merely because it alr
 Stop after P4 acceptance/null-result documentation.
 
 Do not begin P5 breadth/policy work or P6 integrated release work under this plan.
+
+Subsequent P6 integrated local verification is complete: [P6 integrated verification](freshness-performance-verification-2026-10-03.md). This preserves the completed P2–P4 scope and adds no P3 cache or v1 policy change.

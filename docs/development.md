@@ -490,7 +490,7 @@ python scripts/freshness_performance_compare.py baseline.json candidate.json
 cargo run --release --locked --features freshness-performance-trace --example freshness_operation_baseline
 ```
 
-Set `RELIQUARY_FRESHNESS_TRACE=1` for stage rows. The diagnostic feature is opt-in; the default build has no trace collection or diagnostic fixture adapter. Trace rows are buffered and flushed outside measured operations. The comparison command refuses changed workload/projection/effect identities; changed effective worker strategy remains comparable under the same requested cap. Attach `build_metadata` (`profile`, `rustc`, `cargo_lock_sha256`, `features`) to captured JSON before claiming matched optimized identity. Missing metadata is explicitly unqualified. [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns acceptance and missing measurements.
+Set `RELIQUARY_FRESHNESS_TRACE=1` for stage rows. The diagnostic feature is opt-in; the default build has no trace collection or diagnostic fixture adapter. Trace rows are buffered and flushed outside measured operations. The comparison command refuses changed workload/projection/effect identities; changed effective worker strategy remains comparable under the same requested cap. Attach `build_metadata` (`profile`, `rustc`, `cargo_lock_sha256`, `features`) to captured JSON before claiming matched optimized identity. Missing metadata is explicitly unqualified. [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns the baseline; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final local acceptance and remaining measurements.
 
 ## Related docs
 
@@ -511,3 +511,15 @@ The current library has a synchronous per-turn ingestion primitive, transport-ne
 ## Freshness P5 breadth diagnostic
 
 Build with `cargo build --release --locked -j2 --example freshness_breadth` in the existing isolated performance target. Run `python scripts/freshness_breadth_report.py --binary <target>/release/examples/freshness_breadth.exe`; the collector resolves the three pinned authoritative fixtures under the sibling `reliquary-fixtures` repository and freezes `benchmarks/freshness-p5-breadth-2026-10-04.zip`. The example also accepts `--fixture <REL> --sha256 <digest>`; no arguments select synthetic topology. It opens only hash-verified disposable copies, uses existing production propagation and compares unknown membership with independent shortest-path arithmetic. Output is prospective positive-effect reach, effect/hop/origin histograms and examined edges per recipient; it measures neither stored-score trajectories nor latency. See [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) for sampling, the active-graph denominator, source custody, full results and policy disposition.
+
+## Freshness P6 matched release verification
+
+`scripts/freshness_release_verification.py` compares frozen P0/final release executables built from identical diagnostic examples and the trace feature. Preserve compiler logs and complete source hashes. Use separate Cargo targets, or force recompilation of the second checkout's crate and examples: a shared target can reuse artifacts across equal package identities. The collector rejects identical baseline/candidate binary hashes. The P6 archive includes the harness with normalized current/historical record output emitted after timing.
+
+Place `baseline-propagation.exe`, `candidate-propagation.exe`, `baseline-operation.exe`, `candidate-operation.exe` and `BUILD-SOURCES.json` in the parent of the output directory:
+
+```text
+python scripts/freshness_release_verification.py --out <frozen-build-directory>/measurement --rounds 3 --repetitions 11 --operation-rounds 9 --history-rounds 3
+```
+
+Variants alternate under compiler/indexer guards. The collector preserves raw samples and checks exact propagation maps, current/historical records and reopen. It covers synthetic/three real topologies, complete accepted-use/initial-Dream/reopen operations, and source-only history depths 160/1024 at batches 1/64. Trace parents are inclusive. Sample p95/p99 are not reliable production tails. Windows peak process working set is not allocator peak heap. Host/provider latency and production event frequencies remain unavailable. [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final evidence and disposition.
