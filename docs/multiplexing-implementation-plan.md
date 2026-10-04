@@ -112,7 +112,7 @@ The [Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) is now 
 
 ### Phase 2 — PHY registry, private access and work ownership
 
-**Status: R2.1–R2.7 verified; local Phase 2 packaging in progress.** Exact PHY workers, durable User/explicit Agent attribution, frozen multi-principal publication and withdrawal, restart recovery, private retrieval/profile isolation, pending-work lifecycle and the expanded hard-cut guards pass production acceptance and the final library/integration/CLI matrix. The completed R2.7 gate in the [Phase 2 implementation plan](multiplexing-phase2-implementation-plan-2026-10-04.md) owns broad regression and commit evidence.
+**Status: R2.1–R2.7 complete and verified; committed locally on feat/multiplexing-phase2.** Exact PHY workers, durable User/explicit Agent attribution, frozen multi-principal publication and withdrawal, restart recovery, private retrieval/profile isolation, pending-work lifecycle and the expanded hard-cut guards pass production acceptance and the final library/integration/CLI matrix. The completed R2.7 gate in the [Phase 2 implementation plan](multiplexing-phase2-implementation-plan-2026-10-04.md) owns broad regression and commit evidence.
 
 - **2.1** Deepen the existing gateway PHY registry into one execution/worker owner per durable PHY; same-principal instances share it and different principals cannot alias it.
 - **2.2** Remove Phylactery, personal profile and personal worker state from REL `OwnerExecution`; split vectors/Dream/Perception into REL-local and PHY-local execution.

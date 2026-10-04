@@ -1,12 +1,12 @@
 # Multiplexing Phase 2 — PHY ownership and private processing implementation plan
 
-Parent: [Multiplexing implementation plan](multiplexing-implementation-plan.md)  
-Foundation: [Phase 1 finish record](multiplexing-phase1-finish-plan-2026-10-04.md)  
-Personal-publication contract: [Phase 0B G2](multiplexing-phase0b-personal-publication.md)  
-Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
-Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
-Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **R2.1–R2.7 verified; local packaging in progress**  
+Parent: [Multiplexing implementation plan](multiplexing-implementation-plan.md)
+Foundation: [Phase 1 finish record](multiplexing-phase1-finish-plan-2026-10-04.md)
+Personal-publication contract: [Phase 0B G2](multiplexing-phase0b-personal-publication.md)
+Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)
+Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)
+Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)
+Status: **R2.1–R2.7 complete and verified; committed locally on feat/multiplexing-phase2**
 Required base: `feat/multiplexing-phase1` at or after `c65aa81213307a1f382df7cc46f4e64b53c89113`
 
 ## Purpose
@@ -28,7 +28,7 @@ Phase 1 already provides the pieces Phase 2 must reuse rather than duplicate:
 - process-local legacy/gateway exclusion;
 - a clean committed Phase 1 branch.
 
-The original mixed REL/PHY execution coupling has now been substantially extracted in the Phase 2 worktree. New `RelRuntime` and `PhyRuntime` implementations split REL and personal vectors/Dream/Perception execution, `PhyExecution` owns one personal worker set plus lifecycle fencing, the gateway enforces stable principal→PHY binding, and a new instance-authorized semantic layer exists. The legacy single-user `ReliquaryRuntimeHost` still contains its old ambient PHY fields by design until Phase 5, but the Phase 2 ownership guard reports **zero violations in the new gateway/per-PHY production modules**. Private retrieval/profile isolation, pending-work lifecycle and the final hard-cut audit are verified. The final matrix is recorded below; local packaging is in progress.
+The original mixed REL/PHY execution coupling has now been substantially extracted in the Phase 2 worktree. New `RelRuntime` and `PhyRuntime` implementations split REL and personal vectors/Dream/Perception execution, `PhyExecution` owns one personal worker set plus lifecycle fencing, the gateway enforces stable principal→PHY binding, and a new instance-authorized semantic layer exists. The legacy single-user `ReliquaryRuntimeHost` still contains its old ambient PHY fields by design until Phase 5, but the Phase 2 ownership guard reports **zero violations in the new gateway/per-PHY production modules**. Private retrieval/profile isolation, pending-work lifecycle and the final hard-cut audit are verified. The final matrix and local packaging are recorded below.
 
 Phase 2 replaces that coupling with explicit owner-local execution:
 
@@ -119,7 +119,7 @@ The implementation has advanced well past P2.0:
 - **P2.6 — implemented and verified.** Explicit A/B projection retains both original capabilities and the private mount through REL commit. Exact-PHY profile mutation and REL projection wake only their respective owners.
 - **P2.7 — implemented and verified.** Offline/quiesced exact plans, reopen/remount, admitted-write draining, stale tokens, unrelated background vectors and attachment churn pass production acceptance.
 - **P2.8 — implemented and verified.** Both canonical guards cover gateway and concrete REL/PHY production modules, reject legacy ownership/ambient selection, and pass negative probes. The isolated old host remains Phase 5.
-- **P2.9 — verified; local packaging in progress.** The final library, integration, CLI, consumer-audit and documentation gates pass. The inherited example allocator conflict and bounded architecture timeout are recorded separately below.
+- **P2.9 — complete and verified.** The final library, integration, CLI, consumer-audit and documentation gates pass. The inherited example allocator conflict and bounded architecture timeout are recorded separately below.
 
 R2.1 restored the compile checkpoint: formatting, diff-check, `cargo check --locked -j 2` and the enforced ownership guard passed. After durable User-attribution integration, `cargo test --locked --lib gateway:: -j 2` passed **86/86**, including six activated owner-operation journal cases and three new admission/restart/corruption cases. Publication scaffolding remains unused until R2.3. This is focused evidence, not the final Phase 2 matrix.
 
@@ -133,7 +133,7 @@ Finish Phase 2 in this order; do not reopen completed extraction work unless a f
 4. **R2.4 — close private access and profile projection (finish P2.5/P2.6; complete).** Complete owner-qualified search/retrieval where needed; prove same-REL/different-PHY privacy, guessed-PHY denial, dependency grant isolation, revoke-during-embedding no-delivery, explicit A/B principal profile projection, and owner-local wakeups.
 5. **R2.5 — close PHY lifecycle around pending routed work (finish P2.7; complete).** Prove quiesced/offline target plans remain Held without retargeting, reopen resumes exact owner work, stale tokens fail, unrelated REL/PHY owners keep progressing, and attach/detach churn never duplicates worker sets.
 6. **R2.6 — final hard-cut audit (finish P2.8; complete).** Keep `check_multiplexing_phase2_ownership.py --enforce` green, verify the new gateway never calls legacy ambient personal APIs, and remove any extraction-only forwarding seam introduced during R2.2–R2.5. Do not delete the old host.
-7. **R2.7 — final verification/package (P2.9; verification complete, packaging in progress).** Run the complete Phase 2 matrix from the spec, update current-state docs, record inherited unrelated failures separately, and commit coherent Phase 2 changes on `feat/multiplexing-phase2`.
+7. **R2.7 — final verification/package (P2.9; complete).** Run the complete Phase 2 matrix from the spec, update current-state docs, record inherited unrelated failures separately, and commit coherent Phase 2 changes on `feat/multiplexing-phase2`.
 
 The Phase 2 exit decision must be based on R2.1–R2.7, not merely on the existence of the new runtime modules.
 
@@ -369,7 +369,7 @@ Add a source guard covering the new gateway/per-PHY production modules so regres
 
 **Exit:** new gateway execution has exactly one personal ownership model: `GatewayRuntime::phy_executions[owner_id]`.
 
-### P2.9 — Final verification and packaging *(verified; packaging in progress)*
+### P2.9 — Final verification and packaging *(complete and verified)*
 
 Run the final matrix serially against the finished Phase 2 source.
 
@@ -695,4 +695,4 @@ Architecture impact:
 - Other verification impact: full library/integration/CLI/consumer-audit acceptance and both documentation checks passed.
 - Known architectural gaps: refreshed Arcana/Pitlord evidence is unavailable after the bounded indexing timeout; the inherited example allocator conflict prevents an unrestricted Cargo test pass. Neither is represented as a green gate.
 
-Local packaging on `feat/multiplexing-phase2` follows this verified checkpoint. No merge or push to `main` is authorized or performed.
+Local implementation commit: `f399d3c3e0676de826b98f92d511a20f434d9843` on `feat/multiplexing-phase2`. This completion record is packaged in a following documentation commit. Both required documentation-policy modes and diff/format checks passed after the final current-state update. Phase 2 exit conditions are satisfied within the documented supported boundary; Phase 3–5 remains separate. No merge or push to `main` was performed.
