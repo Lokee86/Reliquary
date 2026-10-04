@@ -95,7 +95,7 @@ Archive inspection is read-only. `archive conversations` uses the public current
 
 ## Verification
 
-The CLI package has its own lockfile and must be checked separately from the library package:
+The CLI package has its own lockfile and must be checked separately from the library package. The Phase 1 gateway/journal adds normal library serialization dependencies, so its independent lockfile must reflect that public-library dependency graph. This compatibility check does not migrate the CLI command surface to GatewayRuntime; downstream gateway integration remains Phase 5.
 
 ```text
 cargo fmt --manifest-path cli/Cargo.toml -- --check

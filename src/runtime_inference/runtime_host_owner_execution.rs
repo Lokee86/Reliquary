@@ -7,12 +7,6 @@ use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub(super) struct ManagedSessionState {
-    pub(super) active_session_id: Option<String>,
-    pub(super) reopened_session_pending: bool,
-}
-
 pub(super) struct Shared {
     pub(super) runtime: Arc<Mutex<InteractionRuntime>>,
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
@@ -45,7 +39,7 @@ pub(super) struct OwnerExecution {
     pub(super) insomnia_enabled: Arc<AtomicBool>,
     pub(super) insomnia_backpressure_until_ns: Arc<AtomicI64>,
     pub(super) episode_policy: EpisodePolicy,
-    pub(super) managed_session: Mutex<ManagedSessionState>,
+    config: InsomniaWorkerConfig,
     workers: Vec<JoinHandle<Result<(), ReliquaryRuntimeHostError>>>,
 }
 
@@ -115,9 +109,58 @@ impl OwnerExecution {
             insomnia_enabled,
             insomnia_backpressure_until_ns,
             episode_policy,
-            managed_session: Mutex::new(ManagedSessionState::default()),
+            config,
             workers,
         }
+    }
+
+    pub(super) fn workers_stopped(&self) -> bool {
+        self.workers.is_empty()
+    }
+
+    pub(super) fn restart_workers(&mut self) -> Result<(), ReliquaryRuntimeHostError> {
+        if !self.workers.is_empty() {
+            return Ok(());
+        }
+        let runtime = self.runtime.as_ref().cloned().ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("Reliquary runtime is unavailable".into())
+        })?;
+        {
+            let (control, wake) = &*self.signal;
+            let mut control = control
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            control.stop = false;
+            control.epoch = control.epoch.wrapping_add(1);
+            wake.notify_all();
+        }
+        let shared = Arc::new(Shared {
+            runtime,
+            signal: Arc::clone(&self.signal),
+            routes: Arc::clone(&self.routes),
+            phylactery: Arc::clone(&self.phylactery),
+            phylactery_enabled: Arc::clone(&self.phylactery_enabled),
+            memory_profiles: Arc::clone(&self.memory_profiles),
+            perception_queue: Arc::clone(&self.perception_queue),
+            insomnia_enabled: Arc::clone(&self.insomnia_enabled),
+            insomnia_backpressure_until_ns: Arc::clone(&self.insomnia_backpressure_until_ns),
+            config: self.config.clone(),
+            episode_policy: self.episode_policy,
+        });
+        for index in 0..self.config.workers {
+            let shared = Arc::clone(&shared);
+            self.workers
+                .push(thread::spawn(move || insomnia::worker_loop(shared, index)));
+        }
+        for worker in [
+            vectors::worker_loop as fn(Arc<Shared>) -> Result<(), ReliquaryRuntimeHostError>,
+            dream::worker_loop as fn(Arc<Shared>) -> Result<(), ReliquaryRuntimeHostError>,
+            perception::worker_loop as fn(Arc<Shared>) -> Result<(), ReliquaryRuntimeHostError>,
+        ] {
+            let shared = Arc::clone(&shared);
+            self.workers.push(thread::spawn(move || worker(shared)));
+        }
+        Ok(())
     }
 
     pub(super) fn stop_workers(&mut self) -> Result<(), ReliquaryRuntimeHostError> {
@@ -129,10 +172,18 @@ impl OwnerExecution {
             control.stop = true;
             signal.notify_all();
         }
+        let mut failure = None;
         for worker in self.workers.drain(..) {
-            worker
-                .join()
-                .map_err(|_| ReliquaryRuntimeHostError::ThreadPanicked)??;
+            match worker.join() {
+                Err(_) if failure.is_none() => {
+                    failure = Some(ReliquaryRuntimeHostError::ThreadPanicked)
+                }
+                Ok(Err(error)) if failure.is_none() => failure = Some(error),
+                _ => {}
+            }
+        }
+        if let Some(error) = failure {
+            return Err(error);
         }
         Ok(())
     }

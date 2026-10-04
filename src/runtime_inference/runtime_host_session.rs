@@ -1,9 +1,39 @@
-use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation};
+use super::{
+    LegacyManagedSessionState, ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation,
+};
 use crate::{InteractionCompletion, InteractionReceipt, InteractionRole, InteractionSession};
 use std::path::PathBuf;
 use uuid::Uuid;
 
 impl ReliquaryRuntimeHost {
+    fn managed_session_state(
+        &self,
+        owner_id: &str,
+    ) -> Result<LegacyManagedSessionState, ReliquaryRuntimeHostError> {
+        self.execution_for(owner_id)?;
+        Ok(self
+            .managed_sessions
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .get(owner_id)
+            .cloned()
+            .unwrap_or_default())
+    }
+
+    fn update_managed_session_state(
+        &self,
+        owner_id: &str,
+        f: impl FnOnce(&mut LegacyManagedSessionState),
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        self.execution_for(owner_id)?;
+        let mut sessions = self
+            .managed_sessions
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        f(sessions.entry(owner_id.to_owned()).or_default());
+        Ok(())
+    }
+
     pub fn active_session_id(&self) -> Result<Option<String>, ReliquaryRuntimeHostError> {
         let owner_id = self
             .active_rel_id()
@@ -15,12 +45,7 @@ impl ReliquaryRuntimeHost {
         &self,
         owner_id: &str,
     ) -> Result<Option<String>, ReliquaryRuntimeHostError> {
-        let state = self
-            .execution_for(owner_id)?
-            .managed_session
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        Ok(state.active_session_id.clone())
+        Ok(self.managed_session_state(owner_id)?.active_session_id)
     }
 
     pub fn require_active_session(
@@ -50,13 +75,10 @@ impl ReliquaryRuntimeHost {
                 .open_session(session_id.clone(), None)
                 .map_err(operation)
         })?;
-        let mut state = self
-            .execution_for(&owner_id)?
-            .managed_session
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        state.active_session_id = Some(session_id);
-        state.reopened_session_pending = false;
+        self.update_managed_session_state(&owner_id, |state| {
+            state.active_session_id = Some(session_id);
+            state.reopened_session_pending = false;
+        })?;
         Ok(session)
     }
 
@@ -82,13 +104,10 @@ impl ReliquaryRuntimeHost {
             }
             Ok(session)
         })?;
-        let mut state = self
-            .execution_for(&owner_id)?
-            .managed_session
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        state.active_session_id = Some(session_id);
-        state.reopened_session_pending = true;
+        self.update_managed_session_state(&owner_id, |state| {
+            state.active_session_id = Some(session_id);
+            state.reopened_session_pending = true;
+        })?;
         Ok(session)
     }
 
@@ -100,12 +119,9 @@ impl ReliquaryRuntimeHost {
         let owner_id = self
             .active_rel_id()
             .ok_or_else(|| operation("Reliquary runtime has no active REL"))?;
-        let state = self
-            .execution_for(&owner_id)?
-            .managed_session
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        Ok(state.reopened_session_pending)
+        Ok(self
+            .managed_session_state(&owner_id)?
+            .reopened_session_pending)
     }
 
     pub fn mark_reopened_session_resumed(
@@ -116,13 +132,9 @@ impl ReliquaryRuntimeHost {
         let owner_id = self
             .active_rel_id()
             .ok_or_else(|| operation("Reliquary runtime has no active REL"))?;
-        let mut state = self
-            .execution_for(&owner_id)?
-            .managed_session
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        state.reopened_session_pending = false;
-        Ok(())
+        self.update_managed_session_state(&owner_id, |state| {
+            state.reopened_session_pending = false;
+        })
     }
 
     pub fn close_active_session(
@@ -138,14 +150,7 @@ impl ReliquaryRuntimeHost {
         &self,
         owner_id: &str,
     ) -> Result<Option<InteractionSession>, ReliquaryRuntimeHostError> {
-        let session_id = {
-            let state = self
-                .execution_for(owner_id)?
-                .managed_session
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            state.active_session_id.clone()
-        };
+        let session_id = self.managed_session_state(owner_id)?.active_session_id;
         let Some(session_id) = session_id else {
             return Ok(None);
         };
@@ -162,13 +167,10 @@ impl ReliquaryRuntimeHost {
                 Ok(())
             })?;
         }
-        let mut state = self
-            .execution_for(owner_id)?
-            .managed_session
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        state.active_session_id = None;
-        state.reopened_session_pending = false;
+        self.update_managed_session_state(owner_id, |state| {
+            state.active_session_id = None;
+            state.reopened_session_pending = false;
+        })?;
         Ok(Some(session))
     }
 

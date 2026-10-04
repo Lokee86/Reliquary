@@ -23,7 +23,8 @@ fn embedding_probe_does_not_hold_the_interaction_runtime_lock() {
         ReliquaryRuntimeRoutes::new(None, None, None, None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     entered.wait();
     host.open_session("live".into(), None).unwrap();
@@ -45,7 +46,8 @@ fn embedding_route_can_be_attached_after_memory_creation() {
         ReliquaryRuntimeRoutes::new(Some(memory_endpoint()), None, None, None, None),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     wait_memory(&host, 1);
     assert_eq!(host.memory_vector_stats().unwrap().bindings, 0);
@@ -105,7 +107,8 @@ fn live_transcript_search_uses_embedding_route_and_branch_scope() {
         ReliquaryRuntimeRoutes::new(None, None, None, None, Some(Arc::new(endpoint))),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
     host.open_session("live".into(), Some("left-2".into()))
         .unwrap();
 

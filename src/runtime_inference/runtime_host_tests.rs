@@ -42,7 +42,8 @@ fn inference_does_not_hold_the_interaction_runtime_lock() {
             episode: EpisodeConfig::default(),
             inactivity_ns: i64::MAX,
         },
-    );
+    )
+    .unwrap();
 
     entered.wait();
     host.open_session("live".into(), None).unwrap();
@@ -69,7 +70,8 @@ fn live_completion_wakes_idle_insomnia_workers() {
         ReliquaryRuntimeRoutes::new(Some(Arc::new(OmitEndpoint)), None, None, None, None),
         one_worker(),
         policy,
-    );
+    )
+    .unwrap();
 
     host.open_session("live".into(), None).unwrap();
     host.begin_message("live", "u1".into(), InteractionRole::User, 1)
@@ -94,7 +96,8 @@ fn runtime_host_close_session_finalizes_nonempty_tail_explicitly() {
         ReliquaryRuntimeRoutes::default(),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     host.open_session("live".into(), None).unwrap();
     host.begin_message("live", "u1".into(), InteractionRole::User, 1)
@@ -126,7 +129,8 @@ fn runtime_host_persists_echo_inside_rel() {
         ReliquaryRuntimeRoutes::default(),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
     let event = EchoEvent {
         conversation_id: "conversation".into(),
         message_id: "assistant".into(),
@@ -182,7 +186,8 @@ fn runtime_host_profile_updates_matching_rel_principal_on_attach_and_rename() {
         ReliquaryRuntimeRoutes::default(),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
     host.attach_phylactery(phylactery).unwrap();
 
     let attached = host.phylactery_profile().unwrap().unwrap();
@@ -214,7 +219,8 @@ fn runtime_host_captures_phy_principal_and_agent_inherits_parent() {
         ReliquaryRuntimeRoutes::default(),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     host.open_session("live".into(), None).unwrap();
     host.begin_message("live", "u1".into(), InteractionRole::User, 1)
@@ -290,7 +296,8 @@ fn runtime_host_routes_user_memory_and_vectors_to_attached_phylactery() {
             episode: EpisodeConfig::default(),
             inactivity_ns: i64::MAX,
         },
-    );
+    )
+    .unwrap();
 
     wait_complete(&host, 1);
     wait_phylactery_memory(&host, 1);

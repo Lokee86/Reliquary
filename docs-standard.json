@@ -42,6 +42,10 @@
   ],
   "change_rules": [
     {
+      "paths": ["src/lib.rs", "src/runtime_inference/multiplexing_journal*.rs", "src/runtime_inference/runtime_host_gateway*.rs", "src/runtime_inference/runtime_host_instances.rs", "src/runtime_inference/runtime_host_instance_tests.rs"],
+      "docs": ["docs/architecture.md", "docs/invariants.md", "docs/current-limitations.md", "docs/maintainer-map.md", "docs/roadmap.md", "docs/documentation-coverage.md", "docs/api.md", "docs/storage-format.md", "docs/behavioral-contracts.md", "docs/multiplexing-implementation-plan.md"]
+    },
+    {
       "paths": ["src/container*.rs", "src/cva_lifecycle.rs", "src/phylactery_lifecycle.rs", "src/migration*.rs"],
       "docs": ["docs/storage-format.md", "docs/architecture.md", "docs/api.md", "docs/behavioral-contracts.md"]
     },

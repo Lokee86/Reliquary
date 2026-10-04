@@ -12,6 +12,19 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 ## Invariants
 
+### Phase 1 provisional conversation state
+
+- Gateway mount admission validates on-disk owner kind/identity before mutable open, reuses physical aliases, and rejects conflicting UUID copies. Exclusive execution claims cover gateway and legacy runtime-host execution within one process, including historical REL UUID prefixes and dynamic PHY attachment; direct clients and cross-process exclusion remain outside this claim.
+- An untrusted attachment request supplies credentials only. The configured trusted verifier supplies principal/PHY/grants, exact owner kinds are enforced, and credential refresh cannot substitute another principal/PHY.
+- A REL's provisional submission journal is operational state outside Archive history; a pending or cancelled submission is not a committed turn.
+- Journal ordering is REL-wide, while submission identity and conversation revisions are scoped by conversation. Cancellation and `FinalizeWon` are durable competing transitions; recovery reconciles a finalizing entry against its stable Archive identity.
+- Locally unresolved host-operation IDs survive reconnect, withdrawn contracts, and configuration removal even when the adapter reports no outstanding work. Only durable terminal recording releases an ID; empty capability reconciliation can clear debt only after every known ID is released. A withdrawn contract also fences recovered handoff retries. Durable terminal proof is honored without a connected adapter, including completion that won after cancellation intent.
+- Durable host stage identity/digest and sticky cancellation intent live in the same REL journal. Unknown host outcomes retain payloads and block native replay. Native cancellation requires all recorded host stages Cancelled; native finalization requires all Completed. Late acknowledgments cannot revive terminal work. Adapter I/O runs outside journal/semantic locks and short admission leases.
+- Durable conversation admission is owner/coordinator-scoped. Its immutable verified principal, exact scope and admission policy survive initiating-instance detach/regrant/restart. Processing revalidates the mounted owner epoch/fence and captured turn identity before publication; it cannot replace the admitted principal. Detach removes viewer/delivery state and future client authority, not accepted work. Cancellation requires a current attachment with the applicable own/shared grant; stale attachment tokens and revoked grant generations fail.
+
+- Compaction preserves cancellation tombstones and unresolved finalization/receipt state. Conversation viewers attach separately from the writer admission; detaching a viewer does not itself terminate a shared continuation.
+- These current-source rules are under Phase 1 integration verification and do not imply that the full update-feed or stream-checkpoint contracts are implemented.
+
 1. **One file, several databases.** A Reliquary `.rel` contains explicit purpose-built databases, not one generalized semantic database; legacy `.cva` and typed REL forms are compatibility inputs, not current REL classes.
 2. **One mutable domain, one owner.** Each independently mutable semantic domain has one concrete owner.
 3. **Stable IDs cross database boundaries.** Cross-indexing uses IDs, not shared mutable semantic objects.

@@ -14,8 +14,12 @@ mod dream;
 mod dream_owner;
 #[path = "runtime_host_files.rs"]
 mod files;
+#[path = "runtime_host_gateway.rs"]
+mod gateway;
 #[path = "runtime_host_insomnia.rs"]
 mod insomnia;
+#[path = "runtime_host_instances.rs"]
+mod instances;
 #[path = "runtime_host_interaction.rs"]
 mod interaction;
 #[path = "runtime_host_knowledge.rs"]
@@ -112,6 +116,21 @@ pub(super) struct RuntimeMemoryProfiles {
 pub use archive_search::{
     DEFAULT_ARCHIVE_SEARCH_RESULTS, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
 };
+pub use gateway::conversation::{
+    ConversationViewerToken, GatewayConversationAttachment, GatewayConversationSubmission,
+    GatewaySubmissionReceipt,
+};
+use gateway::mount::MountClaim;
+pub use gateway::{
+    CapabilityRouter, CapabilityState, GatewayAdmissionAdapter, GatewayHostAdapter, GatewayRuntime,
+    HandoffReceipt, HostCancelOutcome, HostCapabilityContract, HostConnection, HostContractError,
+    HostOperation, HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, OwnerAccessToken,
+    OwnerAdmission, RuntimeCapability, StageAuthority, VerifiedInstanceAdmission,
+};
+pub use instances::{
+    InstanceAuthorization, InstanceId, InstanceRuntime, InstanceRuntimeError,
+    ManagedConversationState, OwnerGrant,
+};
 pub use knowledge::RuntimeKnowledgeState;
 use owner_execution::{OwnerExecution, Shared};
 pub use reconciliation::{RelReconciliationCandidateReport, RelReconciliationReport};
@@ -120,14 +139,27 @@ pub use semantic_access::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind};
 pub use semantic_echo::{RuntimeEchoSource, RuntimeEchoTurn};
 pub use semantic_provenance::RuntimeKnowledgeProvenanceResolution;
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(super) struct LegacyManagedSessionState {
+    pub(super) active_session_id: Option<String>,
+    pub(super) reopened_session_pending: bool,
+}
+
+#[cfg(test)]
+#[path = "runtime_host_legacy_isolation_tests.rs"]
+mod legacy_isolation_tests;
+
 pub struct ReliquaryRuntimeHost {
     executions: BTreeMap<String, OwnerExecution>,
+    legacy_rel_claims: BTreeMap<String, MountClaim>,
+    legacy_phy_claim: Mutex<Option<MountClaim>>,
     active_key: Option<String>,
     routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     phylactery: Arc<Mutex<Option<Phylactery>>>,
     config: InsomniaWorkerConfig,
     episode_policy: EpisodePolicy,
     active_insomnia_enabled: AtomicBool,
+    managed_sessions: Mutex<BTreeMap<String, LegacyManagedSessionState>>,
 }
 
 pub(super) fn stopped(

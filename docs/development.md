@@ -55,6 +55,8 @@ python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-fr
 python scripts/check_architecture.py --refresh
 ```
 
+For the 2026-10-04 UTC multiplexing continuation, all 836 library tests passed with zero ignored tests. The complete `cargo test --locked -j2` command still stops on the existing `archive_open_profile` global-allocator conflict with `lore_base`; `cargo test --locked --tests -j2` verifies the library/integration targets separately and does not clear that example gate. A bounded `scripts/check_architecture.py --refresh` attempt timed out after 300 seconds in Lexicon Rust/Python indexing, before Arcana/Pitlord enforcement. The independent CLI lockfile/check/test results are recorded in the multiplexing implementation plan.
+
 The ordinary `cargo test` suite contains only correctness/regression tests and should report zero ignored tests. Fourteen Community performance, routing-quality, and operating-point experiments live behind the opt-in `community-benchmarks` Cargo feature instead of registering as ignored unit tests. Use `cargo test --release --features community-benchmarks` when intentionally rerunning that benchmark/validation set. Feature-gated Community benchmarks must not become the only coverage for a correctness contract.
 
 Test scratch paths must use collision-resistant identities such as `Uuid::new_v4()` rather than timestamp-only directory names; Rust tests execute concurrently and Windows can otherwise surface intermittent `AlreadyExists` failures.

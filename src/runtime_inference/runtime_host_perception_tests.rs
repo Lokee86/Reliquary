@@ -44,7 +44,8 @@ fn perception_inference_does_not_hold_the_interaction_runtime_lock() {
         .with_entity_routes(None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     entered.wait();
     let status = host.background_status().unwrap();
@@ -93,7 +94,8 @@ fn detached_phylactery_inference_is_not_requeued_into_replacement_owner() {
         .with_entity_routes(None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     entered.wait();
     let detached = host.detach_phylactery().unwrap().unwrap();
@@ -169,7 +171,8 @@ fn runtime_host_reconciles_entities_when_perception_queue_drains() {
             .with_entity_routes(None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     for _ in 0..1_000 {
         if host.entity_stats().unwrap().entities == 1 {
@@ -211,7 +214,8 @@ fn runtime_host_resolves_project_entities_after_dream() {
         .with_entity_routes(None, Some(endpoint)),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     wait_vectors(&host, 1);
     wait_memory_revisions(&host, 2);

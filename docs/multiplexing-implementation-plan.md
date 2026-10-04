@@ -10,7 +10,7 @@ Specify the GatewayRuntime/InstanceRuntime migration across Reliquary, including
 
 ## Overview
 
-Status: architectural roadmap only, revised after [the readiness review](multiplexing-readiness-review.md) on 2026-10-02. **Not implementation-ready.** Complete Phase 0B's blocking designs and executable baselines before the broad Phase 1 hard cut. No multiplexing implementation has shipped. This is an independent whole-stack project, not an Ego workstream.
+Status: Phase 1 authority, journal, host-capability and instance-scoped API implementation is underway after the completed Phase 0B design package. The [late-stage Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) defines the remaining execution steps and records completed F1 ConversationExecution ownership/recovery and F2 accepted-work lifetime verification, plus the complete F3 instance-routing audit. F4–F6 remain open. The [earlier remaining-work plan](multiplexing-phase1-remaining-work-2026-10-03.md) is retained as the historical audit. The worktree contains GatewayRuntime/InstanceRuntime and durable journal source, but the full Phase 1 gate is still open; do not treat these changes as a production-ready multiplexing release. This is an independent whole-stack project, not an Ego workstream.
 
 ## Problem statement
 
@@ -101,6 +101,14 @@ The [Phase 0B design package](multiplexing-phase0b-design.md) now specifies the 
 - **1.4** Convert instance lifecycle into attach/detach independent of shared REL/PHY lifecycle. Establish an explicit quiesce/fence interface for global owner maintenance.
 - **Tests:** two instance selections cannot affect each other; instance detach never unmounts an owner; same-instance existing reopen/active-conversation behavior holds; explicit owner operations cannot bypass instance authorization.
 - **Gate:** only one authoritative selection source (instance); no synchronized legacy active REL, active PHY, or managed-session shadow state. If Phase 1 is not yet multi-PHY capable, do not advertise general multi-user operation before Phase 2's gate.
+
+### Phase 1 implementation and verification record (2026-10-03; finish scope updated 2026-10-04)
+
+**Status: late-stage, not yet complete.** The current worktree has a working `GatewayRuntime`/`InstanceRuntime` authority path, trusted path/identity admission, process-local gateway/legacy owner exclusion, REL-wide durable conversation journal, shared continuation, instance-authorized ambient/project APIs, lifecycle fencing and a tested `ConversationExecution` host handoff seam.
+
+Final-source verification has reached: gateway 43/43, journal 15/15, instances 7/7, legacy isolation 3/3, public gateway API contract 1/1, library 836/836, integration tests green, CLI check plus 19/19 tests green, and documentation checks green. The unrestricted Cargo suite still hits the inherited `archive_open_profile` global-allocator conflict. Refreshed architecture indexing timed out after five minutes while Lexicon was analyzing and remains an evidence gap rather than a demonstrated Phase 1 failure.
+
+The remaining execution is now defined by the [Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md). Its critical path is: close the existing `ConversationExecution` ownership edges; prove accepted durable work outlives its submitting instance; finish the new-gateway routing audit; close lifecycle/fencing and expanded authorization adversarial cases; then run the final serial verification matrix and package the branch. Production host transfer for Insomnia, Dream, Embedding and ProjectEnvironment, Warlock migration and legacy-host deletion remain Phase 5 and are **not** Phase 1 exit requirements.
 
 ### Phase 2 — PHY registry, private access and work ownership
 

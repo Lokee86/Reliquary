@@ -381,6 +381,21 @@ impl Container {
         Ok(payloads)
     }
 
+    /// Inspect the existing validated header without scanning or recovering file tails.
+    pub(crate) fn inspect_header(
+        file: &mut File,
+    ) -> Result<(Option<ContainerIdentity>, Option<String>), ContainerError> {
+        let (_, identity, uuid, _) = read_header(file)?;
+        let owner_id = identity.zip(uuid).map(|(identity, uuid)| {
+            format!("{}-{}", owner_prefix(identity), Uuid::from_bytes(uuid))
+        });
+        Ok((identity, owner_id))
+    }
+
+    pub(crate) fn backing_file(&self) -> &File {
+        &self.file
+    }
+
     pub fn path(&self) -> &Path {
         &self.path
     }

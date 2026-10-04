@@ -648,6 +648,18 @@ mod model_auth;
 mod model_switchboard;
 #[path = "runtime_inference/model_switchboard_codec.rs"]
 mod model_switchboard_codec;
+#[path = "runtime_inference/multiplexing_journal.rs"]
+mod multiplexing_journal;
+pub use multiplexing_journal::{
+    ArchiveReceipt as GatewayArchiveReceipt, AttachmentIdentity as GatewayAttachmentIdentity,
+    ConversationId as GatewayConversationId,
+    ConversationSubmissionId as GatewayConversationSubmissionId,
+    DurableHostOperation as GatewayHostOperation,
+    DurableHostOperationPhase as GatewayHostOperationPhase,
+    FinalizeCapture as GatewayFinalizeCapture, JournalError as GatewayJournalError,
+    PostCommitReceipt as GatewayPostCommitReceipt, SubmissionId as GatewaySubmissionId,
+    SubmissionState as GatewaySubmissionState, SubmissionStatus as GatewaySubmissionStatus,
+};
 #[path = "runtime_inference/openai_codex_device_auth.rs"]
 mod openai_codex_device_auth;
 #[path = "runtime_inference/openai_codex_general.rs"]
@@ -1103,11 +1115,17 @@ pub use runtime_host::memory_search::{
 };
 pub use runtime_host::status::RuntimeBackgroundStatus;
 pub use runtime_host::{
-    DEFAULT_ARCHIVE_SEARCH_RESULTS, RelReconciliationCandidateReport, RelReconciliationReport,
-    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, RuntimeEchoSource,
-    RuntimeEchoTurn, RuntimeKnowledgeProvenanceResolution, RuntimeKnowledgeState,
-    RuntimeSemanticOwner, RuntimeSemanticOwnerKind, VisibleArchiveSearchOwner,
-    VisibleArchiveSearchResult,
+    CapabilityRouter, CapabilityState, ConversationViewerToken, DEFAULT_ARCHIVE_SEARCH_RESULTS,
+    GatewayAdmissionAdapter, GatewayConversationAttachment, GatewayConversationSubmission,
+    GatewayHostAdapter, GatewayRuntime, GatewaySubmissionReceipt, HandoffReceipt,
+    HostCancelOutcome, HostCapabilityContract, HostConnection, HostContractError, HostOperation,
+    HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, InstanceAuthorization,
+    InstanceId, InstanceRuntime, InstanceRuntimeError, ManagedConversationState, OwnerAccessToken,
+    OwnerAdmission, OwnerGrant, RelReconciliationCandidateReport, RelReconciliationReport,
+    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, RuntimeCapability,
+    RuntimeEchoSource, RuntimeEchoTurn, RuntimeKnowledgeProvenanceResolution,
+    RuntimeKnowledgeState, RuntimeSemanticOwner, RuntimeSemanticOwnerKind, StageAuthority,
+    VerifiedInstanceAdmission, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
 };
 pub use search_error::SearchError;
 pub use search_model::{

@@ -174,7 +174,8 @@ fn phylactery_replacement_preserves_external_source_reference() {
         ReliquaryRuntimeRoutes::default(),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     let replacement = host
         .replace_phylactery_knowledge_memory(
@@ -201,6 +202,7 @@ fn host(cva: Cva) -> ReliquaryRuntimeHost {
         one_worker(),
         EpisodePolicy::default(),
     )
+    .unwrap()
 }
 
 fn memory(memories: &[Memory], id: crate::MemoryId) -> &Memory {

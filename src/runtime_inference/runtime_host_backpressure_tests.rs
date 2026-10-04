@@ -131,7 +131,8 @@ fn runtime_host_gates_new_claims_during_provider_backpressure() {
         routes,
         config,
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
 
     std::thread::sleep(Duration::from_millis(100));
     let first_wave = blocked_calls.load(Ordering::SeqCst);

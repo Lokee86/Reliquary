@@ -1,6 +1,6 @@
 use super::{
-    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, notify_work, operation, perception_flow,
-    perception_owner, perception_queue,
+    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, gateway::mount::MountClaim, notify_work,
+    operation, perception_flow, perception_owner, perception_queue,
 };
 use crate::Phylactery;
 use std::sync::atomic::Ordering;
@@ -67,6 +67,16 @@ impl ReliquaryRuntimeHost {
         &self,
         mut phylactery: Phylactery,
     ) -> Result<(), ReliquaryRuntimeHostError> {
+        let mut claim_slot = self
+            .legacy_phy_claim
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        if claim_slot.is_some() {
+            return Err(ReliquaryRuntimeHostError::Operation(
+                "Reliquary runtime already has a Phylactery attached".into(),
+            ));
+        }
+        let claim = MountClaim::acquire_legacy_phy(&phylactery.container)?;
         let principal_profile = phylactery
             .owner_id()
             .map(|owner_id| (owner_id, phylactery.profile()));
@@ -83,6 +93,8 @@ impl ReliquaryRuntimeHost {
             }
             *slot = Some(phylactery);
         }
+        *claim_slot = Some(claim);
+        drop(claim_slot);
 
         if let Ok(execution) = self.active_execution() {
             execution.phylactery_enabled.store(true, Ordering::SeqCst);
@@ -118,11 +130,16 @@ impl ReliquaryRuntimeHost {
     }
 
     pub fn detach_phylactery(&self) -> Result<Option<Phylactery>, ReliquaryRuntimeHostError> {
+        let mut claim_slot = self
+            .legacy_phy_claim
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         let phylactery = self
             .phylactery
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .take();
+        let detached_claim = phylactery.as_ref().and_then(|_| claim_slot.take());
         for execution in self.executions.values() {
             execution.phylactery_enabled.store(false, Ordering::SeqCst);
             execution
@@ -137,6 +154,7 @@ impl ReliquaryRuntimeHost {
                 .clear(perception_queue::PerceptionOwner::User);
             notify_work(&execution.signal)?;
         }
+        drop(detached_claim);
         Ok(phylactery)
     }
 }

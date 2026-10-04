@@ -1,3 +1,4 @@
+use super::gateway::mount::MountClaim;
 use super::{
     OwnerExecution, ReliquaryRuntimeHost, ReliquaryRuntimeHostError, notify_work, operation,
     owner_key, perception_flow, perception_owner, perception_queue,
@@ -20,6 +21,7 @@ impl ReliquaryRuntimeHost {
                 "REL owner {owner_id} is already mounted"
             )));
         }
+        let claim = MountClaim::acquire_legacy_rel(&runtime.cva().container)?;
         let metadata = runtime.cva().rel_metadata();
         self.validate_candidate_topology(&owner_id, &metadata.dependencies)?;
         let active_ids = runtime
@@ -48,22 +50,32 @@ impl ReliquaryRuntimeHost {
             false,
             false,
         );
-        self.executions.insert(key, execution);
+        self.executions.insert(key.clone(), execution);
+        self.legacy_rel_claims.insert(key, claim);
         Ok(owner_id)
     }
 
     pub fn unmount_rel(&mut self, owner_id: &str) -> Result<crate::Cva, ReliquaryRuntimeHostError> {
         self.close_managed_session_for(owner_id)?;
+        self.managed_sessions
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .remove(owner_id);
         let key = owner_key(Some(owner_id));
         if self.active_key.as_deref() == Some(key.as_str()) {
             self.active_key = None;
         }
+        let claim = self.legacy_rel_claims.remove(&key).ok_or_else(|| {
+            ReliquaryRuntimeHostError::Operation("REL execution claim is unavailable".into())
+        })?;
         let execution = self.executions.remove(&key).ok_or_else(|| {
             ReliquaryRuntimeHostError::Operation(format!("REL owner {owner_id} is not mounted"))
         })?;
         execution.insomnia_enabled.store(false, Ordering::SeqCst);
         execution.phylactery_enabled.store(false, Ordering::SeqCst);
-        execution.into_cva()
+        let cva = execution.into_cva()?;
+        drop(claim);
+        Ok(cva)
     }
 
     pub fn set_active_rel(&mut self, owner_id: &str) -> Result<bool, ReliquaryRuntimeHostError> {

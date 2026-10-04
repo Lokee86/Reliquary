@@ -170,9 +170,75 @@ Before persistent checkpoints are added, larger-scale benchmarks must show that 
 - [Versioning and rollback plan](version-history-plan.md)
 - [Development](development.md)
 
+## Phase 1 Gateway/journal verification
+
+The [2026-10-04 F1 verification record](multiplexing-phase1-finish-plan-2026-10-04.md) records passing gateway and full-library tests, including existing admission, journal, conversation, ambient and legacy-isolation cases. The public gateway API and baseline contract tests also passed. These results verify the F1 source snapshot. F2 adds the accepted-lifetime runtime fixtures below. F3 routing/source-guard and isolation verification also passed; F4–F6 acceptance gates remain open; production host conformance is not claimed.
+
+The controlled host suite exercises lost acknowledgment, stable identity/digest recovery retry, digest conflict, unknown-status hold, exact-once original-turn publication and cancellation before a blocked acknowledgment. F1 adds reconnect/configuration/downgrade debt, concurrent contract withdrawal and durable terminal proof without an adapter. Journal tests retain phase-transition, sticky cancellation/compaction, framing and attachment durability coverage. The contract-to-test mapping below owns the specific recovery invariants.
+
+F2 verification passed **55/55 gateway**, **848/848 library**, both public contracts and **19/19 CLI**; see the dated [F2 record](multiplexing-phase1-finish-plan-2026-10-04.md).
+
+## Accepted conversation lifetime
+
+| Contract | Protecting verification |
+| --- | --- |
+| Zero viewers and submitter detach preserve the accepted turn, shared continuation and original principal; a different authorized caller can finish | `accepted_turn_outlives_detach_and_keeps_its_admitted_principal`; updated fresh-gateway recovery regression |
+| Detached callers, foreign own-only cancelers and stale grant tokens cannot cancel; a current shared canceler can win while pending | `cancellation_after_submitter_detach_requires_current_applicable_grant` |
+| Accepted payload/attachments survive restart and grant removal with no attachments required for coordinator completion | `accepted_queue_survives_restart_and_runs_without_any_attachment` |
+| Changed finalize identity and stale owner fences cannot publish | `accepted_finalization_rejects_changed_identity_and_stale_owner_fence` |
+| Detach during adapter I/O preserves durable acknowledgment and later owner completion | `detach_during_handoff_preserves_receipt_and_owner_continuation` |
+
+## Gateway instance-routing boundary
+
+The [F3 audit inventory](multiplexing-phase1-finish-plan-2026-10-04.md) enumerates all 88 current public GatewayRuntime methods and separates attachment/credential/token admission from trusted service controls. The source guard is conservative textual enforcement of named direct dependencies, not a general proof of every indirect authorization path.
+
+| Contract | Protecting verification |
+| --- | --- |
+| Ambient reads use each initiating instance selection; explicit reads require grants on the exact owner | ambient_reads_follow_each_instances_selected_rel_and_explicit_reads_check_grants |
+| Public credential admission and durable responses require no legacy selection | tests/multiplexing_gateway_api_contract.rs |
+| Gateway production modules cannot name the legacy host type, active_execution, or zero-argument active_rel_id | tests/multiplexing_gateway_routing_guard.rs, including permitted instance-selection and forbidden-dependency probes |
+| Gateway/legacy REL and PHY claims exclude simultaneous execution and release with owner lifetime; dynamic legacy PHY attachment participates | runtime_host_legacy_isolation_tests |
+
+## Gateway lifecycle fencing
+
+| Contract | Protecting verification |
+| --- | --- |
+| Short commit leases drain before revoke, detach, quiesce, unmount or client maintenance; closed gates reject another lease | short_commit_leases_drain_before_lifecycle_transitions |
+| Delivery leases drain before revoke and detach, observed at the actual closed-gate boundary | instance_delivery_leases_drain_before_revoke_and_detach |
+| Quiesce freezes accepted entries and continuation without preventing another REL from completing | accepted_queue_freezes_during_quiesce_without_blocking_another_rel |
+| Conflicting Archive reconciliation and exhausted fence reopen leave owner closed with workers stopped | reconcile_failure_keeps_owner_closed_and_workers_stopped; failed_fence_reopen_does_not_restart_owner_workers |
+| An old mount authority cannot publish after remount | accepted_owner_authority_cannot_publish_after_remount |
+| Host I/O holds neither owner/runtime/journal lock; quiesce fences a late ack and retains stable ownership debt | quiesce_during_handoff_fences_late_ack_and_preserves_owner_debt |
+
+F4 focused verification passed (61/61 gateway cases; public API 1/1 and routing guard 2/2); the [finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) owns its final result. Journal transitions and semantic publication use separate lexical lock scopes; owner registry handles are cloned before waits. The per-conversation processing guard serializes coordinator work without becoming semantic or journal authority.
+
+## Expanded gateway authorization
+
+| Contract | Protecting verification |
+| --- | --- |
+| Paging, archive/dependency and text/vector search, Echo and knowledge/provenance require attached ViewRel authority on the exact owner | paging_and_search_families_require_exact_attached_view_authority |
+| Zero limits fail uniformly; extreme offsets yield no data only after authorization | paging_boundaries_do_not_enumerate_or_bypass_authorization |
+| Knowledge create/replace/relation/community/metadata and processing controls require current ManageRel | management_families_require_manage_rel_on_the_exact_attached_owner |
+| Client quiesce/reconcile/reopen require current ManageRel, including while closed | instance_maintenance_requires_current_manage_rel_authority |
+| Repository root/validation/checkpoint/upload require ManageProject; historical bytes require ViewRel | project_families_require_the_exact_owner_and_applicable_grant |
+| Real project I/O happens outside semantic/journal locks and revalidates before commit/delivery after revoke or detach | project_io_races_reauthorize_before_commit_or_delivery |
+| Embedding detach denies result delivery; embedding revocation retains the original token boundary | detach_during_embedding_denies_delivery_without_holding_owner_locks; revocation_during_embedding_invalidates_the_original_owner_token |
+| A bound UseOwnPhy capability does not expose private semantic work through REL gateway APIs | phy_private_semantic_operations_remain_unsupported_on_gateway_surface |
+
+F5 focused verification passed (69/69 gateway cases); the [finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) owns its final result. Project race instrumentation is attachment-independent, instance-local test state only and is absent from production. External authorized filesystem/Git effects may already exist when authorization changes; the retained token prevents resulting REL publication or stale result delivery, rather than introducing a cross-system rollback protocol.
+
 ## Future multiplexing reference oracles
 
 [Phase 0B design contracts](multiplexing-phase0b-design.md) include five std-only reference fixtures under `tests/multiplexing_phase0b_*_contract.rs`. They test proposed conversation, personal-publication, events/authorization, lifecycle and host-handoff rules. They are future architecture oracles, separate from the current-behavior matrix above; runtime conformance requires tests against the eventual GatewayRuntime interface.
+
+## Host-operation recovery
+
+| Contract | Protecting verification |
+| --- | --- |
+| Reconnect cannot erase locally unresolved operation IDs, including multiple operations and removed capability configuration; withdrawn contracts fence intent retries while status/cancel remain available | `runtime_host_gateway_host_tests::reconnect_cannot_clear_any_locally_unresolved_operation`, `reconnect_preserves_recovered_debt_for_a_no_longer_configured_capability`, `withdrawn_contract_fences_recovered_intent_retry_but_allows_status_and_cancel`, `concurrent_operation_update_cannot_restore_a_withdrawn_dispatch_contract` |
+| Startup journal debt is restored before workers start; downgraded operations remain pending until terminal proof; durable completion resumes without an adapter and never republishes the admitted turn | `runtime_host_gateway_host_operation_tests::recovery_retries_the_same_durable_handoff_id_and_digest`, `withdrawn_conversation_contract_holds_old_work_until_durable_completion`, `durable_host_completion_survives_restart_without_the_adapter`, `completed_host_stage_commits_the_original_turn_once_and_replays_idempotently` |
+
+Earlier admissions retain exact-retry compatibility without rewriting authority; earlier_admission_retries_preserve_original_authority_and_fingerprint covers that boundary and changed-content rejection.
 
 ## Notes
 

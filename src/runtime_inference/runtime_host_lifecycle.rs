@@ -1,6 +1,6 @@
 use super::{
     OwnerExecution, ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes,
-    notify_work, owner_key,
+    gateway::mount::MountClaim, notify_work, owner_key,
 };
 use crate::{EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, Phylactery};
 use std::collections::BTreeMap;
@@ -13,7 +13,7 @@ impl ReliquaryRuntimeHost {
         routes: ReliquaryRuntimeRoutes,
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
-    ) -> Self {
+    ) -> Result<Self, ReliquaryRuntimeHostError> {
         Self::start_inner(runtime, None, routes, config, episode_policy, true)
     }
 
@@ -22,7 +22,7 @@ impl ReliquaryRuntimeHost {
         routes: ReliquaryRuntimeRoutes,
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
-    ) -> Self {
+    ) -> Result<Self, ReliquaryRuntimeHostError> {
         Self::start_inner(runtime, None, routes, config, episode_policy, false)
     }
 
@@ -32,7 +32,7 @@ impl ReliquaryRuntimeHost {
         routes: ReliquaryRuntimeRoutes,
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
-    ) -> Self {
+    ) -> Result<Self, ReliquaryRuntimeHostError> {
         Self::start_inner(
             runtime,
             Some(phylactery),
@@ -50,12 +50,15 @@ impl ReliquaryRuntimeHost {
     ) -> Self {
         Self {
             executions: BTreeMap::new(),
+            legacy_rel_claims: BTreeMap::new(),
+            legacy_phy_claim: Mutex::new(None),
             active_key: None,
             routes: Arc::new(RwLock::new(routes)),
             phylactery: Arc::new(Mutex::new(None)),
             config,
             episode_policy,
             active_insomnia_enabled: AtomicBool::new(true),
+            managed_sessions: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -66,7 +69,12 @@ impl ReliquaryRuntimeHost {
         config: InsomniaWorkerConfig,
         episode_policy: EpisodePolicy,
         insomnia_enabled: bool,
-    ) -> Self {
+    ) -> Result<Self, ReliquaryRuntimeHostError> {
+        let rel_claim = MountClaim::acquire_legacy_rel(&runtime.cva().container)?;
+        let phy_claim = phylactery
+            .as_ref()
+            .map(|phy| MountClaim::acquire_legacy_phy(&phy.container))
+            .transpose()?;
         let owner_id = runtime.cva().owner_id();
         let key = owner_key(owner_id.as_deref());
         let routes = Arc::new(RwLock::new(routes));
@@ -82,15 +90,18 @@ impl ReliquaryRuntimeHost {
         );
         let mut executions = BTreeMap::new();
         executions.insert(key.clone(), execution);
-        Self {
+        Ok(Self {
             executions,
+            legacy_rel_claims: BTreeMap::from([(key.clone(), rel_claim)]),
+            legacy_phy_claim: Mutex::new(phy_claim),
             active_key: Some(key),
             routes,
             phylactery,
             config,
             episode_policy,
             active_insomnia_enabled: AtomicBool::new(insomnia_enabled),
-        }
+            managed_sessions: Mutex::new(BTreeMap::new()),
+        })
     }
 
     pub fn set_routes(
@@ -150,10 +161,15 @@ impl ReliquaryRuntimeHost {
     }
 
     fn stop_workers(&mut self) -> Result<(), ReliquaryRuntimeHostError> {
+        let mut failure = None;
         for execution in self.executions.values_mut() {
-            execution.stop_workers()?;
+            if let Err(error) = execution.stop_workers()
+                && failure.is_none()
+            {
+                failure = Some(error);
+            }
         }
-        Ok(())
+        failure.map_or(Ok(()), Err)
     }
 }
 

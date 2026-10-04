@@ -31,7 +31,8 @@ fn knowledge_read_exposes_entities_and_perception_relations() {
         ReliquaryRuntimeRoutes::default(),
         one_worker(),
         EpisodePolicy::default(),
-    );
+    )
+    .unwrap();
     let (memories, entities, relations, _, _) = host.read_reliquary_knowledge().unwrap();
 
     assert!(memories.iter().any(|value| value.id == memory.id));

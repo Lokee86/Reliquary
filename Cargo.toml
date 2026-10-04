@@ -62,10 +62,10 @@ regex = "1"
 leiden-rs = { version = "0.8.1", default-features = false }
 time = { version = "0.3", features = ["parsing"] }
 tokio = { version = "1", features = ["rt", "rt-multi-thread"] }
-uuid = { version = "1", features = ["v4", "v5"] }
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
+serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-serde = { version = "1", features = ["derive"] }
 
 # Lore pins a patched quinn-proto in its workspace. Dependency workspace patches
 # do not propagate, so Reliquary vendors the exact copy from Lore c49390b.

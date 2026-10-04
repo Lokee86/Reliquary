@@ -889,6 +889,20 @@ Container validates framing/global tickets. A truncated **final** length-prefixe
 
 Default fragments use eight turns with two-turn overlap; the exported library constants `DEFAULT_FRAGMENT_TURNS` and `DEFAULT_FRAGMENT_OVERLAP` are the single source for that default policy. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
 
+## Gateway provisional conversation journal
+
+New gateway submissions retain admission authorization facts in the existing request_metadata JSON: owner_id, principal_id, grant=SubmitConversation and policy_revision=1. The existing principal_id and scope_fingerprint bind the accepted turn to the canonical REL, conversation and branch. These facts are immutable accepted-work authority, not live client credentials or persisted attachment tokens. Earlier admissions without this metadata remain readable using their retained verified principal and scope; present metadata must match. Exact retries compare the original request fingerprint with new server-generated admission metadata omitted, without rewriting the accepted record. FinalizeCapture must retain the admitted principal, branch and supported policy revision. No new frame/event/container format is introduced.
+
+Gateway mount identity is admission state, not a storage-format change: the existing Container header parser is reused by a read-only probe before semantic reopen. The canonical REL/PHY header, UUID preservation on copy/repack, and Archive/Memory formats are unchanged. OS physical file identity is retained only in the live gateway execution and is never persisted as portable owner identity.
+
+The gateway's provisional conversation state is stored outside the REL container under `<state-dir>/conversation-queues/<rel-uuid>.rqj`, with one journal per canonical REL owner. Staged attachments are content-addressed under `<state-dir>/conversation-queues/staging/<rel-uuid>/<sha256>.blob`, keeping garbage collection isolated to one REL. The file begins with a checksummed owner header. Append records use bounded length-prefixed JSON frames with a sequence and SHA-256 checksum; a compacted snapshot uses a 64-bit payload length and checksum so a full-REL projection can exceed an ordinary frame limit while remaining within the journal bound. A sibling lock file provides exclusive writer ownership across opens.
+
+Host operation IDs hash the length-prefixed owner/conversation/submission components so separators in a valid component cannot collide with composite boundaries. HostOperationUpdated records retain per-capability stable operation IDs, payload digests, transition revisions, phases, last known phases and sticky cancellation requests in that same journal. Older snapshots default missing host-operation maps and cancellation fields; older readers are not assumed to understand the new event variants. Unknown host outcomes retain staged payloads and prevent native replay. Terminal host records survive compaction with the submission tombstone.
+
+The host payload is distinct from a journal frame: `RQMUXH01`, followed by a little-endian u64 metadata length and JSON `(owner_id, Submission)`, then a little-endian u64 byte length and raw bytes for each attachment in submission order. SHA-256 covers the entire bounded payload. Binary attachment bytes are not expanded into JSON arrays. This is a controlled adapter operation contract, not a host assistant-result format.
+
+Attachment bytes are durably staged in a per-REL content-addressed spool before enqueue can acknowledge them; journal submissions retain the identity and content hash. Compaction keeps canceled-submission tombstones and unresolved finalization/Archive/postcommit receipts while reclaiming eligible terminal payload bytes. The journal is operational state, not `.rel` Archive history. The dated F1/F2 runtime verification passed; full Phase 1 acceptance remains open. Format changes require updating this description alongside the owning journal module.
+
 ## Related docs
 
 - [Architecture](architecture.md)

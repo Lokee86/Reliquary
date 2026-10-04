@@ -23,6 +23,7 @@ fn host(label: &str) -> ReliquaryRuntimeHost {
         },
         EpisodePolicy::default(),
     )
+    .unwrap()
 }
 
 #[test]
