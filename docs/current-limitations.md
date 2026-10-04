@@ -130,7 +130,7 @@ Repository-local Pitlord enforcement assigns every authored Rust source file und
 
 ## Freshness performance baseline status
 
-Full-operation performance hardening has started on an isolated branch; P0 acceptance is still open. The diagnostic workload does not establish production event-frequency distributions, historical real-corpus score trajectories, provider latency or host mutex-wait percentiles. Optional tracing adds measurement overhead and must be compared under matched settings. Prior test-profile and standalone synthetic timings do not establish release speedup. [P0 evidence](freshness-performance-baseline-2026-10-03.md) records actual command outcomes and missing dimensions.
+Performance hardening's P0 optimized local/real-topology baseline is checksum-frozen and accepted for P1 work on the isolated performance branch; deployed-host end-to-end acceptance remains outstanding. The diagnostic workload does not establish production event-frequency distributions, historical real-corpus score trajectories, provider latency or host mutex-wait percentiles. Optional tracing adds measurement overhead and must be compared under matched settings. Prior test-profile and standalone synthetic timings do not establish release speedup. [P0 evidence](freshness-performance-baseline-2026-10-03.md) records actual command outcomes and missing dimensions.
 
 ## Related docs
 - [Roadmap](roadmap.md)

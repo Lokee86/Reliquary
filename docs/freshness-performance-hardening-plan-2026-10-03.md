@@ -2,7 +2,7 @@
 
 Parent: [Documentation index](INDEX.md). This is a performance-only follow-up to the [verified Freshness core](freshness-core-release-verification-2026-10-03.md) and a prerequisite for deploying [Ego Memory-Web synthesis](ego-web-synthesis-plan.md) at scale. Governing semantics: [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [Freshness numerical and event policy](memory-staleness-plan.md), and [completed core execution plan](freshness-completion-execution-plan-2026-10-03.md).
 
-**Status:** execution-ready investigation and optimization specification, not an implementation or an accepted performance result. Starting implementation baseline: `feat/deterministic-memory-freshness` at `20e1e9ab` (verified, pushed on 2026-10-03). Scope excludes F8/S1–S6 semantic activity relevance and imported-history simulation; those remain deferred.
+**Status:** P0 measurement foundation is implemented, verified within its stated local-fixture/topology scope, and accepted at [the frozen P0 report](freshness-performance-baseline-2026-10-03.md) (commit `61add96`); P1–P6 production optimization and their own final verification remain outstanding. Starting implementation baseline: `feat/deterministic-memory-freshness` at `20e1e9ab` (verified, pushed on 2026-10-03). Scope excludes F8/S1–S6 semantic activity relevance and imported-history simulation; those remain deferred.
 
 ## Purpose
 
