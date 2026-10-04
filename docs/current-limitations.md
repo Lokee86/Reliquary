@@ -155,3 +155,5 @@ Performance hardening's P0 optimized local/real-topology baseline is checksum-fr
 
 ## Notes
 These limitations should be updated in the same implementation change that removes them.
+
+P5 measured broad +50 Dream reach on present fixture topology: one-root current 14-day events reached a median 98.7% of active Graph endpoints; eight dispersed roots also produce substantial strong-effect coverage. [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) retains v1 pending semantic-quality and actual event-frequency evidence. Endpoint reach excludes isolated/unrepresented Memories and is not measured whole-MemoryStore coverage or Ego quality. P6 integrated performance/release verification remains outstanding.

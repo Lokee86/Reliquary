@@ -104,3 +104,5 @@ P2 event-scheduling behavior and the counterless accepted-use candidate path are
 ## Notes
 
 Planning-only components are intentionally absent from implementation coverage.
+
+P5's `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py` map to [Development](development.md) for commands and [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) for sampled reach, full effect/hop/origin histograms, checksum custody and retained-v1 policy disposition. The diagnostic introduces no production owner or semantic contract.

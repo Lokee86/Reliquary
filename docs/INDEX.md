@@ -23,6 +23,7 @@
 - [Multiplexing readiness review](multiplexing-readiness-review.md) — source-backed pre-implementation blockers and required design/verification gates.
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — future GatewayRuntime/InstanceRuntime authority split, REL updates, active conversation streams and staged whole-stack implementation.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
+- [Freshness P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) — measured +25/+50 reach by roots, topology and membership; retained v1 and remaining semantic-quality limits.
 - [Freshness P4 receipt lookup verification](freshness-performance-p4-verification-2026-10-04.md) — frozen storage diagnosis, bounded negative membership, matched release evidence and final correctness gates.
 - [Freshness P2 scheduling verification](freshness-performance-p2-verification-2026-10-03.md) — fixed conservative 16-event parallel threshold, counterless production accounting, and matched P1/P2 evidence.
 - [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).
