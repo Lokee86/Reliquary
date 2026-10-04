@@ -10,9 +10,9 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 
 ## Gateway/instance multiplexing status
 
-Phase 1 GatewayRuntime/InstanceRuntime and the REL-scoped provisional conversation journal are present in the current worktree. Their integrated build, race/recovery coverage, lifecycle fencing, and full authorization behavior remain under verification; Phase 1 is not marked complete. The current work does not claim the Phase 0B REL-wide update feed, durable stream checkpoints/subscriptions, full per-PHY execution and privacy boundary, or migrated Warlock consumer surface. See the [multiplexing implementation plan](multiplexing-implementation-plan.md) for the verification record and remaining gates.
+Phase 1 GatewayRuntime/InstanceRuntime and the REL-scoped provisional conversation journal are implemented, verified and packaged locally. The [F6 completion record](multiplexing-phase1-finish-plan-2026-10-04.md) lists the final build, focused/library/integration/CLI/public-contract and documentation gates. This foundation does not claim the Phase 0B REL-wide feed, stream subscriptions, full branch conflict policy, multi-principal PHY execution/privacy boundary or migrated Warlock consumer surface.
 
-Gateway file admission, configured credential verification and ConversationExecution host ownership/recovery passed the [2026-10-04 F1 verification](multiplexing-phase1-finish-plan-2026-10-04.md). Physical-identity support remains OS/filesystem dependent; `owner_mount_is_path_scoped` reports canonical-path-only fallback. Shared execution claims cover gateway and legacy runtime-host objects within one process, including dynamic PHY attachment. Arbitrary direct-client and cross-process exclusion remain unsupported. F2 accepted-work lifetime is also verified: detach/regrant/restart retain owner-scoped work and its original principal; current attachment grants govern cancellation and receipt delivery. F3 instance routing is audited across all 88 public methods, with the local source guard and existing isolation/public API tests passing. The remaining F4–F6 lifecycle/authorization audit and packaging gates are open. No complete Phase 1 acceptance or production Warlock host conformance is claimed.
+Gateway file admission, configured credential verification, ConversationExecution ownership/recovery, accepted-work lifetime, all 88 public method routes, lifecycle/fencing and expanded authorization passed the [F1–F6 execution record](multiplexing-phase1-finish-plan-2026-10-04.md). Physical identity remains OS/filesystem dependent; owner_mount_is_path_scoped reports canonical-path fallback. Shared gateway/legacy execution claims cover one process, including dynamic PHY attachment; arbitrary direct-client and cross-process exclusion remain unsupported. Detach/regrant/restart preserve owner-scoped accepted work and its principal while current attachment grants govern cancellation/delivery. External authorized Git/filesystem effects may already exist before grant loss; REL publication and result delivery are fenced. Production Warlock conformance and other host capability transfers remain Phase 5.
 
 ## Storage limits
 - Chunks are uncompressed and lack container-level checksum/authentication/encryption.
@@ -25,7 +25,7 @@ Gateway file admission, configured credential verification and ConversationExecu
 
 ## CLI dependency verification
 
-The standalone CLI previously omitted the library's vendored `quinn-proto` patch, causing missing `TransportConfig::max_rtt` and `TransportErrorCode::is_crypto` methods in `lore-transport`. The CLI manifest now mirrors the root patch, with its independent lockfile updated accordingly; `cargo check --manifest-path cli/Cargo.toml` has passed. Locked CLI check/test and full integration tests require separate verification. The original Phase 1.6 library run reported 760 passing tests and all ten activity contracts passed; later test retries hit dependency artifact errors unrelated to the activity semantics.
+The standalone CLI previously omitted the library's vendored quinn-proto patch. Its manifest mirrors the root patch and its independent lockfile includes required serde features. The final multiplexing matrix passed CLI formatting, locked check and 19/19 tests, plus full library/integration verification. Earlier activity-clock verification records remain historical; no remaining CLI dependency gate is claimed from those older snapshots.
 
 ## Full test example verification gap
 
@@ -33,7 +33,7 @@ An earlier completed `cargo test -j 1` attempt stopped while compiling the exist
 
 ## Activity-clock integration verification
 
-Phase 1.6 production-check attempts encountered missing cached dependency artifacts (`parking_lot` in Lore, then `syn` in `windows-interface`). Queued job records were lost across an interruption; a bounded full-test retry timed out during dependency rebuilding, producing no new full-gate result. The successful 760-test library suite, ten activity contracts and three historical-fixture checks were collected before the interruption. These environment/build gaps do not constitute a clean overall integration gate.
+Phase 1.6 production-check attempts encountered missing cached dependency artifacts (`parking_lot` in Lore, then `syn` in `windows-interface`). Queued job records were lost across an interruption; a bounded full-test retry timed out during dependency rebuilding, producing no new full-gate result. The successful 760-test library suite, ten activity contracts and three historical-fixture checks were collected before the interruption. Those were historical environment/build results. The later multiplexing F6 matrix passed the full current library (862 tests) and all 11 integration targets (93 tests), including the activity contract; the unrestricted example allocator gate remains separate and unresolved.
 
 ## Activity-clock migration window
 

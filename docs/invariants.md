@@ -23,7 +23,7 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 - Durable conversation admission is owner/coordinator-scoped. Its immutable verified principal, exact scope and admission policy survive initiating-instance detach/regrant/restart. Processing revalidates the mounted owner epoch/fence and captured turn identity before publication; it cannot replace the admitted principal. Detach removes viewer/delivery state and future client authority, not accepted work. Cancellation requires a current attachment with the applicable own/shared grant; stale attachment tokens and revoked grant generations fail.
 
 - Compaction preserves cancellation tombstones and unresolved finalization/receipt state. Conversation viewers attach separately from the writer admission; detaching a viewer does not itself terminate a shared continuation.
-- These current-source rules are under Phase 1 integration verification and do not imply that the full update-feed or stream-checkpoint contracts are implemented.
+- These Phase 1 rules passed final integration verification; full REL update-feed and stream-subscription contracts remain later work.
 
 1. **One file, several databases.** A Reliquary `.rel` contains explicit purpose-built databases, not one generalized semantic database; legacy `.cva` and typed REL forms are compatibility inputs, not current REL classes.
 2. **One mutable domain, one owner.** Each independently mutable semantic domain has one concrete owner.

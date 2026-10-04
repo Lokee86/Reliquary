@@ -901,7 +901,7 @@ Host operation IDs hash the length-prefixed owner/conversation/submission compon
 
 The host payload is distinct from a journal frame: `RQMUXH01`, followed by a little-endian u64 metadata length and JSON `(owner_id, Submission)`, then a little-endian u64 byte length and raw bytes for each attachment in submission order. SHA-256 covers the entire bounded payload. Binary attachment bytes are not expanded into JSON arrays. This is a controlled adapter operation contract, not a host assistant-result format.
 
-Attachment bytes are durably staged in a per-REL content-addressed spool before enqueue can acknowledge them; journal submissions retain the identity and content hash. Compaction keeps canceled-submission tombstones and unresolved finalization/Archive/postcommit receipts while reclaiming eligible terminal payload bytes. The journal is operational state, not `.rel` Archive history. The dated F1/F2 runtime verification passed; full Phase 1 acceptance remains open. Format changes require updating this description alongside the owning journal module.
+Attachment bytes are durably staged in a per-REL content-addressed spool before enqueue can acknowledge them; journal submissions retain the identity and content hash. Compaction keeps canceled-submission tombstones and unresolved finalization/Archive/postcommit receipts while reclaiming eligible terminal payload bytes. The journal is operational state, not `.rel` Archive history. The dated F1–F6 runtime verification and Phase 1 acceptance passed; no journal frame/event/container format version changed during finish execution. Format changes require updating this description alongside the owning journal module.
 
 ## Related docs
 

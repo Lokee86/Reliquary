@@ -3,7 +3,7 @@
 Parent: [Multiplexing implementation plan](multiplexing-implementation-plan.md)
 Prior completion plan: [Phase 1 remaining work](multiplexing-phase1-remaining-work-2026-10-03.md)
 Authoritative design: [Phase 0B integration](multiplexing-phase0b-design.md) and [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)
-Status: **final Phase 1 execution plan; narrow remaining work only**
+Status: **Phase 1 complete locally; F1–F6 execution and acceptance record**
 Snapshot: 2026-10-04, branch `feat/multiplexing-phase1`
 
 ## Purpose
@@ -16,7 +16,7 @@ Phase 1 is complete when the new in-process `GatewayRuntime` path has one owner 
 
 The remaining work is intentionally narrow: finish the already-implemented `ConversationExecution` ownership edge, prove durable accepted work survives instance loss, close the gateway routing/lifecycle/authorization audits, then execute one final serial verification matrix and package the branch. Previously green admission, journal, instance, library, integration, CLI and documentation work should be reused rather than reimplemented.
 
-**Current progress:** F1–F5 ownership/recovery, accepted-work lifetime, routing, lifecycle/fencing and expanded authorization are complete locally. F6 final verification and packaging remains open.
+**Current progress:** F1–F6 complete on 2026-10-04. Phase 1 is verified and packaged on feat/multiplexing-phase1; main is unchanged. Phase 2–5 contracts and production host conformance remain later work.
 
 ## Verified starting point
 
@@ -430,6 +430,50 @@ Then:
 - package the Phase 1 implementation into coherent commits on `feat/multiplexing-phase1`;
 - do **not** merge to `main` unless separately requested.
 
+
+**F6 status: complete on 2026-10-04, locally on feat/multiplexing-phase1.** The final matrix ran serially with two Cargo build jobs, test concurrency two and one target. All blocking source/test/documentation gates passed. The implementation commit is ac9048d6002ef334dac509658e421540733bc2a7; this acceptance/documentation record is packaged in the following documentation commit. No merge or push was performed.
+
+| Final gate | Result |
+| --- | --- |
+| format-check | Passed |
+| diff-check | Passed |
+| check | Passed |
+| gateway | 69 passed; zero failures or ignored tests |
+| journal | 15 passed; zero failures or ignored tests |
+| instances | 7 passed; zero failures or ignored tests |
+| legacy-isolation | 3 passed; zero failures or ignored tests |
+| contracts-and-guard | Baseline 1/1, public API 1/1, routing guard 2/2 passed |
+| library | 862 passed; zero failures or ignored tests |
+| integration | All 12 suite/target results passed; 955 tests total (includes full library) |
+| cli-format | Passed |
+| cli-check | Passed |
+| cli-tests | 19 passed; zero failures or ignored tests |
+| docs | Passed |
+| docs-impact | Passed |
+| source-audit | Passed |
+| Unrestricted cargo test --locked | Only the inherited archive_open_profile/lore_base global allocator conflict |
+| Refreshed architecture check | Timed out after 180 seconds in Rust/Python indexing; process tree stopped; direct source guard passed. No refreshed Pitlord pass claimed |
+
+Full logs, exit codes, durations and test summaries are under ignored target/f6-verification/. The integration gate is cargo test --locked --tests, which includes the full library plus every integration target. Formatting, locked check, focused gateway/journal/instance/legacy suites, both public contracts, source guard, full library, integration, CLI and both documentation policy modes passed. Documentation policy and whitespace checks are repeated after final records.
+
+Review covered all 59 changed/new files, including dependency deltas, the narrow container probe, legacy startup/dynamic PHY claim retention, host-local legacy managed selection, gateway/admission/instance ownership, journal and conversation transitions, router debt, lifecycle fencing, ambient/project grants and new deterministic test fixtures. Cargo lock changes contain only required serde feature dependencies; no broad dependency refresh or unrelated freshness work was included. Test-only project hooks and journal inspection are absent from production. The source guard enumerates production gateway modules and rejects direct legacy host/active_execution/zero-argument active_rel_id dependencies; all 88 public GatewayRuntime methods retain the F3 routes. It is a conservative textual guard, not proof against arbitrary indirect globals.
+
+The unrestricted example allocator failure remains inherited and out of scope. Architecture timeout is permitted by this finish plan with current source/test evidence; no refreshed structural-policy result is invented. Graph-corpus paths were not changed, so graph-corpus smoke was not required. The build cache lost a serde_bytes artifact during F5; rebuilding that dependency restored verification, and no source/dependency policy was changed for the environment failure.
+
+Documentation impact:
+- Inspected: architecture, invariants, storage format, maintainer map, API, behavioral contracts, current limitations, roadmap, both Phase 1 execution plans, AGENTS and shared engineering standards.
+- Updated: current authority/API/lifecycle boundaries, storage/journal description, test mapping, source ownership routing, limitations, implementation/finish records, roadmap, development/CLI evidence and documentation index.
+- Not affected: REL/PHY/container or journal format versions, semantic subsystem policy, CLI command surface, unrelated freshness work and Phase 2–5 scope.
+- Compliance check: both docs-policy modes and final whitespace checks passed; final records checked again after packaging.
+- Known documentation gaps: none for Phase 1; later consumer/privacy/feed/branch contracts and the structural-indexing evidence gap remain explicit.
+
+Architecture impact:
+- Standards added or changed: no new architecture standard; existing instance-routing and owner/admission invariants clarified and guarded.
+- Ownership or boundary impact: one process-local mounted-owner authority, attached instance grants, REL-owned accepted work and durable host-stage debt; old host remains separately isolated by shared exclusion claims.
+- Pitlord enforcement impact: Timed out after 180 seconds in Rust/Python indexing; process tree stopped; direct source guard passed. No refreshed Pitlord pass claimed.
+- Other verification impact: final focused/library/integration/CLI/public-contract/source-guard/docs checks passed; inherited allocator diagnostic remains.
+- Known architectural gaps: direct/cross-process exclusion, multi-principal PHY work/privacy, full branch policy, REL feeds/stream subscriptions, other host capabilities and real Warlock conformance are later contracts. Refreshed structural evidence remains unavailable if indexing timed out.
+
 ## Explicit non-goals before Phase 1 closes
 
 Do not perform these while finishing Phase 1:
@@ -471,4 +515,4 @@ At that point Phase 2 may begin without reopening the Phase 1 authority model.
 
 ## Notes
 
-This plan is the authoritative late-stage Phase 1 handoff. It narrows remaining execution only; it does not rewrite the accepted Phase 0B contracts or move Phase 2–5 scope into Phase 1. Verification counts in this document describe the current uncommitted worktree and must be refreshed if later source changes invalidate them.
+This plan is the authoritative Phase 1 completion record. It does not rewrite accepted Phase 0B contracts or move Phase 2–5 scope into Phase 1. Earlier F1–F5 records describe their historical snapshots; the F6 record is the final packaged-source evidence and must be refreshed if later source changes invalidate it.

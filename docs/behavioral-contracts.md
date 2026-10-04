@@ -172,7 +172,7 @@ Before persistent checkpoints are added, larger-scale benchmarks must show that 
 
 ## Phase 1 Gateway/journal verification
 
-The [2026-10-04 F1 verification record](multiplexing-phase1-finish-plan-2026-10-04.md) records passing gateway and full-library tests, including existing admission, journal, conversation, ambient and legacy-isolation cases. The public gateway API and baseline contract tests also passed. These results verify the F1 source snapshot. F2 adds the accepted-lifetime runtime fixtures below. F3 routing/source-guard and isolation verification also passed; F4–F6 acceptance gates remain open; production host conformance is not claimed.
+The [2026-10-04 F1–F6 verification record](multiplexing-phase1-finish-plan-2026-10-04.md) closes Phase 1. The final source passed 69 gateway cases, 862 library cases, all integration targets, both public multiplexing contracts, two routing guards, legacy isolation, journal/instance suites, 19 CLI tests and documentation checks. Earlier F1–F5 counts below remain snapshot evidence. Production host conformance and later privacy/feed/branch contracts are not claimed; bounded architecture indexing timed out and direct source guards passed.
 
 The controlled host suite exercises lost acknowledgment, stable identity/digest recovery retry, digest conflict, unknown-status hold, exact-once original-turn publication and cancellation before a blocked acknowledgment. F1 adds reconnect/configuration/downgrade debt, concurrent contract withdrawal and durable terminal proof without an adapter. Journal tests retain phase-transition, sticky cancellation/compaction, framing and attachment durability coverage. The contract-to-test mapping below owns the specific recovery invariants.
 
