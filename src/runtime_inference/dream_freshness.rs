@@ -116,7 +116,8 @@ impl InitialSettlementWork {
         self,
         workers: usize,
     ) -> Result<InitialSettlementResult, crate::CvaError> {
-        let effects = match self.event {
+        let _trace = crate::freshness_trace::scope("initial_dream_evaluate");
+        let effects = crate::freshness_trace::measure("dream.propagation", || match self.event {
             Some(event) => crate::freshness::propagate_with_policy(
                 &event,
                 &self.adjacency,
@@ -124,9 +125,9 @@ impl InitialSettlementWork {
                 workers.max(1),
                 &self.policy,
             )
-            .map_err(|error| crate::CvaError::Freshness(error.to_string()))?,
-            None => BTreeMap::new(),
-        };
+            .map_err(|error| crate::CvaError::Freshness(error.to_string())),
+            None => Ok(BTreeMap::new()),
+        })?;
         Ok(InitialSettlementResult {
             pass_id: self.pass_id,
             active_admission: self.active_admission,
@@ -137,15 +138,21 @@ impl InitialSettlementWork {
 }
 impl InitialSettlementResult {
     pub(crate) fn commit(self, cva: &mut Cva) -> Result<(), crate::CvaError> {
+        let _trace = crate::freshness_trace::scope("initial_dream_commit");
         // The owner checks durable acceptance, the original pinned proof and
         // idempotent receipt again after the runtime lock is reacquired.
-        cva.settle_initial_dream_pass(
-            &self.pass_id,
-            self.active_admission,
-            self.proof,
-            self.effects,
+        crate::freshness_trace::measure(
+            "dream.receipt_validation_postimage_append_sync_due_refresh",
+            || {
+                cva.settle_initial_dream_pass(
+                    &self.pass_id,
+                    self.active_admission,
+                    self.proof,
+                    self.effects,
+                )
+                .map(|_| ())
+            },
         )
-        .map(|_| ())
     }
 }
 pub(crate) fn prepare_initial_settlement(
@@ -153,21 +160,33 @@ pub(crate) fn prepare_initial_settlement(
     source_id: MemoryId,
     active_admission: bool,
 ) -> Result<Option<InitialSettlementWork>, crate::CvaError> {
+    let _trace = crate::freshness_trace::scope("initial_dream_prepare");
     let Some(pass) = cva.pending_initial_dream_pass(source_id) else {
         return Ok(None);
     };
     if cva.recover_committed_initial_dream_event(&pass.pass_id, active_admission)? {
         return Ok(None);
     }
-    let raw_roots = pass
-        .roots
-        .iter()
-        .copied()
-        .chain(cva.initial_dream_committed_roots(&pass)?)
-        .collect::<BTreeSet<_>>();
-    cva.record_initial_dream_roots(&pass.pass_id, raw_roots.clone())?;
-    let roots = fold_duplicate_roots(cva, raw_roots, source_id)?;
-    let (proof, adjacency, memberships) = cva.initial_dream_graph_snapshot(&pass.pass_id)?;
+    let raw_roots = crate::freshness_trace::measure("dream.durable_historical_graph_scan", || {
+        let committed = cva.initial_dream_committed_roots(&pass)?;
+        Ok::<_, crate::CvaError>(
+            pass.roots
+                .iter()
+                .copied()
+                .chain(committed)
+                .collect::<BTreeSet<_>>(),
+        )
+    })?;
+    crate::freshness_trace::measure("dream.root_collection_persistence", || {
+        cva.record_initial_dream_roots(&pass.pass_id, raw_roots.clone())
+    })?;
+    let roots = crate::freshness_trace::measure("dream.duplicate_root_resolution", || {
+        fold_duplicate_roots(cva, raw_roots, source_id)
+    })?;
+    let (proof, adjacency, memberships) =
+        crate::freshness_trace::measure("dream.historical_graph_snapshot", || {
+            cva.initial_dream_graph_snapshot(&pass.pass_id)
+        })?;
     let policy = cva.freshness_policy();
     let event = if roots.is_empty() {
         None
@@ -188,6 +207,65 @@ pub(crate) fn prepare_initial_settlement(
         policy,
     }))
 }
+#[cfg(feature = "freshness-performance-trace")]
+impl Cva {
+    /// Diagnostic-only adapter for replaying the real pending initial-Dream
+    /// prepare/evaluate/commit path from a disposable fixture.
+    pub fn freshness_trace_run_initial_dream_fixture(
+        &mut self,
+        source_id: MemoryId,
+        preexisting_roots: &[MemoryId],
+        workers: usize,
+    ) -> Result<bool, crate::CvaError> {
+        if self.initial_dream_pass_settled(&initial_pass_id(
+            self.owner_uuid()
+                .ok_or_else(|| crate::CvaError::Freshness("fixture lacks owner UUID".into()))?,
+            source_id,
+        )) {
+            return Ok(false);
+        }
+        let Some(pass) = begin_initial_pass(self, source_id, preexisting_roots.iter().copied())?
+        else {
+            return Err(crate::CvaError::Freshness(
+                "fixture source is not eligible for initial Dream".into(),
+            ));
+        };
+        let mut published = Vec::new();
+        for root in preexisting_roots {
+            if let Some(relation) = self
+                .set_memory_relation_with_origin(
+                    source_id,
+                    *root,
+                    crate::GraphRelationKind::Topical,
+                    true,
+                    crate::GraphRelationOrigin::Dream,
+                    self.graph_version(),
+                )
+                .map_err(|error| crate::CvaError::Freshness(error.to_string()))?
+            {
+                published.push(relation);
+            }
+        }
+        record_publication_roots(
+            self,
+            source_id,
+            &DreamPublicationOutcome::Published(published),
+        )?;
+        self.accept_initial_dream_settlement(&pass.pass_id, self.rel_turn_count())?;
+        let Some(work) = prepare_initial_settlement(self, source_id, false)? else {
+            return Err(crate::CvaError::Freshness(
+                "fixture initial Dream did not prepare".into(),
+            ));
+        };
+        work.evaluate(workers)?.commit(self)?;
+        Ok(true)
+    }
+
+    pub fn freshness_trace_flush(&self) {
+        crate::freshness_trace::flush();
+    }
+}
+
 pub(crate) fn settle_initial_pass(
     cva: &mut Cva,
     source_id: MemoryId,

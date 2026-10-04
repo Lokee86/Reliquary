@@ -87,6 +87,10 @@ The Archive projection, historical read API and synced canonical runtime receipt
 
 New production modules require canonical owners. New persistence records update storage-format documentation. New stateful/recovery boundaries update architecture and behavioral contracts in the same change. New product/runtime code must move from roadmap-only status into this matrix when it becomes concrete.
 
+## Freshness performance observation coverage
+
+`src/freshness/trace.rs`, opt-in diagnostic adapters and `examples/freshness_operation_baseline.rs` map to [Architecture](architecture.md), [Rust API](api.md) and [Development](development.md). `examples/freshness_performance_baseline.rs` and `scripts/freshness_performance_compare.py` map to [Development](development.md) and [P0 evidence](freshness-performance-baseline-2026-10-03.md). Expanded independent oracle coverage maps to [Behavioral contracts](behavioral-contracts.md). Current event/storage semantics remain owned by their existing references; the optimization sequence remains a plan until its gates pass.
+
 ## Related docs
 
 - [Documentation policy](documentation-policy.md)

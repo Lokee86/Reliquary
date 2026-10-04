@@ -174,6 +174,10 @@ Before whole-CVA rollback ships, tests must define timeline selection across Arc
 
 Before persistent checkpoints are added, larger-scale benchmarks must show that the remaining single-pass scan cost justifies the additional derived-state machinery.
 
+## Freshness independent performance oracle
+
+`tests/freshness_propagation_oracle.rs` retains an exhaustive simple-path reference independent of production frontier traversal. It covers all four-node graphs, all canonical partial Community partitions, every root/exclusion subset and both v1 principals; a deterministic slice covers coherent nondefault policies. Representative worker/batch-order cases and bounded seeded larger cases supplement the serial exhaustive product. The reference compares per-event effect maps, including empty inputs and excluded bridges. Collected run results, rather than source existence, belong to [P0 evidence](freshness-performance-baseline-2026-10-03.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)

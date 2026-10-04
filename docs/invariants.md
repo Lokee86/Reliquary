@@ -151,6 +151,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 Changing version ownership, conversation ancestry, mutable-record revision semantics, or persistent format requires architecture review and focused behavioral tests.
 
+## Freshness diagnostic custody
+
+Performance diagnostics must preserve the accepted owner/policy/graph/Community cut and every independent consumption event. They may not replace a historical cut with current topology, enroll passive reads, suppress recipients, or treat a timing result as a correctness proof. Real fixture runs require source/copy SHA-256 verification and disposable writable copies. [The hardening plan](freshness-performance-hardening-plan-2026-10-03.md) defines promotion gates.
+
 ## Related docs
 
 - [Architecture](architecture.md)

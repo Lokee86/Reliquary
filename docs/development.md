@@ -476,6 +476,18 @@ The calibration also exposed deterministic coverage gaps rather than detector-th
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
 - `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.
 
+## Freshness performance diagnostics
+
+`examples/freshness_performance_baseline.rs` measures prospective graph propagation with separately identifiable +25 events and +50 multi-root events. `--repetitions 1..100` bounds runs; `--scenario ID[,ID]` selects cases. Real mode requires `--fixture PATH --sha256 HEX` and opens only a verified disposable copy. Same/across-Community cases require a current snapshot; unknown-origin cases retain outside-cost semantics. Hashing and copying warm filesystem cache, so owner open is cold-process, not cold-disk evidence.
+
+```text
+cargo run --release --locked --example freshness_performance_baseline -- --repetitions 3 --scenario accepted_batch_16,dream_roots_8_same
+python scripts/freshness_performance_compare.py baseline.json candidate.json
+cargo run --release --locked --features freshness-performance-trace --example freshness_operation_baseline
+```
+
+Set `RELIQUARY_FRESHNESS_TRACE=1` for stage rows. The diagnostic feature is opt-in; the default build has no trace collection or diagnostic fixture adapter. Trace rows are buffered and flushed outside measured operations. The comparison command refuses changed workload/projection/effect identities; changed effective worker strategy remains comparable under the same requested cap. Attach `build_metadata` (`profile`, `rustc`, `cargo_lock_sha256`, `features`) to captured JSON before claiming matched optimized identity. Missing metadata is explicitly unqualified. [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns acceptance and missing measurements.
+
 ## Related docs
 
 - [Architecture](architecture.md)

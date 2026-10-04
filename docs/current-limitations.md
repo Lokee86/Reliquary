@@ -128,6 +128,10 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 ## Enforcement limits
 Repository-local Pitlord enforcement assigns every authored Rust source file under `src/` to exactly one architectural owner and blocks reintroduction of the deleted generic `WorkspaceMetadata` / `workspace_type` authority outside the explicit legacy migration decoder. The source tree is physically grouped by those owner directories, so Pitlord can use coarse directory selectors while Reliquary remains one Rust crate. A refreshed post-reorganization audit found no current basis for splitting the core into multiple crates: production import evidence leaves Archive, Chronos, config/security, facade, Memory, Perception, retrieval, runtime/inference, and semantic graph in one strongly connected component; only `container` and `ego` fall outside that SCC. No dependency-direction/cycle rule is therefore being added merely to force an aspirational package DAG. The generated `.lexicon/` and `.arcana/` state is disposable analysis evidence and remains ignored rather than becoming repository authority.
 
+## Freshness performance baseline status
+
+Full-operation performance hardening has started on an isolated branch; P0 acceptance is still open. The diagnostic workload does not establish production event-frequency distributions, historical real-corpus score trajectories, provider latency or host mutex-wait percentiles. Optional tracing adds measurement overhead and must be compared under matched settings. Prior test-profile and standalone synthetic timings do not establish release speedup. [P0 evidence](freshness-performance-baseline-2026-10-03.md) records actual command outcomes and missing dimensions.
+
 ## Related docs
 - [Roadmap](roadmap.md)
 - [Architecture](architecture.md)

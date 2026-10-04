@@ -33,6 +33,8 @@
 - [Freshness R4 canonical-history verification](freshness-r4-verification-2026-10-03.md) — bounded sorting, accepted-prefix scans and finite receipt rebuild/retry evidence.
 - [Freshness R5 transformation verification](freshness-r5-verification-2026-10-03.md) — physical copy/repack/reclamation and divergent reconciliation contracts.
 - [Freshness R6 scheduling and consumer verification](freshness-r6-verification-2026-10-03.md) — bounded due delivery, detached Dream propagation and truthful integration scope.
+- [Freshness performance hardening plan](freshness-performance-hardening-plan-2026-10-03.md) — behavior-preserving optimization sequence and full-operation evidence gates.
+- [Freshness performance baseline](freshness-performance-baseline-2026-10-03.md) — frozen, checksum-backed P0 optimized measurements, accepted P1 baseline and explicit production-evidence limits.
 - [Freshness core release verification](freshness-core-release-verification-2026-10-03.md) — consolidated commands, measurements, limitations and release status; F8 excluded.
 - [Memory Freshness remaining-work specification — 2026-10-03](freshness-remaining-work-2026-10-03.md) — frozen partial-implementation checkpoint, outstanding correctness work and ordered verification gates.
 - [Memory Freshness completion execution specification — 2026-10-03](freshness-completion-execution-plan-2026-10-03.md) — implementation-ready R4–R7 closure, F8 semantic reinforcement/import extension, concrete tests and separate release gates.

@@ -462,6 +462,10 @@ G101/V20   vector generation
 G102/A701  Archive mutation
 ```
 
+## Opt-in Freshness diagnostics
+
+The `freshness-performance-trace` Cargo feature exposes `Cva::freshness_trace_run_initial_dream_fixture(source_id, preexisting_roots, workers) -> Result<bool, CvaError>` and `Cva::freshness_trace_flush()`. These are explicit diagnostic surfaces for disposable fixtures; they are absent from default builds. The fixture adapter performs an eligible first-pass Dream publication and the existing pinned prepare/evaluate/commit path; a settled retry returns `false`. It is not an accepted-context delivery producer. Flush emits buffered stage diagnostics when `RELIQUARY_FRESHNESS_TRACE` is set. [Development](development.md) owns measurement commands and [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns verification status.
+
 ## Related docs
 - [Architecture](architecture.md)
 - [Storage format](storage-format.md)

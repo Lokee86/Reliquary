@@ -925,6 +925,10 @@ Container validates framing/global tickets. A truncated **final** length-prefixe
 
 Default fragments use eight turns with two-turn overlap; the exported library constants `DEFAULT_FRAGMENT_TURNS` and `DEFAULT_FRAGMENT_OVERLAP` are the single source for that default policy. Default Episode input ceiling is 32 KiB. Compatibility probe suite v1 and compatibility policy v2 are fixed by the current implementation.
 
+## Freshness diagnostic records
+
+Opt-in Freshness stage samples are process-local JSON diagnostics. They are not Container chunks and add no journal magic, event version, accepted clock or on-disk authority. Historical scan counters distinguish visited payload bytes from separately read mutation-object bytes; these counts describe read work, not new durable indexes. Existing accepted effects and postimages remain authoritative. [Development](development.md) owns capture commands.
+
 ## Related docs
 
 - [Architecture](architecture.md)

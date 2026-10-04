@@ -35,54 +35,69 @@ impl Cva {
         receipt: AcceptedMemoryUseReceipt,
         workers: usize,
     ) -> Result<usize, crate::CvaError> {
-        if receipt.use_id.trim().is_empty() {
-            return Err(crate::CvaError::Freshness(
-                "accepted-use receipt has an empty identity".into(),
-            ));
-        }
-        if self.owner_uuid() != Some(receipt.owner_uuid) {
-            return Err(crate::CvaError::Freshness(
-                "accepted-use receipt belongs to a different REL owner".into(),
-            ));
-        }
-        if receipt.accepted_turn > self.rel_turn_count() {
-            return Err(crate::CvaError::Freshness(
-                "accepted-use receipt refers to a future REL turn".into(),
-            ));
-        }
+        let _trace = crate::freshness_trace::scope("accepted_use");
+        crate::freshness_trace::measure("accepted_use.receipt_validation", || {
+            if receipt.use_id.trim().is_empty() {
+                return Err(crate::CvaError::Freshness(
+                    "accepted-use receipt has an empty identity".into(),
+                ));
+            }
+            if self.owner_uuid() != Some(receipt.owner_uuid) {
+                return Err(crate::CvaError::Freshness(
+                    "accepted-use receipt belongs to a different REL owner".into(),
+                ));
+            }
+            if receipt.accepted_turn > self.rel_turn_count() {
+                return Err(crate::CvaError::Freshness(
+                    "accepted-use receipt refers to a future REL turn".into(),
+                ));
+            }
+            Ok(())
+        })?;
 
-        let memories: BTreeSet<_> = receipt.memories.into_iter().collect();
-        let memories = memories.into_iter().collect::<Vec<_>>();
-        if self
-            .freshness
-            .resolve_accepted_use(&receipt.use_id, receipt.accepted_turn, &memories)
-            .map_err(crate::CvaError::Freshness)?
-            .is_some()
+        let memories = crate::freshness_trace::measure("accepted_use.root_collection", || {
+            let unique: BTreeSet<_> = receipt.memories.into_iter().collect();
+            unique.into_iter().collect::<Vec<_>>()
+        });
+        if crate::freshness_trace::measure("accepted_use.exact_retry_lookup", || {
+            self.freshness
+                .resolve_accepted_use(&receipt.use_id, receipt.accepted_turn, &memories)
+                .map_err(crate::CvaError::Freshness)
+        })?
+        .is_some()
         {
             return Ok(0);
         }
         if memories.is_empty() {
             return Ok(0);
         }
-        let mut adjacency = BTreeMap::<MemoryId, BTreeSet<MemoryId>>::new();
-        for relation in self
-            .graph_relations()
-            .into_iter()
-            .filter(|relation| relation.active)
-        {
-            adjacency
-                .entry(relation.source)
-                .or_default()
-                .insert(relation.target);
-            adjacency
-                .entry(relation.target)
-                .or_default()
-                .insert(relation.source);
-        }
-        let graph_version = self.memory_graph_version();
-        let community_snapshot = self
-            .community_snapshot()
-            .filter(|snapshot| snapshot.derived_graph_version == graph_version);
+        let relations =
+            crate::freshness_trace::measure("accepted_use.direct_graph_materialization", || {
+                self.graph_relations()
+            });
+        let adjacency =
+            crate::freshness_trace::measure("accepted_use.adjacency_construction", || {
+                let mut adjacency = BTreeMap::<MemoryId, BTreeSet<MemoryId>>::new();
+                for relation in relations.into_iter().filter(|relation| relation.active) {
+                    adjacency
+                        .entry(relation.source)
+                        .or_default()
+                        .insert(relation.target);
+                    adjacency
+                        .entry(relation.target)
+                        .or_default()
+                        .insert(relation.source);
+                }
+                adjacency
+            });
+        let (graph_version, community_snapshot) =
+            crate::freshness_trace::measure("accepted_use.community_proof_pinning", || {
+                let graph_version = self.memory_graph_version();
+                let snapshot = self
+                    .community_snapshot()
+                    .filter(|snapshot| snapshot.derived_graph_version == graph_version);
+                (graph_version, snapshot)
+            });
         let graph_proof = crate::FreshnessEventProof {
             graph_version,
             community_generation: community_snapshot
@@ -93,20 +108,25 @@ impl Cva {
                 .map(|snapshot| snapshot.derived_graph_version),
         };
         let policy = self.freshness_policy();
-        let memberships = community_snapshot
-            .map(|snapshot| {
-                snapshot
-                    .communities
-                    .into_iter()
-                    .flat_map(|community| {
-                        community
-                            .members
+        let memberships = crate::freshness_trace::measure(
+            "accepted_use.community_membership_materialization",
+            || {
+                community_snapshot
+                    .map(|snapshot| {
+                        snapshot
+                            .communities
                             .into_iter()
-                            .map(move |memory| (memory, community.id))
+                            .flat_map(|community| {
+                                community
+                                    .members
+                                    .into_iter()
+                                    .map(move |memory| (memory, community.id))
+                            })
+                            .collect::<BTreeMap<MemoryId, crate::CommunityId>>()
                     })
-                    .collect::<BTreeMap<MemoryId, crate::CommunityId>>()
-            })
-            .unwrap_or_default();
+                    .unwrap_or_default()
+            },
+        );
 
         for memory_id in &memories {
             if self.freshness_record(*memory_id).is_none() {
@@ -124,13 +144,15 @@ impl Cva {
                 excluded: BTreeSet::new(),
             })
             .collect::<Vec<_>>();
-        let outcomes = crate::freshness::propagate_events_with_policy(
-            &events,
-            &adjacency,
-            &memberships,
-            workers.max(1),
-            &policy,
-        )
+        let outcomes = crate::freshness_trace::measure("accepted_use.propagation", || {
+            crate::freshness::propagate_events_with_policy(
+                &events,
+                &adjacency,
+                &memberships,
+                workers.max(1),
+                &policy,
+            )
+        })
         .map_err(|error| crate::CvaError::Freshness(error.to_string()))?;
         if !self.freshness_event_proof_is_available(graph_proof) {
             return Err(crate::CvaError::Freshness(
@@ -142,29 +164,36 @@ impl Cva {
             .flat_map(|outcome| outcome.candidates.keys().copied())
             .collect::<BTreeSet<_>>();
         let applied = memories.len();
-        let payload = self
-            .freshness
-            .prepare_accepted_use_batch(
-                receipt.owner_uuid,
-                receipt.use_id,
-                receipt.accepted_turn,
-                memories,
-                graph_proof,
-                outcomes
-                    .into_iter()
-                    .map(|outcome| outcome.candidates)
-                    .collect(),
-            )
+        let payload =
+            crate::freshness_trace::measure("accepted_use.effect_postimage_preparation", || {
+                self.freshness.prepare_accepted_use_batch(
+                    receipt.owner_uuid,
+                    receipt.use_id,
+                    receipt.accepted_turn,
+                    memories,
+                    graph_proof,
+                    outcomes
+                        .into_iter()
+                        .map(|outcome| outcome.candidates)
+                        .collect(),
+                )
+            })
             .map_err(crate::CvaError::Freshness)?;
         self.freshness
             .persist_policy_if_needed(&mut self.container, receipt.owner_uuid)
             .map_err(crate::CvaError::Freshness)?;
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.freshness
-            .ingest_appended(&payload)
-            .map_err(crate::CvaError::Freshness)?;
-        self.freshness_refresh_due(affected, receipt.accepted_turn)?;
+        crate::freshness_trace::measure("accepted_use.container_append_sync", || {
+            self.container.append(&payload)?;
+            self.container.sync()
+        })?;
+        crate::freshness_trace::measure("accepted_use.receipt_validation_ingest", || {
+            self.freshness
+                .ingest_appended(&payload)
+                .map_err(crate::CvaError::Freshness)
+        })?;
+        crate::freshness_trace::measure("accepted_use.due_refresh", || {
+            self.freshness_refresh_due(affected, receipt.accepted_turn)
+        })?;
         Ok(applied)
     }
 

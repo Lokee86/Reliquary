@@ -96,6 +96,10 @@ The F1 source audit distinguishes **creation at first accepted MemoryStore publi
 - A future CVA management surface composes concrete owner APIs and cannot become a generalized semantic store.
 - Future stores retain independent authority even when they share the CVA global clock.
 
+## Freshness performance diagnostic routing
+
+For workload definitions and matched comparisons, inspect `examples/freshness_performance_baseline.rs` and `scripts/freshness_performance_compare.py`. For complete operation stages, inspect `src/freshness/trace.rs`, the existing Freshness runtime/facade adapters and `examples/freshness_operation_baseline.rs`. [Development](development.md) owns commands and interpretation; [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns verified measurements. Propagation optimization remains gated by the independent oracle and the [hardening plan](freshness-performance-hardening-plan-2026-10-03.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)

@@ -419,6 +419,10 @@ The post-reorganization dependency audit does **not** justify a crate split. Raw
 
 Critical architecture invariants are mapped to focused verification in [Behavioral contracts](behavioral-contracts.md). The primary owner-level suites include Container/REL/PHY lifecycle tests, Project-history and Project-file attachment tests, Archive/conversation/interaction tests, Echo tests, Memory/Graph/Community/retrieval tests, Insomnia/Dream/runtime-host tests, vector/compatibility/retrieval tests, and reconciliation/promotion tests. The [Maintainer map](maintainer-map.md) routes each change area to the narrower verification surface.
 
+## Freshness performance observation boundary
+
+The opt-in `freshness-performance-trace` feature observes existing accepted-use and pinned initial-Dream operations. `src/freshness/trace.rs` owns bounded process-local diagnostic buffers; runtime/facade adapters retain their existing preparation, propagation and commit responsibilities. The default build does not collect traces. The diagnostic initial-Dream fixture adapter uses the original durable proof checks and does not introduce a new scoring or graph authority. [Development](development.md) owns diagnostic invocation; [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns performance acceptance.
+
 ## Related docs
 - [Storage format](storage-format.md)
 - [Local configuration](configuration.md)

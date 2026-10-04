@@ -2,6 +2,8 @@
 pub mod archive;
 #[path = "freshness/mod.rs"]
 pub mod freshness;
+#[path = "freshness/trace.rs"]
+mod freshness_trace;
 pub use freshness::{
     CommunityMembership, FreshnessBoundaryIndex, FreshnessError, FreshnessRecord, FreshnessState,
     MemoryAdjacency, PropagationError, PropagationEvent, propagate,
