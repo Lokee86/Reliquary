@@ -1,7 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, mpsc};
 use std::thread;
 
 use crate::{CommunityId, MemoryId};
@@ -66,34 +64,9 @@ impl fmt::Display for PropagationError {
 
 impl std::error::Error for PropagationError {}
 
-#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
-struct SearchNode {
-    root: MemoryId,
-    memory: MemoryId,
-    origin: Option<CommunityId>,
-}
-
-struct ExpansionJob<'a> {
-    frontier: Vec<(i16, SearchNode)>,
-    adjacency: &'a MemoryAdjacency,
-    memberships: &'a CommunityMembership,
-    excluded: &'a BTreeSet<MemoryId>,
-    results: mpsc::Sender<Result<Vec<(i16, SearchNode)>, ()>>,
-    local_hop_cost: i16,
-    outside_hop_cost: i16,
-}
-
-enum WorkerMessage<'a> {
-    Expand(ExpansionJob<'a>),
-    Stop,
-}
-
-/// Evaluates one event against a pinned, undirected owner-local graph snapshot.
-///
-/// Each originating root carries its own immutable Community context through search.
-/// Worker threads expand same-strength frontier batches and synchronize before lower
-/// strengths are processed. The pool is bounded and reused across every frontier level.
-/// Final results merge by maximum once per physical Memory.
+/// Computes an event against the accepted, immutable graph and Community snapshot.
+/// The optimization shares a strongest-path search between roots that have the
+/// same originating Community. Distinct origin groups remain independent.
 pub fn propagate(
     event: &PropagationEvent,
     adjacency: &MemoryAdjacency,
@@ -139,7 +112,7 @@ pub fn propagate_with_policy_and_stats(
     event: &PropagationEvent,
     adjacency: &MemoryAdjacency,
     memberships: &CommunityMembership,
-    workers: usize,
+    _workers: usize,
     policy: &FreshnessPolicy,
 ) -> Result<PropagationOutcome, PropagationError> {
     policy
@@ -148,210 +121,13 @@ pub fn propagate_with_policy_and_stats(
     if !policy.is_valid_event_principal(event.principal) {
         return Err(PropagationError::InvalidPrincipal);
     }
-    let roots: Vec<_> = event
-        .roots
-        .iter()
-        .copied()
-        .filter(|root| !event.excluded.contains(root))
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    if roots.is_empty() {
+    if event.roots.iter().all(|root| event.excluded.contains(root)) {
         return Ok(PropagationOutcome::default());
     }
-
-    let worker_count = workers.max(1).min(32);
-    if worker_count == 1 {
-        return propagate_serial_validated(event, adjacency, memberships, policy);
-    }
-    let examined_edges = Arc::new(AtomicU64::new(0));
-    let candidate_expansions = Arc::new(AtomicU64::new(0));
-    thread::scope(|scope| {
-        let mut handles = Vec::with_capacity(worker_count);
-        let mut job_senders = Vec::with_capacity(worker_count);
-        for _ in 0..worker_count {
-            let (job_sender, job_receiver) = mpsc::channel::<WorkerMessage<'_>>();
-            job_senders.push(job_sender);
-            let examined_edges = Arc::clone(&examined_edges);
-            let candidate_expansions = Arc::clone(&candidate_expansions);
-            handles.push(scope.spawn(move || {
-                loop {
-                    let message = job_receiver.recv();
-                    match message {
-                        Ok(WorkerMessage::Expand(job)) => {
-                            let ExpansionJob {
-                                frontier,
-                                adjacency,
-                                memberships,
-                                excluded,
-                                results,
-                                local_hop_cost,
-                                outside_hop_cost,
-                            } = job;
-                            let expanded =
-                                std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-                                    let mut expanded = Vec::new();
-                                    for (remaining, node) in frontier {
-                                        for neighbor in
-                                            adjacency.get(&node.memory).into_iter().flatten()
-                                        {
-                                            examined_edges.fetch_add(1, Ordering::Relaxed);
-                                            if excluded.contains(neighbor) {
-                                                continue;
-                                            }
-                                            let stays_in_origin = node.origin.is_some()
-                                                && memberships.get(neighbor).copied()
-                                                    == node.origin;
-                                            let cost = if stays_in_origin {
-                                                local_hop_cost
-                                            } else {
-                                                outside_hop_cost
-                                            };
-                                            let candidate = remaining - cost;
-                                            if candidate > 0 {
-                                                candidate_expansions
-                                                    .fetch_add(1, Ordering::Relaxed);
-                                                expanded.push((
-                                                    candidate,
-                                                    SearchNode {
-                                                        root: node.root,
-                                                        memory: *neighbor,
-                                                        origin: node.origin,
-                                                    },
-                                                ));
-                                            }
-                                        }
-                                    }
-                                    expanded
-                                }));
-                            let failed = expanded.is_err();
-                            if results.send(expanded.map_err(|_| ())).is_err() || failed {
-                                break;
-                            }
-                        }
-                        Ok(WorkerMessage::Stop) | Err(_) => break,
-                    }
-                }
-            }));
-        }
-
-        let mut frontier = BTreeMap::<i16, BTreeSet<SearchNode>>::new();
-        let mut best_by_root = BTreeMap::<(MemoryId, MemoryId), i16>::new();
-        for root in roots {
-            let origin = memberships.get(&root).copied();
-            let node = SearchNode {
-                root,
-                memory: root,
-                origin,
-            };
-            frontier.entry(event.principal).or_default().insert(node);
-            best_by_root.insert((root, root), event.principal);
-        }
-
-        let (result_tx, result_rx) = mpsc::channel();
-        let mut worker_result = Ok(());
-        let mut frontier_levels = 0usize;
-        let mut max_frontier_width = 0usize;
-        while let Some((&strength, _)) = frontier.last_key_value() {
-            frontier_levels += 1;
-            let Some(nodes) = frontier.remove(&strength) else {
-                continue;
-            };
-            // BTreeSet provides stable root/node order. Jobs are coarse chunks; no
-            // per-node tasks are created, even for a large dense Community.
-            max_frontier_width = max_frontier_width.max(nodes.len());
-            let entries: Vec<_> = nodes
-                .into_iter()
-                .filter(|node| {
-                    best_by_root.get(&(node.root, node.memory)).copied() == Some(strength)
-                })
-                .map(|node| (strength, node))
-                .collect();
-            if entries.is_empty() {
-                continue;
-            }
-            let chunk_size = entries.len().div_ceil(worker_count);
-            let job_count = entries.len().div_ceil(chunk_size);
-            for (worker, chunk) in entries.chunks(chunk_size).enumerate() {
-                if job_senders[worker]
-                    .send(WorkerMessage::Expand(ExpansionJob {
-                        frontier: chunk.to_vec(),
-                        adjacency,
-                        memberships,
-                        excluded: &event.excluded,
-                        results: result_tx.clone(),
-                        local_hop_cost: policy.local_hop_cost,
-                        outside_hop_cost: policy.outside_hop_cost,
-                    }))
-                    .is_err()
-                {
-                    worker_result = Err(PropagationError::WorkerFailure);
-                    break;
-                }
-            }
-            if worker_result.is_err() {
-                break;
-            }
-            let mut expanded = Vec::new();
-            for _ in 0..job_count {
-                match result_rx.recv() {
-                    Ok(Ok(mut output)) => expanded.append(&mut output),
-                    Ok(Err(())) | Err(_) => {
-                        worker_result = Err(PropagationError::WorkerFailure);
-                        break;
-                    }
-                }
-            }
-            if worker_result.is_err() {
-                break;
-            }
-
-            // Deterministic merge barrier: retain only the strongest candidate for
-            // each (originating root, physical Memory) before advancing to lower scores.
-            expanded.sort_unstable_by(|(score_a, node_a), (score_b, node_b)| {
-                score_b.cmp(score_a).then_with(|| node_a.cmp(node_b))
-            });
-            for (candidate, node) in expanded {
-                let key = (node.root, node.memory);
-                if best_by_root.get(&key).is_some_and(|old| *old >= candidate) {
-                    continue;
-                }
-                best_by_root.insert(key, candidate);
-                frontier.entry(candidate).or_default().insert(node);
-            }
-        }
-
-        drop(result_tx);
-        for sender in job_senders {
-            let _ = sender.send(WorkerMessage::Stop);
-        }
-        for handle in handles {
-            if handle.join().is_err() {
-                worker_result = Err(PropagationError::WorkerFailure);
-            }
-        }
-        worker_result?;
-
-        let mut event_best = BTreeMap::<MemoryId, i16>::new();
-        for ((_, memory), candidate) in best_by_root {
-            event_best
-                .entry(memory)
-                .and_modify(|best| *best = (*best).max(candidate))
-                .or_insert(candidate);
-        }
-        let stats = PropagationStats {
-            examined_edges: examined_edges.load(Ordering::Relaxed),
-            candidate_expansions: candidate_expansions.load(Ordering::Relaxed),
-            touched_memories: event_best.len(),
-            max_frontier_width,
-            worker_count,
-            frontier_levels,
-        };
-        Ok(PropagationOutcome {
-            candidates: event_best,
-            stats,
-        })
-    })
+    // P0 found that synchronization within one multi-root event adds overhead.
+    // The worker budget remains meaningful for the independent-event batch API.
+    // P2 may add a measured coarse single-event strategy if one proves faster.
+    propagate_serial_validated(event, adjacency, memberships, policy)
 }
 
 /// Calculates independent events with one bounded total-worker pool over a shared pinned
@@ -416,102 +192,97 @@ pub fn propagate_events_with_policy(
         .collect()
 }
 
+/// One multi-source strongest-path traversal per immutable originating Community.
+/// A physical Memory's strongest score is merged only after each independent
+/// origin group has finished; no accepted-use events or durable receipts collapse.
 fn propagate_serial_validated(
     event: &PropagationEvent,
     adjacency: &MemoryAdjacency,
     memberships: &CommunityMembership,
     policy: &FreshnessPolicy,
 ) -> Result<PropagationOutcome, PropagationError> {
-    let roots: Vec<_> = event
+    let mut origin_roots = BTreeMap::<Option<CommunityId>, BTreeSet<MemoryId>>::new();
+    for root in event
         .roots
         .iter()
         .copied()
         .filter(|root| !event.excluded.contains(root))
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    let mut frontier = BTreeMap::<i16, BTreeSet<SearchNode>>::new();
-    let mut best_by_root = BTreeMap::<(MemoryId, MemoryId), i16>::new();
-    for root in roots {
-        let node = SearchNode {
-            root,
-            memory: root,
-            origin: memberships.get(&root).copied(),
-        };
-        frontier.entry(event.principal).or_default().insert(node);
-        best_by_root.insert((root, root), event.principal);
+    {
+        origin_roots
+            .entry(memberships.get(&root).copied())
+            .or_default()
+            .insert(root);
     }
 
+    let mut candidates = BTreeMap::<MemoryId, i16>::new();
     let mut examined_edges = 0u64;
     let mut candidate_expansions = 0u64;
     let mut frontier_levels = 0usize;
     let mut max_frontier_width = 0usize;
-    while let Some((&strength, _)) = frontier.last_key_value() {
-        frontier_levels += 1;
-        let Some(nodes) = frontier.remove(&strength) else {
-            continue;
-        };
-        max_frontier_width = max_frontier_width.max(nodes.len());
-        let mut expanded = Vec::new();
-        for node in nodes {
-            if best_by_root.get(&(node.root, node.memory)).copied() != Some(strength) {
-                continue;
-            }
-            for neighbor in adjacency.get(&node.memory).into_iter().flatten() {
-                examined_edges = examined_edges.saturating_add(1);
-                if event.excluded.contains(neighbor) {
+
+    for (origin, roots) in origin_roots {
+        let mut frontier = BTreeMap::<i16, BTreeSet<MemoryId>>::new();
+        let mut best = BTreeMap::<MemoryId, i16>::new();
+        for root in roots {
+            frontier.entry(event.principal).or_default().insert(root);
+            best.insert(root, event.principal);
+        }
+
+        while let Some((&strength, _)) = frontier.last_key_value() {
+            frontier_levels += 1;
+            let nodes = frontier
+                .remove(&strength)
+                .expect("frontier strength exists");
+            max_frontier_width = max_frontier_width.max(nodes.len());
+            for memory in nodes {
+                if best.get(&memory).copied() != Some(strength) {
                     continue;
                 }
-                let stays_in_origin =
-                    node.origin.is_some() && memberships.get(neighbor).copied() == node.origin;
-                let cost = if stays_in_origin {
-                    policy.local_hop_cost
-                } else {
-                    policy.outside_hop_cost
-                };
-                let candidate = strength - cost;
-                if candidate > 0 {
+                for neighbor in adjacency.get(&memory).into_iter().flatten() {
+                    examined_edges = examined_edges.saturating_add(1);
+                    if event.excluded.contains(neighbor) {
+                        continue;
+                    }
+                    let stays_in_origin =
+                        origin.is_some() && memberships.get(neighbor).copied() == origin;
+                    let hop_cost = if stays_in_origin {
+                        policy.local_hop_cost
+                    } else {
+                        policy.outside_hop_cost
+                    };
+                    let next = strength - hop_cost;
+                    if next <= 0 {
+                        continue;
+                    }
                     candidate_expansions = candidate_expansions.saturating_add(1);
-                    expanded.push((
-                        candidate,
-                        SearchNode {
-                            root: node.root,
-                            memory: *neighbor,
-                            origin: node.origin,
-                        },
-                    ));
+                    if best.get(neighbor).is_some_and(|previous| *previous >= next) {
+                        continue;
+                    }
+                    best.insert(*neighbor, next);
+                    frontier.entry(next).or_default().insert(*neighbor);
                 }
             }
         }
-        expanded.sort_unstable_by(|(score_a, node_a), (score_b, node_b)| {
-            score_b.cmp(score_a).then_with(|| node_a.cmp(node_b))
-        });
-        for (candidate, node) in expanded {
-            let key = (node.root, node.memory);
-            if best_by_root.get(&key).is_some_and(|old| *old >= candidate) {
-                continue;
-            }
-            best_by_root.insert(key, candidate);
-            frontier.entry(candidate).or_default().insert(node);
+
+        for (memory, strength) in best {
+            candidates
+                .entry(memory)
+                .and_modify(|existing| *existing = (*existing).max(strength))
+                .or_insert(strength);
         }
     }
 
-    let mut candidates = BTreeMap::<MemoryId, i16>::new();
-    for ((_, memory), candidate) in best_by_root {
-        candidates
-            .entry(memory)
-            .and_modify(|best| *best = (*best).max(candidate))
-            .or_insert(candidate);
-    }
-    let stats = PropagationStats {
-        examined_edges,
-        candidate_expansions,
-        touched_memories: candidates.len(),
-        max_frontier_width,
-        worker_count: 1,
-        frontier_levels,
-    };
-    Ok(PropagationOutcome { candidates, stats })
+    Ok(PropagationOutcome {
+        stats: PropagationStats {
+            examined_edges,
+            candidate_expansions,
+            touched_memories: candidates.len(),
+            max_frontier_width,
+            worker_count: 1,
+            frontier_levels,
+        },
+        candidates,
+    })
 }
 
 #[cfg(test)]
