@@ -385,3 +385,249 @@ fn fixed_seed_larger_graphs_match_simple_path_oracle() {
         );
     }
 }
+
+#[test]
+fn scheduler_keeps_cheap_batches_serial_and_matches_the_oracle() {
+    let policy = FreshnessPolicy::default_v1();
+    let graph = graph_for(0b10_1011);
+    let communities = [
+        (memory(0), community(0)),
+        (memory(1), community(0)),
+        (memory(2), community(1)),
+        (memory(3), community(0)),
+    ]
+    .into_iter()
+    .collect::<CommunityMembership>();
+    let events = vec![
+        PropagationEvent {
+            roots: vec![memory(0)],
+            principal: 25,
+            excluded: BTreeSet::new(),
+        },
+        PropagationEvent {
+            roots: vec![memory(3), memory(1), memory(3)],
+            principal: 50,
+            excluded: BTreeSet::new(),
+        },
+        PropagationEvent {
+            roots: vec![memory(2)],
+            principal: 25,
+            excluded: [memory(0)].into_iter().collect(),
+        },
+    ];
+    let expected = events
+        .iter()
+        .map(|event| oracle(event, &graph, &communities, &policy))
+        .collect::<Vec<_>>();
+
+    // Requesting more workers than this small batch has events must not cause
+    // per-event frontier parallelism or alter the exact positional results.
+    for workers in [1, 2, 8] {
+        let actual =
+            propagate_events_with_policy(&events, &graph, &communities, workers, &policy).unwrap();
+        assert_eq!(
+            actual
+                .iter()
+                .map(|outcome| &outcome.candidates)
+                .collect::<Vec<_>>(),
+            expected.iter().collect::<Vec<_>>(),
+            "workers={workers}"
+        );
+        assert!(
+            actual.iter().all(|outcome| outcome.stats.worker_count == 1),
+            "each event must keep a serial frontier; workers={workers}"
+        );
+    }
+
+    // Even with a large requested cap, a one-event batch remains serial.
+    let one =
+        propagate_events_with_policy(&events[..1], &graph, &communities, 32, &policy).unwrap();
+    assert_eq!(one[0].candidates, expected[0]);
+    assert_eq!(one[0].stats.worker_count, 1);
+}
+
+#[test]
+fn scheduler_matches_oracle_for_mixed_cost_batches_in_original_order() {
+    let policy = FreshnessPolicy::default_v1();
+    let mut graph = MemoryAdjacency::new();
+    for (a, b) in [
+        (0, 1),
+        (0, 2),
+        (1, 3),
+        (1, 4),
+        (2, 5),
+        (2, 6),
+        (3, 7),
+        (4, 7),
+        (5, 7),
+        (6, 7),
+        (3, 4),
+        (5, 6),
+    ] {
+        graph.entry(memory(a)).or_default().insert(memory(b));
+        graph.entry(memory(b)).or_default().insert(memory(a));
+    }
+    let communities = [
+        (memory(0), community(0)),
+        (memory(1), community(0)),
+        (memory(2), community(1)),
+        (memory(3), community(0)),
+        (memory(4), community(1)),
+        (memory(5), community(1)),
+        // Memory 6 deliberately has unknown Community membership.
+        (memory(7), community(0)),
+    ]
+    .into_iter()
+    .collect::<CommunityMembership>();
+    let events = vec![
+        PropagationEvent {
+            roots: vec![memory(7)],
+            principal: 25,
+            excluded: BTreeSet::new(),
+        },
+        PropagationEvent {
+            roots: vec![memory(0), memory(2), memory(4), memory(6)],
+            principal: 50,
+            excluded: BTreeSet::new(),
+        },
+        PropagationEvent {
+            roots: vec![memory(3), memory(5)],
+            principal: 50,
+            excluded: [memory(7)].into_iter().collect(),
+        },
+        PropagationEvent {
+            roots: vec![memory(1)],
+            principal: 25,
+            excluded: BTreeSet::new(),
+        },
+        PropagationEvent {
+            roots: vec![memory(0), memory(7), memory(0)],
+            principal: 50,
+            excluded: [memory(4)].into_iter().collect(),
+        },
+        PropagationEvent {
+            roots: vec![memory(6), memory(2)],
+            principal: 25,
+            excluded: BTreeSet::new(),
+        },
+    ];
+    let expected = events
+        .iter()
+        .map(|event| oracle(event, &graph, &communities, &policy))
+        .collect::<Vec<_>>();
+
+    for workers in [1, 2, 4, 8] {
+        let actual =
+            propagate_events_with_policy(&events, &graph, &communities, workers, &policy).unwrap();
+        assert_eq!(
+            actual
+                .iter()
+                .map(|outcome| &outcome.candidates)
+                .collect::<Vec<_>>(),
+            expected.iter().collect::<Vec<_>>(),
+            "workers={workers}"
+        );
+        assert!(
+            actual.iter().all(|outcome| outcome.stats.worker_count == 1),
+            "no event may start a nested frontier pool; workers={workers}"
+        );
+
+        let reversed = events.iter().cloned().rev().collect::<Vec<_>>();
+        let reversed_expected = expected.iter().rev().collect::<Vec<_>>();
+        let reversed_actual =
+            propagate_events_with_policy(&reversed, &graph, &communities, workers, &policy)
+                .unwrap();
+        assert_eq!(
+            reversed_actual
+                .iter()
+                .map(|outcome| &outcome.candidates)
+                .collect::<Vec<_>>(),
+            reversed_expected,
+            "reversed mixed-cost batch workers={workers}"
+        );
+    }
+}
+
+#[test]
+fn event_batch_rejects_invalid_principals_at_every_position() {
+    use reliquary_memory::freshness::PropagationError;
+
+    let policy = FreshnessPolicy::default_v1();
+    let graph = graph_for(0b10_1011);
+    let communities = CommunityMembership::new();
+    let valid = PropagationEvent {
+        roots: vec![memory(0)],
+        principal: 25,
+        excluded: BTreeSet::new(),
+    };
+    let invalid = PropagationEvent {
+        principal: 26,
+        ..valid.clone()
+    };
+
+    assert_eq!(
+        propagate_events_with_policy(&[], &graph, &communities, 4, &policy).unwrap(),
+        Vec::new()
+    );
+    for events in [
+        vec![invalid.clone(), valid.clone(), valid.clone()],
+        vec![valid.clone(), invalid.clone(), valid.clone()],
+        vec![valid.clone(), valid.clone(), invalid.clone()],
+    ] {
+        assert_eq!(
+            propagate_events_with_policy(&events, &graph, &communities, 4, &policy),
+            Err(PropagationError::InvalidPrincipal)
+        );
+    }
+}
+
+#[test]
+fn fixed_seed_batches_match_oracle_on_both_sides_of_threshold() {
+    let policy = FreshnessPolicy::default_v1();
+    let mut seed = 0x5eed_u64;
+    for case in 0..64 {
+        let mut next = || {
+            seed = seed.wrapping_mul(6364136223846793005).wrapping_add(1);
+            seed
+        };
+        let graph = graph_for(next() as u8);
+        let communities = (0..4)
+            .map(|node| (memory(node), community((next() % 3) as u8)))
+            .collect::<CommunityMembership>();
+        let events = (0..17)
+            .map(|_| PropagationEvent {
+                roots: vec![memory((next() % 4) as u8)],
+                principal: if next() % 2 == 0 { 25 } else { 50 },
+                excluded: if next() % 3 == 0 {
+                    [memory((next() % 4) as u8)].into_iter().collect()
+                } else {
+                    BTreeSet::new()
+                },
+            })
+            .collect::<Vec<_>>();
+        for count in [1, 15, 16, 17] {
+            let expected = events[..count]
+                .iter()
+                .map(|event| oracle(event, &graph, &communities, &policy))
+                .collect::<Vec<_>>();
+            for workers in [1, 2, 4, 8] {
+                let actual = propagate_events_with_policy(
+                    &events[..count],
+                    &graph,
+                    &communities,
+                    workers,
+                    &policy,
+                )
+                .unwrap();
+                assert_eq!(
+                    actual
+                        .into_iter()
+                        .map(|outcome| outcome.candidates)
+                        .collect::<Vec<_>>(),
+                    expected,
+                    "case={case} events={count} cap={workers}"
+                );
+            }
+        }
+    }
+}

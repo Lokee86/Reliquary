@@ -2,11 +2,11 @@
 
 Parent: [Documentation index](INDEX.md). This is a performance-only follow-up to the [verified Freshness core](freshness-core-release-verification-2026-10-03.md) and a prerequisite for deploying [Ego Memory-Web synthesis](ego-web-synthesis-plan.md) at scale. Governing semantics: [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [Freshness numerical and event policy](memory-staleness-plan.md), and [completed core execution plan](freshness-completion-execution-plan-2026-10-03.md).
 
-**Status:** P0 measurement foundation is implemented, verified within its stated local-fixture/topology scope, and accepted at [the frozen P0 report](freshness-performance-baseline-2026-10-03.md) (commit `61add96`); P1–P6 production optimization and their own final verification remain outstanding. Starting implementation baseline: `feat/deterministic-memory-freshness` at `20e1e9ab` (verified, pushed on 2026-10-03). Scope excludes F8/S1–S6 semantic activity relevance and imported-history simulation; those remain deferred.
+**Status:** P0 measurement foundation is accepted; P1 grouped-origin propagation is implemented and accepted; P2 fixed conservative event-batch scheduling is accepted; P3 current-graph caching is deferred because P0 measured graph enumeration/adjacency construction at only ~0.003–0.007 ms on the local operation path; the next active optimization target after P2 is the measured accepted-use postimage/history cost in P4. Final whole-operation and deployed-host verification remain outstanding. Starting implementation baseline: `feat/deterministic-memory-freshness` at `20e1e9ab` (verified, pushed on 2026-10-03). Scope excludes F8/S1–S6 semantic activity relevance and imported-history simulation; those remain deferred.
 
 ## Purpose
 
-Remove redundant Freshness propagation and graph-preparation cost before Ego depends on it routinely. Optimize the *whole accepted-use and initial-Dream settlement operations*, not an isolated inner-loop benchmark. Preserve every accepted event, historical proof, physical effect, current/historical score, and authorized REL scope. Produce independent correctness evidence and reproducible, representative performance evidence before promoting a change.
+Remove measured Freshness bottlenecks before Ego depends on it routinely. Treat each optimization phase as a hypothesis that must survive P0 evidence rather than machinery that must be implemented. Optimize the *whole accepted-use and initial-Dream settlement operations*, not an isolated inner-loop benchmark. Preserve every accepted event, historical proof, physical effect, current/historical score, and authorized REL scope.
 
 ## Overview
 
@@ -74,51 +74,49 @@ Run R2–R6 regression coverage after this phase and show identical replay/posti
 
 In matching optimized synthetic eight-root/same-origin +50 benchmarks, target at least **2x lower median propagation latency and 2x fewer examined edges**; these are a provisional minimum supported by the prior diagnostic, not a universal promise. Require no material regression in single-root, separated-origin and unknown-Community scenarios; investigate any repeatable >10% p95 loss before promotion. Report reach and full candidate-map equality; never manufacture a speedup by dropping low-strength recipients. If dense representation loses on a small graph, select the measured smaller path rather than forcing one implementation universally.
 
-## 5. P2 — schedule independent events, not fine-grained barriers
+## 5. P2 — conservative event-batch parallelism
 
 **Primary source:** `src/freshness/propagation.rs`; consumer: `src/runtime_inference/freshness_access.rs`.
 
-### P2.1 Eliminate avoidable single-event overhead
+P2 is deliberately simple. P1 owns the single-event propagation algorithm. P2 only decides whether a batch of **independent accepted-use events** is large enough to justify one bounded event-level worker pool.
 
-The existing multithreaded single-event path creates a scoped worker pool per invocation; each strength frontier distributes jobs, receives results, merges and sorts, and increments global per-edge atomics. Benchmark the P1 grouped implementation **serially** first. Make serial execution the default for small and medium events. Use cheap thread-local counters accumulated at completion rather than contended atomic increments where diagnostic stats are requested. Keep stats instrumentation out of default production accounting when not requested; ensure benchmark runs measure comparable stats-enabled or stats-disabled paths.
+### P2.1 Fixed rule
 
-Do not add parallel frontier processing solely because a thread count was supplied. If P0/P1 show exceptionally large single events benefit, prototype a separate bounded coarse-grained plan with no level-by-level per-edge synchronization, retain deterministic merge, and promote it only against a measured improvement threshold. Otherwise remove or internally bypass the costly parallel-frontier path, while keeping caller-facing results stable.
+- One event is always serial P1 grouped-origin propagation.
+- Batches with fewer than **16 events** are serial.
+- Batches with **16 or more events** may use one bounded event-level pool.
+- The production pool is capped at **4 workers**, further limited by caller cap, available parallelism and event count.
+- No topology classifier, Community-based dispatch rule, two-hop estimator, adaptive predictor, nested pool, frontier parallelism, work stealing or persisted scheduler state.
+- Preserve event identity and input ordering; concurrency may change wall-clock completion order only.
+- The counterless production path may remain if it is exactly equivalent to the stats path except for diagnostic accounting.
 
-### P2.2 Event-level parallelism
+The fixed 16-event threshold intentionally gives up the measured batch-4 win on the 14-day graph. That tradeoff is accepted to keep the scheduler predictable and maintainable. P1 evidence showed 16- and 64-event batches are the first measured sizes with consistent parallel benefit across the tested topologies.
 
-Accepted-use currently creates independent single-root event records with separate effect maps. Assign complete independent events to a bounded shared worker pool over **one frozen graph/proof**, then collect and order outcomes by original event index. Do not merge their logical receipts or cross-contaminate effects. The caller's requested worker cap and global available-work budget both constrain concurrency. Avoid nested event-level and frontier-level pools and avoid worker startup for trivial/single-event batches. Do not assume different root counts have equal cost; P0 should guide whether deterministic coarse cost-based distribution beats the existing strided assignment. Any scheduling heuristic may change wall-clock completion order, never accepted event ordering.
+### P2.2 Acceptance
 
-### P2.3 Adaptive acceptance
+Verify exact candidate-map equality, stable event ordering, worker-cap behavior, failure/join semantics and serial behavior below 16. Run matched release measurements primarily at production-relevant 1/2/4-worker caps. P2 is accepted when 16/64-event batches retain material benefit on representative large topologies and the fixed rule introduces no repeatable material regression in the complete accepted-use operation. Do not tune production code against p95 noise in unchanged Dream/single-event paths.
 
-Compare serial versus 2/4/8 event workers for the P0 batch-size and topology matrix. The selected default must avoid repeatable >10% p95 regression on cheap single-root work; use a deterministic fallback/threshold if parallel overhead erases gains. Record both latency and aggregate throughput while preserving resource ceilings. Test exact receipt identities, output ordering, failures/cancellation and proof checks with concurrent completion. Preserve the existing runtime Dream mutex release/join/reacquire contract.
+## 6. P3 — deferred graph-preparation hypothesis
 
-## 6. P3 — pinned graph projection and historical-preparation cost
+**No P3 implementation is currently authorized.**
 
-**Owners:** Graph/Community for original projection and proof, Freshness for derived traversal view, Cva for lifecycle composition. Inspect `GraphStore::memory_topology` and active-relation indexes before introducing another copied adjacency graph.
+P0 measured accepted-use graph enumeration and adjacency construction at roughly **0.003–0.007 ms**, while accepted-use postimage/history processing measured in the **multi-millisecond to >100 ms** range. Building current-graph caches, graph-version invalidation machinery or reusable projections to save microseconds is not justified by the evidence.
 
-### P3.1 Decide reuse versus rebuild from evidence
+Keep current graph preparation as-is unless a later full-operation measurement shows it has become material after larger bottlenecks are removed.
 
-Current accepted use enumerates active `graph_relations`, constructs a `BTreeMap<MemoryId,BTreeSet<MemoryId>>`, then pins a valid current Community snapshot. Initial Dream settlement may visit durable payloads to recover committed roots and build an accepted historical graph, including a separate historical scan. P0 must establish whether snapshot preparation dominates propagation in each workload. Compare using an existing in-memory Memory projection directly, a reusable deterministic indexed view, and a one-shot temporary projection. Favor one deep internal graph pinning API over multiple consumer-specific caches and conversion pipelines, but **do not extend** the public Graph API just to make this benchmark convenient.
+Historical Dream preparation remains a separate measurement question. P0 observed historical root/graph scans in the millisecond range on a small local fixture, but did not establish large-history scaling. Before any historical cache, combined scan or derived projection is implemented, first benchmark a realistic large accepted history. If that measurement shows a material bottleneck, write a focused follow-up specification preserving the exact accepted graph cut/proof. Otherwise P3 closes as **deferred/no change**.
 
-An immutable reusable *current* graph view may be keyed by exact owner, memory-graph version and Community generation/derived graph version (including the unknown-membership case). It must be bounded by memory and invalidated at every relevant active Memory-graph or Community publication change, reopen, reconciliation, repack or owner replacement. Other semantic Entity-only graph changes need not invalidate the Memory projection unless they affect proof identity. Freeze a view before leaving the owner mutex and validate the accepted proof at commit. Cache misses rebuild without changing semantics.
+## 7. P4 — accepted-use postimage/history hot path
 
-### P3.2 Historical correctness first
+P4 is the next active optimization phase after P2 because P0 identified this as the dominant observed full-operation cost. On the local operation baseline, propagation was sub-millisecond while effect postimage preparation and canonical receipt ingest/replay consumed milliseconds to hundreds of milliseconds as history grew.
 
-A pending Dream pass is pinned to its original accepted graph cut and, when present, a particular Community snapshot. Never satisfy this request from a current-graph cache merely because its node/edge counts match. Combine repeated committed-root and historical-graph scans **only if the same accepted prefix/proof can be used without changing first-pass root membership, duplicate eligibility or in-flight crash recovery**. Explore a bounded, derived historical projection memo keyed by the full source cut/proof when measured reuse justifies it; otherwise stream/build it once per settlement. No unrestricted historical graph-cache growth and no new authoritative persisted graph index.
+First split the measured cost into its actual components: effect/postimage construction, canonical accepted-history lookup/replay, due refresh, payload serialization, append/sync and exact retry lookup. Optimize only the component demonstrated to dominate. Do not assume the journal format or persistence layer is the problem before that microprofile exists.
 
-Recheck late graph mutations at the same turn, Community generation/graph-version pairs, replay after reopen, settled-pass retries, missing historical Community snapshots (explicit failure where required), and mutation between detached evaluation and commit. A cache entry cannot authorize a graph proof or make a rejected event valid.
+Retain bounded receipt residency (128 recent receipts with a conservative 256-KiB ceiling), bounded sorted history runs, immutable accepted effects, original accepted clock cuts, corrupt-prefix refusal and fail-before-append guarantees. Old evicted retries may still cost a linear durable accepted-prefix scan; any rebuildable lookup index requires separate measured justification and bounded-memory/recovery tests.
 
-### P3.3 Acceptance
+Prioritize regular accepted-use over one-time Dream settlement, recovery/reconciliation and owner reopen. A measured null result ends the attempted optimization rather than triggering new machinery.
 
-Compare cold/warm pin and end-to-end stage p50/p95 against P0 on disposable real/synthetic fixture paths. Demonstrate a measured benefit where repeated current view reuse or reduced historical scans are actually common; do not keep an extra cache that only moves O(E) work or increases peak RAM without a material gain. Include stale-cache, wrong-owner, same-node-count/different-edges, generation rollover, post-reconciliation and reopened-owner tests. No new disk authority, unbounded residency or weakened fail-closed behavior.
-
-## 7. P4 — remaining end-to-end costs and bounded persistence
-
-After P1–P3, rerun the stage breakdown before touching the journal. Optimize only stages demonstrated to dominate: postimage assembly and per-Memory due refresh, payload serialization/append, exact accepted receipt lookup, historical accepted-prefix scans or owner open/replay. Retain R4 bounded receipt residency (128 recent receipts with a conservative 256-KiB ceiling), bounded sorted history runs, immutable accepted effects, original accepted clock cuts, corrupt-prefix refusal and fail-before-append guarantees. Old evicted retries may still cost a linear durable accepted-prefix scan; an optional rebuildable derived lookup index requires independent justification and new tests, not a silent unbounded RAM map.
-
-Classify improvements by expected event frequency: regular accepted-use, one-time Dream settlement, rare recovery/reconciliation and owner reopen. Do not spend complexity optimizing rare maintenance operations while normal Ego-bound usage is slow. No migration or journal format change without a separate measured rationale and storage compatibility specification.
-
-**Gate:** end-to-end accepted-use and initial Dream breakdown after each retained change, no regression to immutable event/history/recovery contracts, measured I/O and peak memory, and updated P0 report with the actual bottleneck that motivated the edit. A measured null result is grounds to stop this phase rather than invent machinery.
+**Gate:** matched complete accepted-use operations show a material improvement in the measured dominant stage with unchanged canonical effects/replay/reopen behavior and no material end-to-end regression. Historical Dream preparation may be profiled alongside this work, but is not grounds for speculative caching.
 
 ## 8. P5 — relevance breadth assessment, *not* a policy change
 
@@ -150,16 +148,17 @@ Publish `docs/freshness-performance-verification-2026-10-03.md` with source dige
 | --- | --- | --- | --- |
 | P0 | Verified core commit; clean isolated worktree | Full-operation baseline, runnable diagnostic and workload matrix | Performance evidence |
 | P1 | P0 measurements and preserved oracle | Grouped-origin implementation and exact oracle comparison | Propagation |
-| P2 | P1 frozen candidate and real batch distribution | Serial/event-level execution selection and no-regression data | Propagation + accepted-use |
-| P3 | P0 stage breakdown; P1/P2 stable graph consumer | Provenanced current/historical graph projection and invalidation tests | Graph/Community + Cva |
-| P4 | P1–P3 end-to-end breakdown | Only justified remaining hot-path changes | Freshness persistence + Cva |
+| P2 | Accepted P1 + P0/P1 batch measurements | Fixed `<16 serial / >=16 bounded pool` rule and no-regression evidence | Propagation + accepted-use |
+| P3 | P0 graph-preparation measurements | Deferred/no change unless later measurement establishes a material graph-preparation bottleneck | Measurement only |
+| P4 | P0 accepted-use stage breakdown + accepted P2 | Measured postimage/history hot-path optimization only | Freshness persistence + Cva |
 | P5 | Scenario-stratified baseline/final traces | Evidence-driven v1 breadth disposition or separately proposed v2 | Policy review |
 | P6 | All retained source changes frozen | Final gate, report, clean commit/PR boundary | Integrated release |
 
-P0 can develop independent oracle fixtures while a single implementation owner examines P1's internal representation, but **do not edit P1 shared production files until the P0 baseline is frozen**. Do not run P4 without measured dominance. P5 measurement can proceed alongside independent P1 oracle work but policy modification is outside scope. Persist reports per completed gate; the milestone is not complete when only inner-loop tests or a synthetically faster implementation exist.
+P0 can develop independent oracle fixtures while a single implementation owner examines P1's internal representation, but **do not edit P1 shared production files until the P0 baseline is frozen**. After P2, proceed directly to P4's measured accepted-use hot path; P3 requires no implementation unless later evidence reopens it. P5 remains measurement/policy review only. Persist reports per completed gate; the milestone is not complete when only inner-loop tests or a synthetically faster implementation exist.
 
 ## Related docs
 
+- [P2–P4 completion execution plan](freshness-performance-p2-p4-execution-plan-2026-10-04.md)
 - [Freshness core release verification](freshness-core-release-verification-2026-10-03.md)
 - [Freshness R4 historical replay verification](freshness-r4-verification-2026-10-03.md)
 - [Freshness R6 scheduling/consumer verification](freshness-r6-verification-2026-10-03.md)

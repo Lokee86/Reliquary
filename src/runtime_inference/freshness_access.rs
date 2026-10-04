@@ -145,7 +145,7 @@ impl Cva {
             })
             .collect::<Vec<_>>();
         let outcomes = crate::freshness_trace::measure("accepted_use.propagation", || {
-            crate::freshness::propagate_events_with_policy(
+            crate::freshness::propagate_event_candidates_with_policy(
                 &events,
                 &adjacency,
                 &memberships,
@@ -161,7 +161,7 @@ impl Cva {
         }
         let affected = outcomes
             .iter()
-            .flat_map(|outcome| outcome.candidates.keys().copied())
+            .flat_map(|candidates| candidates.keys().copied())
             .collect::<BTreeSet<_>>();
         let applied = memories.len();
         let payload =
@@ -172,10 +172,7 @@ impl Cva {
                     receipt.accepted_turn,
                     memories,
                     graph_proof,
-                    outcomes
-                        .into_iter()
-                        .map(|outcome| outcome.candidates)
-                        .collect(),
+                    outcomes,
                 )
             })
             .map_err(crate::CvaError::Freshness)?;

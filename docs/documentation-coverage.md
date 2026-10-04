@@ -89,7 +89,9 @@ New production modules require canonical owners. New persistence records update 
 
 ## Freshness performance observation coverage
 
-`src/freshness/trace.rs`, opt-in diagnostic adapters and `examples/freshness_operation_baseline.rs` map to [Architecture](architecture.md), [Rust API](api.md) and [Development](development.md). `examples/freshness_performance_baseline.rs` and `scripts/freshness_performance_compare.py` map to [Development](development.md) and [P0 evidence](freshness-performance-baseline-2026-10-03.md). Expanded independent oracle coverage maps to [Behavioral contracts](behavioral-contracts.md). Current event/storage semantics remain owned by their existing references; the optimization sequence remains a plan until its gates pass.
+P2 event-scheduling behavior and the counterless accepted-use candidate path are documented in [Architecture](architecture.md), [Rust API](api.md), and [Behavioral contracts](behavioral-contracts.md); implementation/verification status is linked in the [P2 report](freshness-performance-p2-verification-2026-10-03.md). P2 acceptance and its measured scope/limits are recorded there.
+
+`src/freshness/trace.rs`, opt-in diagnostic adapters and `examples/freshness_operation_baseline.rs` map to [Architecture](architecture.md), [Rust API](api.md) and [Development](development.md). `examples/freshness_performance_baseline.rs` and `scripts/freshness_performance_compare.py` map to [Development](development.md) and [P0 evidence](freshness-performance-baseline-2026-10-03.md). Expanded independent oracle coverage and grouped-origin implementation map to [Behavioral contracts](behavioral-contracts.md) and [P1 verification](freshness-performance-p1-verification-2026-10-03.md). Current event/storage semantics remain owned by their existing references; P1's matched real-topology propagation acceptance is recorded separately from the remaining P2–P6 performance and whole-operation release gates.
 
 ## Related docs
 

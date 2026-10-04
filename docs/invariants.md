@@ -151,6 +151,8 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 Changing version ownership, conversation ancestry, mutable-record revision semantics, or persistent format requires architecture review and focused behavioral tests.
 
+132. **Freshness batch scheduling preserves event boundaries and ordering.** Validate the full principal set before work, evaluate complete independent events in one bounded pool, preserve input-order results, and join every worker before reporting failure. Cheap/small batches stay serial; synchronous calls provide no cancellation token.
+
 ## Freshness diagnostic custody
 
 Performance diagnostics must preserve the accepted owner/policy/graph/Community cut and every independent consumption event. They may not replace a historical cut with current topology, enroll passive reads, suppress recipients, or treat a timing result as a correctness proof. Real fixture runs require source/copy SHA-256 verification and disposable writable copies. [The hardening plan](freshness-performance-hardening-plan-2026-10-03.md) defines promotion gates.

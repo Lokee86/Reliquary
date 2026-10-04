@@ -7,6 +7,7 @@ pub use policy::{
     FRESHNESS_POLICY_VERSION, FRESHNESS_SCORE_MAX, FRESHNESS_SCORE_MIN, FreshnessPolicy,
     FreshnessPolicyError,
 };
+pub(crate) use propagation::propagate_event_candidates_with_policy;
 pub use propagation::{
     CommunityMembership, MemoryAdjacency, PropagationError, PropagationEvent, PropagationOutcome,
     PropagationStats, default_worker_count, propagate, propagate_events_with_policy,

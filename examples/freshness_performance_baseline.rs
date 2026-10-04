@@ -259,10 +259,12 @@ fn run(
             if serial.candidates != *oracle {
                 return Err("parallel result differs from serial reference candidate map".into());
             }
-            let event_workers = if s.family == "accepted_use" {
-                workers.min(s.events.len()).max(1)
+            // The public event stats describe each serial traversal, not the adaptive
+            // batch pool. Do not present a requested cap as observed concurrency.
+            let event_workers = if s.family == "accepted_use" && workers > 1 && s.events.len() > 1 {
+                None
             } else {
-                measured.stats.worker_count
+                Some(measured.stats.worker_count)
             };
             effective_workers.push(event_workers);
             let origins = e
@@ -294,7 +296,8 @@ fn run(
     }
     Ok(
         json!({"scenario_id":s.id,"family":s.family,"topology":s.topology,"requested_workers":workers,
-  "effective_workers":effective_workers.iter().copied().max().unwrap_or(0),"event_count":s.events.len(),"repetitions":reps,
+  "effective_workers":if effective_workers.iter().any(Option::is_none){None}else{effective_workers.iter().copied().flatten().max()},"event_count":s.events.len(),"repetitions":reps,
+  "worker_reporting":"actual_propagation_workers is per-event; batch concurrency unavailable from per-event public stats; requested_workers is a cap",
   "operation_latency_ns":{"raw":operation_ns,"p50":percentile(&operation_ns,50),"p95":percentile(&operation_ns,95),"p99":percentile(&operation_ns,99)},
   "events_per_second_at_p50":percentile(&operation_ns,50).map(|ns|s.events.len() as f64*1_000_000_000.0/ns as f64),
   "correctness_reference_events":reference,"samples":records}),

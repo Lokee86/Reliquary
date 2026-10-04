@@ -9,12 +9,40 @@ use super::policy::{FreshnessPolicy, FreshnessPolicyError};
 pub type MemoryAdjacency = BTreeMap<MemoryId, BTreeSet<MemoryId>>;
 pub type CommunityMembership = BTreeMap<MemoryId, CommunityId>;
 
-/// Conservative runtime default for independent graph-frontier workers.
+/// Conservative runtime default for independent-event workers.
 pub fn default_worker_count() -> usize {
     thread::available_parallelism()
         .map(|count| count.get())
         .unwrap_or(1)
         .clamp(1, 4)
+}
+
+const PARALLEL_BATCH_EVENTS: usize = 16;
+
+/// Fixed event-level resource budget; graph topology never affects scheduling.
+fn planned_event_workers(event_count: usize, requested_workers: usize) -> usize {
+    if event_count < PARALLEL_BATCH_EVENTS {
+        return usize::from(event_count != 0);
+    }
+    let available = thread::available_parallelism()
+        .map(|count| count.get())
+        .unwrap_or(1);
+    planned_event_workers_with_parallelism(event_count, requested_workers, available)
+}
+
+fn planned_event_workers_with_parallelism(
+    event_count: usize,
+    requested_workers: usize,
+    available_parallelism: usize,
+) -> usize {
+    if event_count < PARALLEL_BATCH_EVENTS {
+        return usize::from(event_count != 0);
+    }
+    requested_workers
+        .max(1)
+        .min(available_parallelism.max(1))
+        .min(event_count)
+        .min(4)
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -89,7 +117,7 @@ pub fn propagate_with_policy(
     workers: usize,
     policy: &FreshnessPolicy,
 ) -> Result<BTreeMap<MemoryId, i16>, PropagationError> {
-    propagate_with_policy_and_stats(event, adjacency, memberships, workers, policy)
+    propagate_single::<false>(event, adjacency, memberships, workers, policy)
         .map(|outcome| outcome.candidates)
 }
 
@@ -115,19 +143,53 @@ pub fn propagate_with_policy_and_stats(
     _workers: usize,
     policy: &FreshnessPolicy,
 ) -> Result<PropagationOutcome, PropagationError> {
+    propagate_single::<true>(event, adjacency, memberships, _workers, policy)
+}
+
+fn validate_policy(policy: &FreshnessPolicy) -> Result<(), PropagationError> {
     policy
         .validate()
-        .map_err(|_: FreshnessPolicyError| PropagationError::InvalidPolicy)?;
-    if !policy.is_valid_event_principal(event.principal) {
-        return Err(PropagationError::InvalidPrincipal);
+        .map_err(|_: FreshnessPolicyError| PropagationError::InvalidPolicy)
+}
+
+fn validate_event_principal(
+    event: &PropagationEvent,
+    policy: &FreshnessPolicy,
+) -> Result<(), PropagationError> {
+    if policy.is_valid_event_principal(event.principal) {
+        Ok(())
+    } else {
+        Err(PropagationError::InvalidPrincipal)
     }
+}
+
+fn validate_batch(
+    events: &[PropagationEvent],
+    policy: &FreshnessPolicy,
+) -> Result<(), PropagationError> {
+    validate_policy(policy)?;
+    for event in events {
+        validate_event_principal(event, policy)?;
+    }
+    Ok(())
+}
+
+fn propagate_single<const TRACK_STATS: bool>(
+    event: &PropagationEvent,
+    adjacency: &MemoryAdjacency,
+    memberships: &CommunityMembership,
+    _workers: usize,
+    policy: &FreshnessPolicy,
+) -> Result<PropagationOutcome, PropagationError> {
+    validate_policy(policy)?;
+    validate_event_principal(event, policy)?;
     if event.roots.iter().all(|root| event.excluded.contains(root)) {
+        // Preserve the direct single-event API's historical all-excluded stats.
         return Ok(PropagationOutcome::default());
     }
-    // P0 found that synchronization within one multi-root event adds overhead.
-    // The worker budget remains meaningful for the independent-event batch API.
-    // P2 may add a measured coarse single-event strategy if one proves faster.
-    propagate_serial_validated(event, adjacency, memberships, policy)
+    // P0 found synchronization within one multi-root event adds overhead.
+    // Independent batches may use a bounded pool; each event stays serial.
+    propagate_serial_validated::<TRACK_STATS>(event, adjacency, memberships, policy)
 }
 
 /// Calculates independent events with one bounded total-worker pool over a shared pinned
@@ -140,22 +202,46 @@ pub fn propagate_events_with_policy(
     workers: usize,
     policy: &FreshnessPolicy,
 ) -> Result<Vec<PropagationOutcome>, PropagationError> {
-    policy
-        .validate()
-        .map_err(|_: FreshnessPolicyError| PropagationError::InvalidPolicy)?;
-    for event in events {
-        if !policy.is_valid_event_principal(event.principal) {
-            return Err(PropagationError::InvalidPrincipal);
-        }
-    }
+    propagate_events_impl::<true>(events, adjacency, memberships, workers, policy)
+}
+
+/// Crate-private production path for consumers that need only candidate scores.
+/// Public batch APIs continue returning fully populated statistics.
+pub(crate) fn propagate_event_candidates_with_policy(
+    events: &[PropagationEvent],
+    adjacency: &MemoryAdjacency,
+    memberships: &CommunityMembership,
+    workers: usize,
+    policy: &FreshnessPolicy,
+) -> Result<Vec<BTreeMap<MemoryId, i16>>, PropagationError> {
+    propagate_events_impl::<false>(events, adjacency, memberships, workers, policy).map(
+        |outcomes| {
+            outcomes
+                .into_iter()
+                .map(|outcome| outcome.candidates)
+                .collect()
+        },
+    )
+}
+
+fn propagate_events_impl<const TRACK_STATS: bool>(
+    events: &[PropagationEvent],
+    adjacency: &MemoryAdjacency,
+    memberships: &CommunityMembership,
+    workers: usize,
+    policy: &FreshnessPolicy,
+) -> Result<Vec<PropagationOutcome>, PropagationError> {
+    validate_batch(events, policy)?;
     if events.is_empty() {
         return Ok(Vec::new());
     }
-    let worker_count = workers.max(1).min(32).min(events.len());
+    let worker_count = planned_event_workers(events.len(), workers);
     if worker_count == 1 {
         return events
             .iter()
-            .map(|event| propagate_serial_validated(event, adjacency, memberships, policy))
+            .map(|event| {
+                propagate_serial_validated::<TRACK_STATS>(event, adjacency, memberships, policy)
+            })
             .collect();
     }
 
@@ -167,16 +253,18 @@ pub fn propagate_events_with_policy(
                 for index in (worker..events.len()).step_by(worker_count) {
                     results.push((
                         index,
-                        propagate_serial_validated(&events[index], adjacency, memberships, policy),
+                        propagate_serial_validated::<TRACK_STATS>(
+                            &events[index],
+                            adjacency,
+                            memberships,
+                            policy,
+                        ),
                     ));
                 }
                 results
             }));
         }
-        handles
-            .into_iter()
-            .map(|handle| handle.join().map_err(|_| PropagationError::WorkerFailure))
-            .collect::<Result<Vec<_>, _>>()
+        join_event_workers(handles)
     })?;
 
     let mut ordered: Vec<Option<Result<PropagationOutcome, PropagationError>>> =
@@ -192,10 +280,30 @@ pub fn propagate_events_with_policy(
         .collect()
 }
 
+/// Join every scoped worker even after a panic so no implicit scope join can
+/// turn a second worker failure into an escaping panic.
+fn join_event_workers<'scope, T>(
+    handles: Vec<thread::ScopedJoinHandle<'scope, T>>,
+) -> Result<Vec<T>, PropagationError> {
+    let mut batches = Vec::with_capacity(handles.len());
+    let mut worker_failed = false;
+    for handle in handles {
+        match handle.join() {
+            Ok(batch) => batches.push(batch),
+            Err(_) => worker_failed = true,
+        }
+    }
+    if worker_failed {
+        Err(PropagationError::WorkerFailure)
+    } else {
+        Ok(batches)
+    }
+}
+
 /// One multi-source strongest-path traversal per immutable originating Community.
 /// A physical Memory's strongest score is merged only after each independent
 /// origin group has finished; no accepted-use events or durable receipts collapse.
-fn propagate_serial_validated(
+fn propagate_serial_validated<const TRACK_STATS: bool>(
     event: &PropagationEvent,
     adjacency: &MemoryAdjacency,
     memberships: &CommunityMembership,
@@ -229,17 +337,23 @@ fn propagate_serial_validated(
         }
 
         while let Some((&strength, _)) = frontier.last_key_value() {
-            frontier_levels += 1;
+            if TRACK_STATS {
+                frontier_levels += 1;
+            }
             let nodes = frontier
                 .remove(&strength)
                 .expect("frontier strength exists");
-            max_frontier_width = max_frontier_width.max(nodes.len());
+            if TRACK_STATS {
+                max_frontier_width = max_frontier_width.max(nodes.len());
+            }
             for memory in nodes {
                 if best.get(&memory).copied() != Some(strength) {
                     continue;
                 }
                 for neighbor in adjacency.get(&memory).into_iter().flatten() {
-                    examined_edges = examined_edges.saturating_add(1);
+                    if TRACK_STATS {
+                        examined_edges = examined_edges.saturating_add(1);
+                    }
                     if event.excluded.contains(neighbor) {
                         continue;
                     }
@@ -254,7 +368,9 @@ fn propagate_serial_validated(
                     if next <= 0 {
                         continue;
                     }
-                    candidate_expansions = candidate_expansions.saturating_add(1);
+                    if TRACK_STATS {
+                        candidate_expansions = candidate_expansions.saturating_add(1);
+                    }
                     if best.get(neighbor).is_some_and(|previous| *previous >= next) {
                         continue;
                     }
@@ -272,17 +388,19 @@ fn propagate_serial_validated(
         }
     }
 
-    Ok(PropagationOutcome {
-        stats: PropagationStats {
+    let stats = if TRACK_STATS {
+        PropagationStats {
             examined_edges,
             candidate_expansions,
             touched_memories: candidates.len(),
             max_frontier_width,
             worker_count: 1,
             frontier_levels,
-        },
-        candidates,
-    })
+        }
+    } else {
+        PropagationStats::default()
+    };
+    Ok(PropagationOutcome { stats, candidates })
 }
 
 #[cfg(test)]
@@ -518,5 +636,160 @@ mod tests {
                 .filter(|(memory, _)| **memory != memory_id(1))
                 .all(|(_, score)| *score == 45)
         );
+    }
+
+    #[test]
+    fn production_candidate_batch_matches_public_stats_batch_and_preserves_empty_stats() {
+        let mut graph = MemoryAdjacency::new();
+        connect(&mut graph, 1, 2);
+        connect(&mut graph, 2, 3);
+        let events = vec![
+            PropagationEvent {
+                roots: vec![memory_id(1)],
+                principal: 25,
+                excluded: BTreeSet::new(),
+            },
+            PropagationEvent {
+                roots: vec![memory_id(3)],
+                principal: 50,
+                excluded: BTreeSet::new(),
+            },
+        ];
+        let policy = FreshnessPolicy::default();
+        let tracked =
+            propagate_events_with_policy(&events, &graph, &CommunityMembership::new(), 2, &policy)
+                .unwrap();
+        let candidates = propagate_event_candidates_with_policy(
+            &events,
+            &graph,
+            &CommunityMembership::new(),
+            2,
+            &policy,
+        )
+        .unwrap();
+        assert_eq!(
+            candidates,
+            tracked
+                .into_iter()
+                .map(|outcome| outcome.candidates)
+                .collect::<Vec<_>>()
+        );
+
+        let excluded = PropagationEvent {
+            roots: vec![memory_id(1)],
+            principal: 25,
+            excluded: [memory_id(1)].into_iter().collect(),
+        };
+        assert_eq!(
+            propagate_with_stats(&excluded, &graph, &CommunityMembership::new(), 1).unwrap(),
+            PropagationOutcome::default()
+        );
+        let batch = propagate_events_with_policy(
+            &[excluded],
+            &graph,
+            &CommunityMembership::new(),
+            1,
+            &policy,
+        )
+        .unwrap();
+        assert_eq!(batch.len(), 1);
+        assert!(batch[0].candidates.is_empty());
+        assert_eq!(
+            batch[0].stats,
+            PropagationStats {
+                worker_count: 1,
+                ..PropagationStats::default()
+            }
+        );
+    }
+
+    #[test]
+    fn fixed_planner_respects_threshold_and_resource_caps() {
+        for count in [0, 1, 15, 16, 17] {
+            for requested in [0usize, 1, 2, 4, 8, 64] {
+                for available in [0usize, 1, 2, 4, 8] {
+                    let expected = if count == 0 {
+                        0
+                    } else if count < 16 {
+                        1
+                    } else {
+                        requested.max(1).min(available.max(1)).min(4)
+                    };
+                    assert_eq!(
+                        planned_event_workers_with_parallelism(count, requested, available),
+                        expected,
+                        "events={count} cap={requested} hardware={available}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn parallel_batch_preserves_candidates_order_and_empty_events() {
+        let mut graph = MemoryAdjacency::new();
+        connect(&mut graph, 1, 2);
+        let events = (0..17)
+            .map(|index| PropagationEvent {
+                roots: match index % 4 {
+                    0 => vec![],
+                    1 => vec![memory_id(1)],
+                    2 => vec![memory_id(2)],
+                    _ => vec![memory_id(99)],
+                },
+                principal: if index % 2 == 0 { 25 } else { 50 },
+                excluded: if index % 4 == 2 {
+                    [memory_id(2)].into_iter().collect()
+                } else {
+                    BTreeSet::new()
+                },
+            })
+            .collect::<Vec<_>>();
+        let policy = FreshnessPolicy::default();
+        let memberships = CommunityMembership::new();
+        let serial =
+            propagate_events_with_policy(&events, &graph, &memberships, 1, &policy).unwrap();
+        for cap in [2, 4, 8, 64] {
+            let tracked =
+                propagate_events_with_policy(&events, &graph, &memberships, cap, &policy).unwrap();
+            assert_eq!(tracked, serial);
+            let candidates =
+                propagate_event_candidates_with_policy(&events, &graph, &memberships, cap, &policy)
+                    .unwrap();
+            assert_eq!(
+                candidates,
+                serial
+                    .iter()
+                    .map(|outcome| outcome.candidates.clone())
+                    .collect::<Vec<_>>()
+            );
+        }
+        let mut invalid = events;
+        invalid[16].principal = 26;
+        assert_eq!(
+            propagate_events_with_policy(&invalid, &graph, &memberships, 4, &policy),
+            Err(PropagationError::InvalidPrincipal)
+        );
+        let invalid_policy = FreshnessPolicy {
+            local_hop_cost: 0,
+            ..policy
+        };
+        assert_eq!(
+            propagate_events_with_policy(&[], &graph, &memberships, 4, &invalid_policy),
+            Err(PropagationError::InvalidPolicy)
+        );
+    }
+
+    #[test]
+    fn worker_failure_joins_every_worker_and_returns_error_without_escaping_panic() {
+        let result = thread::scope(|scope| {
+            let handles = vec![
+                scope.spawn(|| -> Vec<()> { panic!("first worker") }),
+                scope.spawn(|| vec![()]),
+                scope.spawn(|| -> Vec<()> { panic!("second worker") }),
+            ];
+            join_event_workers(handles)
+        });
+        assert_eq!(result, Err(PropagationError::WorkerFailure));
     }
 }

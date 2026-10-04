@@ -23,6 +23,7 @@
 - [Multiplexing readiness review](multiplexing-readiness-review.md) — source-backed pre-implementation blockers and required design/verification gates.
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — future GatewayRuntime/InstanceRuntime authority split, REL updates, active conversation streams and staged whole-stack implementation.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
+- [Freshness P2 scheduling verification](freshness-performance-p2-verification-2026-10-03.md) — fixed conservative 16-event parallel threshold, counterless production accounting, and matched P1/P2 evidence.
 - [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).
 - [REL activity clock Phase 1 spec](rel-activity-clock-implementation-plan.md) — novel-turn accounting across both Archive write paths, logical historical cuts, reopen, repack and reconciliation gates.
 - [Insomnia explicit Memory commit plan](insomnia-explicit-memory-commit-plan.md) — future stronger explicit-retention contract using existing Episode/Insomnia authority and provenance.
@@ -34,7 +35,9 @@
 - [Freshness R5 transformation verification](freshness-r5-verification-2026-10-03.md) — physical copy/repack/reclamation and divergent reconciliation contracts.
 - [Freshness R6 scheduling and consumer verification](freshness-r6-verification-2026-10-03.md) — bounded due delivery, detached Dream propagation and truthful integration scope.
 - [Freshness performance hardening plan](freshness-performance-hardening-plan-2026-10-03.md) — behavior-preserving optimization sequence and full-operation evidence gates.
+- [Freshness P2–P4 completion plan](freshness-performance-p2-p4-execution-plan-2026-10-04.md) — implementation-ready closure for simplified P2, deferred P3, retained tracing, and measured P4 postimage/history optimization.
 - [Freshness performance baseline](freshness-performance-baseline-2026-10-03.md) — frozen, checksum-backed P0 optimized measurements, accepted P1 baseline and explicit production-evidence limits.
+- [Freshness P1 verification](freshness-performance-p1-verification-2026-10-03.md) — grouped-origin traversal, exact oracle and targeted regression evidence, exploratory optimized comparison and outstanding release gates.
 - [Freshness core release verification](freshness-core-release-verification-2026-10-03.md) — consolidated commands, measurements, limitations and release status; F8 excluded.
 - [Memory Freshness remaining-work specification — 2026-10-03](freshness-remaining-work-2026-10-03.md) — frozen partial-implementation checkpoint, outstanding correctness work and ordered verification gates.
 - [Memory Freshness completion execution specification — 2026-10-03](freshness-completion-execution-plan-2026-10-03.md) — implementation-ready R4–R7 closure, F8 semantic reinforcement/import extension, concrete tests and separate release gates.

@@ -1,0 +1,915 @@
+{
+  "R1_status": "completed noise characterization; P2 not accepted",
+  "comparisons": 832,
+  "controls": [
+    {
+      "control": "p1-aa",
+      "run": 1,
+      "archive": "freshness-p2-r1-p1-aa-now-1-2026-10-04.zip",
+      "archive_sha256": "1055dc9c5ce4957977626526d88ef973401a72f7e60135c629ba60b6d4b0ced3",
+      "summary": "freshness-p2-r1-p1-aa-now-noise-1-2026-10-04.json",
+      "groups": {
+        "all": {
+          "rows": 208,
+          "median_symmetric_p50_delta": 0.019233593081021128,
+          "p95_across_rows_symmetric_p50_delta": 0.059135610766045454,
+          "maximum_symmetric_p50_delta": 0.10388499058702716,
+          "median_symmetric_p95_delta": 0.06984741222019042,
+          "p95_across_rows_symmetric_p95_delta": 0.5822285675436807,
+          "maximum_symmetric_p95_delta": 0.7519685039370079,
+          "candidate_p95_over_10pct": 43,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 1,
+          "rows_with_repeated_round_p95_over_10pct": 79
+        },
+        "single_event": {
+          "rows": 160,
+          "median_symmetric_p50_delta": 0.018372395652936357,
+          "p95_across_rows_symmetric_p50_delta": 0.059135610766045454,
+          "maximum_symmetric_p50_delta": 0.09164820662676165,
+          "median_symmetric_p95_delta": 0.08017197603840209,
+          "p95_across_rows_symmetric_p95_delta": 0.6111111111111112,
+          "maximum_symmetric_p95_delta": 0.7519685039370079,
+          "candidate_p95_over_10pct": 37,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 1,
+          "rows_with_repeated_round_p95_over_10pct": 58
+        },
+        "dream": {
+          "rows": 144,
+          "median_symmetric_p50_delta": 0.020188579726823197,
+          "p95_across_rows_symmetric_p50_delta": 0.0636849132176236,
+          "maximum_symmetric_p50_delta": 0.09164820662676165,
+          "median_symmetric_p95_delta": 0.08686332375589423,
+          "p95_across_rows_symmetric_p95_delta": 0.6238227146814403,
+          "maximum_symmetric_p95_delta": 0.7519685039370079,
+          "candidate_p95_over_10pct": 32,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 1,
+          "rows_with_repeated_round_p95_over_10pct": 53
+        },
+        "batches": {
+          "rows": 48,
+          "median_symmetric_p50_delta": 0.024963595325172783,
+          "p95_across_rows_symmetric_p50_delta": 0.05423931545291438,
+          "maximum_symmetric_p50_delta": 0.10388499058702716,
+          "median_symmetric_p95_delta": 0.04570771101087445,
+          "p95_across_rows_symmetric_p95_delta": 0.3113485059606751,
+          "maximum_symmetric_p95_delta": 0.3733777500173503,
+          "candidate_p95_over_10pct": 6,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 0,
+          "rows_with_repeated_round_p95_over_10pct": 21
+        }
+      },
+      "by_fixture_single_event": {
+        "synthetic": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.013018958067065323,
+          "maximum_p95_symmetric_delta": 0.7519685039370079
+        },
+        "first14d": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.016018972069299364,
+          "maximum_p95_symmetric_delta": 0.40904112317036745
+        },
+        "first28d": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.027832900382125825,
+          "maximum_p95_symmetric_delta": 0.6374685138539042
+        },
+        "ellis": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.04320541800457889,
+          "maximum_p95_symmetric_delta": 0.5073210412147506
+        }
+      },
+      "operation_rows": [
+        {
+          "stage": "cold_rel_create",
+          "p50_symmetric_delta": 0.3277853755055722,
+          "p95_symmetric_delta": 0.27577642358900456
+        },
+        {
+          "stage": "initial_dream_1_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.0011851359327827993,
+          "p95_symmetric_delta": 0.04029255273996557
+        },
+        {
+          "stage": "initial_dream_2_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.0235004981039193,
+          "p95_symmetric_delta": 0.06764402230022704
+        },
+        {
+          "stage": "initial_dream_4_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.0291830285331256,
+          "p95_symmetric_delta": 0.0015330330360565636
+        },
+        {
+          "stage": "initial_dream_8_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.027137646819272332,
+          "p95_symmetric_delta": 0.030404138671855208
+        },
+        {
+          "stage": "accepted_use_cold_single_memory_receipt",
+          "p50_symmetric_delta": 0.009768275568194928,
+          "p95_symmetric_delta": 0.060779599783761906
+        },
+        {
+          "stage": "accepted_use_warm_exact_retry",
+          "p50_symmetric_delta": 0.0,
+          "p95_symmetric_delta": 0.2246376811594204
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_1",
+          "p50_symmetric_delta": 0.01355601152191932,
+          "p95_symmetric_delta": 0.055919628109466935
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_2",
+          "p50_symmetric_delta": 0.0005034154487151277,
+          "p95_symmetric_delta": 0.07869763549789321
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_4",
+          "p50_symmetric_delta": 0.004414795066680632,
+          "p95_symmetric_delta": 0.038758504849409015
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_8",
+          "p50_symmetric_delta": 0.02950062022328037,
+          "p95_symmetric_delta": 0.049619213908908444
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_1",
+          "p50_symmetric_delta": 0.008996964607169033,
+          "p95_symmetric_delta": 0.12177434335178505
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_2",
+          "p50_symmetric_delta": 0.0322285705937424,
+          "p95_symmetric_delta": 0.05260836880696629
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_4",
+          "p50_symmetric_delta": 0.010408697258003752,
+          "p95_symmetric_delta": 0.06086307224275389
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_8",
+          "p50_symmetric_delta": 0.01674182201729213,
+          "p95_symmetric_delta": 0.054020421608168556
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_1",
+          "p50_symmetric_delta": 0.019812847763920116,
+          "p95_symmetric_delta": 0.0681331126528788
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_2",
+          "p50_symmetric_delta": 0.014361026220156337,
+          "p95_symmetric_delta": 0.03646886012568662
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_4",
+          "p50_symmetric_delta": 0.015969716339339746,
+          "p95_symmetric_delta": 0.02198366338330282
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_8",
+          "p50_symmetric_delta": 0.014694583173261666,
+          "p95_symmetric_delta": 0.11592378762277655
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_1",
+          "p50_symmetric_delta": 0.0011929913644981305,
+          "p95_symmetric_delta": 0.5553683038049664
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_2",
+          "p50_symmetric_delta": 0.005906969522175176,
+          "p95_symmetric_delta": 0.0365090361682201
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_4",
+          "p50_symmetric_delta": 0.0015718487130726988,
+          "p95_symmetric_delta": 0.007239187118835311
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_8",
+          "p50_symmetric_delta": 0.0013075880333373036,
+          "p95_symmetric_delta": 0.02429697922497187
+        },
+        {
+          "stage": "reopen",
+          "p50_symmetric_delta": 0.027800839621547224,
+          "p95_symmetric_delta": 0.3892916944881919
+        },
+        {
+          "stage": "accepted_use_reopen_exact_retry",
+          "p50_symmetric_delta": 0.027069113181594107,
+          "p95_symmetric_delta": 0.09228602490610793
+        },
+        {
+          "stage": "initial_dream_1_root_reopen_retry",
+          "p50_symmetric_delta": 0.040000000000000036,
+          "p95_symmetric_delta": 0.034482758620689724
+        },
+        {
+          "stage": "initial_dream_2_root_reopen_retry",
+          "p50_symmetric_delta": 0.0714285714285714,
+          "p95_symmetric_delta": 0.0625
+        },
+        {
+          "stage": "initial_dream_4_root_reopen_retry",
+          "p50_symmetric_delta": 0.0,
+          "p95_symmetric_delta": 0.10000000000000009
+        },
+        {
+          "stage": "initial_dream_8_root_reopen_retry",
+          "p50_symmetric_delta": 0.0,
+          "p95_symmetric_delta": 0.09090909090909083
+        }
+      ],
+      "all_load_snapshots_clear": true
+    },
+    {
+      "control": "p1-aa",
+      "run": 2,
+      "archive": "freshness-p2-r1-p1-aa-now-2-2026-10-04.zip",
+      "archive_sha256": "d33c59528f428792b5612e23f9e72d7280a8e5a898a8bf26eaf8ff8af0350eab",
+      "summary": "freshness-p2-r1-p1-aa-now-noise-2-2026-10-04.json",
+      "groups": {
+        "all": {
+          "rows": 208,
+          "median_symmetric_p50_delta": 0.018426077193548607,
+          "p95_across_rows_symmetric_p50_delta": 0.05775075987841949,
+          "maximum_symmetric_p50_delta": 0.10627177700348422,
+          "median_symmetric_p95_delta": 0.07783605751736555,
+          "p95_across_rows_symmetric_p95_delta": 0.48412968637687737,
+          "maximum_symmetric_p95_delta": 0.8270676691729324,
+          "candidate_p95_over_10pct": 58,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 8,
+          "rows_with_repeated_round_p95_over_10pct": 81
+        },
+        "single_event": {
+          "rows": 160,
+          "median_symmetric_p50_delta": 0.0186009354732366,
+          "p95_across_rows_symmetric_p50_delta": 0.04931714719271629,
+          "maximum_symmetric_p50_delta": 0.09268848384424189,
+          "median_symmetric_p95_delta": 0.08548420216843722,
+          "p95_across_rows_symmetric_p95_delta": 0.5078328981723237,
+          "maximum_symmetric_p95_delta": 0.8270676691729324,
+          "candidate_p95_over_10pct": 46,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 2,
+          "rows_with_repeated_round_p95_over_10pct": 61
+        },
+        "dream": {
+          "rows": 144,
+          "median_symmetric_p50_delta": 0.0176521661230159,
+          "p95_across_rows_symmetric_p50_delta": 0.05040161873811999,
+          "maximum_symmetric_p50_delta": 0.09268848384424189,
+          "median_symmetric_p95_delta": 0.08968123415644935,
+          "p95_across_rows_symmetric_p95_delta": 0.5078328981723237,
+          "maximum_symmetric_p95_delta": 0.6742779078844652,
+          "candidate_p95_over_10pct": 46,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 2,
+          "rows_with_repeated_round_p95_over_10pct": 58
+        },
+        "batches": {
+          "rows": 48,
+          "median_symmetric_p50_delta": 0.01805361192883992,
+          "p95_across_rows_symmetric_p50_delta": 0.07563599112173458,
+          "maximum_symmetric_p50_delta": 0.10627177700348422,
+          "median_symmetric_p95_delta": 0.058169327568378115,
+          "p95_across_rows_symmetric_p95_delta": 0.34447539461467036,
+          "maximum_symmetric_p95_delta": 0.3984165324745035,
+          "candidate_p95_over_10pct": 12,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 6,
+          "rows_with_repeated_round_p95_over_10pct": 20
+        }
+      },
+      "by_fixture_single_event": {
+        "synthetic": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.019266265228309987,
+          "maximum_p95_symmetric_delta": 0.594871794871795
+        },
+        "first14d": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.01682966054388113,
+          "maximum_p95_symmetric_delta": 0.48412968637687737
+        },
+        "first28d": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.03100134133335608,
+          "maximum_p95_symmetric_delta": 0.8270676691729324
+        },
+        "ellis": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.011224811775040533,
+          "maximum_p95_symmetric_delta": 0.6742779078844652
+        }
+      },
+      "operation_rows": [
+        {
+          "stage": "cold_rel_create",
+          "p50_symmetric_delta": 0.15025562970768447,
+          "p95_symmetric_delta": 0.08312301687130264
+        },
+        {
+          "stage": "initial_dream_1_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.03542696466230022,
+          "p95_symmetric_delta": 0.019242264169286427
+        },
+        {
+          "stage": "initial_dream_2_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.019620927967109347,
+          "p95_symmetric_delta": 0.020744260284196292
+        },
+        {
+          "stage": "initial_dream_4_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.035936961154807934,
+          "p95_symmetric_delta": 0.011509163023343927
+        },
+        {
+          "stage": "initial_dream_8_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.011627209826676532,
+          "p95_symmetric_delta": 0.007011060552423176
+        },
+        {
+          "stage": "accepted_use_cold_single_memory_receipt",
+          "p50_symmetric_delta": 0.05750639963860871,
+          "p95_symmetric_delta": 0.02977923367274027
+        },
+        {
+          "stage": "accepted_use_warm_exact_retry",
+          "p50_symmetric_delta": 0.01680672268907557,
+          "p95_symmetric_delta": 0.16129032258064524
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_1",
+          "p50_symmetric_delta": 0.01403931257070612,
+          "p95_symmetric_delta": 0.02522055535227863
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_2",
+          "p50_symmetric_delta": 0.025582058427490173,
+          "p95_symmetric_delta": 0.0838616029326138
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_4",
+          "p50_symmetric_delta": 0.034471090723420916,
+          "p95_symmetric_delta": 0.07124922226898112
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_8",
+          "p50_symmetric_delta": 0.016147581621788643,
+          "p95_symmetric_delta": 0.06465331461673807
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_1",
+          "p50_symmetric_delta": 0.01980618217750396,
+          "p95_symmetric_delta": 0.06238413391244779
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_2",
+          "p50_symmetric_delta": 0.009967382651164147,
+          "p95_symmetric_delta": 0.07515287217148447
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_4",
+          "p50_symmetric_delta": 0.012336991099117123,
+          "p95_symmetric_delta": 0.2886984631145031
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_8",
+          "p50_symmetric_delta": 0.011081534351293998,
+          "p95_symmetric_delta": 0.0026723099447161225
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_1",
+          "p50_symmetric_delta": 0.016247301339480158,
+          "p95_symmetric_delta": 0.01828254738727364
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_2",
+          "p50_symmetric_delta": 0.00414108351095388,
+          "p95_symmetric_delta": 0.03545970365156048
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_4",
+          "p50_symmetric_delta": 0.01106559298247678,
+          "p95_symmetric_delta": 0.004775195398147858
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_8",
+          "p50_symmetric_delta": 0.01784731235119974,
+          "p95_symmetric_delta": 0.01849292065674213
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_1",
+          "p50_symmetric_delta": 0.0025829904365812784,
+          "p95_symmetric_delta": 0.008581512816125292
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_2",
+          "p50_symmetric_delta": 0.006382844447837321,
+          "p95_symmetric_delta": 0.007608672422982243
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_4",
+          "p50_symmetric_delta": 0.013231494570753455,
+          "p95_symmetric_delta": 0.01288845016747131
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_8",
+          "p50_symmetric_delta": 0.0017788754071370594,
+          "p95_symmetric_delta": 0.003571562669073769
+        },
+        {
+          "stage": "reopen",
+          "p50_symmetric_delta": 0.0015450274809931663,
+          "p95_symmetric_delta": 0.09002596971824128
+        },
+        {
+          "stage": "accepted_use_reopen_exact_retry",
+          "p50_symmetric_delta": 0.0023919792355844294,
+          "p95_symmetric_delta": 0.0673579050934685
+        },
+        {
+          "stage": "initial_dream_1_root_reopen_retry",
+          "p50_symmetric_delta": 0.16666666666666674,
+          "p95_symmetric_delta": 0.0
+        },
+        {
+          "stage": "initial_dream_2_root_reopen_retry",
+          "p50_symmetric_delta": 0.0,
+          "p95_symmetric_delta": 0.6666666666666667
+        },
+        {
+          "stage": "initial_dream_4_root_reopen_retry",
+          "p50_symmetric_delta": 0.10000000000000009,
+          "p95_symmetric_delta": 0.6363636363636365
+        },
+        {
+          "stage": "initial_dream_8_root_reopen_retry",
+          "p50_symmetric_delta": 0.10000000000000009,
+          "p95_symmetric_delta": 0.41666666666666674
+        }
+      ],
+      "all_load_snapshots_clear": true
+    },
+    {
+      "control": "p2-aa",
+      "run": 1,
+      "archive": "freshness-p2-r1-p2-aa-now-1-2026-10-04.zip",
+      "archive_sha256": "77cfa22da31ef4df73998f4dc17f86916d086c7d9d2708a77cd33b59b2edae75",
+      "summary": "freshness-p2-r1-p2-aa-now-noise-1-2026-10-04.json",
+      "groups": {
+        "all": {
+          "rows": 208,
+          "median_symmetric_p50_delta": 0.01763631422135936,
+          "p95_across_rows_symmetric_p50_delta": 0.04794217436200032,
+          "maximum_symmetric_p50_delta": 0.09547198772064469,
+          "median_symmetric_p95_delta": 0.04180193650875397,
+          "p95_across_rows_symmetric_p95_delta": 0.49183673469387745,
+          "maximum_symmetric_p95_delta": 0.6579439252336448,
+          "candidate_p95_over_10pct": 31,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 3,
+          "rows_with_repeated_round_p95_over_10pct": 73
+        },
+        "single_event": {
+          "rows": 160,
+          "median_symmetric_p50_delta": 0.017354314109320867,
+          "p95_across_rows_symmetric_p50_delta": 0.04479424331009674,
+          "maximum_symmetric_p50_delta": 0.056376867100727646,
+          "median_symmetric_p95_delta": 0.037728309466859455,
+          "p95_across_rows_symmetric_p95_delta": 0.49183673469387745,
+          "maximum_symmetric_p95_delta": 0.6579439252336448,
+          "candidate_p95_over_10pct": 26,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 3,
+          "rows_with_repeated_round_p95_over_10pct": 55
+        },
+        "dream": {
+          "rows": 144,
+          "median_symmetric_p50_delta": 0.0171402331448689,
+          "p95_across_rows_symmetric_p50_delta": 0.043618988902589306,
+          "maximum_symmetric_p50_delta": 0.056376867100727646,
+          "median_symmetric_p95_delta": 0.035696031205186496,
+          "p95_across_rows_symmetric_p95_delta": 0.41298611907766425,
+          "maximum_symmetric_p95_delta": 0.6165605095541402,
+          "candidate_p95_over_10pct": 20,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 2,
+          "rows_with_repeated_round_p95_over_10pct": 45
+        },
+        "batches": {
+          "rows": 48,
+          "median_symmetric_p50_delta": 0.018874569671702535,
+          "p95_across_rows_symmetric_p50_delta": 0.056398288603656255,
+          "maximum_symmetric_p50_delta": 0.09547198772064469,
+          "median_symmetric_p95_delta": 0.06215092114982168,
+          "p95_across_rows_symmetric_p95_delta": 0.41507268553940313,
+          "maximum_symmetric_p95_delta": 0.5858507330075522,
+          "candidate_p95_over_10pct": 5,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 0,
+          "rows_with_repeated_round_p95_over_10pct": 18
+        }
+      },
+      "by_fixture_single_event": {
+        "synthetic": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.024411031042128606,
+          "maximum_p95_symmetric_delta": 0.6579439252336448
+        },
+        "first14d": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.012660965436987803,
+          "maximum_p95_symmetric_delta": 0.5349212924606461
+        },
+        "first28d": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.013685678306271876,
+          "maximum_p95_symmetric_delta": 0.5901517727427281
+        },
+        "ellis": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.017451807727310253,
+          "maximum_p95_symmetric_delta": 0.5446428571428572
+        }
+      },
+      "operation_rows": [
+        {
+          "stage": "cold_rel_create",
+          "p50_symmetric_delta": 0.005094170403587395,
+          "p95_symmetric_delta": 0.2135366023058758
+        },
+        {
+          "stage": "initial_dream_1_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.07895847961718228,
+          "p95_symmetric_delta": 0.006260643341922556
+        },
+        {
+          "stage": "initial_dream_2_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.02057407819136281,
+          "p95_symmetric_delta": 0.05600513369786331
+        },
+        {
+          "stage": "initial_dream_4_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.02249608567440431,
+          "p95_symmetric_delta": 0.05158019474422226
+        },
+        {
+          "stage": "initial_dream_8_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.012322571084321776,
+          "p95_symmetric_delta": 0.06423149756639601
+        },
+        {
+          "stage": "accepted_use_cold_single_memory_receipt",
+          "p50_symmetric_delta": 0.03568255698911704,
+          "p95_symmetric_delta": 0.0542388071085349
+        },
+        {
+          "stage": "accepted_use_warm_exact_retry",
+          "p50_symmetric_delta": 0.03539823008849563,
+          "p95_symmetric_delta": 0.040000000000000036
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_1",
+          "p50_symmetric_delta": 0.03875705037815669,
+          "p95_symmetric_delta": 0.10908516228442733
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_2",
+          "p50_symmetric_delta": 0.014171486185601712,
+          "p95_symmetric_delta": 0.10114256856989545
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_4",
+          "p50_symmetric_delta": 0.11392973848014787,
+          "p95_symmetric_delta": 0.09011118644599203
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_8",
+          "p50_symmetric_delta": 0.035595839452576605,
+          "p95_symmetric_delta": 0.09133461629877249
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_1",
+          "p50_symmetric_delta": 0.022739551222660248,
+          "p95_symmetric_delta": 0.11615539316509538
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_2",
+          "p50_symmetric_delta": 0.04323729877166049,
+          "p95_symmetric_delta": 0.11892118350546732
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_4",
+          "p50_symmetric_delta": 0.04249847500941084,
+          "p95_symmetric_delta": 0.09980625724439851
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_8",
+          "p50_symmetric_delta": 0.030130853376500566,
+          "p95_symmetric_delta": 0.19223914253800078
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_1",
+          "p50_symmetric_delta": 0.0520857688881502,
+          "p95_symmetric_delta": 0.1247899434137143
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_2",
+          "p50_symmetric_delta": 0.022191297209703365,
+          "p95_symmetric_delta": 0.05278756067075241
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_4",
+          "p50_symmetric_delta": 0.03246501504698229,
+          "p95_symmetric_delta": 0.023464081540833792
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_8",
+          "p50_symmetric_delta": 0.0049511404389248614,
+          "p95_symmetric_delta": 0.16177130267487838
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_1",
+          "p50_symmetric_delta": 0.013933511855720004,
+          "p95_symmetric_delta": 0.027218822140372412
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_2",
+          "p50_symmetric_delta": 0.012079009307343513,
+          "p95_symmetric_delta": 0.0001489215095920038
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_4",
+          "p50_symmetric_delta": 0.018738894149762153,
+          "p95_symmetric_delta": 0.008282459979794599
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_8",
+          "p50_symmetric_delta": 0.009443410302063304,
+          "p95_symmetric_delta": 0.004302584101091522
+        },
+        {
+          "stage": "reopen",
+          "p50_symmetric_delta": 0.023217414476774945,
+          "p95_symmetric_delta": 0.011287195654633653
+        },
+        {
+          "stage": "accepted_use_reopen_exact_retry",
+          "p50_symmetric_delta": 0.007603122079365532,
+          "p95_symmetric_delta": 0.08714200119832238
+        },
+        {
+          "stage": "initial_dream_1_root_reopen_retry",
+          "p50_symmetric_delta": 0.17391304347826098,
+          "p95_symmetric_delta": 0.03703703703703698
+        },
+        {
+          "stage": "initial_dream_2_root_reopen_retry",
+          "p50_symmetric_delta": 0.23076923076923084,
+          "p95_symmetric_delta": 0.1875
+        },
+        {
+          "stage": "initial_dream_4_root_reopen_retry",
+          "p50_symmetric_delta": 0.10000000000000009,
+          "p95_symmetric_delta": 0.16666666666666674
+        },
+        {
+          "stage": "initial_dream_8_root_reopen_retry",
+          "p50_symmetric_delta": 0.0,
+          "p95_symmetric_delta": 0.08333333333333326
+        }
+      ],
+      "all_load_snapshots_clear": true
+    },
+    {
+      "control": "p2-aa",
+      "run": 2,
+      "archive": "freshness-p2-r1-p2-aa-now-2-2026-10-04.zip",
+      "archive_sha256": "26ab5b1d0761f45b3fda3c032eb1ec0f8830ff6216f85151313a4756dd57a2df",
+      "summary": "freshness-p2-r1-p2-aa-now-noise-2-2026-10-04.json",
+      "groups": {
+        "all": {
+          "rows": 208,
+          "median_symmetric_p50_delta": 0.012803146165610624,
+          "p95_across_rows_symmetric_p50_delta": 0.056277860326894524,
+          "maximum_symmetric_p50_delta": 0.110524523160763,
+          "median_symmetric_p95_delta": 0.06460771287273792,
+          "p95_across_rows_symmetric_p95_delta": 0.46666666666666656,
+          "maximum_symmetric_p95_delta": 0.7408278457196613,
+          "candidate_p95_over_10pct": 49,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 5,
+          "rows_with_repeated_round_p95_over_10pct": 59
+        },
+        "single_event": {
+          "rows": 160,
+          "median_symmetric_p50_delta": 0.010800729025687517,
+          "p95_across_rows_symmetric_p50_delta": 0.04471544715447151,
+          "maximum_symmetric_p50_delta": 0.05192526555386956,
+          "median_symmetric_p95_delta": 0.057794794191800336,
+          "p95_across_rows_symmetric_p95_delta": 0.45440874914559126,
+          "maximum_symmetric_p95_delta": 0.7271560574948666,
+          "candidate_p95_over_10pct": 32,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 0,
+          "rows_with_repeated_round_p95_over_10pct": 40
+        },
+        "dream": {
+          "rows": 144,
+          "median_symmetric_p50_delta": 0.010130652135756701,
+          "p95_across_rows_symmetric_p50_delta": 0.04320456257398031,
+          "maximum_symmetric_p50_delta": 0.05192526555386956,
+          "median_symmetric_p95_delta": 0.0603615066555111,
+          "p95_across_rows_symmetric_p95_delta": 0.43647798742138355,
+          "maximum_symmetric_p95_delta": 0.6132330473616172,
+          "candidate_p95_over_10pct": 30,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 0,
+          "rows_with_repeated_round_p95_over_10pct": 36
+        },
+        "batches": {
+          "rows": 48,
+          "median_symmetric_p50_delta": 0.02402321361253923,
+          "p95_across_rows_symmetric_p50_delta": 0.08576523994811924,
+          "maximum_symmetric_p50_delta": 0.110524523160763,
+          "median_symmetric_p95_delta": 0.0842613182499995,
+          "p95_across_rows_symmetric_p95_delta": 0.5582386363636365,
+          "maximum_symmetric_p95_delta": 0.7408278457196613,
+          "candidate_p95_over_10pct": 17,
+          "candidate_p95_over_10pct_and_p50_over_5pct": 5,
+          "rows_with_repeated_round_p95_over_10pct": 19
+        }
+      },
+      "by_fixture_single_event": {
+        "synthetic": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.008118816212815627,
+          "maximum_p95_symmetric_delta": 0.5525423728813559
+        },
+        "first14d": {
+          "rows": 56,
+          "median_p50_symmetric_delta": 0.014930624300116602,
+          "maximum_p95_symmetric_delta": 0.7271560574948666
+        },
+        "first28d": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.01795259320911724,
+          "maximum_p95_symmetric_delta": 0.47572815533980584
+        },
+        "ellis": {
+          "rows": 24,
+          "median_p50_symmetric_delta": 0.006420503193465876,
+          "maximum_p95_symmetric_delta": 0.6132330473616172
+        }
+      },
+      "operation_rows": [
+        {
+          "stage": "cold_rel_create",
+          "p50_symmetric_delta": 0.0013907131267867356,
+          "p95_symmetric_delta": 0.1874539017554211
+        },
+        {
+          "stage": "initial_dream_1_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.04007660791553813,
+          "p95_symmetric_delta": 0.10670207953645128
+        },
+        {
+          "stage": "initial_dream_2_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.10457813478491262,
+          "p95_symmetric_delta": 0.03664606441370055
+        },
+        {
+          "stage": "initial_dream_4_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.20751376286363943,
+          "p95_symmetric_delta": 0.07445562384864979
+        },
+        {
+          "stage": "initial_dream_8_root_prepare_evaluate_commit",
+          "p50_symmetric_delta": 0.1192705669699996,
+          "p95_symmetric_delta": 0.06305736609764967
+        },
+        {
+          "stage": "accepted_use_cold_single_memory_receipt",
+          "p50_symmetric_delta": 0.04761009291538287,
+          "p95_symmetric_delta": 0.10409080160794515
+        },
+        {
+          "stage": "accepted_use_warm_exact_retry",
+          "p50_symmetric_delta": 0.06896551724137923,
+          "p95_symmetric_delta": 1.7777777777777777
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_1",
+          "p50_symmetric_delta": 0.0441546105656323,
+          "p95_symmetric_delta": 0.04330331955564759
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_2",
+          "p50_symmetric_delta": 0.047008862261122664,
+          "p95_symmetric_delta": 0.10219764526386377
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_4",
+          "p50_symmetric_delta": 0.1576598640590119,
+          "p95_symmetric_delta": 0.24666490087966042
+        },
+        {
+          "stage": "accepted_use_receipts_1_memories_workers_8",
+          "p50_symmetric_delta": 0.03242259965782379,
+          "p95_symmetric_delta": 0.15342397814897146
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_1",
+          "p50_symmetric_delta": 0.05652680288175849,
+          "p95_symmetric_delta": 0.20032440721953515
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_2",
+          "p50_symmetric_delta": 0.060022374749772345,
+          "p95_symmetric_delta": 0.03561463887697225
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_4",
+          "p50_symmetric_delta": 0.03811127089655919,
+          "p95_symmetric_delta": 0.06847884612246902
+        },
+        {
+          "stage": "accepted_use_receipts_4_memories_workers_8",
+          "p50_symmetric_delta": 0.07428275958944264,
+          "p95_symmetric_delta": 0.0640050014242537
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_1",
+          "p50_symmetric_delta": 0.13847806099042748,
+          "p95_symmetric_delta": 0.12688009386449273
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_2",
+          "p50_symmetric_delta": 0.059593067239605446,
+          "p95_symmetric_delta": 0.07931927373179337
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_4",
+          "p50_symmetric_delta": 0.039106217930209075,
+          "p95_symmetric_delta": 0.00036649378845288183
+        },
+        {
+          "stage": "accepted_use_receipts_16_memories_workers_8",
+          "p50_symmetric_delta": 0.022053615038601482,
+          "p95_symmetric_delta": 0.047714496805657314
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_1",
+          "p50_symmetric_delta": 0.056343191729636644,
+          "p95_symmetric_delta": 0.02687277509650543
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_2",
+          "p50_symmetric_delta": 0.05404897175056855,
+          "p95_symmetric_delta": 0.11649154168227271
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_4",
+          "p50_symmetric_delta": 0.015796358923556797,
+          "p95_symmetric_delta": 0.06907249403943738
+        },
+        {
+          "stage": "accepted_use_receipts_64_memories_workers_8",
+          "p50_symmetric_delta": 0.09214347702718828,
+          "p95_symmetric_delta": 0.05281372619697433
+        },
+        {
+          "stage": "reopen",
+          "p50_symmetric_delta": 0.015584973988230777,
+          "p95_symmetric_delta": 0.03170499497204493
+        },
+        {
+          "stage": "accepted_use_reopen_exact_retry",
+          "p50_symmetric_delta": 0.1119019777314556,
+          "p95_symmetric_delta": 0.09567233088756488
+        },
+        {
+          "stage": "initial_dream_1_root_reopen_retry",
+          "p50_symmetric_delta": 0.08000000000000007,
+          "p95_symmetric_delta": 0.0714285714285714
+        },
+        {
+          "stage": "initial_dream_2_root_reopen_retry",
+          "p50_symmetric_delta": 0.0,
+          "p95_symmetric_delta": 0.125
+        },
+        {
+          "stage": "initial_dream_4_root_reopen_retry",
+          "p50_symmetric_delta": 0.10000000000000009,
+          "p95_symmetric_delta": 0.15384615384615374
+        },
+        {
+          "stage": "initial_dream_8_root_reopen_retry",
+          "p50_symmetric_delta": 0.0,
+          "p95_symmetric_delta": 0.0
+        }
+      ],
+      "all_load_snapshots_clear": true
+    }
+  ],
+  "scope": "Observed local A/A variability. Not a confidence bound; each fresh-process operation stage has five observations per side. No scheduler tuning or P1/P2 acceptance run."
+}

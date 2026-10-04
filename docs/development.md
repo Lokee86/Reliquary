@@ -44,6 +44,8 @@ Do not copy large portions of previous Reliquary implementations as a migration 
 
 ## Verification commands
 
+The `freshness_calibration` example’s 1/2/4/8 worker settings invoke single-event propagation and do not measure the P2 batch event pool. P2 scheduling thresholds, caps, counter behavior and verification status are described in the [P2 verification report](freshness-performance-p2-verification-2026-10-03.md); P2 acceptance and its propagation-stage scope are recorded there.
+
 ```text
 cargo fmt --check
 cargo check

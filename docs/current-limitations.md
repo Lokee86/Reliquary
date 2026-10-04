@@ -130,7 +130,13 @@ Repository-local Pitlord enforcement assigns every authored Rust source file und
 
 ## Freshness performance baseline status
 
-Performance hardening's P0 optimized local/real-topology baseline is checksum-frozen and accepted for P1 work on the isolated performance branch; deployed-host end-to-end acceptance remains outstanding. The diagnostic workload does not establish production event-frequency distributions, historical real-corpus score trajectories, provider latency or host mutex-wait percentiles. Optional tracing adds measurement overhead and must be compared under matched settings. Prior test-profile and standalone synthetic timings do not establish release speedup. [P0 evidence](freshness-performance-baseline-2026-10-03.md) records actual command outcomes and missing dimensions.
+P2 scheduling is accepted: batches below 16 are serial; 16+ use one event pool capped by caller/hardware/event count and four workers. The counterless path shares the public algorithm. The [P2 report](freshness-performance-p2-verification-2026-10-03.md) records matched evidence, isolated stage variance and the absence of a claimed complete-operation speedup.
+
+
+
+
+
+Performance hardening's P0 optimized local/real-topology baseline is checksum-frozen. The P1 grouped-origin production algorithm passes the independent oracle and targeted Freshness regressions in the isolated performance worktree, and all matched Cargo release real-corpus graph-only benchmarks have preserved the original exact candidate maps with no measured p95 regression above 10%; final integrated and deployed-host acceptance remain open; deployed-host end-to-end acceptance remains outstanding. The diagnostic workload does not establish production event-frequency distributions, historical real-corpus score trajectories, provider latency or host mutex-wait percentiles. Optional tracing adds measurement overhead and must be compared under matched settings. Prior test-profile and standalone synthetic timings do not establish release speedup. [P0 evidence](freshness-performance-baseline-2026-10-03.md) records actual command outcomes and missing dimensions.
 
 ## Related docs
 - [Roadmap](roadmap.md)
