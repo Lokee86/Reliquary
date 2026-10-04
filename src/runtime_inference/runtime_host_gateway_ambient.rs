@@ -799,7 +799,7 @@ impl GatewayRuntime {
         })
     }
 
-    fn wake_rel(&self, owner_id: &str) -> Result<(), ReliquaryRuntimeHostError> {
+    pub(super) fn wake_rel(&self, owner_id: &str) -> Result<(), ReliquaryRuntimeHostError> {
         let owner = {
             let rels = self
                 .rel_executions
@@ -843,17 +843,15 @@ impl GatewayRuntime {
             let execution = owner
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            let profile = execution
-                .memory_profiles
+            let profile = *execution
+                .memory_profile
                 .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-                .project;
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
             let perception_pending = execution
                 .perception_queue
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-                .counts()
-                .0;
+                .counts();
             (profile, perception_pending)
         };
         self.with_rel(&token, |runtime| {

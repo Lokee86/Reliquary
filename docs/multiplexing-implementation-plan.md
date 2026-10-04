@@ -10,7 +10,7 @@ Specify the GatewayRuntime/InstanceRuntime migration across Reliquary, including
 
 ## Overview
 
-Status: Phase 1 is complete locally on feat/multiplexing-phase1 after the completed Phase 0B design package. The [Phase 1 finish record](multiplexing-phase1-finish-plan-2026-10-04.md) documents F1–F6 ownership/recovery, accepted-work lifetime, routing, lifecycle/fencing, authorization, final serial verification and packaging. The [earlier remaining-work plan](multiplexing-phase1-remaining-work-2026-10-03.md) remains the historical audit. This accepts the in-process authority foundation; full multi-principal PHY privacy, branch policy, event feeds and consumer/other-capability migration remain Phase 2–5. It is an independent whole-stack project, not an Ego workstream.
+Status: Phase 1 is complete locally on feat/multiplexing-phase1 after the completed Phase 0B design package. The [Phase 1 finish record](multiplexing-phase1-finish-plan-2026-10-04.md) documents F1–F6 ownership/recovery, accepted-work lifetime, routing, lifecycle/fencing, authorization, final serial verification and packaging. The [earlier remaining-work plan](multiplexing-phase1-remaining-work-2026-10-03.md) remains the historical audit. This accepts the in-process authority foundation; Phase 2 multi-principal PHY ownership, exact-owner publication and private access are now verified locally; see the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md). Branch policy, event feeds and consumer/other-capability migration remain Phase 3–5. It is an independent whole-stack project, not an Ego workstream.
 
 ## Problem statement
 
@@ -112,12 +112,18 @@ The [Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) is now 
 
 ### Phase 2 — PHY registry, private access and work ownership
 
-- **2.1** Mount PHYs by durable owner ID exactly once in gateway registry. Instances attach through verified principal binding and explicit grants; many instances may reference the same PHY.
-- **2.2** Separate REL processing from PHY processing: move user queue, memory profile and personal Perception/Dream/vector scheduling to per-PHY ownership where semantically applicable. Keep REL-owned project processing per REL. Eliminate active-REL toggles used merely to redirect global PHY work.
-- **2.3** Bind user message attribution and personal work requests to their initiating instance/principal. Principal-profile projections into a REL are keyed by principal, not overwritten by whoever most recently selected it.
-- **2.4** Migrate knowledge/retrieval/provenance/Echo/Entity and future context consumers to instance-authorized owner sets. Explicit REL access is not automatically granted just because a REL is mounted.
-- **Tests:** same/different principal across same/different REL; PHY privacy under concurrent retrieval; exactly one personal worker set per PHY; no private state in REL-wide results.
-- **Gate:** independent instances and PHY executions pass authorization/privacy and processing deduplication tests. No background job consults mutable global active PHY.
+**Status: R2.1–R2.7 verified; local Phase 2 packaging in progress.** Exact PHY workers, durable User/explicit Agent attribution, frozen multi-principal publication and withdrawal, restart recovery, private retrieval/profile isolation, pending-work lifecycle and the expanded hard-cut guards pass production acceptance and the final library/integration/CLI matrix. The completed R2.7 gate in the [Phase 2 implementation plan](multiplexing-phase2-implementation-plan-2026-10-04.md) owns broad regression and commit evidence.
+
+- **2.1** Deepen the existing gateway PHY registry into one execution/worker owner per durable PHY; same-principal instances share it and different principals cannot alias it.
+- **2.2** Remove Phylactery, personal profile and personal worker state from REL `OwnerExecution`; split vectors/Dream/Perception into REL-local and PHY-local execution.
+- **2.3** Persist instance-derived actor/generation attribution so restart and shared conversations never infer a principal from ambient selection or parent ancestry.
+- **2.4** Implement G2 frozen multi-principal Episode routing and crash recovery: exact principal→PHY destinations, idempotent external writes, REL semantic receipt, no ambiguous personal fallback.
+- **2.5** Migrate private semantic/retrieval access to instance-authorized owner sets: granted REL closure plus only the bound PHY.
+- **2.6** Make principal profile projections and worker wakeups explicitly owner/principal keyed.
+- **2.7** Add PHY quiesce/fencing/recovery equivalent to its new execution responsibility.
+- **2.8** Hard-cut remaining ambient personal ownership from the new gateway path; legacy external host deletion remains Phase 5.
+- **2.9** Run final multi-principal privacy, recovery, worker-deduplication, library/integration/CLI/docs verification and package the Phase 2 branch.
+- **Gate:** two principals safely share a REL while personal writes/retrieval/workers remain isolated; same-principal instances share exactly one PHY execution; no background job consults mutable global active PHY.
 
 ### Phase 3 — REL conversation coordination
 

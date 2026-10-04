@@ -30,6 +30,7 @@
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — Phase 1 GatewayRuntime/InstanceRuntime implementation status, durable provisional journal, verification record and remaining whole-stack gates.
 - [Multiplexing Phase 1 remaining work](multiplexing-phase1-remaining-work-2026-10-03.md) — source-audited execution steps, narrow gateway/legacy boundary, targeted verification and Phase 1 exit gates.
 - [Multiplexing Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) — completed F1–F6 execution, final gateway/journal/library/integration/CLI evidence, inherited build/indexing gaps and local branch packaging.
+- [Multiplexing Phase 2 implementation plan](multiplexing-phase2-implementation-plan-2026-10-04.md) — R2.1–R2.7 implementation and final verification record for durable attribution/publication, private access and PHY lifecycle.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
 - [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).
 - [REL activity clock Phase 1 spec](rel-activity-clock-implementation-plan.md) — novel-turn accounting across both Archive write paths, logical historical cuts, reopen, repack and reconciliation gates.

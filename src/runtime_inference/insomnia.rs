@@ -73,6 +73,9 @@ pub use model::{
 };
 pub use ownership::{INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, InsomniaOwnership};
 pub use processor::{InsomniaProcessError, InsomniaProcessResult};
+pub(crate) use processor::{
+    PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication,
+};
 pub use progress::{
     DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS, InsomniaProgressEvent, InsomniaProgressReporter,
     InsomniaSemanticStage,

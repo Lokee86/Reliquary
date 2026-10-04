@@ -3,7 +3,7 @@ use crate::{
     GeneralEndpoint, InsomniaExtractionError, MemoryDraft, TemporalAssessment, TemporalInferencer,
 };
 
-pub(super) fn assess_draft(draft: &MemoryDraft) -> TemporalAssessment {
+pub(crate) fn assess_draft(draft: &MemoryDraft) -> TemporalAssessment {
     crate::chronos::assess(&semantic_text(draft), draft.source_time_ns)
 }
 

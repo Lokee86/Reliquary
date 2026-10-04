@@ -170,6 +170,31 @@ Before persistent checkpoints are added, larger-scale benchmarks must show that 
 - [Versioning and rollback plan](version-history-plan.md)
 - [Development](development.md)
 
+## Phase 2 owner isolation and recovery
+
+R2.1–R2.6 acceptance passed 115 gateway cases and the expanded two-case routing guard. Final library/integration/CLI verification and local packaging are recorded in the [Phase 2 execution record](multiplexing-phase2-implementation-plan-2026-10-04.md); the older checkpoint below is historical.
+
+| Contract | Production protection |
+| --- | --- |
+| Same-principal attachments share one owner worker set; distinct principals cannot alias or retarget a PHY | `runtime_host_gateway_phy_tests`, `attachment_churn_preserves_one_worker_set_and_pending_owner_authority` |
+| Durable source actor/origin is captured from verified admission; missing/conflicting/legacy authority stays Unknown or Held | `owner_operations::tests`, `runtime_host_gateway_attribution_tests` |
+| Exact frozen A/B/project destinations recover individual writes, routing attachments and REL receipts without rerunning extraction; ambiguity has no shared fallback | `runtime_host_gateway_publication_tests` |
+| Original source grant withdrawal persists through regrant/restart/offline journals; completed receipts permit read-only verification | `revoke_pending_phy_authority_survives_restart_and_grant_restoration`, `withdrawing_personal_permission_updates_offline_rel_journal`, `completed_receipt_can_be_observed_read_only_after_authority_withdrawal` |
+| Private reads/search include only the bound authorized PHY and independently granted RELs; embedding withdrawal/detach/remount prevents stale delivery | `runtime_host_gateway_semantic_tests` |
+| Profile mutation wakes its PHY only; explicit projection retains both original capabilities and the source mount, updates only its existing PHY-keyed principal, and wakes its REL only | `explicit_profile_projection_updates_only_bound_principal_and_exact_rel`, `projection_revalidates_both_original_capabilities_and_private_mount`, `profile_wakes_only_the_exact_phy_and_projection_only_the_rel` |
+| Pending exact plans hold while targets are offline/quiesced; reopen/remount retains exact intent, invalidates client tokens and leaves other owners progressing | `runtime_host_gateway_pending_publication_tests`, including real background vector progress and admitted-write draining |
+| Gateway and concrete REL/PHY modules cannot depend on legacy ownership or ambient selection | `multiplexing_gateway_routing_guard`, `check_multiplexing_phase2_ownership.py --enforce` |
+
+## Historical Phase 2 durable User-attribution checkpoint
+
+The focused gateway run passed 86/86 on 2026-10-04. This includes the six newly activated `owner_operations::tests` and the following live admission regressions. Generated-source and frozen personal-publication acceptance remain open in the [Phase 2 plan](multiplexing-phase2-implementation-plan-2026-10-04.md).
+
+| Current invariant | Production regression |
+| --- | --- |
+| Two principals in one conversation retain separate actor/initiator/operation identity across fresh-gateway restart; legacy and Agent sources are not inferred from User ancestry | `two_principals_in_one_conversation_recover_without_live_instances` |
+| Same-principal retries from another attachment retain the original admission frame | `retry_from_another_same_principal_attachment_keeps_original_admission` |
+| Complete journal corruption blocks mount; deleting operational state never backfills attribution from the readable Archive | `corrupt_owner_journal_blocks_mount_and_missing_journal_never_backfills` |
+
 ## Phase 1 Gateway/journal verification
 
 The [2026-10-04 F1–F6 verification record](multiplexing-phase1-finish-plan-2026-10-04.md) closes Phase 1. The final source passed 69 gateway cases, 862 library cases, all integration targets, both public multiplexing contracts, two routing guards, legacy isolation, journal/instance suites, 19 CLI tests and documentation checks. Earlier F1–F5 counts below remain snapshot evidence. Production host conformance and later privacy/feed/branch contracts are not claimed; bounded architecture indexing timed out and direct source guards passed.
@@ -190,7 +215,7 @@ F2 verification passed **55/55 gateway**, **848/848 library**, both public contr
 
 ## Gateway instance-routing boundary
 
-The [F3 audit inventory](multiplexing-phase1-finish-plan-2026-10-04.md) enumerates all 88 current public GatewayRuntime methods and separates attachment/credential/token admission from trusted service controls. The source guard is conservative textual enforcement of named direct dependencies, not a general proof of every indirect authorization path.
+The [F3 audit inventory](multiplexing-phase1-finish-plan-2026-10-04.md) enumerates the 88 Phase 1 public GatewayRuntime methods and separates attachment/credential/token admission from trusted service controls. The source guard is conservative textual enforcement of named direct dependencies, not a general proof of every indirect authorization path.
 
 | Contract | Protecting verification |
 | --- | --- |

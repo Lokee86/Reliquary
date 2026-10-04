@@ -351,22 +351,26 @@ impl GatewayRuntime {
             rel.mount_epoch
                 .store(epoch, std::sync::atomic::Ordering::SeqCst);
         }
-        owner
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .restart_workers()?;
         attachment
             .instance
             .authorize(owner_id, OwnerGrant::ManageRel, authorization)
             .map_err(operation)?;
-        let reopened = fence.reopen();
-        if reopened.is_err() {
+        let (generation, restarted) = {
+            let mut execution = owner
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let generation = fence.reopen()?;
+            (generation, execution.restart_workers())
+        };
+        if let Err(error) = restarted {
+            fence.close_and_drain()?;
             owner
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
                 .stop_workers()?;
+            return Err(error);
         }
-        reopened
+        Ok(generation)
     }
 
     /// Reconcile coordinator-owned conversation/archive state only through the

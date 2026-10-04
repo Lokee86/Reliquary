@@ -166,3 +166,13 @@ Changing version ownership, conversation ancestry, mutable-record revision seman
 ## Notes
 
 Cross-database restore activation, actual concurrent writers, checkpointing, and retention-aware semantic-history vacuum remain future work. Conservative copy-reclamation may remove only objects that never became semantic authority or are explicit physical free/backing garbage; it must not prune published owner history.
+## Gateway Phase 2 private ownership
+
+- Each mounted PHY owns exactly one personal vector/Dream/Perception execution and queue set, independently of REL selection and attachment count. REL owns Episodes, Insomnia and its completion receipts; it owns no ambient mutable PHY slot.
+- A stable verified principal/PHY binding is separate from UseOwnPhy permission. Private reads require that exact capability, and REL dependency grants never imply private access.
+- User and explicitly bound Agent source authority comes from the REL operational journal. Unknown, contradictory, mixed-principal or revoked personal authority creates no private write and no shared fallback.
+- Frozen cross-owner intent precedes individual PHY writes. Recovery verifies exact identity, prepared records, attachments and REL receipt; it never retargets or reruns extraction for an existing plan.
+- Withdrawal of the original source authority persists through detach, fresh attachments, regrant and restart. Detach alone retains accepted owner work; read-only verification of a completed receipt remains possible after withdrawal.
+- Query embedding occurs outside owner locks. Original attachment, owner grant and mount authority is revalidated before private result delivery.
+- Private profile projection names an explicit authorized REL and an existing principal Entity keyed by the exact bound PHY. Both original capabilities and the private mount remain valid through commit without simultaneous REL/PHY semantic store locks.
+- Fenced or offline destinations hold exact pending work. Reopen/remount invalidates client tokens and resumes the same owner intent while unrelated owner workers progress.

@@ -136,6 +136,38 @@ impl Cva {
         .map_err(Into::into)
     }
 
+    /// Commit REL-owned semantics after the gateway has durably verified every
+    /// exact-owner personal write. No PHY lock or mutable handle enters this path.
+    pub(crate) fn commit_runtime_insomnia_verified(
+        &mut self,
+        claim: &RuntimeInsomniaClaim,
+        prepared: PreparedApplication,
+        publication: super::processor::UserPublication,
+        config: &InsomniaWorkerConfig,
+    ) -> Result<InsomniaProcessResult, InsomniaWorkerError> {
+        let completed_at_ns = now_ns();
+        self.renew_insomnia_lease(
+            claim.work.episode_id,
+            claim
+                .work
+                .lease_token
+                .ok_or(crate::InsomniaError::InvalidLease)?,
+            completed_at_ns,
+            config.lease_duration_ns,
+        )?;
+        commit_application(
+            &mut self.container,
+            &mut self.memories,
+            &mut self.insomnia,
+            &claim.work,
+            prepared,
+            Some(publication),
+            claim.started_at_ns,
+            completed_at_ns,
+        )
+        .map_err(Into::into)
+    }
+
     pub(crate) fn fail_runtime_insomnia(
         &mut self,
         claim: &RuntimeInsomniaClaim,

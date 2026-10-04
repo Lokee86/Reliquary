@@ -1,6 +1,9 @@
 use super::instances::{InstanceAuthorization, InstanceId, InstanceRuntime, OwnerGrant};
-use super::{OwnerExecution, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, operation};
+use super::{ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, operation};
+#[path = "runtime_host_rel_execution.rs"]
+mod rel_runtime;
 use crate::{EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, Phylactery};
+use rel_runtime::RelRuntime;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -9,10 +12,25 @@ use uuid::Uuid;
 
 #[path = "runtime_host_gateway_admission.rs"]
 mod admission;
+#[path = "runtime_host_owner_operation_journal.rs"]
+pub(super) mod owner_operations;
+#[path = "runtime_host_phy_execution.rs"]
+mod phy_runtime;
+#[path = "runtime_host_owner_publication.rs"]
+mod publication;
+#[path = "runtime_host_owner_publication_codec.rs"]
+mod publication_codec;
+use phy_runtime::PhyRuntime;
 #[path = "runtime_host_gateway_ambient.rs"]
 mod ambient;
 #[path = "runtime_host_gateway_mount.rs"]
 pub(super) mod mount;
+#[path = "runtime_host_gateway_phy_lifecycle.rs"]
+mod phy_lifecycle;
+#[path = "runtime_host_gateway_semantic.rs"]
+mod semantic;
+#[path = "runtime_host_gateway_semantic_search.rs"]
+mod semantic_search;
 pub use admission::{GatewayAdmissionAdapter, VerifiedInstanceAdmission};
 use mount::{MountClaim, MountedFileIdentity};
 #[path = "runtime_host_gateway_host.rs"]
@@ -176,7 +194,7 @@ struct AttachmentEntry {
 struct RelExecution {
     file_identity: MountedFileIdentity,
     _mount_claim: MountClaim,
-    owner: Arc<Mutex<OwnerExecution>>,
+    owner: Arc<Mutex<RelRuntime>>,
     mount_epoch: AtomicU64,
     fence: Arc<LeaseGate>,
 }
@@ -185,7 +203,8 @@ struct PhyExecution {
     file_identity: MountedFileIdentity,
     _mount_claim: MountClaim,
     owner: Arc<Mutex<Phylactery>>,
-    mount_epoch: u64,
+    runtime: Arc<Mutex<PhyRuntime>>,
+    mount_epoch: AtomicU64,
     fence: Arc<LeaseGate>,
 }
 
@@ -228,8 +247,12 @@ impl OwnerAccessToken {
 /// management methods for client maintenance and viewable_rel_owners for listing.
 pub struct GatewayRuntime {
     rel_executions: RwLock<BTreeMap<DurableOwnerId, RelExecution>>,
-    phy_executions: RwLock<BTreeMap<DurableOwnerId, PhyExecution>>,
+    phy_executions: Arc<RwLock<BTreeMap<DurableOwnerId, PhyExecution>>>,
     instances: RwLock<HashMap<InstanceId, AttachmentEntry>>,
+    // Admission authority survives detach/unmount for this gateway lifetime.
+    // Frozen publication plans additionally retain their exact durable destination.
+    principal_phy_bindings: Arc<Mutex<BTreeMap<String, String>>>,
+    publication_policy: Arc<RwLock<()>>,
     routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     config: InsomniaWorkerConfig,
     episode_policy: EpisodePolicy,
@@ -276,8 +299,10 @@ impl GatewayRuntime {
         let host_router = host_adapter.map(CapabilityRouter::connect);
         let gateway = Self {
             rel_executions: RwLock::new(BTreeMap::new()),
-            phy_executions: RwLock::new(BTreeMap::new()),
+            phy_executions: Arc::new(RwLock::new(BTreeMap::new())),
             instances: RwLock::new(HashMap::new()),
+            principal_phy_bindings: Arc::new(Mutex::new(BTreeMap::new())),
+            publication_policy: Arc::new(RwLock::new(())),
             routes: Arc::new(RwLock::new(routes)),
             config,
             episode_policy,
@@ -363,14 +388,72 @@ impl GatewayRuntime {
             let _ = self.conversation.unmount_rel(&owner_id);
             return Err(error);
         }
-        let owner = Arc::new(Mutex::new(OwnerExecution::start(
+        let operations = self.conversation.owner_journal(&owner_id)?;
+        let restored = (|| {
+            let journal = operations
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let mut bindings = self
+                .principal_phy_bindings
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let mut proposed = bindings.clone();
+            for record in journal.records() {
+                let pairs = match &record.record {
+                    owner_operations::OwnerOperationRecord::Attribution(a) => {
+                        match (&a.admission.principal_id, &a.admission.phy_owner_id) {
+                            (Some(principal), Some(phy)) => vec![(principal, phy)],
+                            _ => Vec::new(),
+                        }
+                    }
+                    owner_operations::OwnerOperationRecord::EpisodePlan(plan) => plan
+                        .prepared
+                        .personal_drafts
+                        .iter()
+                        .map(|draft| {
+                            (
+                                &draft.destination_principal,
+                                &draft.destination_phy_owner_id,
+                            )
+                        })
+                        .collect(),
+                    _ => Vec::new(),
+                };
+                for (principal, phy) in pairs {
+                    validate_owner_id(phy, "phy-")?;
+                    if proposed.get(principal).is_some_and(|bound| bound != phy)
+                        || proposed.iter().any(|(p, b)| p != principal && b == phy)
+                    {
+                        return Err(operation(
+                            "durable personal route binding conflicts with gateway authority",
+                        ));
+                    }
+                    proposed.insert(principal.clone(), phy.clone());
+                }
+            }
+            *bindings = proposed;
+            Ok(())
+        })();
+        if let Err(error) = restored {
+            let _ = self.conversation.unmount_rel(&owner_id);
+            return Err(error);
+        }
+        let fence = Arc::new(LeaseGate::new(1));
+        let publication = Arc::new(publication::PublicationCoordinator {
+            rel_id: owner_id.clone(),
+            journal: operations,
+            phys: Arc::clone(&self.phy_executions),
+            bindings: Arc::clone(&self.principal_phy_bindings),
+            policy: Arc::clone(&self.publication_policy),
+            rel_fence: Arc::clone(&fence),
+        });
+        let owner = Arc::new(Mutex::new(RelRuntime::start(
             runtime,
             Arc::clone(&self.routes),
-            Arc::new(Mutex::new(None)),
+            Arc::clone(&fence),
             self.config.clone(),
             self.episode_policy,
-            true,
-            false,
+            publication,
         )));
         let mut mounted = self
             .rel_executions
@@ -384,7 +467,7 @@ impl GatewayRuntime {
                     _mount_claim: claim,
                     owner,
                     mount_epoch: AtomicU64::new(mount_epoch),
-                    fence: Arc::new(LeaseGate::new(1)),
+                    fence,
                 },
             )
             .is_some()
@@ -427,14 +510,22 @@ impl GatewayRuntime {
             .write()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         let mount_epoch = self.allocate_mount_epoch()?;
+        let owner = Arc::new(Mutex::new(owner));
+        let fence = Arc::new(LeaseGate::new(1));
+        let runtime = Arc::new(Mutex::new(PhyRuntime::start(
+            Arc::clone(&owner),
+            Arc::clone(&self.routes),
+            Arc::clone(&fence),
+        )?));
         mounted.insert(
             owner_id.clone(),
             PhyExecution {
                 file_identity: identity,
                 _mount_claim: claim,
-                owner: Arc::new(Mutex::new(owner)),
-                mount_epoch,
-                fence: Arc::new(LeaseGate::new(1)),
+                owner,
+                runtime,
+                mount_epoch: AtomicU64::new(mount_epoch),
+                fence,
             },
         );
         Ok(owner_id)
@@ -471,17 +562,46 @@ impl GatewayRuntime {
             return Err(operation("an instance requires a verified principal ID"));
         }
         self.validate_grants(&grants, phy_id.as_deref())?;
-        let instance = Arc::new(InstanceRuntime::new(principal_id, phy_id, grants));
-        self.instances
+        if let Some(phy) = phy_id.as_deref() {
+            if !self
+                .phy_executions
+                .read()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .contains_key(phy)
+            {
+                return Err(operation("bound PHY is not mounted at attachment"));
+            }
+        }
+        let mut instances = self
+            .instances
             .write()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .insert(
-                instance.instance_id(),
-                AttachmentEntry {
-                    instance: Arc::clone(&instance),
-                    leases: Arc::new(LeaseGate::new(1)),
-                },
-            );
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        let mut bindings = self
+            .principal_phy_bindings
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        if let Some(phy) = phy_id.as_ref() {
+            if bindings
+                .get(&principal_id)
+                .is_some_and(|bound| bound != phy)
+                || bindings
+                    .iter()
+                    .any(|(principal, bound)| principal != &principal_id && bound == phy)
+            {
+                return Err(operation(
+                    "verified principal/PHY binding conflicts with gateway authority",
+                ));
+            }
+            bindings.insert(principal_id.clone(), phy.clone());
+        }
+        let instance = Arc::new(InstanceRuntime::new(principal_id, phy_id, grants));
+        instances.insert(
+            instance.instance_id(),
+            AttachmentEntry {
+                instance: Arc::clone(&instance),
+                leases: Arc::new(LeaseGate::new(1)),
+            },
+        );
         Ok(instance)
     }
 
@@ -563,7 +683,7 @@ impl GatewayRuntime {
             owner_id: owner_id.to_owned(),
             kind: OwnerKind::Phy,
             grant,
-            mount_epoch: phy.mount_epoch,
+            mount_epoch: phy.mount_epoch.load(Ordering::SeqCst),
             fence_generation: generation,
             owner_grant_generation: instance
                 .owner_grant_generation(owner_id)
@@ -656,7 +776,7 @@ impl GatewayRuntime {
                 .ok_or_else(|| operation(format!("PHY owner {} is not mounted", token.owner_id)))?;
             (
                 Arc::clone(&phy.owner),
-                phy.mount_epoch,
+                phy.mount_epoch.load(Ordering::SeqCst),
                 Arc::clone(&phy.fence),
             )
         };
@@ -723,15 +843,7 @@ impl GatewayRuntime {
             }
         }
         if let Some(id) = phy_id {
-            if !phys.contains_key(id)
-                || !grants
-                    .get(id)
-                    .is_some_and(|caps| caps.contains(&OwnerGrant::UseOwnPhy))
-            {
-                return Err(operation(
-                    "the bound PHY must remain mounted and explicitly authorized",
-                ));
-            }
+            validate_owner_id(id, "phy-")?;
         }
         Ok(())
     }
@@ -753,14 +865,35 @@ impl GatewayRuntime {
         entry.leases.close_and_drain()?;
         let old_grants = instance.grants_snapshot().map_err(operation)?;
         let mut revoked_view = Vec::new();
+        let mut revoked_submit = BTreeSet::new();
+        let mut revoked_phy = None;
         for (owner_id, previous) in &old_grants {
             let replacement = grants.get(owner_id);
             let has_next = |grant| replacement.is_some_and(|next| next.contains(&grant));
             if previous.contains(&OwnerGrant::ViewRel) && !has_next(OwnerGrant::ViewRel) {
                 revoked_view.push(owner_id.as_str());
             }
+            if previous.contains(&OwnerGrant::SubmitConversation)
+                && !has_next(OwnerGrant::SubmitConversation)
+            {
+                revoked_submit.insert(owner_id.clone());
+            }
+            if previous.contains(&OwnerGrant::UseOwnPhy) && !has_next(OwnerGrant::UseOwnPhy) {
+                revoked_phy = Some(owner_id.as_str());
+            }
         }
         let update = (|| {
+            // Wait for admitted personal writes, then sync withdrawals before
+            // new routed writes or the changed grant state can become visible.
+            let _policy = self
+                .publication_policy
+                .write()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            self.conversation.revoke_personal_authority(
+                instance.instance_id(),
+                &revoked_submit,
+                revoked_phy,
+            )?;
             for owner_id in revoked_view {
                 self.conversation
                     .remove_instance_owner_viewers(instance.instance_id(), owner_id)?;
@@ -972,20 +1105,22 @@ impl GatewayRuntime {
                 .ok_or_else(|| operation(format!("REL owner {owner_id} is not mounted")))?;
             rel.mount_epoch.store(epoch, Ordering::SeqCst);
         }
-        {
-            let mut owner = owner
+        let (generation, restarted) = {
+            let mut execution = owner
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            owner.restart_workers()?;
-        }
-        let reopened = fence.reopen();
-        if reopened.is_err() {
+            let generation = fence.reopen()?;
+            (generation, execution.restart_workers())
+        };
+        if let Err(error) = restarted {
+            fence.close_and_drain()?;
             owner
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
                 .stop_workers()?;
+            return Err(error);
         }
-        reopened
+        Ok(generation)
     }
 
     pub(super) fn with_quiesced_rel<T>(
@@ -1079,9 +1214,9 @@ impl GatewayRuntime {
             .phy_executions
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        let phy_gates = phys
+        let phy_owners = phys
             .values()
-            .map(|phy| Arc::clone(&phy.fence))
+            .map(|phy| (Arc::clone(&phy.fence), Arc::clone(&phy.runtime)))
             .collect::<Vec<_>>();
         drop(phys);
         let mut first_failure = None;
@@ -1092,7 +1227,7 @@ impl GatewayRuntime {
                 }
             }
         }
-        for gate in &phy_gates {
+        for (gate, _) in &phy_owners {
             if let Err(error) = gate.close_and_drain() {
                 if first_failure.is_none() {
                     first_failure = Some(error);
@@ -1102,6 +1237,17 @@ impl GatewayRuntime {
         for (_, owner) in owners {
             let stopped = match owner.lock() {
                 Ok(mut owner) => owner.stop_workers(),
+                Err(_) => Err(ReliquaryRuntimeHostError::LockPoisoned),
+            };
+            if let Err(error) = stopped {
+                if first_failure.is_none() {
+                    first_failure = Some(error);
+                }
+            }
+        }
+        for (_, runtime) in phy_owners {
+            let stopped = match runtime.lock() {
+                Ok(mut runtime) => runtime.stop_workers(),
                 Err(_) => Err(ReliquaryRuntimeHostError::LockPoisoned),
             };
             if let Err(error) = stopped {
@@ -1157,7 +1303,7 @@ impl GatewayRuntime {
         if self.shutting_down.load(Ordering::SeqCst) {
             return Err(operation("gateway is shutting down"));
         }
-        let (fence, owner) = {
+        let (fence, owner, runtime) = {
             let phys = self
                 .phy_executions
                 .read()
@@ -1165,9 +1311,17 @@ impl GatewayRuntime {
             let phy = phys
                 .get(owner_id)
                 .ok_or_else(|| operation(format!("PHY owner {owner_id} is not mounted")))?;
-            (Arc::clone(&phy.fence), Arc::clone(&phy.owner))
+            (
+                Arc::clone(&phy.fence),
+                Arc::clone(&phy.owner),
+                Arc::clone(&phy.runtime),
+            )
         };
         fence.close_and_drain()?;
+        runtime
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .stop_workers()?;
         let removed = self
             .phy_executions
             .write()
@@ -1175,6 +1329,7 @@ impl GatewayRuntime {
             .remove(owner_id)
             .ok_or_else(|| operation(format!("PHY owner {owner_id} is not mounted")))?;
         drop(removed);
+        drop(runtime);
         let owner = Arc::try_unwrap(owner)
             .map_err(|_| operation("PHY execution still has active readers"))?;
         owner
@@ -1281,6 +1436,9 @@ fn validate_owner_id(owner_id: &str, prefix: &str) -> Result<(), ReliquaryRuntim
 #[cfg(test)]
 #[path = "runtime_host_gateway_admission_tests.rs"]
 mod admission_tests;
+#[cfg(test)]
+#[path = "runtime_host_gateway_phy_tests.rs"]
+mod phy_tests;
 #[cfg(test)]
 #[path = "runtime_host_gateway_tests.rs"]
 mod tests;

@@ -1,3 +1,4 @@
+use super::owner_operations::{ActorClass, AdmissionIdentity, Attribution, OwnerOperationJournal};
 #[cfg(test)]
 use super::{
     GatewayHostAdapter, HandoffReceipt, HostCapabilityContract, HostConnection,
@@ -19,7 +20,7 @@ use crate::{
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, RwLock};
 use uuid::Uuid;
@@ -89,6 +90,7 @@ struct ViewerState {
 pub(super) struct ConversationRegistry {
     state_dir: PathBuf,
     journals: RwLock<BTreeMap<String, Arc<Mutex<RelJournal>>>>,
+    owner_operations: RwLock<BTreeMap<String, Arc<Mutex<OwnerOperationJournal>>>>,
     coordinators: Mutex<HashMap<(String, String), Arc<ConversationCoordinator>>>,
     viewers: Mutex<ViewerState>,
 }
@@ -97,12 +99,16 @@ impl ConversationRegistry {
         Self {
             state_dir,
             journals: RwLock::new(BTreeMap::new()),
+            owner_operations: RwLock::new(BTreeMap::new()),
             coordinators: Mutex::new(HashMap::new()),
             viewers: Mutex::new(ViewerState::default()),
         }
     }
     pub(super) fn mount_rel(&self, owner_id: &str) -> Result<(), ReliquaryRuntimeHostError> {
         let rel_id = RelOwnerId::parse_canonical(owner_id).map_err(operation)?;
+        let operations =
+            OwnerOperationJournal::open(&self.state_dir, &rel_id.as_uuid().to_string())
+                .map_err(operation)?;
         let journal = RelJournal::open(&self.state_dir, rel_id).map_err(operation)?;
         let mut journals = self
             .journals
@@ -113,6 +119,10 @@ impl ConversationRegistry {
                 "journal for {owner_id} is already mounted"
             )));
         }
+        self.owner_operations
+            .write()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .insert(owner_id.to_owned(), Arc::new(Mutex::new(operations)));
         journals.insert(owner_id.to_owned(), Arc::new(Mutex::new(journal)));
         Ok(())
     }
@@ -122,6 +132,10 @@ impl ConversationRegistry {
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .remove(owner_id)
             .ok_or_else(|| operation(format!("journal for {owner_id} is not mounted")))?;
+        self.owner_operations
+            .write()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .remove(owner_id);
         self.coordinators
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -134,6 +148,10 @@ impl ConversationRegistry {
         Ok(())
     }
     pub(super) fn shutdown(&self) -> Result<(), ReliquaryRuntimeHostError> {
+        self.owner_operations
+            .write()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .clear();
         self.viewers
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -200,6 +218,85 @@ impl ConversationRegistry {
             .cloned()
             .ok_or_else(|| operation(format!("journal for {owner_id} is not mounted")))
     }
+    /// Persist withdrawal for original admissions, including currently offline
+    /// RELs. The caller holds the lifecycle and publication-policy write gates.
+    pub(super) fn revoke_personal_authority(
+        &self,
+        instance_id: super::InstanceId,
+        revoked_rels: &BTreeSet<String>,
+        revoked_phy: Option<&str>,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        let mounted = self
+            .owner_operations
+            .read()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .clone();
+        let mut owners = revoked_rels.clone();
+        if revoked_phy.is_some() {
+            owners.extend(mounted.keys().cloned());
+            let directory = self.state_dir.join("owner-operations");
+            if directory.exists() {
+                for entry in std::fs::read_dir(directory).map_err(operation)? {
+                    let path = entry.map_err(operation)?.path();
+                    if path.extension().and_then(|s| s.to_str()) != Some("roj") {
+                        continue;
+                    }
+                    let id = path
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .ok_or_else(|| operation("invalid owner-operation filename"))?;
+                    let rel = uuid::Uuid::parse_str(id).map_err(operation)?;
+                    if rel.is_nil() || rel.to_string() != id {
+                        return Err(operation("noncanonical owner-operation filename"));
+                    }
+                    owners.insert(format!("rel-{id}"));
+                }
+            }
+        }
+        for owner in owners {
+            let revoke_rel = revoked_rels.contains(&owner);
+            if let Some(journal) = mounted.get(&owner) {
+                journal
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                    .revoke_personal_authority(&instance_id.to_string(), revoke_rel, revoked_phy)
+                    .map_err(operation)?;
+            } else {
+                let rel = RelOwnerId::parse_canonical(&owner).map_err(operation)?;
+                let uuid = rel.as_uuid().to_string();
+                if !self
+                    .state_dir
+                    .join("owner-operations")
+                    .join(format!("{uuid}.roj"))
+                    .exists()
+                {
+                    continue; // Lost attribution has no personal routing authority.
+                }
+                OwnerOperationJournal::open(&self.state_dir, &uuid)
+                    .map_err(operation)?
+                    .revoke_personal_authority(&instance_id.to_string(), revoke_rel, revoked_phy)
+                    .map_err(operation)?;
+            }
+        }
+        Ok(())
+    }
+
+    pub(super) fn owner_journal(
+        &self,
+        owner_id: &str,
+    ) -> Result<Arc<Mutex<OwnerOperationJournal>>, ReliquaryRuntimeHostError> {
+        self.owner_operations
+            .read()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .get(owner_id)
+            .cloned()
+            .ok_or_else(|| {
+                operation(format!(
+                    "owner-operation journal for {owner_id} is not mounted"
+                ))
+            })
+    }
+
     fn coordinator(
         &self,
         owner_id: &str,
@@ -346,7 +443,35 @@ impl GatewayRuntime {
         let tie_key = *Uuid::new_v4().as_bytes();
         let expected_revision = request.expected_conversation_revision;
         let journal = self.conversation.journal(owner_id)?;
-        let status = with_admission(self, &token, || {
+        let operations = self.conversation.owner_journal(owner_id)?;
+        // A PHY binding names a destination; only a current UseOwnPhy token
+        // supplies permission. Both admission leases cover the durable capture.
+        let personal_token = instance
+            .attached_phy_owner_id()
+            .and_then(|phy| self.authorize(instance, phy, OwnerGrant::UseOwnPhy).ok());
+        let attribution = Attribution {
+            generation_id: conversation_host_operation_id(owner_id, &id),
+            conversation_id: id.conversation_id.as_str().to_owned(),
+            submission_id: id.submission_id.as_str().to_owned(),
+            actor_class: ActorClass::User,
+            actor_principal: Some(instance.principal_id().to_owned()),
+            generation_initiator: Some(instance.principal_id().to_owned()),
+            initiating_generation_id: None,
+            admission: AdmissionIdentity {
+                instance_id: instance.instance_id().to_string(),
+                principal_id: Some(instance.principal_id().to_owned()),
+                phy_owner_id: instance.attached_phy_owner_id().map(str::to_owned),
+                personal: personal_token.as_ref().map(|token| {
+                    super::owner_operations::PersonalAdmission {
+                        mount_epoch: token.mount_epoch,
+                        grant_generation: token.owner_grant_generation,
+                    }
+                }),
+                mount_epoch: token.mount_epoch,
+                grant_generation: token.owner_grant_generation,
+            },
+        };
+        let submit = || {
             let mut journal = journal
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -371,6 +496,31 @@ impl GatewayRuntime {
                     ));
                 }
             }
+            // Sync source authority before accepting work that depends on it.
+            // Retries from a second attachment retain the original admission.
+            {
+                let mut operations = operations
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                match operations.attribution(&attribution.generation_id) {
+                    Some(existing)
+                        if existing.actor_principal == attribution.actor_principal
+                            && existing.generation_initiator
+                                == attribution.generation_initiator
+                            && existing.admission.phy_owner_id
+                                == attribution.admission.phy_owner_id
+                            && existing.conversation_id == attribution.conversation_id
+                            && existing.submission_id == attribution.submission_id
+                            && existing.actor_class == ActorClass::User => {}
+                    Some(_) => return Err(operation("immutable source attribution conflicts")),
+                    None if idempotent => {} // Legacy accepted work remains Unknown.
+                    None => {
+                        operations
+                            .append_attribution(attribution.clone())
+                            .map_err(operation)?;
+                    }
+                }
+            }
             let outcome = match journal.enqueue_with_tie_key(
                 submission,
                 receive_ns,
@@ -389,6 +539,10 @@ impl GatewayRuntime {
             match outcome {
                 EnqueueOutcome::Durable(status) | EnqueueOutcome::Idempotent(status) => Ok(status),
             }
+        };
+        let status = with_admission(self, &token, || match personal_token.as_ref() {
+            Some(personal) => with_admission(self, personal, submit),
+            None => submit(),
         })?;
         // Durable submit is the explicit writer-admission point. Publish the
         // instance-local selector only after the REL journal has acknowledged it.
@@ -1484,9 +1638,6 @@ fn with_admission<T>(
     token: &OwnerAccessToken,
     f: impl FnOnce() -> Result<T, ReliquaryRuntimeHostError>,
 ) -> Result<T, ReliquaryRuntimeHostError> {
-    if token.kind != super::OwnerKind::Rel {
-        return Err(operation("admission token is not for a REL"));
-    }
     let attachment = gateway.attachment_by_id(token.instance_id)?;
     let attachment_lease = attachment.leases.acquire_current()?;
     attachment
@@ -1498,18 +1649,43 @@ fn with_admission<T>(
             token.owner_grant_generation,
         )
         .map_err(operation)?;
-    let rels = gateway
-        .rel_executions
-        .read()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    let rel = rels
-        .get(&token.owner_id)
-        .ok_or_else(|| operation("conversation REL is not mounted"))?;
-    if rel.mount_epoch.load(std::sync::atomic::Ordering::SeqCst) != token.mount_epoch {
-        return Err(operation("admission token belongs to a previous REL mount"));
+    let (mount_epoch, fence) = match token.kind {
+        super::OwnerKind::Rel => {
+            let owners = gateway
+                .rel_executions
+                .read()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let owner = owners
+                .get(&token.owner_id)
+                .ok_or_else(|| operation("conversation REL is not mounted"))?;
+            (
+                owner.mount_epoch.load(std::sync::atomic::Ordering::SeqCst),
+                Arc::clone(&owner.fence),
+            )
+        }
+        super::OwnerKind::Phy => {
+            if token.grant != OwnerGrant::UseOwnPhy {
+                return Err(operation("personal admission lacks UseOwnPhy"));
+            }
+            let owners = gateway
+                .phy_executions
+                .read()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let owner = owners
+                .get(&token.owner_id)
+                .ok_or_else(|| operation("admission PHY is not mounted"))?;
+            (
+                owner.mount_epoch.load(std::sync::atomic::Ordering::SeqCst),
+                Arc::clone(&owner.fence),
+            )
+        }
+    };
+    if mount_epoch != token.mount_epoch {
+        return Err(operation(
+            "admission token belongs to a previous owner mount",
+        ));
     }
-    let owner_lease = rel.fence.acquire(token.fence_generation)?;
-    drop(rels);
+    let owner_lease = fence.acquire(token.fence_generation)?;
     attachment
         .instance
         .authorize_owner_generation(

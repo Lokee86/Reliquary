@@ -12,7 +12,9 @@ mod prepared;
 mod source_validation;
 
 pub(crate) use application::{commit_application, prepare_application, publish_user_application};
-pub(crate) use prepared::{PreparedApplication, PreparedMemory};
+pub(crate) use prepared::{
+    PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InsomniaProcessResult {
