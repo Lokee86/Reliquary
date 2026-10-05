@@ -35,7 +35,22 @@ impl SubscriberRegistry {
         token: OwnerAccessToken,
         capacity: usize,
     ) -> Result<SubscriptionId, ReliquaryRuntimeHostError> {
-        if capacity == 0 || capacity > 4096 || self.entries.len() >= 1024 {
+        self.register_replacing(token, capacity, None)
+    }
+
+    /// Validate everything before retiring the previous recipient, including at
+    /// the registry limit. A failed reconnect leaves the old queue intact.
+    pub(super) fn register_replacing(
+        &mut self,
+        token: OwnerAccessToken,
+        capacity: usize,
+        previous: Option<SubscriptionId>,
+    ) -> Result<SubscriptionId, ReliquaryRuntimeHostError> {
+        if let Some(id) = previous {
+            self.bound_mut(id, &token)?;
+        }
+        let retained = self.entries.len() - usize::from(previous.is_some());
+        if capacity == 0 || capacity > 4096 || retained >= 1024 {
             return Err(operation(
                 "REL subscriber capacity is outside its bounded limits",
             ));
@@ -43,6 +58,9 @@ impl SubscriberRegistry {
         let id = SubscriptionId(Uuid::new_v4());
         if self.entries.contains_key(&id) {
             return Err(operation("REL subscription identity collision"));
+        }
+        if let Some(previous) = previous {
+            self.entries.remove(&previous);
         }
         self.entries.insert(
             id,

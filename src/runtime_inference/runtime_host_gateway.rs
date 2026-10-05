@@ -48,6 +48,8 @@ pub(super) mod events;
 mod mutation_events;
 #[path = "runtime_host_gateway_observation.rs"]
 pub(super) mod observation;
+#[path = "runtime_host_gateway_reconnect.rs"]
+mod reconnect;
 #[path = "runtime_host_gateway_snapshots.rs"]
 mod snapshots;
 #[path = "runtime_host_gateway_subscriptions.rs"]
@@ -1146,7 +1148,7 @@ impl GatewayRuntime {
                 .ok_or_else(|| operation(format!("REL owner {owner_id} is not mounted")))?;
             rel.mount_epoch.store(epoch, Ordering::SeqCst);
         }
-        sequencer.reset_epoch(epoch)?;
+        self.reopen_rel_distribution(owner_id, epoch, &sequencer)?;
         let (generation, restarted) = {
             let mut execution = owner
                 .lock()

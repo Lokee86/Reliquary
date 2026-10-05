@@ -35,6 +35,7 @@ pub(super) enum RelInvalidation {
     PrincipalEntity(crate::EntityId),
     EphemeralProcessingEnabled(bool),
     HostCapability(super::RuntimeCapability),
+    LifecycleOpen,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -193,6 +194,18 @@ impl RelSequencerGate<'_> {
     ) -> Result<SubscriptionId, ReliquaryRuntimeHostError> {
         self.validate_token(&token)?;
         self.state.subscribers.register(token, capacity)
+    }
+
+    pub(super) fn register_replacing(
+        &mut self,
+        token: OwnerAccessToken,
+        capacity: usize,
+        previous: Option<SubscriptionId>,
+    ) -> Result<SubscriptionId, ReliquaryRuntimeHostError> {
+        self.validate_token(&token)?;
+        self.state
+            .subscribers
+            .register_replacing(token, capacity, previous)
     }
 
     pub(super) fn prepare_resync(

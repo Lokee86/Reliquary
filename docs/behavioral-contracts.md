@@ -26,6 +26,13 @@ rejection after another overflow, disconnect/resubscribe isolation and grant/epo
 revalidation. [The snapshot/resync record](multiplexing-phase4-snapshot-2026-10-04.md)
 records the internal API behavior and verification.
 
+The P4.5 `reconnect_tests` additionally protect snapshot-based replacement at
+the subscriber limit, failure preservation, valid and expired same-epoch cursor
+recovery, prior-epoch rejection, identical grant refresh and revoke/regrant,
+queued detach, revoke racing admitted publication, and native commits without a
+host adapter. Both reopen entry points establish a reconciled lifecycle cut in
+the new epoch. See the [reconnect record](multiplexing-phase4-reconnect-2026-10-05.md).
+
 ## Contract matrix
 
 | Contract | Protection |

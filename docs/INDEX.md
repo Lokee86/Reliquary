@@ -34,6 +34,7 @@
 - [Multiplexing P3/P4 observation contract](multiplexing-p34-observation-contract-2026-10-04.md) — frozen internal observation types and lane ownership; no distribution or scheduler implementation.
 - [Multiplexing Phase 3 baseline](multiplexing-phase3-baseline-2026-10-04.md) — P3.0 foundation, coordinator/journal inventory and collected verification.
 - [Multiplexing Phase 3 conversation coordination implementation plan](multiplexing-phase3-conversation-implementation-plan-2026-10-04.md) — branch-aware scheduling, durable conversation policy, visible auto-branching, generation lifetime and recovery; parallel with Phase 4.
+- [Multiplexing Phase 4 reconnect and revocation](multiplexing-phase4-reconnect-2026-10-05.md) — P4.5 atomic recipient replacement, snapshot recovery, epoch rotation and reconciled lifecycle summaries.
 - [Multiplexing Phase 4 non-conversation publication](multiplexing-phase4-mutations-2026-10-05.md) — P4.4 gateway/worker post-sync summaries, coverage guard, privacy and verification.
 - [Multiplexing Phase 4 atomic snapshot/subscription](multiplexing-phase4-snapshot-2026-10-04.md) — P4.2 safe source readers and atomic admission; P4.3 bounded recovery, snapshot acknowledgement, disconnect and acceptance.
 - [Multiplexing Phase 4 sequencer core](multiplexing-phase4-core-2026-10-04.md) — P4.1 ownership, bounds, lifecycle and verification record.

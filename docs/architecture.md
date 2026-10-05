@@ -92,6 +92,10 @@ The gateway declares a data-only `observation` module beside its existing conver
 
 On the independent P4 branch, gateway Memory/Graph/community/metadata/project and principal-projection commits and concrete REL worker commits share one mounted sequencer across mutation, synchronization and summary publication. Provider, private-owner and Git/filesystem work precedes this boundary. Source clocks remain authoritative; processing switches are explicitly ephemeral, and maintenance invalidates the epoch instead of implying incremental continuity. See the [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md). Final P3 event adapters remain P4.7.
 
+## P4 reconnect and lifecycle distribution
+
+The internal reconnect operation reads a fresh authorized snapshot and replaces one recipient atomically under the mounted sequencer gate. Validation or reader failure preserves the prior recipient. Neither stale attachment/grant generations nor old mount cursors can reconnect; fresh authorization and subscription are required. No retained event window exists, so same-epoch cursors are hints rather than replay authority. Quiesced reopen reconciles and synchronizes source state, rotates the gateway epoch and publishes a body-free lifecycle summary before opening admission and restarting workers. See the [P4.5 record](multiplexing-phase4-reconnect-2026-10-05.md).
+
 ## Responsibilities
 
 ### Gateway ConversationExecution recovery

@@ -108,6 +108,40 @@ impl GatewayRuntime {
             &mut RelSequencerGate<'_>,
         ) -> Result<RelSnapshotState, ReliquaryRuntimeHostError>,
     ) -> Result<(RelSnapshot, RelSubscription), ReliquaryRuntimeHostError> {
+        self.subscribe_rel_replacing(token, known_cursor, capacity, None, read)
+    }
+
+    /// Reconnect replaces exactly one live recipient at the snapshot cut. No
+    /// event window is retained: even a valid same-epoch cursor needs a snapshot.
+    pub(super) fn reconnect_rel(
+        &self,
+        instance: &InstanceRuntime,
+        previous: &RelSubscription,
+        known_cursor: Option<RelCursor>,
+        capacity: usize,
+    ) -> Result<(RelSnapshot, RelSubscription), ReliquaryRuntimeHostError> {
+        if instance.instance_id() != previous.token.instance_id {
+            return Err(operation("REL subscription belongs to another attachment"));
+        }
+        self.subscribe_rel_replacing(
+            &previous.token,
+            known_cursor,
+            capacity,
+            Some(previous.id),
+            |_| self.read_rel_snapshot_state(&previous.token),
+        )
+    }
+
+    fn subscribe_rel_replacing(
+        &self,
+        token: &OwnerAccessToken,
+        known_cursor: Option<RelCursor>,
+        capacity: usize,
+        previous: Option<SubscriptionId>,
+        read: impl FnOnce(
+            &mut RelSequencerGate<'_>,
+        ) -> Result<RelSnapshotState, ReliquaryRuntimeHostError>,
+    ) -> Result<(RelSnapshot, RelSubscription), ReliquaryRuntimeHostError> {
         if token.kind != OwnerKind::Rel || token.grant != OwnerGrant::ViewRel {
             return Err(operation("REL subscription requires ViewRel"));
         }
@@ -147,7 +181,7 @@ impl GatewayRuntime {
             };
             let rel_id = RelOwnerId::parse_canonical(&token.owner_id).map_err(operation)?;
             // Register last: failed readers, bounds and final authorization leave no recipient.
-            let id = gate.register(token.clone(), capacity)?;
+            let id = gate.register_replacing(token.clone(), capacity, previous)?;
             gate.observe_snapshot_watermarks(state.watermarks.clone());
             Ok((
                 RelSnapshot {
@@ -351,3 +385,7 @@ impl GatewayRuntime {
 #[cfg(test)]
 #[path = "runtime_host_gateway_snapshots_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_reconnect_tests.rs"]
+mod reconnect_tests;

@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P4.0 accepted; P4.1–P4.4 implemented on independent P4 branch; P4.4 verification recorded below; architecture refresh remains incomplete; P4.5 next**
+Status: **P4.0 accepted; P4.1–P4.4 implemented on independent P4 branch; P4.5 implementation and verification recorded below; architecture refresh remains incomplete; P4.6 next**
 
 ## Purpose
 
@@ -24,7 +24,7 @@ The current gateway already has:
 - Phase 1 durable conversation queue state;
 - Phase 2 exact PHY privacy boundaries.
 
-P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. P4.2 adds the canonical internal atomic snapshot/register handshake and live delivery checks. P4.3 adds bounded resync acknowledgement and recipient disconnect. Public exports, complete production publication, reconnect policy and conversation stream hub remain later steps. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md).
+P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. P4.2 adds the canonical internal atomic snapshot/register handshake and live delivery checks. P4.3 adds bounded resync acknowledgement and recipient disconnect. P4.4 adds production mutation publication and coverage enforcement; P4.5 adds snapshot reconnect and epoch-safe lifecycle publication. Public exports, conversation stream delivery and P3 convergence remain later steps. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md).
 
 Phase 4 introduces those as one canonical distribution subsystem. It does not create another semantic owner, another durable event log, or another conversation coordinator.
 
@@ -330,6 +330,8 @@ Add a coverage guard so a new instance-visible mutator cannot silently omit even
 **Tests:** one event per committed mutation, no event on failed mutation, correct watermarks/invalidation IDs, unrelated REL subscribers receive nothing.
 
 ### P4.5 — Reconnect, remount and revocation
+
+**Implemented:** [P4.5 reconnect and revocation record](multiplexing-phase4-reconnect-2026-10-05.md). Atomic recipient replacement always obtains a fresh snapshot; no replay window is retained. Current grants/epochs fence reconnect and delivery, and both quiesced reopen paths publish a synchronized lifecycle summary in the new epoch. Verification is recorded there.
 
 Implement:
 - fresh snapshot on reconnect;

@@ -14,7 +14,7 @@ The [shared observation contract](multiplexing-p34-observation-contract-2026-10-
 
 ## Independent P4 branch scope
 
-P4.1–P4.4 implement internal sequencing, atomic snapshot/subscription, bounded resync acknowledgement and non-conversation gateway/REL-worker post-sync summaries. The [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md) distinguishes ephemeral processing switches and lifecycle epoch invalidation from durable clocks. Public exports, final reconnect policy, conversation streams and P3 production event integration remain later steps. Architecture evidence refresh remains separately bounded and its result is recorded per acceptance.
+P4.1–P4.4 implement internal sequencing, atomic snapshot/subscription, bounded resync acknowledgement and non-conversation gateway/REL-worker post-sync summaries. The [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md) distinguishes ephemeral processing switches and lifecycle epoch invalidation from durable clocks. P4.5 adds atomic snapshot-based reconnect replacement and reconciled lifecycle publication after epoch rotation; its [record](multiplexing-phase4-reconnect-2026-10-05.md) owns verification. No event replay window is retained. Public exports, conversation streams and P3 production event integration remain later steps. Architecture evidence refresh remains separately bounded and its result is recorded per acceptance.
 
 ## Phase 2 supported boundaries
 

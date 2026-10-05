@@ -372,7 +372,7 @@ impl GatewayRuntime {
             .instance
             .authorize(owner_id, OwnerGrant::ManageRel, authorization)
             .map_err(operation)?;
-        sequencer.reset_epoch(epoch)?;
+        self.reopen_rel_distribution(owner_id, epoch, &sequencer)?;
         let (generation, restarted) = {
             let mut execution = owner
                 .lock()

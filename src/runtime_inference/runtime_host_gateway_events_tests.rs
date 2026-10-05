@@ -187,7 +187,7 @@ fn epoch_mismatch_and_reopen_clear_old_subscription_identity() {
         .unwrap();
     assert!(seq.gate(token.mount_epoch).is_err());
     let mut gate = seq.gate(fresh.mount_epoch).unwrap();
-    assert_eq!(gate.cursor(), 0);
+    assert_eq!(gate.cursor(), 1); // The reconciled lifecycle summary starts the epoch.
     assert!(gate.take_next(id, &fresh).is_err());
     assert!(gate.register(token, 2).is_err());
 }
@@ -225,7 +225,7 @@ fn cursor_exhaustion_closes_distribution_until_gateway_reopen() {
         .unwrap()
         .mount_epoch
         .load(std::sync::atomic::Ordering::SeqCst);
-    assert_eq!(publish(&mut seq.gate(epoch).unwrap(), 2).cursor, 1);
+    assert_eq!(publish(&mut seq.gate(epoch).unwrap(), 2).cursor, 2);
 }
 
 #[test]
