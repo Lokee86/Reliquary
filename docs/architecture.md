@@ -88,6 +88,10 @@ ReliquaryConfig
 
 The gateway declares a data-only `observation` module beside its existing conversation coordinator. [The frozen contract](multiplexing-p34-observation-contract-2026-10-04.md) defines REL summaries, conversation snapshots, post-durability facts and separate checkpoint-content values. It contains no mutable owner handles, queue, subscriber, cursor allocator or producer implementation. P3 owns authoritative conversation producers; P4 owns notification sequencing and delivery. The source types do not themselves establish an atomic snapshot or subscription handshake.
 
+## P4 non-conversation distribution boundary
+
+On the independent P4 branch, gateway Memory/Graph/community/metadata/project and principal-projection commits and concrete REL worker commits share one mounted sequencer across mutation, synchronization and summary publication. Provider, private-owner and Git/filesystem work precedes this boundary. Source clocks remain authoritative; processing switches are explicitly ephemeral, and maintenance invalidates the epoch instead of implying incremental continuity. See the [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md). Final P3 event adapters remain P4.7.
+
 ## Responsibilities
 
 ### Gateway ConversationExecution recovery

@@ -266,28 +266,35 @@ impl GatewayRuntime {
         // Keep the private source live through the REL commit, without taking
         // its semantic store lock. Grant refresh drains the attachment lease.
         let _source_lease = fence.acquire(phy.fence_generation)?;
-        self.with_rel(rel, |runtime| {
-            instance
-                .authorize_owner_generation(
-                    &phy.owner_id,
-                    OwnerGrant::UseOwnPhy,
-                    phy.authorization,
-                    phy.owner_grant_generation,
-                )
-                .map_err(operation)?;
-            let changed = runtime
-                .cva
-                .sync_principal_profile(
-                    &phy.owner_id,
-                    profile,
-                    crate::insomnia::runtime_step::now_ns(),
-                )
-                .map_err(operation)?;
-            if changed {
-                runtime.cva.sync().map_err(operation)?;
-            }
-            Ok(changed)
-        })
+        self.with_rel_mutation(
+            rel,
+            super::mutation_events::RelMutationFamily::Semantic,
+            |runtime| {
+                instance
+                    .authorize_owner_generation(
+                        &phy.owner_id,
+                        OwnerGrant::UseOwnPhy,
+                        phy.authorization,
+                        phy.owner_grant_generation,
+                    )
+                    .map_err(operation)?;
+                let changed = runtime
+                    .cva
+                    .sync_principal_profile(
+                        &phy.owner_id,
+                        profile,
+                        crate::insomnia::runtime_step::now_ns(),
+                    )
+                    .map_err(operation)?;
+                Ok((
+                    changed,
+                    false,
+                    vec![super::events::RelInvalidation::PrincipalEntity(
+                        crate::entity_principal::principal_entity_id(&phy.owner_id),
+                    )],
+                ))
+            },
+        )
     }
 }
 

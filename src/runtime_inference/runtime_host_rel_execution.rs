@@ -21,6 +21,7 @@ use perception::RelPerceptionQueue;
 
 pub(super) struct RelShared {
     pub(super) runtime: Arc<Mutex<InteractionRuntime>>,
+    pub(super) sequencer: Arc<super::events::RelSequencer>,
     pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) signal: Arc<(Mutex<Control>, Condvar)>,
     pub(super) fence: Arc<LeaseGate>,
@@ -34,6 +35,25 @@ pub(super) struct RelShared {
 }
 
 impl RelShared {
+    // Caller holds the existing owner admission lease; provider I/O is forbidden.
+    pub(super) fn mutate<T>(
+        &self,
+        family: super::mutation_events::RelMutationFamily,
+        action: impl FnOnce(
+            &mut InteractionRuntime,
+        ) -> Result<
+            (T, bool, Vec<super::events::RelInvalidation>),
+            ReliquaryRuntimeHostError,
+        >,
+    ) -> Result<T, ReliquaryRuntimeHostError> {
+        let mut gate = self.sequencer.current_gate()?;
+        let mut runtime = self
+            .runtime
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        super::mutation_events::commit(&mut gate, &mut runtime, family, action)
+    }
+
     pub(super) fn admit(&self) -> Result<Option<LeaseGuard>, ReliquaryRuntimeHostError> {
         if stopped(&self.signal)? {
             return Ok(None);
@@ -64,6 +84,7 @@ pub(super) struct RelRuntime {
 impl RelRuntime {
     pub(super) fn start(
         runtime: InteractionRuntime,
+        sequencer: Arc<super::events::RelSequencer>,
         routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
         fence: Arc<LeaseGate>,
         config: InsomniaWorkerConfig,
@@ -81,6 +102,7 @@ impl RelRuntime {
         let insomnia_enabled = Arc::new(AtomicBool::new(true));
         let shared = Arc::new(RelShared {
             runtime: Arc::clone(&runtime),
+            sequencer,
             routes,
             signal: Arc::clone(&signal),
             fence,

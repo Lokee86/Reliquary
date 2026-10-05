@@ -1,3 +1,5 @@
+use super::events::RelInvalidation;
+use super::mutation_events::RelMutationFamily;
 use super::{
     GatewayRuntime, InstanceRuntime, OwnerAccessToken, OwnerGrant, ReliquaryRuntimeHostError,
     operation,
@@ -575,15 +577,12 @@ impl GatewayRuntime {
             self.authorize(instance, dependency, OwnerGrant::ViewRel)?;
         }
         self.validate_gateway_dependency_update(owner_id, &dependencies)?;
-        let changed = self.with_rel(&token, |runtime| {
+        let changed = self.with_rel_mutation(&token, RelMutationFamily::Metadata, |runtime| {
             let changed = runtime
                 .cva
                 .set_rel_metadata(type_label, dependencies)
                 .map_err(operation)?;
-            if changed {
-                runtime.cva.sync().map_err(operation)?;
-            }
-            Ok(changed)
+            Ok((changed, false, vec![]))
         })?;
         Ok(changed)
     }
@@ -693,13 +692,13 @@ impl GatewayRuntime {
     ) -> Result<Memory, ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
         let draft = user_creation_draft(title, content, category, memory_type, now_ns);
-        let memory = self.with_rel(&token, |runtime| {
+        let memory = self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
             let (memory, _) = runtime
                 .cva
                 .publish_memory(None, 0, draft)
                 .map_err(operation)?;
-            runtime.cva.sync().map_err(operation)?;
-            Ok(memory)
+            let id = memory.id;
+            Ok((memory, false, vec![RelInvalidation::Memory(id)]))
         })?;
         self.wake_rel(owner_id)?;
         Ok(memory)
@@ -713,12 +712,12 @@ impl GatewayRuntime {
         name: String,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
-        self.with_rel(&token, |runtime| {
-            runtime
+        self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
+            let changed = runtime
                 .cva
                 .set_community_name(community_id, name)
                 .map_err(operation)?;
-            runtime.cva.sync().map_err(operation)
+            Ok(((), changed, vec![RelInvalidation::Community(community_id)]))
         })
     }
 
@@ -733,13 +732,20 @@ impl GatewayRuntime {
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
         let changes = relation_changes(source, target, old_kind, new_kind)?;
-        self.with_rel(&token, |runtime| {
+        self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
             let version = runtime.cva().graph_version();
             runtime
                 .cva
                 .set_memory_relations_with_origin(&changes, GraphRelationOrigin::User, version)
                 .map_err(operation)?;
-            runtime.cva.sync().map_err(operation)
+            Ok((
+                (),
+                false,
+                vec![
+                    RelInvalidation::Memory(source),
+                    RelInvalidation::Memory(target),
+                ],
+            ))
         })?;
         self.wake_rel(owner_id)
     }

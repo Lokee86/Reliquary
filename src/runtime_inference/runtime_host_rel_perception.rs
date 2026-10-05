@@ -116,22 +116,26 @@ fn prepare(
     shared: &RelShared,
     key: MemoryEntityMentionKey,
 ) -> Result<Option<EntityResolutionPreparation>, ReliquaryRuntimeHostError> {
-    {
-        let Some(_lease) = lease(shared)? else {
-            return Ok(None);
-        };
-        let mut runtime = shared
-            .runtime
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        if let Some(outcome) = runtime
-            .cva
-            .resolve_principal_entity_mention(key, now_ns())
-            .map_err(operation)?
-        {
-            runtime.cva.sync().map_err(operation)?;
-            return Ok(Some(EntityResolutionPreparation::Complete(outcome)));
-        }
+    let Some(_lease) = lease(shared)? else {
+        return Ok(None);
+    };
+    let complete = shared.mutate(
+        super::super::mutation_events::RelMutationFamily::Background,
+        |runtime| {
+            let outcome = runtime
+                .cva
+                .resolve_principal_entity_mention(key, now_ns())
+                .map_err(operation)?;
+            let changed = outcome.is_some();
+            Ok((
+                outcome.map(EntityResolutionPreparation::Complete),
+                changed,
+                vec![super::super::events::RelInvalidation::Memory(key.memory_id)],
+            ))
+        },
+    )?;
+    if complete.is_some() {
+        return Ok(complete);
     }
     let mut runtime = shared
         .runtime
@@ -152,33 +156,39 @@ fn commit(
         return Ok(None);
     };
     let surface = prepared.candidates.mention.text.clone();
-    let mut runtime = shared
-        .runtime
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    let Some(outcome) = runtime
-        .cva
-        .commit_entity_resolution(prepared, evaluation, now_ns())
-        .map_err(operation)?
-    else {
-        return Ok(None);
-    };
-    runtime.cva.sync().map_err(operation)?;
-    let mut wakes = runtime
-        .cva
-        .pending_entity_mentions_for_surface(&surface)
-        .into_iter()
-        .filter(|k| *k != outcome.key)
-        .collect::<Vec<_>>();
-    if outcome.entity_created || outcome.association_changed {
-        if let Some(id) = outcome.entity_id {
-            wakes.extend(runtime.cva.pending_entity_mentions_for_candidate(id));
-        }
-    }
-    wakes.retain(|k| *k != outcome.key);
-    wakes.sort_by_key(|k| (k.memory_id.0, k.field.tag(), k.start_byte, k.end_byte));
-    wakes.dedup();
-    Ok(Some(wakes))
+    shared.mutate(
+        super::super::mutation_events::RelMutationFamily::Background,
+        |runtime| {
+            let Some(outcome) = runtime
+                .cva
+                .commit_entity_resolution(prepared, evaluation, now_ns())
+                .map_err(operation)?
+            else {
+                return Ok((None, false, vec![]));
+            };
+            let mut wakes = runtime
+                .cva
+                .pending_entity_mentions_for_surface(&surface)
+                .into_iter()
+                .filter(|k| *k != outcome.key)
+                .collect::<Vec<_>>();
+            if outcome.entity_created || outcome.association_changed {
+                if let Some(id) = outcome.entity_id {
+                    wakes.extend(runtime.cva.pending_entity_mentions_for_candidate(id));
+                }
+            }
+            wakes.retain(|k| *k != outcome.key);
+            wakes.sort_by_key(|k| (k.memory_id.0, k.field.tag(), k.start_byte, k.end_byte));
+            wakes.dedup();
+            Ok((
+                Some(wakes),
+                true,
+                vec![super::super::events::RelInvalidation::Memory(
+                    outcome.key.memory_id,
+                )],
+            ))
+        },
+    )
 }
 fn versions(shared: &RelShared) -> Result<(u64, u64, u64), ReliquaryRuntimeHostError> {
     let r = shared
@@ -225,20 +235,17 @@ fn reconcile(
     let Some(_lease) = lease(shared)? else {
         return Ok(false);
     };
-    let result = {
-        let mut r = shared
-            .runtime
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        let result = r
-            .cva
-            .commit_entity_reconciliation(prepared, evaluation, now_ns())
-            .map_err(operation)?;
-        if result.is_some() {
-            r.cva.sync().map_err(operation)?;
-        }
-        result
-    };
+    let result = shared.mutate(
+        super::super::mutation_events::RelMutationFamily::Background,
+        |r| {
+            let result = r
+                .cva
+                .commit_entity_reconciliation(prepared, evaluation, now_ns())
+                .map_err(operation)?;
+            let changed = result.as_ref().is_some_and(|v| v.report.changed());
+            Ok((result, changed, vec![]))
+        },
+    )?;
     let Some(result) = result else {
         return Ok(false);
     };

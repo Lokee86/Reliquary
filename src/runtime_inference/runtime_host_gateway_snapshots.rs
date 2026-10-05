@@ -3,7 +3,9 @@
 //! P3.7 supplies final coherent conversation observations; P4 never owns their policy.
 #![allow(dead_code)] // P4 migration window: full publication and exports follow.
 
-use super::events::{RelEventClass, RelInvalidation, RelSequencer, RelSequencerGate};
+#[cfg(test)]
+use super::events::{RelEventClass, RelInvalidation};
+use super::events::{RelSequencer, RelSequencerGate};
 use super::observation::{
     DurableWatermarks, HostOperationObservation, RelObservationSummary, SubmissionOrder,
 };
@@ -16,7 +18,8 @@ use crate::multiplexing_journal::{ConversationSubmissionId, RelOwnerId, Submissi
 use std::sync::{Arc, atomic::Ordering};
 
 #[path = "runtime_host_gateway_snapshot_reader.rs"]
-mod reader;
+pub(super) mod reader;
+#[cfg(test)]
 use reader::source_watermarks;
 
 const MAX_SNAPSHOT_ITEMS: usize = 16_384;
@@ -54,6 +57,8 @@ pub(super) struct RelSnapshotState {
     pub submissions: Vec<RelSubmissionSummary>,
     pub host_work: Vec<HostOperationObservation>,
     pub processing: crate::InsomniaStats,
+    /// Ephemeral gateway switch, never a durable semantic watermark.
+    pub processing_enabled: bool,
     pub project: Option<RelProjectStatus>,
     pub lifecycle: OwnerAdmission,
     pub watermarks: DurableWatermarks,
@@ -94,7 +99,7 @@ impl GatewayRuntime {
 
     /// Closed internal reader seam. It is not a client-supplied snapshot API.
     /// The production reader above uses authorized gateway-owned sources only.
-    fn subscribe_rel_from_reader(
+    pub(super) fn subscribe_rel_from_reader(
         &self,
         token: &OwnerAccessToken,
         known_cursor: Option<RelCursor>,
@@ -243,6 +248,7 @@ impl GatewayRuntime {
     /// Common gate for future gateway mutation adapters. The caller performs
     /// only owner work here, synchronizes it, captures a safe summary and returns.
     /// Full existing-mutator coverage is P4.4/P4.7; it is not claimed by this seam.
+    #[cfg(test)]
     pub(super) fn with_rel_distribution_mutation<T>(
         &self,
         token: &OwnerAccessToken,
@@ -275,7 +281,7 @@ impl GatewayRuntime {
         })
     }
 
-    fn with_rel_distribution_admission<T>(
+    pub(super) fn with_rel_distribution_admission<T>(
         &self,
         token: &OwnerAccessToken,
         action: impl FnOnce(&RelSequencer) -> Result<T, ReliquaryRuntimeHostError>,

@@ -79,15 +79,24 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             let Some(_lease) = current_lease(&shared)? else {
                 return Ok(());
             };
-            active_profile = Some(
-                shared
-                    .runtime
-                    .lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-                    .cva
-                    .accept_runtime_compatibility_profile(candidate.clone())
-                    .map_err(operation)?,
-            );
+            active_profile = Some(shared.mutate(
+                super::super::mutation_events::RelMutationFamily::Retrieval,
+                |runtime| {
+                    let count = runtime.cva.compatibility_profiles().len();
+                    let value = runtime
+                        .cva
+                        .accept_runtime_compatibility_profile(candidate.clone())
+                        .map_err(operation)?;
+                    let changed = runtime.cva.compatibility_profiles().len() != count;
+                    Ok((
+                        value,
+                        changed,
+                        vec![super::super::events::RelInvalidation::RetrievalProfile(
+                            candidate.id,
+                        )],
+                    ))
+                },
+            )?);
             active_endpoint = Some(Arc::clone(&endpoint));
             *shared
                 .memory_profile
@@ -124,13 +133,22 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             let Some(_lease) = current_lease(&shared)? else {
                 return Ok(());
             };
-            shared
-                .runtime
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-                .cva
-                .commit_runtime_memory_vector_batch(batch, vectors)
-                .map_err(operation)?;
+            shared.mutate(
+                super::super::mutation_events::RelMutationFamily::Retrieval,
+                |runtime| {
+                    let count = runtime
+                        .cva
+                        .commit_runtime_memory_vector_batch(batch, vectors)
+                        .map_err(operation)?;
+                    Ok((
+                        (),
+                        count > 0,
+                        vec![super::super::events::RelInvalidation::RetrievalProfile(
+                            profile.id,
+                        )],
+                    ))
+                },
+            )?;
             drop(_lease);
             notify_work(&shared.signal)?;
         } else {

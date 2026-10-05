@@ -51,7 +51,7 @@ impl GatewayRuntime {
         #[cfg(test)]
         self.project_io_completed();
         if current.repository.project_path != correlation.project_revision.repository.project_path {
-            self.with_rel(&token, |runtime| {
+            self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
                 runtime
                     .cva
                     .correlate_project_revision_with_management(
@@ -59,7 +59,7 @@ impl GatewayRuntime {
                         correlation.repository_management,
                     )
                     .map_err(operation)?;
-                runtime.cva.sync().map_err(operation)
+                Ok(((), false, vec![]))
             })?;
         }
         self.deliver_rel(instance, &token, current)
@@ -84,7 +84,7 @@ impl GatewayRuntime {
                 .map_err(operation)?;
         #[cfg(test)]
         self.project_io_completed();
-        self.with_rel(&token, |runtime| {
+        self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
             runtime
                 .cva
                 .correlate_project_revision_with_management(
@@ -92,7 +92,7 @@ impl GatewayRuntime {
                     correlation.repository_management,
                 )
                 .map_err(operation)?;
-            runtime.cva.sync().map_err(operation)
+            Ok(((), false, vec![]))
         })?;
         self.deliver_rel(instance, &token, revision)
     }
@@ -117,7 +117,7 @@ impl GatewayRuntime {
                 .map_err(operation)?;
         #[cfg(test)]
         self.project_io_completed();
-        let file = self.with_rel(&token, |runtime| {
+        let file = self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
             runtime
                 .cva
                 .correlate_project_revision_with_management(
@@ -134,8 +134,8 @@ impl GatewayRuntime {
                     prepared.reference,
                 )
                 .map_err(operation)?;
-            runtime.cva.sync().map_err(operation)?;
-            Ok(file)
+            let id = file.id;
+            Ok((file, false, vec![RelInvalidation::File(id)]))
         })?;
         self.deliver_rel(instance, &token, file)
     }

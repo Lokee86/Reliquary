@@ -136,13 +136,13 @@ impl GatewayRuntime {
         let mut draft =
             super::user_creation_draft(title, content, "knowledge".into(), "fact".into(), now_ns);
         draft.mutation_id = format!("user_replace:{}", Uuid::new_v4());
-        let updated = self.with_rel(&token, |runtime| {
+        let updated = self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
             let (memory, _) = runtime
                 .cva
                 .publish_memory(Some(memory_id), expected_revision, draft)
                 .map_err(operation)?;
-            runtime.cva.sync().map_err(operation)?;
-            Ok(memory)
+            let id = memory.id;
+            Ok((memory, false, vec![RelInvalidation::Memory(id)]))
         })?;
         self.wake_rel(owner_id)?;
         Ok(updated)
@@ -218,38 +218,46 @@ impl GatewayRuntime {
         enabled: bool,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
-        let attachment = self.attachment_entry(instance)?;
-        let _attachment_lease = attachment.leases.acquire_current()?;
-        attachment
-            .instance
-            .authorize(owner_id, OwnerGrant::ManageRel, token.authorization)
-            .map_err(operation)?;
-        let rels = self
-            .rel_executions
-            .read()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        let rel = rels
-            .get(owner_id)
-            .ok_or_else(|| operation("REL owner is not mounted"))?;
-        if rel.mount_epoch.load(std::sync::atomic::Ordering::SeqCst) != token.mount_epoch {
-            return Err(operation("owner token belongs to a previous REL mount"));
-        }
-        let _owner_lease = rel.fence.acquire(token.fence_generation)?;
-        let owner = Arc::clone(&rel.owner);
-        drop(rels);
-        let execution = owner
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        attachment
-            .instance
-            .authorize(owner_id, OwnerGrant::ManageRel, token.authorization)
-            .map_err(operation)?;
-        execution
-            .insomnia_enabled
-            .store(enabled, std::sync::atomic::Ordering::SeqCst);
-        let signal = Arc::clone(&execution.signal);
-        drop(execution);
-        crate::runtime_host::notify_work(&signal)
+        self.with_rel_distribution_admission(&token, |sequencer| {
+            let mut gate = sequencer.gate(token.mount_epoch)?;
+            let owner = {
+                let rels = self
+                    .rel_executions
+                    .read()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                Arc::clone(
+                    &rels
+                        .get(owner_id)
+                        .ok_or_else(|| operation("REL is not mounted"))?
+                        .owner,
+                )
+            };
+            let execution = owner
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let changed = execution
+                .insomnia_enabled
+                .swap(enabled, std::sync::atomic::Ordering::SeqCst)
+                != enabled;
+            let signal = Arc::clone(&execution.signal);
+            drop(execution);
+            if changed {
+                let mut watermarks = self.with_rel(&token, |runtime| {
+                    Ok(super::super::snapshots::reader::source_watermarks(
+                        runtime.cva(),
+                    ))
+                })?;
+                watermarks.conversation_journal_sequence =
+                    gate.watermarks().conversation_journal_sequence;
+                let _ = gate.publish(
+                    super::super::events::RelEventClass::ProcessingStatusChanged,
+                    watermarks,
+                    vec![RelInvalidation::EphemeralProcessingEnabled(enabled)],
+                );
+            }
+            drop(gate);
+            crate::runtime_host::notify_work(&signal)
+        })
     }
 
     pub fn quiesce_rel_for(

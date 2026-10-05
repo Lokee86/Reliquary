@@ -117,6 +117,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    run([sys.executable, "scripts/check_multiplexing_phase4_coverage.py", "--self-test"])
+
     pitlord = resolve(
         "PITLORD",
         "pitlord",

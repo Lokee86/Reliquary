@@ -83,14 +83,16 @@ pub(super) fn worker_loop(
                 seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
                 continue;
             };
-            let mut runtime = shared
-                .runtime
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            runtime
-                .cva
-                .claim_runtime_insomnia(&worker_id, &shared.config)
-                .map_err(operation)?
+            shared.mutate(
+                super::super::mutation_events::RelMutationFamily::Processing,
+                |runtime| {
+                    let claim = runtime
+                        .cva
+                        .claim_runtime_insomnia(&worker_id, &shared.config)
+                        .map_err(operation)?;
+                    Ok((claim, false, vec![]))
+                },
+            )?
         };
         if let Some(claim) = claim {
             process_claim(&shared, extractor.as_ref(), &claim)?;
@@ -136,14 +138,17 @@ fn process_claim(
             let Some(_lease) = shared.admit()? else {
                 return Ok(());
             };
-            let mut runtime = shared
-                .runtime
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            runtime
-                .cva
-                .prepare_runtime_insomnia_application(&claim, extraction, &shared.config)
-                .map_err(operation)?
+            shared.mutate(
+                super::super::mutation_events::RelMutationFamily::Processing,
+                |runtime| {
+                    let value = runtime
+                        .cva
+                        .prepare_runtime_insomnia_application(&claim, extraction, &shared.config)
+                        .map_err(operation)?;
+                    // Lease renewal has no additional instance-visible state.
+                    Ok((value, false, vec![]))
+                },
+            )?
         };
         if let Err(error) =
             crate::insomnia::temporal::infer_prepared(extractor.temporal_endpoint(), &mut prepared)
@@ -153,11 +158,13 @@ fn process_claim(
         let Some(_lease) = shared.admit()? else {
             return Ok(());
         };
-        let mut runtime = shared
-            .runtime
-            .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        shared.publication.freeze(&mut runtime, &claim, prepared)?
+        shared.mutate(
+            super::super::mutation_events::RelMutationFamily::Processing,
+            |runtime| {
+                let plan = shared.publication.freeze(runtime, &claim, prepared)?;
+                Ok((plan, true, vec![]))
+            },
+        )?
     };
     let committed = (|| {
         // No REL store lock is held while performing exact personal writes.
@@ -166,19 +173,19 @@ fn process_claim(
         let Some(_lease) = shared.admit()? else {
             return Err(operation("REL publication is fenced"));
         };
-        {
-            let mut runtime = shared
-                .runtime
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            runtime
-                .cva
-                .commit_runtime_insomnia_verified(&claim, prepared, publication, &shared.config)
-                .map_err(operation)?;
-            if !shared.publication.verify_receipt(&mut runtime, &plan)? {
-                return Err(operation("REL completion receipt is absent after commit"));
-            }
-        }
+        shared.mutate(
+            super::super::mutation_events::RelMutationFamily::Background,
+            |runtime| {
+                runtime
+                    .cva
+                    .commit_runtime_insomnia_verified(&claim, prepared, publication, &shared.config)
+                    .map_err(operation)?;
+                if !shared.publication.verify_receipt(runtime, &plan)? {
+                    return Err(operation("REL completion receipt is absent after commit"));
+                }
+                Ok(((), true, vec![]))
+            },
+        )?;
         shared.publication.observe(&plan)
     })();
     match committed {
@@ -199,26 +206,28 @@ fn retry_publication(
     let Some(_lease) = shared.admit()? else {
         return Ok(());
     };
-    let mut runtime = shared
-        .runtime
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    let now = crate::insomnia::runtime_step::now_ns();
-    runtime
-        .cva
-        .fail_insomnia_episode(
-            claim.work.episode_id,
-            claim
-                .work
-                .lease_token
-                .ok_or_else(|| operation("publication claim lacks lease"))?,
-            claim.started_at_ns,
-            now,
-            now.saturating_add(shared.config.retry_delay_ns),
-            error.to_string(),
-        )
-        .map(|_| ())
-        .map_err(operation)
+    shared.mutate(
+        super::super::mutation_events::RelMutationFamily::Processing,
+        |runtime| {
+            let now = crate::insomnia::runtime_step::now_ns();
+            runtime
+                .cva
+                .fail_insomnia_episode(
+                    claim.work.episode_id,
+                    claim
+                        .work
+                        .lease_token
+                        .ok_or_else(|| operation("publication claim lacks lease"))?,
+                    claim.started_at_ns,
+                    now,
+                    now.saturating_add(shared.config.retry_delay_ns),
+                    error.to_string(),
+                )
+                .map(|_| ())
+                .map_err(operation)?;
+            Ok(((), true, vec![]))
+        },
+    )
 }
 
 pub(super) fn reconcile_completed(shared: &RelShared) -> Result<(), ReliquaryRuntimeHostError> {
@@ -270,14 +279,16 @@ fn fail_claim(
             .insomnia_backpressure_until_ns
             .fetch_max(until, Ordering::SeqCst);
     }
-    let mut runtime = shared
-        .runtime
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    runtime
-        .cva
-        .fail_runtime_insomnia(claim, error, &shared.config)
-        .map_err(operation)
+    shared.mutate(
+        super::super::mutation_events::RelMutationFamily::Processing,
+        |runtime| {
+            runtime
+                .cva
+                .fail_runtime_insomnia(claim, error, &shared.config)
+                .map_err(operation)?;
+            Ok(((), true, vec![]))
+        },
+    )
 }
 
 fn backpressure_wait(shared: &RelShared) -> Option<Duration> {
@@ -307,23 +318,24 @@ fn sweep_inactive(shared: &RelShared) -> Result<(), ReliquaryRuntimeHostError> {
     let Some(_lease) = shared.admit()? else {
         return Ok(());
     };
-    let mut runtime = shared
-        .runtime
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    let sessions: Vec<_> = runtime
-        .sessions
-        .iter()
-        .filter(|(_, state)| state.leaf_message_id.is_some() && state.in_flight.is_none())
-        .map(|(id, _)| id.clone())
-        .collect();
-    let now = crate::insomnia::runtime_step::now_ns();
-    for session_id in sessions {
-        runtime
-            .finalize_inactive_session(&session_id, shared.episode_policy, now)
-            .map_err(operation)?;
-    }
-    Ok(())
+    shared.mutate(
+        super::super::mutation_events::RelMutationFamily::Processing,
+        |runtime| {
+            let sessions: Vec<_> = runtime
+                .sessions
+                .iter()
+                .filter(|(_, state)| state.leaf_message_id.is_some() && state.in_flight.is_none())
+                .map(|(id, _)| id.clone())
+                .collect();
+            let now = crate::insomnia::runtime_step::now_ns();
+            for session_id in sessions {
+                runtime
+                    .finalize_inactive_session(&session_id, shared.episode_policy, now)
+                    .map_err(operation)?;
+            }
+            Ok(((), false, vec![]))
+        },
+    )
 }
 
 #[cfg(test)]

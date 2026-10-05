@@ -31,6 +31,10 @@ pub(super) enum RelInvalidation {
     Community(crate::CommunityId),
     RetrievalProfile(crate::CompatibilityProfileId),
     ProjectCorrelation(u64),
+    File(crate::FileId),
+    PrincipalEntity(crate::EntityId),
+    EphemeralProcessingEnabled(bool),
+    HostCapability(super::RuntimeCapability),
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -84,6 +88,20 @@ impl RelSequencer {
                 watermarks: DurableWatermarks::default(),
                 subscribers: SubscriberRegistry::default(),
             }),
+        })
+    }
+
+    pub(super) fn current_gate(&self) -> Result<RelSequencerGate<'_>, ReliquaryRuntimeHostError> {
+        let state = self
+            .state
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        if !state.open {
+            return Err(operation("REL distribution is closed; reopen required"));
+        }
+        Ok(RelSequencerGate {
+            owner: self.owner,
+            state,
         })
     }
 
@@ -148,6 +166,12 @@ impl RelSequencer {
 }
 
 impl RelSequencerGate<'_> {
+    /// Unknown partial publication or maintenance continuity is never replayable.
+    pub(super) fn invalidate(&mut self) {
+        self.state.open = false;
+        self.state.subscribers.clear();
+    }
+
     pub(super) fn cursor(&self) -> u64 {
         self.state.cursor
     }

@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P4.0 accepted; P4.1–P4.3 implemented and targeted gates accepted on independent P4 branch; architecture refresh remains incomplete; P4.4 next**
+Status: **P4.0 accepted; P4.1–P4.4 implemented on independent P4 branch; P4.4 verification recorded below; architecture refresh remains incomplete; P4.5 next**
 
 ## Purpose
 
@@ -287,7 +287,7 @@ Do not yet instrument all mutations.
 
 ### P4.2 — Atomic REL snapshot/subscription
 
-**Implemented:** [P4.2 snapshot/subscription and acceptance](multiplexing-phase4-snapshot-2026-10-04.md). The internal handshake, current safe readers and race/revocation/privacy tests pass. Final P3 observations and full production publication remain P4.7/P4.4; public exports reconcile at convergence. P4.3 recovery is implemented below; P4.4 is next.
+**Implemented:** [P4.2 snapshot/subscription and acceptance](multiplexing-phase4-snapshot-2026-10-04.md). The internal handshake, current safe readers and race/revocation/privacy tests pass. Final P3 observations and full production publication remain P4.7/P4.4; public exports reconcile at convergence. P4.3 recovery and P4.4 publication are recorded below.
 
 Implement the canonical broad snapshot builder and atomic registration.
 
@@ -311,6 +311,8 @@ Requirements:
 **Tests:** exact-capacity edge, burst overflow, repeated overflow, disconnect while latched, resubscribe after overflow.
 
 ### P4.4 — Non-conversation mutation coverage
+
+**Implemented:** [P4.4 publication and coverage record](multiplexing-phase4-mutations-2026-10-05.md). Explicit gateway mutations and concrete REL worker commits share post-sync sequencing; source-clock classification, auxiliary community records, private projection, ephemeral processing and fail-closed coverage are covered. P3 conversation hooks remain P4.7. Verification results are collected in the record.
 
 Instrument gateway mutation families that do not depend on final P3 semantics:
 

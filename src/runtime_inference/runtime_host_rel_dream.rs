@@ -123,43 +123,47 @@ fn commit(
     let Some(_lease) = lease(shared)? else {
         return Ok(false);
     };
-    let mut runtime = shared
-        .runtime
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    if runtime.cva.graph_version() != snapshot.graph_version
-        || !current(&mut runtime, &snapshot.candidates)?
-    {
-        return Ok(false);
-    }
-    let policy = DreamVerificationPolicy::default();
-    for (classification, verification) in evaluated {
-        let graph = runtime.cva.graph_version();
-        runtime
-            .cva
-            .publish_dream_pair(&classification, verification.as_ref(), policy, graph)
-            .map_err(operation)?;
-    }
-    let id = snapshot.candidates.source.memory.id;
-    runtime
-        .cva
-        .reconcile_dream_lifecycle(id)
-        .map_err(operation)?;
-    runtime
-        .cva
-        .mark_dream_processed(id, snapshot.dream_epoch, unix_now_ns())
-        .map_err(operation)?;
-    runtime.cva.sync().map_err(operation)?;
-    let keys = perception_ids(snapshot)
-        .into_iter()
-        .flat_map(|id| runtime.cva.schedulable_entity_mentions_for_memory(id))
-        .collect::<Vec<_>>();
-    shared
-        .perception_queue
-        .lock()
-        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-        .push_all(keys);
-    Ok(true)
+    shared.mutate(
+        super::super::mutation_events::RelMutationFamily::Background,
+        |runtime| {
+            if runtime.cva.graph_version() != snapshot.graph_version
+                || !current(runtime, &snapshot.candidates)?
+            {
+                return Ok((false, false, vec![]));
+            }
+            let policy = DreamVerificationPolicy::default();
+            for (classification, verification) in evaluated {
+                let graph = runtime.cva.graph_version();
+                runtime
+                    .cva
+                    .publish_dream_pair(&classification, verification.as_ref(), policy, graph)
+                    .map_err(operation)?;
+            }
+            let id = snapshot.candidates.source.memory.id;
+            runtime
+                .cva
+                .reconcile_dream_lifecycle(id)
+                .map_err(operation)?;
+            runtime
+                .cva
+                .mark_dream_processed(id, snapshot.dream_epoch, unix_now_ns())
+                .map_err(operation)?;
+            let keys = perception_ids(snapshot)
+                .into_iter()
+                .flat_map(|id| runtime.cva.schedulable_entity_mentions_for_memory(id))
+                .collect::<Vec<_>>();
+            shared
+                .perception_queue
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .push_all(keys);
+            Ok((
+                true,
+                true,
+                vec![super::super::events::RelInvalidation::Memory(id)],
+            ))
+        },
+    )
 }
 
 pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntimeHostError> {

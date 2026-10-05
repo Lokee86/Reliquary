@@ -2,7 +2,7 @@
 use super::*;
 
 impl GatewayRuntime {
-    pub(super) fn read_rel_snapshot_state(
+    pub(in super::super) fn read_rel_snapshot_state(
         &self,
         token: &OwnerAccessToken,
     ) -> Result<RelSnapshotState, ReliquaryRuntimeHostError> {
@@ -106,12 +106,32 @@ impl GatewayRuntime {
                     submissions,
                     host_work,
                     processing: cva.insomnia_stats(),
+                    processing_enabled: true,
                     project,
                     lifecycle: OwnerAdmission::Open,
                     watermarks: source_watermarks(cva),
                     conversation_observation: None,
                 })
             })?;
+            let enabled = {
+                let owner = {
+                    let rels = self
+                        .rel_executions
+                        .read()
+                        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                    Arc::clone(
+                        &rels
+                            .get(&token.owner_id)
+                            .ok_or_else(|| operation("REL is no longer mounted"))?
+                            .owner,
+                    )
+                };
+                let execution = owner
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                execution.insomnia_enabled.load(Ordering::SeqCst)
+            };
+            state.processing_enabled = enabled;
             after_semantic_read();
             if journal
                 .lock()
@@ -129,7 +149,7 @@ impl GatewayRuntime {
     }
 }
 
-pub(super) fn source_watermarks(cva: &crate::Cva) -> DurableWatermarks {
+pub(in super::super) fn source_watermarks(cva: &crate::Cva) -> DurableWatermarks {
     DurableWatermarks {
         global_version: Some(cva.latest_global_version()),
         archive_version: Some(cva.archive_version()),

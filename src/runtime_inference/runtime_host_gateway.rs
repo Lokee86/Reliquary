@@ -44,6 +44,8 @@ pub use host::{
 pub(super) mod conversation;
 #[path = "runtime_host_gateway_events.rs"]
 pub(super) mod events;
+#[path = "runtime_host_gateway_mutation_events.rs"]
+mod mutation_events;
 #[path = "runtime_host_gateway_observation.rs"]
 pub(super) mod observation;
 #[path = "runtime_host_gateway_snapshots.rs"]
@@ -358,7 +360,9 @@ impl GatewayRuntime {
     /// unknown and prior host-owned state until reconciliation proves safe.
     pub fn reconnect_host(&self) {
         if let Some(router) = self.host_router.as_ref() {
+            // External connection/reconciliation never holds a REL distribution gate.
             router.reconnect();
+            self.publish_host_capability_change();
         }
     }
 
@@ -456,8 +460,10 @@ impl GatewayRuntime {
             policy: Arc::clone(&self.publication_policy),
             rel_fence: Arc::clone(&fence),
         });
+        let sequencer = Arc::new(events::RelSequencer::new(&owner_id, mount_epoch)?);
         let owner = Arc::new(Mutex::new(RelRuntime::start(
             runtime,
+            Arc::clone(&sequencer),
             Arc::clone(&self.routes),
             Arc::clone(&fence),
             self.config.clone(),
@@ -472,7 +478,7 @@ impl GatewayRuntime {
             .insert(
                 owner_id.clone(),
                 RelExecution {
-                    sequencer: Arc::new(events::RelSequencer::new(&owner_id, mount_epoch)?),
+                    sequencer,
                     file_identity: identity,
                     _mount_claim: claim,
                     owner,
