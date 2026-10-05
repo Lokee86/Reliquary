@@ -18,6 +18,10 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 
 `runtime_host_gateway_conversation_finalization_tests.rs` verifies selected-branch/parent identity, sequential head advancement, no provisional Archive/Activity/Episode effects, unrelated-parent rejection, captured publication fencing, immutable retries after compaction, and shared-prefix branch validity. Seven restart handoffs cover FinalizeWon, Node/branch publication, Archive receipt and postcommit scheduling/marker loss with real persistent owners. Existing stale-fence/remount tests remain authoritative; the cancel/finalize barrier race now uses public automatic dispatch. See [P3.4 evidence](multiplexing-phase3-sequential-acceptance-2026-10-05.md).
 
+## P3.5 visible automatic branch contracts
+
+`runtime_host_gateway_conversation_auto_branch_tests.rs` verifies two-writer stale-head branching with submitter-only selection, three-writer deterministic ordering with distinct conflict branches, exact branch identity across restart before and after Archive branch publication, detached-submitter lifetime, non-canonical automatic branches, and fail-closed unrelated retained ancestry. Full library regression retains the P3.1–P3.4 policy/scheduler/finalization gates. See [P3.5 evidence](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md).
+
 ## P3.3 durable scheduler contracts
 
 `runtime_host_gateway_conversation_scheduler_tests.rs` covers chronological dispatch, delayed client time, admission retry deduplication, multiple conversations in one REL journal, held/live branch skipping, atomic reservation, equal verified timestamp ties after compaction/restart, captured finalization ancestry and detached-submitter lifetime. The public gateway contract verifies automatic selection without a submission ID. Exact-entry historical fault-injection fixtures remain test-only.

@@ -110,6 +110,10 @@ impl Submission {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct FinalizeCapture {
     pub branch_id: String,
+    /// Human-facing identity for a coordinator-created visible conflict branch.
+    /// Older sequential captures and caller-selected branches have no label.
+    #[serde(default)]
+    pub branch_label: Option<String>,
     pub parent_node_id: Option<String>,
     pub committed_timestamp_ns: i64,
     pub verified_principal_id: String,

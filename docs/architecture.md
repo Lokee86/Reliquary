@@ -6,11 +6,15 @@ This document owns the current Reliquary Memory v2 implementation boundaries, st
 
 Archive conversation metadata owns SequentialChronological/VisibleAutoBranch and its separate policy revision. The existing Cva facade delegates publication; Gateway uses exact-owner ViewRel reads and ManageRel mutation with sync-before-acknowledgement. The shared observation contract imports Archive's canonical enum.
 
-Policy publication and FinalizeWon capture share the existing owner runtime mutex. Capture synchronizes policy, then acquires the REL journal while retaining the runtime lock; no journal-held path acquires that runtime lock. Already captured finalization ancestry/revision is never rebound to current metadata during recovery. Default sequential finalization is implemented; VisibleAutoBranch conflict handling remains P3.5. [P3.1 evidence](multiplexing-phase3-policy-acceptance-2026-10-04.md) records this lane change.
+Policy publication and FinalizeWon capture share the existing owner runtime mutex. Capture synchronizes policy, then acquires the REL journal while retaining the runtime lock; no journal-held path acquires that runtime lock. Already captured finalization ancestry/revision is never rebound to current metadata during recovery. Default sequential finalization and VisibleAutoBranch stale-head conflict handling are implemented. [P3.1 evidence](multiplexing-phase3-policy-acceptance-2026-10-04.md) records policy ownership; [P3.5 evidence](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md) records visible conflict branching.
 
 ## Sequential finalization (P3.4)
 
 Fresh admission matches the selected Archive branch head; exact accepted retries are verified by the journal against their immutable request, without reinterpreting the original parent against a newer head. Sequential dispatch permits advancement only along the admitted parent's branch ancestry and captures the current safe head in FinalizeWon. Archive publication and recovery refuse to rewind an independently advanced branch. Idempotent branch publication synchronizes before the Archive receipt; stable Node and scheduling identities preserve Activity/Episode/Insomnia effects across restart and missing markers. The focused finalization module holds no mutable authority. [P3.4 evidence](multiplexing-phase3-sequential-acceptance-2026-10-05.md) records the handoff cuts and gates.
+
+## Visible automatic branching (P3.5)
+
+Under VisibleAutoBranch, finalization compares the admitted expected parent with the authoritative selected-branch head. A stale but related parent produces one deterministic non-canonical conflict branch whose stable ID and display label are frozen in FinalizeWon before Archive publication; an unrelated parent fails closed. Recovery reuses the frozen branch identity and never duplicates or rewinds a branch. After the Archive receipt is durable, only the original submitting instance's still-current attachment may move its instance-local selection to the new branch; detached/revoked submitters do not block accepted work and other viewers are never moved. [P3.5 evidence](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md) records the multi-writer and restart gates.
 
 ## Branch continuation ownership and scheduling (P3.2–P3.3)
 

@@ -313,6 +313,7 @@ fn scheduler_resumes_captured_finalization_without_reordering_ancestry() {
     };
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: 123,
         verified_principal_id: "scheduler-principal".into(),

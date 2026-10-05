@@ -1132,22 +1132,28 @@ impl GatewayRuntime {
         }
         if status.state == SubmissionState::Pending {
             status = with_operation(self, &operation_authority, |runtime| {
-                ensure_session(runtime, key.conversation_id.as_str(), &submission)?;
-                let parent = runtime
-                    .session(key.conversation_id.as_str())
-                    .ok_or_else(|| operation("shared continuation session disappeared"))?
-                    .leaf_message_id;
-                let policy_revision = runtime
+                let (policy, policy_revision) = runtime
                     .cva()
-                    .conversation_policy(key.conversation_id.as_str())
-                    .1;
+                    .conversation_policy(key.conversation_id.as_str());
+                let target = finalization::finalization_target(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    &submission,
+                    policy,
+                )?;
+                ensure_session_at(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    target.parent_node_id.as_deref(),
+                )?;
                 // Runtime -> journal is the only nested order here. Policy management
                 // holds this same runtime lock, so publication cannot race capture.
                 // A prior failed management sync cannot leak an undurable policy.
                 runtime.cva.sync().map_err(operation)?;
                 let capture = FinalizeCapture {
-                    branch_id: metadata_branch(&submission),
-                    parent_node_id: parent,
+                    branch_id: target.branch_id,
+                    branch_label: target.branch_label,
+                    parent_node_id: target.parent_node_id,
                     committed_timestamp_ns: now_ns(),
                     verified_principal_id: submission.principal_id.clone(),
                     policy_revision,
@@ -1204,6 +1210,9 @@ impl GatewayRuntime {
                     }
                 }
             })?;
+            if capture.branch_label.is_some() {
+                self.select_automatic_branch_for_submitter(owner_id, &key, &submission, &capture)?;
+            }
         }
         if status.state == SubmissionState::Committed && status.post_commit_receipt.is_none() {
             let receipt = status
@@ -1244,6 +1253,57 @@ impl GatewayRuntime {
             })?;
         }
         Ok(GatewaySubmissionReceipt { id: key, status })
+    }
+
+    fn select_automatic_branch_for_submitter(
+        &self,
+        owner_id: &str,
+        key: &ConversationSubmissionId,
+        submission: &Submission,
+        capture: &FinalizeCapture,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        if capture.branch_label.is_none() {
+            return Ok(());
+        }
+        let generation_id = conversation_host_operation_id(owner_id, key);
+        let instance_id = {
+            let operations = self.conversation.owner_journal(owner_id)?;
+            let operations = operations
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let Some(attribution) = operations.attribution(&generation_id) else {
+                return Ok(());
+            };
+            if attribution.conversation_id != key.conversation_id.as_str()
+                || attribution.submission_id != key.submission_id.as_str()
+                || attribution.actor_principal.as_deref() != Some(submission.principal_id.as_str())
+            {
+                return Err(operation(
+                    "automatic branch submitter attribution conflicts with durable admission",
+                ));
+            }
+            match Uuid::parse_str(&attribution.admission.instance_id) {
+                Ok(id) => id,
+                Err(_) => return Ok(()),
+            }
+        };
+        let Ok(attachment) = self.attachment_by_id(instance_id) else {
+            return Ok(());
+        };
+        if attachment.instance.principal_id() != submission.principal_id {
+            return Err(operation(
+                "automatic branch attachment principal differs from durable admission",
+            ));
+        }
+        // Selection is advisory instance-local state. A detached or revoked
+        // submitter must not block already-accepted durable finalization.
+        let _ = self.select_managed_conversation(
+            &attachment.instance,
+            owner_id,
+            key.conversation_id.as_str(),
+            &capture.branch_id,
+        );
+        Ok(())
     }
 
     /// Recover native journal work before the REL runtime's workers are started.
@@ -1941,12 +2001,29 @@ fn validate_finalize_identity(
     submission: &Submission,
     capture: &FinalizeCapture,
 ) -> Result<(), ReliquaryRuntimeHostError> {
-    if capture.verified_principal_id != submission.principal_id
-        || capture.branch_id != metadata_branch(submission)
-        || capture.policy_revision == 0
-    {
+    if capture.verified_principal_id != submission.principal_id || capture.policy_revision == 0 {
         return Err(operation(
             "finalization differs from durable admitted identity",
+        ));
+    }
+
+    let admitted_branch = metadata_branch(submission);
+    if capture.branch_id == admitted_branch {
+        if capture.branch_label.is_some() {
+            return Err(operation(
+                "caller-selected branch cannot carry an automatic branch label",
+            ));
+        }
+        return Ok(());
+    }
+
+    let (expected_branch, expected_label) = finalization::automatic_branch_identity(submission)?;
+    if capture.branch_id != expected_branch
+        || capture.branch_label.as_deref() != Some(expected_label.as_str())
+        || capture.parent_node_id != finalization::expected_parent(submission)?
+    {
+        return Err(operation(
+            "automatic branch finalization differs from durable conflict identity",
         ));
     }
     Ok(())
@@ -1990,6 +2067,7 @@ fn archive_receipt_or_commit(
             key.conversation_id.as_str(),
             &capture.branch_id,
             stable_id,
+            capture.branch_label.is_none(),
         )?;
         validate_archive_branch(
             runtime,
@@ -2059,6 +2137,7 @@ fn archive_receipt_or_commit(
             key.conversation_id.as_str(),
             &capture.branch_id,
             stable_id,
+            capture.branch_label.is_none(),
         )?;
         validate_archive_branch(
             runtime,
@@ -2148,6 +2227,7 @@ fn publish_branch(
     conversation_id: &str,
     branch_id: &str,
     leaf_node_id: &str,
+    canonical_if_new: bool,
 ) -> Result<(), ReliquaryRuntimeHostError> {
     let desired = Branch {
         id: branch_id.to_owned(),
@@ -2160,7 +2240,7 @@ fn publish_branch(
             .iter()
             .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
             .map(|branch| branch.canonical)
-            .unwrap_or(true),
+            .unwrap_or(canonical_if_new),
     };
     if runtime
         .cva()
@@ -2342,6 +2422,7 @@ fn archive_receipt_if_present(
         key.conversation_id.as_str(),
         &capture.branch_id,
         stable_id,
+        capture.branch_label.is_none(),
     )?;
     validate_archive_branch(
         runtime,
@@ -2360,53 +2441,6 @@ fn archive_receipt_if_present(
     }))
 }
 
-fn ensure_session(
-    runtime: &mut crate::InteractionRuntime,
-    conversation_id: &str,
-    submission: &Submission,
-) -> Result<(), ReliquaryRuntimeHostError> {
-    // Archive branch identity, rather than the ambient conversation cursor,
-    // chooses this continuation's head.
-    let branch_id = metadata_branch(submission);
-    if let Some(branch) = runtime
-        .cva()
-        .archive()
-        .branches()
-        .into_iter()
-        .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
-    {
-        finalization::validate_sequential_parent(
-            runtime,
-            conversation_id,
-            submission,
-            &branch.leaf_node_id,
-        )?;
-        return ensure_session_at(runtime, conversation_id, Some(&branch.leaf_node_id));
-    }
-    let requested = submission
-        .request_metadata
-        .get("expected_parent_node_id")
-        .and_then(|v| v.as_str())
-        .map(str::to_owned);
-    let leaves = runtime
-        .conversation_summaries()
-        .into_iter()
-        .find(|s| s.conversation_id == conversation_id)
-        .map(|s| s.leaf_node_ids)
-        .unwrap_or_default();
-    let resume = match requested {
-        Some(parent) if leaves.contains(&parent) => Some(parent),
-        Some(_) => return Err(operation("expected Archive parent is no longer a leaf")),
-        None if leaves.is_empty() => None,
-        None if leaves.len() == 1 => Some(leaves[0].clone()),
-        None => {
-            return Err(operation(
-                "conversation has multiple leaves; select one expected parent",
-            ));
-        }
-    };
-    ensure_session_at(runtime, conversation_id, resume.as_deref())
-}
 fn ensure_session_at(
     runtime: &mut crate::InteractionRuntime,
     conversation_id: &str,

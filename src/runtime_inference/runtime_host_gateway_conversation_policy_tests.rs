@@ -167,6 +167,7 @@ fn policy_changes_only_pending_capture_and_recovery_preserves_frozen_ancestry() 
     let pending_key = key(conversation, "pending-policy");
     let frozen_capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("committed-policy".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "policy-principal".into(),

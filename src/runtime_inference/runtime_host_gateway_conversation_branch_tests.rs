@@ -73,6 +73,7 @@ fn submit_branch(
 fn freeze(gateway: &GatewayRuntime, owner: &str, id: &str) -> FinalizeCapture {
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "branch-principal".into(),

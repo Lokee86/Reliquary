@@ -1,6 +1,8 @@
 use super::*;
 #[path = "runtime_host_gateway_attribution_tests.rs"]
 mod attribution;
+#[path = "runtime_host_gateway_conversation_auto_branch_tests.rs"]
+mod auto_branch;
 #[path = "runtime_host_gateway_conversation_branch_tests.rs"]
 mod branches;
 #[path = "runtime_host_gateway_conversation_finalization_tests.rs"]
@@ -618,6 +620,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
     };
     let capture = FinalizeCapture {
         branch_id: "main".to_owned(),
+        branch_label: None,
         parent_node_id: Some("root-one".to_owned()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "recovery-principal".to_owned(),
@@ -639,6 +642,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
     };
     let missing_archive_capture = FinalizeCapture {
         branch_id: "main".to_owned(),
+        branch_label: None,
         parent_node_id: Some("root-three".to_owned()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "recovery-principal".to_owned(),
@@ -1203,6 +1207,7 @@ fn accepted_finalization_rejects_changed_identity_and_stale_owner_fence() {
     let admitted = journal.lock().unwrap().submission(&key).unwrap().clone();
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "replacement-principal".into(),
@@ -1447,6 +1452,7 @@ fn reconcile_failure_keeps_owner_closed_and_workers_stopped() {
     };
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "reconcile-principal".into(),
@@ -1555,6 +1561,7 @@ fn accepted_owner_authority_cannot_publish_after_remount() {
         .clone();
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "remount-principal".into(),

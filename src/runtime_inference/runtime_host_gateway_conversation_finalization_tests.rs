@@ -200,6 +200,7 @@ fn captured_finalization_cannot_rewind_an_advanced_archive_branch() {
         .clone();
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: submission.principal_id.clone(),
@@ -318,6 +319,7 @@ fn restart_at_each_finalization_handoff_preserves_one_turn_activity_and_episode_
             .clone();
         let capture = FinalizeCapture {
             branch_id: "main".into(),
+            branch_label: None,
             parent_node_id: Some("root-one".into()),
             committed_timestamp_ns: now_ns(),
             verified_principal_id: submission.principal_id.clone(),

@@ -23,6 +23,12 @@ Only the conversation coordinator selects fresh Pending work. Selection and bran
 - Finalizing publication/recovery may advance from the captured parent or acknowledge the same stable node; it cannot rewind a branch that independently advanced elsewhere.
 - An idempotent branch publication still synchronizes before recording its Archive receipt. Pending submissions produce no Archive turns, Activity ticks or Episodes.
 
+### Visible automatic branching
+
+- VisibleAutoBranch classifies conflict against the authoritative selected-branch head at finalization. Only an accepted stale-but-related expected parent creates a conflict branch; unrelated ancestry fails closed.
+- Automatic branch ID, display label, exact submitted parent and policy revision are frozen in FinalizeWon before Archive publication. Replay and restart must reuse that identity exactly; automatic branches are non-canonical.
+- A committed automatic branch may update only the original submitter attachment's instance-local selection while that attachment remains current and authorized. Missing/detached/revoked submitters do not cancel accepted work, and no other viewer selection moves.
+
 ### Durable conversation policy
 
 - Archive conversation metadata is the sole policy owner. Missing legacy policy means SequentialChronological at revision 1; title/active writes cannot reset policy or its revision.
