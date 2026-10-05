@@ -151,6 +151,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 122. **Observation currentness policy may be class-sensitive.** Wall time alone never falsifies an Observation. Current-state classes may become stale without new evidence, while durable/historical classes may be exempt from staleness-by-time; Chronos valid-time remains separate from currentness.
 123. **Derived support cannot fabricate independent corroboration.** Exact Observation lineage must preserve transitive source overlap so the same underlying Memory/evidence reached through multiple Observation paths is not counted as multiple independent supports.
 
+## P3/P4 observation contract
+
+The internal observation data boundary contains no writable semantic handles or transport authority. REL summaries and conversation snapshots carry stable IDs/status/watermarks only; checkpoint text has a separate stream-scoped type. P3 owns journal/checkpoint sequence and durable fact production; P4 owns delivery cursors/subscribers. Missing durable watermarks are explicit absence. See [the shared contract](multiplexing-p34-observation-contract-2026-10-04.md).
+
 ## Safety boundaries
 
 Changing version ownership, conversation ancestry, mutable-record revision semantics, or persistent format requires architecture review and focused behavioral tests.

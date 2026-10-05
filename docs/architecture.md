@@ -84,6 +84,10 @@ ReliquaryConfig
     └── credential.<id> (AES-256-GCM)
 ```
 `reliquary.cfg` is current-state configuration only. It is not contained in a `.rel`, consumes no semantic clocks, and has no append-only/history semantics.
+## P3/P4 internal observation boundary
+
+The gateway declares a data-only `observation` module beside its existing conversation coordinator. [The frozen contract](multiplexing-p34-observation-contract-2026-10-04.md) defines REL summaries, conversation snapshots, post-durability facts and separate checkpoint-content values. It contains no mutable owner handles, queue, subscriber, cursor allocator or producer implementation. P3 owns authoritative conversation producers; P4 owns notification sequencing and delivery. The source types do not themselves establish an atomic snapshot or subscription handshake.
+
 ## Responsibilities
 
 ### Gateway ConversationExecution recovery

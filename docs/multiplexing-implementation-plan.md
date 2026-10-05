@@ -125,23 +125,39 @@ The [Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) is now 
 - **2.9** Run final multi-principal privacy, recovery, worker-deduplication, library/integration/CLI/docs verification and package the Phase 2 branch.
 - **Gate:** two principals safely share a REL while personal writes/retrieval/workers remain isolated; same-principal instances share exactly one PHY execution; no background job consults mutable global active PHY.
 
+### Phases 3 and 4 — parallel implementation after Phase 2
+
+**Execution model:** after Phase 2 reaches its acceptance gate, freeze the final P3/P4 observation/event seam once, then fork Phase 3 and Phase 4 from the same integration base. Phase 3 owns conversation queue/branch/generation semantics. Phase 4 owns REL sequencer/subscriber/resync infrastructure. They proceed concurrently; only the production conversation-stream adapter and final conversation event hooks wait for convergence.
+
+See:
+- [Phase 3 conversation coordination implementation plan](multiplexing-phase3-conversation-implementation-plan-2026-10-04.md)
+- [Phase 4 REL distribution implementation plan](multiplexing-phase4-distribution-implementation-plan-2026-10-04.md)
+
 ### Phase 3 — REL conversation coordination
 
-- **3.1** Implement and test the two agreed conversation policies over the single coordinator: **sequential chronological queue by default**, with a **clearly visible automatic branching** option on actual conflicts. Phase 0B must resolve verified timestamp ordering and genuinely simultaneous ties, the durable pending-submission journal and its restart replay without introducing entries into conversation history, atomic queued cancellation versus Archive finalization, queue processing around in-flight generation, branch identities and per-conversation preference persistence. Live synchronization is mandatory for either policy; no silent stale-write rejection, reordering of committed history or last-write-wins.
-- **3.2** Extend the minimal gateway conversation coordinator established in Phase 1 with the chosen full branch-conflict policy, stronger generation controls, idempotent command retry and multi-viewer lifecycle. Do not introduce a second coordinator or duplicate writable InteractionRuntime session objects.
-- **3.3** Move managed conversational selection out of REL execution. Preserve explicit resume-from-leaf and Archive branches; resolve global durable conversation_active flags so one instance switching away cannot incorrectly mark a conversation inactive while another is viewing it.
-- **3.4** Make writer and generation lifetimes independent of initiating instance connection; cancel only through authorized operation controls; checkpoint/complete/recover through existing durable seams.
-- **Tests:** simultaneous submissions, cancel-before-finalize, cancellation racing finalization, no canceled/queued turns in Archive or derived activity, queue recovery without accidental publication, multi-viewer single generation, instance switch/detach during stream, two independent conversations, exact durable recovery and episode finalization.
-- **Gate:** no shared-branch lost updates, double generation, last-writer-wins or cross-instance cancellation.
+**Status: implementation-ready once Phase 2 closes; designed for parallel execution with Phase 4.**
+
+- Deepen the existing `ConversationRegistry` rather than creating another coordinator.
+- Make the durable REL journal order the automatic scheduler authority.
+- Persist and enforce `SequentialChronological` and `VisibleAutoBranch`.
+- Move from one conversation-wide processing flag to branch-local continuation/generation ownership.
+- Preserve durable cancel/finalize/Archive idempotency and accepted-work lifetime.
+- Expose an authoritative conversation observation snapshot for Phase 4; do not own delivery cursors/subscribers.
+- **Local gate:** queue/branch/generation/recovery semantics pass without requiring Phase 4 transport.
+- **Convergence gate:** P4 consumes P3 post-durability observations and checkpoint state without moving subscriber authority into the coordinator.
 
 ### Phase 4 — REL distribution, stream subscription and resynchronization
 
-- **4.1** Publish REL-wide post-commit update events through a gateway-owned ordered feed; subscribers are all connected, authorized instances accessing that REL, not only viewers of its currently active conversation.
-- **4.2** Add conversation/generation subscriptions restricted to instances actively viewing the authorized conversation. Joining an active generation returns an atomic checkpoint/cursor before future deltas. Broadcasting output follows durable checkpoint synchronization.
-- **4.3** Implement mount-epoch and event-cursor handshake, deduplication, bounded fan-out and gap/reconnect/restart reconciliation for **both reconnecting instances and reconnecting/remounted RELs**. Reauthorize every resumed instance, refresh its REL/branch/queue/operation state, rejoin only authorized selected streams from durable checkpoint/cursor and invalidate caches when a REL epoch changes. Where event continuity cannot be proven, replace incremental replay with an atomic authoritative snapshot-and-watermark. An overflow must force resync; no unbounded per-instance backlog.
-- **4.4** Distinguish operation lifecycle events from large text deltas; REL updates are broad and compact, while output is stream-scoped. Ensure a subscription transition cannot miss a concurrent commit.
-- **Tests:** inactive conversation updates visible; no stream leakage; late stream join reconstructs exactly once; instance disconnect/reconnect, REL disconnect/remount with epoch invalidation, concurrent mutation during snapshot-and-subscribe, expired cursor fallback, gap, slow reader, restart, revocation, queue-cancellation reconciliation, multi-instance ordering.
-- **Gate:** updates and streams satisfy separate recipient rules; reliability and privacy pass concurrent stress fixtures.
+**Status: implementation-ready once Phase 2 closes; most work is independent of Phase 3.**
+
+- Add one `RelSequencer` per mounted REL with mount epoch, checked cursor, typed watermarks and bounded subscribers.
+- Add atomic authorized snapshot+subscribe and explicit ResyncRequired overflow handling.
+- Cover every instance-visible gateway mutation family with safe REL summaries/invalidation events.
+- Add reconnect/remount/revoke behavior with epoch/grant revalidation.
+- Build the conversation stream hub against the frozen P3/P4 observation contract; bind it to the final P3 coordinator only at convergence.
+- Keep generation text out of broad REL feeds and private PHY content out of all REL-wide payloads.
+- **Local gate:** sequencer/snapshot/overflow/reconnect and generic stream hub pass against deterministic providers.
+- **Convergence gate:** inactive conversation summaries, late stream join, branch events and checkpoint delivery pass against final P3 semantics.
 
 ### Phase 5 — Full stack and host-consumer migration
 

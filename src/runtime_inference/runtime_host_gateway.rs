@@ -42,6 +42,8 @@ pub use host::{
 };
 #[path = "runtime_host_gateway_conversation.rs"]
 pub(super) mod conversation;
+#[path = "runtime_host_gateway_observation.rs"]
+pub(super) mod observation;
 
 /// Stable header identity used as the key for one gateway-owned REL or PHY.
 pub type DurableOwnerId = String;
