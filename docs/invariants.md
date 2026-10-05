@@ -12,6 +12,38 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 ## Invariants
 
+### Durable conversation dispatch
+
+Only the conversation coordinator selects fresh Pending work. Selection and branch reservation share a critical section; skipped branches retain journal order. A production exact-ID resume must prove an existing durable continuation and cannot admit fresh Pending work. Client timestamps do not influence queue order. The REL journal remains the single pending authority.
+
+### Sequential finalization
+
+- Fresh admission's expected parent identifies the selected Archive branch head; another branch's leaf cannot substitute for it. Accepted retries verify the exact original request against journal identity.
+- Sequential dispatch may advance from the admitted parent only along the selected branch ancestry. FinalizeWon durably captures the current safe parent/branch/policy revision before Archive publication.
+- Finalizing publication/recovery may advance from the captured parent or acknowledge the same stable node; it cannot rewind a branch that independently advanced elsewhere.
+- An idempotent branch publication still synchronizes before recording its Archive receipt. Pending submissions produce no Archive turns, Activity ticks or Episodes.
+
+### Visible automatic branching
+
+- VisibleAutoBranch classifies conflict against the authoritative selected-branch head at finalization. Only an accepted stale-but-related expected parent creates a conflict branch; unrelated ancestry fails closed.
+- Automatic branch ID, display label, exact submitted parent and policy revision are frozen in FinalizeWon before Archive publication. Replay and restart must reuse that identity exactly; automatic branches are non-canonical.
+- A committed automatic branch may update only the original submitter attachment's instance-local selection while that attachment remains current and authorized. Missing/detached/revoked submitters do not cancel accepted work, and no other viewer selection moves.
+
+### Durable conversation policy
+
+- Archive conversation metadata is the sole policy owner. Missing legacy policy means SequentialChronological at revision 1; title/active writes cannot reset policy or its revision.
+- Gateway policy changes require current exact-owner ManageRel and synchronize before acknowledgement. Policy capture and management share the owner runtime lock, with runtime-before-journal acquisition.
+- Policy changes affect Pending finalization decisions only. Finalizing/Committed captures preserve their durable parent/branch/revision across policy changes and restart; admission fingerprints remain immutable.
+
+### Branch continuation ownership
+
+- One existing coordinator owns branch-keyed live leases; a branch cannot have two driving finalizers.
+- Pending host work, Finalizing captures and missing post-commit receipts retain a journal-derived reservation independently of viewers or driving threads.
+- A branch reservation blocks other work on that branch, while unrelated branches remain eligible subject to owner/capability policy.
+- Archive owns branch heads. Every Archive/capture/scheduling operation explicitly selects its branch/captured receipt under the single runtime lock; it never uses another branch's ambient cursor.
+- Mount reconstructs reservations before recovery effects and worker startup; conflicting durable same-branch owners fail closed.
+- Coordinator-to-journal eligibility and runtime-to-journal capture are permitted; no journal-held path acquires either owner in reverse.
+
 ### Phase 1 provisional conversation state
 
 - Gateway mount admission validates on-disk owner kind/identity before mutable open, reuses physical aliases, and rejects conflicting UUID copies. Exclusive execution claims cover gateway and legacy runtime-host execution within one process, including historical REL UUID prefixes and dynamic PHY attachment; direct clients and cross-process exclusion remain outside this claim.
@@ -162,6 +194,14 @@ P4 stream recipient state belongs only to the mounted sequencer. Exact REL/epoch
 ## Safety boundaries
 
 Changing version ownership, conversation ancestry, mutable-record revision semantics, or persistent format requires architecture review and focused behavioral tests.
+
+## Branch generation and cancellation (P3.6)
+
+One branch has one nonterminal finalizer/generation continuation. Pending work cannot mutate its persisted generation parent or text prefix. Viewer detach and zero viewers never cancel accepted work. CancelOwnPendingSubmission is limited to the initiating principal's undispatched pending turn; CancelSharedGeneration controls a dispatched operation by stable ID using current grants. Checkpoint content sync precedes its journal sequence/hash. Restart interrupts local compute and preserves authoritative host Unknown debt. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+
+## Conversation snapshot cut (P3.7)
+
+Conversation snapshots acquire runtime -> coordinator -> journal and copy facts only while those owners are locked. The existing CVA sync barrier precedes publication of Archive heads/policy; journal projection changes already follow journal durability. A snapshot never promotes Finalizing to Committed based on an Archive node or branch alone. Pending and compacted terminal submissions retain durable order and branch identity. Generation status carries checkpoint sequence only, with no content hash or text. Selection comes solely from the requesting instance for the requested conversation, never the ambient session cursor. Current attachment/grant/mount/fence authority is checked again before returning. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
 
 ## Related docs
 

@@ -36,6 +36,28 @@ the new epoch. See the [reconnect record](multiplexing-phase4-reconnect-2026-10-
 ## Exact conversation stream contracts
 
 P4.6 regressions cover durable full-prefix late join, exact conversation/operation/generation/branch/REL isolation, independent cursors, terminal/interrupted status without cancellation, count/byte overflow and atomic fresh-prefix replacement. They also protect reader/validation failure preservation, recipient/identity/text bounds, checkpoint sequence/revision gaps, join/persist and revoke/snapshot races, grant refresh, detach and owner epoch teardown. Production P3 durability integration remains P4.7. See the [stream record](multiplexing-phase4-streams-2026-10-05.md).
+## P3.4 sequential finalization contracts
+
+`runtime_host_gateway_conversation_finalization_tests.rs` verifies selected-branch/parent identity, sequential head advancement, no provisional Archive/Activity/Episode effects, unrelated-parent rejection, captured publication fencing, immutable retries after compaction, and shared-prefix branch validity. Seven restart handoffs cover FinalizeWon, Node/branch publication, Archive receipt and postcommit scheduling/marker loss with real persistent owners. Existing stale-fence/remount tests remain authoritative; the cancel/finalize barrier race now uses public automatic dispatch. See [P3.4 evidence](multiplexing-phase3-sequential-acceptance-2026-10-05.md).
+
+## P3.5 visible automatic branch contracts
+
+`runtime_host_gateway_conversation_auto_branch_tests.rs` verifies two-writer stale-head branching with submitter-only selection, three-writer deterministic ordering with distinct conflict branches, exact branch identity across restart before and after Archive branch publication, detached-submitter lifetime, non-canonical automatic branches, and fail-closed unrelated retained ancestry. Full library regression retains the P3.1–P3.4 policy/scheduler/finalization gates. See [P3.5 evidence](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md).
+
+## P3.3 durable scheduler contracts
+
+`runtime_host_gateway_conversation_scheduler_tests.rs` covers chronological dispatch, delayed client time, admission retry deduplication, multiple conversations in one REL journal, held/live branch skipping, atomic reservation, equal verified timestamp ties after compaction/restart, captured finalization ancestry and detached-submitter lifetime. The public gateway contract verifies automatic selection without a submission ID. Exact-entry historical fault-injection fixtures remain test-only.
+
+## P3.2 branch continuation contracts
+
+| Contract | Production verification |
+| --- | --- |
+| Same-branch overlap is rejected while another branch reaches the host before the first handoff returns; switch/detach preserves accepted work | `host_operation_tests::branches::blocked_handoff_serializes_same_branch_but_allows_other_branch_and_detach` |
+| Restart restores Unknown host branch reservations while an idle branch can advance | `host_operation_tests::branches::restart_retains_unknown_host_branch_debt_while_idle_branch_advances` |
+| Captured Finalizing ancestry survives restart and another branch's publication without viewers | `tests::branches::restart_rebuilds_finalizing_branch_and_other_branch_can_advance_without_viewers` |
+| Missing post-commit receipt reserves only its branch; scheduling uses its captured path | `tests::branches::unfinished_postcommit_receipt_fences_only_its_branch` |
+| Conflicting durable owners fail mount before publication | `tests::branches::mount_rejects_multiple_unresolved_finalizers_on_one_branch_before_publication` |
+| Public admission/finalization preserve independent branch heads after reopen | `multiplexing_gateway_api_contract::public_branch_admission_and_finalization_preserve_independent_heads` |
 
 ## Contract matrix
 
@@ -185,6 +207,22 @@ Before concurrent writers are supported, tests must prove that unrelated session
 Before whole-CVA rollback ships, tests must define timeline selection across Archive, Memories, Graph, and vector domains without turning every write into a global state publication.
 
 Before persistent checkpoints are added, larger-scale benchmarks must show that the remaining single-pass scan cost justifies the additional derived-state machinery.
+
+## Generation lifecycle contract (P3.6)
+
+| Contract | Protection |
+| --- | --- |
+| Zero viewers and initiator detach preserve generation | generation_survives_zero_viewers_and_blocks_only_its_branch |
+| Prefix/sequence integrity and exactly-once completion | generation_checkpoints_are_monotonic_and_completion_is_exactly_once |
+| Current shared cancellation grant is required | generation_control_requires_current_shared_cancel_grant; generation_branch_lease_fences_overlapping_control |
+| Restart preserves identity and synchronized content | generation_restart_recovers_interrupted_checkpoint_and_stable_identity; generation_recovery_reconciles_checkpoint_and_archive_handoffs |
+| Host cancellation reaches an in-flight handoff | cancellation_reaches_host_before_blocked_handoff_ack_and_cannot_be_resurrected |
+
+[P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md) records the production seams and verification.
+
+## Authoritative conversation snapshots (P3.7)
+
+The plain internal snapshot reads the existing runtime/coordinator/journal cut under current ViewRel and revalidates delivery. Archive publication and journal receipt state remain independently visible at their actual handoffs: a published branch with Finalizing is valid, while an unpublished captured branch is absent from inventory. Instance selection never becomes conversation-global. Terminal queue and operation identities survive compaction/restart. Unknown host status is preserved, including cancellation intent; the observer does not contact or acknowledge providers. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
 
 ## Related docs
 

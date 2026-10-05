@@ -654,7 +654,9 @@ pub use multiplexing_journal::{
     ArchiveReceipt as GatewayArchiveReceipt, AttachmentIdentity as GatewayAttachmentIdentity,
     ConversationId as GatewayConversationId,
     ConversationSubmissionId as GatewayConversationSubmissionId,
-    DurableHostOperation as GatewayHostOperation,
+    DurableGeneration as GatewayGeneration,
+    DurableGenerationCheckpoint as GatewayGenerationCheckpoint,
+    DurableGenerationPhase as GatewayGenerationPhase, DurableHostOperation as GatewayHostOperation,
     DurableHostOperationPhase as GatewayHostOperationPhase,
     FinalizeCapture as GatewayFinalizeCapture, JournalError as GatewayJournalError,
     PostCommitReceipt as GatewayPostCommitReceipt, SubmissionId as GatewaySubmissionId,
@@ -852,7 +854,7 @@ pub use container::{
 pub use conversation_compaction_model::{
     ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
 };
-pub use conversation_metadata_model::ConversationMetadata;
+pub use conversation_metadata_model::{ConversationMetadata, ConversationPolicy};
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;

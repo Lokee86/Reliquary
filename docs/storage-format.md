@@ -286,13 +286,18 @@ string    conversation ID
 string    leaf node ID
 ```
 Current branch enumeration is reconstructed from the latest visible revision for each `(conversation ID, branch ID)` pair; it adds no persistent record type.
-Conversation metadata:
+Conversation metadata (current writes):
 ```text
-8 bytes   "CVACONV1"
+8 bytes   "CVACONV3"
 string    conversation ID
 string    title; empty = none
+u8        active: 0=false, 1=true
+u8        policy: 1=SequentialChronological, 2=VisibleAutoBranch
+u64       policy revision (nonzero)
 ```
-Conversation metadata is conversation-owned Archive semantic state, independent of branch topology. Records are append-only revisions keyed by conversation ID; reopening keeps the latest version, and identical metadata publication is idempotent.
+Conversation metadata is conversation-owned Archive semantic state, independent of branch topology. Records are append-only revisions keyed by conversation ID and published through ordinary Archive/global version metadata. Reopening keeps the latest visible revision; identical metadata publication is idempotent. Policy revision starts at 1 and increments only when the policy value changes; title/active writes preserve it. Overflow fails before publication.
+
+Legacy `CVACONV1` contains only the conversation ID/title strings and decodes inactive. `CVACONV2` adds the active flag. Both remain readable and interpret missing policy as SequentialChronological at revision 1; opening does not rewrite them. Unknown policy tags, zero revisions, truncated records and trailing bytes fail closed. A conversation without metadata has the same default. No separate policy file or queue record is introduced.
 Fragment:
 ```text
 8 bytes   "CVAFRAG1"
@@ -897,7 +902,7 @@ Attribution is now used in production User admission and preserves exact origina
 
 ## Gateway provisional conversation journal
 
-New gateway submissions retain admission authorization facts in the existing request_metadata JSON: owner_id, principal_id, grant=SubmitConversation and policy_revision=1. The existing principal_id and scope_fingerprint bind the accepted turn to the canonical REL, conversation and branch. These facts are immutable accepted-work authority, not live client credentials or persisted attachment tokens. Earlier admissions without this metadata remain readable using their retained verified principal and scope; present metadata must match. Exact retries compare the original request fingerprint with new server-generated admission metadata omitted, without rewriting the accepted record. FinalizeCapture must retain the admitted principal, branch and supported policy revision. No new frame/event/container format is introduced.
+New gateway submissions retain admission authorization facts in the existing request_metadata JSON: owner_id, principal_id, grant=SubmitConversation and policy_revision=1. The existing principal_id and scope_fingerprint bind the accepted turn to the canonical REL, conversation and branch. These facts are immutable accepted-work authority, not live client credentials or persisted attachment tokens. Earlier admissions without this metadata remain readable using their retained verified principal and scope; present metadata must match. Exact retries compare the original request fingerprint with new server-generated admission metadata omitted, without rewriting the accepted record. FinalizeCapture retains the admitted principal, final branch, exact parent and supported policy revision. VisibleAutoBranch captures an optional human-facing automatic branch label in the same JSON record before Archive publication; older FinalizeCapture records omit that field and decode it as absent. No new frame/event/container format is introduced.
 
 Gateway mount identity is admission state, not a storage-format change: the existing Container header parser is reused by a read-only probe before semantic reopen. The canonical REL/PHY header, UUID preservation on copy/repack, and Archive/Memory formats are unchanged. OS physical file identity is retained only in the live gateway execution and is never persisted as portable owner identity.
 
@@ -908,6 +913,14 @@ Host operation IDs hash the length-prefixed owner/conversation/submission compon
 The host payload is distinct from a journal frame: `RQMUXH01`, followed by a little-endian u64 metadata length and JSON `(owner_id, Submission)`, then a little-endian u64 byte length and raw bytes for each attachment in submission order. SHA-256 covers the entire bounded payload. Binary attachment bytes are not expanded into JSON arrays. This is a controlled adapter operation contract, not a host assistant-result format.
 
 Attachment bytes are durably staged in a per-REL content-addressed spool before enqueue can acknowledge them; journal submissions retain the identity and content hash. Compaction keeps canceled-submission tombstones and unresolved finalization/Archive/postcommit receipts while reclaiming eligible terminal payload bytes. The journal is operational state, not `.rel` Archive history. The dated F1–F6 runtime verification and Phase 1 acceptance passed; no journal frame/event/container format version changed during finish execution. Format changes require updating this description alongside the owning journal module.
+
+## Gateway generation journal records (P3.6)
+
+The existing REL operational journal adds GenerationUpdated and optional generation state on submission projections/tombstones; absent legacy fields default to none. Immutable fields are operation/generation IDs, branch ID, parent node ID and start timestamp. Phase changes carry contiguous transition_revision; checkpoints carry contiguous sequence, UTF-8 byte length and SHA-256. Terminal generations reject further mutation. Nonterminal generation payloads survive compaction. Text stays in the existing synchronized interaction-stream owner; no new CVA format or P4 cursor is added. [P3.6 record](multiplexing-phase3-generation-acceptance-2026-10-05.md) specifies the synchronization and restart handoffs.
+
+## Conversation snapshot persistence boundary (P3.7)
+
+The observation builder adds no persisted record, journal event, CVA format or mutation clock. Its durability barrier calls the mounted owner's existing sync. RelJournal::observation_branch_id reads captured targets or the existing retained admission branch metadata even after terminal compaction removes content/attachments. Automatic branch labels/fork parents remain the existing FinalizeWon capture fields. The snapshot publishes only the durable checkpoint sequence, never the checkpoint digest or stream text. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
 
 ## Related docs
 

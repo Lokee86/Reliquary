@@ -103,7 +103,7 @@ impl Fixture {
                 .submit_conversation(&instances[index], &rel, request)
                 .unwrap();
             gateway
-                .process_next_conversation_submission(
+                .process_exact_conversation_submission_for_test(
                     &instances[index],
                     &rel,
                     "conversation-one",

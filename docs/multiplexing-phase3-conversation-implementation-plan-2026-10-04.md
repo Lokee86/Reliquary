@@ -1,12 +1,19 @@
 # Multiplexing Phase 3 — conversation coordination implementation plan
 
 Parent: [Multiplexing implementation plan](multiplexing-implementation-plan.md)  
-Foundation: Phase 2 accepted head plus the shared P3/P4 seam freeze described below  
+Foundation: accepted Phase 2 + frozen P34 seam `388bd8f319ae0baafcc89f6c4c5288b78248a3ef`
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0 baseline accepted; P3.1–P3.9 remain unimplemented.**
+Status: **P3.0–P3.7 accepted; P3.8–P3.9 remain planned.**
+Observation: [P3.7 implementation and gates](multiplexing-phase3-observation-acceptance-2026-10-05.md)
+Generation: [P3.6 implementation and acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md)
+Auto-branch: [P3.5 implementation and acceptance](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md)
+Sequential: [P3.4 implementation and acceptance](multiplexing-phase3-sequential-acceptance-2026-10-05.md)
+Scheduler: [P3.3 ownership and acceptance](multiplexing-phase3-scheduler-acceptance-2026-10-05.md)
+Branches: [P3.2 ownership and acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md)
+Policy: [P3.1 ownership and acceptance](multiplexing-phase3-policy-acceptance-2026-10-04.md)
 Baseline: [P3.0 record](multiplexing-phase3-baseline-2026-10-04.md)
 Shared contract: [P34 observation contract](multiplexing-p34-observation-contract-2026-10-04.md)
 
@@ -27,12 +34,12 @@ Current production ownership already has:
 - coordinators keyed by `(REL, conversation)`;
 - durable queue order fields: verified receive time, persisted random tie key and admission sequence;
 - durable cancel/finalize/Archive/post-commit receipts;
-- one current coordinator state bit (`processing`) that serializes conversation finalization;
+- branch-keyed live processing leases and unfinished journal continuation reservations;
 - instance-local selected conversation/branch state;
 - transient viewer registrations;
 - stable generation/host-operation identity and durable principal attribution.
 
-The current coordinator is intentionally narrower than the final design: callers still explicitly choose which submission to process, coordinator state is conversation-wide rather than branch-aware, durable policy is not yet the scheduler authority, and the full automatic stale-head branching/generation lifecycle is not production-owned by the coordinator.
+The coordinator now owns branch-local contention, journal-derived recovery reservations and automatic durable selection across eligible branches. Callers request dispatch for a conversation without supplying a fresh submission ID. Existing durable continuations have a separate resume operation. Default sequential finalization and VisibleAutoBranch stale-head conflict handling are implemented. Native generation/checkpoint control and restart reconciliation are implemented in P3.6.
 
 Phase 3 makes the existing coordinator the one canonical owner of those semantics.
 
@@ -75,12 +82,11 @@ Avoid parallel edits to `runtime_host_gateway.rs`, `runtime_host_instances.rs`, 
 
 Multiple authenticated instances may submit into one shared conversation. The existing Phase 1 machinery safely admits and durably finalizes work, but it does not yet provide the complete product concurrency behavior:
 
-- pending work is not automatically selected by the durable chronological order;
-- the coordinator serializes the whole conversation instead of owning branch-local generation state;
-- the durable conversation policy is not the production scheduler;
-- stale expected heads do not yet produce the agreed visible automatic branch behavior;
-- generation observation/control is not yet modeled as one branch continuation independent of viewer lifetime;
-- reconnect needs one authoritative conversation snapshot rather than reconstruction from ambient session state;
+- durable chronological selection and both current policy-specific finalization decisions are implemented;
+- branch leases cover finalization, host continuations and native generation/checkpoint lifecycle;
+- the durable conversation policy drives finalization behavior through the production scheduler;
+- generation/control uses one durable branch continuation independent of viewer lifetime;
+- the P3.7 internal authoritative snapshot reads the existing runtime/coordinator/journal cut; P4 reconnect delivery remains convergence work;
 - P4 cannot safely expose conversation streams until these semantics are stable.
 
 The cost of leaving this incomplete is semantic ambiguity under concurrent writers even though the lower-level authority/durability machinery is already correct.
@@ -225,6 +231,8 @@ The coordinator must:
 
 ### P3.3 — Automatic durable scheduler
 
+**Accepted:** automatic selection and reservation, held-branch skipping, test-only fresh exact-entry seams and explicit durable-continuation resumption. See [acceptance evidence](multiplexing-phase3-scheduler-acceptance-2026-10-05.md).
+
 Add coordinator-owned "process next eligible" scheduling from journal state.
 
 Rules:
@@ -240,6 +248,8 @@ Remove production reliance on caller-supplied "process this submission next" whe
 
 ### P3.4 — Sequential policy finalization
 
+**Accepted:** selected-branch identity, safe sequential ancestry, synchronized publication, immutable retries and seven restart handoffs. See [acceptance evidence](multiplexing-phase3-sequential-acceptance-2026-10-05.md).
+
 Implement the default policy on the real Archive path.
 
 For each selected entry:
@@ -253,6 +263,8 @@ For each selected entry:
 **Tests:** cancel-vs-finalize races, every crash boundary, stale fence, remount, postcommit marker loss, no provisional activity/Episode leakage.
 
 ### P3.5 — Visible automatic branching
+
+**Accepted:** authoritative stale-head classification, deterministic durable conflict branches, submitter-local selection and restart-stable recovery. See [acceptance evidence](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md).
 
 Implement stale-head branch conflict policy.
 
@@ -269,6 +281,8 @@ Requirements:
 
 ### P3.6 — Generation/control lifetime
 
+Status: accepted with the documented architecture-tool limitation; verification results are recorded in [P3.6 acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+
 Make branch generation state explicit.
 
 - one active generation per branch;
@@ -284,6 +298,8 @@ Make branch generation state explicit.
 **Tests:** detach initiator, all viewers detach, late viewer, cancellation authorization, restart during checkpoint, host status unknown, branch A generation while branch B advances.
 
 ### P3.7 — Authoritative conversation observation snapshot
+
+Status: accepted with the documented architecture-tool limitation. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md) records the internal seam, runtime -> coordinator -> journal lock order, existing owner sync barrier, instance-local selection and durable handoff tests.
 
 Implement the final P3-owned observation builder used at P3/P4 convergence.
 

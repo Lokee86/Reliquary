@@ -1,5 +1,6 @@
 use crate::conversation_metadata_codec::{
-    CONVERSATION_METADATA_MAGIC, LEGACY_CONVERSATION_METADATA_MAGIC, decode_conversation_metadata,
+    ACTIVE_CONVERSATION_METADATA_MAGIC, CONVERSATION_METADATA_MAGIC,
+    LEGACY_CONVERSATION_METADATA_MAGIC, decode_conversation_metadata,
 };
 use crate::episode_codec::{EPISODE_MAGIC, decode_episode};
 use crate::file_memory_link_codec::{FILE_MEMORY_LINK_MAGIC, decode_file_memory_link};
@@ -112,7 +113,9 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes[..8] == BRANCH_MAGIC {
         return decode_branch(bytes);
     }
-    if bytes[..8] == CONVERSATION_METADATA_MAGIC || bytes[..8] == LEGACY_CONVERSATION_METADATA_MAGIC
+    if bytes[..8] == CONVERSATION_METADATA_MAGIC
+        || bytes[..8] == ACTIVE_CONVERSATION_METADATA_MAGIC
+        || bytes[..8] == LEGACY_CONVERSATION_METADATA_MAGIC
     {
         return decode_conversation_metadata(bytes).map(ArchiveRecord::ConversationMetadata);
     }

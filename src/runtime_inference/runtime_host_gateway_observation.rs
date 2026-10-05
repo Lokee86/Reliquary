@@ -9,13 +9,8 @@ use crate::multiplexing_journal::{
     SubmissionState,
 };
 
-/// Missing legacy metadata is interpreted by P3 as SequentialChronological.
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub(super) enum ConversationPolicy {
-    #[default]
-    SequentialChronological,
-    VisibleAutoBranch,
-}
+// One policy vocabulary; Archive is the canonical durable owner.
+pub(super) use crate::ConversationPolicy;
 
 /// Source watermarks only. None means unavailable, never a fabricated zero clock.
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

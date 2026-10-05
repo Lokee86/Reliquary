@@ -171,3 +171,133 @@ fn branch_start_markers_follow_every_durable_fork_on_selected_path() {
         vec!["right", "right-a"]
     );
 }
+
+#[test]
+fn conversation_policy_defaults_and_round_trips_without_changing_other_metadata() {
+    use crate::ConversationPolicy::{SequentialChronological, VisibleAutoBranch};
+    let path = test_path();
+    let mut cva = Cva::create(&path).unwrap();
+    cva.ingest_turn(turn("root", None, 10, "Root")).unwrap();
+    let before = cva.archive_version();
+    assert_eq!(cva.conversation_policy("c1"), (SequentialChronological, 1));
+    assert!(
+        !cva.set_conversation_policy("c1", SequentialChronological)
+            .unwrap()
+    );
+    assert_eq!(cva.archive_version(), before);
+    assert!(matches!(
+        cva.set_conversation_policy("missing", VisibleAutoBranch),
+        Err(crate::ArchiveError::MissingConversation)
+    ));
+    assert!(
+        cva.set_conversation_policy("c1", VisibleAutoBranch)
+            .unwrap()
+    );
+    assert_eq!(cva.archive_version(), before + 1);
+    assert!(
+        !cva.set_conversation_policy("c1", VisibleAutoBranch)
+            .unwrap()
+    );
+    cva.set_conversation_title("c1", "Managed title".into())
+        .unwrap();
+    cva.set_conversation_active("c1", true).unwrap();
+    assert_eq!(cva.conversation_policy("c1"), (VisibleAutoBranch, 2));
+    cva.sync().unwrap();
+    drop(cva);
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.conversation_policy("c1"), (VisibleAutoBranch, 2));
+    let metadata = reopened.conversation_metadata("c1").unwrap();
+    assert_eq!(metadata.title.as_deref(), Some("Managed title"));
+    assert!(metadata.active);
+    assert!(
+        reopened
+            .set_conversation_policy("c1", SequentialChronological)
+            .unwrap()
+    );
+    assert_eq!(
+        reopened.conversation_policy("c1"),
+        (SequentialChronological, 3)
+    );
+    reopened.sync().unwrap();
+    drop(reopened);
+    assert_eq!(
+        Cva::open(path).unwrap().conversation_policy("c1"),
+        (SequentialChronological, 3)
+    );
+}
+
+#[test]
+fn legacy_conversation_policy_reopens_and_upgrades_in_the_same_archive_owner() {
+    use crate::ConversationPolicy::{SequentialChronological, VisibleAutoBranch};
+    for (magic, active) in [(*b"CVACONV1", false), (*b"CVACONV2", true)] {
+        let path = test_path();
+        let mut cva = Cva::create(&path).unwrap();
+        cva.ingest_turn(turn("root", None, 10, "Root")).unwrap();
+        let mut bytes = magic.to_vec();
+        bytes.extend_from_slice(&2u32.to_le_bytes());
+        bytes.extend_from_slice(b"c1");
+        bytes.extend_from_slice(&5u32.to_le_bytes());
+        bytes.extend_from_slice(b"Title");
+        if magic == *b"CVACONV2" {
+            bytes.push(1);
+        }
+        let record = cva.container.append(&bytes).unwrap();
+        cva.archive
+            .publish_record(&mut cva.container, record)
+            .unwrap();
+        cva.sync().unwrap();
+        drop(cva);
+        let mut reopened = Cva::open(&path).unwrap();
+        assert_eq!(
+            reopened.conversation_policy("c1"),
+            (SequentialChronological, 1)
+        );
+        assert_eq!(reopened.conversation_metadata("c1").unwrap().active, active);
+        reopened
+            .set_conversation_policy("c1", VisibleAutoBranch)
+            .unwrap();
+        reopened.sync().unwrap();
+        drop(reopened);
+        let upgraded = Cva::open(path).unwrap();
+        assert_eq!(upgraded.conversation_policy("c1"), (VisibleAutoBranch, 2));
+        let metadata = upgraded.conversation_metadata("c1").unwrap();
+        assert_eq!(metadata.title.as_deref(), Some("Title"));
+        assert_eq!(metadata.active, active);
+    }
+}
+
+#[test]
+fn conversation_policy_codec_fails_closed_on_unknown_or_incomplete_state() {
+    use crate::conversation_metadata_codec::encode_conversation_metadata;
+    let metadata = crate::ConversationMetadata::new("c1");
+    let bytes = encode_conversation_metadata(&metadata).unwrap();
+    for end in 0..bytes.len() {
+        assert!(decode_conversation_metadata(&bytes[..end]).is_err());
+    }
+    let mut invalid_policy = bytes.clone();
+    let policy_offset = invalid_policy.len() - 9;
+    invalid_policy[policy_offset] = 99;
+    assert!(decode_conversation_metadata(&invalid_policy).is_err());
+    let mut zero_revision = bytes.clone();
+    let revision_offset = zero_revision.len() - 8;
+    zero_revision[revision_offset..].fill(0);
+    assert!(decode_conversation_metadata(&zero_revision).is_err());
+    let mut trailing = bytes;
+    trailing.push(0);
+    assert!(decode_conversation_metadata(&trailing).is_err());
+    let mut exhausted = metadata;
+    exhausted.policy_revision = u64::MAX;
+    let path = test_path();
+    let mut cva = Cva::create(path).unwrap();
+    cva.ingest_turn(turn("root", None, 10, "Root")).unwrap();
+    cva.archive
+        .put_conversation_metadata(&mut cva.container, exhausted)
+        .unwrap();
+    let version = cva.archive_version();
+    assert!(
+        cva.set_conversation_policy("c1", crate::ConversationPolicy::VisibleAutoBranch)
+            .is_err()
+    );
+    assert_eq!(cva.archive_version(), version);
+    assert_eq!(cva.conversation_policy("c1").1, u64::MAX);
+}

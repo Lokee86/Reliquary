@@ -364,6 +364,22 @@ Do not read mutable InteractionRuntime session fields directly.
 
 ### P4.7 — P3 convergence adapter
 
+Convergence dependency setup (2026-10-05): `feat/multiplexing-p34-convergence` brings P3 through P3.7 (`a833446`) together with P4 through P4.6 (`c0bbd8e`). P3.7 depends on the preceding policy, scheduler, branch and generation commits, so the convergence branch preserves their ancestry with a merge rather than copying the snapshot commit alone. Both independent branches remain unchanged. The authoritative producer is available for adapter implementation; P3.8 recovery cleanup and P3.9 acceptance remain pending and are not claimed complete. The coverage guard classifies the newly integrated P3 mutators as pending convergence, without claiming their delivery hooks exist.
+
+Dependency integration impact:
+
+- Documentation inspected: P3/P4 execution plans, P3.7 acceptance, architecture, invariants, storage format, maintainer map, limitations, roadmap and shared engineering guidance.
+- Documentation updated: merged P3/P4 current-state documentation, behavioral contracts retaining both lanes, P3 policy-ownership clarification in the shared contract, and this convergence setup record.
+- Documentation not affected: independent branch acceptance evidence and frozen observation shapes.
+- Documentation compliance: both policy modes pass; final regression evidence is recorded in the merge commit.
+- Known documentation gaps: P4.7 delivery remains planned; P3.8/P3.9 acceptance is not implied.
+- Standards added or changed: none.
+- Ownership impact: existing P3 semantic owners and P4 distribution owners coexist; no delivery adapter or new owner is introduced by this merge.
+- Pitlord impact: inherited incomplete architecture refresh remains; no refreshed enforcement result is claimed. The direct coverage guard classifies imported P3 APIs explicitly.
+- Other verification: formatting and locked/offline library check pass; 1,011 library tests and 95 integration tests pass; CLI regression results are recorded in the merge commit.
+- Known architectural gaps: production snapshot/register linearization and post-durability delivery hooks remain P4.7; P3 recovery cleanup remains P3.8.
+
+
 This is the only Phase 4 step that waits for completed P3 semantics.
 
 On the convergence branch:

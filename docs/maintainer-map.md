@@ -13,6 +13,10 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 ## Change-area routing
 
 | Change area | Canonical documentation | Primary implementation boundary | Verification |
+| Sequential conversation finalization | [Architecture](architecture.md), [P3.4 acceptance](multiplexing-phase3-sequential-acceptance-2026-10-05.md) | Admission/capture/publication in `runtime_host_gateway_conversation.rs`; Archive preconditions in `runtime_host_gateway_conversation_finalization.rs` | Finalization restart/identity regressions and public cancel/finalize race |
+| Visible automatic branch conflicts | [Architecture](architecture.md), [P3.5 acceptance](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md) | Policy-aware target/identity in `runtime_host_gateway_conversation_finalization.rs`; durable capture, branch publication and submitter-local selection in `runtime_host_gateway_conversation.rs` / `multiplexing_journal.rs` | Auto-branch multi-writer, restart, detach/viewer and invalid-parent regressions |
+| Automatic conversation scheduling | [Architecture](architecture.md), [P3.3 acceptance](multiplexing-phase3-scheduler-acceptance-2026-10-05.md) | Coordinator selection in `runtime_host_gateway_conversation_continuation.rs`; dispatch/resume in `runtime_host_gateway_conversation.rs` | Scheduler tests and public API contract |
+| Branch-local gateway continuation ownership | [Architecture](architecture.md), [P3.2 acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md), [Behavioral contracts](behavioral-contracts.md) | `runtime_host_gateway_conversation_continuation.rs`, branch binding/recovery in `runtime_host_gateway_conversation.rs` | Conversation branch and branch host tests; public API branch regression |
 | --- | --- | --- | --- |
 | Exact conversation stream delivery | [P4.6 record](multiplexing-phase4-streams-2026-10-05.md), [Architecture](architecture.md), [Behavioral contracts](behavioral-contracts.md) | `runtime_host_gateway_streams.rs`, `runtime_host_gateway_stream_registry.rs`, `runtime_host_gateway_stream_validation.rs`, mounted sequencer lifecycle | `streams::tests`, cursor exhaustion, snapshot/publish/revoke races and existing lifecycle suites |
 | REL reconnect, remount and revocation | [P4.5 record](multiplexing-phase4-reconnect-2026-10-05.md), [Architecture](architecture.md), [Behavioral contracts](behavioral-contracts.md) | `runtime_host_gateway_snapshots.rs`, `runtime_host_gateway_subscriptions.rs`, `runtime_host_gateway_reconnect.rs`, gateway lifecycle | `snapshots::reconnect_tests`, existing snapshot/auth/lifecycle tests and coverage guard |
@@ -102,6 +106,14 @@ The F1 source audit distinguishes **creation at first accepted MemoryStore publi
 - `InteractionRuntime` owns transport-neutral session coordination, completed-message stream assembly, durable acknowledgement, and explicit live Episode scheduling above Archive ingestion; future adapters and product surfaces must converge through that boundary rather than defining Archive semantics.
 - A future CVA management surface composes concrete owner APIs and cannot become a generalized semantic store.
 - Future stores retain independent authority even when they share the CVA global clock.
+
+## Gateway generation ownership (P3.6)
+
+runtime_host_gateway_conversation_generation.rs owns native generation/control methods and stream/Archive validation under the existing coordinator and REL journal. runtime_host_gateway_conversation_continuation.rs derives branch debt from nonterminal generations. multiplexing_journal.rs owns durable generation transitions and compaction. runtime_host_gateway_conversation_generation_tests.rs covers lifetime, checkpoint, control and restart handoffs. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+
+## Gateway snapshot ownership (P3.7)
+
+runtime_host_gateway_conversation_observation.rs owns the internal authoritative snapshot projection. runtime_host_gateway_conversation_continuation.rs owns its coordinator/journal read gate; GatewayRuntime::with_rel retains semantic-owner and authority fencing. multiplexing_journal.rs owns the safe branch-identity accessor for retained and compacted entries. runtime_host_gateway_conversation_observation_tests.rs covers durable handoffs, compaction/privacy, local selection, independent operations, checkpoint restart, authority and lock order. Frozen contract types remain in runtime_host_gateway_observation.rs. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
 
 ## Related docs
 

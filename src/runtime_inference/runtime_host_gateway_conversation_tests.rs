@@ -1,8 +1,22 @@
 use super::*;
 #[path = "runtime_host_gateway_attribution_tests.rs"]
 mod attribution;
+#[path = "runtime_host_gateway_conversation_auto_branch_tests.rs"]
+mod auto_branch;
+#[path = "runtime_host_gateway_conversation_branch_tests.rs"]
+mod branches;
+#[path = "runtime_host_gateway_conversation_finalization_tests.rs"]
+mod finalization;
+#[path = "runtime_host_gateway_conversation_generation_tests.rs"]
+mod generation;
+#[path = "runtime_host_gateway_conversation_observation_tests.rs"]
+mod observation;
+#[path = "runtime_host_gateway_conversation_policy_tests.rs"]
+mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]
 mod publication;
+#[path = "runtime_host_gateway_conversation_scheduler_tests.rs"]
+mod scheduler;
 use crate::runtime_host_test_support::test_path;
 use crate::{Cva, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, ReliquaryRuntimeRoutes};
 use std::collections::{BTreeMap, BTreeSet};
@@ -13,7 +27,7 @@ fn gateway() -> GatewayRuntime {
     gateway_at(test_path("conversation-gateway-state"))
 }
 
-fn gateway_at(state_dir: PathBuf) -> GatewayRuntime {
+pub(super) fn gateway_at(state_dir: PathBuf) -> GatewayRuntime {
     GatewayRuntime::new(
         state_dir,
         ReliquaryRuntimeRoutes::default(),
@@ -351,11 +365,10 @@ fn two_instances_share_one_gateway_session_and_viewer_selection_does_not_open_a_
         .admit_conversation_writer(&writer_two, &owner_id, "conversation-one", "main")
         .unwrap();
     assert_eq!(second_writer_session, writer_session);
-    assert!(
-        gateway
-            .admit_conversation_writer(&writer_two, &owner_id, "conversation-one", "alternate")
-            .is_err()
-    );
+    let alternate = gateway
+        .admit_conversation_writer(&writer_two, &owner_id, "conversation-one", "alternate")
+        .unwrap();
+    assert_eq!(alternate.leaf_message_id.as_deref(), Some("root-one-alt"));
     let repeated_admission = gateway
         .admit_conversation_writer(&writer, &owner_id, "conversation-one", "main")
         .unwrap();
@@ -384,7 +397,12 @@ fn two_instances_share_one_gateway_session_and_viewer_selection_does_not_open_a_
     gateway.detach_instance(&viewer).unwrap();
 
     let completed = gateway
-        .process_next_conversation_submission(&writer, &owner_id, "conversation-one", "turn-one")
+        .process_exact_conversation_submission_for_test(
+            &writer,
+            &owner_id,
+            "conversation-one",
+            "turn-one",
+        )
         .unwrap();
     assert_eq!(completed.status.state, SubmissionState::Committed);
     let writer_state = gateway.instance_managed_state(&writer, &owner_id).unwrap();
@@ -460,7 +478,6 @@ fn cancel_and_finalize_race_has_one_durable_winner_and_survives_remount() {
             &process_writer,
             &process_owner,
             "conversation-one",
-            "raced-turn",
         )
     });
 
@@ -607,6 +624,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
     };
     let capture = FinalizeCapture {
         branch_id: "main".to_owned(),
+        branch_label: None,
         parent_node_id: Some("root-one".to_owned()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "recovery-principal".to_owned(),
@@ -628,6 +646,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
     };
     let missing_archive_capture = FinalizeCapture {
         branch_id: "main".to_owned(),
+        branch_label: None,
         parent_node_id: Some("root-three".to_owned()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "recovery-principal".to_owned(),
@@ -756,7 +775,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
 
     // Any currently authorized processor resumes the original admitted identity.
     let resumed = recovered
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &recovered_writer,
             &owner_id,
             "conversation-three",
@@ -788,7 +807,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
 
     // Terminal retries after restart are receipt lookups, not new Archive publications.
     let retry = recovered
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &recovered_writer,
             &owner_id,
             "conversation-one",
@@ -797,7 +816,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
         .unwrap();
     assert_eq!(retry.status.state, SubmissionState::Committed);
     let missing_retry = recovered
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &recovered_writer,
             &owner_id,
             "conversation-three",
@@ -819,7 +838,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
 }
 
 #[test]
-fn shared_cancel_grant_takes_precedence_over_own_only_when_both_are_present() {
+fn shared_generation_grant_does_not_cancel_foreign_pending_submissions() {
     let gateway = gateway();
     let owner_id = gateway.mount_rel(seeded_runtime()).unwrap();
     let submitter = gateway
@@ -878,10 +897,16 @@ fn shared_cancel_grant_takes_precedence_over_own_only_when_both_are_present() {
             )
             .is_err()
     );
-    let cancelled = gateway
-        .cancel_conversation_submission(&shared, &owner_id, "conversation-one", "foreign-shared")
-        .unwrap();
-    assert_eq!(cancelled.status.state, SubmissionState::Cancelled);
+    assert!(
+        gateway
+            .cancel_conversation_submission(
+                &shared,
+                &owner_id,
+                "conversation-one",
+                "foreign-shared"
+            )
+            .is_err()
+    );
 
     gateway.detach_instance(&submitter).unwrap();
     gateway.detach_instance(&own_only).unwrap();
@@ -946,7 +971,7 @@ fn accepted_turn_outlives_detach_and_keeps_its_admitted_principal() {
     assert!(gateway.detach_conversation_viewer(viewer).is_err());
     assert!(
         gateway
-            .process_next_conversation_submission(
+            .process_exact_conversation_submission_for_test(
                 &writer,
                 &owner_id,
                 "conversation-one",
@@ -965,7 +990,7 @@ fn accepted_turn_outlives_detach_and_keeps_its_admitted_principal() {
         )
         .unwrap();
     let receipt = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &helper,
             &owner_id,
             "conversation-one",
@@ -1085,10 +1110,33 @@ fn cancellation_after_submitter_detach_requires_current_applicable_grant() {
         )
         .unwrap();
     assert!(with_admission(&gateway, &stale_grant, || Ok(())).is_err());
+    assert!(
+        gateway
+            .cancel_conversation_submission(
+                &shared,
+                &owner_id,
+                "conversation-one",
+                "detached-cancel"
+            )
+            .is_err()
+    );
+    let reattached = gateway
+        .attach_instance(
+            "submitter".into(),
+            None,
+            grants(&owner_id, &[OwnerGrant::CancelOwnPendingSubmission]),
+        )
+        .unwrap();
     let cancelled = gateway
-        .cancel_conversation_submission(&shared, &owner_id, "conversation-one", "detached-cancel")
+        .cancel_conversation_submission(
+            &reattached,
+            &owner_id,
+            "conversation-one",
+            "detached-cancel",
+        )
         .unwrap();
     assert_eq!(cancelled.status.state, SubmissionState::Cancelled);
+    gateway.detach_instance(&reattached).unwrap();
     assert_eq!(
         gateway
             .process_accepted_conversation_submission(
@@ -1192,6 +1240,7 @@ fn accepted_finalization_rejects_changed_identity_and_stale_owner_fence() {
     let admitted = journal.lock().unwrap().submission(&key).unwrap().clone();
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "replacement-principal".into(),
@@ -1373,7 +1422,12 @@ fn accepted_queue_freezes_during_quiesce_without_blocking_another_rel() {
         .unwrap();
     assert_eq!(
         gateway
-            .process_next_conversation_submission(&writer, &other, "conversation-one", "unrelated")
+            .process_exact_conversation_submission_for_test(
+                &writer,
+                &other,
+                "conversation-one",
+                "unrelated"
+            )
             .unwrap()
             .status
             .state,
@@ -1382,7 +1436,12 @@ fn accepted_queue_freezes_during_quiesce_without_blocking_another_rel() {
     gateway.reopen_rel(&owner).unwrap();
     assert!(with_accepted_work(&gateway, &old, || Ok(())).is_err());
     let result = gateway
-        .process_next_conversation_submission(&writer, &owner, "conversation-one", "frozen")
+        .process_exact_conversation_submission_for_test(
+            &writer,
+            &owner,
+            "conversation-one",
+            "frozen",
+        )
         .unwrap();
     assert_eq!(result.status.state, SubmissionState::Committed);
     assert_eq!(
@@ -1426,6 +1485,7 @@ fn reconcile_failure_keeps_owner_closed_and_workers_stopped() {
     };
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "reconcile-principal".into(),
@@ -1534,6 +1594,7 @@ fn accepted_owner_authority_cannot_publish_after_remount() {
         .clone();
     let capture = FinalizeCapture {
         branch_id: "main".into(),
+        branch_label: None,
         parent_node_id: Some("root-one".into()),
         committed_timestamp_ns: now_ns(),
         verified_principal_id: "remount-principal".into(),
@@ -1568,7 +1629,7 @@ fn accepted_owner_authority_cannot_publish_after_remount() {
     .unwrap();
     assert_eq!(
         gateway
-            .process_next_conversation_submission(
+            .process_exact_conversation_submission_for_test(
                 &writer,
                 &owner,
                 "conversation-one",

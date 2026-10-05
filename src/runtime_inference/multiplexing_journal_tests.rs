@@ -65,6 +65,7 @@ fn open(t: &Temp, uuid: Uuid) -> RelJournal {
 fn capture() -> FinalizeCapture {
     FinalizeCapture {
         branch_id: "branch-1".into(),
+        branch_label: None,
         parent_node_id: Some("parent-0".into()),
         committed_timestamp_ns: 123,
         verified_principal_id: "principal-1".into(),

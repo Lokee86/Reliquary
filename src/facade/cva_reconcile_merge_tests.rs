@@ -102,6 +102,9 @@ fn reconcile_replays_conversation_metadata() {
     right_cva
         .set_conversation_title("c", "Imported title".into())
         .unwrap();
+    right_cva
+        .set_conversation_policy("c", crate::ConversationPolicy::VisibleAutoBranch)
+        .unwrap();
     right_cva.sync().unwrap();
     drop(right_cva);
 
@@ -110,6 +113,10 @@ fn reconcile_replays_conversation_metadata() {
     assert_eq!(
         merged.conversation_summaries()[0].title.as_deref(),
         Some("Imported title")
+    );
+    assert_eq!(
+        merged.conversation_policy("c"),
+        (crate::ConversationPolicy::VisibleAutoBranch, 2)
     );
 }
 
