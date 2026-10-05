@@ -210,7 +210,10 @@ impl ConversationRegistry {
         self.journal(owner_id)
     }
 
-    fn journal(&self, owner_id: &str) -> Result<Arc<Mutex<RelJournal>>, ReliquaryRuntimeHostError> {
+    pub(super) fn journal(
+        &self,
+        owner_id: &str,
+    ) -> Result<Arc<Mutex<RelJournal>>, ReliquaryRuntimeHostError> {
         self.journals
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?

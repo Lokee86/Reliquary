@@ -46,6 +46,8 @@ pub(super) mod conversation;
 pub(super) mod events;
 #[path = "runtime_host_gateway_observation.rs"]
 pub(super) mod observation;
+#[path = "runtime_host_gateway_snapshots.rs"]
+mod snapshots;
 #[path = "runtime_host_gateway_subscriptions.rs"]
 mod subscriptions;
 

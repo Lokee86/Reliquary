@@ -19,6 +19,8 @@ The current internal core is not a public subscription API. Atomic authoritative
 snapshot/subscription is P4.2; resync acknowledgement is P4.3; complete mutation
 publication is P4.4/P4.7. No production feed completeness is claimed at P4.1.
 
+[P4.2 snapshot/subscription](multiplexing-phase4-snapshot-2026-10-04.md) now adds the canonical internal handshake and live delivery revalidation. Public exports and complete production publication remain later acceptance.
+
 ## Source and ownership
 
 | Source | Responsibility |

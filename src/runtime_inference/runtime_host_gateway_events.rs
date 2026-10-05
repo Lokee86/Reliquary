@@ -155,6 +155,11 @@ impl RelSequencerGate<'_> {
         &self.state.watermarks
     }
 
+    /// Snapshot source clocks are authoritative without allocating a notification.
+    pub(super) fn observe_snapshot_watermarks(&mut self, watermarks: DurableWatermarks) {
+        self.state.watermarks = watermarks;
+    }
+
     /// Caller holds current gateway attachment/owner leases. P4.2 adds the
     /// authoritative snapshot before registration under this very same guard.
     pub(super) fn register(

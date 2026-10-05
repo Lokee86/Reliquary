@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P4.0 accepted; P4.1 core implemented on independent P4 branch; P4.2 next**
+Status: **P4.0 accepted; P4.1/P4.2 implemented on independent P4 branch; P4.3 next**
 
 ## Purpose
 
@@ -24,7 +24,7 @@ The current gateway already has:
 - Phase 1 durable conversation queue state;
 - Phase 2 exact PHY privacy boundaries.
 
-P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. The public atomic snapshot+registration handshake, resync acknowledgement, complete production publication, reconnect snapshot authority and conversation stream hub remain later steps. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md).
+P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. P4.2 adds the canonical internal atomic snapshot/register handshake and live delivery checks. Public exports, resync acknowledgement, complete production publication, reconnect policy and conversation stream hub remain later steps. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md).
 
 Phase 4 introduces those as one canonical distribution subsystem. It does not create another semantic owner, another durable event log, or another conversation coordinator.
 
@@ -268,7 +268,7 @@ Inventory every instance-visible gateway mutation family and classify it against
 
 ### P4.1 — RelSequencer core
 
-**Implemented:** [P4.1 core and acceptance](multiplexing-phase4-core-2026-10-04.md). Cursor/epoch/isolation/lifecycle checks pass; architecture refresh and CLI test build remain verification gaps recorded there. P4.2 is next.
+**Implemented:** [P4.1 core and acceptance](multiplexing-phase4-core-2026-10-04.md). Cursor/epoch/isolation/lifecycle checks pass; architecture refresh and CLI test build remain verification gaps recorded there. P4.2 is recorded below.
 
 Implement one sequencer per mounted REL.
 
@@ -286,6 +286,8 @@ Do not yet instrument all mutations.
 **Tests:** cursor monotonicity, epoch mismatch, subscriber isolation, two RELs independent, cursor exhaustion fails/rotates safely.
 
 ### P4.2 — Atomic REL snapshot/subscription
+
+**Implemented:** [P4.2 snapshot/subscription and acceptance](multiplexing-phase4-snapshot-2026-10-04.md). The internal handshake, current safe readers and race/revocation/privacy tests pass. Final P3 observations and full production publication remain P4.7/P4.4; public exports reconcile at convergence. P4.3 is next.
 
 Implement the canonical broad snapshot builder and atomic registration.
 
