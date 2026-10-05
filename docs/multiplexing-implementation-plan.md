@@ -10,7 +10,7 @@ Specify the GatewayRuntime/InstanceRuntime migration across Reliquary, including
 
 ## Overview
 
-Status: Phase 1 is complete locally on feat/multiplexing-phase1 after the completed Phase 0B design package. The [Phase 1 finish record](multiplexing-phase1-finish-plan-2026-10-04.md) documents F1–F6 ownership/recovery, accepted-work lifetime, routing, lifecycle/fencing, authorization, final serial verification and packaging. The [earlier remaining-work plan](multiplexing-phase1-remaining-work-2026-10-03.md) remains the historical audit. This accepts the in-process authority foundation; Phase 2 multi-principal PHY ownership, exact-owner publication and private access are now verified locally; see the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md). Branch policy, event feeds and consumer/other-capability migration remain Phase 3–5. It is an independent whole-stack project, not an Ego workstream.
+Status: Phase 1 is complete locally on feat/multiplexing-phase1 after the completed Phase 0B design package. The [Phase 1 finish record](multiplexing-phase1-finish-plan-2026-10-04.md) documents F1–F6 ownership/recovery, accepted-work lifetime, routing, lifecycle/fencing, authorization, final serial verification and packaging. The [earlier remaining-work plan](multiplexing-phase1-remaining-work-2026-10-03.md) remains the historical audit. This accepts the in-process authority foundation; Phase 2 multi-principal PHY ownership, exact-owner publication and private access are now verified locally; see the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md). Phase 3 conversation coordination is accepted locally; event-feed convergence and consumer/other-capability migration remain Phase 4–5. It is an independent whole-stack project, not an Ego workstream.
 
 ## Problem statement
 
@@ -135,7 +135,7 @@ See:
 
 ### Phase 3 — REL conversation coordination
 
-**Status: P3.0–P3.8 accepted with the documented structural-analysis tool limitation.** [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md) records the coherent internal snapshot; P3.8 recovery audit/cleanup is accepted ([evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md)); P3.9 local acceptance remains. Phase 4 delivery/convergence is separate.
+**Status: P3.0–P3.9 accepted locally with the documented structural-analysis tool limitation.** [P3.9 evidence](multiplexing-phase3-local-acceptance-2026-10-05.md) records the final gate matrix and completion audit. Phase 4 delivery/convergence and later consumer migration remain separate.
 
 - Deepen the existing `ConversationRegistry` rather than creating another coordinator.
 - Make the durable REL journal order the automatic scheduler authority.
