@@ -135,7 +135,7 @@ See:
 
 ### Phase 3 — REL conversation coordination
 
-**Status: P3.0–P3.7 accepted with the documented structural-analysis tool limitation.** [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md) records the coherent internal snapshot; P3.8 recovery audit/cleanup and P3.9 local acceptance remain. Phase 4 delivery/convergence is separate.
+**Status: P3.0–P3.8 accepted with the documented structural-analysis tool limitation.** [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md) records the coherent internal snapshot; P3.8 recovery audit/cleanup is accepted ([evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md)); P3.9 local acceptance remains. Phase 4 delivery/convergence is separate.
 
 - Deepen the existing `ConversationRegistry` rather than creating another coordinator.
 - Make the durable REL journal order the automatic scheduler authority.

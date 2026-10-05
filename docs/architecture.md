@@ -496,3 +496,11 @@ A published Archive branch can coexist with a Finalizing journal entry before it
 - [ADR 0017](decisions/0017-cva-workspace-and-warlock-host-application.md)
 ## Notes
 Unimplemented behavior is tracked in [Current limitations](current-limitations.md); future implementation sequencing is tracked only in [Roadmap](roadmap.md).
+
+## Conversation recovery and acquisition (P3.8)
+
+The focused runtime_host_gateway_conversation_recovery.rs module performs mount recovery before workers start and quiesced receipt reconciliation through the existing runtime owner. Both paths validate admitted payload, stable Archive turn, captured ancestry and branch before recording post-commit completion. A missing publication remains Finalizing for coordinator dispatch; Pending order stays journal-owned. Branch reservations rebuild before recovery effects and again after terminal reconciliation.
+
+Recovery verifies the previously acknowledged UTF-8 prefix against its journal length/hash before accepting a synchronized stream extension. It reconciles that extension before either Interrupted or Archive-backed Completed. Unknown host identity and sticky cancellation remain durable branch debt; recovery performs no host handoff or native replay. Policy stays Archive metadata. Durable conversation_active never reconstructs viewers or instance selection.
+
+Exact coordinator acquisition now verifies the durable branch and rejects fresh Pending work itself. Fresh selection belongs to acquire_next; the explicit exact-entry fixture is compiled only for tests. The direct P3 source guard checks the single registry/coordinator/journal construction and finalization/policy sites, with negative fixtures. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).

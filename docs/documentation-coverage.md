@@ -111,3 +111,7 @@ The generation/control module and its tests are documented in [architecture](arc
 ## Notes
 
 Planning-only components are intentionally absent from implementation coverage.
+
+## Conversation recovery coverage (P3.8)
+
+src/runtime_inference/runtime_host_gateway_conversation_recovery.rs and its focused tests cover common mount/quiescence receipt validation, acknowledged checkpoint prefix integrity, Archive completion with a stream ahead of the journal, repeated restart policy/order/identity and transient viewer absence. The branch host regression covers repeated Unknown recovery, sticky cancellation, independent branch progress and terminal host proof without handoff replay. The continuation module now rejects fresh exact acquisition and mismatched branch identity. The P3 source guard and its negative fixtures cover named owner constructions, policy/finalization sites and test-only bypass exclusion. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).

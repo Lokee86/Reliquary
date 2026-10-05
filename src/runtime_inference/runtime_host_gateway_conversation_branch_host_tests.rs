@@ -208,3 +208,121 @@ fn restart_retains_unknown_host_branch_debt_while_idle_branch_advances() {
     );
     drop(recovered.unmount_rel(&owner).unwrap());
 }
+
+#[test]
+fn repeated_restart_preserves_unknown_cancel_intent_without_host_replay() {
+    let state = test_path("p38-unknown-host-state");
+    let path = test_path("p38-unknown-host.rel");
+    let host = Arc::new(ControlledHost::new(&[
+        RuntimeCapability::ConversationExecution,
+    ]));
+    let g = gateway_with_host(state.clone(), host.clone());
+    let owner = g.mount_rel(branch_runtime(path.clone())).unwrap();
+    let w = g
+        .attach_instance(
+            "host-recovery-principal".into(),
+            None,
+            writer_grants(&owner),
+        )
+        .unwrap();
+    branch_submit(&g, &w, &owner, "uncertain", "main");
+    branch_submit(&g, &w, &owner, "waiting", "main");
+    branch_submit(&g, &w, &owner, "independent", "alternate");
+    host.lose_next_ack();
+    g.process_next_accepted_conversation_submission(&owner, "host-conversation")
+        .unwrap()
+        .unwrap();
+    let key = ConversationSubmissionId {
+        conversation_id: ConversationId::new("host-conversation").unwrap(),
+        submission_id: SubmissionId::new("uncertain").unwrap(),
+    };
+    let operation_id = conversation_host_operation_id(&owner, &key);
+    host.set_status(&operation_id, HostOperationStatus::Unknown);
+    g.cancel_conversation_generation(&w, &owner, "host-conversation", &operation_id)
+        .unwrap();
+    let original = g
+        .conversation
+        .journal(&owner)
+        .unwrap()
+        .lock()
+        .unwrap()
+        .host_operation(&key, RuntimeCapability::ConversationExecution)
+        .unwrap();
+    assert_eq!(original.phase, DurableHostOperationPhase::Unknown);
+    assert!(original.cancel_requested);
+    g.detach_instance(&w).unwrap();
+    drop(g.unmount_rel(&owner).unwrap());
+    drop(g);
+    for iteration in 0..2 {
+        let g = super::super::tests::gateway_at(state.clone());
+        g.mount_rel(InteractionRuntime::new(Cva::open(&path).unwrap()))
+            .unwrap();
+        let w = g
+            .attach_instance("recovered-observer".into(), None, writer_grants(&owner))
+            .unwrap();
+        let before = g
+            .conversation_observation_snapshot(&w, &owner, "host-conversation")
+            .unwrap();
+        assert_eq!(before.host_operations.len(), 1);
+        assert_eq!(before.host_operations[0].operation_id, operation_id);
+        assert_eq!(
+            before.host_operations[0].phase,
+            DurableHostOperationPhase::Unknown
+        );
+        assert!(before.host_operations[0].cancel_requested);
+        if iteration == 0 {
+            let independent = g
+                .process_next_accepted_conversation_submission(&owner, "host-conversation")
+                .unwrap()
+                .unwrap();
+            assert_eq!(independent.id.submission_id.as_str(), "independent");
+            assert_eq!(independent.status.state, SubmissionState::Committed);
+        }
+        assert!(
+            g.process_next_accepted_conversation_submission(&owner, "host-conversation")
+                .unwrap()
+                .is_none()
+        );
+        let resumed = g
+            .resume_conversation_submission(&w, &owner, "host-conversation", "uncertain")
+            .unwrap();
+        let retained = &resumed.status.host_operations[&RuntimeCapability::ConversationExecution];
+        assert_eq!(retained, &original);
+        assert_eq!(resumed.status.state, SubmissionState::Pending);
+        assert!(resumed.status.finalize_capture.is_none());
+        assert_eq!(host.handoff_count(), 1);
+        g.detach_instance(&w).unwrap();
+        drop(g.unmount_rel(&owner).unwrap());
+    }
+    // Authoritative host completion can win after cancellation intent.
+    host.set_status(&operation_id, HostOperationStatus::Completed);
+    let g = gateway_with_host(state, host.clone());
+    g.mount_rel(InteractionRuntime::new(Cva::open(path).unwrap()))
+        .unwrap();
+    let w = g
+        .attach_instance("host-reconciler".into(), None, writer_grants(&owner))
+        .unwrap();
+    let resolved = g
+        .resume_conversation_submission(&w, &owner, "host-conversation", "uncertain")
+        .unwrap();
+    assert_eq!(resolved.status.state, SubmissionState::Committed);
+    assert!(
+        resolved.status.host_operations[&RuntimeCapability::ConversationExecution].cancel_requested
+    );
+    assert_eq!(host.handoff_count(), 1);
+    let next = g
+        .process_next_accepted_conversation_submission(&owner, "host-conversation")
+        .unwrap()
+        .unwrap();
+    assert_eq!(next.id.submission_id.as_str(), "waiting");
+    assert_eq!(
+        host.handoffs()
+            .iter()
+            .filter(|(id, _)| id == &operation_id)
+            .count(),
+        1,
+        "the uncertain operation is never handed off again"
+    );
+    g.detach_instance(&w).unwrap();
+    drop(g.unmount_rel(&owner).unwrap());
+}

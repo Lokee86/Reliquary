@@ -12,6 +12,12 @@ struct BranchContinuation {
 struct ConversationState {
     branches: BTreeMap<String, BranchContinuation>,
 }
+enum Acquisition {
+    Durable,
+    #[cfg(test)]
+    FreshForTest,
+}
+
 pub(super) struct ConversationCoordinator {
     state: Mutex<ConversationState>,
 }
@@ -122,6 +128,26 @@ impl ConversationCoordinator {
         key: &ConversationSubmissionId,
         branch_id: &str,
     ) -> Result<ProcessingGuard, ReliquaryRuntimeHostError> {
+        self.acquire_owned(journal, key, branch_id, Acquisition::Durable)
+    }
+
+    #[cfg(test)]
+    pub(super) fn acquire_exact_for_test(
+        self: &Arc<Self>,
+        journal: &Arc<Mutex<RelJournal>>,
+        key: &ConversationSubmissionId,
+        branch_id: &str,
+    ) -> Result<ProcessingGuard, ReliquaryRuntimeHostError> {
+        self.acquire_owned(journal, key, branch_id, Acquisition::FreshForTest)
+    }
+
+    fn acquire_owned(
+        self: &Arc<Self>,
+        journal: &Arc<Mutex<RelJournal>>,
+        key: &ConversationSubmissionId,
+        branch_id: &str,
+        acquisition: Acquisition,
+    ) -> Result<ProcessingGuard, ReliquaryRuntimeHostError> {
         let mut state = self
             .state
             .lock()
@@ -129,6 +155,23 @@ impl ConversationCoordinator {
         let journal = journal
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        let status = journal
+            .status(key)
+            .ok_or_else(|| operation("submission not found"))?;
+        if journal.observation_branch_id(key) != Some(branch_id) {
+            return Err(operation(
+                "continuation branch differs from durable submission",
+            ));
+        }
+        let fresh_pending = status.state == SubmissionState::Pending
+            && journal
+                .host_operation(key, RuntimeCapability::ConversationExecution)
+                .is_none();
+        if fresh_pending && matches!(acquisition, Acquisition::Durable) {
+            return Err(operation(
+                "fresh Pending work must use coordinator scheduling",
+            ));
+        }
         refresh_debt(&mut state, &journal, &key.conversation_id)?;
         let branch = state.branches.entry(branch_id.to_owned()).or_default();
         if branch.executing.is_some() {

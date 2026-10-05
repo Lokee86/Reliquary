@@ -167,3 +167,7 @@ The internal builder provides a coherent runtime/coordinator/journal cut and cur
 
 ## Notes
 These limitations should be updated in the same implementation change that removes them.
+
+## P3.8 recovery scope
+
+The conversation recovery audit and hard cut are implemented: coordinator acquisition rejects fresh exact dispatch, checkpoint recovery verifies acknowledged content, and mount/quiescence share validated receipt reconciliation. Unknown host outcomes require authoritative resolution and can intentionally hold their branch indefinitely. Recovery adds no automatic provider retry, viewer reconstruction or P4 delivery state. The direct lexical source guard protects the named production sites; it complements runtime tests and does not replace structural architecture analysis. P3.9 local acceptance remains separate. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).

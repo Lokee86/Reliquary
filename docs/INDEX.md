@@ -1,5 +1,6 @@
 # Reliquary Memory v2 Documentation
 
+- [P3.8 recovery and hard-cut acceptance](multiplexing-phase3-recovery-acceptance-2026-10-05.md)
 - [P3.7 conversation observation acceptance](multiplexing-phase3-observation-acceptance-2026-10-05.md)
 - [P3.6 generation/control acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md)
 

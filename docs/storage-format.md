@@ -937,3 +937,7 @@ The observation builder adds no persisted record, journal event, CVA format or m
 ## Notes
 
 These remain development formats and may evolve before a stable external-format commitment. Filenames are indexed only in the disposable in-memory lexical index and add no persistent record. Broader persistent lexical indexing, ANN acceleration, retention-aware semantic-history vacuum, and whole-file historical restore remain future work.
+
+## Conversation recovery validation (P3.8)
+
+P3.8 adds no persistent record, schema, queue, clock or migration. It validates the existing generation checkpoint length/hash against the exact UTF-8 prefix in the interaction-stream owner before reconciling a synchronized extension. Archive-backed completion also reconciles that extension. Mount and quiescence validate captured submission/Archive receipts through the same implementation. Pending order, policy revision, branch identity and Unknown/cancel-intent records retain their existing owners and formats. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).

@@ -307,3 +307,17 @@ Earlier admissions retain exact-retry compatibility without rewriting authority;
 ## Notes
 
 A tracked integer watermark is not by itself a historical materialization API; tests distinguish stored ordering metadata from features not yet exposed.
+
+## Recovery and processing hard cut (P3.8)
+
+| Contract | Protection |
+| --- | --- |
+| Exact acquisition rejects fresh Pending work and mismatched durable branches | coordinator_exact_acquisition_requires_existing_work_and_its_durable_branch |
+| Repeated restart preserves policy, pending order and interrupted identity without restoring viewers or writable sessions | repeated_mount_recovers_policy_queue_generation_and_no_viewer_lifetime |
+| Journal checkpoint content mismatch fails mount without terminal acknowledgement | mount_rejects_checkpoint_prefix_mismatch_instead_of_replacing_acknowledged_content |
+| Archive-backed generation completion first reconciles a synchronized stream extension | generation_archive_recovery_reconciles_stream_ahead_of_journal_before_completion |
+| Quiescence rejects mismatched Archive publication before post-commit completion | quiescence_rejects_mismatched_archive_turn_before_recording_postcommit |
+| Unknown host work retains cancellation and branch debt across restart; terminal proof releases it without replay | repeated_restart_preserves_unknown_cancel_intent_without_host_replay |
+| Named source owners and test-only exact processing remain enforced | scripts/check_multiplexing_phase3_ownership.py and its negative fixtures |
+
+[P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md) records audit boundaries and verification.
