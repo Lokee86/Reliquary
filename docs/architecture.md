@@ -96,6 +96,10 @@ On the independent P4 branch, gateway Memory/Graph/community/metadata/project an
 
 The internal reconnect operation reads a fresh authorized snapshot and replaces one recipient atomically under the mounted sequencer gate. Validation or reader failure preserves the prior recipient. Neither stale attachment/grant generations nor old mount cursors can reconnect; fresh authorization and subscription are required. No retained event window exists, so same-epoch cursors are hints rather than replay authority. Quiesced reopen reconciles and synchronizes source state, rotates the gateway epoch and publishes a body-free lifecycle summary before opening admission and restarting workers. See the [P4.5 record](multiplexing-phase4-reconnect-2026-10-05.md).
 
+## P4 exact conversation streams
+
+The internal P4.6 stream hub lives inside each mounted REL sequencer and shares its publication gate while keeping exact conversation/operation/generation/branch cursors and queues separate from broad REL summaries. Authorized joins read a frozen source snapshot plus full durable prefix before registration; only post-sync checkpoints/status follow. Count/byte overflow requires fresh prefix replacement. Authority and epoch teardown apply to both namespaces. The deterministic provider proves hub mechanics; production P3 binding remains P4.7. See the [stream record](multiplexing-phase4-streams-2026-10-05.md).
+
 ## Responsibilities
 
 ### Gateway ConversationExecution recovery

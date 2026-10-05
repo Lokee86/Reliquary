@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P4.0 accepted; P4.1–P4.4 implemented on independent P4 branch; P4.5 implementation and verification recorded below; architecture refresh remains incomplete; P4.6 next**
+Status: **P4.0 accepted; P4.1–P4.6 implemented on independent P4 branch; architecture refresh remains incomplete; P4.7 convergence next**
 
 ## Purpose
 
@@ -345,6 +345,8 @@ Implement:
 **Tests:** reconnect with valid/expired cursor, remount, grant refresh, revoke racing publish, detach while queue has events, host unavailable while native REL work continues.
 
 ### P4.6 — Generic conversation stream hub
+
+**Implemented:** [P4.6 stream hub record](multiplexing-phase4-streams-2026-10-05.md). Exact scope, frozen-provider full-prefix snapshot/register, separate checked stream cursors, post-sync checkpoint/status delivery, bounded count/byte resync and authority/lifecycle teardown are covered against a deterministic provider. Production P3 binding remains P4.7.
 
 Build the final stream subscriber/delivery machinery against the frozen P34 conversation observation/provider contract or a deterministic test implementation.
 

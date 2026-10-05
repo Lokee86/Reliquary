@@ -155,6 +155,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 The internal observation data boundary contains no writable semantic handles or transport authority. REL summaries and conversation snapshots carry stable IDs/status/watermarks only; checkpoint text has a separate stream-scoped type. P3 owns journal/checkpoint sequence and durable fact production; P4 owns delivery cursors/subscribers. Missing durable watermarks are explicit absence. See [the shared contract](multiplexing-p34-observation-contract-2026-10-04.md).
 
+## Exact stream distribution
+
+P4 stream recipient state belongs only to the mounted sequencer. Exact REL/epoch/conversation/operation/generation/branch identity is immutable for a handle. ViewRel permits observation without cancellation. P3 checkpoint/journal clocks and content reconstruction remain source authority; stream delivery cursors are independent. Snapshot registration and post-sync publication share the mounted gate, with no provider/network wait. Queues are bounded by count and text bytes; gaps or overflow cannot silently masquerade as contiguous delivery. See the [P4.6 record](multiplexing-phase4-streams-2026-10-05.md).
+
 ## Safety boundaries
 
 Changing version ownership, conversation ancestry, mutable-record revision semantics, or persistent format requires architecture review and focused behavioral tests.

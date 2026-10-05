@@ -347,7 +347,7 @@ impl GatewayRuntime {
         action(&sequencer)
     }
 
-    fn validate_rel_distribution_token(
+    pub(super) fn validate_rel_distribution_token(
         &self,
         token: &OwnerAccessToken,
     ) -> Result<(), ReliquaryRuntimeHostError> {

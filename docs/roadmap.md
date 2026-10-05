@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Independent multiplexing distribution lane
 
-P4.1–P4.4 are implemented on the independent distribution branch, including internal snapshot/resync and non-conversation gateway/worker publication. The [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md) owns coverage and verification. P4.5 snapshot-based reconnect, grant/epoch recovery and reconciled lifecycle summaries are implemented; the [P4.5 record](multiplexing-phase4-reconnect-2026-10-05.md) owns acceptance. P4.6 streams are next, with P3 production convergence following.
+P4.1–P4.4 are implemented on the independent distribution branch, including internal snapshot/resync and non-conversation gateway/worker publication. The [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md) owns coverage and verification. P4.5 snapshot-based reconnect, grant/epoch recovery and reconciled lifecycle summaries are implemented; the [P4.5 record](multiplexing-phase4-reconnect-2026-10-05.md) owns acceptance. P4.6 generic stream mechanics are implemented against a deterministic frozen-contract provider; the [stream record](multiplexing-phase4-streams-2026-10-05.md) owns acceptance and bounds. P4.7 production P3 convergence is next, followed by P4.8 audit and P4.9 acceptance.
 
 ## Purpose
 

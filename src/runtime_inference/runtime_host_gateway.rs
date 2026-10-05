@@ -52,6 +52,8 @@ pub(super) mod observation;
 mod reconnect;
 #[path = "runtime_host_gateway_snapshots.rs"]
 mod snapshots;
+#[path = "runtime_host_gateway_streams.rs"]
+pub(super) mod streams;
 #[path = "runtime_host_gateway_subscriptions.rs"]
 mod subscriptions;
 

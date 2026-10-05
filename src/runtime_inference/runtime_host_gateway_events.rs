@@ -65,6 +65,7 @@ struct SequencerState {
     open: bool,
     watermarks: DurableWatermarks,
     subscribers: SubscriberRegistry,
+    streams: super::streams::StreamHub,
 }
 
 /// A single gate for publication and the later snapshot/register handshake.
@@ -88,6 +89,7 @@ impl RelSequencer {
                 open: true,
                 watermarks: DurableWatermarks::default(),
                 subscribers: SubscriberRegistry::default(),
+                streams: super::streams::StreamHub::default(),
             }),
         })
     }
@@ -133,6 +135,7 @@ impl RelSequencer {
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         state.open = false;
         state.subscribers.clear();
+        state.streams.clear();
         Ok(())
     }
 
@@ -149,6 +152,7 @@ impl RelSequencer {
         state.cursor = 0;
         state.watermarks = DurableWatermarks::default();
         state.subscribers.clear();
+        state.streams.clear();
         state.open = true;
         Ok(())
     }
@@ -157,20 +161,46 @@ impl RelSequencer {
         &self,
         id: super::InstanceId,
     ) -> Result<(), ReliquaryRuntimeHostError> {
-        self.state
+        let mut state = self
+            .state
             .lock()
-            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-            .subscribers
-            .remove_instance(id);
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        state.subscribers.remove_instance(id);
+        state.streams.remove_instance(id);
         Ok(())
     }
 }
 
 impl RelSequencerGate<'_> {
+    pub(super) fn streams(&mut self) -> &mut super::streams::StreamHub {
+        &mut self.state.streams
+    }
+
+    /// Internal P3 post-sync seam. Invalid continuity closes both distribution
+    /// namespaces; production producers are connected at P4.7.
+    pub(super) fn publish_stream(
+        &mut self,
+        key: super::streams::StreamKey,
+        generation: super::observation::GenerationObservation,
+        checkpoint: Option<super::observation::GenerationCheckpointContent>,
+    ) -> Result<Arc<super::streams::StreamEvent>, ReliquaryRuntimeHostError> {
+        if !self.state.open || key.mount_epoch != self.state.epoch || key.rel_id != self.owner {
+            return Err(operation(
+                "stream publication belongs to a closed or different REL epoch",
+            ));
+        }
+        let result = self.state.streams.publish(key, generation, checkpoint);
+        if result.is_err() {
+            self.invalidate();
+        }
+        result
+    }
+
     /// Unknown partial publication or maintenance continuity is never replayable.
     pub(super) fn invalidate(&mut self) {
         self.state.open = false;
         self.state.subscribers.clear();
+        self.state.streams.clear();
     }
 
     pub(super) fn cursor(&self) -> u64 {
@@ -265,6 +295,7 @@ impl RelSequencerGate<'_> {
         if invalidations.len() > 128 {
             self.state.open = false;
             self.state.subscribers.clear();
+            self.state.streams.clear();
             return Err(operation(
                 "REL invalidation summary exceeds capacity; reopen and snapshot required",
             ));
@@ -272,6 +303,7 @@ impl RelSequencerGate<'_> {
         let Some(cursor) = self.state.cursor.checked_add(1) else {
             self.state.open = false;
             self.state.subscribers.clear();
+            self.state.streams.clear();
             return Err(operation(
                 "REL cursor exhausted; reopen with a new gateway epoch and snapshot",
             ));

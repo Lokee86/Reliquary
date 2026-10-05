@@ -33,6 +33,10 @@ queued detach, revoke racing admitted publication, and native commits without a
 host adapter. Both reopen entry points establish a reconciled lifecycle cut in
 the new epoch. See the [reconnect record](multiplexing-phase4-reconnect-2026-10-05.md).
 
+## Exact conversation stream contracts
+
+P4.6 regressions cover durable full-prefix late join, exact conversation/operation/generation/branch/REL isolation, independent cursors, terminal/interrupted status without cancellation, count/byte overflow and atomic fresh-prefix replacement. They also protect reader/validation failure preservation, recipient/identity/text bounds, checkpoint sequence/revision gaps, join/persist and revoke/snapshot races, grant refresh, detach and owner epoch teardown. Production P3 durability integration remains P4.7. See the [stream record](multiplexing-phase4-streams-2026-10-05.md).
+
 ## Contract matrix
 
 | Contract | Protection |
