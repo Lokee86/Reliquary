@@ -192,18 +192,14 @@ impl Cva {
         conversation_id: &str,
         title: String,
     ) -> Result<bool, ArchiveError> {
-        let active = self
+        let mut metadata = self
             .archive
             .conversation_metadata(conversation_id)
-            .is_some_and(|metadata| metadata.active);
-        self.archive.put_conversation_metadata(
-            &mut self.container,
-            ConversationMetadata {
-                conversation_id: conversation_id.to_owned(),
-                title: Some(title),
-                active,
-            },
-        )
+            .cloned()
+            .unwrap_or_else(|| ConversationMetadata::new(conversation_id));
+        metadata.title = Some(title);
+        self.archive
+            .put_conversation_metadata(&mut self.container, metadata)
     }
 
     pub fn set_conversation_active(
@@ -211,18 +207,29 @@ impl Cva {
         conversation_id: &str,
         active: bool,
     ) -> Result<bool, ArchiveError> {
-        let title = self
+        let mut metadata = self
             .archive
             .conversation_metadata(conversation_id)
-            .and_then(|metadata| metadata.title.clone());
-        self.archive.put_conversation_metadata(
-            &mut self.container,
-            ConversationMetadata {
-                conversation_id: conversation_id.to_owned(),
-                title,
-                active,
-            },
-        )
+            .cloned()
+            .unwrap_or_else(|| ConversationMetadata::new(conversation_id));
+        metadata.active = active;
+        self.archive
+            .put_conversation_metadata(&mut self.container, metadata)
+    }
+
+    /// Canonical durable policy; absent legacy metadata is sequential at revision 1.
+    pub fn conversation_policy(&self, conversation_id: &str) -> (crate::ConversationPolicy, u64) {
+        self.archive.conversation_policy(conversation_id)
+    }
+
+    /// Publish a policy change for an existing conversation. Synchronize before acknowledgement.
+    pub fn set_conversation_policy(
+        &mut self,
+        conversation_id: &str,
+        policy: crate::ConversationPolicy,
+    ) -> Result<bool, ArchiveError> {
+        self.archive
+            .set_conversation_policy(&mut self.container, conversation_id, policy)
     }
 
     pub fn conversation_metadata(&self, conversation_id: &str) -> Option<&ConversationMetadata> {

@@ -852,7 +852,7 @@ pub use container::{
 pub use conversation_compaction_model::{
     ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
 };
-pub use conversation_metadata_model::ConversationMetadata;
+pub use conversation_metadata_model::{ConversationMetadata, ConversationPolicy};
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;

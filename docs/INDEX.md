@@ -32,6 +32,7 @@
 - [Multiplexing Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) — completed F1–F6 execution, final gateway/journal/library/integration/CLI evidence, inherited build/indexing gaps and local branch packaging.
 - [Multiplexing Phase 2 implementation plan](multiplexing-phase2-implementation-plan-2026-10-04.md) — R2.1–R2.7 implementation and final verification record for durable attribution/publication, private access and PHY lifecycle.
 - [Multiplexing P3/P4 observation contract](multiplexing-p34-observation-contract-2026-10-04.md) — frozen internal observation types and lane ownership; no distribution or scheduler implementation.
+- [Multiplexing Phase 3 durable policy](multiplexing-phase3-policy-acceptance-2026-10-04.md) — P3.1 canonical metadata policy, management authorization, immutable capture and verification.
 - [Multiplexing Phase 3 baseline](multiplexing-phase3-baseline-2026-10-04.md) — P3.0 foundation, coordinator/journal inventory and collected verification.
 - [Multiplexing Phase 3 conversation coordination implementation plan](multiplexing-phase3-conversation-implementation-plan-2026-10-04.md) — branch-aware scheduling, durable conversation policy, visible auto-branching, generation lifetime and recovery; parallel with Phase 4.
 - [Multiplexing Phase 4 REL distribution implementation plan](multiplexing-phase4-distribution-implementation-plan-2026-10-04.md) — REL sequencer, atomic snapshot/subscription, bounded resync, reconnect and conversation streams; parallel with Phase 3.

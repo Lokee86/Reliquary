@@ -23,6 +23,8 @@ All source paths are under `src/runtime_inference/`.
 | Checkpoint text | `GenerationCheckpointContent` | P3 checkpoint reader; exact authorized P4 stream only |
 | Policy vocabulary | `ConversationPolicy` | P3 canonical metadata/scheduler; missing legacy value means SequentialChronological |
 
+P3.1 defines the policy enum beside canonical Archive conversation metadata; the observation module imports that enum. Its two variants and observation shapes are unchanged, so no parallel policy vocabulary or compatibility wrapper is introduced. See [P3.1 ownership](multiplexing-phase3-policy-acceptance-2026-10-04.md).
+
 Submission identity/state types reuse the existing REL journal. Order is the exact verified receive-time/tie-key/admission-sequence tuple. Host phase/capability reuse the existing host journal/router types. Branch and operation identities are stable IDs rather than writable session references.
 
 REL summaries exclude submission bodies, attachments, request metadata, checkpoints, text and PHY data. Conversation snapshots also exclude text. Only the separate checkpoint-content type carries text. Broad generation summaries may carry durable checkpoint sequence as a status watermark, but never its content digest or prefix/delta. Selection is a requesting-instance projection and does not appear in broad REL summaries.

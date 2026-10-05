@@ -77,3 +77,88 @@ fn public_admission_and_durable_receipts_need_no_legacy_selection() {
     drop(gateway);
     std::fs::remove_dir_all(dir).unwrap();
 }
+
+struct PolicyAdmission(String);
+impl GatewayAdmissionAdapter for PolicyAdmission {
+    fn verify(&self, credential: &str) -> Result<VerifiedInstanceAdmission, String> {
+        let mut capabilities = BTreeSet::from([OwnerGrant::ViewRel]);
+        match credential {
+            "manager" => {
+                capabilities.insert(OwnerGrant::ManageRel);
+            }
+            "viewer" => {}
+            _ => return Err("credential rejected".into()),
+        }
+        Ok(VerifiedInstanceAdmission {
+            principal_id: format!("verified-{credential}"),
+            phy_id: None,
+            grants: BTreeMap::from([(self.0.clone(), capabilities)]),
+        })
+    }
+}
+
+#[test]
+fn public_policy_management_uses_verified_grants_and_survives_reopen() {
+    use reliquary_memory::ConversationPolicy::{SequentialChronological, VisibleAutoBranch};
+    let dir = std::env::temp_dir().join(format!("rq-policy-api-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("owner.rel");
+    let mut cva = Cva::create_project(&path).unwrap();
+    cva.append_node(
+        "root".into(),
+        "conversation".into(),
+        None,
+        "user".into(),
+        1,
+        "root",
+    )
+    .unwrap();
+    cva.sync().unwrap();
+    drop(cva);
+    let gateway = GatewayRuntime::new(
+        dir.join("state"),
+        ReliquaryRuntimeRoutes::default(),
+        InsomniaWorkerConfig {
+            workers: 0,
+            ..InsomniaWorkerConfig::default()
+        },
+        EpisodePolicy::default(),
+    );
+    let owner = gateway.mount_rel_path(&path).unwrap();
+    let gateway = gateway.with_admission_adapter(Arc::new(PolicyAdmission(owner.clone())));
+    let viewer = gateway.attach_authenticated_instance("viewer").unwrap();
+    let manager = gateway.attach_authenticated_instance("manager").unwrap();
+    assert_eq!(
+        gateway
+            .conversation_policy(&viewer, &owner, "conversation")
+            .unwrap(),
+        (SequentialChronological, 1)
+    );
+    assert!(
+        gateway
+            .set_conversation_policy(&viewer, &owner, "conversation", VisibleAutoBranch)
+            .is_err()
+    );
+    assert!(
+        gateway
+            .set_conversation_policy(&manager, &owner, "conversation", VisibleAutoBranch)
+            .unwrap()
+    );
+    assert_eq!(
+        gateway
+            .conversation_policy(&viewer, &owner, "conversation")
+            .unwrap(),
+        (VisibleAutoBranch, 2)
+    );
+    gateway.detach_instance(&viewer).unwrap();
+    gateway.detach_instance(&manager).unwrap();
+    drop(gateway.unmount_rel(&owner).unwrap());
+    drop(gateway);
+    let reopened = Cva::open(&path).unwrap();
+    assert_eq!(
+        reopened.conversation_policy("conversation"),
+        (VisibleAutoBranch, 2)
+    );
+    drop(reopened);
+    std::fs::remove_dir_all(dir).unwrap();
+}

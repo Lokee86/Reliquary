@@ -354,6 +354,42 @@ impl Drop for ProcessingGuard {
 }
 
 impl GatewayRuntime {
+    /// Read canonical Archive policy through the requesting instance's REL grant.
+    pub fn conversation_policy(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<(crate::ConversationPolicy, u64), ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        let conversation_id = ConversationId::new(conversation_id.to_owned()).map_err(operation)?;
+        self.with_rel(&token, |runtime| {
+            Ok(runtime.cva().conversation_policy(conversation_id.as_str()))
+        })
+    }
+
+    /// ManageRel is required; neither viewing nor submitting implies management.
+    /// The owner runtime lock also serializes policy publication with FinalizeWon.
+    pub fn set_conversation_policy(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        policy: crate::ConversationPolicy,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
+        let conversation_id = ConversationId::new(conversation_id.to_owned()).map_err(operation)?;
+        self.with_rel(&token, |runtime| {
+            let changed = runtime
+                .cva
+                .set_conversation_policy(conversation_id.as_str(), policy)
+                .map_err(operation)?;
+            // Also synchronize an idempotent retry after a prior failed sync.
+            runtime.cva.sync().map_err(operation)?;
+            Ok(changed)
+        })
+    }
+
     /// Admission is acknowledged only after the REL journal has durably accepted it.
     pub fn submit_conversation(
         &self,
@@ -1009,21 +1045,27 @@ impl GatewayRuntime {
                     "submission is not the next queued conversation turn",
                 ));
             }
-            let parent = with_operation(self, &operation_authority, |runtime| {
+            status = with_operation(self, &operation_authority, |runtime| {
                 ensure_session(runtime, key.conversation_id.as_str(), &submission)?;
-                Ok(runtime
+                let parent = runtime
                     .session(key.conversation_id.as_str())
                     .ok_or_else(|| operation("shared continuation session disappeared"))?
-                    .leaf_message_id)
-            })?;
-            let capture = FinalizeCapture {
-                branch_id: metadata_branch(&submission),
-                parent_node_id: parent,
-                committed_timestamp_ns: now_ns(),
-                verified_principal_id: submission.principal_id.clone(),
-                policy_revision: 1,
-            };
-            status = with_accepted_work(self, &operation_authority, || {
+                    .leaf_message_id;
+                let policy_revision = runtime
+                    .cva()
+                    .conversation_policy(key.conversation_id.as_str())
+                    .1;
+                // Runtime -> journal is the only nested order here. Policy management
+                // holds this same runtime lock, so publication cannot race capture.
+                // A prior failed management sync cannot leak an undurable policy.
+                runtime.cva.sync().map_err(operation)?;
+                let capture = FinalizeCapture {
+                    branch_id: metadata_branch(&submission),
+                    parent_node_id: parent,
+                    committed_timestamp_ns: now_ns(),
+                    verified_principal_id: submission.principal_id.clone(),
+                    policy_revision,
+                };
                 let mut journal = journal
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -1800,7 +1842,7 @@ fn validate_finalize_identity(
 ) -> Result<(), ReliquaryRuntimeHostError> {
     if capture.verified_principal_id != submission.principal_id
         || capture.branch_id != metadata_branch(submission)
-        || capture.policy_revision != 1
+        || capture.policy_revision == 0
     {
         return Err(operation(
             "finalization differs from durable admitted identity",

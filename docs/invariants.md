@@ -12,6 +12,12 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 ## Invariants
 
+### Durable conversation policy
+
+- Archive conversation metadata is the sole policy owner. Missing legacy policy means SequentialChronological at revision 1; title/active writes cannot reset policy or its revision.
+- Gateway policy changes require current exact-owner ManageRel and synchronize before acknowledgement. Policy capture and management share the owner runtime lock, with runtime-before-journal acquisition.
+- Policy changes affect Pending finalization decisions only. Finalizing/Committed captures preserve their durable parent/branch/revision across policy changes and restart; admission fingerprints remain immutable.
+
 ### Phase 1 provisional conversation state
 
 - Gateway mount admission validates on-disk owner kind/identity before mutable open, reuses physical aliases, and rejects conflicting UUID copies. Exclusive execution claims cover gateway and legacy runtime-host execution within one process, including historical REL UUID prefixes and dynamic PHY attachment; direct clients and cross-process exclusion remain outside this claim.

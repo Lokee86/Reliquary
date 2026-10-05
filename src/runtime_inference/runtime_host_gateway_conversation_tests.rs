@@ -1,6 +1,8 @@
 use super::*;
 #[path = "runtime_host_gateway_attribution_tests.rs"]
 mod attribution;
+#[path = "runtime_host_gateway_conversation_policy_tests.rs"]
+mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]
 mod publication;
 use crate::runtime_host_test_support::test_path;

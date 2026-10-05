@@ -2,6 +2,12 @@
 Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document owns the current Reliquary Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
+## Durable conversation policy
+
+Archive conversation metadata owns SequentialChronological/VisibleAutoBranch and its separate policy revision. The existing Cva facade delegates publication; Gateway uses exact-owner ViewRel reads and ManageRel mutation with sync-before-acknowledgement. The shared observation contract imports Archive's canonical enum.
+
+Policy publication and FinalizeWon capture share the existing owner runtime mutex. Capture synchronizes policy, then acquires the REL journal while retaining the runtime lock; no journal-held path acquires that runtime lock. Already captured finalization ancestry/revision is never rebound to current metadata during recovery. Policy-specific automatic branch/scheduler behavior remains planned. [P3.1 evidence](multiplexing-phase3-policy-acceptance-2026-10-04.md) records this lane change.
+
 ## Overview
 A homogeneous Reliquary `.rel` is one physical file containing the same explicit concrete owners as the former CVA format. Legacy `.cva` and typed REL files remain readable as compatibility inputs:
 ```text

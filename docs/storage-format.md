@@ -286,13 +286,18 @@ string    conversation ID
 string    leaf node ID
 ```
 Current branch enumeration is reconstructed from the latest visible revision for each `(conversation ID, branch ID)` pair; it adds no persistent record type.
-Conversation metadata:
+Conversation metadata (current writes):
 ```text
-8 bytes   "CVACONV1"
+8 bytes   "CVACONV3"
 string    conversation ID
 string    title; empty = none
+u8        active: 0=false, 1=true
+u8        policy: 1=SequentialChronological, 2=VisibleAutoBranch
+u64       policy revision (nonzero)
 ```
-Conversation metadata is conversation-owned Archive semantic state, independent of branch topology. Records are append-only revisions keyed by conversation ID; reopening keeps the latest version, and identical metadata publication is idempotent.
+Conversation metadata is conversation-owned Archive semantic state, independent of branch topology. Records are append-only revisions keyed by conversation ID and published through ordinary Archive/global version metadata. Reopening keeps the latest visible revision; identical metadata publication is idempotent. Policy revision starts at 1 and increments only when the policy value changes; title/active writes preserve it. Overflow fails before publication.
+
+Legacy `CVACONV1` contains only the conversation ID/title strings and decodes inactive. `CVACONV2` adds the active flag. Both remain readable and interpret missing policy as SequentialChronological at revision 1; opening does not rewrite them. Unknown policy tags, zero revisions, truncated records and trailing bytes fail closed. A conversation without metadata has the same default. No separate policy file or queue record is introduced.
 Fragment:
 ```text
 8 bytes   "CVAFRAG1"

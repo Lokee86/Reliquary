@@ -6,7 +6,8 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0 baseline accepted; P3.1–P3.9 remain unimplemented.**
+Status: **P3.0–P3.1 accepted; P3.2–P3.9 remain unimplemented.**
+Policy: [P3.1 ownership and acceptance](multiplexing-phase3-policy-acceptance-2026-10-04.md)
 Baseline: [P3.0 record](multiplexing-phase3-baseline-2026-10-04.md)
 Shared contract: [P34 observation contract](multiplexing-p34-observation-contract-2026-10-04.md)
 
