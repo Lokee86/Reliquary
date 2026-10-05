@@ -26,6 +26,10 @@ impl InteractionStreamStore {
         Ok(())
     }
 
+    pub(crate) fn record(&self, message_id: &str) -> Option<&InteractionStreamRecord> {
+        self.records.get(message_id)
+    }
+
     pub(crate) fn records_for_session(&self, session_id: &str) -> Vec<InteractionStreamRecord> {
         self.records
             .values()

@@ -538,3 +538,119 @@ fn snapshot_keeps_independent_generation_and_unknown_host_operation_statuses() {
             > unknown.host_operations[0].transition_revision
     );
 }
+
+#[test]
+fn checkpoint_reader_truncates_large_ahead_text_without_reading_session_records() {
+    let g = gateway();
+    let owner = g.mount_rel(seeded_runtime()).unwrap();
+    let w = writer(&g, &owner);
+    submit(&g, &w, &owner, "bounded-generation", "main", "root-one");
+    g.process_next_accepted_conversation_submission(&owner, CONVERSATION)
+        .unwrap()
+        .unwrap();
+    let generation = g
+        .start_conversation_generation(&owner, CONVERSATION, "bounded-generation")
+        .unwrap()
+        .status
+        .generation
+        .unwrap();
+    let prefix = "durable 🌱 prefix";
+    g.checkpoint_conversation_generation(&owner, CONVERSATION, &generation.operation_id, 1, prefix)
+        .unwrap();
+
+    let authority = OperationAuthority::capture(&g, &owner).unwrap();
+    with_operation(&g, &authority, |runtime| {
+        let mut ahead = runtime
+            .cva()
+            .interaction_stream_record(&generation.generation_id)
+            .cloned()
+            .ok_or_else(|| operation("generation stream is missing"))?;
+        ahead.content.push_str("AHEAD_SENTINEL");
+        ahead.content.push_str(&"x".repeat(1_100_000));
+        runtime
+            .cva
+            .put_interaction_stream(ahead)
+            .map_err(operation)?;
+        runtime
+            .cva
+            .put_interaction_stream(InteractionStreamRecord {
+                message_id: "unrelated-large-stream".into(),
+                session_id: CONVERSATION.into(),
+                parent_message_id: Some(generation.generation_id.clone()),
+                role: InteractionRole::Agent,
+                timestamp_ns: generation.started_timestamp_ns + 1,
+                content: format!("UNRELATED_SENTINEL{}", "y".repeat(1_100_000)),
+                status: InteractionStreamStatus::Streaming,
+            })
+            .map_err(operation)?;
+        runtime.cva.sync().map_err(operation)?;
+        Ok(())
+    })
+    .unwrap();
+
+    let observed = snapshot(&g, &w, &owner);
+    let generation_observation = observed
+        .generations
+        .iter()
+        .find(|observed| observed.identity.generation_id == generation.generation_id)
+        .unwrap();
+    let token = g.authorize(&w, &owner, OwnerGrant::ViewRel).unwrap();
+    let checkpoint = g
+        .read_conversation_checkpoint(
+            &owner,
+            token.mount_epoch,
+            &ConversationId::new(CONVERSATION).unwrap(),
+            generation_observation,
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(checkpoint.text, prefix);
+    assert!(!checkpoint.text.contains("AHEAD_SENTINEL"));
+    assert!(!checkpoint.text.contains("UNRELATED_SENTINEL"));
+}
+
+#[test]
+fn broad_source_buckets_journal_statuses_by_conversation() {
+    let g = gateway();
+    let owner = g.mount_rel(seeded_runtime()).unwrap();
+    let w = writer(&g, &owner);
+    let first = submit(&g, &w, &owner, "first-pending", "main", "root-one");
+    let second = g
+        .submit_conversation(
+            &w,
+            &owner,
+            submission("conversation-two", "second-pending", "root-two"),
+        )
+        .unwrap();
+
+    let token = g.authorize(&w, &owner, OwnerGrant::ViewRel).unwrap();
+    let source = g
+        .read_conversation_distribution_source(&owner, token.mount_epoch, None)
+        .unwrap();
+    let first_conversation = source
+        .conversations
+        .iter()
+        .find(|entry| entry.conversation_id.as_str() == CONVERSATION)
+        .unwrap();
+    let second_conversation = source
+        .conversations
+        .iter()
+        .find(|entry| entry.conversation_id.as_str() == "conversation-two")
+        .unwrap();
+    assert_eq!(
+        first_conversation
+            .submissions
+            .iter()
+            .map(|entry| &entry.id)
+            .collect::<Vec<_>>(),
+        [&first.id]
+    );
+    assert_eq!(
+        second_conversation
+            .submissions
+            .iter()
+            .map(|entry| &entry.id)
+            .collect::<Vec<_>>(),
+        [&second.id]
+    );
+}

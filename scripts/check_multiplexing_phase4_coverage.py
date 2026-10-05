@@ -20,7 +20,15 @@ GROUPS = {
     "read": "conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories owner_mount_is_path_scoped"
 }
 CLASSIFICATION = {name: group for group, names in GROUPS.items() for name in names.split()}
-WRITE = re.compile(r"\.cva\s*\.\s*(?:set_|publish_|commit_|mark_|reconcile_dream_|resolve_principal_|correlate_|register_)[a-z_]*\s*\(")
+# Conservatively recognize state-changing Cva verbs in production gateway/worker
+# modules. Reads are deliberately excluded; new mutating prefixes must be added
+# here and covered by a fixture rather than silently bypassing the guard.
+WRITE = re.compile(
+    r"\.cva\s*\.\s*(?:set_|publish_|commit_|mark_|reconcile_|resolve_|"
+    r"correlate_|register_|create_|replace_|rename_|mutate_|validate_|"
+    r"checkpoint_|ingest_|accept_|claim_|renew_|freeze_|fail_|finalize_|"
+    r"complete_|remove_|upsert_|retire_|append_)[a-z_]*\s*\("
+)
 
 def masked(source):
     # Preserve offsets, handling nested comments, ordinary and raw strings.
@@ -89,6 +97,7 @@ def gateway_methods(source):
 def check_gateway(source):
     errors = []
     for name, body in gateway_methods(source):
+        route_body = re.sub(r"\s+", "", body)
         category = CLASSIFICATION.get(name)
         if category is None:
             errors.append(f"{name}: unclassified public GatewayRuntime API")
@@ -100,6 +109,49 @@ def check_gateway(source):
             errors.append(f"{name}: missing sequenced P3 persistence route")
         elif category == "host" and "publish_host_capability_change(" not in body:
             errors.append(f"{name}: missing host summary publication")
+        elif category == "epoch":
+            route = {
+                "quiesce_rel": ("sequencer.close(",),
+                "quiesce_rel_for": ("sequencer.close(",),
+                "reopen_rel": ("allocate_mount_epoch(", "reopen_rel_distribution("),
+                "reopen_rel_for": ("allocate_mount_epoch(", "reopen_rel_distribution("),
+                "reconcile_quiesced_rel_for": (
+                    "fence.snapshot_full(",
+                    "OwnerAdmission::Closed",
+                    "workers_stopped()",
+                    "reconcile_rel(",
+                ),
+                "shutdown": ("sequencer.close(",),
+                "unmount_rel": ("sequencer.close(",),
+                "mount_rel_path": ("mount_rel_inner(",),
+            }.get(name, ())
+            if not route or not all(step in route_body for step in route):
+                errors.append(f"{name}: missing classified REL epoch/resync route")
+        elif category == "private":
+            route = {
+                "set_phylactery_profile": ("with_phy(",),
+                "quiesce_phy": ("quiesce_phy_inner(",),
+                "quiesce_phy_for": ("quiesce_phy_inner(",),
+                "reopen_phy": ("reopen_phy_inner(",),
+                "reopen_phy_for": ("reopen_phy_inner(",),
+                "unmount_phy": ("fence.close_and_drain(",),
+                "mount_phy_path": ("mount_phy_inner(",),
+            }.get(name, ())
+            if not route or not all(step in route_body for step in route):
+                errors.append(f"{name}: missing private-owner maintenance route")
+        elif category == "attachment":
+            route = {
+                "select_rel": ("attachment_entry(", "instance.select_rel("),
+                "detach_instance": ("remove_instance(", "detach_instance_viewers("),
+                "select_managed_conversation": ("select_rel(", "set_instance_managed_state("),
+                "attach_conversation_viewer": ("viewers", "insert("),
+                "detach_conversation_viewer": ("viewers", "remove("),
+                "attach_authenticated_instance": ("adapter.verify(", "attach_instance("),
+                "refresh_authenticated_instance": ("adapter.verify(", "replace_instance_grants("),
+                "with_admission_adapter": ("admission_adapter",),
+            }.get(name, ())
+            if not route or not all(step in route_body for step in route):
+                errors.append(f"{name}: missing classified attachment/authority route")
         elif category == "read" and WRITE.search(body):
             errors.append(f"{name}: authoritative write in read classification")
         elif category == "delegated":
@@ -139,17 +191,123 @@ def check_worker(source):
             errors.append(f"worker helper outside canonical admission: {call[0]}")
     return errors
 
+def checkpoint_accessor(source):
+    source = masked(source)
+    match = re.search(r"\bfn\s+checkpoint_from_journal\b", source)
+    if match is None:
+        return None
+    start = source.index("{", match.end())
+    return source[start:closing(source, start) + 1]
+
+def check_checkpoint_accessor(source):
+    body = checkpoint_accessor(source)
+    if body is None:
+        return ["checkpoint_from_journal: canonical durable-prefix reader is missing"]
+    errors = []
+    for name in ("interaction_streams_for_session", "generation_stream_for_conversation"):
+        if name in body:
+            errors.append(f"checkpoint_from_journal: forbidden unbounded accessor {name}")
+    read = body.find("interaction_stream_record(")
+    length = body.find("let byte_len =")
+    slice_at = body.find("get(..byte_len)")
+    utf8 = body.find("std::str::from_utf8(prefix)")
+    digest = body.find("Sha256::digest(prefix)")
+    byte_cap = re.search(r"byte_len\s*>\s*MAX_DURABLE_STREAM_PREFIX_BYTES", body)
+    available_len = re.search(r"byte_len\s*>\s*record\s*\.\s*content\s*\.\s*len\s*\(\s*\)", body)
+    if min(read, length, slice_at, utf8, digest) < 0 or not (read < length < slice_at < utf8 < digest):
+        errors.append("checkpoint_from_journal: must borrow one record and hash the bounded UTF-8 prefix before exposing text")
+    if byte_cap is None or available_len is None or max(byte_cap.start(), available_len.start()) > slice_at:
+        errors.append("checkpoint_from_journal: enforce durable prefix cap and available content length before slicing")
+    if re.search(r"\brecord\s*\.\s*clone\s*\(", body[:slice_at]) or re.search(
+        r"interaction_stream_record\s*\([^)]*\)\s*\.\s*clone\s*\(", body[:slice_at]
+    ):
+        errors.append("checkpoint_from_journal: must not clone the full stream record before prefix slicing")
+    if re.search(r"record\s*\.\s*content\s*\.\s*(?:clone|to_owned)\s*\(", body[:slice_at]):
+        errors.append("checkpoint_from_journal: must not clone full stream content before prefix slicing")
+    if re.search(r"\.\s*cloned\s*\(", body[:slice_at]):
+        errors.append("checkpoint_from_journal: must not use cloned() for the stream record before prefix slicing")
+    return errors
+
 def self_test():
-    assert check_gateway("impl GatewayRuntime { pub fn new_mutator(&self) {} }")
-    assert check_gateway("impl GatewayRuntime { pub async fn new_mutator(&self) {} }")
-    assert check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for(&self) { self.with_rel(); } }")
-    assert check_gateway("impl GatewayRuntime { pub fn rel_metadata_for(&self) { runtime.cva.set_rel_metadata(); } }")
-    assert not check_gateway('impl GatewayRuntime { pub fn rel_metadata_for(&self) { let text = "runtime.cva.set_metadata()"; } }')
-    assert check_worker("fn commit() { runtime.cva.publish_memory(); }")
-    assert not check_worker("fn commit() { shared.mutate(Family, |runtime| { runtime.cva.publish_memory(); }); }")
-    assert check_gateway("impl GatewayRuntime { pub fn submit_conversation(&self) { with_admission(); } }")
-    assert check_conversation_stage_helpers("fn with_conversation_admission<T>() { f(); } fn with_accepted_work<T>() { f(); }")
-    print("P4 coverage guard: 9 negative/positive fixtures passed")
+    fixtures = 0
+    def expect(value):
+        nonlocal fixtures
+        fixtures += 1
+        assert value
+
+    expect(check_gateway("impl GatewayRuntime { pub fn new_mutator(&self) {} }"))
+    expect(check_gateway("impl GatewayRuntime { pub async fn new_mutator(&self) {} }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for(&self) { self.with_rel(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn rel_metadata_for(&self) { runtime.cva.set_rel_metadata(); } }"))
+    expect(not check_gateway('impl GatewayRuntime { pub fn rel_metadata_for(&self) { let text = "runtime.cva.set_metadata()"; } }'))
+    expect(check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) {} }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) { self.allocate_mount_epoch(); self.reopen_rel_distribution(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) {} }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) { self.with_phy(|_| {}); } }"))
+    expect(check_worker("fn commit() { runtime.cva.publish_memory(); }"))
+    expect(check_worker("fn commit() { runtime.cva.create_knowledge_memory(); }"))
+    expect(check_worker("fn sweep() { runtime.finalize_inactive_session(); }"))
+    expect(not check_worker("fn commit() { shared.mutate(Family, |runtime| { runtime.cva.publish_memory(); }); }"))
+    expect(not check_worker("fn commit() { shared.mutate(Family, |runtime| { runtime.cva.create_knowledge_memory(); }); }"))
+    expect(not check_worker("fn sweep() { shared.mutate(Family, |runtime| { runtime.finalize_inactive_session(); }); }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn submit_conversation(&self) { with_admission(); } }"))
+    expect(check_conversation_stage_helpers("fn with_conversation_admission<T>() { f(); } fn with_accepted_work<T>() { f(); }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn reconcile_quiesced_rel_for(&self) { self.reconcile_rel(owner_id); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn reconcile_quiesced_rel_for(&self) { self.fence.snapshot_full(); OwnerAdmission::Closed; self.workers_stopped(); self.reconcile_rel(owner_id); } }"))
+    checkpoint = """fn checkpoint_from_journal() {
+        let record = runtime.cva().interaction_stream_record(&generation.generation_id);
+        let byte_len = usize::try_from(checkpoint.utf8_bytes);
+        if byte_len > MAX_DURABLE_STREAM_PREFIX_BYTES || byte_len > record.content.len() { return Err(()); }
+        let prefix = record.content.as_bytes().get(..byte_len);
+        let text = std::str::from_utf8(prefix).to_owned();
+        let digest = Sha256::digest(prefix);
+    }"""
+    expect(not check_checkpoint_accessor(checkpoint))
+    expect(check_checkpoint_accessor("fn checkpoint_from_journal() { let records = interaction_streams_for_session(); }"))
+    expect(check_checkpoint_accessor("fn checkpoint_from_journal() { let record = generation_stream_for_conversation(); }"))
+
+    def expect_checkpoint_error(mutated, expected_error):
+        errors = check_checkpoint_accessor(mutated)
+        expect(any(expected_error in error for error in errors))
+
+    bounded_check = "if byte_len > MAX_DURABLE_STREAM_PREFIX_BYTES || byte_len > record.content.len()"
+    expect_checkpoint_error(
+        checkpoint.replace(bounded_check, "if byte_len > record.content.len()"),
+        "enforce durable prefix cap and available content length",
+    )
+    expect_checkpoint_error(
+        checkpoint.replace(bounded_check, "if byte_len > MAX_DURABLE_STREAM_PREFIX_BYTES"),
+        "enforce durable prefix cap and available content length",
+    )
+    expect_checkpoint_error(
+        checkpoint.replace(
+            "interaction_stream_record(&generation.generation_id);",
+            "interaction_stream_record(&generation.generation_id).clone();",
+        ),
+        "must not clone the full stream record before prefix slicing",
+    )
+    expect_checkpoint_error(
+        checkpoint.replace(
+            "interaction_stream_record(&generation.generation_id);",
+            "interaction_stream_record(&generation.generation_id).cloned();",
+        ),
+        "must not use cloned() for the stream record before prefix slicing",
+    )
+    expect_checkpoint_error(
+        checkpoint.replace(
+            "let prefix = record.content.as_bytes().get(..byte_len);",
+            "let content = record.content.clone();\n        let prefix = content.as_bytes().get(..byte_len);",
+        ),
+        "must not clone full stream content before prefix slicing",
+    )
+    expect_checkpoint_error(
+        checkpoint.replace(
+            "let prefix = record.content.as_bytes().get(..byte_len);",
+            "let content = record.content.to_owned();\n        let prefix = content.as_bytes().get(..byte_len);",
+        ),
+        "must not clone full stream content before prefix slicing",
+    )
+    print(f"P4 coverage guard: {fixtures} negative/positive fixtures passed")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -168,13 +326,18 @@ def main():
         errors += [f"{path.name}: {e}" for e in check_gateway(source)]
     conversation_path = directory / "runtime_host_gateway_conversation.rs"
     errors += [f"{conversation_path.name}: {e}" for e in check_conversation_stage_helpers(conversation_path.read_text(encoding="utf-8"))]
-    for family in ("dream", "perception", "vectors", "insomnia"):
-        path = directory / f"runtime_host_rel_{family}.rs"
+    checkpoint_path = directory / "runtime_host_gateway_conversation_observation.rs"
+    errors += [f"{checkpoint_path.name}: {e}" for e in check_checkpoint_accessor(checkpoint_path.read_text(encoding="utf-8"))]
+    # Scan every production REL worker module, not a hand-maintained subset. This
+    # makes newly added worker files part of the canonical-admission check by default.
+    for path in sorted(directory.glob("runtime_host_rel_*.rs")):
+        if "tests" in path.stem:
+            continue
         errors += [f"{path.name}: {e}" for e in check_worker(path.read_text(encoding="utf-8"))]
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
-    print(f"P4.4 coverage guard: {count} public APIs classified; REL worker writes admitted")
+    print(f"P4.8 coverage guard: {count} public APIs classified; REL worker writes admitted")
     return 0
 
 if __name__ == "__main__":

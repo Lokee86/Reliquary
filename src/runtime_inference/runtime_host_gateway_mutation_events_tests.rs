@@ -502,9 +502,38 @@ fn failed_partial_commit_invalidates_continuity_without_publishing_success() {
 #[test]
 fn private_profile_change_has_no_rel_event_but_projection_has_safe_entity_id() {
     let (g, rel, manager) = setup("p44-private");
-    let phy = g
-        .mount_phy(crate::Phylactery::create(test_path("p44-private.phy")).unwrap())
+    let mut phylactery = crate::Phylactery::create(test_path("p44-private.phy")).unwrap();
+    phylactery
+        .publish_memory(
+            None,
+            0,
+            crate::MemoryDraft {
+                category: "knowledge".into(),
+                memory_type: "fact".into(),
+                authority_kind: "direct".into(),
+                title: "PRIVATE_PHY_TITLE_SECRET".into(),
+                content: "PRIVATE_PHY_BODY_SECRET".into(),
+                scope: "user".into(),
+                lifecycle_state: "canonical".into(),
+                temporal_status: "current".into(),
+                archived: false,
+                superseded_by: None,
+                parent_id: None,
+                source_node_id: None,
+                content_source_conversation_id: None,
+                content_source_node_id: None,
+                grounding_source_conversation_id: None,
+                grounding_source_node_id: None,
+                source_episode_id: None,
+                source_time_ns: Some(1),
+                mutation_id: "private-phy-seed".into(),
+                created_at_ns: 1,
+                updated_at_ns: 1,
+            },
+        )
         .unwrap();
+    phylactery.sync().unwrap();
+    let phy = g.mount_phy(phylactery).unwrap();
     let token = g.authorize(&manager, &rel, OwnerGrant::ManageRel).unwrap();
     g.with_rel(&token, |runtime| {
         runtime
@@ -561,6 +590,20 @@ fn private_profile_change_has_no_rel_event_but_projection_has_safe_entity_id() {
             .iter()
             .all(|e| !format!("{e:?}").contains("PRIVATE_NAME_SECRET"))
     );
+
+    // The user's active PHY profile is never composed into a REL snapshot,
+    // even for an attachment authorized to read that PHY.
+    let (snapshot, _fresh_subscription) = g.subscribe_rel(&i, &rel, None, 32).unwrap();
+    let snapshot_debug = format!("{snapshot:?}");
+    for secret in [
+        "PRIVATE_NAME_SECRET",
+        "PRIVATE_PHY_TITLE_SECRET",
+        "PRIVATE_PHY_BODY_SECRET",
+        phy.as_str(),
+    ] {
+        assert!(!snapshot_debug.contains(secret));
+    }
+
     assert!(!g.refresh_principal_projection_for(&i, &rel).unwrap());
     assert!(drain(&g, &i, &s).is_empty());
 }

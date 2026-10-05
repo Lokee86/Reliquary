@@ -525,6 +525,13 @@ impl Cva {
         self.interaction_streams.put(&mut self.container, record)
     }
 
+    pub(crate) fn interaction_stream_record(
+        &self,
+        message_id: &str,
+    ) -> Option<&crate::InteractionStreamRecord> {
+        self.interaction_streams.record(message_id)
+    }
+
     pub(crate) fn interaction_streams_for_session(
         &self,
         session_id: &str,

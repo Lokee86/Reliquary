@@ -148,16 +148,16 @@ See:
 
 ### Phase 4 — REL distribution, stream subscription and resynchronization
 
-**Status: P4.0–P4.7 implemented and verified; P4.8 coverage/lock/privacy audit next; P4.9 Phase 4 acceptance pending.**
+**Status: P4.0–P4.8 implemented and audited; P4.9 Phase 4 acceptance pending.**
 
 - Add one `RelSequencer` per mounted REL with mount epoch, checked cursor, typed watermarks and bounded subscribers.
 - Add atomic authorized snapshot+subscribe and explicit ResyncRequired overflow handling.
 - Cover every instance-visible gateway mutation family with safe REL summaries/invalidation events.
 - Add reconnect/remount/revoke behavior with epoch/grant revalidation.
-- Bind the production conversation stream hub to P3's authoritative snapshot, receipt, and checkpoint sources; keep P4 subscriber/cursor ownership separate. P4.7 is implemented and verified; see the [convergence record](multiplexing-phase4-convergence-2026-10-05.md).
+- Bind the production conversation stream hub to P3's authoritative snapshot, receipt, and checkpoint sources; keep P4 subscriber/cursor ownership separate. P4.7 is implemented and verified; see the [convergence record](multiplexing-phase4-convergence-2026-10-05.md). P4.8 coverage/lock/privacy audit is complete; see the [audit record](multiplexing-phase4-audit-2026-10-05.md).
 - Keep generation text out of broad REL feeds and private PHY content out of all REL-wide payloads.
 - **Local gate:** sequencer/snapshot/overflow/reconnect and generic stream hub pass against deterministic providers.
-- **Convergence gate:** inactive conversation summaries, late stream join, branch events and checkpoint delivery pass against final P3 semantics. P4.7 verification is complete; P4.9 Phase 4 acceptance remains a later gate.
+- **Convergence gate:** inactive conversation summaries, late stream join, branch events and checkpoint delivery pass against final P3 semantics. P4.7 verification and P4.8 audit are complete; P4.9 Phase 4 acceptance remains a later gate.
 
 ### Phase 5 — Full stack and host-consumer migration
 

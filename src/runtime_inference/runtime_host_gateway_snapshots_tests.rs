@@ -187,14 +187,17 @@ fn safe_authoritative_snapshot_includes_inactive_conversations_and_durable_queue
             })
     }));
     assert!(snapshot.watermark.cursor > 0);
+    let snapshot_debug = format!("{snapshot:?}");
     for secret in [
         "TRANSCRIPT_BODY_SECRET",
         "QUEUED_BODY_SECRET",
         "ATTACHMENT_BODY_SECRET",
         "PRIVATE_PATH_SECRET",
     ] {
-        assert!(!format!("{snapshot:?}").contains(secret));
+        assert!(!snapshot_debug.contains(secret));
     }
+    assert!(!snapshot_debug.contains("payload_digest"));
+    assert!(!snapshot_debug.contains(&format!("{:?}", [17u8; 32])));
     assert!(
         gateway
             .next_rel_event(&instance, &subscription)

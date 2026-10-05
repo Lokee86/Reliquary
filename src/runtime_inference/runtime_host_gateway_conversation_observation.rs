@@ -58,6 +58,26 @@ impl GatewayRuntime {
             runtime.cva().sync().map_err(operation)?;
             let journal = self.conversation.journal(owner_id)?;
             let cva = runtime.cva();
+            // Clone the body-free journal index once, then partition it by
+            // conversation. The same journal cut is checked while each
+            // coordinator observation is acquired below.
+            let (statuses, journal_sequence) = {
+                let journal = journal
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                let statuses = journal.statuses();
+                if statuses.len() > MAX_CONVERSATION_SOURCE_ITEMS {
+                    return Err(operation("REL conversation journal exceeds its item bound"));
+                }
+                (statuses, journal.sequence())
+            };
+            let mut statuses_by_conversation = BTreeMap::new();
+            for (id, status) in statuses {
+                statuses_by_conversation
+                    .entry(id.conversation_id.clone())
+                    .or_insert_with(Vec::new)
+                    .push((id, status));
+            }
             let mut ids = BTreeSet::new();
             ids.extend(
                 cva.conversation_summaries()
@@ -76,17 +96,11 @@ impl GatewayRuntime {
                     .into_iter()
                     .map(|branch| branch.conversation_id),
             );
-            {
-                let journal = journal
-                    .lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                ids.extend(
-                    journal
-                        .statuses()
-                        .into_iter()
-                        .map(|(id, _)| id.conversation_id.as_str().to_owned()),
-                );
-            }
+            ids.extend(
+                statuses_by_conversation
+                    .keys()
+                    .map(|id| id.as_str().to_owned()),
+            );
             if ids.len() > MAX_CONVERSATION_SOURCE_ITEMS {
                 return Err(operation(
                     "REL conversation observation exceeds its item bound",
@@ -99,13 +113,22 @@ impl GatewayRuntime {
                 let coordinator = self
                     .conversation
                     .coordinator(owner_id, conversation_id.as_str())?;
+                let conversation_statuses = statuses_by_conversation
+                    .remove(&conversation_id)
+                    .unwrap_or_default();
                 let summary = coordinator.observe(&journal, |journal| {
-                    let snapshot = build_conversation_observation(
+                    if journal.sequence() != journal_sequence {
+                        return Err(operation(
+                            "REL journal changed during conversation source capture",
+                        ));
+                    }
+                    let snapshot = build_conversation_observation_from_statuses(
                         runtime,
                         journal,
                         owner_id,
                         epoch,
                         &conversation_id,
+                        conversation_statuses,
                         None,
                     )?;
                     count = count
@@ -135,11 +158,16 @@ impl GatewayRuntime {
             }
             let mut durable_watermarks =
                 super::super::snapshots::reader::source_watermarks(runtime.cva());
-            let (rel_id, journal_sequence) = {
+            let rel_id = {
                 let journal = journal
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                (journal.rel_id(), journal.sequence())
+                if journal.sequence() != journal_sequence {
+                    return Err(operation(
+                        "REL journal changed during conversation source capture",
+                    ));
+                }
+                journal.rel_id()
             };
             durable_watermarks.conversation_journal_sequence = Some(journal_sequence);
             Ok(RelObservationSummary {
@@ -442,12 +470,35 @@ fn build_conversation_observation(
     conversation_id: &ConversationId,
     instance: Option<&InstanceRuntime>,
 ) -> Result<ConversationObservationSnapshot, ReliquaryRuntimeHostError> {
-    let (policy, policy_revision) = runtime.cva().conversation_policy(conversation_id.as_str());
-    let statuses: Vec<_> = journal
-        .statuses()
+    let statuses = journal.statuses();
+    if statuses.len() > MAX_CONVERSATION_SOURCE_ITEMS {
+        return Err(operation("REL conversation journal exceeds its item bound"));
+    }
+    let statuses = statuses
         .into_iter()
         .filter(|(id, _)| id.conversation_id == *conversation_id)
         .collect();
+    build_conversation_observation_from_statuses(
+        runtime,
+        journal,
+        owner_id,
+        mount_epoch,
+        conversation_id,
+        statuses,
+        instance,
+    )
+}
+
+fn build_conversation_observation_from_statuses(
+    runtime: &crate::InteractionRuntime,
+    journal: &RelJournal,
+    owner_id: &str,
+    mount_epoch: u64,
+    conversation_id: &ConversationId,
+    statuses: Vec<(ConversationSubmissionId, SubmissionStatus)>,
+    instance: Option<&InstanceRuntime>,
+) -> Result<ConversationObservationSnapshot, ReliquaryRuntimeHostError> {
+    let (policy, policy_revision) = runtime.cva().conversation_policy(conversation_id.as_str());
     let archive = runtime.cva().archive();
     let mut branches: Vec<_> = archive
         .branches()
@@ -598,9 +649,23 @@ fn checkpoint_from_journal(
             "checkpoint sequence differs from the authoritative journal receipt",
         ));
     }
-    let record =
-        generation_stream_for_conversation(runtime, conversation_id.as_str(), &generation)?
-            .ok_or_else(|| operation("durable checkpoint has no interaction stream record"))?;
+    // Borrow the exact stream record by its durable generation identity. The
+    // session-wide convenience accessor clones every record and its full text;
+    // doing that here would read unbounded ahead text while holding source locks.
+    let record = runtime
+        .cva()
+        .interaction_stream_record(&generation.generation_id)
+        .ok_or_else(|| operation("durable checkpoint has no interaction stream record"))?;
+    if record.session_id != conversation_id.as_str()
+        || record.message_id != generation.generation_id
+        || record.parent_message_id.as_deref() != Some(generation.parent_node_id.as_str())
+        || record.role != crate::InteractionRole::Agent
+        || record.timestamp_ns != generation.started_timestamp_ns
+    {
+        return Err(operation(
+            "generation interaction-stream identity differs from durable generation",
+        ));
+    }
     let byte_len = usize::try_from(checkpoint.utf8_bytes)
         .map_err(|_| operation("checkpoint byte length exceeds addressable memory"))?;
     if byte_len > MAX_DURABLE_STREAM_PREFIX_BYTES || byte_len > record.content.len() {

@@ -177,6 +177,68 @@ fn reopen_rotates_epoch_and_publishes_only_reconciled_safe_lifecycle_cut() {
 }
 
 #[test]
+fn quiesced_maintenance_requires_new_epoch_snapshot_instead_of_incremental_replay() {
+    let (g, owner, i) = setup("p48-maintenance");
+    let (before, stale) = g.subscribe_rel(&i, &owner, None, 4).unwrap();
+    assert!(g.with_quiesced_rel(&owner, |_| Ok(())).is_err());
+    g.quiesce_rel(&owner).unwrap();
+    assert!(g.next_rel_event(&i, &stale).is_err());
+    assert!(g.subscribe_rel(&i, &owner, None, 4).is_err());
+
+    g.with_quiesced_rel(&owner, |runtime| {
+        runtime
+            .cva
+            .append_node(
+                "maintenance-node".into(),
+                "maintenance-conversation".into(),
+                None,
+                "user".into(),
+                1,
+                "durable maintenance body",
+            )
+            .map_err(operation)?;
+        runtime
+            .cva
+            .append_branch(crate::Branch {
+                id: "main".into(),
+                conversation_id: "maintenance-conversation".into(),
+                leaf_node_id: "maintenance-node".into(),
+                canonical: true,
+            })
+            .map_err(operation)?;
+        runtime.cva.sync().map_err(operation)
+    })
+    .unwrap();
+
+    g.reopen_rel(&owner).unwrap();
+    assert!(g.next_rel_event(&i, &stale).is_err());
+    assert!(
+        g.reconnect_rel(&i, &stale, Some(before.watermark), 4)
+            .is_err()
+    );
+    assert!(
+        g.subscribe_rel(&i, &owner, Some(before.watermark), 4)
+            .is_err()
+    );
+    let (after, fresh) = g.subscribe_rel(&i, &owner, None, 4).unwrap();
+    assert!(after.watermark.mount_epoch > before.watermark.mount_epoch);
+    assert_eq!(after.watermark.cursor, 1);
+    assert!(
+        after
+            .state
+            .branches
+            .iter()
+            .any(
+                |branch| branch.conversation_id == "maintenance-conversation"
+                    && branch.leaf_node_id == "maintenance-node"
+            )
+    );
+    assert!(after.state.watermarks.archive_version > before.state.watermarks.archive_version);
+    assert!(!format!("{after:?}").contains("durable maintenance body"));
+    assert!(drain(&g, &i, &fresh).is_empty());
+}
+
+#[test]
 fn detached_queued_recipient_cannot_deliver_and_native_rel_keeps_committing() {
     let (g, owner, i) = setup("p45-detach");
     let second = attach(&g, &owner, "survivor");
