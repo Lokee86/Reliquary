@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **implementation-ready for parallel execution with Phase 3 after Phase 2 closes**
+Status: **P4.0 accepted; P4.1 core implemented on independent P4 branch; P4.2 next**
 
 ## Purpose
 
@@ -24,7 +24,7 @@ The current gateway already has:
 - Phase 1 durable conversation queue state;
 - Phase 2 exact PHY privacy boundaries.
 
-What does not yet exist in production is a `RelSequencer`, REL subscriber registry, retained cursors, atomic snapshot+registration handshake, overflow/resync state, reconnect snapshot authority or conversation stream delivery hub. `RelSequencer` appears only in the accepted design/reference fixtures.
+P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. The public atomic snapshot+registration handshake, resync acknowledgement, complete production publication, reconnect snapshot authority and conversation stream hub remain later steps. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md).
 
 Phase 4 introduces those as one canonical distribution subsystem. It does not create another semantic owner, another durable event log, or another conversation coordinator.
 
@@ -252,7 +252,7 @@ A red migration window is acceptable on the P4 branch while event coverage is in
 
 ### P4.0 — Baseline and mutation inventory
 
-**Accepted:** [P4.0 baseline and mutation inventory](multiplexing-phase4-baseline-2026-10-04.md), independently branched from shared foundation `388bd8f`. All mutation families classified; 115 gateway cases, 10 event/auth cases and 1 public API case pass, along with library check/format/docs. P4.1 is next.
+**Accepted:** [P4.0 baseline and mutation inventory](multiplexing-phase4-baseline-2026-10-04.md), independently branched from shared foundation `388bd8f`. All mutation families classified; 115 gateway cases, 10 event/auth cases and 1 public API case pass, along with library check/format/docs. P4.1 is recorded below.
 
 Start from accepted Phase 2 + seam-freeze.
 
@@ -267,6 +267,8 @@ Inventory every instance-visible gateway mutation family and classify it against
 **Exit:** no unclassified gateway mutation family.
 
 ### P4.1 — RelSequencer core
+
+**Implemented:** [P4.1 core and acceptance](multiplexing-phase4-core-2026-10-04.md). Cursor/epoch/isolation/lifecycle checks pass; architecture refresh and CLI test build remain verification gaps recorded there. P4.2 is next.
 
 Implement one sequencer per mounted REL.
 

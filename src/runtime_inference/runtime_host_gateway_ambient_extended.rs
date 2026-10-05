@@ -273,7 +273,7 @@ impl GatewayRuntime {
             .instance
             .authorize(owner_id, OwnerGrant::ManageRel, token.authorization)
             .map_err(operation)?;
-        let (fence, owner) = {
+        let (fence, owner, sequencer) = {
             let rels = self
                 .rel_executions
                 .read()
@@ -289,9 +289,14 @@ impl GatewayRuntime {
                     "owner token belongs to a previous fence generation",
                 ));
             }
-            (Arc::clone(&rel.fence), Arc::clone(&rel.owner))
+            (
+                Arc::clone(&rel.fence),
+                Arc::clone(&rel.owner),
+                Arc::clone(&rel.sequencer),
+            )
         };
         fence.close_and_drain()?;
+        sequencer.close()?;
         owner
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -322,7 +327,7 @@ impl GatewayRuntime {
             .instance
             .authorize(owner_id, OwnerGrant::ManageRel, authorization)
             .map_err(operation)?;
-        let (fence, owner) = {
+        let (fence, owner, sequencer) = {
             let rels = self
                 .rel_executions
                 .read()
@@ -330,7 +335,11 @@ impl GatewayRuntime {
             let rel = rels
                 .get(owner_id)
                 .ok_or_else(|| operation("REL owner is not mounted"))?;
-            (Arc::clone(&rel.fence), Arc::clone(&rel.owner))
+            (
+                Arc::clone(&rel.fence),
+                Arc::clone(&rel.owner),
+                Arc::clone(&rel.sequencer),
+            )
         };
         if fence.snapshot()?.0 != super::super::OwnerAdmission::Closed {
             return Err(operation("REL must be quiesced before it can be reopened"));
@@ -355,6 +364,7 @@ impl GatewayRuntime {
             .instance
             .authorize(owner_id, OwnerGrant::ManageRel, authorization)
             .map_err(operation)?;
+        sequencer.reset_epoch(epoch)?;
         let (generation, restarted) = {
             let mut execution = owner
                 .lock()
@@ -363,6 +373,7 @@ impl GatewayRuntime {
             (generation, execution.restart_workers())
         };
         if let Err(error) = restarted {
+            sequencer.close()?;
             fence.close_and_drain()?;
             owner
                 .lock()

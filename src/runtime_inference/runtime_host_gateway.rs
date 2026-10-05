@@ -42,8 +42,12 @@ pub use host::{
 };
 #[path = "runtime_host_gateway_conversation.rs"]
 pub(super) mod conversation;
+#[path = "runtime_host_gateway_events.rs"]
+pub(super) mod events;
 #[path = "runtime_host_gateway_observation.rs"]
 pub(super) mod observation;
+#[path = "runtime_host_gateway_subscriptions.rs"]
+mod subscriptions;
 
 /// Stable header identity used as the key for one gateway-owned REL or PHY.
 pub type DurableOwnerId = String;
@@ -194,6 +198,7 @@ struct AttachmentEntry {
 }
 
 struct RelExecution {
+    sequencer: Arc<events::RelSequencer>,
     file_identity: MountedFileIdentity,
     _mount_claim: MountClaim,
     owner: Arc<Mutex<RelRuntime>>,
@@ -465,6 +470,7 @@ impl GatewayRuntime {
             .insert(
                 owner_id.clone(),
                 RelExecution {
+                    sequencer: Arc::new(events::RelSequencer::new(&owner_id, mount_epoch)?),
                     file_identity: identity,
                     _mount_claim: claim,
                     owner,
@@ -900,6 +906,14 @@ impl GatewayRuntime {
                 self.conversation
                     .remove_instance_owner_viewers(instance.instance_id(), owner_id)?;
             }
+            for rel in self
+                .rel_executions
+                .read()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .values()
+            {
+                rel.sequencer.remove_instance(instance.instance_id())?;
+            }
             instance.replace_grants(grants).map_err(operation)?;
             Ok(())
         })();
@@ -945,6 +959,14 @@ impl GatewayRuntime {
         entry.leases.close_and_drain()?;
         self.conversation
             .detach_instance_viewers(instance.instance_id())?;
+        for rel in self
+            .rel_executions
+            .read()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .values()
+        {
+            rel.sequencer.remove_instance(instance.instance_id())?;
+        }
         instance.detach().map_err(operation)
     }
 
@@ -1053,7 +1075,7 @@ impl GatewayRuntime {
         if self.shutting_down.load(Ordering::SeqCst) {
             return Err(operation("gateway is shutting down"));
         }
-        let (fence, owner) = {
+        let (fence, owner, sequencer) = {
             let rels = self
                 .rel_executions
                 .read()
@@ -1061,9 +1083,14 @@ impl GatewayRuntime {
             let rel = rels
                 .get(owner_id)
                 .ok_or_else(|| operation(format!("REL owner {owner_id} is not mounted")))?;
-            (Arc::clone(&rel.fence), Arc::clone(&rel.owner))
+            (
+                Arc::clone(&rel.fence),
+                Arc::clone(&rel.owner),
+                Arc::clone(&rel.sequencer),
+            )
         };
         fence.close_and_drain()?;
+        sequencer.close()?;
         owner
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -1079,7 +1106,7 @@ impl GatewayRuntime {
         if self.shutting_down.load(Ordering::SeqCst) {
             return Err(operation("gateway is shutting down"));
         }
-        let (fence, owner) = {
+        let (fence, owner, sequencer) = {
             let rels = self
                 .rel_executions
                 .read()
@@ -1087,7 +1114,11 @@ impl GatewayRuntime {
             let rel = rels
                 .get(owner_id)
                 .ok_or_else(|| operation(format!("REL owner {owner_id} is not mounted")))?;
-            (Arc::clone(&rel.fence), Arc::clone(&rel.owner))
+            (
+                Arc::clone(&rel.fence),
+                Arc::clone(&rel.owner),
+                Arc::clone(&rel.sequencer),
+            )
         };
         if fence.snapshot()?.0 != OwnerAdmission::Closed {
             return Err(operation("REL must be quiesced before it can be reopened"));
@@ -1107,6 +1138,7 @@ impl GatewayRuntime {
                 .ok_or_else(|| operation(format!("REL owner {owner_id} is not mounted")))?;
             rel.mount_epoch.store(epoch, Ordering::SeqCst);
         }
+        sequencer.reset_epoch(epoch)?;
         let (generation, restarted) = {
             let mut execution = owner
                 .lock()
@@ -1115,6 +1147,7 @@ impl GatewayRuntime {
             (generation, execution.restart_workers())
         };
         if let Err(error) = restarted {
+            sequencer.close()?;
             fence.close_and_drain()?;
             owner
                 .lock()
@@ -1209,7 +1242,13 @@ impl GatewayRuntime {
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         let owners = rels
             .values()
-            .map(|rel| (Arc::clone(&rel.fence), Arc::clone(&rel.owner)))
+            .map(|rel| {
+                (
+                    Arc::clone(&rel.fence),
+                    Arc::clone(&rel.owner),
+                    Arc::clone(&rel.sequencer),
+                )
+            })
             .collect::<Vec<_>>();
         drop(rels);
         let phys = self
@@ -1222,7 +1261,7 @@ impl GatewayRuntime {
             .collect::<Vec<_>>();
         drop(phys);
         let mut first_failure = None;
-        for (fence, _) in &owners {
+        for (fence, _, _) in &owners {
             if let Err(error) = fence.close_and_drain() {
                 if first_failure.is_none() {
                     first_failure = Some(error);
@@ -1236,7 +1275,14 @@ impl GatewayRuntime {
                 }
             }
         }
-        for (_, owner) in owners {
+        for (_, _, sequencer) in &owners {
+            if let Err(error) = sequencer.close() {
+                if first_failure.is_none() {
+                    first_failure = Some(error);
+                }
+            }
+        }
+        for (_, owner, _) in owners {
             let stopped = match owner.lock() {
                 Ok(mut owner) => owner.stop_workers(),
                 Err(_) => Err(ReliquaryRuntimeHostError::LockPoisoned),
@@ -1351,7 +1397,7 @@ impl GatewayRuntime {
         if self.shutting_down.load(Ordering::SeqCst) {
             return Err(operation("gateway is shutting down"));
         }
-        let (fence, owner) = {
+        let (fence, owner, sequencer) = {
             let rels = self
                 .rel_executions
                 .read()
@@ -1359,9 +1405,14 @@ impl GatewayRuntime {
             let rel = rels
                 .get(owner_id)
                 .ok_or_else(|| operation(format!("REL owner {owner_id} is not mounted")))?;
-            (Arc::clone(&rel.fence), Arc::clone(&rel.owner))
+            (
+                Arc::clone(&rel.fence),
+                Arc::clone(&rel.owner),
+                Arc::clone(&rel.sequencer),
+            )
         };
         fence.close_and_drain()?;
+        sequencer.close()?;
         owner
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
