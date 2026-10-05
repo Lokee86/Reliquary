@@ -1,7 +1,7 @@
 # Multiplexing Phase 3 — conversation coordination implementation plan
 
 Parent: [Multiplexing implementation plan](multiplexing-implementation-plan.md)  
-Foundation: Phase 2 accepted head plus the shared P3/P4 seam freeze described below  
+Foundation: accepted Phase 2 + frozen P34 seam `388bd8f319ae0baafcc89f6c4c5288b78248a3ef`
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  

@@ -11,8 +11,11 @@ Record the accepted foundation, conversation/journal inventory and P3.0 verifica
 Status: **P3.0 accepted. Required focused gates pass; P3.1 is next.**
 
 Accepted Phase 2 head: `c883f3655f86087f7cfd2d7dab395a3944a6df23`.
+Shared seam commit: `388bd8f319ae0baafcc89f6c4c5288b78248a3ef`.
 Foundation branch: `feat/multiplexing-p34-foundation`.
-Worktree: `C:\!bin\workspace\reliquary-multiplexing-p34-foundation`.
+Phase 3 branch: `feat/multiplexing-phase3-conversation`, created from that exact seam commit.
+Phase 3 worktree: `C:\!bin\workspace\reliquary-multiplexing-phase3`.
+Verification worktree: `C:\!bin\workspace\reliquary-multiplexing-p34-foundation`.
 
 The Phase 2 worktree contained uncommitted P3/P4 plans and parent/index edits. Those plans were copied without modifying their originals. A concurrent P4 baseline job was rebuilding dependencies there and timed out after five minutes; this is not a failing conversation test. P3 uses a separate worktree and dedicated build targets.
 
@@ -70,7 +73,7 @@ Gateway assistant-result ingestion remains unsupported until a later implemented
 
 ## Exit decision
 
-P3.0 is accepted with no unresolved Phase 2 authority dependency. Both lanes must branch from the common seam commit identified in the Phase 3 branch's acceptance record. P3.1 is the next implementation step.
+P3.0 is accepted with no unresolved Phase 2 authority dependency. Both lanes must branch from the exact common seam commit recorded above. P3.1 is the next implementation step.
 
 ## Documentation impact
 
