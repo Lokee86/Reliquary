@@ -102,10 +102,16 @@ impl Cva {
             completed_at_ns,
         )?;
         crate::insomnia::temporal::infer_prepared(extractor.temporal_endpoint(), &mut prepared)?;
+        let owner_uuid = self.owner_uuid();
+        let accepted_rel_turn = self.rel_turn_count();
         commit_application(
             &mut self.container,
             &mut self.memories,
             &mut self.insomnia,
+            &mut self.freshness,
+            &mut self.dream_freshness,
+            owner_uuid,
+            accepted_rel_turn,
             claim,
             prepared,
             None,
@@ -140,10 +146,16 @@ impl Cva {
         } else {
             Some(publish_user_application(phylactery, &prepared.user_drafts)?)
         };
+        let owner_uuid = self.owner_uuid();
+        let accepted_rel_turn = self.rel_turn_count();
         commit_application(
             &mut self.container,
             &mut self.memories,
             &mut self.insomnia,
+            &mut self.freshness,
+            &mut self.dream_freshness,
+            owner_uuid,
+            accepted_rel_turn,
             claim,
             prepared,
             user_publication,

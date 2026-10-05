@@ -185,6 +185,9 @@ fn replay_completion(
         bodies: Vec::new(),
         records: Vec::new(),
         routing_metadata: Vec::new(),
+        freshness_birth_turn: completion.freshness_birth_turn,
+        freshness_policy_version: completion.freshness_policy_version,
+        freshness_birth_memory_ids: completion.freshness_birth_memory_ids,
     };
     let payload =
         encode_completion(&receipt).map_err(CvaReconcileError::InvalidInsomniaCompletion)?;

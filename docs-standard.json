@@ -42,6 +42,10 @@
   ],
   "change_rules": [
     {
+      "paths": ["src/freshness/**", "src/facade/cva_freshness*.rs", "src/runtime_inference/*freshness*.rs", "tests/freshness_*.rs", "src/freshness_storage.rs", "src/freshness_dream_journal.rs", "src/freshness_due.rs", "src/facade/cva_reconcile_freshness.rs"],
+      "docs": ["docs/architecture.md", "docs/storage-format.md", "docs/api.md", "docs/invariants.md", "docs/behavioral-contracts.md", "docs/maintainer-map.md", "docs/documentation-coverage.md", "docs/current-limitations.md"]
+    },
+    {
       "paths": ["src/container*.rs", "src/cva_lifecycle.rs", "src/phylactery_lifecycle.rs", "src/migration*.rs"],
       "docs": ["docs/storage-format.md", "docs/architecture.md", "docs/api.md", "docs/behavioral-contracts.md"]
     },

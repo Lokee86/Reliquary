@@ -23,7 +23,7 @@ The standalone CLI previously omitted the library's vendored `quinn-proto` patch
 
 ## Full test example verification gap
 
-An earlier completed `cargo test -j 1` attempt stopped while compiling the existing `archive_open_profile` example: its `#[global_allocator]` conflicts with the allocator in `lore_base`. Library tests (760) and activity contracts (10) passed independently during Phase 1.6. The earlier parallel full-test attempt also produced missing-crate artifacts and rustc internal errors in existing Lore integration. This example/build gate is separate from activity-clock semantics.
+An earlier completed `cargo test -j 1` attempt stopped while compiling the existing `archive_open_profile` example because its `#[global_allocator]` conflicted with the allocator in `lore_base`. The 2026-10-03 R1 repair removes that competing allocator and retains open-time measurements; allocator retained/peak byte metrics are now explicitly unavailable rather than replaced by zero or process working-set measurements. Library tests (760) and activity contracts (10) passed independently during Phase 1.6. The earlier parallel full-test attempt also produced missing-crate artifacts and rustc internal errors in existing Lore integration. This example/build gate is separate from activity-clock semantics.
 
 ## Activity-clock integration verification
 
@@ -35,7 +35,7 @@ Phase 1.5 implements Archive-owned live activity, current-count/first-position/h
 
 ## Memory Freshness implementation status
 
-The accepted [unified deterministic Memory Freshness design](generic-staleness-implementation-plan.md) and [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md) are **planned, not implemented**. The existing Archive REL activity clock and separately implemented pure typed-clock/due evaluator are not the per-Memory signed score, event-scoped graph reinforcement, concurrent traversal, durable Freshness results or derived lifecycle index. The earlier mandatory Perception stale-Memory audit and per-Memory generic review schedule are withdrawn. PHY Freshness needs a separately justified owner-local activity source.
+The accepted [unified deterministic Memory Freshness design](generic-staleness-implementation-plan.md) has an owner-local signed-score engine, pinned owner policy (`CVAFRP01`), bounded receipt residency, canonical immutable effect replay (`CVAFRS02`), first-cycle Dream recovery, accepted-use API and graded Ego selection adapter. Historical ordering uses bounded disposable sorted runs; positive receipt lookup after cache eviction remains a linear scan of the accepted durable prefix. P4's fixed 8-KiB negative hint avoids scans for proven absent use/event identities; false positives, incomplete hints and eventual saturation preserve the exact scan fallback. It adds no durable checkpoint or compaction policy. The [P4 report](freshness-performance-p4-verification-2026-10-04.md) scopes accepted local storage measurements separately from production-tail evidence. Divergent reconciliation rebases through exact Archive identities and preserves pinned accepted effects; pending Dream passes/publication intents are explicitly unsupported for divergent merges. Durable event/pass/root history remains append-only without an authoritative compaction/checkpoint policy. Notifications are derived at-least-once coalescing hints, with a 64-transition activity drain; lazy scores do not depend on backlog. Runtime Dream propagation evaluates frozen work outside the owner mutex. A universal external accepted-context producer and a running Ego summarizer are unavailable in this repository; the library APIs do not establish end-to-end host consumption reinforcement. Historical fixtures support prospective topology measurements, not score trajectories, because time-positioned admission/link/use evidence is absent. F8 semantic reinforcement is deferred and is not current behavior. PHY Freshness remains excluded without a separately justified activity source. The final core acceptance disposition is recorded in the [core verification report](freshness-core-release-verification-2026-10-03.md).
 
 ## Version/history limits
 - Current global versions carry owner-local transaction timestamps and support `version_at_or_before(transaction_time_ns)`, but legacy `CVAVERS1` tickets and `CVAINSC2`/`CVAINSC3` embedded ranges remain deliberately untimestamped. Historical wall-clock lookup returns only a provable global-version prefix cut: it stops before the first unknown timestamp or before any earlier version whose timestamp is later than the requested cut. This also handles divergent reconciliation where preserved branch timestamps need not be monotonic in the newly linearized global-version order. Reliquary never skips such blockers or infers missing times from source/update metadata.
@@ -128,6 +128,16 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 ## Enforcement limits
 Repository-local Pitlord enforcement assigns every authored Rust source file under `src/` to exactly one architectural owner and blocks reintroduction of the deleted generic `WorkspaceMetadata` / `workspace_type` authority outside the explicit legacy migration decoder. The source tree is physically grouped by those owner directories, so Pitlord can use coarse directory selectors while Reliquary remains one Rust crate. A refreshed post-reorganization audit found no current basis for splitting the core into multiple crates: production import evidence leaves Archive, Chronos, config/security, facade, Memory, Perception, retrieval, runtime/inference, and semantic graph in one strongly connected component; only `container` and `ego` fall outside that SCC. No dependency-direction/cycle rule is therefore being added merely to force an aspirational package DAG. The generated `.lexicon/` and `.arcana/` state is disposable analysis evidence and remains ignored rather than becoming repository authority.
 
+## Freshness performance baseline status
+
+P2 scheduling is accepted: batches below 16 are serial; 16+ use one event pool capped by caller/hardware/event count and four workers. The counterless path shares the public algorithm. The [P2 report](freshness-performance-p2-verification-2026-10-03.md) records matched evidence, isolated stage variance and the absence of a claimed complete-operation speedup.
+
+
+
+
+
+Performance hardening's P0/final integrated local release comparison is accepted in [P6 integrated verification](freshness-performance-verification-2026-10-03.md). All 208 topology rows preserve exact effect maps; complete regular receipt shapes materially improve, with explicit batch-4 serial and microsecond retry costs retained. Positive evicted retries/history queries remain linear, saturated hints safely restore scan cost, and the fixed hint adds 8,192 bytes plus flag/alignment. Connected-graph canonical projection remains material. Deployment host/provider/mutex tails, production event frequencies and real historical score trajectories remain unavailable. Windows peak working set is recorded separately from unavailable allocator peak heap. Optional diagnostic collection affects timing; no universal speedup or production SLO is claimed.
+
 ## Related docs
 - [Roadmap](roadmap.md)
 - [Architecture](architecture.md)
@@ -145,3 +155,5 @@ Repository-local Pitlord enforcement assigns every authored Rust source file und
 
 ## Notes
 These limitations should be updated in the same implementation change that removes them.
+
+P5 measured broad +50 Dream reach on present fixture topology: one-root current 14-day events reached a median 98.7% of active Graph endpoints; eight dispersed roots also produce substantial strong-effect coverage. [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) retains v1 pending semantic-quality and actual event-frequency evidence. Endpoint reach excludes isolated/unrepresented Memories and is not measured whole-MemoryStore coverage or Ego quality. P6 integrated local verification is complete; deployment evidence remains outside that gate.

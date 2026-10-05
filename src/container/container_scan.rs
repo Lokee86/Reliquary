@@ -8,6 +8,27 @@ use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
 
 impl Container {
+    /// Opens a read-only handle for bounded streaming queries.
+    ///
+    /// Unlike normal open, this does not scan, repair a truncated tail, or
+    /// initialize the in-memory version index. Use it only with read APIs.
+    pub(crate) fn open_read_only_for_scan(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
+        let path = path.as_ref();
+        let mut file = OpenOptions::new().read(true).open(path)?;
+        let (version, identity, owner_uuid, header_len) = read_header(&mut file)?;
+        Ok(Self {
+            file,
+            path: path.to_path_buf(),
+            version,
+            identity,
+            owner_uuid,
+            header_len,
+            next_version: 1,
+            transaction_times: BTreeMap::new(),
+            next_transaction_time_override: None,
+        })
+    }
+
     pub fn open(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
         Self::open_scanned(path, |_, _, _| Ok(()))
     }

@@ -30,8 +30,9 @@ src/facade/                        public Cva/Reliquary/Phylactery composition, 
 src/lib.rs                         crate-root module declarations + public exports
 examples/archive_roundtrip.rs        prepared Archive corpus smoke
 examples/vector_generation_smoke.rs  two-profile vector + retrieval smoke
-examples/archive_open_profile.rs     allocator/open-time benchmark
+examples/archive_open_profile.rs     open-time benchmark (allocator metrics unavailable)
 examples/entity_calibration_harvest.rs deterministic frozen-corpus Entity calibration harvester
+examples/freshness_calibration.rs      synthetic and verified-copy REL Graph Freshness workload profiler
 
 docs/                                current docs, plans, limits, decisions
 tools/pitlord/                       repository architecture ownership/policy
@@ -42,6 +43,8 @@ scripts/check_architecture.py        Lexicon/Arcana refresh + Pitlord enforcemen
 Do not copy large portions of previous Reliquary implementations as a migration shortcut. Reuse must preserve current ownership boundaries.
 
 ## Verification commands
+
+The `freshness_calibration` example’s 1/2/4/8 worker settings invoke single-event propagation and do not measure the P2 batch event pool. P2 scheduling thresholds, caps, counter behavior and verification status are described in the [P2 verification report](freshness-performance-p2-verification-2026-10-03.md); P2 acceptance and its propagation-stage scope are recorded there.
 
 ```text
 cargo fmt --check
@@ -79,9 +82,27 @@ Open benchmark:
 cargo run --release --example archive_open_profile -- <archive.cva> [runs]
 ```
 
-The benchmark is standalone and reports median/p90 `Cva::open` time plus allocator-tracked retained and peak additional bytes.
+The benchmark is standalone and reports median/p90 `Cva::open` time. Allocator-tracked retained and peak additional bytes are unavailable because Lore owns the global allocator; the harness does not install a conflicting allocator.
 
 The test-only REL activity profiler avoids the standalone allocator conflict. Run `cargo test --lib archive_activity::measurement_tests -- --nocapture` with `REL_ACTIVITY_FIXTURES` set to semicolon-separated frozen REL paths (PowerShell: `$env:REL_ACTIVITY_FIXTURES='C:\path\first.rel;C:\path\second.rel'`). Without that variable it validates a disposable 512-turn mixed-role, mixed-format fixture. It verifies every version-linked cut and first identity position against an independent ledger and inspects hash-verified disposable copies, leaving original permissions and bytes unchanged. Both source and copy hashes are checked before/after. Hashing/copying warms the file cache before the three measured opens. Output reports three-run median total reopen time, nine-run median NodeIndex replay with/without canonical activity preflight/accounting, their signed per-node timing difference, and exact activity-vector used/capacity bytes plus struct size. Node cloning/destruction are outside replay timing. The replay difference estimates in-memory live accounting overhead; it excludes payload decoding, file I/O and sync. Timings are informational, have no pass/fail threshold, and must name the build profile and host conditions when reported. See [activity-clock validation](rel-activity-clock-implementation-plan.md).
+
+Accepted-use history profiling builds with `cargo build --release --locked --features freshness-performance-trace --example freshness_operation_baseline -j2`. Freeze the post-P2 instrumented executable before applying P4; then run `python scripts/freshness_history_profile.py --baseline <frozen-baseline.exe> --candidate <candidate.exe> --out <disposable-output-directory> --rounds 3`. It uses fresh disposable RELs at depths 0/160/1024 and batches 1/4/16/64, checks compiler/indexer load, discards contaminated samples, alternates variant order, compares current/historical records and verifies reopen. Seed work is outside the measured receipt and exact-retry stages. Trace rows aggregate inclusive stage durations/calls and bounded counts; do not sum parent and child stages or call append/sync a CPU optimization. Run `scripts/freshness_operation_profile.py` with the same baseline/candidate/output/round arguments first when shared Dream storage changes; it checks 1/2/4/8-root Dream settlement and reopen/retry stages, and its files join the history archive. See [P4 verification](freshness-performance-p4-verification-2026-10-04.md) for source/binary custody and limits.
+
+Memory Freshness propagation profile:
+
+```text
+cargo run --release --example freshness_calibration
+```
+
+With no arguments, the harness builds a deterministic synthetic dense graph (`synthetic_dense_local_v1`) for reproducible algorithm/workload measurements. Real-fixture mode requires both `--fixture <REL path>` and `--sha256 <64-hex>`; run the following against the authoritative frozen files when available:
+
+```text
+cargo run --release --example freshness_calibration -- --fixture "C:\!bin\workspace\reliquary-fixtures\local\authoritative\chatgpt-first14d\project.prj.rel" --sha256 49751a62dd8644800d19976a0696a69366dc1e4f8d7c39bb4b69fbd7a8a5d18b
+cargo run --release --example freshness_calibration -- --fixture "C:\!bin\workspace\reliquary-fixtures\local\authoritative\chatgpt-first28d\project.prj.rel" --sha256 8f4a2bf871d7f5368edde93954a2260a29c86131b28475b323a7b6c70f8c51e4
+cargo run --release --example freshness_calibration -- --fixture "C:\!bin\workspace\reliquary-fixtures\local\authoritative\rhelm-david-r-ellis-pre-relationship\project.prj.rel" --sha256 3efd9c666aa992686abd8aac9b77cfc7dc2a0e15d6fb26ec01f8666db175e476
+```
+
+The harness checks the source digest against `--sha256`, copies the REL to a collision-resistant temporary path, verifies the copy digest, opens only the copy, and checks the source digest again before cleanup. It projects current owner-local active Memory-to-Memory topology and runs hypothetical +25/+50 propagation roots at 1/2/4/8 workers; a Community snapshot is used only when it matches the current Graph version, otherwise membership is conservatively unknown. Output includes p50/p95/p99 batch and per-event latency, touched Memories, examined edges, maximum frontier, and speedup relative to one worker. These are prospective workload measurements on present fixture topology. The fixtures do not contain time-positioned admission, Dream-link, or accepted-use histories, so the harness does not reconstruct historical score trajectories or calibrate Freshness policy. See [Freshness policy and implementation status](memory-staleness-plan.md), [implementation plan](generic-staleness-implementation-plan.md), and [current limitations](current-limitations.md).
 
 Entity calibration harvest:
 
@@ -371,11 +392,11 @@ Historically, for the two-pass extractor this reduced the nominal no-evidence mo
 
 ### Atomic self-cleaning Insomnia completion — 2026-08-16
 
-Successful Episode processing no longer publishes local REL Memory revisions or their backing objects one at a time. The processor validates extraction and prepares new content-addressed local Memory bodies, Memory records, body-bound routing metadata, and contiguous REL-global version assignments entirely in memory, then writes one current `CVAINSC5` completion transaction containing the new local bodies, every newly visible local Memory record, the owned global-version range, owner-qualified external Memory references, the corresponding new Project-Memory routing metadata, and the compact successful Episode receipt. The same chunk is consumed by REL Memory/routing rebuild and Insomnia completion state. `CVAINSC1` through `CVAINSC4` remain readable for compatibility; V4 carries transaction time but predates embedded routing metadata.
+Successful Episode processing no longer publishes local REL Memory revisions or their backing objects one at a time. The processor validates extraction and prepares new content-addressed local Memory bodies, Memory records, body-bound routing metadata, and contiguous REL-global version assignments entirely in memory, then writes one current `CVAINSC6` completion transaction containing the new local bodies, every newly visible local Memory record, the owned global-version range, owner-qualified external Memory references, the corresponding new Project-Memory routing metadata, the accepted Freshness birth turn/policy/exact first-revision cohort, and the compact successful Episode receipt. The same chunk is consumed by REL Memory/routing rebuild and Insomnia completion state. `CVAINSC1` through `CVAINSC5` remain readable for compatibility; V4 carries transaction time but predates embedded routing metadata.
 
-Container reopen treats an incomplete final length-prefixed chunk as an interrupted append: it truncates the file back to the start of that trailing chunk and continues from the last complete boundary. The existing deterministic truncation suite continues to cover the atomic local Memory transaction through the version-compatible completion decoder, while current writes are `CVAINSC5`. Routed ownership adds a second crash boundary: a PHY User Memory and its routing attachment are synced before the REL receipt, and deterministic mutation/body identity reuses that already-durable PHY state rather than duplicating or rewriting it. A separate regression runs 1,000 synthetic processing failures before success and verifies exactly zero REL growth before success and exactly one new completion chunk.
+Container reopen treats an incomplete final length-prefixed chunk as an interrupted append: it truncates the file back to the start of that trailing chunk and continues from the last complete boundary. The existing deterministic truncation suite continues to cover the atomic local Memory transaction through the version-compatible completion decoder, while current writes are `CVAINSC6`. Routed ownership adds a second crash boundary: a PHY User Memory and its routing attachment are synced before the REL receipt, and deterministic mutation/body identity reuses that already-durable PHY state rather than duplicating or rewriting it. A separate regression runs 1,000 synthetic processing failures before success and verifies exactly zero REL growth before success and exactly one new completion chunk.
 
-Operational retention is deliberately narrow. Pending queue state, claims, leases, renewals, retry counters, retry delays, and retryable failures exist only in memory and emit no `CVAINSW1` chunks. On reopen, every Episode without a final success or terminal outcome is derived as Pending with a fresh runtime attempt count. Successful processing retains one compact `CVAINSC5` REL transaction containing the producing model/contract, timestamps, local Memory IDs, owner-qualified external Memory references, rejected count, newly required local Memory bodies/records, body-grounded routing metadata, and their REL-global version range. Terminal outcomes still use one durable final `CVAINSW1` record during this compatibility slice. Detailed extraction responses, evidence bundles, classification/wording/enrichment intermediates, and retry traces are not made durable.
+Operational retention is deliberately narrow. Pending queue state, claims, leases, renewals, retry counters, retry delays, and retryable failures exist only in memory and emit no `CVAINSW1` chunks. On reopen, every Episode without a final success or terminal outcome is derived as Pending with a fresh runtime attempt count. Successful processing retains one compact `CVAINSC6` REL transaction containing the producing model/contract, timestamps, local Memory IDs, owner-qualified external Memory references, rejected count, newly required local Memory bodies/records, body-grounded routing metadata, and their REL-global version range. Terminal outcomes still use one durable final `CVAINSW1` record during this compatibility slice. Detailed extraction responses, evidence bundles, classification/wording/enrichment intermediates, and retry traces are not made durable.
 
 This removes normal Insomnia garbage at the source rather than depending on vacuum. Queue/claim/renew/retry transitions add zero CVA bytes, failed extraction or synthesis adds zero CVA bytes, and once an Episode already exists a successful processing pass adds only its single completion transaction. Older development CVAs can still contain superseded `CVAINSW1` records and legacy staged-body/`CVAINSC1` layouts, which remain readable as compatibility history. Current Insomnia processing has no pre-completion persistent staging seam and should not require a general CVA vacuum for normal operation.
 
@@ -459,6 +480,18 @@ The calibration also exposed deterministic coverage gaps rather than detector-th
 - `archive_roundtrip` fails on Archive reconstruction/count/content disagreement.
 - `vector_generation_smoke` fails if profile separation, full-fragment generation building, current-generation reconstruction, row counts, or reopened default hybrid retrieval disagree.
 
+## Freshness performance diagnostics
+
+`examples/freshness_performance_baseline.rs` measures prospective graph propagation with separately identifiable +25 events and +50 multi-root events. `--repetitions 1..100` bounds runs; `--scenario ID[,ID]` selects cases. Real mode requires `--fixture PATH --sha256 HEX` and opens only a verified disposable copy. Same/across-Community cases require a current snapshot; unknown-origin cases retain outside-cost semantics. Hashing and copying warm filesystem cache, so owner open is cold-process, not cold-disk evidence.
+
+```text
+cargo run --release --locked --example freshness_performance_baseline -- --repetitions 3 --scenario accepted_batch_16,dream_roots_8_same
+python scripts/freshness_performance_compare.py baseline.json candidate.json
+cargo run --release --locked --features freshness-performance-trace --example freshness_operation_baseline
+```
+
+Set `RELIQUARY_FRESHNESS_TRACE=1` for stage rows. The diagnostic feature is opt-in; the default build has no trace collection or diagnostic fixture adapter. Trace rows are buffered and flushed outside measured operations. The comparison command refuses changed workload/projection/effect identities; changed effective worker strategy remains comparable under the same requested cap. Attach `build_metadata` (`profile`, `rustc`, `cargo_lock_sha256`, `features`) to captured JSON before claiming matched optimized identity. Missing metadata is explicitly unqualified. [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns the baseline; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final local acceptance and remaining measurements.
+
 ## Related docs
 
 - [Architecture](architecture.md)
@@ -475,3 +508,18 @@ The calibration also exposed deterministic coverage gaps rather than detector-th
 ## Notes
 
 The current library has a synchronous per-turn ingestion primitive, transport-neutral interaction seam, derived conversation/leaf inventory, and exact-leaf transcript reads. Warlock v2 now consumes those APIs directly for workspace lifecycle and durable user-turn chat, but no long-lived inference/background host loop, full workspace/CVA management surface, ACP adapter, or production provider/session importer exists yet. Additional provider-native/local adapters and Codex OAuth token refresh are also absent; future sequencing is owned by [Roadmap](roadmap.md).
+## Freshness P5 breadth diagnostic
+
+Build with `cargo build --release --locked -j2 --example freshness_breadth` in the existing isolated performance target. Run `python scripts/freshness_breadth_report.py --binary <target>/release/examples/freshness_breadth.exe`; the collector resolves the three pinned authoritative fixtures under the sibling `reliquary-fixtures` repository and freezes `benchmarks/freshness-p5-breadth-2026-10-04.zip`. The example also accepts `--fixture <REL> --sha256 <digest>`; no arguments select synthetic topology. It opens only hash-verified disposable copies, uses existing production propagation and compares unknown membership with independent shortest-path arithmetic. Output is prospective positive-effect reach, effect/hop/origin histograms and examined edges per recipient; it measures neither stored-score trajectories nor latency. See [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) for sampling, the active-graph denominator, source custody, full results and policy disposition.
+
+## Freshness P6 matched release verification
+
+`scripts/freshness_release_verification.py` compares frozen P0/final release executables built from identical diagnostic examples and the trace feature. Preserve compiler logs and complete source hashes. Use separate Cargo targets, or force recompilation of the second checkout's crate and examples: a shared target can reuse artifacts across equal package identities. The collector rejects identical baseline/candidate binary hashes. The P6 archive includes the harness with normalized current/historical record output emitted after timing.
+
+Place `baseline-propagation.exe`, `candidate-propagation.exe`, `baseline-operation.exe`, `candidate-operation.exe` and `BUILD-SOURCES.json` in the parent of the output directory:
+
+```text
+python scripts/freshness_release_verification.py --out <frozen-build-directory>/measurement --rounds 3 --repetitions 11 --operation-rounds 9 --history-rounds 3
+```
+
+Variants alternate under compiler/indexer guards. The collector preserves raw samples and checks exact propagation maps, current/historical records and reopen. It covers synthetic/three real topologies, complete accepted-use/initial-Dream/reopen operations, and source-only history depths 160/1024 at batches 1/64. Trace parents are inclusive. Sample p95/p99 are not reliable production tails. Windows peak process working set is not allocator peak heap. Host/provider latency and production event frequencies remain unavailable. [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final evidence and disposition.

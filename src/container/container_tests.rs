@@ -87,6 +87,26 @@ fn append_then_read_chunks() {
 }
 
 #[test]
+fn visit_payloads_streams_in_order_without_chunk_index() {
+    let path = test_path("streaming-chunks.cva");
+    let mut container = Container::create(&path).unwrap();
+    let first = container.append(b"one").unwrap();
+    let second = container.append(b"two").unwrap();
+
+    let mut visited = Vec::new();
+    container
+        .visit_payloads::<ContainerError>(|object, payload| {
+            visited.push((object, payload.to_vec()));
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(
+        visited,
+        vec![(first, b"one".to_vec()), (second, b"two".to_vec())]
+    );
+}
+
+#[test]
 fn reject_truncated_header() {
     let path = test_path("truncated.cva");
     fs::write(&path, b"CVA").unwrap();
@@ -110,6 +130,25 @@ fn recover_truncated_trailing_chunk() {
     let mut reopened = Container::open(&path).unwrap();
     assert!(reopened.chunks().unwrap().is_empty());
     assert_eq!(fs::metadata(path).unwrap().len(), 16);
+}
+
+#[test]
+fn read_only_stream_scan_rejects_truncated_tail_without_repair() {
+    let path = test_path("readonly-truncated-chunk.cva");
+    let mut container = Container::create(&path).unwrap();
+    container.append(b"complete").unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let mut bytes = fs::read(&path).unwrap();
+    bytes.pop();
+    fs::write(&path, &bytes).unwrap();
+
+    let mut scan = Container::open_read_only_for_scan(&path).unwrap();
+    assert!(matches!(
+        scan.visit_payloads::<ContainerError>(|_, _| Ok(())),
+        Err(ContainerError::TruncatedChunk(_))
+    ));
+    assert_eq!(fs::metadata(path).unwrap().len(), bytes.len() as u64);
 }
 
 #[test]

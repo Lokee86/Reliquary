@@ -64,6 +64,40 @@ pub(crate) fn corroborated_representative(
     Ok(active.first().map(|memory| memory.id))
 }
 
+pub(crate) fn existing_duplicate_representative(
+    cva: &mut Cva,
+    root_id: MemoryId,
+    source_birth_version: u64,
+    source_id: MemoryId,
+    relations: &[GraphRelation],
+) -> Result<Option<MemoryId>, DreamLifecycleError> {
+    let mut active = Vec::new();
+    for id in duplicate_component(root_id, relations) {
+        // Only owner-local Memories with explicit durable birth enrollment can
+        // represent an existing target; legacy rows and same-batch births are
+        // excluded without recreating Dream's classifier or chronology key.
+        if !cva.freshness_is_publication_birth(id) {
+            continue;
+        }
+        let first = cva.memory_revision(id, 1)?;
+        if first.global_version >= source_birth_version {
+            continue;
+        }
+        if cva
+            .freshness_same_publication_cohort(source_id, id)
+            .map_err(|error| DreamLifecycleError::Freshness(error.to_string()))?
+        {
+            continue;
+        }
+        let memory = cva.memory(id)?;
+        if !memory.archived {
+            active.push(memory);
+        }
+    }
+    active.sort_by_key(|memory| representative_key(cva, memory));
+    Ok(active.first().map(|memory| memory.id))
+}
+
 pub(crate) fn duplicate_component_has_active_peer(
     cva: &mut Cva,
     source_id: MemoryId,

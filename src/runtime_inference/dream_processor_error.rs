@@ -12,6 +12,7 @@ pub enum DreamProcessError {
     Publication(DreamPublicationError),
     Lifecycle(DreamLifecycleError),
     Memory(MemoryError),
+    Freshness(String),
 }
 
 impl fmt::Display for DreamProcessError {
@@ -23,6 +24,7 @@ impl fmt::Display for DreamProcessError {
             Self::Publication(error) => write!(f, "{error}"),
             Self::Lifecycle(error) => write!(f, "{error}"),
             Self::Memory(error) => write!(f, "{error}"),
+            Self::Freshness(error) => write!(f, "{error}"),
         }
     }
 }
@@ -34,9 +36,11 @@ impl DreamProcessError {
         match self {
             Self::Classification(error) => error.is_backpressure(),
             Self::Verification(error) => error.is_backpressure(),
-            Self::Candidate(_) | Self::Publication(_) | Self::Lifecycle(_) | Self::Memory(_) => {
-                false
-            }
+            Self::Candidate(_)
+            | Self::Publication(_)
+            | Self::Lifecycle(_)
+            | Self::Memory(_)
+            | Self::Freshness(_) => false,
         }
     }
 }

@@ -7,6 +7,12 @@ publish = false
 [features]
 community-benchmarks = []
 entity-calibration = []
+freshness-performance-trace = []
+
+[[example]]
+name = "freshness_operation_baseline"
+path = "examples/freshness_operation_baseline.rs"
+required-features = ["freshness-performance-trace"]
 
 [[example]]
 name = "entity_admission_calibration"

@@ -18,6 +18,10 @@ The immediate semantic sequence is now: finish cross-scope Entity identity, then
 2. **Observation composition.** Build Observation persistence, bounded synthesis, and relational-Observation specialization over stable cross-owner Entity identity, preserving active-PHY/authorized-REL privacy and exact provenance.
 3. **Ego.** Implement owner-local synthesis scheduling, graph-aware context assembly, deterministic current-REL Cross-chat selection, budgeting, PHY participation, and context projection. Ego is intentionally last so it composes the completed semantic substrate rather than constraining it prematurely.
 
+## Memory Freshness remaining integration and calibration
+
+Connect a genuine accepted-context delivery producer and live Ego routine selection consumer to the verified library seams. Ordinary reads/search hydration remain passive. Obtain time-positioned admission/link/use evidence before historical score-trajectory calibration: the available 14-day, 28-day and Ellis fixtures supply prospective graph topology only. Complete any unresolved repository/calibration gate recorded in [core verification](freshness-core-release-verification-2026-10-03.md). Semantic relevance and import bootstrap (F8/S1–S6) remain a separate deferred milestone.
+
 ## Additional backlog
 
 ### 1. Retire duplicate project-file VCS responsibilities
@@ -296,15 +300,11 @@ Future integration work:
 - add incremental Community maintenance only if measured scan-and-merge cost becomes material; and
 - preserve explicit user Community names as derived semantic metadata only, never Memory-Web authority; current lineage inheritance must remain conservative around ambiguous splits/merges.
 
-## Deterministic Memory Freshness and retained source-progress infrastructure
+## Freshness integration and retained source-progress work
 
-The former per-Memory review-deadline/provenance-audit policy is **superseded** by the accepted [Memory Freshness contract](memory-staleness-plan.md) and its [detailed implementation plan](generic-staleness-implementation-plan.md). The Archive-owned REL accepted-turn clock is already implemented. Every REL Memory will have one signed -100..+100 Freshness score, initialized to +100 on creation **without propagation** (new Memories initially have no connections), with decay starting upon first successful Dream settlement into active `knowledge`/`canonical` for ordinary extracted Memories (even if no links), or immediately for explicitly active first direct publications, at one point per 10 subsequent accepted owner-REL turns. The derived states are Fresh (+1..+100), Stale (-50..0), and Dormant (-100..-51). Direct access adds +25; **actual committed first-cycle Dream relationships** (including newly recognized duplicate relationships) reinforce linked existing information by +50 and then propagate. Admission alone never propagates, and an unlinked new Memory cannot reinforce anything. Event propagation subtracts 5 per hop inside the fixed originating Community, 10 per hop outside it. Each Memory receives only the strongest reinforcement path **once per originating event**. Dream supplies topology/duplicate decisions, not numerical edge strengths or a freshness-triggered model pass.
+Wire only real accepted-context and live Ego consumers when their host contracts exist. Preserve owner-specific authorization, protected keep lanes, full-small-Web selection, searchable Dormant Memories and independent factual truth. Complete historical score-trajectory calibration only after genuine activity/admission/link/use evidence is available. F8 semantic relevance/import bootstrap is deferred separately; PHY Freshness still needs an authorized activity clock.
 
-The implementation starts with bounded **concurrent**, deterministic propagation, lazy decay, sparse indexed lifecycle boundaries, duplicate-chain canonical reinforcement and owner-local idempotent event-batch persistence/recovery. Freshness is contextual relevance and context control, not verified factual truth; Ego uses it as a graded selection input while preserving full-Web-if-economical, mandatory broad audit, searchable Dormant Memories and protected keep lanes. Perception and Chronos no longer gate Freshness transitions.
-
-**Retain separately:** existing REL activity Phase 1, independently justified optional Archive counter materialization, completed-but-not-fully-integrated typed source clock arithmetic and Ego's distinct REL/PHY summary refresh rules. The former generic per-Memory `next_review_at` scheduler and mandatory Perception stale-Memory audit are withdrawn. PHY-specific Freshness awaits its own authorized activity source.
-
-Implementation order: existing clock/checkpoint work (as justified); F1 policy/event identity; F2 score state and lazy decay; F3 Insomnia/Dream/access and duplicate adapters; F4 deterministic concurrent propagation; F5 durable crash/replay and history transformations; F6 lifecycle index and Ego selection; F7 measured fixture calibration and integration. The 14-/28-day and Ellis historical Insomnia rates provide baseline inputs, not pre-approved parameters for all users.
+Retain independently justified Archive progress/checkpoint materialization and Ego REL/PHY summary refresh rules. Do not reintroduce a per-Memory review scheduler or mandatory Perception stale-Memory audit. The [core verification](freshness-core-release-verification-2026-10-03.md) records the accepted library gates and remaining external integration/measurement limits.
 
 ## Ego
 

@@ -159,6 +159,9 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
             bytes: memory_body_bytes("Decision", "Keep this"),
         }],
         records: vec![record],
+        freshness_birth_turn: None,
+        freshness_policy_version: None,
+        freshness_birth_memory_ids: Vec::new(),
         routing_metadata: vec![MemoryRoutingMetadata {
             memory_id: id,
             body_id,

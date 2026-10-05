@@ -65,6 +65,15 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                         continue;
                     }
                 };
+                crate::dream_freshness::begin_initial_pass(
+                    cva,
+                    source_id,
+                    candidates
+                        .candidates
+                        .iter()
+                        .map(|candidate| candidate.context.memory.id),
+                )
+                .map_err(|error| DreamProcessError::Freshness(error.to_string()))?;
                 let mut processed = Vec::with_capacity(candidate_count);
                 for (classification, verification) in pairs {
                     let publication = cva.publish_dream_pair(
@@ -73,6 +82,8 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                         verification_policy,
                         cva.graph_version(),
                     )?;
+                    crate::dream_freshness::record_publication_roots(cva, source_id, &publication)
+                        .map_err(|error| DreamProcessError::Freshness(error.to_string()))?;
                     cva.mark_dream_pair_evaluated(classification.a, classification.b)?;
                     processed.push(DreamProcessedPair {
                         classification,
@@ -80,7 +91,23 @@ impl<C: GeneralEndpoint, V: GeneralEndpoint> DreamProcessor<C, V> {
                         publication,
                     });
                 }
+                if let Some(pass) = cva.pending_initial_dream_pass(source_id) {
+                    cva.accept_initial_dream_settlement(&pass.pass_id, cva.rel_turn_count())
+                        .map_err(|error| DreamProcessError::Freshness(error.to_string()))?;
+                }
                 let lifecycle = cva.reconcile_dream_lifecycle(source_id)?;
+                let active_admission = !lifecycle.source.archived
+                    && matches!(
+                        lifecycle.source.lifecycle_state.as_str(),
+                        "knowledge" | "canonical"
+                    );
+                crate::dream_freshness::settle_initial_pass(
+                    cva,
+                    source_id,
+                    active_admission,
+                    crate::freshness::default_worker_count(),
+                )
+                .map_err(|error| DreamProcessError::Freshness(error.to_string()))?;
                 outcomes.push(DreamMemoryProcessOutcome {
                     memory_id: source_id,
                     result: Ok(DreamProcessResult {

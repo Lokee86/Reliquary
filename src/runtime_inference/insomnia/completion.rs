@@ -8,6 +8,7 @@ const COMPLETION_MAGIC_V2: [u8; 8] = *b"CVAINSC2";
 const COMPLETION_MAGIC_V3: [u8; 8] = *b"CVAINSC3";
 const COMPLETION_MAGIC_V4: [u8; 8] = *b"CVAINSC4";
 const COMPLETION_MAGIC_V5: [u8; 8] = *b"CVAINSC5";
+const COMPLETION_MAGIC_V6: [u8; 8] = *b"CVAINSC6";
 
 #[derive(Clone, Debug)]
 pub(crate) struct InsomniaCompletionBody {
@@ -31,6 +32,9 @@ pub(crate) struct InsomniaCompletion {
     pub(crate) bodies: Vec<InsomniaCompletionBody>,
     pub(crate) records: Vec<MemoryRecord>,
     pub(crate) routing_metadata: Vec<MemoryRoutingMetadata>,
+    pub(crate) freshness_birth_turn: Option<u64>,
+    pub(crate) freshness_policy_version: Option<u64>,
+    pub(crate) freshness_birth_memory_ids: Vec<crate::MemoryId>,
 }
 
 pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &'static str> {
@@ -47,7 +51,38 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
                 .map(|body| body.bytes.len())
                 .sum::<usize>(),
     );
-    out.extend_from_slice(&COMPLETION_MAGIC_V5);
+    let has_birth_proof =
+        value.freshness_birth_turn.is_some() && value.freshness_policy_version.is_some();
+    if value.freshness_birth_turn.is_some() != value.freshness_policy_version.is_some()
+        || (!has_birth_proof && !value.freshness_birth_memory_ids.is_empty())
+    {
+        return Err("incomplete Freshness birth proof");
+    }
+    if has_birth_proof {
+        if value.freshness_policy_version != Some(crate::freshness::FRESHNESS_POLICY_VERSION as u64)
+        {
+            return Err("unsupported Freshness birth policy");
+        }
+        let expected = value
+            .records
+            .iter()
+            .filter(|record| record.revision == 1)
+            .map(|record| record.id)
+            .collect::<std::collections::BTreeSet<_>>();
+        let actual = value
+            .freshness_birth_memory_ids
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>();
+        if actual.len() != value.freshness_birth_memory_ids.len() || actual != expected {
+            return Err("Freshness birth cohort differs from exact first-revision records");
+        }
+    }
+    out.extend_from_slice(if has_birth_proof {
+        &COMPLETION_MAGIC_V6
+    } else {
+        &COMPLETION_MAGIC_V5
+    });
     out.extend_from_slice(&value.episode_id.0);
     out.extend_from_slice(&value.attempt.to_le_bytes());
     out.extend_from_slice(&value.started_at_ns.to_le_bytes());
@@ -113,6 +148,16 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
         out.extend_from_slice(&len.to_le_bytes());
         out.extend_from_slice(&encoded);
     }
+    if has_birth_proof {
+        out.extend_from_slice(&value.freshness_birth_turn.unwrap().to_le_bytes());
+        out.extend_from_slice(&value.freshness_policy_version.unwrap().to_le_bytes());
+        let count = u32::try_from(value.freshness_birth_memory_ids.len())
+            .map_err(|_| "too many Freshness birth IDs")?;
+        out.extend_from_slice(&count.to_le_bytes());
+        for id in &value.freshness_birth_memory_ids {
+            out.extend_from_slice(&id.0);
+        }
+    }
     Ok(out)
 }
 
@@ -123,7 +168,8 @@ pub(crate) fn decode_embedded_version_range(
         || (bytes[..8] != COMPLETION_MAGIC_V2
             && bytes[..8] != COMPLETION_MAGIC_V3
             && bytes[..8] != COMPLETION_MAGIC_V4
-            && bytes[..8] != COMPLETION_MAGIC_V5)
+            && bytes[..8] != COMPLETION_MAGIC_V5
+            && bytes[..8] != COMPLETION_MAGIC_V6)
     {
         return Ok(None);
     }
@@ -135,15 +181,17 @@ pub(crate) fn decode_embedded_version_range(
     if count > 0 && start == 0 {
         return Err("invalid completion global version range");
     }
-    let transaction_time_ns =
-        if bytes[..8] == COMPLETION_MAGIC_V4 || bytes[..8] == COMPLETION_MAGIC_V5 {
-            if bytes.len() < 84 {
-                return Err("short Insomnia completion with transaction time");
-            }
-            Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap()))
-        } else {
-            None
-        };
+    let transaction_time_ns = if bytes[..8] == COMPLETION_MAGIC_V4
+        || bytes[..8] == COMPLETION_MAGIC_V5
+        || bytes[..8] == COMPLETION_MAGIC_V6
+    {
+        if bytes.len() < 84 {
+            return Err("short Insomnia completion with transaction time");
+        }
+        Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap()))
+    } else {
+        None
+    };
     Ok(Some((start, count, transaction_time_ns)))
 }
 
@@ -151,11 +199,14 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
     if bytes.len() < 8 {
         return Ok(None);
     }
+    if bytes[..8] == COMPLETION_MAGIC_V6 {
+        return decode_completion_current(bytes, true, true).map(Some);
+    }
     if bytes[..8] == COMPLETION_MAGIC_V5 {
-        return decode_completion_current(bytes, true).map(Some);
+        return decode_completion_current(bytes, true, false).map(Some);
     }
     if bytes[..8] == COMPLETION_MAGIC_V4 {
-        return decode_completion_current(bytes, false).map(Some);
+        return decode_completion_current(bytes, false, false).map(Some);
     }
     if bytes[..8] == COMPLETION_MAGIC_V3 {
         return decode_completion_v3(bytes).map(Some);
@@ -172,6 +223,7 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
 fn decode_completion_current(
     bytes: &[u8],
     has_routing_metadata: bool,
+    has_birth_proof: bool,
 ) -> Result<InsomniaCompletion, &'static str> {
     if bytes.len() < 96 {
         return Err("short Insomnia current completion");
@@ -221,6 +273,30 @@ fn decode_completion_current(
     } else {
         Vec::new()
     };
+    let (freshness_birth_turn, freshness_policy_version, freshness_birth_memory_ids) =
+        if has_birth_proof {
+            let turn = read_u64(bytes, &mut cursor)?;
+            let policy = read_u64(bytes, &mut cursor)?;
+            let ids = read_memory_ids(bytes, &mut cursor)?;
+            let expected = records
+                .iter()
+                .filter(|record| record.revision == 1)
+                .map(|record| record.id)
+                .collect::<std::collections::BTreeSet<_>>();
+            let actual = ids
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>();
+            if policy != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+                || actual.len() != ids.len()
+                || actual != expected
+            {
+                return Err("invalid Freshness birth policy or exact cohort");
+            }
+            (Some(turn), Some(policy), ids)
+        } else {
+            (None, None, Vec::new())
+        };
     if cursor != bytes.len() {
         return Err("Insomnia completion trailing bytes");
     }
@@ -239,6 +315,9 @@ fn decode_completion_current(
         bodies,
         records,
         routing_metadata,
+        freshness_birth_turn,
+        freshness_policy_version,
+        freshness_birth_memory_ids,
     })
 }
 
@@ -303,6 +382,9 @@ fn decode_completion_v3(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         bodies,
         records,
         routing_metadata: Vec::new(),
+        freshness_birth_turn: None,
+        freshness_policy_version: None,
+        freshness_birth_memory_ids: Vec::new(),
     })
 }
 
@@ -376,6 +458,9 @@ fn decode_completion_v2(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         bodies,
         records,
         routing_metadata: Vec::new(),
+        freshness_birth_turn: None,
+        freshness_policy_version: None,
+        freshness_birth_memory_ids: Vec::new(),
     })
 }
 
@@ -415,6 +500,9 @@ fn decode_completion_v1(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str
         bodies: Vec::new(),
         records,
         routing_metadata: Vec::new(),
+        freshness_birth_turn: None,
+        freshness_policy_version: None,
+        freshness_birth_memory_ids: Vec::new(),
     })
 }
 

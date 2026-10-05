@@ -4,6 +4,18 @@ use crate::{
     MemoryTemporalInference,
 };
 
+pub(crate) fn preflight_memory_parts(
+    archive: &Archive,
+    memories: &mut MemoryStore,
+    container: &mut Container,
+    id: Option<MemoryId>,
+    expected_revision: u64,
+    draft: &MemoryDraft,
+) -> Result<crate::memory_store::PublishPreflight, MemoryError> {
+    validate_memory_provenance(archive, draft)?;
+    memories.preflight_publish(container, id, expected_revision, draft, None, None)
+}
+
 pub(crate) fn publish_memory_parts(
     archive: &Archive,
     memories: &mut MemoryStore,
