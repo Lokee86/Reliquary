@@ -5,6 +5,14 @@
 **Scope:** Optional, more computationally intensive one-time mode for freshly generated complete imported owner-REL corpora. Ordinary import and routine live semantic reinforcement do not inherit reconstruction costs or behavior.
 **Governing documents:** [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [F1–F8 plan](generic-staleness-implementation-plan.md), [completion plan](freshness-completion-execution-plan-2026-10-03.md), [REL activity clock](rel-activity-clock-implementation-plan.md).
 
+## Purpose
+
+Define the optional one-time historical reconstruction path for freshly generated imported REL corpora so Freshness can approximate prior semantic activity and first-cycle Dream reinforcement without fabricating consumed-use events, rebuilding historical graph versions, or changing ordinary live Freshness semantics.
+
+## Overview
+
+The reconstruction generates the corpus and settled graph once, derives a provenance-timed event stream against that fixed authorized graph, replays eligible contributions chronologically with the existing Freshness score mathematics, and atomically replaces provisional import scoring with one owner-local checkpoint. It is intentionally more expensive than normal import and remains REL-local until separate PHY clock semantics are approved.
+
 ## 1. Decision
 
 Import the complete Archive and generate Memories, embeddings, and a settled Dream graph **once**. Reconstruct approximate historical Freshness using source provenance timestamps and that **fixed completed graph**; do not repeatedly switch between model-driven subsystems, reconstruct versioned historical graph topology, or run Insomnia/Dream inference again. Replay selected reconstruction events chronologically with the established Freshness lazy-scoring primitives. Freshness mathematics is exact for the chosen reconstructed events; their historical eligibility, Dream timing, graph connectivity and Community context are explicitly approximate.
@@ -138,3 +146,14 @@ If the current Freshness owner cannot yet express a superseding checkpoint atomi
 This design **supersedes the earlier F8 one-time uncapped/bootstrap accumulator and no-retroactive-timing proposal**, and narrows the former unconditional semantic non-propagation wording to **normal live semantic reinforcement**. The core R1–R7 release remains separate and unchanged. Do not claim an accepted historical plan implies actual imported-history support; keep all current API/storage docs truthful until H1–H8 acceptance.
 
 Execution handoff: inspect current source and Git state before starting, then implement H1–H8 with separate passing test evidence. Run only one mutating owner-journal/reconcile edit batch at once; parallelize independent fixtures and benchmarking only when their file scopes do not collide.
+
+## Related docs
+
+- [Unified Memory Freshness implementation plan](generic-staleness-implementation-plan.md)
+- [Freshness completion execution specification](freshness-completion-execution-plan-2026-10-03.md)
+- [Memory Freshness policy](memory-staleness-plan.md)
+- [ADR 0039 — unified deterministic Memory Freshness](decisions/0039-unified-deterministic-memory-freshness.md)
+
+## Notes
+
+This document is an accepted design specification only. No H1–H8 implementation, migration activation, or PHY Freshness behavior is implied by its presence on `main`.
