@@ -175,6 +175,71 @@ impl GatewayRuntime {
         })
     }
 
+    /// Read a fresh snapshot without releasing the latch. Later publications are
+    /// buffered until the caller acknowledges this exact cut, or overflow again.
+    pub(super) fn resync_rel(
+        &self,
+        instance: &InstanceRuntime,
+        subscription: &RelSubscription,
+    ) -> Result<RelSnapshot, ReliquaryRuntimeHostError> {
+        if instance.instance_id() != subscription.token.instance_id {
+            return Err(operation("REL subscription belongs to another attachment"));
+        }
+        self.with_rel_distribution_admission(&subscription.token, |sequencer| {
+            let mut gate = sequencer.gate(subscription.token.mount_epoch)?;
+            let state = self.read_rel_snapshot_state(&subscription.token)?;
+            self.validate_rel_distribution_token(&subscription.token)?;
+            let watermark = RelCursor {
+                mount_epoch: subscription.token.mount_epoch,
+                cursor: gate.cursor(),
+            };
+            gate.prepare_resync(subscription.id, &subscription.token)?;
+            gate.observe_snapshot_watermarks(state.watermarks.clone());
+            Ok(RelSnapshot {
+                rel_id: RelOwnerId::parse_canonical(&subscription.token.owner_id)
+                    .map_err(operation)?,
+                watermark,
+                state,
+            })
+        })
+    }
+
+    pub(super) fn acknowledge_rel_resync(
+        &self,
+        instance: &InstanceRuntime,
+        subscription: &RelSubscription,
+        watermark: RelCursor,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        if instance.instance_id() != subscription.token.instance_id
+            || watermark.mount_epoch != subscription.token.mount_epoch
+        {
+            return Err(operation(
+                "REL resync acknowledgement belongs to another attachment or epoch",
+            ));
+        }
+        self.with_rel_distribution_admission(&subscription.token, |sequencer| {
+            let mut gate = sequencer.gate(subscription.token.mount_epoch)?;
+            self.validate_rel_distribution_token(&subscription.token)?;
+            gate.acknowledge_resync(subscription.id, &subscription.token, watermark.cursor)
+        })
+    }
+
+    /// Releases only recipient state; it never cancels or changes REL work.
+    pub(super) fn disconnect_rel(
+        &self,
+        instance: &InstanceRuntime,
+        subscription: &RelSubscription,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        if instance.instance_id() != subscription.token.instance_id {
+            return Err(operation("REL subscription belongs to another attachment"));
+        }
+        self.with_rel_distribution_admission(&subscription.token, |sequencer| {
+            let mut gate = sequencer.gate(subscription.token.mount_epoch)?;
+            self.validate_rel_distribution_token(&subscription.token)?;
+            gate.disconnect(subscription.id, &subscription.token)
+        })
+    }
+
     /// Common gate for future gateway mutation adapters. The caller performs
     /// only owner work here, synchronizes it, captures a safe summary and returns.
     /// Full existing-mutator coverage is P4.4/P4.7; it is not claimed by this seam.

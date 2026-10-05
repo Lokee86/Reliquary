@@ -31,6 +31,44 @@ Existing-mutator coverage remains P4.4/P4.7. The race tests exercise the common 
 
 The only conversation-lane integration edit widens the existing journal-handle accessor to sibling visibility for the authorized reader. No journal bytes, coordinator policy or frozen observation shapes change. Reconcile this visibility edit and root module declaration at convergence.
 
+## P4.3 bounded recovery and disconnect
+
+Recipient delivery remains bounded at its configured 1–4096 entries. Overflow
+replaces ordinary delivery with one latest-cursor ResyncRequired latch. Reading
+that state never acknowledges it.
+
+Internal resync_rel obtains a fresh authorized source snapshot under the same
+sequencer gate used for publication. It records that exact epoch/cursor cut,
+discards pre-cut pending events and keeps delivery latched. Later events are
+buffered within the original capacity. acknowledge_rel_resync accepts only the
+prepared snapshot watermark and revalidates attachment/grant/epoch authority.
+It then resumes with the buffered events after the snapshot cut.
+
+If the buffer overflows before acknowledgement, the prepared cut is invalidated,
+pending events are discarded and a newer snapshot is required. An old/future cut,
+wrong epoch, absent preparation or repeated acknowledgement fails without clearing
+the latch. Source clocks and notification cursors remain separate.
+
+disconnect_rel removes only the exact attachment-bound recipient, releasing its
+pending events and recovery state. It does not change REL work or other recipients.
+A new subscription obtains the current snapshot without replaying discarded gaps.
+Detach/revoke/remount retain the existing lifecycle invalidation.
+
+Four new gateway acceptance cases cover exact capacity and repeated overflow,
+snapshot-to-ack publication, reoverflow/stale acknowledgement, disconnect while
+latched, resubscribe, recipient isolation, epoch mismatch and revoked grants.
+P4.3 acceptance:
+- All 14 snapshot/recovery cases passed within the full run, including four new cases.
+- Locked/offline library/integration suite: 932 library and 93 integration tests passed.
+- Library check, formatting, direct Phase 2 source ownership, diff whitespace and both documentation checks passed.
+- The initial test run reached Reliquary compilation but exceeded 600 seconds while rebuilding dependencies. The restarted run completed successfully.
+- Architecture refresh reached Lexicon Rust/Python analysis and timed out at 240 seconds before Arcana/Pitlord enforcement. Refreshed enforcement remains incomplete.
+- The inherited unrestricted example allocator conflict remains as recorded at P4.1. Public/CLI signatures did not change; CLI gates were not repeated.
+
+P4.3 changes no storage bytes, semantic authority, frozen observation shape or
+production P3 policy. Recovery state remains in the sequencer-owned registry.
+The coverage and behavioral-contract maps now record these recovery guarantees.
+
 ## Verification
 
 - Focused snapshot acceptance: 10 passed (including both subscribe/mutation orderings, simultaneous subscribers, revocation during snapshot, inactive conversations, journal retry/exhaustion, wrong epoch/future cursor, remount/detach and private PHY exclusion).
@@ -57,7 +95,7 @@ P4.2 accepts the internal handshake and current safe source readers. Complete pr
 - Ownership or boundary impact: recipient state stays in REL distribution; source readers retain semantic/journal authority.
 - Pitlord enforcement impact: refresh timed out during Lexicon initialization; no refreshed Pitlord success is claimed. Direct ownership enforcement passed.
 - Other verification impact: snapshot races, live authorization and regressions.
-- Known architectural gaps: P4.3 acknowledgement, P4.4 coverage and P4.7 production P3 adapter.
+- Known architectural gaps: P4.4 coverage and P4.7 production P3 adapter.
 
 ## Related docs
 

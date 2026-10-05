@@ -21,6 +21,7 @@ struct Subscriber {
     capacity: usize,
     pending: VecDeque<Arc<RelEventEnvelope>>,
     resync_cursor: Option<u64>,
+    snapshot_cursor: Option<u64>,
 }
 
 #[derive(Default)]
@@ -50,6 +51,7 @@ impl SubscriberRegistry {
                 capacity,
                 pending: VecDeque::new(),
                 resync_cursor: None,
+                snapshot_cursor: None,
             },
         );
         Ok(id)
@@ -57,11 +59,16 @@ impl SubscriberRegistry {
 
     pub(super) fn publish(&mut self, event: Arc<RelEventEnvelope>) {
         for subscriber in self.entries.values_mut() {
-            if subscriber.resync_cursor.is_some() || subscriber.pending.len() >= subscriber.capacity
+            if (subscriber.resync_cursor.is_some() && subscriber.snapshot_cursor.is_none())
+                || subscriber.pending.len() >= subscriber.capacity
             {
                 subscriber.pending.clear();
                 subscriber.resync_cursor = Some(event.cursor);
+                subscriber.snapshot_cursor = None;
             } else {
+                if subscriber.resync_cursor.is_some() {
+                    subscriber.resync_cursor = Some(event.cursor);
+                }
                 subscriber.pending.push_back(Arc::clone(&event));
             }
         }
@@ -72,6 +79,21 @@ impl SubscriberRegistry {
         id: SubscriptionId,
         token: &OwnerAccessToken,
     ) -> Result<Option<RelDelivery>, ReliquaryRuntimeHostError> {
+        let subscriber = self.bound_mut(id, token)?;
+        if let Some(latest_cursor) = subscriber.resync_cursor {
+            return Ok(Some(RelDelivery::ResyncRequired {
+                epoch: token.mount_epoch,
+                latest_cursor,
+            }));
+        }
+        Ok(subscriber.pending.pop_front().map(RelDelivery::Event))
+    }
+
+    fn bound_mut(
+        &mut self,
+        id: SubscriptionId,
+        token: &OwnerAccessToken,
+    ) -> Result<&mut Subscriber, ReliquaryRuntimeHostError> {
         let subscriber = self
             .entries
             .get_mut(&id)
@@ -88,13 +110,52 @@ impl SubscriberRegistry {
                 "REL subscription belongs to a different attachment or grant generation",
             ));
         }
-        if let Some(latest_cursor) = subscriber.resync_cursor {
-            return Ok(Some(RelDelivery::ResyncRequired {
-                epoch: bound.mount_epoch,
-                latest_cursor,
-            }));
+        Ok(subscriber)
+    }
+
+    /// Called only after an authoritative snapshot under the publication gate.
+    /// Keep the latch until acknowledgement; buffer later events within capacity.
+    pub(super) fn prepare_resync(
+        &mut self,
+        id: SubscriptionId,
+        token: &OwnerAccessToken,
+        cursor: u64,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        let subscriber = self.bound_mut(id, token)?;
+        if subscriber.resync_cursor.is_none() {
+            return Err(operation("REL subscription does not require resync"));
         }
-        Ok(subscriber.pending.pop_front().map(RelDelivery::Event))
+        subscriber.pending.clear();
+        subscriber.resync_cursor = Some(cursor);
+        subscriber.snapshot_cursor = Some(cursor);
+        Ok(())
+    }
+
+    pub(super) fn acknowledge_resync(
+        &mut self,
+        id: SubscriptionId,
+        token: &OwnerAccessToken,
+        cursor: u64,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        let subscriber = self.bound_mut(id, token)?;
+        if subscriber.snapshot_cursor != Some(cursor) {
+            return Err(operation(
+                "REL resync snapshot is missing, stale or overflowed",
+            ));
+        }
+        subscriber.snapshot_cursor = None;
+        subscriber.resync_cursor = None;
+        Ok(())
+    }
+
+    pub(super) fn disconnect(
+        &mut self,
+        id: SubscriptionId,
+        token: &OwnerAccessToken,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        self.bound_mut(id, token)?;
+        self.entries.remove(&id);
+        Ok(())
     }
 
     pub(super) fn remove_instance(&mut self, id: super::InstanceId) {

@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P4.0 accepted; P4.1/P4.2 implemented on independent P4 branch; P4.3 next**
+Status: **P4.0 accepted; P4.1–P4.3 implemented and targeted gates accepted on independent P4 branch; architecture refresh remains incomplete; P4.4 next**
 
 ## Purpose
 
@@ -24,7 +24,7 @@ The current gateway already has:
 - Phase 1 durable conversation queue state;
 - Phase 2 exact PHY privacy boundaries.
 
-P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. P4.2 adds the canonical internal atomic snapshot/register handshake and live delivery checks. Public exports, resync acknowledgement, complete production publication, reconnect policy and conversation stream hub remain later steps. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md).
+P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. P4.2 adds the canonical internal atomic snapshot/register handshake and live delivery checks. P4.3 adds bounded resync acknowledgement and recipient disconnect. Public exports, complete production publication, reconnect policy and conversation stream hub remain later steps. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md).
 
 Phase 4 introduces those as one canonical distribution subsystem. It does not create another semantic owner, another durable event log, or another conversation coordinator.
 
@@ -287,7 +287,7 @@ Do not yet instrument all mutations.
 
 ### P4.2 — Atomic REL snapshot/subscription
 
-**Implemented:** [P4.2 snapshot/subscription and acceptance](multiplexing-phase4-snapshot-2026-10-04.md). The internal handshake, current safe readers and race/revocation/privacy tests pass. Final P3 observations and full production publication remain P4.7/P4.4; public exports reconcile at convergence. P4.3 is next.
+**Implemented:** [P4.2 snapshot/subscription and acceptance](multiplexing-phase4-snapshot-2026-10-04.md). The internal handshake, current safe readers and race/revocation/privacy tests pass. Final P3 observations and full production publication remain P4.7/P4.4; public exports reconcile at convergence. P4.3 recovery is implemented below; P4.4 is next.
 
 Implement the canonical broad snapshot builder and atomic registration.
 
@@ -296,6 +296,8 @@ Snapshot builder uses only authorized gateway reads and stable P3 seam data avai
 **Tests:** mutation racing subscribe is snapshot-or-event exactly once; two simultaneous subscribers; revoked grant during snapshot; inactive conversation included; no queue body/private PHY payload.
 
 ### P4.3 — Bounded delivery and ResyncRequired
+
+**Implemented:** bounded overflow, gated fresh snapshot preparation, exact-watermark acknowledgement and explicit recipient disconnect. Post-snapshot events stay bounded and hidden until acknowledgement; a second overflow invalidates that snapshot. See the [snapshot/resync record](multiplexing-phase4-snapshot-2026-10-04.md). 932 library and 93 integration tests, library check, formatting, direct source ownership and both documentation gates pass. Architecture refresh timed out during Lexicon analysis at 240 seconds; refreshed enforcement remains incomplete.
 
 Implement capacities, overflow latch and resync acknowledgement.
 

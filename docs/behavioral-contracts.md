@@ -14,6 +14,14 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 
 `archive_activity::tests` protects live acceptance, exact role eligibility, canonical receipt values, replay, attachment conflicts, overflow, failed publication and ordinal growth. `tests/rel_activity_clock_contract.rs` compares current count, first positions and historical cuts against an explicit reference ledger before and after validated reopen, including legacy/current records, orphan payloads, repeated pointers and non-turn publications. Recovery also rejects conflicting identities and invalid links without rewriting the file. [The implementation plan](rel-activity-clock-implementation-plan.md) records implemented runtime receipts in 1.4 and topology preservation gates in 1.5. `archive_activity::preservation_tests` covers exact physical/copy history, migration identity order with rebased versions, divergent union order, semantic no-op fallback and conflicting identities. `interaction_runtime_tests` and `interaction_session_tests` cover canonical receipt values on novel turns, replay after later activity/reopen, Agent normalization, checkpoint/interrupted/resumed streams and completion despite a later scheduling failure. `archive_activity::measurement_tests` checks an independent ledger, exact rebuilt vectors and unchanged source/copy hashes on a disposable 512-turn fixture by default or explicitly supplied historical fixtures. Timing observations never determine test success; Phase 1.6 records measured fixtures and build limitations.
 
+## REL distribution recovery contracts
+
+`runtime_host_gateway_snapshots_tests` protects exact-capacity delivery, latched
+latest-cursor recovery, bounded post-snapshot buffering, stale acknowledgement
+rejection after another overflow, disconnect/resubscribe isolation and grant/epoch
+revalidation. [The snapshot/resync record](multiplexing-phase4-snapshot-2026-10-04.md)
+records the internal API behavior and verification.
+
 ## Contract matrix
 
 | Contract | Protection |

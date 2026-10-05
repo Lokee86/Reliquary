@@ -20,6 +20,14 @@ The Archive projection, historical read API and synced canonical runtime receipt
 
 `src/runtime_inference/runtime_host_owner_publication*.rs` implements the exact prepared-Memory envelope using the existing semantic codecs, route planning, separate PHY publication and REL receipt observation. `runtime_host_rel_insomnia.rs` loads plans before model reruns. `runtime_host_gateway_pending_publication_tests.rs` covers exact offline/quiesced recovery, admitted-write draining, unrelated real background vectors and deduplicated attachment churn. `runtime_host_gateway_semantic*.rs` plus its five acceptance cases cover instance-authorized private search/read delivery and explicit source-fenced profile projection. The ownership script and compiled routing guard cover gateway and concrete REL/PHY production modules, while preserving the isolated legacy host. `runtime_host_gateway_publication_tests.rs` covers mixed-principal/private/project destinations, ambiguous and unknown rejection, captured grant authority, persistent withdrawal, offline journals, changed bindings, same-ID conflicts and restart boundaries. The worker loads plans before extraction, can replay without an endpoint, and verifies completed receipts read-only. [The Phase 2 execution record](multiplexing-phase2-implementation-plan-2026-10-04.md) records verified gates and the remaining ordered work.
 
+## REL distribution recovery
+
+The internal P4 sequencer, registry and snapshot modules own bounded delivery and
+exact-watermark resync acknowledgement. Post-snapshot events remain bounded until
+acknowledgement; overflow invalidates the cut. Snapshot gateway tests protect
+recovery, disconnect/resubscribe and grant/epoch isolation. [The snapshot/resync record](multiplexing-phase4-snapshot-2026-10-04.md)
+owns current lane details; production publication and public exports remain later work.
+
 ## Implementation coverage
 
 | Implementation | Responsibility | Canonical owners |

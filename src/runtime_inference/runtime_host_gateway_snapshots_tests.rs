@@ -548,3 +548,183 @@ fn broad_snapshot_never_reads_or_exposes_an_attached_private_phy() {
             .is_err()
     );
 }
+
+fn publish_title(gateway: &GatewayRuntime, instance: &InstanceRuntime, owner: &str, value: &str) {
+    let token = gateway
+        .authorize(instance, owner, OwnerGrant::ManageRel)
+        .unwrap();
+    gateway
+        .with_rel_distribution_mutation(&token, |runtime| {
+            runtime
+                .cva
+                .set_conversation_title("inactive", value.into())
+                .map_err(operation)?;
+            Ok(((), RelEventClass::ArchiveChanged, vec![]))
+        })
+        .unwrap();
+}
+
+fn assert_resync(
+    gateway: &GatewayRuntime,
+    instance: &InstanceRuntime,
+    sub: &RelSubscription,
+    cursor: u64,
+) {
+    assert_eq!(
+        gateway.next_rel_event(instance, sub).unwrap(),
+        Some(RelDelivery::ResyncRequired {
+            epoch: sub.token.mount_epoch,
+            latest_cursor: cursor
+        })
+    );
+}
+
+#[test]
+fn bounded_delivery_exact_capacity_overflow_and_ack_preserve_later_events() {
+    let (gateway, owner, instance) = setup("rel-resync-ack");
+    let (_, sub) = gateway.subscribe_rel(&instance, &owner, None, 2).unwrap();
+    publish_title(&gateway, &instance, &owner, "one");
+    publish_title(&gateway, &instance, &owner, "two");
+    // Exactly capacity remains ordinary delivery.
+    let Some(RelDelivery::Event(event)) = gateway.next_rel_event(&instance, &sub).unwrap() else {
+        panic!("capacity edge");
+    };
+    assert_eq!(event.cursor, 1);
+    publish_title(&gateway, &instance, &owner, "three");
+    publish_title(&gateway, &instance, &owner, "four");
+    assert_resync(&gateway, &instance, &sub, 4);
+    assert_resync(&gateway, &instance, &sub, 4); // Reading cannot clear latch.
+    assert!(
+        gateway
+            .acknowledge_rel_resync(
+                &instance,
+                &sub,
+                RelCursor {
+                    mount_epoch: sub.token.mount_epoch,
+                    cursor: 4
+                }
+            )
+            .is_err()
+    );
+    let snapshot = gateway.resync_rel(&instance, &sub).unwrap();
+    assert_eq!(title(&snapshot), Some("four"));
+    publish_title(&gateway, &instance, &owner, "five");
+    assert_resync(&gateway, &instance, &sub, 5);
+    assert!(
+        gateway
+            .acknowledge_rel_resync(
+                &instance,
+                &sub,
+                RelCursor {
+                    mount_epoch: snapshot.watermark.mount_epoch,
+                    cursor: 5
+                }
+            )
+            .is_err()
+    );
+    gateway
+        .acknowledge_rel_resync(&instance, &sub, snapshot.watermark)
+        .unwrap();
+    let Some(RelDelivery::Event(event)) = gateway.next_rel_event(&instance, &sub).unwrap() else {
+        panic!("lost post-snapshot event");
+    };
+    assert_eq!(event.cursor, 5);
+    assert!(gateway.next_rel_event(&instance, &sub).unwrap().is_none());
+    assert!(
+        gateway
+            .acknowledge_rel_resync(&instance, &sub, snapshot.watermark)
+            .is_err()
+    );
+}
+
+#[test]
+fn overflow_during_ack_wait_invalidates_snapshot_and_requires_new_cut() {
+    let (gateway, owner, instance) = setup("rel-resync-reoverflow");
+    let (_, sub) = gateway.subscribe_rel(&instance, &owner, None, 1).unwrap();
+    for value in ["one", "two", "three"] {
+        publish_title(&gateway, &instance, &owner, value);
+    }
+    assert_resync(&gateway, &instance, &sub, 3);
+    let stale = gateway.resync_rel(&instance, &sub).unwrap();
+    publish_title(&gateway, &instance, &owner, "four");
+    publish_title(&gateway, &instance, &owner, "five");
+    assert_resync(&gateway, &instance, &sub, 5);
+    assert!(
+        gateway
+            .acknowledge_rel_resync(&instance, &sub, stale.watermark)
+            .is_err()
+    );
+    let fresh = gateway.resync_rel(&instance, &sub).unwrap();
+    assert_eq!(title(&fresh), Some("five"));
+    gateway
+        .acknowledge_rel_resync(&instance, &sub, fresh.watermark)
+        .unwrap();
+    assert!(gateway.next_rel_event(&instance, &sub).unwrap().is_none());
+    publish_title(&gateway, &instance, &owner, "six");
+    let Some(RelDelivery::Event(event)) = gateway.next_rel_event(&instance, &sub).unwrap() else {
+        panic!("missing resumed event");
+    };
+    assert_eq!(event.cursor, 6);
+}
+
+#[test]
+fn disconnect_latched_recipient_and_resubscribe_preserve_other_recipient_and_work() {
+    let (gateway, owner, instance) = setup("rel-resync-disconnect");
+    let second = attach(&gateway, &owner, "resync-second");
+    let (_, sub) = gateway.subscribe_rel(&instance, &owner, None, 1).unwrap();
+    let (_, other) = gateway.subscribe_rel(&second, &owner, None, 4).unwrap();
+    publish_title(&gateway, &instance, &owner, "one");
+    publish_title(&gateway, &instance, &owner, "two");
+    assert_resync(&gateway, &instance, &sub, 2);
+    assert!(gateway.disconnect_rel(&second, &sub).is_err());
+    assert!(gateway.resync_rel(&second, &sub).is_err());
+    gateway.disconnect_rel(&instance, &sub).unwrap();
+    assert!(gateway.next_rel_event(&instance, &sub).is_err());
+    assert!(gateway.resync_rel(&instance, &sub).is_err());
+    let (snapshot, fresh) = gateway.subscribe_rel(&instance, &owner, None, 1).unwrap();
+    assert_eq!(title(&snapshot), Some("two"));
+    assert_eq!(snapshot.watermark.cursor, 2);
+    assert!(gateway.next_rel_event(&instance, &fresh).unwrap().is_none());
+    for cursor in [1, 2] {
+        let Some(RelDelivery::Event(event)) = gateway.next_rel_event(&second, &other).unwrap()
+        else {
+            panic!("other recipient lost");
+        };
+        assert_eq!(event.cursor, cursor);
+    }
+    publish_title(&gateway, &instance, &owner, "three");
+    assert!(matches!(
+        gateway.next_rel_event(&instance, &fresh).unwrap(),
+        Some(RelDelivery::Event(_))
+    ));
+}
+
+#[test]
+fn resync_ack_revalidates_epoch_and_revoked_grant() {
+    let (gateway, owner, instance) = setup("rel-resync-authority");
+    let (_, sub) = gateway.subscribe_rel(&instance, &owner, None, 1).unwrap();
+    publish_title(&gateway, &instance, &owner, "one");
+    publish_title(&gateway, &instance, &owner, "two");
+    let snapshot = gateway.resync_rel(&instance, &sub).unwrap();
+    assert!(
+        gateway
+            .acknowledge_rel_resync(
+                &instance,
+                &sub,
+                RelCursor {
+                    mount_epoch: snapshot.watermark.mount_epoch + 1,
+                    cursor: snapshot.watermark.cursor
+                }
+            )
+            .is_err()
+    );
+    gateway
+        .replace_instance_grants(&instance, BTreeMap::new())
+        .unwrap();
+    assert!(
+        gateway
+            .acknowledge_rel_resync(&instance, &sub, snapshot.watermark)
+            .is_err()
+    );
+    assert!(gateway.resync_rel(&instance, &sub).is_err());
+}

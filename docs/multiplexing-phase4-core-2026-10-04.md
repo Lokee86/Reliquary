@@ -59,8 +59,7 @@ Per-subscriber queues are limited to 1–4096 entries, with at most 1024 registr
 per REL. Envelopes are shared with Arc across recipient queues; invalidation lists
 are limited to 128 identifiers. Overflow replaces queued ordinary events with one
 latched latest-cursor resync state and prevents further ordinary delivery.
-P4.3 will add fresh snapshot acknowledgement; the core cannot clear a latch by
-reading it. Oversized summaries fail closed rather than imply continuous delivery.
+P4.3 now adds fresh snapshot acknowledgement through the [snapshot/resync path](multiplexing-phase4-snapshot-2026-10-04.md); reading the latch still cannot clear it. Oversized summaries fail closed rather than imply continuous delivery.
 
 Cursor exhaustion closes distribution and clears registrations without wrapping
 or inventing an epoch. Recovery uses normal gateway quiesce/reopen: the existing
@@ -104,7 +103,7 @@ P4.1 core behavior is implemented and verified by its targeted and library/integ
 - Ownership or boundary impact: one gateway REL distribution authority; recipient state stays outside semantic stores and P3.
 - Pitlord enforcement impact: required refresh attempted and result recorded below; direct source ownership guard also run.
 - Other verification impact: core and existing lifecycle/authorization regression.
-- Known architectural gaps: P4.2/P4.3/P4.4/P4.7 adapters and acceptance remain unimplemented.
+- Known architectural gaps: P4.4 full mutation coverage and P4.7 production P3 adapters remain later work; P4.2/P4.3 snapshot/recovery acceptance is recorded separately.
 
 ## Related docs
 

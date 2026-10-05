@@ -171,6 +171,35 @@ impl RelSequencerGate<'_> {
         self.state.subscribers.register(token, capacity)
     }
 
+    pub(super) fn prepare_resync(
+        &mut self,
+        id: SubscriptionId,
+        token: &OwnerAccessToken,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        self.validate_token(token)?;
+        let cursor = self.state.cursor;
+        self.state.subscribers.prepare_resync(id, token, cursor)
+    }
+
+    pub(super) fn acknowledge_resync(
+        &mut self,
+        id: SubscriptionId,
+        token: &OwnerAccessToken,
+        cursor: u64,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        self.validate_token(token)?;
+        self.state.subscribers.acknowledge_resync(id, token, cursor)
+    }
+
+    pub(super) fn disconnect(
+        &mut self,
+        id: SubscriptionId,
+        token: &OwnerAccessToken,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        self.validate_token(token)?;
+        self.state.subscribers.disconnect(id, token)
+    }
+
     fn validate_token(&self, token: &OwnerAccessToken) -> Result<(), ReliquaryRuntimeHostError> {
         if !self.state.open
             || token.kind != super::OwnerKind::Rel
