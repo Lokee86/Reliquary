@@ -16,7 +16,7 @@ impl GatewayRuntime {
             submission_id: SubmissionId::new(submission_id.to_owned()).map_err(operation)?,
         };
         let journal = self.conversation.journal(owner_id)?;
-        let status = with_admission(self, &token, || {
+        let status = with_conversation_admission(self, &token, || {
             let mut journal = journal
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -94,7 +94,7 @@ impl GatewayRuntime {
                     .ok_or_else(|| operation("generation submission not found"))?;
                 return Ok(GatewaySubmissionReceipt { id: key, status });
             }
-            with_admission(self, &token, || {
+            with_conversation_admission(self, &token, || {
                 journal
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -102,10 +102,12 @@ impl GatewayRuntime {
                     .map_err(operation)?;
                 Ok(())
             })?;
-            self.with_rel(&token, |runtime| {
-                interrupt_generation_stream(runtime, conversation.as_str(), &generation)
+            with_conversation_admission(self, &token, || {
+                self.with_rel(&token, |runtime| {
+                    interrupt_generation_stream(runtime, conversation.as_str(), &generation)
+                })
             })?;
-            let status = with_admission(self, &token, || {
+            let status = with_conversation_admission(self, &token, || {
                 let mut journal = journal
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -147,7 +149,7 @@ impl GatewayRuntime {
             });
         }
         if host_operation.phase == DurableHostOperationPhase::Cancelled {
-            let status = with_admission(self, &token, || {
+            let status = with_conversation_admission(self, &token, || {
                 let mut journal = journal
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -171,7 +173,7 @@ impl GatewayRuntime {
         }
 
         let Some(router) = self.host_router.as_ref() else {
-            let status = with_admission(self, &token, || {
+            let status = with_conversation_admission(self, &token, || {
                 let mut journal = journal
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -190,7 +192,7 @@ impl GatewayRuntime {
             return Ok(GatewaySubmissionReceipt { id: key, status });
         };
 
-        with_admission(self, &token, || {
+        with_conversation_admission(self, &token, || {
             let mut journal = journal
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
@@ -202,7 +204,7 @@ impl GatewayRuntime {
             Ok(())
         })?;
         let outcome = router.cancel(capability, &host_operation.stable_id);
-        let status = with_admission(self, &token, || {
+        let status = with_conversation_admission(self, &token, || {
             let mut journal = journal
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;

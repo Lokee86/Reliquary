@@ -135,7 +135,7 @@ See:
 
 ### Phase 3 — REL conversation coordination
 
-**Status: P3.0–P3.7 accepted with the documented structural-analysis tool limitation.** [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md) records the coherent internal snapshot; P3.8 recovery audit/cleanup and P3.9 local acceptance remain. Phase 4 delivery/convergence is separate.
+**Status: P3.0–P3.7 accepted with the documented structural-analysis tool limitation.** [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md) records the coherent internal snapshot. P3.8 recovery audit/cleanup and P3.9 local acceptance remain pending. P4.7 production distribution bindings are implemented and verified; the [convergence record](multiplexing-phase4-convergence-2026-10-05.md) records results and the bounded architecture-refresh timeout.
 
 - Deepen the existing `ConversationRegistry` rather than creating another coordinator.
 - Make the durable REL journal order the automatic scheduler authority.
@@ -148,16 +148,16 @@ See:
 
 ### Phase 4 — REL distribution, stream subscription and resynchronization
 
-**Status: implementation-ready once Phase 2 closes; most work is independent of Phase 3.**
+**Status: P4.0–P4.7 implemented and verified; P4.8 coverage/lock/privacy audit next; P4.9 Phase 4 acceptance pending.**
 
 - Add one `RelSequencer` per mounted REL with mount epoch, checked cursor, typed watermarks and bounded subscribers.
 - Add atomic authorized snapshot+subscribe and explicit ResyncRequired overflow handling.
 - Cover every instance-visible gateway mutation family with safe REL summaries/invalidation events.
 - Add reconnect/remount/revoke behavior with epoch/grant revalidation.
-- Build the conversation stream hub against the frozen P3/P4 observation contract; bind it to the final P3 coordinator only at convergence.
+- Bind the production conversation stream hub to P3's authoritative snapshot, receipt, and checkpoint sources; keep P4 subscriber/cursor ownership separate. P4.7 is implemented and verified; see the [convergence record](multiplexing-phase4-convergence-2026-10-05.md).
 - Keep generation text out of broad REL feeds and private PHY content out of all REL-wide payloads.
 - **Local gate:** sequencer/snapshot/overflow/reconnect and generic stream hub pass against deterministic providers.
-- **Convergence gate:** inactive conversation summaries, late stream join, branch events and checkpoint delivery pass against final P3 semantics.
+- **Convergence gate:** inactive conversation summaries, late stream join, branch events and checkpoint delivery pass against final P3 semantics. P4.7 verification is complete; P4.9 Phase 4 acceptance remains a later gate.
 
 ### Phase 5 — Full stack and host-consumer migration
 

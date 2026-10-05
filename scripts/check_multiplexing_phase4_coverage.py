@@ -15,7 +15,7 @@ GROUPS = {
     "host": "reconnect_host",
     "epoch": "quiesce_rel quiesce_rel_for reopen_rel reopen_rel_for reconcile_quiesced_rel_for shutdown unmount_rel mount_rel_path",
     "private": "set_phylactery_profile quiesce_phy quiesce_phy_for reopen_phy reopen_phy_for unmount_phy mount_phy_path",
-    "convergence": "submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation",
+    "conversation": "submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation",
     "attachment": "select_rel detach_instance select_managed_conversation attach_conversation_viewer detach_conversation_viewer attach_authenticated_instance refresh_authenticated_instance with_admission_adapter",
     "read": "conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories owner_mount_is_path_scoped"
 }
@@ -96,6 +96,8 @@ def check_gateway(source):
             errors.append(f"{name}: missing canonical mutation admission")
         elif category == "ephemeral" and "with_rel_distribution_admission(" not in body:
             errors.append(f"{name}: missing ephemeral sequencing boundary")
+        elif category == "conversation" and not any(route in body for route in ("with_conversation_admission(", "with_accepted_work(", "with_operation(", "self.process_next_accepted_conversation_submission(", ".process_reserved_conversation_submission(")):
+            errors.append(f"{name}: missing sequenced P3 persistence route")
         elif category == "host" and "publish_host_capability_change(" not in body:
             errors.append(f"{name}: missing host summary publication")
         elif category == "read" and WRITE.search(body):
@@ -104,6 +106,20 @@ def check_gateway(source):
             expected = {"set_rel_metadata": "set_rel_metadata_for(", "create_knowledge_memory": "create_knowledge_memory_for(", "refresh_principal_projection_for": "commit_principal_projection("}[name]
             if expected not in body:
                 errors.append(f"{name}: missing classified delegate")
+    return errors
+
+def check_conversation_stage_helpers(source):
+    source = masked(source)
+    errors = []
+    for name in ("with_conversation_admission", "with_accepted_work"):
+        match = re.search(rf"\bfn\s+{name}\b", source)
+        if match is None:
+            errors.append(f"{name}: canonical P3 stage helper is missing")
+            continue
+        start = source.index("{", match.end())
+        body = source[start:closing(source, start) + 1]
+        if not re.search(r"\bgateway\s*\.\s*with_conversation_distribution\s*\(", body):
+            errors.append(f"{name}: missing mounted publication gate")
     return errors
 
 def check_worker(source):
@@ -131,7 +147,9 @@ def self_test():
     assert not check_gateway('impl GatewayRuntime { pub fn rel_metadata_for(&self) { let text = "runtime.cva.set_metadata()"; } }')
     assert check_worker("fn commit() { runtime.cva.publish_memory(); }")
     assert not check_worker("fn commit() { shared.mutate(Family, |runtime| { runtime.cva.publish_memory(); }); }")
-    print("P4.4 coverage guard: 7 negative/positive fixtures passed")
+    assert check_gateway("impl GatewayRuntime { pub fn submit_conversation(&self) { with_admission(); } }")
+    assert check_conversation_stage_helpers("fn with_conversation_admission<T>() { f(); } fn with_accepted_work<T>() { f(); }")
+    print("P4 coverage guard: 9 negative/positive fixtures passed")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -148,6 +166,8 @@ def main():
         source = path.read_text(encoding="utf-8")
         count += len(list(gateway_methods(source)))
         errors += [f"{path.name}: {e}" for e in check_gateway(source)]
+    conversation_path = directory / "runtime_host_gateway_conversation.rs"
+    errors += [f"{conversation_path.name}: {e}" for e in check_conversation_stage_helpers(conversation_path.read_text(encoding="utf-8"))]
     for family in ("dream", "perception", "vectors", "insomnia"):
         path = directory / f"runtime_host_rel_{family}.rs"
         errors += [f"{path.name}: {e}" for e in check_worker(path.read_text(encoding="utf-8"))]

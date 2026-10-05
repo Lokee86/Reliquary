@@ -63,7 +63,7 @@ pub(super) struct RelSnapshotState {
     pub lifecycle: OwnerAdmission,
     pub watermarks: DurableWatermarks,
     /// Final P3 policy/branch/generation observation, unchanged frozen shape.
-    /// None until the P3.7 producer is available at P4.7 convergence.
+    /// Production snapshots bind the P3 authoritative producer at P4.7 convergence.
     pub conversation_observation: Option<RelObservationSummary>,
 }
 

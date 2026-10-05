@@ -2,7 +2,7 @@
 //! Internal admission is consumed by P4.2/P4.4; no client subscription API yet.
 #![allow(dead_code)] // P4 staged cut: publication/snapshot adapters follow the core.
 
-use super::observation::DurableWatermarks;
+use super::observation::{ConversationDurableDelta, DurableWatermarks};
 use super::subscriptions::{RelDelivery, SubscriberRegistry, SubscriptionId};
 use super::{OwnerAccessToken, ReliquaryRuntimeHostError, operation};
 use crate::multiplexing_journal::{ConversationId, ConversationSubmissionId, RelOwnerId};
@@ -21,10 +21,11 @@ pub(super) enum RelEventClass {
     OwnerLifecycleChanged,
 }
 
-/// Identifiers only: bodies, prompts, paths and checkpoint text have no field here.
+/// Safe typed summaries and identifiers only; bodies, prompts, PHY paths, checkpoint text, and checkpoint hashes are absent.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) enum RelInvalidation {
     Conversation(ConversationId),
+    ConversationDelta(ConversationDurableDelta),
     Submission(ConversationSubmissionId),
     Memory(crate::MemoryId),
     Entity(crate::EntityId),

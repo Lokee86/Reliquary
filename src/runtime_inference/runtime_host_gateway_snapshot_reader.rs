@@ -18,68 +18,10 @@ impl GatewayRuntime {
         // Journal cut brackets the semantic read. No journal/runtime lock nesting.
         // A racing legacy journal writer causes retry rather than a torn snapshot.
         for _ in 0..8 {
-            let (sequence, mut submissions, host_work) = {
-                let journal = journal
-                    .lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                let statuses = journal.statuses();
-                if statuses.len() > MAX_SNAPSHOT_ITEMS {
-                    return Err(operation("REL snapshot exceeds its item bound"));
-                }
-                let submissions = statuses
-                    .into_iter()
-                    .map(|(id, status)| {
-                        let branch_id = status
-                            .finalize_capture
-                            .as_ref()
-                            .map(|capture| capture.branch_id.clone())
-                            .or_else(|| {
-                                journal.submission(&id).and_then(|submission| {
-                                    submission
-                                        .request_metadata
-                                        .get("branch_id")
-                                        .and_then(|id| id.as_str())
-                                        .map(str::to_owned)
-                                })
-                            });
-                        RelSubmissionSummary {
-                            id,
-                            branch_id,
-                            state: status.state,
-                            order: SubmissionOrder {
-                                verified_receive_ns: status.verified_receive_ns,
-                                tie_key: status.tie_key,
-                                admission_sequence: status.admission_sequence,
-                            },
-                            transition_revision: status.transition_revision,
-                        }
-                    })
-                    .collect::<Vec<_>>();
-                let host_work = journal
-                    .host_operations()
-                    .into_iter()
-                    .map(
-                        |(submission_id, capability, host)| HostOperationObservation {
-                            submission_id,
-                            operation_id: host.stable_id,
-                            capability,
-                            phase: host.phase,
-                            transition_revision: host.transition_revision,
-                            cancel_requested: host.cancel_requested,
-                        },
-                    )
-                    .collect::<Vec<_>>();
-                if host_work.len() > MAX_SNAPSHOT_ITEMS {
-                    return Err(operation("REL snapshot exceeds its item bound"));
-                }
-                (journal.sequence(), submissions, host_work)
-            };
-            submissions.sort_by(|a, b| {
-                a.id.conversation_id
-                    .cmp(&b.id.conversation_id)
-                    .then(a.order.cmp(&b.order))
-                    .then(a.id.submission_id.cmp(&b.id.submission_id))
-            });
+            let sequence = journal
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .sequence();
             let mut state = self.with_rel(token, |runtime| {
                 let cva = runtime.cva();
                 let mut conversations = cva.conversation_summaries();
@@ -103,8 +45,8 @@ impl GatewayRuntime {
                 Ok(RelSnapshotState {
                     conversations,
                     branches,
-                    submissions,
-                    host_work,
+                    submissions: Vec::new(),
+                    host_work: Vec::new(),
                     processing: cva.insomnia_stats(),
                     processing_enabled: true,
                     project,
@@ -132,6 +74,30 @@ impl GatewayRuntime {
                 execution.insomnia_enabled.load(Ordering::SeqCst)
             };
             state.processing_enabled = enabled;
+            let observation = self.read_conversation_distribution_source(
+                &token.owner_id,
+                token.mount_epoch,
+                None,
+            )?;
+            state.submissions = observation
+                .conversations
+                .iter()
+                .flat_map(|conversation| conversation.submissions.iter())
+                .map(|submission| RelSubmissionSummary {
+                    id: submission.id.clone(),
+                    branch_id: Some(submission.branch_id.clone()),
+                    state: submission.state,
+                    order: submission.order,
+                    transition_revision: submission.transition_revision,
+                })
+                .collect();
+            state.host_work = observation
+                .conversations
+                .iter()
+                .flat_map(|conversation| conversation.host_operations.iter().cloned())
+                .collect();
+            state.watermarks = observation.durable_watermarks.clone();
+            state.conversation_observation = Some(observation);
             after_semantic_read();
             if journal
                 .lock()

@@ -40,6 +40,14 @@ pub use host::{
     HostCapabilityContract, HostConnection, HostContractError, HostOperation, HostOperationStatus,
     HostQueueGuarantees, HostReconcileStatus, RuntimeCapability, StageAuthority,
 };
+#[path = "runtime_host_gateway_convergence.rs"]
+mod convergence;
+#[cfg(test)]
+#[path = "runtime_host_gateway_convergence_race_tests.rs"]
+mod convergence_race_tests;
+#[cfg(test)]
+#[path = "runtime_host_gateway_convergence_tests.rs"]
+mod convergence_tests;
 #[path = "runtime_host_gateway_conversation.rs"]
 pub(super) mod conversation;
 #[path = "runtime_host_gateway_events.rs"]

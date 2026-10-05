@@ -43,6 +43,7 @@
 - [Multiplexing Phase 3 baseline](multiplexing-phase3-baseline-2026-10-04.md) — P3.0 foundation, coordinator/journal inventory and collected verification.
 - [Multiplexing Phase 3 conversation coordination implementation plan](multiplexing-phase3-conversation-implementation-plan-2026-10-04.md) — branch-aware scheduling, durable conversation policy, visible auto-branching, generation lifetime and recovery; parallel with Phase 4.
 - [Multiplexing Phase 4 conversation stream hub](multiplexing-phase4-streams-2026-10-05.md) — P4.6 exact durable stream scope, atomic full-prefix join, bounded delivery/recovery and deterministic-provider acceptance.
+- [Multiplexing Phase 4 P3/P4 convergence](multiplexing-phase4-convergence-2026-10-05.md) — P4.7 production conversation bindings, source ownership, named durability transitions, bounds, and collected verification.
 - [Multiplexing Phase 4 reconnect and revocation](multiplexing-phase4-reconnect-2026-10-05.md) — P4.5 atomic recipient replacement, snapshot recovery, epoch rotation and reconciled lifecycle summaries.
 - [Multiplexing Phase 4 non-conversation publication](multiplexing-phase4-mutations-2026-10-05.md) — P4.4 gateway/worker post-sync summaries, coverage guard, privacy and verification.
 - [Multiplexing Phase 4 atomic snapshot/subscription](multiplexing-phase4-snapshot-2026-10-04.md) — P4.2 safe source readers and atomic admission; P4.3 bounded recovery, snapshot acknowledgement, disconnect and acceptance.

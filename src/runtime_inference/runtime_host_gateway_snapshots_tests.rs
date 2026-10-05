@@ -1,7 +1,11 @@
 use super::super::conversation::{GatewayConversationAttachment, GatewayConversationSubmission};
 use super::*;
+use crate::multiplexing_journal::{
+    ConversationId, ConversationSubmissionId, Submission, SubmissionId,
+};
 use crate::runtime_host_test_support::test_path;
 use crate::{Branch, Cva, InteractionRuntime};
+use serde_json::json;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Barrier, mpsc};
 use std::time::{Duration, Instant};
@@ -91,6 +95,35 @@ fn request(id: &str, revision: u64) -> GatewayConversationSubmission {
     }
 }
 
+/// Historical-writer fixture for validating the source reader's sequence retry
+/// while its publication gate is held. Production submissions now acquire that
+/// same gate, so calling the public submit API from the reader hook would recurse.
+fn enqueue_legacy_journal_write(gateway: &GatewayRuntime, owner: &str, id: &str, order: i64) {
+    let journal = gateway.conversation.journal(owner).unwrap();
+    let conversation_id = ConversationId::new("inactive").unwrap();
+    let key = ConversationSubmissionId {
+        conversation_id: conversation_id.clone(),
+        submission_id: SubmissionId::new(id).unwrap(),
+    };
+    let content = format!("legacy body {id}");
+    let submission = Submission {
+        id: key,
+        principal_id: "legacy-snapshot-writer".into(),
+        scope_fingerprint: "legacy-snapshot-scope".into(),
+        payload_hash: Submission::canonical_payload_hash(&content, &[]).unwrap(),
+        request_metadata: json!({
+            "branch_id": "main",
+            "expected_parent_node_id": "root-inactive"
+        }),
+        content,
+        attachments: vec![],
+        client_timestamp_ns: None,
+    };
+    let mut journal = journal.lock().unwrap();
+    let revision = journal.conversation_revision(&conversation_id);
+    journal.enqueue(submission, order, revision).unwrap();
+}
+
 #[test]
 fn safe_authoritative_snapshot_includes_inactive_conversations_and_durable_queue() {
     let (gateway, owner, instance) = setup("rel-snapshot-safe");
@@ -142,8 +175,18 @@ fn safe_authoritative_snapshot_includes_inactive_conversations_and_durable_queue
     );
     assert!(snapshot.state.watermarks.archive_version.unwrap() > 0);
     assert_eq!(snapshot.state.watermarks.project_correlation_sequence, None);
-    assert_eq!(snapshot.state.conversation_observation, None);
-    assert_eq!(snapshot.watermark.cursor, 0);
+    let observation = snapshot
+        .state
+        .conversation_observation
+        .as_ref()
+        .expect("converged snapshot includes the authoritative P3 observation");
+    assert!(observation.conversations.iter().any(|conversation| {
+        conversation.conversation_id == receipt.id.conversation_id
+            && conversation.submissions.iter().any(|submission| {
+                submission.id == receipt.id && submission.state == SubmissionState::Pending
+            })
+    }));
+    assert!(snapshot.watermark.cursor > 0);
     for secret in [
         "TRANSCRIPT_BODY_SECRET",
         "QUEUED_BODY_SECRET",
@@ -401,9 +444,7 @@ fn journal_changes_during_snapshot_retry_to_a_coherent_source_cut() {
             gateway.read_rel_snapshot_state_with_hook(&token, || {
                 reads += 1;
                 if reads == 1 {
-                    gateway
-                        .submit_conversation(&instance, &owner, request("racing-submit", 0))
-                        .unwrap();
+                    enqueue_legacy_journal_write(&gateway, &owner, "racing-submit", 77);
                 }
             })
         })
@@ -436,13 +477,12 @@ fn repeated_journal_changes_fail_without_creating_subscription() {
     let mut reads = 0;
     let result = gateway.subscribe_rel_from_reader(&token, None, 2, |_| {
         gateway.read_rel_snapshot_state_with_hook(&token, || {
-            gateway
-                .submit_conversation(
-                    &instance,
-                    &owner,
-                    request(&format!("racing-{reads}"), reads),
-                )
-                .unwrap();
+            enqueue_legacy_journal_write(
+                &gateway,
+                &owner,
+                &format!("racing-{reads}"),
+                77 + reads as i64,
+            );
             reads += 1;
         })
     });

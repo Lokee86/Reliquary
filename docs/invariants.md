@@ -189,7 +189,11 @@ The internal observation data boundary contains no writable semantic handles or 
 
 ## Exact stream distribution
 
-P4 stream recipient state belongs only to the mounted sequencer. Exact REL/epoch/conversation/operation/generation/branch identity is immutable for a handle. ViewRel permits observation without cancellation. P3 checkpoint/journal clocks and content reconstruction remain source authority; stream delivery cursors are independent. Snapshot registration and post-sync publication share the mounted gate, with no provider/network wait. Queues are bounded by count and text bytes; gaps or overflow cannot silently masquerade as contiguous delivery. See the [P4.6 record](multiplexing-phase4-streams-2026-10-05.md).
+P4 stream recipient state belongs only to the mounted sequencer. Exact REL/epoch/conversation/operation/generation/branch identity is immutable for a handle. ViewRel permits observation without cancellation. P3 checkpoint/journal clocks and content reconstruction remain source authority; stream delivery cursors are independent. Snapshot registration and each short persistence/capture/publication stage share the mounted gate, with no provider/model wait. Archive-ahead prefixes are trimmed to the journal-authoritative UTF-8 length and SHA-256 before delivery; deltas follow durable checkpoint and journal receipts. Queues remain bounded by count and text bytes; gaps or overflow cannot masquerade as contiguous delivery. See the [P4.7 convergence record](multiplexing-phase4-convergence-2026-10-05.md).
+
+### P3/P4 conversation publication
+
+P3's observation/receipt/checkpoint builders remain the source authority. Broad queue/operation summaries follow durable FinalizeWon. A synced published Archive branch head emits safe ArchiveChanged/Conversation invalidation immediately, while BranchCreated requires an actual new-branch publication and typed ArchiveCommitted requires the exact journal receipt. PostCommitRecorded emits only after its receipt is durable; Archive publication ahead of its journal receipt never implies that receipt. Short persistence/capture/publication stages retain the mounted P4 gate, while model/provider work remains outside it. Unchanged/rejected validation publishes no event. If source capture or publication fails after a partial durable mutation, distribution continuity is invalidated and the successful mutation is not represented as rolled back. Conversation text is published only to the exact stream after checkpoint sync and journal validation.
 
 ## Safety boundaries
 

@@ -370,14 +370,16 @@ impl GatewayRuntime {
     ) -> Result<bool, ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
         let conversation_id = ConversationId::new(conversation_id.to_owned()).map_err(operation)?;
-        self.with_rel(&token, |runtime| {
-            let changed = runtime
-                .cva
-                .set_conversation_policy(conversation_id.as_str(), policy)
-                .map_err(operation)?;
-            // Also synchronize an idempotent retry after a prior failed sync.
-            runtime.cva.sync().map_err(operation)?;
-            Ok(changed)
+        with_conversation_admission(self, &token, || {
+            self.with_rel(&token, |runtime| {
+                let changed = runtime
+                    .cva
+                    .set_conversation_policy(conversation_id.as_str(), policy)
+                    .map_err(operation)?;
+                // Also synchronize an idempotent retry after a prior failed sync.
+                runtime.cva.sync().map_err(operation)?;
+                Ok(changed)
+            })
         })
     }
 
@@ -595,7 +597,7 @@ impl GatewayRuntime {
                 EnqueueOutcome::Durable(status) | EnqueueOutcome::Idempotent(status) => Ok(status),
             }
         };
-        let status = with_admission(self, &token, || match personal_token.as_ref() {
+        let status = with_conversation_admission(self, &token, || match personal_token.as_ref() {
             Some(personal) => with_admission(self, personal, submit),
             None => submit(),
         })?;
@@ -636,24 +638,26 @@ impl GatewayRuntime {
         if branch_id.trim().is_empty() {
             return Err(operation("branch ID must not be empty"));
         }
-        let session = self.with_rel(&token, |runtime| {
-            let branch = runtime
-                .cva()
-                .archive()
-                .branches()
-                .into_iter()
-                .find(|branch| {
-                    branch.conversation_id == conversation_id.as_str() && branch.id == branch_id
-                })
-                .ok_or_else(|| operation("writer admission branch does not exist"))?;
-            ensure_session_at(
-                runtime,
-                conversation_id.as_str(),
-                Some(&branch.leaf_node_id),
-            )?;
-            runtime
-                .session(conversation_id.as_str())
-                .ok_or_else(|| operation("shared continuation session disappeared"))
+        let session = with_conversation_admission(self, &token, || {
+            self.with_rel(&token, |runtime| {
+                let branch = runtime
+                    .cva()
+                    .archive()
+                    .branches()
+                    .into_iter()
+                    .find(|branch| {
+                        branch.conversation_id == conversation_id.as_str() && branch.id == branch_id
+                    })
+                    .ok_or_else(|| operation("writer admission branch does not exist"))?;
+                ensure_session_at(
+                    runtime,
+                    conversation_id.as_str(),
+                    Some(&branch.leaf_node_id),
+                )?;
+                runtime
+                    .session(conversation_id.as_str())
+                    .ok_or_else(|| operation("shared continuation session disappeared"))
+            })
         })?;
         let _ = self.select_rel(instance, owner_id);
         let _ = self.set_instance_managed_state(
@@ -1767,9 +1771,23 @@ fn with_accepted_work<T>(
     }
     let lease = rel.fence.acquire(authority.fence_generation)?;
     drop(rels);
-    let result = f();
+    let result =
+        gateway.with_conversation_distribution(&authority.owner_id, authority.mount_epoch, f);
     drop(lease);
     result
+}
+
+fn with_conversation_admission<T>(
+    gateway: &GatewayRuntime,
+    token: &OwnerAccessToken,
+    f: impl FnOnce() -> Result<T, ReliquaryRuntimeHostError>,
+) -> Result<T, ReliquaryRuntimeHostError> {
+    with_admission(gateway, token, || match token.kind {
+        super::OwnerKind::Rel => {
+            gateway.with_conversation_distribution(&token.owner_id, token.mount_epoch, f)
+        }
+        super::OwnerKind::Phy => f(),
+    })
 }
 
 fn with_operation<T>(

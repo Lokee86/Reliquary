@@ -108,11 +108,11 @@ ReliquaryConfig
 `reliquary.cfg` is current-state configuration only. It is not contained in a `.rel`, consumes no semantic clocks, and has no append-only/history semantics.
 ## P3/P4 internal observation boundary
 
-The gateway declares a data-only `observation` module beside its existing conversation coordinator. [The frozen contract](multiplexing-p34-observation-contract-2026-10-04.md) defines REL summaries, conversation snapshots, post-durability facts and separate checkpoint-content values. It contains no mutable owner handles, queue, subscriber, cursor allocator or producer implementation. P3 owns authoritative conversation producers; P4 owns notification sequencing and delivery. The source types do not themselves establish an atomic snapshot or subscription handshake.
+The gateway declares a data-only `observation` contract beside its existing conversation coordinator. [The frozen contract](multiplexing-p34-observation-contract-2026-10-04.md) defines REL summaries, conversation snapshots, post-durability facts and separate checkpoint-content values. P3 owns the authoritative runtime/coordinator/journal state and reusable observation, receipt and checkpoint builders. P4 consumes those source facts for mounted snapshots and distribution; subscriber and cursor state remain outside the P3 coordinator. The contract types themselves do not own mutable state.
 
 ## P4 non-conversation distribution boundary
 
-On the independent P4 branch, gateway Memory/Graph/community/metadata/project and principal-projection commits and concrete REL worker commits share one mounted sequencer across mutation, synchronization and summary publication. Provider, private-owner and Git/filesystem work precedes this boundary. Source clocks remain authoritative; processing switches are explicitly ephemeral, and maintenance invalidates the epoch instead of implying incremental continuity. See the [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md). Final P3 event adapters remain P4.7.
+In the converged distribution path, gateway Memory/Graph/community/metadata/project and principal-projection commits, concrete REL worker commits, and P3 conversation transition publications use the mounted sequencer across short mutation, synchronization, source capture and summary publication stages. Provider/model, private-owner, and Git/filesystem work stays outside the mounted gate. Source clocks remain authoritative; processing switches are explicitly ephemeral, and maintenance invalidates the epoch instead of implying incremental continuity. P3 supplies body-free conversation summaries at durable journal/Archive transitions; P4 owns their sequencing and recipients. See the [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md) and [P4.7 convergence record](multiplexing-phase4-convergence-2026-10-05.md). P4.7 verification remains pending.
 
 ## P4 reconnect and lifecycle distribution
 
@@ -120,7 +120,7 @@ The internal reconnect operation reads a fresh authorized snapshot and replaces 
 
 ## P4 exact conversation streams
 
-The internal P4.6 stream hub lives inside each mounted REL sequencer and shares its publication gate while keeping exact conversation/operation/generation/branch cursors and queues separate from broad REL summaries. Authorized joins read a frozen source snapshot plus full durable prefix before registration; only post-sync checkpoints/status follow. Count/byte overflow requires fresh prefix replacement. Authority and epoch teardown apply to both namespaces. The deterministic provider proves hub mechanics; production P3 binding remains P4.7. See the [stream record](multiplexing-phase4-streams-2026-10-05.md).
+The P4 stream hub lives inside each mounted REL sequencer and shares its publication gate while keeping exact conversation/operation/generation/branch cursors and queues separate from broad REL summaries. Production joins use P3's authoritative snapshot and a validated durable full prefix before registration; delivery follows only persisted checkpoint/status facts. If Archive has advanced ahead of the journal, the prefix is bounded to the journal-authoritative UTF-8 length and checked against its SHA-256 before delivery. Count/byte overflow requires fresh prefix replacement. Authority and epoch teardown apply to both namespaces. The deterministic-provider tests remain the P4.6 mechanical evidence; production convergence is recorded in [P4.7](multiplexing-phase4-convergence-2026-10-05.md), with acceptance verification pending.
 
 ## Responsibilities
 
