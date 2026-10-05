@@ -6,7 +6,8 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0–P3.6 accepted; P3.7–P3.9 remain planned.**
+Status: **P3.0–P3.7 accepted; P3.8–P3.9 remain planned.**
+Observation: [P3.7 implementation and gates](multiplexing-phase3-observation-acceptance-2026-10-05.md)
 Generation: [P3.6 implementation and acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md)
 Auto-branch: [P3.5 implementation and acceptance](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md)
 Sequential: [P3.4 implementation and acceptance](multiplexing-phase3-sequential-acceptance-2026-10-05.md)
@@ -84,8 +85,8 @@ Multiple authenticated instances may submit into one shared conversation. The ex
 - durable chronological selection and both current policy-specific finalization decisions are implemented;
 - branch leases cover finalization, host continuations and native generation/checkpoint lifecycle;
 - the durable conversation policy drives finalization behavior through the production scheduler;
-- generation observation/control is not yet modeled as one branch continuation independent of viewer lifetime;
-- reconnect needs one authoritative conversation snapshot rather than reconstruction from ambient session state;
+- generation/control uses one durable branch continuation independent of viewer lifetime;
+- the P3.7 internal authoritative snapshot reads the existing runtime/coordinator/journal cut; P4 reconnect delivery remains convergence work;
 - P4 cannot safely expose conversation streams until these semantics are stable.
 
 The cost of leaving this incomplete is semantic ambiguity under concurrent writers even though the lower-level authority/durability machinery is already correct.
@@ -297,6 +298,8 @@ Make branch generation state explicit.
 **Tests:** detach initiator, all viewers detach, late viewer, cancellation authorization, restart during checkpoint, host status unknown, branch A generation while branch B advances.
 
 ### P3.7 — Authoritative conversation observation snapshot
+
+Status: accepted with the documented architecture-tool limitation. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md) records the internal seam, runtime -> coordinator -> journal lock order, existing owner sync barrier, instance-local selection and durable handoff tests.
 
 Implement the final P3-owned observation builder used at P3/P4 convergence.
 

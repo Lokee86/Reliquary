@@ -195,6 +195,10 @@ Changing version ownership, conversation ancestry, mutable-record revision seman
 
 One branch has one nonterminal finalizer/generation continuation. Pending work cannot mutate its persisted generation parent or text prefix. Viewer detach and zero viewers never cancel accepted work. CancelOwnPendingSubmission is limited to the initiating principal's undispatched pending turn; CancelSharedGeneration controls a dispatched operation by stable ID using current grants. Checkpoint content sync precedes its journal sequence/hash. Restart interrupts local compute and preserves authoritative host Unknown debt. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
 
+## Conversation snapshot cut (P3.7)
+
+Conversation snapshots acquire runtime -> coordinator -> journal and copy facts only while those owners are locked. The existing CVA sync barrier precedes publication of Archive heads/policy; journal projection changes already follow journal durability. A snapshot never promotes Finalizing to Committed based on an Archive node or branch alone. Pending and compacted terminal submissions retain durable order and branch identity. Generation status carries checkpoint sequence only, with no content hash or text. Selection comes solely from the requesting instance for the requested conversation, never the ambient session cursor. Current attachment/grant/mount/fence authority is checked again before returning. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)

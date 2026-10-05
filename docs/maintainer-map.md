@@ -108,6 +108,10 @@ The F1 source audit distinguishes **creation at first accepted MemoryStore publi
 
 runtime_host_gateway_conversation_generation.rs owns native generation/control methods and stream/Archive validation under the existing coordinator and REL journal. runtime_host_gateway_conversation_continuation.rs derives branch debt from nonterminal generations. multiplexing_journal.rs owns durable generation transitions and compaction. runtime_host_gateway_conversation_generation_tests.rs covers lifetime, checkpoint, control and restart handoffs. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
 
+## Gateway snapshot ownership (P3.7)
+
+runtime_host_gateway_conversation_observation.rs owns the internal authoritative snapshot projection. runtime_host_gateway_conversation_continuation.rs owns its coordinator/journal read gate; GatewayRuntime::with_rel retains semantic-owner and authority fencing. multiplexing_journal.rs owns the safe branch-identity accessor for retained and compacted entries. runtime_host_gateway_conversation_observation_tests.rs covers durable handoffs, compaction/privacy, local selection, independent operations, checkpoint restart, authority and lock order. Frozen contract types remain in runtime_host_gateway_observation.rs. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)

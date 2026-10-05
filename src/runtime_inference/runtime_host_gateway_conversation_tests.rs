@@ -9,6 +9,8 @@ mod branches;
 mod finalization;
 #[path = "runtime_host_gateway_conversation_generation_tests.rs"]
 mod generation;
+#[path = "runtime_host_gateway_conversation_observation_tests.rs"]
+mod observation;
 #[path = "runtime_host_gateway_conversation_policy_tests.rs"]
 mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]

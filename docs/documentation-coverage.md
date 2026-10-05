@@ -96,6 +96,10 @@ New production modules require canonical owners. New persistence records update 
 
 The generation/control module and its tests are documented in [architecture](architecture.md), [API](api.md), [storage reference](storage-format.md), [maintainer map](maintainer-map.md), [behavioral contracts](behavioral-contracts.md) and [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md). One existing coordinator and journal remain authoritative; P4 delivery is separate.
 
+## Conversation observation coverage (P3.7)
+
+`src/runtime_inference/runtime_host_gateway_conversation_observation.rs` implements the internal snapshot, and `runtime_host_gateway_conversation_observation_tests.rs` supplies its production proof. The tests exercise scoped durable queue order and compacted terminal identity, privacy exclusions, independent instance selections versus an unrelated ambient cursor, FinalizeWon/Archive publication/commit/postcommit handoffs with labels/ancestry, checkpoint identity across restart, concurrent owner/journal lock order, current ViewRel and detach rejection, independent branch generations and Unknown/cancelled host status. The frozen contract and public exports are unchanged. See [P3.7 gate results](multiplexing-phase3-observation-acceptance-2026-10-05.md).
+
 ## Related docs
 
 - [Documentation policy](documentation-policy.md)

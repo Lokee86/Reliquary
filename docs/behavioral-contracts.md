@@ -198,6 +198,10 @@ Before persistent checkpoints are added, larger-scale benchmarks must show that 
 
 [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md) records the production seams and verification.
 
+## Authoritative conversation snapshots (P3.7)
+
+The plain internal snapshot reads the existing runtime/coordinator/journal cut under current ViewRel and revalidates delivery. Archive publication and journal receipt state remain independently visible at their actual handoffs: a published branch with Finalizing is valid, while an unpublished captured branch is absent from inventory. Instance selection never becomes conversation-global. Terminal queue and operation identities survive compaction/restart. Unknown host status is preserved, including cancellation intent; the observer does not contact or acknowledge providers. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)

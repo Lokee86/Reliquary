@@ -475,7 +475,13 @@ Reliquary-admitted provisional submissions are stored outside `.rel` history in 
 
 ## Branch generation lifetime (P3.6)
 
-The existing ConversationCoordinator and REL journal own branch-local generation identity, phase and checkpoint watermarks. Viewer lifetime is independent. Native checkpoint, completion and interruption acquire the same branch lease; synchronized stream content precedes journal observations. Restart reconciles persisted checkpoint and assistant-publication handoffs before releasing branch debt. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md) owns the exact lifecycle and verification record. P3.7/P4 snapshot and delivery remain separate.
+The existing ConversationCoordinator and REL journal own branch-local generation identity, phase and checkpoint watermarks. Viewer lifetime is independent. Native checkpoint, completion and interruption acquire the same branch lease; synchronized stream content precedes journal observations. Restart reconciles persisted checkpoint and assistant-publication handoffs before releasing branch debt. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md) owns the exact lifecycle and verification record. P3.7 implements the internal snapshot; P4 delivery remains separate.
+
+## Authoritative conversation observation (P3.7)
+
+The internal GatewayRuntime::conversation_observation_snapshot builder in runtime_host_gateway_conversation_observation.rs copies the frozen contract through current ViewRel authority. The existing semantic runtime mutex is acquired before ConversationCoordinator::observe acquires its state mutex and the mounted REL journal mutex. Scheduler selection releases coordinator/journal locks before acquiring the runtime; no journal-to-runtime acquisition is introduced. The snapshot holds all three while synchronizing the existing CVA owner and copying Archive heads/policy, journal states/order/operations and the requesting instance's selection. Sync failure returns an error. No new writer, version or mutable observation cache is created.
+
+A published Archive branch can coexist with a Finalizing journal entry before its receipt is recorded; the snapshot preserves both facts. Captured but unpublished branches do not enter the branch inventory. P3-created automatic branch labels/fork parents come from retained FinalizeWon captures; other branches have absent label/fork metadata. After releasing owner locks, delivery revalidates the attachment, grant generation and mount/fence. P4 registration and cursor linearization remain convergence work. See [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
 
 ## Related docs
 - [Storage format](storage-format.md)

@@ -73,6 +73,8 @@ impl ConversationViewerToken {
 mod continuation;
 #[path = "runtime_host_gateway_conversation_generation.rs"]
 mod generation;
+#[path = "runtime_host_gateway_conversation_observation.rs"]
+mod observation;
 use continuation::ConversationCoordinator;
 use generation::*;
 #[derive(Default)]

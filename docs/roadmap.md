@@ -405,9 +405,9 @@ The current roadmap does not include:
 - a virtual/copy-on-write filesystem or filesystem driver inside Reliquary; or
 - a mandatory independently deployed Reliquary service.
 
-## Multiplexing next phases after P3.6
+## Multiplexing next phases after P3.7
 
-P3.7 authoritative snapshots, P3.8 recovery audit/cleanup and P3.9 acceptance remain next. The completed generation/control baseline is recorded in [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+P3.7 authoritative conversation snapshots are implemented; P3.8 recovery audit/cleanup and P3.9 acceptance remain next. The snapshot cut is recorded in [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md). The completed generation/control baseline is recorded in [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
 
 ## Related docs
 

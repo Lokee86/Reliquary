@@ -22,6 +22,24 @@ impl ConversationCoordinator {
         }
     }
 
+    /// Called only after acquiring the semantic runtime owner. Scheduler paths
+    /// release coordinator/journal locks before acquiring that owner, so the
+    /// observation order is runtime -> coordinator -> journal, never reversed.
+    pub(super) fn observe<T>(
+        &self,
+        journal: &Arc<Mutex<RelJournal>>,
+        read: impl FnOnce(&RelJournal) -> Result<T, ReliquaryRuntimeHostError>,
+    ) -> Result<T, ReliquaryRuntimeHostError> {
+        let _state = self
+            .state
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        let journal = journal
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        read(&journal)
+    }
+
     /// Selection and branch reservation share one lock acquisition. The journal
     /// supplies order and recovery work; this state holds no duplicate queue.
     pub(super) fn acquire_next(

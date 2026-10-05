@@ -857,6 +857,32 @@ impl RelJournal {
     pub fn status(&self, id: &ConversationSubmissionId) -> Option<SubmissionStatus> {
         self.projection.status(id)
     }
+    /// Safe branch identity, including compacted terminal tombstones.
+    /// Captured finalization and generation targets supersede admission metadata.
+    pub(crate) fn observation_branch_id(&self, id: &ConversationSubmissionId) -> Option<&str> {
+        let entry = self.projection.entries.get(id)?;
+        Some(
+            entry
+                .finalize_capture
+                .as_ref()
+                .map(|capture| capture.branch_id.as_str())
+                .or_else(|| {
+                    entry
+                        .generation
+                        .as_ref()
+                        .map(|generation| generation.branch_id.as_str())
+                })
+                .unwrap_or_else(|| {
+                    entry
+                        .submission
+                        .request_metadata
+                        .get("branch_id")
+                        .and_then(|value| value.as_str())
+                        .unwrap_or("main")
+                }),
+        )
+    }
+
     pub fn submission(&self, id: &ConversationSubmissionId) -> Option<&Submission> {
         self.projection
             .entries

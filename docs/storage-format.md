@@ -918,6 +918,10 @@ Attachment bytes are durably staged in a per-REL content-addressed spool before 
 
 The existing REL operational journal adds GenerationUpdated and optional generation state on submission projections/tombstones; absent legacy fields default to none. Immutable fields are operation/generation IDs, branch ID, parent node ID and start timestamp. Phase changes carry contiguous transition_revision; checkpoints carry contiguous sequence, UTF-8 byte length and SHA-256. Terminal generations reject further mutation. Nonterminal generation payloads survive compaction. Text stays in the existing synchronized interaction-stream owner; no new CVA format or P4 cursor is added. [P3.6 record](multiplexing-phase3-generation-acceptance-2026-10-05.md) specifies the synchronization and restart handoffs.
 
+## Conversation snapshot persistence boundary (P3.7)
+
+The observation builder adds no persisted record, journal event, CVA format or mutation clock. Its durability barrier calls the mounted owner's existing sync. RelJournal::observation_branch_id reads captured targets or the existing retained admission branch metadata even after terminal compaction removes content/attachments. Automatic branch labels/fork parents remain the existing FinalizeWon capture fields. The snapshot publishes only the durable checkpoint sequence, never the checkpoint digest or stream text. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)
