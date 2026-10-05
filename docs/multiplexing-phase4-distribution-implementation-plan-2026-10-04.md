@@ -252,6 +252,8 @@ A red migration window is acceptable on the P4 branch while event coverage is in
 
 ### P4.0 — Baseline and mutation inventory
 
+**Accepted:** [P4.0 baseline and mutation inventory](multiplexing-phase4-baseline-2026-10-04.md), independently branched from shared foundation `388bd8f`. All mutation families classified; 115 gateway cases, 10 event/auth cases and 1 public API case pass, along with library check/format/docs. P4.1 is next.
+
 Start from accepted Phase 2 + seam-freeze.
 
 Run:

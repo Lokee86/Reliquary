@@ -34,6 +34,7 @@
 - [Multiplexing P3/P4 observation contract](multiplexing-p34-observation-contract-2026-10-04.md) — frozen internal observation types and lane ownership; no distribution or scheduler implementation.
 - [Multiplexing Phase 3 baseline](multiplexing-phase3-baseline-2026-10-04.md) — P3.0 foundation, coordinator/journal inventory and collected verification.
 - [Multiplexing Phase 3 conversation coordination implementation plan](multiplexing-phase3-conversation-implementation-plan-2026-10-04.md) — branch-aware scheduling, durable conversation policy, visible auto-branching, generation lifetime and recovery; parallel with Phase 4.
+- [Multiplexing Phase 4 baseline and mutation inventory](multiplexing-phase4-baseline-2026-10-04.md) — accepted P4.0 foundation and gateway mutation classification.
 - [Multiplexing Phase 4 REL distribution implementation plan](multiplexing-phase4-distribution-implementation-plan-2026-10-04.md) — REL sequencer, atomic snapshot/subscription, bounded resync, reconnect and conversation streams; parallel with Phase 3.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
 - [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).
