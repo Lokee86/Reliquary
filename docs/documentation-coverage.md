@@ -92,6 +92,10 @@ The Archive projection, historical read API and synced canonical runtime receipt
 
 New production modules require canonical owners. New persistence records update storage-format documentation. New stateful/recovery boundaries update architecture and behavioral contracts in the same change. New product/runtime code must move from roadmap-only status into this matrix when it becomes concrete.
 
+## P3.6 generation coverage
+
+The generation/control module and its tests are documented in [architecture](architecture.md), [API](api.md), [storage reference](storage-format.md), [maintainer map](maintainer-map.md), [behavioral contracts](behavioral-contracts.md) and [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md). One existing coordinator and journal remain authoritative; P4 delivery is separate.
+
 ## Related docs
 
 - [Documentation policy](documentation-policy.md)

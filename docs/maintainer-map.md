@@ -104,6 +104,10 @@ The F1 source audit distinguishes **creation at first accepted MemoryStore publi
 - A future CVA management surface composes concrete owner APIs and cannot become a generalized semantic store.
 - Future stores retain independent authority even when they share the CVA global clock.
 
+## Gateway generation ownership (P3.6)
+
+runtime_host_gateway_conversation_generation.rs owns native generation/control methods and stream/Archive validation under the existing coordinator and REL journal. runtime_host_gateway_conversation_continuation.rs derives branch debt from nonterminal generations. multiplexing_journal.rs owns durable generation transitions and compaction. runtime_host_gateway_conversation_generation_tests.rs covers lifetime, checkpoint, control and restart handoffs. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)

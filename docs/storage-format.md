@@ -914,6 +914,10 @@ The host payload is distinct from a journal frame: `RQMUXH01`, followed by a lit
 
 Attachment bytes are durably staged in a per-REL content-addressed spool before enqueue can acknowledge them; journal submissions retain the identity and content hash. Compaction keeps canceled-submission tombstones and unresolved finalization/Archive/postcommit receipts while reclaiming eligible terminal payload bytes. The journal is operational state, not `.rel` Archive history. The dated F1–F6 runtime verification and Phase 1 acceptance passed; no journal frame/event/container format version changed during finish execution. Format changes require updating this description alongside the owning journal module.
 
+## Gateway generation journal records (P3.6)
+
+The existing REL operational journal adds GenerationUpdated and optional generation state on submission projections/tombstones; absent legacy fields default to none. Immutable fields are operation/generation IDs, branch ID, parent node ID and start timestamp. Phase changes carry contiguous transition_revision; checkpoints carry contiguous sequence, UTF-8 byte length and SHA-256. Terminal generations reject further mutation. Nonterminal generation payloads survive compaction. Text stays in the existing synchronized interaction-stream owner; no new CVA format or P4 cursor is added. [P3.6 record](multiplexing-phase3-generation-acceptance-2026-10-05.md) specifies the synchronization and restart handoffs.
+
 ## Related docs
 
 - [Architecture](architecture.md)

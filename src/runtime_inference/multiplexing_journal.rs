@@ -167,6 +167,43 @@ pub struct DurableHostOperation {
     pub last_known_phase: Option<DurableHostOperationPhase>,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum DurableGenerationPhase {
+    Pending,
+    Running,
+    CancellationRequested,
+    Interrupted,
+    Unknown,
+    Completed,
+    Cancelled,
+}
+
+impl DurableGenerationPhase {
+    pub fn terminal(self) -> bool {
+        matches!(self, Self::Interrupted | Self::Completed | Self::Cancelled)
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DurableGenerationCheckpoint {
+    pub sequence: u64,
+    pub utf8_bytes: u64,
+    pub sha256: [u8; 32],
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct DurableGeneration {
+    pub operation_id: String,
+    pub generation_id: String,
+    pub branch_id: String,
+    pub parent_node_id: String,
+    pub started_timestamp_ns: i64,
+    pub phase: DurableGenerationPhase,
+    pub transition_revision: u64,
+    #[serde(default)]
+    pub checkpoint: Option<DurableGenerationCheckpoint>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SubmissionStatus {
     pub state: SubmissionState,
@@ -180,6 +217,8 @@ pub struct SubmissionStatus {
     pub payload_retained: bool,
     #[serde(default)]
     pub host_operations: BTreeMap<RuntimeCapability, DurableHostOperation>,
+    #[serde(default)]
+    pub generation: Option<DurableGeneration>,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum EnqueueOutcome {
@@ -222,6 +261,8 @@ struct Entry {
     payload_retained: bool,
     #[serde(default)]
     host_operations: BTreeMap<RuntimeCapability, DurableHostOperation>,
+    #[serde(default)]
+    generation: Option<DurableGeneration>,
     request_fingerprint: String,
 }
 impl Projection {
@@ -249,6 +290,7 @@ impl Projection {
             post_commit_receipt: e.post_commit_receipt.clone(),
             payload_retained: e.payload_retained,
             host_operations: e.host_operations.clone(),
+            generation: e.generation.clone(),
         })
     }
     fn apply(&mut self, f: &Frame) -> Result<(), JournalError> {
@@ -288,6 +330,7 @@ impl Projection {
                         post_commit_receipt: None,
                         payload_retained: true,
                         host_operations: BTreeMap::new(),
+                        generation: None,
                         request_fingerprint: request_fingerprint(submission)?,
                     },
                 );
@@ -310,8 +353,13 @@ impl Projection {
                     .host_operations
                     .values()
                     .all(|operation| operation.phase == DurableHostOperationPhase::Cancelled)
+                    || e.generation.as_ref().is_some_and(|generation| {
+                        generation.phase != DurableGenerationPhase::Cancelled
+                    })
                 {
-                    return Err(JournalError::Corrupt("cancel before host cancellation"));
+                    return Err(JournalError::Corrupt(
+                        "cancel before dispatched work cancellation",
+                    ));
                 }
                 e.state = SubmissionState::Cancelled;
                 e.transition_revision += 1;
@@ -334,6 +382,9 @@ impl Projection {
                         .host_operations
                         .values()
                         .all(|operation| operation.phase == DurableHostOperationPhase::Completed)
+                    || e.generation.as_ref().is_some_and(|generation| {
+                        generation.phase != DurableGenerationPhase::Completed
+                    })
                 {
                     return Err(JournalError::Corrupt("invalid finalize claim"));
                 }
@@ -384,6 +435,14 @@ impl Projection {
                 }
                 entry.host_operations.insert(*capability, operation.clone());
             }
+            Event::GenerationUpdated { id, generation } => {
+                let entry = self
+                    .entries
+                    .get_mut(id)
+                    .ok_or(JournalError::Corrupt("missing generation target"))?;
+                validate_generation_update(entry.generation.as_ref(), generation)?;
+                entry.generation = Some(generation.clone());
+            }
             Event::PostCommitScheduled { id, receipt } => {
                 let e = self
                     .entries
@@ -399,7 +458,10 @@ impl Projection {
                 e.transition_revision += 1;
             }
         }
-        if !matches!(&f.event, Event::HostOperationUpdated { .. }) {
+        if !matches!(
+            &f.event,
+            Event::HostOperationUpdated { .. } | Event::GenerationUpdated { .. }
+        ) {
             *self
                 .conversation_revisions
                 .entry(id.conversation_id)
@@ -439,7 +501,12 @@ impl Projection {
                     DurableHostOperationPhase::Cancelled | DurableHostOperationPhase::Completed
                 )
             });
+            let generation_terminal = e
+                .generation
+                .as_ref()
+                .map_or(true, |generation| generation.phase.terminal());
             if host_stages_terminal
+                && generation_terminal
                 && (e.state == SubmissionState::Cancelled
                     || (e.state == SubmissionState::Committed && e.post_commit_receipt.is_some()))
             {
@@ -495,6 +562,86 @@ fn host_phase_transition_allowed(
     }
 }
 
+fn generation_phase_transition_allowed(
+    old: DurableGenerationPhase,
+    new: DurableGenerationPhase,
+) -> bool {
+    use DurableGenerationPhase::*;
+    match old {
+        Pending => matches!(
+            new,
+            Running | CancellationRequested | Interrupted | Unknown | Completed | Cancelled
+        ),
+        Running => matches!(
+            new,
+            CancellationRequested | Interrupted | Unknown | Completed
+        ),
+        CancellationRequested => matches!(new, Interrupted | Unknown | Completed | Cancelled),
+        Unknown => matches!(
+            new,
+            Pending | Running | CancellationRequested | Interrupted | Completed | Cancelled
+        ),
+        Interrupted | Completed | Cancelled => false,
+    }
+}
+
+fn validate_generation_update(
+    previous: Option<&DurableGeneration>,
+    next: &DurableGeneration,
+) -> Result<(), JournalError> {
+    valid_id(&next.operation_id, "generation operation id")?;
+    valid_id(&next.generation_id, "generation id")?;
+    valid_id(&next.branch_id, "generation branch id")?;
+    match previous {
+        None => {
+            if next.transition_revision != 1
+                || !matches!(
+                    next.phase,
+                    DurableGenerationPhase::Pending | DurableGenerationPhase::Running
+                )
+                || next.checkpoint.is_some()
+            {
+                return Err(JournalError::Corrupt("invalid initial generation state"));
+            }
+        }
+        Some(old) => {
+            if old.phase.terminal() {
+                return Err(JournalError::Corrupt("terminal generation update"));
+            }
+            if old.operation_id != next.operation_id
+                || old.generation_id != next.generation_id
+                || old.branch_id != next.branch_id
+                || old.parent_node_id != next.parent_node_id
+                || old.started_timestamp_ns != next.started_timestamp_ns
+                || next.transition_revision != old.transition_revision + 1
+            {
+                return Err(JournalError::Corrupt(
+                    "generation identity or revision changed",
+                ));
+            }
+            if old.phase != next.phase
+                && !generation_phase_transition_allowed(old.phase, next.phase)
+            {
+                return Err(JournalError::Corrupt("invalid generation phase transition"));
+            }
+            match (&old.checkpoint, &next.checkpoint) {
+                (None, None) => {}
+                (None, Some(checkpoint)) if checkpoint.sequence == 1 => {}
+                (Some(old_checkpoint), Some(checkpoint))
+                    if checkpoint.sequence == old_checkpoint.sequence + 1
+                        && checkpoint.utf8_bytes >= old_checkpoint.utf8_bytes => {}
+                (Some(old_checkpoint), Some(checkpoint)) if checkpoint == old_checkpoint => {}
+                _ => {
+                    return Err(JournalError::Corrupt(
+                        "invalid generation checkpoint transition",
+                    ));
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 fn validate_receipt(e: &Entry, r: &ArchiveReceipt) -> Result<(), JournalError> {
     let c = e
         .finalize_capture
@@ -546,6 +693,10 @@ enum Event {
         capability: RuntimeCapability,
         operation: DurableHostOperation,
     },
+    GenerationUpdated {
+        id: ConversationSubmissionId,
+        generation: DurableGeneration,
+    },
 }
 impl Event {
     fn id(&self) -> &ConversationSubmissionId {
@@ -555,7 +706,8 @@ impl Event {
             | Self::FinalizeWon { id, .. }
             | Self::ArchiveCommitted { id, .. }
             | Self::PostCommitScheduled { id, .. }
-            | Self::HostOperationUpdated { id, .. } => id,
+            | Self::HostOperationUpdated { id, .. }
+            | Self::GenerationUpdated { id, .. } => id,
         }
     }
 }
@@ -750,6 +902,158 @@ impl RelJournal {
                     .map(|(capability, operation)| (id.clone(), *capability, operation.clone()))
             })
             .collect()
+    }
+
+    pub fn generation(&self, id: &ConversationSubmissionId) -> Option<DurableGeneration> {
+        self.projection.entries.get(id)?.generation.clone()
+    }
+
+    pub fn generation_by_operation_id(
+        &self,
+        conversation_id: &ConversationId,
+        operation_id: &str,
+    ) -> Option<(ConversationSubmissionId, DurableGeneration)> {
+        self.projection.entries.iter().find_map(|(id, entry)| {
+            (id.conversation_id == *conversation_id
+                && entry
+                    .generation
+                    .as_ref()
+                    .is_some_and(|generation| generation.operation_id == operation_id))
+            .then(|| (id.clone(), entry.generation.clone().expect("checked above")))
+        })
+    }
+
+    pub fn begin_generation(
+        &mut self,
+        id: &ConversationSubmissionId,
+        operation_id: String,
+        generation_id: String,
+        branch_id: String,
+        parent_node_id: String,
+        started_timestamp_ns: i64,
+        phase: DurableGenerationPhase,
+    ) -> Result<TransitionOutcome, JournalError> {
+        self.ensure()?;
+        let entry = self
+            .projection
+            .entries
+            .get(id)
+            .ok_or(JournalError::MissingSubmission)?;
+        if let Some(current) = entry.generation.as_ref() {
+            if current.operation_id == operation_id
+                && current.generation_id == generation_id
+                && current.branch_id == branch_id
+                && current.parent_node_id == parent_node_id
+                && current.started_timestamp_ns == started_timestamp_ns
+            {
+                return Ok(TransitionOutcome::Idempotent(
+                    self.projection.status(id).expect("entry exists"),
+                ));
+            }
+            return Err(JournalError::HostOperationConflict);
+        }
+        if entry.state != SubmissionState::Committed
+            || entry.archive_receipt.is_none()
+            || entry.post_commit_receipt.is_none()
+            || !matches!(
+                phase,
+                DurableGenerationPhase::Pending | DurableGenerationPhase::Running
+            )
+        {
+            return Err(JournalError::InvalidState);
+        }
+        let generation = DurableGeneration {
+            operation_id,
+            generation_id,
+            branch_id,
+            parent_node_id,
+            started_timestamp_ns,
+            phase,
+            transition_revision: 1,
+            checkpoint: None,
+        };
+        self.append(Event::GenerationUpdated {
+            id: id.clone(),
+            generation,
+        })?;
+        Ok(TransitionOutcome::Durable(
+            self.projection.status(id).expect("entry exists"),
+        ))
+    }
+
+    pub fn record_generation_phase(
+        &mut self,
+        id: &ConversationSubmissionId,
+        phase: DurableGenerationPhase,
+    ) -> Result<TransitionOutcome, JournalError> {
+        self.ensure()?;
+        let current = self.generation(id).ok_or(JournalError::MissingSubmission)?;
+        if current.phase == phase {
+            return Ok(TransitionOutcome::Idempotent(
+                self.projection.status(id).expect("entry exists"),
+            ));
+        }
+        if current.phase.terminal() {
+            return Err(JournalError::InvalidState);
+        }
+        let generation = DurableGeneration {
+            phase,
+            transition_revision: current
+                .transition_revision
+                .checked_add(1)
+                .ok_or(JournalError::SequenceOverflow)?,
+            ..current
+        };
+        self.append(Event::GenerationUpdated {
+            id: id.clone(),
+            generation,
+        })?;
+        Ok(TransitionOutcome::Durable(
+            self.projection.status(id).expect("entry exists"),
+        ))
+    }
+
+    pub fn record_generation_checkpoint(
+        &mut self,
+        id: &ConversationSubmissionId,
+        sequence: u64,
+        utf8_bytes: u64,
+        sha256: [u8; 32],
+    ) -> Result<TransitionOutcome, JournalError> {
+        self.ensure()?;
+        let current = self.generation(id).ok_or(JournalError::MissingSubmission)?;
+        if current.phase.terminal() {
+            return Err(JournalError::InvalidState);
+        }
+        let expected = match current.checkpoint.as_ref() {
+            Some(checkpoint) => checkpoint
+                .sequence
+                .checked_add(1)
+                .ok_or(JournalError::SequenceOverflow)?,
+            None => 1,
+        };
+        if sequence != expected {
+            return Err(JournalError::InvalidState);
+        }
+        let generation = DurableGeneration {
+            transition_revision: current
+                .transition_revision
+                .checked_add(1)
+                .ok_or(JournalError::SequenceOverflow)?,
+            checkpoint: Some(DurableGenerationCheckpoint {
+                sequence,
+                utf8_bytes,
+                sha256,
+            }),
+            ..current
+        };
+        self.append(Event::GenerationUpdated {
+            id: id.clone(),
+            generation,
+        })?;
+        Ok(TransitionOutcome::Durable(
+            self.projection.status(id).expect("entry exists"),
+        ))
     }
 
     pub fn begin_host_handoff(
@@ -1369,6 +1673,9 @@ impl RelJournal {
             .host_operations
             .values()
             .all(|operation| operation.phase == DurableHostOperationPhase::Cancelled)
+            || e.generation
+                .as_ref()
+                .is_some_and(|generation| generation.phase != DurableGenerationPhase::Cancelled)
         {
             return Err(JournalError::InvalidState);
         }
@@ -1411,6 +1718,9 @@ impl RelJournal {
             .host_operations
             .values()
             .all(|operation| operation.phase == DurableHostOperationPhase::Completed)
+            || e.generation
+                .as_ref()
+                .is_some_and(|generation| generation.phase != DurableGenerationPhase::Completed)
         {
             return Err(JournalError::InvalidState);
         }

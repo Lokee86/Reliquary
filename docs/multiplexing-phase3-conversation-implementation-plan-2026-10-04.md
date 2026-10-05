@@ -6,7 +6,8 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0–P3.5 accepted; P3.6–P3.9 remain unimplemented.**
+Status: **P3.0–P3.6 accepted; P3.7–P3.9 remain planned.**
+Generation: [P3.6 implementation and acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md)
 Auto-branch: [P3.5 implementation and acceptance](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md)
 Sequential: [P3.4 implementation and acceptance](multiplexing-phase3-sequential-acceptance-2026-10-05.md)
 Scheduler: [P3.3 ownership and acceptance](multiplexing-phase3-scheduler-acceptance-2026-10-05.md)
@@ -37,7 +38,7 @@ Current production ownership already has:
 - transient viewer registrations;
 - stable generation/host-operation identity and durable principal attribution.
 
-The coordinator now owns branch-local contention, journal-derived recovery reservations and automatic durable selection across eligible branches. Callers request dispatch for a conversation without supplying a fresh submission ID. Existing durable continuations have a separate resume operation. Default sequential finalization and VisibleAutoBranch stale-head conflict handling are implemented. Native generation/checkpoint lifecycle remains a later sub-phase.
+The coordinator now owns branch-local contention, journal-derived recovery reservations and automatic durable selection across eligible branches. Callers request dispatch for a conversation without supplying a fresh submission ID. Existing durable continuations have a separate resume operation. Default sequential finalization and VisibleAutoBranch stale-head conflict handling are implemented. Native generation/checkpoint control and restart reconciliation are implemented in P3.6.
 
 Phase 3 makes the existing coordinator the one canonical owner of those semantics.
 
@@ -81,7 +82,7 @@ Avoid parallel edits to `runtime_host_gateway.rs`, `runtime_host_instances.rs`, 
 Multiple authenticated instances may submit into one shared conversation. The existing Phase 1 machinery safely admits and durably finalizes work, but it does not yet provide the complete product concurrency behavior:
 
 - durable chronological selection and both current policy-specific finalization decisions are implemented;
-- branch leases cover current finalization/host continuations, but native generation/checkpoint lifecycle remains incomplete;
+- branch leases cover finalization, host continuations and native generation/checkpoint lifecycle;
 - the durable conversation policy drives finalization behavior through the production scheduler;
 - generation observation/control is not yet modeled as one branch continuation independent of viewer lifetime;
 - reconnect needs one authoritative conversation snapshot rather than reconstruction from ambient session state;
@@ -278,6 +279,8 @@ Requirements:
 **Tests:** two simultaneous writers, three-writer ordering, crash before/after branch creation commit, submitter detached before branch finalization, another viewer on original branch, invalid expected parent.
 
 ### P3.6 — Generation/control lifetime
+
+Status: accepted with the documented architecture-tool limitation; verification results are recorded in [P3.6 acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md).
 
 Make branch generation state explicit.
 

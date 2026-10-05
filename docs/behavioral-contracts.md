@@ -186,6 +186,18 @@ Before whole-CVA rollback ships, tests must define timeline selection across Arc
 
 Before persistent checkpoints are added, larger-scale benchmarks must show that the remaining single-pass scan cost justifies the additional derived-state machinery.
 
+## Generation lifecycle contract (P3.6)
+
+| Contract | Protection |
+| --- | --- |
+| Zero viewers and initiator detach preserve generation | generation_survives_zero_viewers_and_blocks_only_its_branch |
+| Prefix/sequence integrity and exactly-once completion | generation_checkpoints_are_monotonic_and_completion_is_exactly_once |
+| Current shared cancellation grant is required | generation_control_requires_current_shared_cancel_grant; generation_branch_lease_fences_overlapping_control |
+| Restart preserves identity and synchronized content | generation_restart_recovers_interrupted_checkpoint_and_stable_identity; generation_recovery_reconciles_checkpoint_and_archive_handoffs |
+| Host cancellation reaches an in-flight handoff | cancellation_reaches_host_before_blocked_handoff_ack_and_cannot_be_resurrected |
+
+[P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md) records the production seams and verification.
+
 ## Related docs
 
 - [Architecture](architecture.md)

@@ -11,12 +11,13 @@ use super::{
 };
 use crate::multiplexing_journal::{
     ArchiveReceipt, AttachmentIdentity, ConversationId, ConversationSubmissionId,
-    DurableHostOperationPhase, EnqueueOutcome, FinalizeCapture, JournalError, PostCommitReceipt,
-    RelJournal, RelOwnerId, Submission, SubmissionId, SubmissionState, SubmissionStatus,
-    TransitionOutcome,
+    DurableGeneration, DurableGenerationPhase, DurableHostOperationPhase, EnqueueOutcome,
+    FinalizeCapture, JournalError, PostCommitReceipt, RelJournal, RelOwnerId, Submission,
+    SubmissionId, SubmissionState, SubmissionStatus, TransitionOutcome,
 };
 use crate::{
-    Branch, InteractionAttachment, InteractionRole, InteractionTurn, ResolvedTurn, StoredFile,
+    Branch, InteractionAttachment, InteractionRole, InteractionStreamRecord,
+    InteractionStreamStatus, InteractionTurn, ResolvedTurn, StoredFile,
 };
 use serde_json::json;
 use sha2::{Digest, Sha256};
@@ -70,7 +71,10 @@ impl ConversationViewerToken {
 
 #[path = "runtime_host_gateway_conversation_continuation.rs"]
 mod continuation;
+#[path = "runtime_host_gateway_conversation_generation.rs"]
+mod generation;
 use continuation::ConversationCoordinator;
+use generation::*;
 #[derive(Default)]
 struct ViewerState {
     viewers: HashMap<(String, String), HashMap<Uuid, super::InstanceId>>,
@@ -755,179 +759,6 @@ impl GatewayRuntime {
                 .remove(&(token.owner_id, token.conversation_id));
         }
         Ok(())
-    }
-
-    pub fn cancel_conversation_submission(
-        &self,
-        instance: &InstanceRuntime,
-        owner_id: &str,
-        conversation_id: &str,
-        submission_id: &str,
-    ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
-        let token = self
-            .authorize(instance, owner_id, OwnerGrant::CancelSharedGeneration)
-            .or_else(|_| {
-                self.authorize(instance, owner_id, OwnerGrant::CancelOwnPendingSubmission)
-            })?;
-        let key = ConversationSubmissionId {
-            conversation_id: ConversationId::new(conversation_id.to_owned()).map_err(operation)?,
-            submission_id: SubmissionId::new(submission_id.to_owned()).map_err(operation)?,
-        };
-        let journal = self.conversation.journal(owner_id)?;
-        let (current, host_operation) = with_admission(self, &token, || {
-            let journal = journal
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            let current = journal
-                .status(&key)
-                .ok_or_else(|| operation("submission not found"))?;
-            let submitter = journal
-                .submission(&key)
-                .map(|submission| submission.principal_id.as_str())
-                .or_else(|| journal.submitter_principal_id(&key));
-            if token.grant != OwnerGrant::CancelSharedGeneration
-                && submitter != Some(instance.principal_id())
-            {
-                return Err(operation(
-                    "only the initiating principal or shared-cancellation grant may cancel",
-                ));
-            }
-            Ok((
-                current,
-                journal.host_operation(&key, RuntimeCapability::ConversationExecution),
-            ))
-        })?;
-        if current.state == SubmissionState::Cancelled {
-            return Ok(GatewaySubmissionReceipt {
-                id: key,
-                status: current,
-            });
-        }
-        if let Some(host_record) = host_operation.as_ref() {
-            let capability = RuntimeCapability::ConversationExecution;
-            if host_record.phase == DurableHostOperationPhase::Completed {
-                return Ok(GatewaySubmissionReceipt {
-                    id: key,
-                    status: current,
-                });
-            }
-            if host_record.phase == DurableHostOperationPhase::Cancelled {
-                let status = with_admission(self, &token, || {
-                    let mut journal = journal
-                        .lock()
-                        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                    let revision = journal.conversation_revision(&key.conversation_id);
-                    journal.cancel(&key, revision).map_err(operation)?;
-                    Ok(journal.status(&key).unwrap())
-                })?;
-                if let Some(router) = self.host_router.as_ref() {
-                    router
-                        .release_operation(capability, &host_record.stable_id)
-                        .map_err(operation)?;
-                }
-                return Ok(GatewaySubmissionReceipt { id: key, status });
-            }
-        }
-
-        let status = if let Some(host_operation) = host_operation {
-            let capability = RuntimeCapability::ConversationExecution;
-            let Some(router) = self.host_router.as_ref() else {
-                with_admission(self, &token, || {
-                    let mut journal = journal
-                        .lock()
-                        .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                    journal
-                        .begin_host_cancel(&key, capability)
-                        .map_err(operation)?;
-                    journal
-                        .record_host_status(&key, capability, HostOperationStatus::Unknown)
-                        .map_err(operation)?;
-                    Ok(())
-                })?;
-                let status = journal
-                    .lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-                    .status(&key)
-                    .ok_or_else(|| operation("submission not found"))?;
-                return Ok(GatewaySubmissionReceipt { id: key, status });
-            };
-            with_admission(self, &token, || {
-                let mut journal = journal
-                    .lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                if !host_operation.cancel_requested {
-                    journal
-                        .begin_host_cancel(&key, capability)
-                        .map_err(operation)?;
-                }
-                Ok(())
-            })?;
-            with_admission(self, &token, || Ok(()))?;
-            match router.cancel(capability, &host_operation.stable_id) {
-                Ok(outcome) => {
-                    with_admission(self, &token, || {
-                        let mut journal = journal
-                            .lock()
-                            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                        journal
-                            .record_host_cancel(&key, capability, outcome)
-                            .map_err(operation)?;
-                        if matches!(
-                            outcome,
-                            HostCancelOutcome::CancelledBeforeStart
-                                | HostCancelOutcome::AlreadyTerminal(
-                                    HostOperationStatus::Cancelled
-                                )
-                        ) {
-                            let revision = journal.conversation_revision(&key.conversation_id);
-                            journal.cancel(&key, revision).map_err(operation)?;
-                        }
-                        Ok(())
-                    })?;
-                    if matches!(
-                        outcome,
-                        HostCancelOutcome::CancelledBeforeStart
-                            | HostCancelOutcome::AlreadyTerminal(
-                                HostOperationStatus::Cancelled | HostOperationStatus::Completed
-                            )
-                    ) {
-                        router
-                            .release_operation(capability, &host_operation.stable_id)
-                            .map_err(operation)?;
-                    }
-                }
-                Err(_) => {
-                    with_admission(self, &token, || {
-                        let mut journal = journal
-                            .lock()
-                            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                        journal
-                            .record_host_status(&key, capability, HostOperationStatus::Unknown)
-                            .map_err(operation)?;
-                        Ok(())
-                    })?;
-                }
-            }
-            journal
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-                .status(&key)
-                .ok_or_else(|| operation("submission not found"))?
-        } else {
-            with_admission(self, &token, || {
-                let mut journal = journal
-                    .lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-                compact_if_needed(&mut journal)?;
-                let revision = journal.conversation_revision(&key.conversation_id);
-                match journal.cancel(&key, revision).map_err(operation)? {
-                    TransitionOutcome::Durable(status) | TransitionOutcome::Idempotent(status) => {
-                        Ok(status)
-                    }
-                }
-            })?
-        };
-        Ok(GatewaySubmissionReceipt { id: key, status })
     }
 
     /// Dispatch the oldest eligible durable entry. None means idle or all branches busy.
@@ -2274,6 +2105,115 @@ fn recover_journal_runtime(
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
         .statuses();
     for (key, status) in statuses {
+        if let Some(generation) = status
+            .generation
+            .as_ref()
+            .filter(|generation| !generation.phase.terminal())
+        {
+            if runtime
+                .cva()
+                .archive()
+                .has_node(key.conversation_id.as_str(), &generation.generation_id)
+            {
+                let principal_id = journal
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                    .submitter_principal_id(&key)
+                    .ok_or_else(|| operation("generation submitter identity is unavailable"))?
+                    .to_owned();
+                let record = generation_stream_for_conversation(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    generation,
+                )?
+                .ok_or_else(|| operation("committed generation lacks its stream checkpoint"))?;
+                validate_generation_archive_turn(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    generation,
+                    &principal_id,
+                    &record.content,
+                )?;
+                let branch_leaf = runtime
+                    .cva()
+                    .archive()
+                    .branches()
+                    .iter()
+                    .find(|branch| {
+                        branch.conversation_id == key.conversation_id.as_str()
+                            && branch.id == generation.branch_id
+                    })
+                    .map(|branch| branch.leaf_node_id.clone())
+                    .ok_or_else(|| operation("generation recovery branch is missing"))?;
+                if branch_leaf == generation.parent_node_id {
+                    publish_branch(
+                        runtime,
+                        key.conversation_id.as_str(),
+                        &generation.branch_id,
+                        &generation.generation_id,
+                        true,
+                    )?;
+                }
+                validate_archive_branch(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    &generation.branch_id,
+                    &generation.generation_id,
+                )?;
+                ensure_session_at(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    Some(&generation.generation_id),
+                )?;
+                runtime
+                    .schedule_session(key.conversation_id.as_str(), episode_policy, now_ns())
+                    .map_err(operation)?;
+                journal
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                    .record_generation_phase(&key, DurableGenerationPhase::Completed)
+                    .map_err(operation)?;
+            } else {
+                // The stream sync can win a crash before its journal checkpoint.
+                // Reconcile that synchronized prefix before publishing interruption.
+                if let Some(record) = generation_stream_for_conversation(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    generation,
+                )? {
+                    let bytes = u64::try_from(record.content.len())
+                        .map_err(|_| operation("generation checkpoint length exhausted"))?;
+                    let hash: [u8; 32] = Sha256::digest(record.content.as_bytes()).into();
+                    let differs = generation
+                        .checkpoint
+                        .as_ref()
+                        .map_or(!record.content.is_empty(), |checkpoint| {
+                            checkpoint.utf8_bytes != bytes || checkpoint.sha256 != hash
+                        });
+                    if differs {
+                        let sequence =
+                            generation.checkpoint.as_ref().map_or(Ok(1), |checkpoint| {
+                                checkpoint.sequence.checked_add(1).ok_or_else(|| {
+                                    operation("generation checkpoint sequence exhausted")
+                                })
+                            })?;
+                        journal
+                            .lock()
+                            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                            .record_generation_checkpoint(&key, sequence, bytes, hash)
+                            .map_err(operation)?;
+                    }
+                }
+                // Native generation execution is process-local. A restart can recover
+                // only the synchronized prefix, never infer that compute is still live.
+                interrupt_generation_stream(runtime, key.conversation_id.as_str(), generation)?;
+                journal
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                    .record_generation_phase(&key, DurableGenerationPhase::Interrupted)
+                    .map_err(operation)?;
+            }
+        }
         if status.state == SubmissionState::Finalizing {
             let (capture, submission) = {
                 let journal = journal

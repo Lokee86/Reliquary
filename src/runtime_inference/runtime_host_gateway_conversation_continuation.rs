@@ -57,15 +57,19 @@ impl ConversationCoordinator {
             // Host work already dispatched is a continuation, not a fresh queue
             // candidate. Explicit reconciliation must not starve an idle branch.
             if status.state == SubmissionState::Pending
-                && journal
-                    .host_operation(&key, RuntimeCapability::ConversationExecution)
-                    .is_some_and(|host| {
-                        !matches!(
-                            host.phase,
-                            DurableHostOperationPhase::Completed
-                                | DurableHostOperationPhase::Cancelled
-                        )
-                    })
+                && (status
+                    .generation
+                    .as_ref()
+                    .is_some_and(|generation| !generation.phase.terminal())
+                    || journal
+                        .host_operation(&key, RuntimeCapability::ConversationExecution)
+                        .is_some_and(|host| {
+                            !matches!(
+                                host.phase,
+                                DurableHostOperationPhase::Completed
+                                    | DurableHostOperationPhase::Cancelled
+                            )
+                        }))
             {
                 continue;
             }
@@ -152,25 +156,33 @@ fn refresh_debt(
         if &key.conversation_id != conversation_id {
             continue;
         }
-        let unresolved = match status.state {
-            SubmissionState::Finalizing => true,
-            SubmissionState::Committed => status.post_commit_receipt.is_none(),
-            SubmissionState::Pending => journal
-                .host_operation(&key, RuntimeCapability::ConversationExecution)
-                .is_some(),
-            SubmissionState::Cancelled => false,
-        };
+        let generation_active = status
+            .generation
+            .as_ref()
+            .is_some_and(|generation| !generation.phase.terminal());
+        let unresolved = generation_active
+            || match status.state {
+                SubmissionState::Finalizing => true,
+                SubmissionState::Committed => status.post_commit_receipt.is_none(),
+                SubmissionState::Pending => journal
+                    .host_operation(&key, RuntimeCapability::ConversationExecution)
+                    .is_some(),
+                SubmissionState::Cancelled => false,
+            };
         if !unresolved {
             continue;
         }
-        let branch_id = match status.finalize_capture {
-            Some(capture) => capture.branch_id,
-            None => metadata_branch(
-                journal
-                    .submission(&key)
-                    .ok_or_else(|| operation("unresolved continuation payload is not retained"))?,
-            ),
-        };
+        let branch_id =
+            if let Some(generation) = status.generation.as_ref().filter(|_| generation_active) {
+                generation.branch_id.clone()
+            } else {
+                match status.finalize_capture {
+                    Some(capture) => capture.branch_id,
+                    None => metadata_branch(journal.submission(&key).ok_or_else(|| {
+                        operation("unresolved continuation payload is not retained")
+                    })?),
+                }
+            };
         if debt.insert(branch_id, key).is_some() {
             return Err(operation(
                 "multiple durable continuations own the same branch",

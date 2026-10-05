@@ -7,6 +7,8 @@ mod auto_branch;
 mod branches;
 #[path = "runtime_host_gateway_conversation_finalization_tests.rs"]
 mod finalization;
+#[path = "runtime_host_gateway_conversation_generation_tests.rs"]
+mod generation;
 #[path = "runtime_host_gateway_conversation_policy_tests.rs"]
 mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]
@@ -834,7 +836,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
 }
 
 #[test]
-fn shared_cancel_grant_takes_precedence_over_own_only_when_both_are_present() {
+fn shared_generation_grant_does_not_cancel_foreign_pending_submissions() {
     let gateway = gateway();
     let owner_id = gateway.mount_rel(seeded_runtime()).unwrap();
     let submitter = gateway
@@ -893,10 +895,16 @@ fn shared_cancel_grant_takes_precedence_over_own_only_when_both_are_present() {
             )
             .is_err()
     );
-    let cancelled = gateway
-        .cancel_conversation_submission(&shared, &owner_id, "conversation-one", "foreign-shared")
-        .unwrap();
-    assert_eq!(cancelled.status.state, SubmissionState::Cancelled);
+    assert!(
+        gateway
+            .cancel_conversation_submission(
+                &shared,
+                &owner_id,
+                "conversation-one",
+                "foreign-shared"
+            )
+            .is_err()
+    );
 
     gateway.detach_instance(&submitter).unwrap();
     gateway.detach_instance(&own_only).unwrap();
@@ -1100,10 +1108,33 @@ fn cancellation_after_submitter_detach_requires_current_applicable_grant() {
         )
         .unwrap();
     assert!(with_admission(&gateway, &stale_grant, || Ok(())).is_err());
+    assert!(
+        gateway
+            .cancel_conversation_submission(
+                &shared,
+                &owner_id,
+                "conversation-one",
+                "detached-cancel"
+            )
+            .is_err()
+    );
+    let reattached = gateway
+        .attach_instance(
+            "submitter".into(),
+            None,
+            grants(&owner_id, &[OwnerGrant::CancelOwnPendingSubmission]),
+        )
+        .unwrap();
     let cancelled = gateway
-        .cancel_conversation_submission(&shared, &owner_id, "conversation-one", "detached-cancel")
+        .cancel_conversation_submission(
+            &reattached,
+            &owner_id,
+            "conversation-one",
+            "detached-cancel",
+        )
         .unwrap();
     assert_eq!(cancelled.status.state, SubmissionState::Cancelled);
+    gateway.detach_instance(&reattached).unwrap();
     assert_eq!(
         gateway
             .process_accepted_conversation_submission(

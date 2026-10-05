@@ -10,7 +10,7 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 
 ## P3/P4 foundation scope
 
-The [shared observation contract](multiplexing-p34-observation-contract-2026-10-04.md) defines internal data shapes only. Durable policy (P3.1), branch-aware host/finalization ownership (P3.2), automatic durable selection (P3.3), default sequential finalization (P3.4), and VisibleAutoBranch stale-head conflict handling (P3.5) are implemented. Native generation/checkpoint control, production snapshot builders, transition emission and distribution machinery remain later P3/P4 work. A compiled data contract is not evidence of atomic subscribe or checkpoint delivery.
+The [shared observation contract](multiplexing-p34-observation-contract-2026-10-04.md) defines internal data shapes only. Durable policy (P3.1), branch-aware host/finalization ownership (P3.2), automatic durable selection (P3.3), default sequential finalization (P3.4), and VisibleAutoBranch stale-head conflict handling (P3.5) are implemented. Native generation/checkpoint control is implemented in P3.6; production snapshot builders, transition emission and distribution machinery remain later P3/P4 work. A compiled data contract is not evidence of atomic subscribe or checkpoint delivery.
 
 ## Phase 2 supported boundaries
 
@@ -141,6 +141,10 @@ Reopen uses one streaming physical pass shared by all concrete stores. Current m
 
 ## Enforcement limits
 Repository-local Pitlord enforcement assigns every authored Rust source file under `src/` to exactly one architectural owner and blocks reintroduction of the deleted generic `WorkspaceMetadata` / `workspace_type` authority outside the explicit legacy migration decoder. The source tree is physically grouped by those owner directories, so Pitlord can use coarse directory selectors while Reliquary remains one Rust crate. A refreshed post-reorganization audit found no current basis for splitting the core into multiple crates: production import evidence leaves Archive, Chronos, config/security, facade, Memory, Perception, retrieval, runtime/inference, and semantic graph in one strongly connected component; only `container` and `ego` fall outside that SCC. No dependency-direction/cycle rule is therefore being added merely to force an aspirational package DAG. The generated `.lexicon/` and `.arcana/` state is disposable analysis evidence and remains ignored rather than becoming repository authority.
+
+## P3.6 generation lifecycle scope
+
+Branch-local generation identity/control, durable prefixes, viewer-independent lifetime and restart reconciliation are implemented and covered by [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md). These APIs coordinate trusted owner execution; provider inference orchestration and host assistant-result ingestion are not introduced. Full authoritative snapshots remain P3.7 and REL feed/stream delivery remains P4.
 
 ## Related docs
 - [Roadmap](roadmap.md)

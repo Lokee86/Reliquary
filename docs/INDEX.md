@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [P3.6 generation/control acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md)
+
 - [Operator and integration manual](manual/INDEX.md) — task-oriented workflows for users, operators, and product integrators.
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.

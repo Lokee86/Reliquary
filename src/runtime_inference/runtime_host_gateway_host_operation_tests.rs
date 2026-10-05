@@ -303,6 +303,7 @@ fn writer_grants(owner_id: &str) -> BTreeMap<String, BTreeSet<OwnerGrant>> {
             OwnerGrant::ViewRel,
             OwnerGrant::SubmitConversation,
             OwnerGrant::CancelOwnPendingSubmission,
+            OwnerGrant::CancelSharedGeneration,
         ]),
     )])
 }
@@ -898,11 +899,18 @@ fn cancellation_reaches_host_before_blocked_handoff_ack_and_cannot_be_resurrecte
     let cancel_owner = owner_id.clone();
     let (cancel_tx, cancel_rx) = std::sync::mpsc::channel();
     let cancel = std::thread::spawn(move || {
-        let result = cancel_gateway.cancel_conversation_submission(
+        let result = cancel_gateway.cancel_conversation_generation(
             &cancel_writer,
             &cancel_owner,
             "host-conversation",
-            "cancel-race-submit",
+            &journal_status(
+                &cancel_gateway,
+                &cancel_owner,
+                "host-conversation",
+                "cancel-race-submit",
+            )
+            .host_operations[&RuntimeCapability::ConversationExecution]
+                .stable_id,
         );
         let _ = cancel_tx.send(result);
     });

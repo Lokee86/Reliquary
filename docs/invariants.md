@@ -191,6 +191,10 @@ The internal observation data boundary contains no writable semantic handles or 
 
 Changing version ownership, conversation ancestry, mutable-record revision semantics, or persistent format requires architecture review and focused behavioral tests.
 
+## Branch generation and cancellation (P3.6)
+
+One branch has one nonterminal finalizer/generation continuation. Pending work cannot mutate its persisted generation parent or text prefix. Viewer detach and zero viewers never cancel accepted work. CancelOwnPendingSubmission is limited to the initiating principal's undispatched pending turn; CancelSharedGeneration controls a dispatched operation by stable ID using current grants. Checkpoint content sync precedes its journal sequence/hash. Restart interrupts local compute and preserves authoritative host Unknown debt. [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)
