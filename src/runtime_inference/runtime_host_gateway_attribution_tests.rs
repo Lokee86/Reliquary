@@ -22,7 +22,7 @@ fn two_principals_in_one_conversation_recover_without_live_instances() {
         )
         .unwrap();
     first
-        .process_next_conversation_submission(&a, &owner, "conversation-one", "from-A")
+        .process_exact_conversation_submission_for_test(&a, &owner, "conversation-one", "from-A")
         .unwrap();
     let mut second = submission("conversation-one", "from-B", "from-A");
     second.expected_conversation_revision = first
@@ -34,7 +34,7 @@ fn two_principals_in_one_conversation_recover_without_live_instances() {
         .conversation_revision(&ConversationId::new("conversation-one").unwrap());
     first.submit_conversation(&b, &owner, second).unwrap();
     first
-        .process_next_conversation_submission(&b, &owner, "conversation-one", "from-B")
+        .process_exact_conversation_submission_for_test(&b, &owner, "conversation-one", "from-B")
         .unwrap();
     let before = {
         let journal = first.conversation.owner_journal(&owner).unwrap();
@@ -155,7 +155,7 @@ fn corrupt_owner_journal_blocks_mount_and_missing_journal_never_backfills() {
         )
         .unwrap();
     first
-        .process_next_conversation_submission(&a, &owner, "conversation-one", "source-A")
+        .process_exact_conversation_submission_for_test(&a, &owner, "conversation-one", "source-A")
         .unwrap();
     first.detach_instance(&a).unwrap();
     drop(first.unmount_rel(&owner).unwrap());

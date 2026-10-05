@@ -12,6 +12,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 ## Invariants
 
+### Durable conversation dispatch
+
+Only the conversation coordinator selects fresh Pending work. Selection and branch reservation share a critical section; skipped branches retain journal order. A production exact-ID resume must prove an existing durable continuation and cannot admit fresh Pending work. Client timestamps do not influence queue order. The REL journal remains the single pending authority.
+
 ### Durable conversation policy
 
 - Archive conversation metadata is the sole policy owner. Missing legacy policy means SequentialChronological at revision 1; title/active writes cannot reset policy or its revision.

@@ -480,7 +480,7 @@ fn recovery_retries_the_same_durable_handoff_id_and_digest() {
         "reconnect must not erase the startup journal debt"
     );
     let receipt = remounted
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &remounted_writer,
             &owner_id,
             "host-conversation",
@@ -516,7 +516,7 @@ fn durable_host_completion_survives_restart_without_the_adapter() {
         let (owner_id, writer) = mount_writer(&gateway, rel_path.clone(), "terminal-principal");
         submit(&gateway, &writer, &owner_id, "terminal-submit");
         gateway
-            .process_next_conversation_submission(
+            .process_exact_conversation_submission_for_test(
                 &writer,
                 &owner_id,
                 "host-conversation",
@@ -559,7 +559,7 @@ fn durable_host_completion_survives_restart_without_the_adapter() {
         assert_eq!(recovered_owner, owner_id);
         for _ in 0..2 {
             let receipt = recovered
-                .process_next_conversation_submission(
+                .process_exact_conversation_submission_for_test(
                     &writer,
                     &owner_id,
                     "host-conversation",
@@ -588,7 +588,7 @@ fn withdrawn_conversation_contract_holds_old_work_until_durable_completion() {
     );
     submit(&gateway, &writer, &owner_id, "downgrade-submit");
     gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner_id,
             "host-conversation",
@@ -603,7 +603,7 @@ fn withdrawn_conversation_contract_holds_old_work_until_durable_completion() {
         StageAuthority::Held
     );
     let pending = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner_id,
             "host-conversation",
@@ -624,7 +624,7 @@ fn withdrawn_conversation_contract_holds_old_work_until_durable_completion() {
         StageAuthority::Held
     );
     let committed = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner_id,
             "host-conversation",
@@ -682,7 +682,7 @@ fn conflicting_durable_digest_fails_closed_before_host_dispatch() {
     assert_eq!(remounted_owner, owner_id);
     assert!(
         remounted
-            .process_next_conversation_submission(
+            .process_exact_conversation_submission_for_test(
                 &remounted_writer,
                 &owner_id,
                 "host-conversation",
@@ -712,7 +712,7 @@ fn lost_handoff_ack_holds_the_admitted_user_turn_without_blind_replay() {
     submit(&gateway, &writer, &owner_id, "lost-ack-submit");
 
     let first = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner_id,
             "host-conversation",
@@ -731,7 +731,7 @@ fn lost_handoff_ack_holds_the_admitted_user_turn_without_blind_replay() {
     ));
 
     let second = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner_id,
             "host-conversation",
@@ -765,24 +765,15 @@ fn completed_host_stage_commits_the_original_turn_once_and_replays_idempotently(
     submit(&gateway, &writer, &owner_id, "completed-submit");
 
     let pending = gateway
-        .process_next_conversation_submission(
-            &writer,
-            &owner_id,
-            "host-conversation",
-            "completed-submit",
-        )
+        .process_next_conversation_submission(&writer, &owner_id, "host-conversation")
+        .unwrap()
         .unwrap();
     assert_eq!(pending.status.state, SubmissionState::Pending);
     let (stable_id, digest) = host.handoffs().pop().expect("host accepted one operation");
     host.set_status(&stable_id, HostOperationStatus::Completed);
 
     let committed = gateway
-        .process_next_conversation_submission(
-            &writer,
-            &owner_id,
-            "host-conversation",
-            "completed-submit",
-        )
+        .resume_conversation_submission(&writer, &owner_id, "host-conversation", "completed-submit")
         .unwrap();
     assert_eq!(committed.status.state, SubmissionState::Committed);
     assert_eq!(
@@ -796,12 +787,7 @@ fn completed_host_stage_commits_the_original_turn_once_and_replays_idempotently(
     ));
 
     let replay = gateway
-        .process_next_conversation_submission(
-            &writer,
-            &owner_id,
-            "host-conversation",
-            "completed-submit",
-        )
+        .resume_conversation_submission(&writer, &owner_id, "host-conversation", "completed-submit")
         .unwrap();
     assert_eq!(replay.status.state, SubmissionState::Committed);
     assert_eq!(host.handoff_count(), 1);
@@ -843,7 +829,7 @@ fn unknown_host_status_holds_host_owned_work_while_an_unrelated_native_capabilit
     submit(&gateway, &writer, &owner_id, "unknown-submit");
 
     let accepted = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner_id,
             "host-conversation",
@@ -853,7 +839,7 @@ fn unknown_host_status_holds_host_owned_work_while_an_unrelated_native_capabilit
     let (stable_id, _) = host.handoffs().pop().unwrap();
     host.set_status(&stable_id, HostOperationStatus::Unknown);
     let held = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner_id,
             "host-conversation",
@@ -898,7 +884,7 @@ fn cancellation_reaches_host_before_blocked_handoff_ack_and_cannot_be_resurrecte
     let process_writer = Arc::clone(&writer);
     let process_owner = owner_id.clone();
     let process = std::thread::spawn(move || {
-        process_gateway.process_next_conversation_submission(
+        process_gateway.process_exact_conversation_submission_for_test(
             &process_writer,
             &process_owner,
             "host-conversation",
@@ -999,7 +985,7 @@ fn detach_during_handoff_preserves_receipt_and_owner_continuation() {
     let process_writer = Arc::clone(&writer);
     let process_owner = owner_id.clone();
     let process = std::thread::spawn(move || {
-        process_gateway.process_next_conversation_submission(
+        process_gateway.process_exact_conversation_submission_for_test(
             &process_writer,
             &process_owner,
             "host-conversation",
@@ -1072,7 +1058,7 @@ fn quiesce_during_handoff_fences_late_ack_and_preserves_owner_debt() {
     let process_writer = Arc::clone(&writer);
     let process_owner = owner.clone();
     let processing = std::thread::spawn(move || {
-        process_gateway.process_next_conversation_submission(
+        process_gateway.process_exact_conversation_submission_for_test(
             &process_writer,
             &process_owner,
             "host-conversation",
@@ -1112,7 +1098,7 @@ fn quiesce_during_handoff_fences_late_ack_and_preserves_owner_debt() {
     let before = journal.lock().unwrap().status(&key).unwrap();
     assert!(
         gateway
-            .process_next_conversation_submission(
+            .process_exact_conversation_submission_for_test(
                 &writer,
                 &owner,
                 "host-conversation",
@@ -1139,7 +1125,7 @@ fn quiesce_during_handoff_fences_late_ack_and_preserves_owner_debt() {
     let (stable_id, _) = host.handoffs()[0].clone();
     host.set_status(&stable_id, HostOperationStatus::Completed);
     let resumed = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner,
             "host-conversation",
@@ -1152,7 +1138,7 @@ fn quiesce_during_handoff_fences_late_ack_and_preserves_owner_debt() {
         DurableHostOperationPhase::Accepted
     );
     let committed = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &writer,
             &owner,
             "host-conversation",

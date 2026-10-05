@@ -22,6 +22,78 @@ impl ConversationCoordinator {
         }
     }
 
+    /// Selection and branch reservation share one lock acquisition. The journal
+    /// supplies order and recovery work; this state holds no duplicate queue.
+    pub(super) fn acquire_next(
+        self: &Arc<Self>,
+        journal: &Arc<Mutex<RelJournal>>,
+        conversation_id: &ConversationId,
+    ) -> Result<Option<(ConversationSubmissionId, ProcessingGuard)>, ReliquaryRuntimeHostError>
+    {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        let journal = journal
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        refresh_debt(&mut state, &journal, conversation_id)?;
+        let mut entries = journal.statuses();
+        entries.retain(|(key, status)| {
+            &key.conversation_id == conversation_id
+                && (status.state == SubmissionState::Pending
+                    || status.state == SubmissionState::Finalizing
+                    || (status.state == SubmissionState::Committed
+                        && status.post_commit_receipt.is_none()))
+        });
+        entries.sort_by_key(|(_, status)| {
+            (
+                status.verified_receive_ns,
+                status.tie_key,
+                status.admission_sequence,
+            )
+        });
+        for (key, status) in entries {
+            // Host work already dispatched is a continuation, not a fresh queue
+            // candidate. Explicit reconciliation must not starve an idle branch.
+            if status.state == SubmissionState::Pending
+                && journal
+                    .host_operation(&key, RuntimeCapability::ConversationExecution)
+                    .is_some_and(|host| {
+                        !matches!(
+                            host.phase,
+                            DurableHostOperationPhase::Completed
+                                | DurableHostOperationPhase::Cancelled
+                        )
+                    })
+            {
+                continue;
+            }
+            let branch_id =
+                match status.finalize_capture {
+                    Some(capture) => capture.branch_id,
+                    None => metadata_branch(journal.submission(&key).ok_or_else(|| {
+                        operation("unfinished submission payload is not retained")
+                    })?),
+                };
+            let branch = state.branches.entry(branch_id.clone()).or_default();
+            if branch.executing.is_some()
+                || branch.durable.as_ref().is_some_and(|owner| owner != &key)
+            {
+                continue;
+            }
+            branch.executing = Some(key.clone());
+            return Ok(Some((
+                key,
+                ProcessingGuard {
+                    coordinator: Arc::clone(self),
+                    branch_id,
+                },
+            )));
+        }
+        Ok(None)
+    }
+
     pub(super) fn acquire(
         self: &Arc<Self>,
         journal: &Arc<Mutex<RelJournal>>,
@@ -43,11 +115,12 @@ impl ConversationCoordinator {
         if branch.durable.as_ref().is_some_and(|owner| owner != key) {
             return Err(operation("branch is fenced by an unresolved continuation"));
         }
-        // P3.2 retains exact-entry processing, but ordering and eligibility are
-        // branch-local. P3.3 owns automatic selection across eligible branches.
-        if journal
-            .status(key)
-            .is_some_and(|status| status.state == SubmissionState::Pending)
+        // Fresh exact-entry acquisition exists only in test fixtures. Durable
+        // continuation resumption keeps its reservation even if newer ties arrive.
+        if branch.durable.is_none()
+            && journal
+                .status(key)
+                .is_some_and(|status| status.state == SubmissionState::Pending)
         {
             let next = journal
                 .pending_order(&key.conversation_id)

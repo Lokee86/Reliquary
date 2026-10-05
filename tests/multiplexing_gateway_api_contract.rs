@@ -146,11 +146,13 @@ fn public_branch_admission_and_finalization_preserve_independent_heads() {
             .unwrap();
         expected_revision = receipt.status.transition_revision;
     }
-    // A later admission on another branch may finish independently.
-    for (id, parent) in [("alt-turn", "alt-root"), ("main-turn", "main-root")] {
+    // The coordinator chooses chronological order across eligible branches.
+    for (id, parent) in [("main-turn", "main-root"), ("alt-turn", "alt-root")] {
         let receipt = gateway
-            .process_next_conversation_submission(&instance, &owner, "conversation", id)
+            .process_next_conversation_submission(&instance, &owner, "conversation")
+            .unwrap()
             .unwrap();
+        assert_eq!(receipt.id.submission_id.as_str(), id);
         assert_eq!(receipt.status.state, GatewaySubmissionState::Committed);
         assert_eq!(
             receipt

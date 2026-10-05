@@ -902,9 +902,96 @@ impl GatewayRuntime {
         Ok(GatewaySubmissionReceipt { id: key, status })
     }
 
-    /// Finalize one ordered queue entry against the real InteractionRuntime and Archive.
-    /// Replays first query the stable Node ID, then validate the entire captured turn.
+    /// Dispatch the oldest eligible durable entry. None means idle or all branches busy.
     pub fn process_next_conversation_submission(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<Option<GatewaySubmissionReceipt>, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::SubmitConversation)?;
+        with_admission(self, &token, || Ok(()))?;
+        let receipt =
+            self.process_next_accepted_conversation_submission(owner_id, conversation_id)?;
+        with_admission(self, &token, || Ok(receipt))
+    }
+
+    /// Accepted work remains dispatchable after its submitting instance detaches.
+    pub(super) fn process_next_accepted_conversation_submission(
+        &self,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<Option<GatewaySubmissionReceipt>, ReliquaryRuntimeHostError> {
+        let authority = OperationAuthority::capture(self, owner_id)?;
+        let conversation = ConversationId::new(conversation_id.to_owned()).map_err(operation)?;
+        let journal = self.conversation.journal(owner_id)?;
+        let coordinator = self.conversation.coordinator(owner_id, conversation_id)?;
+        let Some((key, guard)) = coordinator.acquire_next(&journal, &conversation)? else {
+            return Ok(None);
+        };
+        self.process_reserved_conversation_submission(owner_id, authority, journal, key, guard)
+            .map(Some)
+    }
+
+    /// Reconcile only work that already owns a durable continuation. This cannot
+    /// select a fresh Pending submission or bypass chronological admission.
+    pub fn resume_conversation_submission(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        submission_id: &str,
+    ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::SubmitConversation)?;
+        with_admission(self, &token, || Ok(()))?;
+        let authority = OperationAuthority::capture(self, owner_id)?;
+        let key = ConversationSubmissionId {
+            conversation_id: ConversationId::new(conversation_id.to_owned()).map_err(operation)?,
+            submission_id: SubmissionId::new(submission_id.to_owned()).map_err(operation)?,
+        };
+        let journal = self.conversation.journal(owner_id)?;
+        let branch_id =
+            {
+                let journal = journal
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                let status = journal
+                    .status(&key)
+                    .ok_or_else(|| operation("submission not found"))?;
+                if status.state == SubmissionState::Cancelled
+                    || (status.state == SubmissionState::Committed
+                        && status.post_commit_receipt.is_some())
+                {
+                    drop(journal);
+                    return with_admission(self, &token, || {
+                        Ok(GatewaySubmissionReceipt { id: key, status })
+                    });
+                }
+                if status.state == SubmissionState::Pending
+                    && journal
+                        .host_operation(&key, RuntimeCapability::ConversationExecution)
+                        .is_none()
+                {
+                    return Err(operation(
+                        "fresh Pending work must use coordinator scheduling",
+                    ));
+                }
+                match status.finalize_capture {
+                    Some(capture) => capture.branch_id,
+                    None => metadata_branch(journal.submission(&key).ok_or_else(|| {
+                        operation("unfinished submission payload is not retained")
+                    })?),
+                }
+            };
+        let coordinator = self.conversation.coordinator(owner_id, conversation_id)?;
+        let guard = coordinator.acquire(&journal, &key, &branch_id)?;
+        let receipt = self
+            .process_reserved_conversation_submission(owner_id, authority, journal, key, guard)?;
+        with_admission(self, &token, || Ok(receipt))
+    }
+
+    #[cfg(test)]
+    fn process_exact_conversation_submission_for_test(
         &self,
         instance: &InstanceRuntime,
         owner_id: &str,
@@ -918,23 +1005,60 @@ impl GatewayRuntime {
             conversation_id,
             submission_id,
         )?;
-        // Processing is durable owner work; delivery still belongs to the caller.
         with_admission(self, &token, || Ok(receipt))
     }
 
-    /// Execute the exact durable admission through its REL coordinator.
+    /// Exact-entry fault injection is deliberately absent from production builds.
+    #[cfg(test)]
     pub(super) fn process_accepted_conversation_submission(
         &self,
         owner_id: &str,
         conversation_id: &str,
         submission_id: &str,
     ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
-        let operation_authority = OperationAuthority::capture(self, owner_id)?;
+        let authority = OperationAuthority::capture(self, owner_id)?;
         let key = ConversationSubmissionId {
             conversation_id: ConversationId::new(conversation_id.to_owned()).map_err(operation)?,
             submission_id: SubmissionId::new(submission_id.to_owned()).map_err(operation)?,
         };
         let journal = self.conversation.journal(owner_id)?;
+        let branch_id = {
+            let journal = journal
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+            let status = journal
+                .status(&key)
+                .ok_or_else(|| operation("submission not found"))?;
+            if status.state == SubmissionState::Cancelled
+                || (status.state == SubmissionState::Committed
+                    && status.post_commit_receipt.is_some())
+            {
+                return Ok(GatewaySubmissionReceipt { id: key, status });
+            }
+            status
+                .finalize_capture
+                .map(|capture| capture.branch_id)
+                .unwrap_or_else(|| {
+                    metadata_branch(
+                        journal
+                            .submission(&key)
+                            .expect("retained unfinished payload"),
+                    )
+                })
+        };
+        let coordinator = self.conversation.coordinator(owner_id, conversation_id)?;
+        let guard = coordinator.acquire(&journal, &key, &branch_id)?;
+        self.process_reserved_conversation_submission(owner_id, authority, journal, key, guard)
+    }
+
+    fn process_reserved_conversation_submission(
+        &self,
+        owner_id: &str,
+        operation_authority: OperationAuthority,
+        journal: Arc<Mutex<RelJournal>>,
+        key: ConversationSubmissionId,
+        _processing: continuation::ProcessingGuard,
+    ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
         let mut status = journal
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -952,15 +1076,6 @@ impl GatewayRuntime {
             .cloned()
             .ok_or_else(|| operation("submission payload is not retained"))?;
         validate_accepted_submission(owner_id, &key, &submission)?;
-        let branch_id = status
-            .finalize_capture
-            .as_ref()
-            .map(|capture| capture.branch_id.clone())
-            .unwrap_or_else(|| metadata_branch(&submission));
-        let coordinator = self
-            .conversation
-            .coordinator(owner_id, key.conversation_id.as_str())?;
-        let _processing = coordinator.acquire(&journal, &key, &branch_id)?;
         // Another attempt may have completed before this branch lease was acquired.
         status = journal
             .lock()

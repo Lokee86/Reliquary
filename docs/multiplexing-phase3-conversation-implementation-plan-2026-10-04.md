@@ -6,7 +6,8 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0–P3.2 accepted; P3.3–P3.9 remain unimplemented.**
+Status: **P3.0–P3.3 accepted; P3.4–P3.9 remain unimplemented.**
+Scheduler: [P3.3 ownership and acceptance](multiplexing-phase3-scheduler-acceptance-2026-10-05.md)
 Branches: [P3.2 ownership and acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md)
 Policy: [P3.1 ownership and acceptance](multiplexing-phase3-policy-acceptance-2026-10-04.md)
 Baseline: [P3.0 record](multiplexing-phase3-baseline-2026-10-04.md)
@@ -34,7 +35,7 @@ Current production ownership already has:
 - transient viewer registrations;
 - stable generation/host-operation identity and durable principal attribution.
 
-The coordinator now owns branch-local contention and journal-derived recovery reservations. Callers still explicitly choose which eligible submission to process; automatic scheduling, policy-specific conflicts and native generation/checkpoint lifecycle remain later sub-phases.
+The coordinator now owns branch-local contention, journal-derived recovery reservations and automatic durable selection across eligible branches. Callers request dispatch for a conversation without supplying a fresh submission ID. Existing durable continuations have a separate resume operation. Policy-specific finalization/conflicts and native generation/checkpoint lifecycle remain later sub-phases.
 
 Phase 3 makes the existing coordinator the one canonical owner of those semantics.
 
@@ -77,7 +78,7 @@ Avoid parallel edits to `runtime_host_gateway.rs`, `runtime_host_instances.rs`, 
 
 Multiple authenticated instances may submit into one shared conversation. The existing Phase 1 machinery safely admits and durably finalizes work, but it does not yet provide the complete product concurrency behavior:
 
-- pending work is not automatically selected by the durable chronological order;
+- durable chronological selection is implemented, while policy-specific finalization/conflict decisions remain incomplete;
 - branch leases cover current finalization/host continuations, but native generation/checkpoint lifecycle remains incomplete;
 - the durable conversation policy is not the production scheduler;
 - stale expected heads do not yet produce the agreed visible automatic branch behavior;
@@ -226,6 +227,8 @@ The coordinator must:
 **Tests:** same branch contention, independent branches, detach/switch during generation, restart with one active/interrupted branch and another idle branch.
 
 ### P3.3 — Automatic durable scheduler
+
+**Accepted:** automatic selection and reservation, held-branch skipping, test-only fresh exact-entry seams and explicit durable-continuation resumption. See [acceptance evidence](multiplexing-phase3-scheduler-acceptance-2026-10-05.md).
 
 Add coordinator-owned "process next eligible" scheduling from journal state.
 

@@ -138,7 +138,12 @@ fn policy_changes_only_pending_capture_and_recovery_preserves_frozen_ancestry() 
         )
         .unwrap();
     let committed = first
-        .process_next_conversation_submission(&manager, &owner, conversation, "committed-policy")
+        .process_exact_conversation_submission_for_test(
+            &manager,
+            &owner,
+            conversation,
+            "committed-policy",
+        )
         .unwrap();
     let committed_capture = committed.status.finalize_capture.clone().unwrap();
     assert_eq!(committed_capture.policy_revision, 1);
@@ -333,7 +338,7 @@ fn nondefault_policy_revision_is_captured_by_production_finalization() {
         )
         .unwrap();
     let receipt = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &manager,
             &owner,
             "conversation-one",
@@ -358,7 +363,7 @@ fn nondefault_policy_revision_is_captured_by_production_finalization() {
         )
         .unwrap();
     let replay = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &manager,
             &owner,
             "conversation-one",

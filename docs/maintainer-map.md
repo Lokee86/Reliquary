@@ -13,6 +13,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 ## Change-area routing
 
 | Change area | Canonical documentation | Primary implementation boundary | Verification |
+| Automatic conversation scheduling | [Architecture](architecture.md), [P3.3 acceptance](multiplexing-phase3-scheduler-acceptance-2026-10-05.md) | Coordinator selection in `runtime_host_gateway_conversation_continuation.rs`; dispatch/resume in `runtime_host_gateway_conversation.rs` | Scheduler tests and public API contract |
 | Branch-local gateway continuation ownership | [Architecture](architecture.md), [P3.2 acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md), [Behavioral contracts](behavioral-contracts.md) | `runtime_host_gateway_conversation_continuation.rs`, branch binding/recovery in `runtime_host_gateway_conversation.rs` | Conversation branch and branch host tests; public API branch regression |
 | --- | --- | --- | --- |
 | P3/P4 shared observation data | [Shared contract](multiplexing-p34-observation-contract-2026-10-04.md), [Architecture](architecture.md), [P3.0 baseline](multiplexing-phase3-baseline-2026-10-04.md) | `src/runtime_inference/runtime_host_gateway_observation.rs`, gateway module declaration | Library check and baseline conversation/journal/public-contract gates; producers and delivery tested in their later lanes |

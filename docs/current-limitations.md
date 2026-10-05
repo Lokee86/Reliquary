@@ -10,7 +10,7 @@ Purpose-built local configuration, encrypted credential persistence, model-switc
 
 ## P3/P4 foundation scope
 
-The [shared observation contract](multiplexing-p34-observation-contract-2026-10-04.md) defines internal data shapes only. Durable policy (P3.1) and branch-aware host/finalization ownership (P3.2) are implemented. Automatic scheduling, native generation/checkpoint control, production snapshot builders, transition emission and distribution machinery remain later P3/P4 work. A compiled data contract is not evidence of atomic subscribe or checkpoint delivery.
+The [shared observation contract](multiplexing-p34-observation-contract-2026-10-04.md) defines internal data shapes only. Durable policy (P3.1), branch-aware host/finalization ownership (P3.2), and automatic durable selection (P3.3) are implemented. Policy-specific finalization/branching, native generation/checkpoint control, production snapshot builders, transition emission and distribution machinery remain later P3/P4 work. A compiled data contract is not evidence of atomic subscribe or checkpoint delivery.
 
 ## Phase 2 supported boundaries
 

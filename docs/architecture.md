@@ -6,9 +6,11 @@ This document owns the current Reliquary Memory v2 implementation boundaries, st
 
 Archive conversation metadata owns SequentialChronological/VisibleAutoBranch and its separate policy revision. The existing Cva facade delegates publication; Gateway uses exact-owner ViewRel reads and ManageRel mutation with sync-before-acknowledgement. The shared observation contract imports Archive's canonical enum.
 
-Policy publication and FinalizeWon capture share the existing owner runtime mutex. Capture synchronizes policy, then acquires the REL journal while retaining the runtime lock; no journal-held path acquires that runtime lock. Already captured finalization ancestry/revision is never rebound to current metadata during recovery. Policy-specific automatic branch/scheduler behavior remains planned. [P3.1 evidence](multiplexing-phase3-policy-acceptance-2026-10-04.md) records this lane change.
+Policy publication and FinalizeWon capture share the existing owner runtime mutex. Capture synchronizes policy, then acquires the REL journal while retaining the runtime lock; no journal-held path acquires that runtime lock. Already captured finalization ancestry/revision is never rebound to current metadata during recovery. Policy-specific finalization and automatic branching remain planned. [P3.1 evidence](multiplexing-phase3-policy-acceptance-2026-10-04.md) records this lane change.
 
-## Branch continuation ownership (P3.2)
+## Branch continuation ownership and scheduling (P3.2–P3.3)
+
+The same coordinator now selects and reserves the oldest eligible journal entry under coordinator-then-journal locks. No duplicate queue is stored. Ordering uses verified receive time, persisted random tie key and admission sequence; completed ancestry is not rewritten. Held host work is skipped by fresh dispatch and resumes only through its existing durable continuation. Fresh exact-entry processing is test-only. [P3.3 evidence](multiplexing-phase3-scheduler-acceptance-2026-10-05.md) records the API hard cut and verification.
 
 The existing ConversationCoordinator now owns live branch leases and reservations derived from unfinished REL journal work. Same-branch attempts serialize; independent branches may dispatch concurrently subject to capability/resource policy. Mount reconstructs branch inventory from Archive and reservations from the journal before workers start. Unknown host work and missing Archive/post-commit receipts reserve only their own branch.
 

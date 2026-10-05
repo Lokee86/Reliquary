@@ -7,6 +7,8 @@ mod branches;
 mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]
 mod publication;
+#[path = "runtime_host_gateway_conversation_scheduler_tests.rs"]
+mod scheduler;
 use crate::runtime_host_test_support::test_path;
 use crate::{Cva, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, ReliquaryRuntimeRoutes};
 use std::collections::{BTreeMap, BTreeSet};
@@ -387,7 +389,12 @@ fn two_instances_share_one_gateway_session_and_viewer_selection_does_not_open_a_
     gateway.detach_instance(&viewer).unwrap();
 
     let completed = gateway
-        .process_next_conversation_submission(&writer, &owner_id, "conversation-one", "turn-one")
+        .process_exact_conversation_submission_for_test(
+            &writer,
+            &owner_id,
+            "conversation-one",
+            "turn-one",
+        )
         .unwrap();
     assert_eq!(completed.status.state, SubmissionState::Committed);
     let writer_state = gateway.instance_managed_state(&writer, &owner_id).unwrap();
@@ -459,7 +466,7 @@ fn cancel_and_finalize_race_has_one_durable_winner_and_survives_remount() {
     let process_start = Arc::clone(&start);
     let process = std::thread::spawn(move || {
         process_start.wait();
-        process_gateway.process_next_conversation_submission(
+        process_gateway.process_exact_conversation_submission_for_test(
             &process_writer,
             &process_owner,
             "conversation-one",
@@ -759,7 +766,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
 
     // Any currently authorized processor resumes the original admitted identity.
     let resumed = recovered
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &recovered_writer,
             &owner_id,
             "conversation-three",
@@ -791,7 +798,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
 
     // Terminal retries after restart are receipt lookups, not new Archive publications.
     let retry = recovered
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &recovered_writer,
             &owner_id,
             "conversation-one",
@@ -800,7 +807,7 @@ fn fresh_gateway_recovers_finalizing_archive_commit_and_leaves_pending_queued() 
         .unwrap();
     assert_eq!(retry.status.state, SubmissionState::Committed);
     let missing_retry = recovered
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &recovered_writer,
             &owner_id,
             "conversation-three",
@@ -949,7 +956,7 @@ fn accepted_turn_outlives_detach_and_keeps_its_admitted_principal() {
     assert!(gateway.detach_conversation_viewer(viewer).is_err());
     assert!(
         gateway
-            .process_next_conversation_submission(
+            .process_exact_conversation_submission_for_test(
                 &writer,
                 &owner_id,
                 "conversation-one",
@@ -968,7 +975,7 @@ fn accepted_turn_outlives_detach_and_keeps_its_admitted_principal() {
         )
         .unwrap();
     let receipt = gateway
-        .process_next_conversation_submission(
+        .process_exact_conversation_submission_for_test(
             &helper,
             &owner_id,
             "conversation-one",
@@ -1376,7 +1383,12 @@ fn accepted_queue_freezes_during_quiesce_without_blocking_another_rel() {
         .unwrap();
     assert_eq!(
         gateway
-            .process_next_conversation_submission(&writer, &other, "conversation-one", "unrelated")
+            .process_exact_conversation_submission_for_test(
+                &writer,
+                &other,
+                "conversation-one",
+                "unrelated"
+            )
             .unwrap()
             .status
             .state,
@@ -1385,7 +1397,12 @@ fn accepted_queue_freezes_during_quiesce_without_blocking_another_rel() {
     gateway.reopen_rel(&owner).unwrap();
     assert!(with_accepted_work(&gateway, &old, || Ok(())).is_err());
     let result = gateway
-        .process_next_conversation_submission(&writer, &owner, "conversation-one", "frozen")
+        .process_exact_conversation_submission_for_test(
+            &writer,
+            &owner,
+            "conversation-one",
+            "frozen",
+        )
         .unwrap();
     assert_eq!(result.status.state, SubmissionState::Committed);
     assert_eq!(
@@ -1571,7 +1588,7 @@ fn accepted_owner_authority_cannot_publish_after_remount() {
     .unwrap();
     assert_eq!(
         gateway
-            .process_next_conversation_submission(
+            .process_exact_conversation_submission_for_test(
                 &writer,
                 &owner,
                 "conversation-one",
