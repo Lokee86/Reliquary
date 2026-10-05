@@ -54,11 +54,15 @@ Knowledge operations are owner-polymorphic through `read_knowledge_for_owner`, `
 
 `read_echo_source_for(owner_id, conversation_id, start_message_id, end_message_id)` is the owner-qualified exact-path Echo expansion seam. It validates that the requested range belongs to the selected REL path and returns only Echo events attached to turns inside that range. Host applications remain responsible for deciding when an already-returned source range is authorized to be expanded; Reliquary owns the source/path resolution itself.
 
+### Branch continuation processing (P3.2)
+
+`admit_conversation_writer` selects the requested existing Archive branch through the one owner runtime. Two instances may admit different branches without creating a per-viewer writer. `process_next_conversation_submission` still names an exact submission, but accepts only the oldest Pending item for that branch and rejects overlapping or unfinished work on that branch. An unrelated branch may progress independently; captures and post-commit scheduling use its own head/receipt. Detach does not release unfinished owner work. Restart restores branch reservations from journal/Archive; Unknown host work stays held. Automatic selection and native assistant generation/checkpoint control remain P3.3/P3.6. See [P3.2 acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md).
+
 ### Durable conversation policy (P3.1)
 
 `ConversationPolicy` exposes SequentialChronological and VisibleAutoBranch. `ConversationMetadata` contains `policy` and `policy_revision` alongside ID/title/active. `Cva::conversation_policy(conversation_id)` and Archive's corresponding read return `(ConversationPolicy, u64)`; absent legacy metadata means sequential at revision 1. `Cva::set_conversation_policy(conversation_id, policy)` publishes only a changed value for an existing conversation and returns a change flag; direct callers synchronize before acknowledging durability. Title and active changes preserve policy state.
 
-`GatewayRuntime::conversation_policy(instance, owner_id, conversation_id)` requires current exact-owner ViewRel. `set_conversation_policy(instance, owner_id, conversation_id, policy)` requires current exact-owner ManageRel and synchronizes before returning. Pending submissions capture the current policy revision at durable FinalizeWon; already Finalizing/Committed ancestry and revision survive subsequent changes and restart. Policy-specific automatic scheduling/branch creation remains P3.2–P3.5 work. See [P3.1 acceptance](multiplexing-phase3-policy-acceptance-2026-10-04.md).
+`GatewayRuntime::conversation_policy(instance, owner_id, conversation_id)` requires current exact-owner ViewRel. `set_conversation_policy(instance, owner_id, conversation_id, policy)` requires current exact-owner ManageRel and synchronizes before returning. Pending submissions capture the current policy revision at durable FinalizeWon; already Finalizing/Committed ancestry and revision survive subsequent changes and restart. Policy-specific automatic scheduling/branch creation remains P3.3–P3.5 work. See [P3.1 acceptance](multiplexing-phase3-policy-acceptance-2026-10-04.md).
 
 ### Gateway and instance runtime (Phase 1 verified)
 

@@ -18,6 +18,15 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 - Gateway policy changes require current exact-owner ManageRel and synchronize before acknowledgement. Policy capture and management share the owner runtime lock, with runtime-before-journal acquisition.
 - Policy changes affect Pending finalization decisions only. Finalizing/Committed captures preserve their durable parent/branch/revision across policy changes and restart; admission fingerprints remain immutable.
 
+### Branch continuation ownership
+
+- One existing coordinator owns branch-keyed live leases; a branch cannot have two driving finalizers.
+- Pending host work, Finalizing captures and missing post-commit receipts retain a journal-derived reservation independently of viewers or driving threads.
+- A branch reservation blocks other work on that branch, while unrelated branches remain eligible subject to owner/capability policy.
+- Archive owns branch heads. Every Archive/capture/scheduling operation explicitly selects its branch/captured receipt under the single runtime lock; it never uses another branch's ambient cursor.
+- Mount reconstructs reservations before recovery effects and worker startup; conflicting durable same-branch owners fail closed.
+- Coordinator-to-journal eligibility and runtime-to-journal capture are permitted; no journal-held path acquires either owner in reverse.
+
 ### Phase 1 provisional conversation state
 
 - Gateway mount admission validates on-disk owner kind/identity before mutable open, reuses physical aliases, and rejects conflicting UUID copies. Exclusive execution claims cover gateway and legacy runtime-host execution within one process, including historical REL UUID prefixes and dynamic PHY attachment; direct clients and cross-process exclusion remain outside this claim.

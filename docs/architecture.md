@@ -8,6 +8,12 @@ Archive conversation metadata owns SequentialChronological/VisibleAutoBranch and
 
 Policy publication and FinalizeWon capture share the existing owner runtime mutex. Capture synchronizes policy, then acquires the REL journal while retaining the runtime lock; no journal-held path acquires that runtime lock. Already captured finalization ancestry/revision is never rebound to current metadata during recovery. Policy-specific automatic branch/scheduler behavior remains planned. [P3.1 evidence](multiplexing-phase3-policy-acceptance-2026-10-04.md) records this lane change.
 
+## Branch continuation ownership (P3.2)
+
+The existing ConversationCoordinator now owns live branch leases and reservations derived from unfinished REL journal work. Same-branch attempts serialize; independent branches may dispatch concurrently subject to capability/resource policy. Mount reconstructs branch inventory from Archive and reservations from the journal before workers start. Unknown host work and missing Archive/post-commit receipts reserve only their own branch.
+
+Archive branch heads remain authoritative. The single owner runtime uses its existing conversation session as a temporary cursor, explicitly rebound to the branch head or captured receipt under the runtime mutex; an in-flight native message cannot be rebound. Post-commit scheduling selects the receipt's path. Coordinator-to-journal eligibility locks are released before runtime acquisition; runtime-to-journal capture remains the other allowed nested order. Provider I/O holds neither. [P3.2 evidence](multiplexing-phase3-branch-acceptance-2026-10-05.md) records scope and verification; native generation/checkpoint integration remains P3.6.
+
 ## Overview
 A homogeneous Reliquary `.rel` is one physical file containing the same explicit concrete owners as the former CVA format. Legacy `.cva` and typed REL files remain readable as compatibility inputs:
 ```text

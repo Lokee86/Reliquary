@@ -6,7 +6,8 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0–P3.1 accepted; P3.2–P3.9 remain unimplemented.**
+Status: **P3.0–P3.2 accepted; P3.3–P3.9 remain unimplemented.**
+Branches: [P3.2 ownership and acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md)
 Policy: [P3.1 ownership and acceptance](multiplexing-phase3-policy-acceptance-2026-10-04.md)
 Baseline: [P3.0 record](multiplexing-phase3-baseline-2026-10-04.md)
 Shared contract: [P34 observation contract](multiplexing-p34-observation-contract-2026-10-04.md)
@@ -28,12 +29,12 @@ Current production ownership already has:
 - coordinators keyed by `(REL, conversation)`;
 - durable queue order fields: verified receive time, persisted random tie key and admission sequence;
 - durable cancel/finalize/Archive/post-commit receipts;
-- one current coordinator state bit (`processing`) that serializes conversation finalization;
+- branch-keyed live processing leases and unfinished journal continuation reservations;
 - instance-local selected conversation/branch state;
 - transient viewer registrations;
 - stable generation/host-operation identity and durable principal attribution.
 
-The current coordinator is intentionally narrower than the final design: callers still explicitly choose which submission to process, coordinator state is conversation-wide rather than branch-aware, durable policy is not yet the scheduler authority, and the full automatic stale-head branching/generation lifecycle is not production-owned by the coordinator.
+The coordinator now owns branch-local contention and journal-derived recovery reservations. Callers still explicitly choose which eligible submission to process; automatic scheduling, policy-specific conflicts and native generation/checkpoint lifecycle remain later sub-phases.
 
 Phase 3 makes the existing coordinator the one canonical owner of those semantics.
 
@@ -77,7 +78,7 @@ Avoid parallel edits to `runtime_host_gateway.rs`, `runtime_host_instances.rs`, 
 Multiple authenticated instances may submit into one shared conversation. The existing Phase 1 machinery safely admits and durably finalizes work, but it does not yet provide the complete product concurrency behavior:
 
 - pending work is not automatically selected by the durable chronological order;
-- the coordinator serializes the whole conversation instead of owning branch-local generation state;
+- branch leases cover current finalization/host continuations, but native generation/checkpoint lifecycle remains incomplete;
 - the durable conversation policy is not the production scheduler;
 - stale expected heads do not yet produce the agreed visible automatic branch behavior;
 - generation observation/control is not yet modeled as one branch continuation independent of viewer lifetime;

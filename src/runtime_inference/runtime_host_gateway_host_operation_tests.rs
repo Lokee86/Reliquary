@@ -1,4 +1,6 @@
 use super::*;
+#[path = "runtime_host_gateway_conversation_branch_host_tests.rs"]
+mod branches;
 use crate::runtime_host_test_support::test_path;
 use crate::{Cva, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, ReliquaryRuntimeRoutes};
 use std::collections::{BTreeMap, BTreeSet};
@@ -177,7 +179,9 @@ impl GatewayHostAdapter for ControlledHost {
         state.handoff_entered = true;
         self.changed.notify_all();
 
-        while state.block_handoff && !state.release_handoff {
+        let block_this_handoff = state.block_handoff;
+        state.block_handoff = false;
+        while block_this_handoff && !state.release_handoff {
             let (next, timeout) = self.changed.wait_timeout(state, WAIT).unwrap();
             state = next;
             if timeout.timed_out() && !state.release_handoff {

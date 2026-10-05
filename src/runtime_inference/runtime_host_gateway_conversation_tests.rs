@@ -1,6 +1,8 @@
 use super::*;
 #[path = "runtime_host_gateway_attribution_tests.rs"]
 mod attribution;
+#[path = "runtime_host_gateway_conversation_branch_tests.rs"]
+mod branches;
 #[path = "runtime_host_gateway_conversation_policy_tests.rs"]
 mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]
@@ -15,7 +17,7 @@ fn gateway() -> GatewayRuntime {
     gateway_at(test_path("conversation-gateway-state"))
 }
 
-fn gateway_at(state_dir: PathBuf) -> GatewayRuntime {
+pub(super) fn gateway_at(state_dir: PathBuf) -> GatewayRuntime {
     GatewayRuntime::new(
         state_dir,
         ReliquaryRuntimeRoutes::default(),
@@ -353,11 +355,10 @@ fn two_instances_share_one_gateway_session_and_viewer_selection_does_not_open_a_
         .admit_conversation_writer(&writer_two, &owner_id, "conversation-one", "main")
         .unwrap();
     assert_eq!(second_writer_session, writer_session);
-    assert!(
-        gateway
-            .admit_conversation_writer(&writer_two, &owner_id, "conversation-one", "alternate")
-            .is_err()
-    );
+    let alternate = gateway
+        .admit_conversation_writer(&writer_two, &owner_id, "conversation-one", "alternate")
+        .unwrap();
+    assert_eq!(alternate.leaf_message_id.as_deref(), Some("root-one-alt"));
     let repeated_admission = gateway
         .admit_conversation_writer(&writer, &owner_id, "conversation-one", "main")
         .unwrap();

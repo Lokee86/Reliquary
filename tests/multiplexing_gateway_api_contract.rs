@@ -78,6 +78,112 @@ fn public_admission_and_durable_receipts_need_no_legacy_selection() {
     std::fs::remove_dir_all(dir).unwrap();
 }
 
+#[test]
+fn public_branch_admission_and_finalization_preserve_independent_heads() {
+    use reliquary_memory::Branch;
+    let dir = std::env::temp_dir().join(format!("rq-branch-api-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let path = dir.join("owner.rel");
+    let mut cva = Cva::create_project(&path).unwrap();
+    for (branch, root) in [("main", "main-root"), ("alternate", "alt-root")] {
+        cva.append_node(
+            root.into(),
+            "conversation".into(),
+            None,
+            "user".into(),
+            1,
+            root,
+        )
+        .unwrap();
+        cva.append_branch(Branch {
+            id: branch.into(),
+            conversation_id: "conversation".into(),
+            leaf_node_id: root.into(),
+            canonical: branch == "main",
+        })
+        .unwrap();
+    }
+    cva.sync().unwrap();
+    drop(cva);
+    let gateway = GatewayRuntime::new(
+        dir.join("state"),
+        ReliquaryRuntimeRoutes::default(),
+        InsomniaWorkerConfig {
+            workers: 0,
+            ..InsomniaWorkerConfig::default()
+        },
+        EpisodePolicy::default(),
+    );
+    let owner = gateway.mount_rel_path(&path).unwrap();
+    let gateway = gateway.with_admission_adapter(Arc::new(Admission(owner.clone())));
+    let instance = gateway
+        .attach_authenticated_instance("verified-credential")
+        .unwrap();
+    let mut expected_revision = 0;
+    for (branch, parent, id) in [
+        ("main", "main-root", "main-turn"),
+        ("alternate", "alt-root", "alt-turn"),
+    ] {
+        let session = gateway
+            .admit_conversation_writer(&instance, &owner, "conversation", branch)
+            .unwrap();
+        assert_eq!(session.leaf_message_id.as_deref(), Some(parent));
+        let receipt = gateway
+            .submit_conversation(
+                &instance,
+                &owner,
+                GatewayConversationSubmission {
+                    conversation_id: "conversation".into(),
+                    submission_id: id.into(),
+                    expected_conversation_revision: expected_revision,
+                    expected_parent_node_id: Some(parent.into()),
+                    branch_id: branch.into(),
+                    content: format!("turn {id}"),
+                    attachments: vec![],
+                    client_timestamp_ns: None,
+                },
+            )
+            .unwrap();
+        expected_revision = receipt.status.transition_revision;
+    }
+    // A later admission on another branch may finish independently.
+    for (id, parent) in [("alt-turn", "alt-root"), ("main-turn", "main-root")] {
+        let receipt = gateway
+            .process_next_conversation_submission(&instance, &owner, "conversation", id)
+            .unwrap();
+        assert_eq!(receipt.status.state, GatewaySubmissionState::Committed);
+        assert_eq!(
+            receipt
+                .status
+                .finalize_capture
+                .unwrap()
+                .parent_node_id
+                .as_deref(),
+            Some(parent)
+        );
+    }
+    gateway.detach_instance(&instance).unwrap();
+    drop(gateway.unmount_rel(&owner).unwrap());
+    drop(gateway);
+    let reopened = Cva::open(path).unwrap();
+    assert!(
+        reopened
+            .archive()
+            .branches()
+            .iter()
+            .any(|b| b.id == "main" && b.leaf_node_id == "main-turn")
+    );
+    assert!(
+        reopened
+            .archive()
+            .branches()
+            .iter()
+            .any(|b| b.id == "alternate" && b.leaf_node_id == "alt-turn" && !b.canonical)
+    );
+    drop(reopened);
+    std::fs::remove_dir_all(dir).unwrap();
+}
+
 struct PolicyAdmission(String);
 impl GatewayAdmissionAdapter for PolicyAdmission {
     fn verify(&self, credential: &str) -> Result<VerifiedInstanceAdmission, String> {

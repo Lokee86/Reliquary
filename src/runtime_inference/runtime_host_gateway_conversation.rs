@@ -68,19 +68,9 @@ impl ConversationViewerToken {
     }
 }
 
-struct ConversationState {
-    processing: bool,
-}
-struct ConversationCoordinator {
-    state: Mutex<ConversationState>,
-}
-impl ConversationCoordinator {
-    fn new() -> Self {
-        Self {
-            state: Mutex::new(ConversationState { processing: false }),
-        }
-    }
-}
+#[path = "runtime_host_gateway_conversation_continuation.rs"]
+mod continuation;
+use continuation::ConversationCoordinator;
 #[derive(Default)]
 struct ViewerState {
     viewers: HashMap<(String, String), HashMap<Uuid, super::InstanceId>>,
@@ -344,14 +334,6 @@ impl OperationAuthority {
         })
     }
 }
-struct ProcessingGuard(Arc<ConversationCoordinator>);
-impl Drop for ProcessingGuard {
-    fn drop(&mut self) {
-        if let Ok(mut s) = self.0.state.lock() {
-            s.processing = false;
-        }
-    }
-}
 
 impl GatewayRuntime {
     /// Read canonical Archive policy through the requesting instance's REL grant.
@@ -603,7 +585,8 @@ impl GatewayRuntime {
     /// Explicitly admit this attached instance to the gateway-owned writable
     /// continuation. The returned value is only a snapshot; the mutable session
     /// stays inside the shared InteractionRuntime. Repeated admission reuses the
-    /// same session and never creates a per-viewer continuation.
+    /// same owner runtime; the selected Archive branch supplies the cursor.
+    /// It never creates a per-viewer continuation.
     pub fn admit_conversation_writer(
         &self,
         instance: &InstanceRuntime,
@@ -617,28 +600,6 @@ impl GatewayRuntime {
             return Err(operation("branch ID must not be empty"));
         }
         let session = self.with_rel(&token, |runtime| {
-            if let Some(session) = runtime.session(conversation_id.as_str()) {
-                if session.message_in_progress.is_some() {
-                    return Err(operation(
-                        "shared continuation already has a message in progress",
-                    ));
-                }
-                let branch = runtime
-                    .cva()
-                    .archive()
-                    .branches()
-                    .into_iter()
-                    .find(|branch| {
-                        branch.conversation_id == conversation_id.as_str() && branch.id == branch_id
-                    })
-                    .ok_or_else(|| operation("writer admission branch does not exist"))?;
-                if session.leaf_message_id.as_deref() != Some(branch.leaf_node_id.as_str()) {
-                    return Err(operation(
-                        "selected branch differs from the shared continuation head",
-                    ));
-                }
-                return Ok(session);
-            }
             let branch = runtime
                 .cva()
                 .archive()
@@ -648,12 +609,14 @@ impl GatewayRuntime {
                     branch.conversation_id == conversation_id.as_str() && branch.id == branch_id
                 })
                 .ok_or_else(|| operation("writer admission branch does not exist"))?;
+            ensure_session_at(
+                runtime,
+                conversation_id.as_str(),
+                Some(&branch.leaf_node_id),
+            )?;
             runtime
-                .open_session(
-                    conversation_id.as_str().to_owned(),
-                    Some(branch.leaf_node_id),
-                )
-                .map_err(operation)
+                .session(conversation_id.as_str())
+                .ok_or_else(|| operation("shared continuation session disappeared"))
         })?;
         let _ = self.select_rel(instance, owner_id);
         let _ = self.set_instance_managed_state(
@@ -971,34 +934,12 @@ impl GatewayRuntime {
             conversation_id: ConversationId::new(conversation_id.to_owned()).map_err(operation)?,
             submission_id: SubmissionId::new(submission_id.to_owned()).map_err(operation)?,
         };
-        let coordinator = self
-            .conversation
-            .coordinator(owner_id, key.conversation_id.as_str())?;
-        {
-            let mut state = coordinator
-                .state
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            if state.processing {
-                return Err(operation("conversation already has an active finalizer"));
-            }
-            state.processing = true;
-        }
-        let _processing = ProcessingGuard(coordinator);
         let journal = self.conversation.journal(owner_id)?;
-        let (mut status, pending, revision, statuses) = {
-            let journal = journal
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-            (
-                journal
-                    .status(&key)
-                    .ok_or_else(|| operation("submission not found"))?,
-                journal.pending_order(&key.conversation_id),
-                journal.conversation_revision(&key.conversation_id),
-                journal.statuses(),
-            )
-        };
+        let mut status = journal
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .status(&key)
+            .ok_or_else(|| operation("submission not found"))?;
         if status.state == SubmissionState::Cancelled
             || (status.state == SubmissionState::Committed && status.post_commit_receipt.is_some())
         {
@@ -1010,20 +951,27 @@ impl GatewayRuntime {
             .submission(&key)
             .cloned()
             .ok_or_else(|| operation("submission payload is not retained"))?;
-        if statuses.iter().any(|(other, state)| {
-            other.conversation_id == key.conversation_id
-                && other != &key
-                && matches!(
-                    state.state,
-                    SubmissionState::Finalizing | SubmissionState::Committed
-                )
-                && state.post_commit_receipt.is_none()
-        }) {
-            return Err(operation(
-                "conversation is fenced by an earlier unresolved Archive or post-commit receipt",
-            ));
-        }
         validate_accepted_submission(owner_id, &key, &submission)?;
+        let branch_id = status
+            .finalize_capture
+            .as_ref()
+            .map(|capture| capture.branch_id.clone())
+            .unwrap_or_else(|| metadata_branch(&submission));
+        let coordinator = self
+            .conversation
+            .coordinator(owner_id, key.conversation_id.as_str())?;
+        let _processing = coordinator.acquire(&journal, &key, &branch_id)?;
+        // Another attempt may have completed before this branch lease was acquired.
+        status = journal
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .status(&key)
+            .ok_or_else(|| operation("submission not found"))?;
+        if status.state == SubmissionState::Cancelled
+            || (status.state == SubmissionState::Committed && status.post_commit_receipt.is_some())
+        {
+            return Ok(GatewaySubmissionReceipt { id: key, status });
+        }
         if status.state == SubmissionState::Pending {
             if let Some(host_status) = drive_host_conversation_stage(
                 self,
@@ -1040,11 +988,6 @@ impl GatewayRuntime {
             }
         }
         if status.state == SubmissionState::Pending {
-            if pending.first() != Some(&key) {
-                return Err(operation(
-                    "submission is not the next queued conversation turn",
-                ));
-            }
             status = with_operation(self, &operation_authority, |runtime| {
                 ensure_session(runtime, key.conversation_id.as_str(), &submission)?;
                 let parent = runtime
@@ -1070,6 +1013,7 @@ impl GatewayRuntime {
                     .lock()
                     .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
                 compact_if_needed(&mut journal)?;
+                let revision = journal.conversation_revision(&key.conversation_id);
                 match journal
                     .claim_finalize(&key, revision, capture)
                     .map_err(operation)?
@@ -1119,7 +1063,16 @@ impl GatewayRuntime {
             })?;
         }
         if status.state == SubmissionState::Committed && status.post_commit_receipt.is_none() {
+            let receipt = status
+                .archive_receipt
+                .as_ref()
+                .ok_or_else(|| operation("committed entry lacks Archive receipt"))?;
             let post = with_operation(self, &operation_authority, |runtime| {
+                ensure_session_at(
+                    runtime,
+                    key.conversation_id.as_str(),
+                    Some(&receipt.node_id),
+                )?;
                 let result = runtime
                     .schedule_session(key.conversation_id.as_str(), self.episode_policy, now_ns())
                     .map_err(operation)?;
@@ -1159,6 +1112,9 @@ impl GatewayRuntime {
         runtime: &mut crate::InteractionRuntime,
     ) -> Result<(), ReliquaryRuntimeHostError> {
         let journal = self.conversation.journal(owner_id)?;
+        // Validate branch ownership before recovery can publish any effects.
+        self.conversation
+            .rebuild_continuations(owner_id, runtime.cva().archive().branches())?;
         let durable_host_operations = journal
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -1175,7 +1131,9 @@ impl GatewayRuntime {
                 }
             }
         }
-        recover_journal_runtime(&journal, owner_id, runtime, self.episode_policy)
+        recover_journal_runtime(&journal, owner_id, runtime, self.episode_policy)?;
+        self.conversation
+            .rebuild_continuations(owner_id, runtime.cva().archive().branches())
     }
 
     /// Reconcile durable journal receipts while a REL is quiesced.
@@ -2051,7 +2009,14 @@ fn publish_branch(
         id: branch_id.to_owned(),
         conversation_id: conversation_id.to_owned(),
         leaf_node_id: leaf_node_id.to_owned(),
-        canonical: true,
+        canonical: runtime
+            .cva()
+            .archive()
+            .branches()
+            .iter()
+            .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
+            .map(|branch| branch.canonical)
+            .unwrap_or(true),
     };
     if runtime
         .cva()
@@ -2253,8 +2218,17 @@ fn ensure_session(
     conversation_id: &str,
     submission: &Submission,
 ) -> Result<(), ReliquaryRuntimeHostError> {
-    if runtime.session(conversation_id).is_some() {
-        return Ok(());
+    // Archive branch identity, rather than the ambient conversation cursor,
+    // chooses this continuation's head.
+    let branch_id = metadata_branch(submission);
+    if let Some(branch) = runtime
+        .cva()
+        .archive()
+        .branches()
+        .into_iter()
+        .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
+    {
+        return ensure_session_at(runtime, conversation_id, Some(&branch.leaf_node_id));
     }
     let requested = submission
         .request_metadata
@@ -2278,10 +2252,7 @@ fn ensure_session(
             ));
         }
     };
-    runtime
-        .open_session(conversation_id.to_owned(), resume)
-        .map_err(operation)?;
-    Ok(())
+    ensure_session_at(runtime, conversation_id, resume.as_deref())
 }
 fn ensure_session_at(
     runtime: &mut crate::InteractionRuntime,
@@ -2289,9 +2260,21 @@ fn ensure_session_at(
     parent: Option<&str>,
 ) -> Result<(), ReliquaryRuntimeHostError> {
     if let Some(session) = runtime.session(conversation_id) {
-        if session.leaf_message_id.as_deref() != parent {
-            return Err(operation("continuation head differs from captured parent"));
+        if session.message_in_progress.is_some() {
+            return Err(operation("cannot rebind an in-flight continuation"));
         }
+        if let Some(parent) = parent {
+            if !runtime.cva().archive().has_node(conversation_id, parent) {
+                return Err(operation("continuation parent is absent from Archive"));
+            }
+        }
+        // This is a temporary cursor under the one owner runtime lock. Branch
+        // heads remain Archive-owned and the coordinator owns branch leases.
+        runtime
+            .sessions
+            .get_mut(conversation_id)
+            .ok_or_else(|| operation("shared continuation session disappeared"))?
+            .leaf_message_id = parent.map(str::to_owned);
         return Ok(());
     }
     runtime
@@ -2303,30 +2286,9 @@ fn restore_session_after_commit(
     runtime: &mut crate::InteractionRuntime,
     conversation_id: &str,
     stable_id: &str,
-    captured_parent: Option<&str>,
+    _captured_parent: Option<&str>,
 ) -> Result<(), ReliquaryRuntimeHostError> {
-    if let Some(session) = runtime.session(conversation_id) {
-        if session.leaf_message_id.as_deref() == Some(stable_id) {
-            return Ok(());
-        }
-        if session.leaf_message_id.as_deref() == captured_parent
-            && session.message_in_progress.is_none()
-        {
-            let state = runtime
-                .sessions
-                .get_mut(conversation_id)
-                .ok_or_else(|| operation("shared continuation session disappeared"))?;
-            state.leaf_message_id = Some(stable_id.to_owned());
-            return Ok(());
-        }
-        return Err(operation(
-            "cannot restore a committed node over a different or in-flight continuation",
-        ));
-    }
-    runtime
-        .open_session(conversation_id.to_owned(), Some(stable_id.to_owned()))
-        .map_err(operation)?;
-    Ok(())
+    ensure_session_at(runtime, conversation_id, Some(stable_id))
 }
 fn metadata_branch(submission: &Submission) -> String {
     submission
