@@ -6,7 +6,8 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0–P3.3 accepted; P3.4–P3.9 remain unimplemented.**
+Status: **P3.0–P3.4 accepted; P3.5–P3.9 remain unimplemented.**
+Sequential: [P3.4 implementation and acceptance](multiplexing-phase3-sequential-acceptance-2026-10-05.md)
 Scheduler: [P3.3 ownership and acceptance](multiplexing-phase3-scheduler-acceptance-2026-10-05.md)
 Branches: [P3.2 ownership and acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md)
 Policy: [P3.1 ownership and acceptance](multiplexing-phase3-policy-acceptance-2026-10-04.md)
@@ -35,7 +36,7 @@ Current production ownership already has:
 - transient viewer registrations;
 - stable generation/host-operation identity and durable principal attribution.
 
-The coordinator now owns branch-local contention, journal-derived recovery reservations and automatic durable selection across eligible branches. Callers request dispatch for a conversation without supplying a fresh submission ID. Existing durable continuations have a separate resume operation. Policy-specific finalization/conflicts and native generation/checkpoint lifecycle remain later sub-phases.
+The coordinator now owns branch-local contention, journal-derived recovery reservations and automatic durable selection across eligible branches. Callers request dispatch for a conversation without supplying a fresh submission ID. Existing durable continuations have a separate resume operation. Default sequential finalization is implemented. VisibleAutoBranch conflicts and native generation/checkpoint lifecycle remain later sub-phases.
 
 Phase 3 makes the existing coordinator the one canonical owner of those semantics.
 
@@ -244,6 +245,8 @@ Remove production reliance on caller-supplied "process this submission next" whe
 **Tests:** delayed older admission, equal timestamp ties, multiple conversations sharing REL journal, blocked branch with eligible different branch, restart exact ordering.
 
 ### P3.4 — Sequential policy finalization
+
+**Accepted:** selected-branch identity, safe sequential ancestry, synchronized publication, immutable retries and seven restart handoffs. See [acceptance evidence](multiplexing-phase3-sequential-acceptance-2026-10-05.md).
 
 Implement the default policy on the real Archive path.
 

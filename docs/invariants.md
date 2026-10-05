@@ -16,6 +16,13 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 Only the conversation coordinator selects fresh Pending work. Selection and branch reservation share a critical section; skipped branches retain journal order. A production exact-ID resume must prove an existing durable continuation and cannot admit fresh Pending work. Client timestamps do not influence queue order. The REL journal remains the single pending authority.
 
+### Sequential finalization
+
+- Fresh admission's expected parent identifies the selected Archive branch head; another branch's leaf cannot substitute for it. Accepted retries verify the exact original request against journal identity.
+- Sequential dispatch may advance from the admitted parent only along the selected branch ancestry. FinalizeWon durably captures the current safe parent/branch/policy revision before Archive publication.
+- Finalizing publication/recovery may advance from the captured parent or acknowledge the same stable node; it cannot rewind a branch that independently advanced elsewhere.
+- An idempotent branch publication still synchronizes before recording its Archive receipt. Pending submissions produce no Archive turns, Activity ticks or Episodes.
+
 ### Durable conversation policy
 
 - Archive conversation metadata is the sole policy owner. Missing legacy policy means SequentialChronological at revision 1; title/active writes cannot reset policy or its revision.

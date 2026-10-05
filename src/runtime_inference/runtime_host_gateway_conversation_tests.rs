@@ -3,6 +3,8 @@ use super::*;
 mod attribution;
 #[path = "runtime_host_gateway_conversation_branch_tests.rs"]
 mod branches;
+#[path = "runtime_host_gateway_conversation_finalization_tests.rs"]
+mod finalization;
 #[path = "runtime_host_gateway_conversation_policy_tests.rs"]
 mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]
@@ -466,11 +468,10 @@ fn cancel_and_finalize_race_has_one_durable_winner_and_survives_remount() {
     let process_start = Arc::clone(&start);
     let process = std::thread::spawn(move || {
         process_start.wait();
-        process_gateway.process_exact_conversation_submission_for_test(
+        process_gateway.process_next_conversation_submission(
             &process_writer,
             &process_owner,
             "conversation-one",
-            "raced-turn",
         )
     });
 

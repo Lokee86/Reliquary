@@ -13,6 +13,7 @@ Use this when ownership is unclear. It does not replace focused architecture/ref
 ## Change-area routing
 
 | Change area | Canonical documentation | Primary implementation boundary | Verification |
+| Sequential conversation finalization | [Architecture](architecture.md), [P3.4 acceptance](multiplexing-phase3-sequential-acceptance-2026-10-05.md) | Admission/capture/publication in `runtime_host_gateway_conversation.rs`; Archive preconditions in `runtime_host_gateway_conversation_finalization.rs` | Finalization restart/identity regressions and public cancel/finalize race |
 | Automatic conversation scheduling | [Architecture](architecture.md), [P3.3 acceptance](multiplexing-phase3-scheduler-acceptance-2026-10-05.md) | Coordinator selection in `runtime_host_gateway_conversation_continuation.rs`; dispatch/resume in `runtime_host_gateway_conversation.rs` | Scheduler tests and public API contract |
 | Branch-local gateway continuation ownership | [Architecture](architecture.md), [P3.2 acceptance](multiplexing-phase3-branch-acceptance-2026-10-05.md), [Behavioral contracts](behavioral-contracts.md) | `runtime_host_gateway_conversation_continuation.rs`, branch binding/recovery in `runtime_host_gateway_conversation.rs` | Conversation branch and branch host tests; public API branch regression |
 | --- | --- | --- | --- |

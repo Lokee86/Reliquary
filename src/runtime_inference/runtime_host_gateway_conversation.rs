@@ -391,23 +391,56 @@ impl GatewayRuntime {
                 "conversation submission requires text or an attachment",
             ));
         }
-        // This semantic read ends before waiting for the REL journal writer.
+        let id = ConversationSubmissionId {
+            conversation_id: conversation_id.clone(),
+            submission_id: submission_id.clone(),
+        };
+        let journal = self.conversation.journal(owner_id)?;
+        let already_admitted = journal
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .status(&id)
+            .is_some();
+        // Do not reinterpret an accepted request against a later branch head.
+        // The journal still verifies its exact immutable request on every retry.
+        // Release the journal before acquiring the semantic owner runtime.
         self.with_rel(&token, |runtime| {
-            let leaves = runtime
-                .conversation_summaries()
+            if already_admitted {
+                return Ok(());
+            }
+            if let Some(branch) = runtime
+                .cva()
+                .archive()
+                .branches()
                 .into_iter()
-                .find(|s| s.conversation_id == request.conversation_id)
-                .map(|s| s.leaf_node_ids)
-                .unwrap_or_default();
-            if request
-                .expected_parent_node_id
-                .as_ref()
-                .is_some_and(|p| !leaves.contains(p))
-                || (request.expected_parent_node_id.is_none() && !leaves.is_empty())
+                .find(|branch| {
+                    branch.conversation_id == request.conversation_id
+                        && branch.id == request.branch_id
+                })
             {
-                return Err(operation(
-                    "expected parent must be the current conversation leaf",
-                ));
+                if request.expected_parent_node_id.as_deref() != Some(branch.leaf_node_id.as_str())
+                {
+                    return Err(operation(
+                        "expected parent does not identify the selected branch head",
+                    ));
+                }
+            } else {
+                let leaves = runtime
+                    .conversation_summaries()
+                    .into_iter()
+                    .find(|summary| summary.conversation_id == request.conversation_id)
+                    .map(|summary| summary.leaf_node_ids)
+                    .unwrap_or_default();
+                if request
+                    .expected_parent_node_id
+                    .as_ref()
+                    .is_some_and(|parent| !leaves.contains(parent))
+                    || (request.expected_parent_node_id.is_none() && !leaves.is_empty())
+                {
+                    return Err(operation(
+                        "expected parent must be the current conversation leaf",
+                    ));
+                }
             }
             Ok(())
         })?;
@@ -436,10 +469,6 @@ impl GatewayRuntime {
         let scope_fingerprint = fingerprint(&json!({
             "rel_id": owner_id, "conversation_id": request.conversation_id, "branch_id": request.branch_id,
         }))?;
-        let id = ConversationSubmissionId {
-            conversation_id: conversation_id.clone(),
-            submission_id: submission_id.clone(),
-        };
         let selected_branch_id = request.branch_id.clone();
         let submission = Submission {
             id: id.clone(),
@@ -460,7 +489,6 @@ impl GatewayRuntime {
         let receive_ns = now_ns();
         let tie_key = *Uuid::new_v4().as_bytes();
         let expected_revision = request.expected_conversation_revision;
-        let journal = self.conversation.journal(owner_id)?;
         let operations = self.conversation.owner_journal(owner_id)?;
         // A PHY binding names a destination; only a current UseOwnPhy token
         // supplies permission. Both admission leases cover the durable capture.
@@ -1937,6 +1965,7 @@ fn archive_receipt_or_commit(
         ));
     }
     validate_finalize_identity(submission, capture)?;
+    finalization::validate_publication_head(runtime, key, capture)?;
     let stable_id = key.submission_id.as_str();
     if runtime
         .cva()
@@ -2140,7 +2169,9 @@ fn publish_branch(
         .iter()
         .any(|branch| branch == &desired)
     {
-        return Ok(());
+        // A previous append may have reached the in-memory index before sync failed.
+        // A receipt requires durability even when the desired branch already exists.
+        return runtime.cva().sync().map_err(operation);
     }
     runtime.cva.append_branch(desired).map_err(operation)?;
     runtime.cva().sync().map_err(operation)
@@ -2299,6 +2330,7 @@ fn archive_receipt_if_present(
         .find(|turn| turn.node_id == stable_id)
         .ok_or_else(|| operation("stable Archive node is not in its own ancestry"))?;
     validate_durable_turn(runtime, &turn, submission, capture)?;
+    finalization::validate_publication_head(runtime, key, capture)?;
     restore_session_after_commit(
         runtime,
         key.conversation_id.as_str(),
@@ -2343,6 +2375,12 @@ fn ensure_session(
         .into_iter()
         .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
     {
+        finalization::validate_sequential_parent(
+            runtime,
+            conversation_id,
+            submission,
+            &branch.leaf_node_id,
+        )?;
         return ensure_session_at(runtime, conversation_id, Some(&branch.leaf_node_id));
     }
     let requested = submission
@@ -2427,6 +2465,9 @@ fn now_ns() -> i64 {
         .as_nanos()
         .min(i64::MAX as u128) as i64
 }
+
+#[path = "runtime_host_gateway_conversation_finalization.rs"]
+mod finalization;
 
 #[cfg(test)]
 #[path = "runtime_host_gateway_conversation_tests.rs"]
