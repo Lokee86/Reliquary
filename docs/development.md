@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## P4.9 acceptance verification
+
+The converged `244d23f` source passed 1,026 library tests, 95 integration tests, and 19 CLI tests, runtime/CLI locked checks, formatting, and the 28-fixture/112-API direct coverage guard. The [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md) records command-level evidence and the separate unrestricted example-build and refreshed architecture gaps. No runtime or test code changed for this acceptance step.
+
 ## Purpose
 
 This document owns repository workflow, layout, verification commands, corpus smoke harnesses, and current measurements.

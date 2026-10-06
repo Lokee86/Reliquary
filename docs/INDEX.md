@@ -44,6 +44,7 @@
 - [Multiplexing Phase 3 conversation coordination implementation plan](multiplexing-phase3-conversation-implementation-plan-2026-10-04.md) — branch-aware scheduling, durable conversation policy, visible auto-branching, generation lifetime and recovery; parallel with Phase 4.
 - [Multiplexing Phase 4 conversation stream hub](multiplexing-phase4-streams-2026-10-05.md) — P4.6 exact durable stream scope, atomic full-prefix join, bounded delivery/recovery and deterministic-provider acceptance.
 - [Multiplexing Phase 4 P3/P4 convergence](multiplexing-phase4-convergence-2026-10-05.md) — P4.7 production conversation bindings, source ownership, named durability transitions, bounds, and collected verification.
+- [Multiplexing Phase 4 local/convergence acceptance](multiplexing-phase4-acceptance-2026-10-05.md) — P4.9 functional acceptance, command results, and explicit repository-wide verification exceptions.
 - [Multiplexing Phase 4 coverage, lock, and privacy audit](multiplexing-phase4-audit-2026-10-05.md) — P4.8 six-criterion audit, source-capture and privacy findings, maintenance-bypass behavior, structural-guard limits, and verification.
 - [Multiplexing Phase 4 reconnect and revocation](multiplexing-phase4-reconnect-2026-10-05.md) — P4.5 atomic recipient replacement, snapshot recovery, epoch rotation and reconciled lifecycle summaries.
 - [Multiplexing Phase 4 non-conversation publication](multiplexing-phase4-mutations-2026-10-05.md) — P4.4 gateway/worker post-sync summaries, coverage guard, privacy and verification.

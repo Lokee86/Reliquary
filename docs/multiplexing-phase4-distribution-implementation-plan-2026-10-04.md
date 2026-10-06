@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P4.0–P4.8 implemented and audited; P4.9 Phase 4 acceptance remains pending; architecture refresh remains incomplete**
+Status: **P4.0–P4.9 implemented, audited and locally validated; P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md); architecture refresh remains incomplete**
 
 ## Purpose
 
@@ -24,7 +24,7 @@ The current gateway already has:
 - Phase 1 durable conversation queue state;
 - Phase 2 exact PHY privacy boundaries.
 
-P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. P4.2 adds the canonical internal atomic snapshot/register handshake and live delivery checks. P4.3 adds bounded resync acknowledgement and recipient disconnect. P4.4 adds production mutation publication and coverage enforcement; P4.5 adds snapshot reconnect and epoch-safe lifecycle publication. P4.7 production conversation bindings are implemented and verified; the P4.8 coverage/lock/privacy audit is complete; P4.9 acceptance remains. Public exports are still later work. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md) and [P4.7 convergence record](multiplexing-phase4-convergence-2026-10-05.md).
+P4.1 now provides one internal `RelSequencer` per mounted REL, token-bound bounded subscriber state and lifecycle teardown. P4.2 adds the canonical internal atomic snapshot/register handshake and live delivery checks. P4.3 adds bounded resync acknowledgement and recipient disconnect. P4.4 adds production mutation publication and coverage enforcement; P4.5 adds snapshot reconnect and epoch-safe lifecycle publication. P4.7 production conversation bindings are implemented and verified; the P4.8 coverage/lock/privacy audit is complete; P4.9 local/convergence functional acceptance passed; see the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md) for repository-wide verification exceptions. Public exports are still later work. See the [P4.1 implementation record](multiplexing-phase4-core-2026-10-04.md) and [P4.7 convergence record](multiplexing-phase4-convergence-2026-10-05.md).
 
 Phase 4 introduces those as one canonical distribution subsystem. It does not create another semantic owner, another durable event log, or another conversation coordinator.
 
@@ -368,13 +368,15 @@ Do not read mutable InteractionRuntime session fields directly.
 
 P4.7 uses P3's durable FinalizeWon, ArchiveCommitted and PostCommitRecorded receipts; generation/checkpoint content remains exact-stream-only and broad REL events remain body-free. Each short persistence/capture/publication stage uses `with_accepted_work` or `with_conversation_admission` to hold the mounted P4 gate, while provider/model work stays outside. Broad snapshots are bounded to 16,384 source items and 128 notifications per publication cut; existing stream, recipient, queue, byte, and prefix bounds remain. No P3 coordinator/subscriber merge or public exports are introduced. See the [P4.7 convergence record](multiplexing-phase4-convergence-2026-10-05.md).
 
-Verification passed: the `cargo test --tests` matrix ran 1,023 library and 95 integration tests with zero failures or ignored tests; CLI tests passed 19/19. Runtime and CLI checks, root/CLI formatting checks, coverage guard (9 fixtures/112 APIs), and both documentation-policy modes passed. Focused convergence tests passed 12/12 within the library suite. The final validation includes the receipt fork-origin metadata correction and corrected legacy snapshot-hook fixture. The 120-second architecture refresh timed out during Lexicon Rust/Python analysis before Arcana/Pitlord, so no refreshed architecture pass is claimed. Unrestricted `cargo test` examples retain the inherited allocator conflict in `archive_open_profile`; examples were outside the passing `--tests` matrix. P4.8 audit is complete as recorded below; P4.9 Phase 4 acceptance remains pending.
+Verification passed: the `cargo test --tests` matrix ran 1,023 library and 95 integration tests with zero failures or ignored tests; CLI tests passed 19/19. Runtime and CLI checks, root/CLI formatting checks, coverage guard (9 fixtures/112 APIs), and both documentation-policy modes passed. Focused convergence tests passed 12/12 within the library suite. The final validation includes the receipt fork-origin metadata correction and corrected legacy snapshot-hook fixture. The 120-second architecture refresh timed out during Lexicon Rust/Python analysis before Arcana/Pitlord, so no refreshed architecture pass is claimed. Unrestricted `cargo test` examples retain the inherited allocator conflict in `archive_open_profile`; examples were outside the passing `--tests` matrix. P4.8 audit is complete as recorded below; P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md).
 
 ### P4.8 — Coverage/lock/privacy audit
 
-**Complete:** [P4.8 audit record](multiplexing-phase4-audit-2026-10-05.md). The expanded structural guard covers 28 isolated positive/negative fixtures, 112 public APIs, and all five REL worker files. Source review, strengthened privacy tests, and the maintenance-quiescence regression address ownership, lock/backpressure, durable publication, and bypass continuity. The record states the structural guard's limits and exact verification results. P4.9 Phase 4 acceptance remains pending.
+**Complete:** [P4.8 audit record](multiplexing-phase4-audit-2026-10-05.md). The expanded structural guard covers 28 isolated positive/negative fixtures, 112 public APIs, and all five REL worker files. Source review, strengthened privacy tests, and the maintenance-quiescence regression address ownership, lock/backpressure, durable publication, and bypass continuity. The record states the structural guard's limits and exact verification results. P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md).
 
 ### P4.9 — Phase 4 local/convergence acceptance
+
+**Validation complete:** [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md). The locked test matrix passed 1,026 library and 95 integration tests, including 12 production convergence regressions and 10 events/auth fixtures. CLI tests passed 19/19; runtime/CLI checks, formatting and the 28-fixture/112-API direct guard passed. Documentation checks and repository-wide verification exceptions are recorded there. Local functional acceptance does not claim unrestricted example compilation or refreshed architecture success.
 
 After convergence, require and record:
 - Phase 0B events/auth fixture and P3/P4 integration tests;
@@ -383,7 +385,7 @@ After convergence, require and record:
 - library/integration tests, formatting, check, and both documentation-policy modes;
 - architecture-refresh outcome, with inherited indexing limits stated explicitly.
 
-P4.7 and the P4.8 audit are complete as recorded above; P4.9 Phase 4 acceptance remains pending.
+P4.7 and the P4.8 audit are complete as recorded above; P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md).
 
 ## Testing decisions
 
