@@ -2,6 +2,17 @@
   "version": 1,
   "areas": [
     {
+      "id": "freshness",
+      "description": "REL-local deterministic relevance scores, decay, event batches and bounded graph propagation; independent of semantic Memory revisions",
+      "paths": [
+        "src/freshness",
+        "src/freshness_storage.rs",
+        "src/freshness_storage_tests.rs",
+        "src/freshness_dream_journal.rs",
+        "src/freshness_due.rs"
+      ]
+    },
+    {
       "id": "container",
       "description": "Physical REL/PHY container mechanics and file-global ordering",
       "paths": [
@@ -73,10 +84,36 @@
     },
     {
       "id": "facade",
-      "description": "Public Cva/Reliquary/Phylactery composition, migration, reconciliation, and cross-owner façade methods",
+      "description": "Public Cva/Reliquary/Phylactery composition, migration, reconciliation, and cross-owner facade methods",
       "paths": [
         "src/facade",
         "src/lib.rs"
+      ]
+    },
+    {
+      "id": "context-engine",
+      "description": "Provider-neutral context messages, evidence rendering and compaction policy",
+      "paths": [
+        "src/context_engine.rs",
+        "src/context_engine"
+      ]
+    },
+    {
+      "id": "project-environment",
+      "description": "Lore/Git project repository bootstrap, identity validation and attachment ingestion",
+      "paths": [
+        "src/project_environment.rs",
+        "src/project_environment",
+        "src/project_environment_git_tests.rs",
+        "src/project_environment_lore_tests.rs",
+        "src/project_environment_tests.rs"
+      ]
+    },
+    {
+      "id": "staleness",
+      "description": "Pure owner-qualified typed clocks and review-threshold arithmetic; no persistence or scoring authority",
+      "paths": [
+        "src/staleness"
       ]
     }
   ],

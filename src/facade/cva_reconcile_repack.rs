@@ -86,6 +86,10 @@ pub(crate) fn reconcile_diverged(
         right.interaction_stream_records(),
     )?;
 
+    crate::cva_reconcile_freshness::validate_freshness(&left, &right)?;
+    let freshness_change_required =
+        crate::cva_reconcile_freshness::right_changes_freshness(&left, &right)?;
+
     let merge_result = (|| {
         let mut output = match legacy_scope {
             Some(scope) => Cva::create_legacy_scope_with_uuid(output_path, scope, owner_uuid)?,
@@ -119,9 +123,12 @@ pub(crate) fn reconcile_diverged(
         let file_memory_links =
             replay_file_memory_links(&mut output, &right_archive.file_memory_links)?;
         replay_echo(&mut output, right_echo)?;
-        let canonical_change_required = output.container.chunks()?.len() > before_right
+        let semantic_change_required = output.container.chunks()?.len() > before_right
             || right_stream_change
             || right_project_history_change;
+        let canonical_change_required = semantic_change_required || freshness_change_required;
+        let vector_rebuild_required = semantic_change_required && derived_vectors_present;
+        crate::cva_reconcile_freshness::replay_freshness(&left, &right, &mut output)?;
         replay_processing_epochs(&mut output, processing_epochs)?;
         replay_dream_pairs(&mut output, dream_pairs)?;
         if canonical_change_required
@@ -153,6 +160,7 @@ pub(crate) fn reconcile_diverged(
             graph_result,
             file_memory_links,
             canonical_change_required,
+            vector_rebuild_required,
             processing_epoch_change_required,
             dream_pair_change_required,
         ))
@@ -166,6 +174,7 @@ pub(crate) fn reconcile_diverged(
         graph_result,
         file_memory_links,
         canonical_change_required,
+        vector_rebuild_required,
         processing_epoch_change_required,
         dream_pair_change_required,
     ) = match merge_result {
@@ -198,7 +207,7 @@ pub(crate) fn reconcile_diverged(
         duplicate_graph_mutations: graph_result.duplicate_mutations,
         replayed_file_memory_links: file_memory_links,
         canonical_change_required,
-        vector_rebuild_required: canonical_change_required && derived_vectors_present,
+        vector_rebuild_required,
     })
 }
 

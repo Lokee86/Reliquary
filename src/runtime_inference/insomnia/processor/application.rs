@@ -1,6 +1,7 @@
 use super::prepared::{PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication};
 use super::source_validation::{candidate_source_time_ns, validate_candidate_sources};
 use super::{InsomniaProcessError, InsomniaProcessResult};
+use crate::freshness_storage::FreshnessStore;
 use crate::insomnia::candidate::hex;
 use crate::insomnia::completion::{InsomniaCompletion, encode_completion};
 use crate::insomnia::store::InsomniaStore;
@@ -206,6 +207,10 @@ pub(crate) fn commit_application(
     container: &mut Container,
     memories: &mut MemoryStore,
     insomnia: &mut InsomniaStore,
+    freshness: &mut FreshnessStore,
+    dream_freshness: &mut crate::freshness_dream_journal::DreamFreshnessJournal,
+    owner_uuid: Option<[u8; 16]>,
+    accepted_rel_turn: u64,
     claim: &InsomniaWork,
     prepared: PreparedApplication,
     user_publication: Option<UserPublication>,
@@ -246,6 +251,26 @@ pub(crate) fn commit_application(
     memory_ids.extend(existing.iter().map(|memory| memory.id));
     let transaction_time_ns =
         Container::transaction_time_now_ns().map_err(crate::InsomniaError::from)?;
+    let freshness_birth_memory_ids = if owner_uuid.is_some() {
+        batch
+            .records
+            .iter()
+            .filter(|record| record.revision == 1)
+            .map(|record| record.id)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    let mut freshness_after = freshness.clone();
+    if let Some(owner) = owner_uuid {
+        for record in batch.records.iter().filter(|record| record.revision == 1) {
+            freshness_after
+                .derive_birth(owner, record.id, accepted_rel_turn, false)
+                .map_err(|error| {
+                    crate::InsomniaProcessError::Memory(crate::MemoryError::Freshness(error))
+                })?;
+        }
+    }
     let completion = InsomniaCompletion {
         episode_id: claim.episode_id,
         attempt: claim.attempt_count,
@@ -261,6 +286,10 @@ pub(crate) fn commit_application(
         bodies: batch.bodies,
         records: batch.records,
         routing_metadata: batch.routing_metadata,
+        freshness_birth_turn: owner_uuid.map(|_| accepted_rel_turn),
+        freshness_policy_version: owner_uuid
+            .map(|_| crate::freshness::FRESHNESS_POLICY_VERSION as u64),
+        freshness_birth_memory_ids,
     };
     let payload = encode_completion(&completion)
         .map_err(|_| crate::InsomniaError::InvalidField("completion record"))?;
@@ -282,6 +311,16 @@ pub(crate) fn commit_application(
         *memory = memories.memory(container, memory.id)?;
     }
     insomnia.apply_completion(&completion)?;
+    *freshness = freshness_after;
+    if owner_uuid.is_some() {
+        for record in completion
+            .records
+            .iter()
+            .filter(|record| record.revision == 1)
+        {
+            dream_freshness.derive_publication_birth(record.id);
+        }
+    }
     Ok(InsomniaProcessResult {
         created,
         existing,

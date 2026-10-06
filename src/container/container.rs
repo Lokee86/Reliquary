@@ -336,6 +336,75 @@ impl Container {
             == Some(right.offset)
     }
 
+    /// Visits payloads sequentially without retaining an O(chunk-count) index.
+    ///
+    /// Unlike open-time recovery, this query path never truncates or repairs a
+    /// malformed tail. The visitor sees at most one allocated payload at a time.
+    pub(crate) fn visit_payloads<E>(
+        &mut self,
+        visitor: impl FnMut(ObjectRef, &[u8]) -> Result<(), E>,
+    ) -> Result<(), E>
+    where
+        E: From<ContainerError>,
+    {
+        let file_len = self
+            .file
+            .metadata()
+            .map_err(ContainerError::Io)
+            .map_err(E::from)?
+            .len();
+        self.visit_payloads_through(file_len, visitor)
+    }
+
+    /// Visit only a complete accepted physical prefix without reading or repairing
+    /// later bytes. The caller supplies a previously accepted chunk boundary.
+    pub(crate) fn visit_payloads_through<E>(
+        &mut self,
+        prefix_end: u64,
+        mut visitor: impl FnMut(ObjectRef, &[u8]) -> Result<(), E>,
+    ) -> Result<(), E>
+    where
+        E: From<ContainerError>,
+    {
+        let actual_len = self
+            .file
+            .metadata()
+            .map_err(ContainerError::Io)
+            .map_err(E::from)?
+            .len();
+        if prefix_end < self.header_len || prefix_end > actual_len {
+            return Err(E::from(ContainerError::TruncatedChunk(prefix_end)));
+        }
+        let file_len = prefix_end;
+        let mut offset = self.header_len;
+        while offset < file_len {
+            if file_len - offset < CHUNK_HEADER_LEN {
+                return Err(E::from(ContainerError::TruncatedChunk(offset)));
+            }
+            self.file
+                .seek(SeekFrom::Start(offset))
+                .map_err(ContainerError::Io)
+                .map_err(E::from)?;
+            let len = read_u64(&mut self.file, offset).map_err(E::from)?;
+            let end = offset
+                .checked_add(CHUNK_HEADER_LEN)
+                .and_then(|value| value.checked_add(len))
+                .ok_or_else(|| E::from(ContainerError::ChunkTooLarge))?;
+            if end > file_len {
+                return Err(E::from(ContainerError::TruncatedChunk(offset)));
+            }
+            let payload_len =
+                usize::try_from(len).map_err(|_| E::from(ContainerError::ChunkTooLarge))?;
+            let mut payload = vec![0; payload_len];
+            self.file
+                .read_exact(&mut payload)
+                .map_err(|error| E::from(truncated_or_io(error, offset)))?;
+            visitor(ObjectRef::from_chunk(ChunkRef { offset, len }), &payload)?;
+            offset = end;
+        }
+        Ok(())
+    }
+
     pub fn chunks(&mut self) -> Result<Vec<ObjectRef>, ContainerError> {
         let file_len = self.file.metadata()?.len();
         let mut offset = self.header_len;

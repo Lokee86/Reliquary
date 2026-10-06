@@ -182,6 +182,15 @@ Only the conversation coordinator selects fresh Pending work. Selection and bran
 121. **Communities are one regional routing signal, not the Observation inference boundary.** Community membership may justify Exploitation locality or cross-region Exploration, but it neither proves semantic relatedness nor prevents bounded traversal across Community boundaries.
 122. **Observation currentness policy may be class-sensitive.** Wall time alone never falsifies an Observation. Current-state classes may become stale without new evidence, while durable/historical classes may be exempt from staleness-by-time; Chronos valid-time remains separate from currentness.
 123. **Derived support cannot fabricate independent corroboration.** Exact Observation lineage must preserve transitive source overlap so the same underlying Memory/evidence reached through multiple Observation paths is not counted as multiple independent supports.
+124. **Memory Freshness is contextual attention, not semantic truth.** Its bounded score and derived Fresh/Stale/Dormant state cannot change Memory content/revision, Dream lifecycle, archival, supersession, Chronos valid time, or model confidence.
+125. **REL Freshness follows only its own accepted-turn activity.** Decay starts at first Web admission and preserves the ten-turn remainder; wall time, other REL activity, PHY Memory versions, and unadmitted time cannot advance this score.
+126. **Freshness propagation is one event, one maximum per Memory.** A pinned owner-local Memory graph and fixed root Community determine candidate increases; score values of recipients do not gate traversal, and received increases never originate new events.
+127. **Access means accepted use.** Only an explicit accepted-context/use receipt may create direct-access reinforcement. Memory reads, retrieval candidates, search hits, and hydrated-but-truncated results are not use.
+128. **Freshness journal identity is owner-scoped and event-idempotent.** `CVAFRS02` metadata is bound to the durable owner UUID, remains separate from Memory semantic revisions, and a multi-Memory effect set is persisted as one journal record before in-memory acceptance. Legacy owners require explicit migration before enrollment or event writes.
+129. **Freshness does not own Dream topology or Ego selection policy.** Dream remains authority for committed relationships and duplicate canonicalization; Freshness derives scores from those events. Ego may consume graded score only through an explicit selection policy that preserves its existing hard keeps and coverage rules.
+
+130. **Freshness due scheduling is derived and bounded.** The dispatcher rebuilds from accepted owner records on open; an accepted REL activity callback processes at most 64 due transitions, preserves the unprocessed boundary backlog, and reports each emitted crossing at its exact turn. Scheduling changes no durable score or semantic version.
+131. **Freshness reads are passive; notifications are at-least-once.** Lazy score/state reads write nothing. Due notices are derived and may recur after reopen; pending reverse notices coalesce to the latest state per Memory.
 
 ## P3/P4 observation contract
 
@@ -206,6 +215,12 @@ One branch has one nonterminal finalizer/generation continuation. Pending work c
 ## Conversation snapshot cut (P3.7)
 
 Conversation snapshots acquire runtime -> coordinator -> journal and copy facts only while those owners are locked. The existing CVA sync barrier precedes publication of Archive heads/policy; journal projection changes already follow journal durability. A snapshot never promotes Finalizing to Committed based on an Archive node or branch alone. Pending and compacted terminal submissions retain durable order and branch identity. Generation status carries checkpoint sequence only, with no content hash or text. Selection comes solely from the requesting instance for the requested conversation, never the ambient session cursor. Current attachment/grant/mount/fence authority is checked again before returning. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
+
+132. **Freshness batch scheduling preserves event boundaries and ordering.** Validate the full principal set before work, evaluate complete independent events in one bounded pool, preserve input-order results, and join every worker before reporting failure. Cheap/small batches stay serial; synchronous calls provide no cancellation token.
+
+## Freshness diagnostic custody
+
+Performance diagnostics must preserve the accepted owner/policy/graph/Community cut and every independent consumption event. They may not replace a historical cut with current topology, enroll passive reads, suppress recipients, or treat a timing result as a correctness proof. Real fixture runs require source/copy SHA-256 verification and disposable writable copies. [The hardening plan](freshness-performance-hardening-plan-2026-10-03.md) defines promotion gates.
 
 ## Related docs
 

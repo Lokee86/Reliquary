@@ -45,6 +45,11 @@ pub(super) struct DrainShared<'a> {
     pub(super) container: Mutex<&'a mut Container>,
     pub(super) memories: Mutex<&'a mut MemoryStore>,
     pub(super) insomnia: Mutex<&'a mut InsomniaStore>,
+    pub(super) freshness: Mutex<&'a mut crate::freshness_storage::FreshnessStore>,
+    pub(super) dream_freshness:
+        Mutex<&'a mut crate::freshness_dream_journal::DreamFreshnessJournal>,
+    pub(super) owner_uuid: Option<[u8; 16]>,
+    pub(super) accepted_rel_turn: u64,
     pub(super) phylactery: Option<Mutex<&'a mut Phylactery>>,
     progress: DrainProgress<'a>,
 }
@@ -102,12 +107,18 @@ fn drain_inner<E: GeneralEndpoint>(
     let initial_stats = cva.insomnia_stats();
     cva.lexical_index
         .ensure_current(&cva.archive, &mut cva.container)?;
+    let owner_uuid = cva.owner_uuid();
+    let accepted_rel_turn = cva.rel_turn_count();
     let shared = DrainShared {
         archive: &cva.archive,
         lexical_index: &cva.lexical_index,
         container: Mutex::new(&mut cva.container),
         memories: Mutex::new(&mut cva.memories),
         insomnia: Mutex::new(&mut cva.insomnia),
+        freshness: Mutex::new(&mut cva.freshness),
+        dream_freshness: Mutex::new(&mut cva.dream_freshness),
+        owner_uuid,
+        accepted_rel_turn,
         phylactery: phylactery.map(Mutex::new),
         progress: DrainProgress::new(reporter, initial_stats),
     };

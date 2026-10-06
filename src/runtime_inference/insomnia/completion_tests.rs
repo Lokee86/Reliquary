@@ -1,4 +1,49 @@
 use super::completion::decode_completion;
+
+#[test]
+fn freshness_grouped_birth_recovers_from_completion_without_appending() {
+    let (path, mut cva, _) = setup("freshness-grouped-completion-gap.cva");
+    let result = process(&mut cva, 2, 110);
+    let ids = result
+        .created
+        .iter()
+        .map(|memory| memory.id)
+        .collect::<Vec<_>>();
+    let accepted_turn = cva.rel_turn_count();
+    let chunk = completion_chunk(&mut cva);
+    let end = chunk.legacy_offset() + 8 + chunk.legacy_len();
+    drop(cva);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_len(end)
+        .unwrap();
+    let before = fs::read(&path).unwrap();
+    let reopened = Cva::open(&path).unwrap();
+    assert!(
+        reopened
+            .freshness_same_publication_cohort(ids[0], ids[1])
+            .unwrap()
+    );
+    assert_eq!(
+        reopened.freshness_publication_cohort(ids[0]).unwrap(),
+        ids.iter().copied().collect()
+    );
+    for id in ids {
+        let record = reopened.freshness_record(id).unwrap();
+        assert_eq!(record.score, 100);
+        assert_eq!(record.admitted_at_turn, None);
+        assert!(reopened.freshness_is_publication_birth(id));
+        assert!(!reopened.freshness_has_pending_publication(id));
+        assert_eq!(
+            reopened.freshness_record_at(id, accepted_turn).unwrap(),
+            Some(record)
+        );
+    }
+    drop(reopened);
+    assert_eq!(fs::read(&path).unwrap(), before);
+}
 use crate::{
     Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaExtractor, InsomniaPriority,
     InsomniaWorkState, ObjectRef, SimulatedGeneralEndpoint,
@@ -351,4 +396,26 @@ fn truncated_completion_is_recovered_for_zero_one_and_many_memories_then_retries
             drop(final_open);
         }
     }
+}
+
+#[test]
+fn v6_completion_carries_explicit_freshness_birth_proof_without_granting_legacy() {
+    let (_path, mut cva, _episode) = setup("completion-v6-freshness-proof.cva");
+    let result = process(&mut cva, 3, 110);
+    assert_eq!(result.created.len(), 3);
+    let chunk = completion_chunk(&mut cva);
+    let payload = cva.container.read(chunk).unwrap();
+    let completion = decode_completion(&payload).unwrap().unwrap();
+    assert_eq!(completion.freshness_birth_turn, Some(cva.rel_turn_count()));
+    assert_eq!(
+        completion.freshness_policy_version,
+        Some(crate::freshness::FRESHNESS_POLICY_VERSION as u64)
+    );
+    assert_eq!(completion.freshness_birth_memory_ids.len(), 3);
+    assert!(completion.freshness_birth_memory_ids.iter().all(|id| {
+        completion
+            .records
+            .iter()
+            .any(|record| record.id == *id && record.revision == 1)
+    }));
 }

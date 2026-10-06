@@ -85,10 +85,22 @@ pub(super) fn apply_success(
             .insomnia
             .lock()
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
+        let mut freshness = shared
+            .freshness
+            .lock()
+            .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
+        let mut dream_freshness = shared
+            .dream_freshness
+            .lock()
+            .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
         commit_application(
             &mut container,
             &mut memories,
             &mut insomnia,
+            &mut freshness,
+            &mut dream_freshness,
+            shared.owner_uuid,
+            shared.accepted_rel_turn,
             claim,
             prepared,
             user_publication,

@@ -24,6 +24,13 @@ impl CommunityStore {
         self.snapshots.last()
     }
 
+    pub(crate) fn contains_snapshot(&self, generation: u64, derived_graph_version: u64) -> bool {
+        self.snapshots.iter().any(|snapshot| {
+            snapshot.generation == generation
+                && snapshot.derived_graph_version == derived_graph_version
+        })
+    }
+
     pub(crate) fn semantic_name(&self, community_id: CommunityId) -> Option<CommunitySemanticName> {
         resolve_semantic_name(&self.snapshots, &self.semantic_names, community_id)
     }
