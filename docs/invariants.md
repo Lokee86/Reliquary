@@ -228,3 +228,7 @@ Cross-database restore activation, actual concurrent writers, checkpointing, and
 - Query embedding occurs outside owner locks. Original attachment, owner grant and mount authority is revalidated before private result delivery.
 - Private profile projection names an explicit authorized REL and an existing principal Entity keyed by the exact bound PHY. Both original capabilities and the private mount remain valid through commit without simultaneous REL/PHY semantic store locks.
 - Fenced or offline destinations hold exact pending work. Reopen/remount invalidates client tokens and resumes the same owner intent while unrelated owner workers progress.
+
+## Recovery hard cut (P3.8)
+
+Mount and quiesced recovery use the same admitted-turn and Archive validation before post-commit acknowledgement. A checkpoint stream must contain the exact previously acknowledged UTF-8 prefix; missing, truncated or changed content fails mount without inventing terminal status. A synchronized extension is recorded before Interrupted or Completed. Coordinator exact acquisition verifies the durable branch and independently rejects fresh Pending work. Durable active metadata cannot create viewers, instance selection or per-viewer writers. Unknown host work and cancellation intent remain reserved until authoritative terminal proof. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).

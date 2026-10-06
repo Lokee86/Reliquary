@@ -15,6 +15,8 @@ mod observation;
 mod policy;
 #[path = "runtime_host_gateway_publication_tests.rs"]
 mod publication;
+#[path = "runtime_host_gateway_conversation_recovery_tests.rs"]
+mod recovery;
 #[path = "runtime_host_gateway_conversation_scheduler_tests.rs"]
 mod scheduler;
 use crate::runtime_host_test_support::test_path;

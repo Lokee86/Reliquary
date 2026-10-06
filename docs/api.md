@@ -505,3 +505,7 @@ Submissions include terminal tombstones and sort by the verified receive-time/ti
 
 ## Notes
 No compatibility promise has yet been made for Rust method signatures or development persistence formats. The detachable CLI consumes this public surface only. Product/runtime gaps are tracked in [Current limitations](current-limitations.md), and future sequencing is tracked in [Roadmap](roadmap.md).
+
+## Conversation recovery checks (P3.8)
+
+The public conversation surface is unchanged. resume_conversation_submission and internal generation/control acquisition validate the durable target branch in the coordinator; fresh Pending work must use process_next_conversation_submission. Mount verifies acknowledged checkpoint content before accepting a stream extension and completing or interrupting a recovered generation. Quiescence uses the same admitted-turn/Archive receipt validation as mount, and rejects a missing publication before post-commit acknowledgement. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).

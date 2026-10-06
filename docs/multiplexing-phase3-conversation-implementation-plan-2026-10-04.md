@@ -6,7 +6,9 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0–P3.7 accepted; P3.8–P3.9 remain planned.**
+Status: **P3.0–P3.9 accepted locally with the documented structural-analysis tool limitation; P3/P4 convergence remains separate.**
+Local acceptance: [P3.9 final gate matrix](multiplexing-phase3-local-acceptance-2026-10-05.md)
+Recovery: [P3.8 audit and implementation](multiplexing-phase3-recovery-acceptance-2026-10-05.md)
 Observation: [P3.7 implementation and gates](multiplexing-phase3-observation-acceptance-2026-10-05.md)
 Generation: [P3.6 implementation and acceptance](multiplexing-phase3-generation-acceptance-2026-10-05.md)
 Auto-branch: [P3.5 implementation and acceptance](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md)
@@ -316,6 +318,8 @@ P3 tests this as a plain internal snapshot. P4 later adds cursor/subscriber sema
 
 ### P3.8 — Recovery and hard-cut cleanup
 
+Status: accepted with the documented structural-analysis tool limitation. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md) records shared mount/quiescence validation, exact-acquisition fencing, checkpoint prefix reconciliation and the concrete source audit.
+
 On mount/restart:
 - reconcile Finalizing journal entries against Archive;
 - rebuild branch continuation state;
@@ -332,6 +336,8 @@ Audit the new gateway conversation path for:
 - bypass processing APIs.
 
 ### P3.9 — Phase 3 local acceptance
+
+Status: accepted locally. [P3.9 evidence](multiplexing-phase3-local-acceptance-2026-10-05.md) records the final library/integration, ownership and documentation gates, inherited verification limitations and the convergence handoff.
 
 Required green gates before convergence:
 - fmt/diff/check;

@@ -14,7 +14,7 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 Reliquary is the purpose-built semantic/storage/runtime library embedded by Warlock. Its semantics do not depend upward on Warlock. Project-file history belongs to Lore or Git through Reliquary's Project Environment; REL/PHY retain independent semantic state and history.
 
-The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete. Separately, GatewayRuntime/InstanceRuntime multiplexing Phase 1 is complete locally: owner/instance authority, durable accepted work, ConversationExecution ownership and fenced ambient/project operations passed final verification. Phase 2 multi-principal PHY ownership, exact-owner publication and private access are also verified locally; the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md) records final evidence and inherited verification limits. P3.8 recovery cleanup and P3.9 local acceptance remain pending; P4.7 production conversation distribution is implemented and verified, P4.8 audit is complete, and P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md). Host-consumer migration remains Phase 5.
+The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete. Separately, GatewayRuntime/InstanceRuntime multiplexing Phase 1 is complete locally: owner/instance authority, durable accepted work, ConversationExecution ownership and fenced ambient/project operations passed final verification. Phase 2 multi-principal PHY ownership, exact-owner publication and private access are also verified locally; the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md) records final evidence and inherited verification limits. Phase 3 conversation coordination is accepted locally. P4 production distribution and local acceptance are complete with documented verification limits. Final P3.8/P4 integration is under verification; host-consumer migration remains Phase 5.
 
 ## Current semantic sequence
 
@@ -409,9 +409,9 @@ The current roadmap does not include:
 - a virtual/copy-on-write filesystem or filesystem driver inside Reliquary; or
 - a mandatory independently deployed Reliquary service.
 
-## Multiplexing next phases after P3.7
+## Multiplexing next phases after Phase 3 local acceptance
 
-P3.7 authoritative conversation snapshots are implemented; P3.8 recovery audit/cleanup and P3.9 acceptance remain next. The snapshot cut is recorded in [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md). The completed generation/control baseline is recorded in [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+P3.0–P3.9 are accepted locally with the documented structural-analysis tool limitation. [P3.9 evidence](multiplexing-phase3-local-acceptance-2026-10-05.md) records the completion gates. Next is P3/P4 production convergence after independent lane acceptance: bind post-durability conversation transitions and checkpoint delivery to the P4 registration/publication boundary, then complete the separate consumer migration. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md) records the hard cut and recovery checks. The snapshot cut is recorded in [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md). The completed generation/control baseline is recorded in [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
 
 ## Related docs
 
