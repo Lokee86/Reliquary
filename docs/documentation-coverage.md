@@ -130,7 +130,7 @@ src/runtime_inference/runtime_host_gateway_conversation_recovery.rs and its focu
 
 ## Phase 3 local acceptance coverage (P3.9)
 
-[The final acceptance record](multiplexing-phase3-local-acceptance-2026-10-05.md) maps the existing conversation, journal, G1 reference and public gateway tests plus direct ownership guards to the Phase 3 completion requirements. It records the complete library/integration gate matrix and inherited example/structural-analysis limitations. P3.9 changes documentation only; post-durability transition delivery and atomic subscriber registration remain P3/P4 convergence work.
+[The final acceptance record](multiplexing-phase3-local-acceptance-2026-10-05.md) maps the existing conversation, journal, G1 reference and public gateway tests plus direct ownership guards to the Phase 3 completion requirements. It records the complete library/integration gate matrix and inherited example/structural-analysis limitations. P3.9 changes documentation only. Post-durability transition delivery and subscriber registration are now integrated with P4; [the final main integration record](multiplexing-p34-main-integration-2026-10-06.md) records combined verification.
 
 P5's `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py` map to [Development](development.md) for commands and [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) for sampled reach, full effect/hop/origin histograms, checksum custody and retained-v1 policy disposition. The diagnostic introduces no production owner or semantic contract.
 

@@ -135,7 +135,7 @@ See:
 
 ### Phase 3 — REL conversation coordination
 
-**Status: P3.0–P3.9 accepted locally; P4.0–P4.9 and production distribution binding are accepted with documented verification limits.** [P3.9 evidence](multiplexing-phase3-local-acceptance-2026-10-05.md) and [P4.9 evidence](multiplexing-phase4-acceptance-2026-10-05.md) record the lane gates. Final integration of P3.8 recovery into distribution is under verification; Phase 5 consumer migration remains separate.
+**Status: P3.0–P3.9 accepted locally; P4.0–P4.9 and production distribution binding are accepted with documented verification limits.** [P3.9 evidence](multiplexing-phase3-local-acceptance-2026-10-05.md) and [P4.9 evidence](multiplexing-phase4-acceptance-2026-10-05.md) record the lane gates. Final P3/P4 integration is verified for main ([integration evidence](multiplexing-p34-main-integration-2026-10-06.md)); Phase 5 consumer migration remains separate.
 
 - Deepen the existing `ConversationRegistry` rather than creating another coordinator.
 - Make the durable REL journal order the automatic scheduler authority.

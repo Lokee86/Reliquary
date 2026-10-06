@@ -6,7 +6,8 @@ Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)
 Authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-authorization.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P3.0–P3.9 accepted locally with the documented structural-analysis tool limitation; P3/P4 convergence remains separate.**
+Status: **P3.0–P3.9 accepted locally with the documented structural-analysis tool limitation; P3/P4 convergence is integrated and verified for main.**
+Main integration: [Final P3/P4 record](multiplexing-p34-main-integration-2026-10-06.md)
 Local acceptance: [P3.9 final gate matrix](multiplexing-phase3-local-acceptance-2026-10-05.md)
 Recovery: [P3.8 audit and implementation](multiplexing-phase3-recovery-acceptance-2026-10-05.md)
 Observation: [P3.7 implementation and gates](multiplexing-phase3-observation-acceptance-2026-10-05.md)

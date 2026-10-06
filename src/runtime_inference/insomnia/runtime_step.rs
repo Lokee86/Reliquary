@@ -161,10 +161,16 @@ impl Cva {
             completed_at_ns,
             config.lease_duration_ns,
         )?;
+        let owner_uuid = self.owner_uuid();
+        let accepted_rel_turn = self.rel_turn_count();
         commit_application(
             &mut self.container,
             &mut self.memories,
             &mut self.insomnia,
+            &mut self.freshness,
+            &mut self.dream_freshness,
+            owner_uuid,
+            accepted_rel_turn,
             &claim.work,
             prepared,
             Some(publication),

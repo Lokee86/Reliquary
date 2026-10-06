@@ -6,7 +6,7 @@ Event/authorization contract: [Phase 0B G3/G4](multiplexing-phase0b-events-autho
 Conversation contract: [Phase 0B G1](multiplexing-phase0b-conversation.md)  
 Lifecycle contract: [Phase 0B G5/G6](multiplexing-phase0b-lifecycle-consumers.md)  
 Authority decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
-Status: **P4.0–P4.9 implemented, audited and locally validated; P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md); architecture refresh remains incomplete**
+Status: **P4.0–P4.9 integrated with final P3 into main; combined verification and any tool limitations are recorded in the [final integration record](multiplexing-p34-main-integration-2026-10-06.md).**
 
 ## Purpose
 

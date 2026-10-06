@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Final P3/P4 main integration](multiplexing-p34-main-integration-2026-10-06.md)
+
 - [P3.9 local Phase 3 acceptance](multiplexing-phase3-local-acceptance-2026-10-05.md)
 
 - [P3.8 recovery and hard-cut acceptance](multiplexing-phase3-recovery-acceptance-2026-10-05.md)
