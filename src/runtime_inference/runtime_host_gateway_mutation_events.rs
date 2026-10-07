@@ -10,6 +10,7 @@ use super::{
 pub(super) enum RelMutationFamily {
     Semantic,
     Metadata,
+    ConversationMetadata,
     Project,
     Processing,
     Background,
@@ -101,7 +102,8 @@ pub(super) fn commit<T>(
         ) && auxiliary_changed);
     let classes = [
         (
-            a.archive_version != b.archive_version,
+            a.archive_version != b.archive_version
+                || (family == RelMutationFamily::ConversationMetadata && auxiliary_changed),
             RelEventClass::ArchiveChanged,
         ),
         (semantic, RelEventClass::SemanticOwnerChanged),

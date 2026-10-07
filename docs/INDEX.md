@@ -41,6 +41,7 @@
 - [Multiplexing P5-B background/host](multiplexing-phase5b-background-host-2026-10-06.md) — REL/PHY worker ownership, capability routing, cancellation and durable host reconciliation.
 - [P5-B capability ledger](multiplexing-p5b-capability-ledger-2026-10-06.md) — canonical worker/API matrix, executable host boundaries and C/D deletion handoff.
 - [P5-B lane acceptance](multiplexing-p5b-acceptance-2026-10-07.md) — source changes, actual verification and remaining convergence gates.
+- [P5-C conversation metadata consumer API](multiplexing-p5c-conversation-consumer-apis-2026-10-07.md) — canonical exact-instance title, branch, Echo, and compaction endpoints with pending runtime acceptance.
 - [Multiplexing P5-C Warlock/CLI](multiplexing-phase5c-external-consumers-2026-10-06.md) — external app instance, queue, generation/stream, provider and dependency-pin migration.
 - [Multiplexing P5-D legacy deletion](multiplexing-phase5d-legacy-deletion-2026-10-06.md) — source-backed final hard cut after external callers move.
 - [Multiplexing Phase 6 parallel verification](multiplexing-phase6-parallel-verification-plan-2026-10-06.md) — concurrent H0–H5 adversarial/performance harness and post-deletion release gate.

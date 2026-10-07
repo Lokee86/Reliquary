@@ -1,0 +1,185 @@
+//! Explicit-instance Archive metadata mutations for the external conversation consumer.
+//! The REL sequencer owns publication. Warlock must never mutate a CVA directly.
+use super::mutation_events::RelMutationFamily;
+use super::{GatewayRuntime, InstanceRuntime, OwnerGrant, ReliquaryRuntimeHostError, operation};
+
+impl GatewayRuntime {
+    /// Branch metadata is read only from the exact owner granted to this instance.
+    pub fn conversation_branch_start_node_ids_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<String>, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        self.with_rel(&token, |runtime| {
+            runtime
+                .cva()
+                .conversation_branch_start_node_ids(conversation_id, leaf_node_id)
+                .map_err(operation)
+        })
+    }
+
+    /// Change the title through REL admission, durable sync and Archive publication.
+    pub fn set_conversation_title_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        title: String,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
+        self.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |runtime| {
+            let changed = runtime
+                .cva
+                .set_conversation_title(conversation_id, title)
+                .map_err(operation)?;
+            Ok((changed, changed, Vec::new()))
+        })
+    }
+
+    pub fn conversation_compactions_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<Vec<crate::ConversationCompaction>, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        self.with_rel(&token, |runtime| {
+            Ok(runtime.cva().conversation_compactions(conversation_id))
+        })
+    }
+
+    /// Compaction is a durable Archive adjunct, never a Tauri-managed cursor.
+    pub fn put_conversation_compaction_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: String,
+        through_message_id: String,
+        summary: String,
+        supersedes_through_message_id: Option<&str>,
+    ) -> Result<crate::ConversationCompaction, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
+        self.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |runtime| {
+            let record = runtime
+                .cva
+                .put_conversation_compaction(
+                    conversation_id,
+                    through_message_id,
+                    summary,
+                    supersedes_through_message_id,
+                )
+                .map_err(operation)?;
+            Ok((record, true, Vec::new()))
+        })
+    }
+
+    /// Echo publication is a synced Archive adjunct; it does not confer source REL access.
+    pub fn put_echo_event_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        event: crate::EchoEvent,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
+        self.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |runtime| {
+            let changed = runtime.cva.put_echo_event(event).map_err(operation)?;
+            Ok((changed, changed, Vec::new()))
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::runtime_host_test_support::test_path;
+    use crate::{
+        Cva, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, ReliquaryRuntimeRoutes,
+    };
+    use std::collections::{BTreeMap, BTreeSet};
+
+    #[test]
+    fn p5c_archive_metadata_requires_exact_manage_rel_and_is_durable() {
+        let gateway = GatewayRuntime::new(
+            test_path("p5c-conversation-metadata-state"),
+            ReliquaryRuntimeRoutes::default(),
+            InsomniaWorkerConfig {
+                workers: 0,
+                ..InsomniaWorkerConfig::default()
+            },
+            EpisodePolicy::default(),
+        );
+        let rel = gateway
+            .mount_rel(InteractionRuntime::new(
+                Cva::create_project(test_path("p5c-conversation-metadata.rel")).unwrap(),
+            ))
+            .unwrap();
+        let view = gateway
+            .attach_instance(
+                "reader".into(),
+                None,
+                BTreeMap::from([(rel.clone(), BTreeSet::from([OwnerGrant::ViewRel]))]),
+            )
+            .unwrap();
+        assert!(
+            gateway
+                .set_conversation_title_for(&view, &rel, "conv", "not allowed".into())
+                .is_err()
+        );
+        assert!(
+            gateway
+                .put_echo_event_for(
+                    &view,
+                    &rel,
+                    crate::EchoEvent {
+                        conversation_id: "conv".into(),
+                        message_id: "node".into(),
+                        sequence: 0,
+                        timestamp_ns: 0,
+                        model_round: None,
+                        kind: crate::EchoEventKind::Commentary,
+                        correlation_id: None,
+                        name: None,
+                        content: "cannot write".into()
+                    }
+                )
+                .is_err()
+        );
+        let writer = gateway
+            .attach_instance(
+                "writer".into(),
+                None,
+                BTreeMap::from([(
+                    rel.clone(),
+                    BTreeSet::from([OwnerGrant::ViewRel, OwnerGrant::ManageRel]),
+                )]),
+            )
+            .unwrap();
+        assert!(
+            gateway
+                .set_conversation_title_for(&writer, &rel, "conv", "renamed".into())
+                .unwrap()
+        );
+        let reader_token = gateway.authorize(&view, &rel, OwnerGrant::ViewRel).unwrap();
+        gateway
+            .with_rel(&reader_token, |runtime| {
+                assert_eq!(
+                    runtime
+                        .cva()
+                        .archive()
+                        .conversation_metadata("conv")
+                        .unwrap()
+                        .title
+                        .as_deref(),
+                    Some("renamed"),
+                );
+                Ok(())
+            })
+            .unwrap();
+        gateway.detach_instance(&writer).unwrap();
+        gateway.detach_instance(&view).unwrap();
+        drop(gateway.unmount_rel(&rel).unwrap());
+    }
+}

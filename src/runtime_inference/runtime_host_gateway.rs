@@ -54,6 +54,8 @@ mod convergence_race_tests;
 mod convergence_tests;
 #[path = "runtime_host_gateway_conversation.rs"]
 pub(super) mod conversation;
+#[path = "runtime_host_gateway_conversation_metadata.rs"]
+mod conversation_metadata;
 #[path = "runtime_host_gateway_events.rs"]
 pub(super) mod events;
 #[path = "runtime_host_gateway_mutation_events.rs"]
