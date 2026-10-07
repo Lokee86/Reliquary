@@ -1,10 +1,10 @@
 # Multiplexing Phase 5 — next parallel execution wave
 
-Parent: [P5/P6 parallel execution and convergence](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
-Current implementation line: Reliquary `feat/multiplexing-p5c-api-integration` @ `4ce4911`  
-Current external consumer line: Warlock `feat/multiplexing-p5c-final-cut` @ `1782e72`  
-Accepted harness line: `feat/multiplexing-p6-harness` @ `81a64b6`  
-Status: **execution-ready next wave; A/B and P6-H are accepted on feature/integration lines, C is late-stage, E/F/G/D remain.**
+Parent: [P5/P6 parallel execution and convergence](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
+Current implementation line: Reliquary `feat/multiplexing-p5-convergence` — tested N0 base `f9dafba`
+Current external consumer line: Warlock `feat/multiplexing-p5c-final-cut` @ `3a62470` (N0 regression repairs)
+Accepted harness line: `feat/multiplexing-p6-harness` @ `81a64b6`
+Status: **N0 accepted on the convergence branch; A/B are integrated, P6-H remains accepted separately, C is late-stage, E/F/G/D remain.**
 
 ## Purpose
 
@@ -16,8 +16,8 @@ The planning-only main branch is not the implementation frontier. Current verifi
 
 | Area | Current evidence | Disposition |
 | --- | --- | --- |
-| P5-A | Source commit `7350149`; integrated runtime acceptance on `4ce4911`: 1,099 library, 128 integration, 19 CLI; upgraded Warlock checks also pass | **done for implementation/acceptance; merge to convergence** |
-| P5-B | `c45f50e`; 1,093 library, 128 integration, 19 CLI plus P2/P3/P4 guards | **done for implementation/acceptance; merge to convergence** |
+| P5-A | Source commit `7350149`; integrated runtime acceptance on `4ce4911`: 1,099 library, 128 integration, 19 CLI; upgraded Warlock checks also pass | **done for implementation/acceptance; integrated into N0** |
+| P5-B | `c45f50e`; 1,093 library, 128 integration, 19 CLI plus P2/P3/P4 guards | **done for implementation/acceptance; integrated into N0** |
 | P5-C | Reliquary `4ce4911`; Warlock final-cut `1782e72`; old `ReliquaryRuntimeHost` consumer removed on the Warlock branch | **late-stage; remaining real-product gates below** |
 | P5-E | specified only | **start now** |
 | P5-F | specified only | **start now** |
@@ -29,6 +29,8 @@ The planning-only main branch is not the implementation frontier. Current verifi
 The architecture refresh remains a bounded tooling gap on several accepted branches; direct ownership/coverage guards and actual tests are still required and have passed where recorded. Do not promote a stale Arcana snapshot into acceptance evidence.
 
 ## N0 — establish one convergence base before more production branching
+
+**Accepted on `feat/multiplexing-p5-convergence`.** Tested base: `f9dafba2a885c140b1aa879dc0494c9d2d44b1c9`; upgraded consumer: Warlock `3a62470`. The combined floor passes: 1,099 library, 128 integration, 19 CLI, 202 Warlock tests (one existing benchmark ignored), formatting/locked checks, P2/P3/P4 guards and documentation checks. Three consumer regressions were repaired in C before acceptance. Main planning tip `2407dbe` includes `dfa82ae` and this next-wave plan. See [N0 convergence acceptance](multiplexing-n0-convergence-acceptance-2026-10-07.md) for exact commands, provenance, timeout/retry history and remaining gaps. The acceptance commit adds documentation only and is the branch point for the next lanes.
 
 Create `feat/multiplexing-p5-convergence` from the current Reliquary C integration head `4ce4911`, because that line already contains accepted A/B source plus the current C-side canonical API repairs. Bring the main planning/status documentation from `dfa82ae` forward without discarding implementation-branch acceptance records. Do not merge Warlock source into Reliquary.
 
@@ -47,7 +49,7 @@ A regression here belongs to the owning A/B/C source before new tracks begin. Re
 
 ### Track C-close — real Warlock convergence
 
-**Repo:** clean Warlock P5-C worktree, continuing from `1782e72`.  
+**Repo:** clean Warlock P5-C worktree, continuing from `3a62470` (including N0 consumer regression repairs).
 **Reliquary dependency:** exact N0 convergence revision; no old-host fallback.
 
 Remaining work:

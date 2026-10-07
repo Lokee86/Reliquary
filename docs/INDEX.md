@@ -38,6 +38,7 @@
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — Phase 1 GatewayRuntime/InstanceRuntime implementation status, durable provisional journal, verification record and remaining whole-stack gates.
 - [Multiplexing Phase 5/6 parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md) — source ownership, independent branches, shared final API freeze and G0–G5 integration gates.
 - [Multiplexing Phase 5 next parallel execution wave — 2026-10-07](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md) — current A/B/C/P6 status and N0–N5 parallel C/E/F/G/D0/P6 execution order.
+- [N0 convergence acceptance — 2026-10-07](multiplexing-n0-convergence-acceptance-2026-10-07.md) — exact common base, combined matrix and owning C regression repairs.
 - [Multiplexing P5-A REL/runtime consumers](multiplexing-phase5a-rel-consumers-2026-10-06.md) — authorized Archive/Memory/Graph/retrieval/project/status migration and handoff acceptance.
 - [Multiplexing P5-B background/host](multiplexing-phase5b-background-host-2026-10-06.md) — REL/PHY worker ownership, capability routing, cancellation and durable host reconciliation.
 - [P5-B capability ledger](multiplexing-p5b-capability-ledger-2026-10-06.md) — canonical worker/API matrix, executable host boundaries and C/D deletion handoff.
