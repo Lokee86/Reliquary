@@ -57,6 +57,14 @@ impl ReliquaryRuntimeHost {
     }
 }
 
+pub(crate) fn reconcile_rel_file_unmounted(
+    canonical: &Path,
+) -> Result<RelReconciliationReport, String> {
+    let mut report = reconcile_rel_siblings(canonical)?;
+    recover_reconciliation_vectors(canonical, &mut report, None)?;
+    Ok(report)
+}
+
 fn reconcile_rel_siblings(canonical: &Path) -> Result<RelReconciliationReport, String> {
     let canonical_cva = Cva::open(canonical).map_err(|error| error.to_string())?;
     let owner_id = canonical_cva

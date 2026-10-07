@@ -27,6 +27,8 @@ mod ambient;
 pub(super) mod mount;
 #[path = "runtime_host_gateway_phy_lifecycle.rs"]
 mod phy_lifecycle;
+#[path = "runtime_host_gateway_project_lifecycle.rs"]
+mod project_lifecycle;
 #[path = "runtime_host_gateway_semantic.rs"]
 mod semantic;
 pub use semantic::provenance::RuntimeKnowledgeProvenanceResolution;

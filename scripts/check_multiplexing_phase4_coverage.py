@@ -14,7 +14,8 @@ GROUPS = {
     "delegated": "set_rel_metadata create_knowledge_memory refresh_principal_projection_for",
     "ephemeral": "set_rel_processing_enabled_for",
     "host": "reconnect_host",
-    "epoch": "quiesce_rel quiesce_rel_for reopen_rel reopen_rel_for reconcile_quiesced_rel_for shutdown unmount_rel mount_rel_path",
+    "epoch": "quiesce_rel quiesce_rel_for reopen_rel reopen_rel_for reconcile_quiesced_rel_for shutdown unmount_rel mount_rel_path reconcile_rel_file",
+    "trusted_project": "create_project_environment_rel inspect_project_adoption_source adopt_project_environment_rel validate_project_environment_cva",
     "background": "set_routes wake_rel_background_for set_rel_background_enabled_for wake_phy_background_for set_phy_background_enabled_for",
     "private": "set_phylactery_profile quiesce_phy quiesce_phy_for reopen_phy reopen_phy_for unmount_phy mount_phy_path",
     "conversation": "submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation",
@@ -105,6 +106,14 @@ def check_gateway(source):
             errors.append(f"{name}: unclassified public GatewayRuntime API")
         elif category == "published" and "with_rel_mutation(" not in body:
             errors.append(f"{name}: missing canonical mutation admission")
+        elif category == "trusted_project":
+            if name == "create_project_environment_rel":
+                if "self.lifecycle.lock(" not in route_body or "rel_path.exists()" not in body or "create_project_rel(" not in body:
+                    errors.append(f"{name}: missing atomic new-file path admission")
+                if "admit_unmounted_path(" in body:
+                    errors.append(f"{name}: cannot inspect header before Project REL creation")
+            elif name != "validate_project_environment_cva" and "admit_unmounted_path(" not in body:
+                errors.append(f"{name}: missing unmounted trusted path admission")
         elif category == "owner_semantic_mutation":
             if "semantic_write_token(" not in body or "OwnerKind::Rel" not in body or "OwnerKind::Phy" not in body:
                 errors.append(f"{name}: missing exact-owner REL/PHY write discrimination")
@@ -134,6 +143,7 @@ def check_gateway(source):
                 "shutdown": ("sequencer.close(",),
                 "unmount_rel": ("sequencer.close(",),
                 "mount_rel_path": ("mount_rel_inner(",),
+                "reconcile_rel_file": ("admit_unmounted_path(", "reconcile_rel_file_unmounted("),
             }.get(name, ())
             if not route or not all(step in route_body for step in route):
                 errors.append(f"{name}: missing classified REL epoch/resync route")
@@ -267,6 +277,9 @@ def self_test():
     expect(not check_gateway('impl GatewayRuntime { pub fn rel_metadata_for(&self) { let text = "runtime.cva.set_metadata()"; } }'))
     expect(check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) {} }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) { self.allocate_mount_epoch(); self.reopen_rel_distribution(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.admit_unmounted_path(rel_path); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } create_project_rel(rel_path); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } self.admit_unmounted_path(rel_path); create_project_rel(rel_path); } }"))
     expect(check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) {} }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) { self.with_phy(|_| {}); } }"))
     expect(check_worker("fn commit() { runtime.cva.publish_memory(); }"))
