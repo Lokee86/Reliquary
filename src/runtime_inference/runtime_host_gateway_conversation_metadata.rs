@@ -29,6 +29,64 @@ impl GatewayRuntime {
         self.with_rel(&token, |_| Ok(revision))
     }
 
+    pub fn conversation_branch_id_for_leaf(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<String, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        self.with_rel(&token, |runtime| {
+            runtime
+                .cva()
+                .archive()
+                .branches()
+                .into_iter()
+                .find(|branch| {
+                    branch.conversation_id == conversation_id && branch.leaf_node_id == leaf_node_id
+                })
+                .map(|branch| branch.id)
+                .ok_or_else(|| operation("conversation leaf is not a current branch head"))
+        })
+    }
+
+    pub fn conversation_branch_leaf_for_id(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        branch_id: &str,
+    ) -> Result<String, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        self.with_rel(&token, |runtime| {
+            runtime
+                .cva()
+                .archive()
+                .branches()
+                .into_iter()
+                .find(|branch| branch.conversation_id == conversation_id && branch.id == branch_id)
+                .map(|branch| branch.leaf_node_id)
+                .ok_or_else(|| operation("conversation branch is not present"))
+        })
+    }
+
+    pub fn mark_managed_conversation_resumed(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<(), ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        self.with_rel(&token, |_| Ok(()))?;
+        let mut managed = self.instance_managed_state(instance, owner_id)?;
+        if managed.conversation_id.as_deref() != Some(conversation_id) {
+            return Err(operation("conversation is not selected by this instance"));
+        }
+        managed.reopened_session_pending = false;
+        self.set_instance_managed_state(instance, owner_id, managed)
+    }
+
     /// Branch metadata is read only from the exact owner granted to this instance.
     pub fn conversation_branch_start_node_ids_for(
         &self,
