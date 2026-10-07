@@ -161,7 +161,7 @@ See:
 
 ### Phases 5 and 6 — concurrent consumer migration and verification
 
-**Status: execution-ready parallel plan, implementation not started.** P3/P4 have converged onto main. Rather than serialize all of P5 followed by P6, run P5-A, P5-B, P5-C, and P6-H concurrently against one accepted planning base. A/B own separate Reliquary source areas, C owns the real Warlock/CLI consumers, and P6-H builds independent stress/host/fault/measurement harnesses. Root API integration and the final old-host deletion occur only when real consumers have migrated; P6-R is the post-deletion release gate.
+**Status: execution-ready parallel plan, implementation not started.** P3/P4 have converged onto main. Rather than serialize all of P5 followed by P6, run P5-A, P5-B, P5-C, P5-E, P5-F, P5-G, and P6-H concurrently against one accepted planning base. A/B own canonical REL/worker internals, C owns real Warlock/CLI migration, E owns the shared live runtime/adapter surface, F owns workspace management composition, G owns import/interoperability/external-source integration, and P6-H builds independent stress/host/fault/measurement harnesses. Root API integration and the final old-host deletion occur only when real consumers have migrated; P6-R is the post-deletion release gate.
 
 Authoritative handoffs:
 - [P5/P6 parallel execution and convergence plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
@@ -169,6 +169,9 @@ Authoritative handoffs:
 - [P5-B background workers and host capabilities](multiplexing-phase5b-background-host-2026-10-06.md)
 - [P5-C Warlock and detachable CLI](multiplexing-phase5c-external-consumers-2026-10-06.md)
 - [P5-D legacy-host deletion after caller convergence](multiplexing-phase5d-legacy-deletion-2026-10-06.md)
+- [P5-E live runtime and public adapter surface](multiplexing-phase5e-live-runtime-surface-2026-10-06.md)
+- [P5-F workspace management surface](multiplexing-phase5f-workspace-management-2026-10-06.md)
+- [P5-G import, interoperability, and external transcript adapters](multiplexing-phase5g-interoperability-2026-10-06.md)
 - [P6 concurrent verification harness and final release](multiplexing-phase6-parallel-verification-plan-2026-10-06.md)
 
 ### Phase 5 — full-stack consumer migration, parallel lanes then deletion
@@ -177,8 +180,11 @@ Authoritative handoffs:
 - **P5-A REL/runtime lane:** Archive, Memory, Entity/Graph, provenance, retrieval, project/repository, owner-qualified lifecycle/status and private PHY access.
 - **P5-B background/host lane:** Dream, Insomnia, Perception, vectors, REL/PHY worker parity, stage capability negotiation, stable handoff/reconciliation and cancellation.
 - **P5-C external lane:** Warlock workspace/chat/session/provider/stream migration and truthful dependency-pin upgrade; inspect CLI actual usage and migrate only real affected callers. Use a new clean Warlock worktree, preserving currently dirty graph/UI changes.
-- **P5-D final cut:** after A/B/C acceptance, integrate root exports once, delete obsolete ReliquaryRuntimeHost and old-only helpers/characterization, replace old tests with gateway tests, update architecture/docs/ADR.
-- **Exit:** one gateway-owned runtime with every legitimate consumer migrated, no ambient alternate owner and real upgraded Warlock/CLI acceptance.
+- **P5-E live runtime/public adapter lane:** finish transport-neutral reconnect/resume, normalized tool/session/artifact events, bounded controls, capability cache and diagnostics over the existing Gateway/Instance runtime.
+- **P5-F workspace management lane:** compose authorized conversation/file/Memory/health/import-export management without raw mutable stores or generalized object CRUD.
+- **P5-G interoperability lane:** production normalized imports, ACP/live adapters, and reference-only external canonical transcript integration using the existing external conversation index plan; host-specific adapters carry explicit external-source gates.
+- **P5-D final cut:** after A/B/C/E/F acceptance and G core compatibility/accounting, integrate root exports once, delete obsolete ReliquaryRuntimeHost and old-only helpers/characterization, replace old tests with gateway tests, update architecture/docs/ADR.
+- **Exit:** one gateway-owned runtime with every legitimate consumer migrated, explicit live-runtime/management/interoperability ownership, no ambient alternate owner and real upgraded Warlock/CLI acceptance.
 
 ### Phase 6 — harness in parallel; final release after P5-D
 

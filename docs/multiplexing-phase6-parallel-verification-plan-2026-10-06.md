@@ -12,7 +12,7 @@ Build reproducible adversarial, stress and measurement infrastructure while P5 c
 
 Accepted P3/P4 integration reports 1,085 library + 128 integration + 19 CLI passes with serial all-target compilation, while a refreshed architecture graph did not complete. Existing Phase 0B G1/G3/G4/G5/G6 contract models and production gateway, journal, worker, personal publication and stream tests provide prior-art seams. Reference oracles do not prove runtime conformance; run scenarios through real GatewayRuntime, in-memory controlled GatewayHostAdapter and actual REL/PHY files.
 
-P6-H is independent of P5-A/B/C and writes its own harness/tests only. P6-R is the final release verdict after P5-D and upgraded Warlock; no premature release claim.
+P6-H is independent of P5-A/B/C/E/F/G and writes its own harness/tests only. P6-R is the final release verdict after P5-D and upgraded Warlock; no premature release claim.
 
 ## Track ownership and interfaces
 
@@ -66,7 +66,7 @@ Report workload, hardware, before/after revisions, warm/cold cache, repetitions 
 
 ## P6-R final release (serialized after P5-D)
 
-1. Integrate accepted A+B and D hard deletion; build upgraded C Warlock pinned to exact accepted revision and one Arcana.
+1. Integrate accepted A+B+E+F and applicable G core work with D hard deletion; build upgraded C Warlock pinned to the exact accepted revision and one Arcana. External G adapters that require unavailable repositories remain explicit blockers/deferred adapters, never silent omissions.
 2. Run H1–H5 matrices on the **post-deletion** code, not only synthetic oracle.
 3. Reliquary: cargo fmt --check, cargo check --locked, cargo test --tests --locked, all-target/example compilation and unrestricted cargo test --locked; report actual differences/known baseline exceptions independently. Tests should include library/integration and doc-specific contracts.
 4. Detachable CLI: locked fmt/check/tests if public API affected; otherwise still run confirmed baseline.

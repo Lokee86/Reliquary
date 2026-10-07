@@ -20,7 +20,7 @@ Reliquary CLI currently calls ConfiguredRuntime for operator Insomnia/vector wor
 
 ## Source and repo ownership
 
-C edits **Warlock** src-tauri workspace*, conversation*, chat*, inference_lifecycle, reliquary_* and provider adapters, Warlock Cargo.toml/Cargo.lock and required app tests/TypeScript callers. Avoid graph/Arcana UI files unless a proven consumer mismatch requires it. A/B own missing Reliquary operation implementation; D/convergence owns root public exports. If CLI changes, C owns only the affected cli/src modules/tests. Do not commit untested production pins until an actual Reliquary integration commit exists.
+C edits **Warlock** src-tauri workspace*, conversation*, chat*, inference_lifecycle, reliquary_* and provider adapters, Warlock Cargo.toml/Cargo.lock and required app tests/TypeScript callers. Avoid graph/Arcana UI files unless a proven consumer mismatch requires it. A/B own missing low-level Reliquary operations, E owns the transport-neutral runtime/adapter contract, F owns the workspace-management facade, G owns cross-framework import/interoperability contracts, and D/convergence owns root public exports. If CLI changes, C owns only the affected cli/src modules/tests. Do not commit untested production pins until an actual Reliquary integration commit exists.
 
 ## Target architecture
 
@@ -33,7 +33,7 @@ Tauri output channels carry exact P4 authorized subscription/checkpoint delivery
 ## Implementation steps
 
 ### C0 — fresh consumer/capability inventory
-Regenerate real source call graph and pins (script verify_multiplexing_phase0b_consumers.py is an *old-shape drift oracle*; replace its manifest after final consumer cut). Produce an exact table: old Warlock call → final GatewayRuntime method/trait, permissions, state ownership, Tauri surface, test. Flag missing A/B APIs early; do not invent proxy wrappers.
+Regenerate real source call graph and pins (script verify_multiplexing_phase0b_consumers.py is an *old-shape drift oracle*; replace its manifest after final consumer cut). Produce an exact table: old Warlock call → final GatewayRuntime method/trait, permissions, state ownership, Tauri surface, test. Flag missing A/B/E/F/G APIs early; do not invent proxy wrappers.
 
 ### C1 — workspace and independent attachments
 Replace WorkspaceService old host-global runtime field and mount/session selection with one gateway plus instance registry keyed by actual operating contexts; preserve owner mount fencing and quiescence. Ensure reconnect/refresh reauthorizes. Tests: two contexts select different RELs/branches; same REL two viewers one generation; same PHY two instances one owner; guessed PHY denied; detach does not cancel durable accepted work.
@@ -48,7 +48,7 @@ Port Archive/Memory/Graph/Entity/echo/provenance/project/status/reconciliation o
 Using fake adapter and actual Warlock provider integration, test durable handoff digest, stable ID retry, Unknown Held, capability downgrade, reconnect/cancel reconciliation, running interruption and cross-stage cancellation until downstream acknowledgment. Provider network operations stay outside REL/PHY owner locks. Never claim Warlock has a host pending queue without live source/tests proving its stronger contract.
 
 ### C5 — dependency hard cut and compile
-After A/B have an accepted Reliquary integration revision, update Warlock's Reliquary pin, direct Arcana pin and Cargo.lock as one bounded change. Require cargo tree locked to show **one intended Arcana package identity**. Rework imports/source drift inventory directly to the new API; do not retain ReliquaryRuntimeHost as a forwarding façade.
+After A/B/E/F and applicable G core work have an accepted Reliquary integration revision, update Warlock's Reliquary pin, direct Arcana pin and Cargo.lock as one bounded change. Require cargo tree locked to show **one intended Arcana package identity**. Rework imports/source drift inventory directly to the new API; do not retain ReliquaryRuntimeHost as a forwarding façade.
 
 Run Warlock Rust locked check/tests and npm production build; exercise Tauri command/integration fixtures with two instance contexts. Verify this C worktree did not absorb unrelated dirty Warlock main edits.
 
@@ -59,7 +59,7 @@ Reinspect cli/src for real moved gateway/host APIs. If present, adapt to canonic
 
 Deliver new Warlock branch commits with an upgraded pinned Reliquary/Arcana lockfile, real compiled/tested provider/queue/stream scenario results, updated direct-import/consumer manifest, source negative check (no ReliquaryRuntimeHost, host-global active session or direct writable owner), and any bounded known build exceptions. The accepted C revision must be consumed by D before old exports are deleted.
 
-A missing public operation is an A/B source repair request, not permission to add a Warlock-local mutable authority or old-host shim.
+A missing public operation is a repair request to its A/B/E/F/G owning track, not permission to add a Warlock-local mutable authority or old-host shim.
 
 ## Out of scope
 
