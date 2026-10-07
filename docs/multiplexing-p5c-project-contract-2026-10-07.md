@@ -25,3 +25,7 @@ and `cargo check` were started but exceeded the short third-party-cache time bud
 focused Rust tests were not started for the same reason. Existing mounted project tests
 continue to cover exact-owner and grant enforcement; the new unmounted path gate fails
 closed for mounted/locked files.
+
+## Corrected fresh-create admission
+
+A never-created REL has no typed owner header and cannot enter MountedFileIdentity::inspect. The trusted project-create path now relies on the domain Container create_new atomic no-overwrite contract; existing-source adoption/inspection/reconciliation still acquire exact physical owner mount claims. This correction was made after reviewing the initial implementation and is not yet runtime-test accepted.

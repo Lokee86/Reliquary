@@ -9,7 +9,16 @@ impl GatewayRuntime {
         project_dir: &Path,
         mode: ProjectRepositoryMode,
     ) -> Result<Cva, super::ReliquaryRuntimeHostError> {
-        let _claim = self.admit_unmounted_path(rel_path)?;
+        // A new REL has no owner header to inspect or mount-claim yet.
+        // Container::create_with_identity uses create_new(true), which is the
+        // atomic no-overwrite admission for this trusted pre-mount path.
+        let _lifecycle = self
+            .lifecycle
+            .lock()
+            .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
+        if rel_path.exists() {
+            return Err(super::operation("new Project REL target already exists"));
+        }
         crate::project_environment::create_project_rel(rel_path, project_dir, mode)
             .map_err(super::operation)
     }

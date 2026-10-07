@@ -107,7 +107,12 @@ def check_gateway(source):
         elif category == "published" and "with_rel_mutation(" not in body:
             errors.append(f"{name}: missing canonical mutation admission")
         elif category == "trusted_project":
-            if name != "validate_project_environment_cva" and "admit_unmounted_path(" not in body:
+            if name == "create_project_environment_rel":
+                if "self.lifecycle.lock(" not in route_body or "rel_path.exists()" not in body or "create_project_rel(" not in body:
+                    errors.append(f"{name}: missing atomic new-file path admission")
+                if "admit_unmounted_path(" in body:
+                    errors.append(f"{name}: cannot inspect header before Project REL creation")
+            elif name != "validate_project_environment_cva" and "admit_unmounted_path(" not in body:
                 errors.append(f"{name}: missing unmounted trusted path admission")
         elif category == "owner_semantic_mutation":
             if "semantic_write_token(" not in body or "OwnerKind::Rel" not in body or "OwnerKind::Phy" not in body:
@@ -272,6 +277,9 @@ def self_test():
     expect(not check_gateway('impl GatewayRuntime { pub fn rel_metadata_for(&self) { let text = "runtime.cva.set_metadata()"; } }'))
     expect(check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) {} }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) { self.allocate_mount_epoch(); self.reopen_rel_distribution(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.admit_unmounted_path(rel_path); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } create_project_rel(rel_path); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } self.admit_unmounted_path(rel_path); create_project_rel(rel_path); } }"))
     expect(check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) {} }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) { self.with_phy(|_| {}); } }"))
     expect(check_worker("fn commit() { runtime.cva.publish_memory(); }"))
