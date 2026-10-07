@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[path = "runtime_host_gateway_ambient_archive.rs"]
+mod archive;
 #[path = "runtime_host_gateway_ambient_extended.rs"]
 mod extended;
 #[path = "runtime_host_gateway_ambient_project.rs"]
