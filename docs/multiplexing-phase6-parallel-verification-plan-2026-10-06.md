@@ -2,7 +2,7 @@
 
 Parent: [P5/6 parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Baseline: [P3/P4 main acceptance](multiplexing-p34-main-integration-2026-10-06.md)  
-Status: **Harness work may start immediately; final release gate depends on P5-D deletion and upgraded Warlock.**
+Status: **P6-H harness infrastructure accepted on `feat/multiplexing-p6-harness` @ `81a64b6` (1,095 library + 128 integration in its acceptance run, plus crash/recovery and baseline/candidate runners). H5 diagnostic coverage remains incomplete. P6-R still waits for P5-D and the final upgraded Warlock.**
 
 ## Purpose
 
@@ -12,11 +12,11 @@ Build reproducible adversarial, stress and measurement infrastructure while P5 c
 
 Accepted P3/P4 integration reports 1,085 library + 128 integration + 19 CLI passes with serial all-target compilation, while a refreshed architecture graph did not complete. Existing Phase 0B G1/G3/G4/G5/G6 contract models and production gateway, journal, worker, personal publication and stream tests provide prior-art seams. Reference oracles do not prove runtime conformance; run scenarios through real GatewayRuntime, in-memory controlled GatewayHostAdapter and actual REL/PHY files.
 
-P6-H is independent of P5-A/B/C and writes its own harness/tests only. P6-R is the final release verdict after P5-D and upgraded Warlock; no premature release claim.
+P6-H is independent of P5-A/B/C/E/F/G and writes its own harness/tests only. P6-R is the final release verdict after P5-D and upgraded Warlock; no premature release claim.
 
 ## Track ownership and interfaces
 
-Create branch feat/multiplexing-p6-harness from common P5 planning base. New production-facing tests should call public/frozen gateway/instance APIs, real journal and provider adapter seams, with deterministic barriers/fault injection. Do not edit root runtime_host.rs, semantic implementation, host router or Warlock app to facilitate a test. If a necessary test seam is absent, request a narrow owning-lane change and justify the actual fault boundary; avoid compatibility test hooks.
+The accepted harness already exists on `feat/multiplexing-p6-harness` @ `81a64b6`. Preserve that historical harness branch. For H5 diagnostic completion and later P6-R, port or rerun the test-only harness against the N0 convergence/post-D revisions defined by the [2026-10-07 next-wave plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md). New production-facing tests call public/frozen gateway/instance APIs, real journal and provider adapter seams, with deterministic barriers/fault injection. Do not edit root runtime ownership or Warlock application code merely to facilitate a test; request a narrow owning-lane diagnostic when necessary.
 
 ## P6-H implementation sequence (parallel with P5)
 
@@ -66,7 +66,7 @@ Report workload, hardware, before/after revisions, warm/cold cache, repetitions 
 
 ## P6-R final release (serialized after P5-D)
 
-1. Integrate accepted A+B and D hard deletion; build upgraded C Warlock pinned to exact accepted revision and one Arcana.
+1. Integrate accepted A+B+E+F and applicable G core work with D hard deletion; build upgraded C Warlock pinned to the exact accepted revision and one Arcana. External G adapters that require unavailable repositories remain explicit blockers/deferred adapters, never silent omissions.
 2. Run H1–H5 matrices on the **post-deletion** code, not only synthetic oracle.
 3. Reliquary: cargo fmt --check, cargo check --locked, cargo test --tests --locked, all-target/example compilation and unrestricted cargo test --locked; report actual differences/known baseline exceptions independently. Tests should include library/integration and doc-specific contracts.
 4. Detachable CLI: locked fmt/check/tests if public API affected; otherwise still run confirmed baseline.

@@ -4,7 +4,7 @@ Parent: [Multiplexing implementation plan](multiplexing-implementation-plan.md)
 Baseline: [Accepted P3/P4 main integration](multiplexing-p34-main-integration-2026-10-06.md)  
 Authority: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)  
 Consumer evidence: [Phase 0B G6](multiplexing-phase0b-consumer-verification.md)  
-Status: **Execution-ready plan, no P5/P6 implementation claimed.**
+Status: **Execution in progress. A and B are implemented/accepted on feature/integration lines; C is late-stage; P6-H is accepted as harness infrastructure; E/F/G and D remain. The current next-wave execution authority is [the 2026-10-07 parallel plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md).**
 
 ## Purpose
 
@@ -12,9 +12,9 @@ Replace the remaining legacy host consumers with the established GatewayRuntime/
 
 ## Overview
 
-Planning baseline is clean Reliquary main e1c8f88 (2026-10-06). P3/P4 are integrated: conversation/journal/branch/generation, exact-REL/PHY ownership, authorized REL feed, conversation streams, and reconnect. The P3/P4 integration record reports 1,085 library, 128 integration, 19 CLI tests and serial all-target compilation passing; architecture indexing timed out, not green. These are **historical** acceptance numbers, not rerun results.
+The original P5 planning baseline was accepted P3/P4 main `e1c8f88`. Current documentation main is `dfa82ae`, while the implementation frontier has advanced on feature/integration branches: A `7350149`, B `c45f50e`, Reliquary C integration `4ce4911`, Warlock final-cut `1782e72`, and P6-H `81a64b6`. P3/P4 remain the accepted conversation/distribution foundation. Historical acceptance numbers are not automatically carried to later revisions; the next-wave plan defines the new convergence rerun.
 
-Old ReliquaryRuntimeHost with ambient active REL/PHY, mixed owner worker state, legacy route/session helpers and public methods remains in the library. Warlock still embeds it, pins old Reliquary/Arcana revisions, and is not yet a GatewayRuntime consumer. Its present main checkout has unrelated dirty UI/graph work; do not overwrite it.
+`ReliquaryRuntimeHost` still exists in the Reliquary library pending P5-D. Warlock committed `main` still reflects the pre-cut integration, but the clean P5-C final-cut branch `1782e72` has removed the old host consumer and is exercising the Gateway path against Reliquary integration `4ce4911`. Final production dependency pins and full C acceptance remain open. The dirty Warlock main checkout still contains unrelated UI/graph work; do not overwrite it.
 
 ## Parallel branches and handoffs
 
@@ -22,15 +22,46 @@ Old ReliquaryRuntimeHost with ambient active REL/PHY, mixed owner worker state, 
 | --- | --- | --- | --- |
 | [P5-A REL/runtime consumers](multiplexing-phase5a-rel-consumers-2026-10-06.md) | gateway ambient, semantic, retrieval, project, owner-qualified tests | exact REL/PHY operations, Archive/Memory/Entity/Graph/repository/status | common public exports/root wiring |
 | [P5-B background and host capabilities](multiplexing-phase5b-background-host-2026-10-06.md) | REL/PHY runtime workers, configured routes, gateway host adapter/worker tests | Dream/Insomnia/Perception/vector worker parity, capability/recovery/cancellation | common public exports/root wiring |
-| [P5-C Warlock and CLI](multiplexing-phase5c-external-consumers-2026-10-06.md) | independent Warlock worktree, Warlock Rust/frontend boundaries; scoped CLI | caller migration, provider adapter conformance, UX/reconnect | final Reliquary API revision and A/B acceptance for upgraded build |
+| [P5-C Warlock and CLI](multiplexing-phase5c-external-consumers-2026-10-06.md) | independent Warlock worktree, Warlock Rust/frontend boundaries; scoped CLI | caller migration, provider adapter conformance, UX/reconnect | final Reliquary API revision and A/B/E/F acceptance for upgraded build |
+| [P5-E live runtime/public adapter](multiplexing-phase5e-live-runtime-surface-2026-10-06.md) | InteractionRuntime/session/adapter event-status surface | reconnect/resume, normalized events, controls, diagnostics | A/B primitives; consumed by C/G |
+| [P5-F workspace management](multiplexing-phase5f-workspace-management-2026-10-06.md) | management facade and DTO/tests | conversation/files/Memory/health/import-export composition | A primitives and E runtime status |
+| [P5-G interoperability](multiplexing-phase5g-interoperability-2026-10-06.md) | import/adapters/external source contracts | provider imports, ACP, external-derived transcript mode | E adapter seam; external source repos for host-specific adapters |
 | [P6-H harness and measurement](multiplexing-phase6-parallel-verification-plan-2026-10-06.md) | new tests, stress/fault tooling, report fixtures | multi-instance matrix, host fakes, failure injection, profiling | final verdict only |
-| [P5-D deletion/convergence](multiplexing-phase5d-legacy-deletion-2026-10-06.md) | Reliquary root module/public exports, old-host sources, final docs | remove obsolete host after callers migrate | A+B+C source gates |
+| [P5-D deletion/convergence](multiplexing-phase5d-legacy-deletion-2026-10-06.md) | Reliquary root module/public exports, old-host sources, final docs | remove obsolete host after callers migrate | A+B+C+E+F source gates; G core compatibility accounted |
 
-Branch directly from the exact committed P5 plan base. Suggested Reliquary branches: feat/multiplexing-p5-rel-consumers, feat/multiplexing-p5-background, feat/multiplexing-p6-harness. Suggested independent Warlock branch: feat/multiplexing-gateway-consumer (create a **new clean worktree**). Integrate on feat/multiplexing-p5-convergence after accepted source gates. Do not create speculative P5-D implementation on top of an unaccepted consumer branch.
+The original A/B/C/P6 branches have already diverged from the 2026-10-06 planning base. Do **not** start new E/F/G work from that obsolete base. Follow the N0 convergence-base procedure in the [2026-10-07 next-wave plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md), then branch E/F/G and D0 from that exact revision. Preserve existing accepted A/B/C/P6 history until convergence ancestry and unique acceptance records are secured.
+
+## Scope coverage audit
+
+| Requirement source | Required work | Owning track(s) |
+| --- | --- | --- |
+| Original Phase 5.1 | Archive, Memory, Graph/Entity, Perception, Dream, Insomnia, vectors, status, repository/reconciliation/config entry points | A + B, with E/F for final host-facing composition |
+| Original Phase 5.2 | public library facade and real external consumers; Warlock, CLI, ACP/agents as applicable; queue/cancel/handoff rules | C + E + F + G, with B owning host capability semantics |
+| Original Phase 5.3 | remove ambient ReliquaryRuntimeHost, host-global PHY/session state and obsolete forwarding | D |
+| Original Phase 5.4 | current-state architecture/API/maintainer/contracts/limitations/ADR updates | D at convergence, lane-specific acceptance docs before it |
+| Roadmap: complete live runtime seam | adapter reconnect/resume, normalized tool/session/artifact events, cancellation/shutdown, bounded controls, capability cache, diagnostics | E |
+| Roadmap: workspace management API | conversation/session, files/sources, Memory lifecycle/inspection, health/stats, selective import/export | F over A/E primitives |
+| Roadmap: production imports/interoperability | ChatGPT/Claude/structured agent imports and ACP | G |
+| Roadmap: external canonical transcript integration | reference-only external source IDs/index/hydration/rebuild/Insomnia, Hermes first target | G using the existing R0–R7 plan |
+| Phase 6 | multi-instance/failure/host/reconnect/privacy/performance and release gates | P6-H concurrently, P6-R post-D |
+
+This matrix is the no-gap gate for the multiplexing program. A lane may split internally, but its rows cannot disappear or be declared complete by another lane's source guard alone.
+
+Adjacent roadmap sections **File usability** and broader **Runtime/security hardening** remain separately owned future product milestones except where a concrete P5 consumer requires one of those capabilities to complete migration. Their explicit roadmap status is not a silent P5 omission; do not expand the multiplexing hard cut into unrelated product work without that dependency.
+
+## Current gate position — 2026-10-07
+
+- **G0:** completed for the first A/B/C/P6 wave.
+- **G1:** A/B/C consumer/API mapping substantially executed; E/F/G contracts were restored afterward and remain to be frozen on one convergence base.
+- **G2:** A and B accepted; P6-H accepted; C is partial/late-stage; E/F/G not yet accepted.
+- **G3:** partially assembled on Reliquary `4ce4911` with accepted A/B plus C-side API repairs, but not yet a canonical convergence branch containing the updated main plans or E/F/G.
+- **G4/G5:** not started.
+
+Use [the next-wave plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md) for the exact N0–N5 execution order.
 
 ## P5.0 shared contract freeze — brief and bounded
 
-Before *shared public export integration*, A/B/C publish one combined table of real consumer → exact GatewayRuntime/InstanceRuntime method, required grant, owner, durability, stream visibility and cancellation/reconciliation authority. Identify which methods already exist and which are truly missing. Freeze final missing signatures only after source-backed agreement; not a stub bus, compatibility facade, second queue or dual worker. A/B/P6 can begin work on already stable internal interfaces immediately. C can inventory/refactor Warlock-local state immediately and compile against the frozen updated API once available.
+Before *shared public export integration*, A/B/C/E/F/G publish one combined table of real consumer → exact GatewayRuntime/InstanceRuntime method, required grant, owner, durability, stream visibility and cancellation/reconciliation authority. Identify which methods already exist and which are truly missing. Freeze final missing signatures only after source-backed agreement; not a stub bus, compatibility facade, second queue or dual worker. A/B/E/F/G/P6 can begin work on already stable internal interfaces immediately. C can inventory/refactor Warlock-local state immediately and compile against the frozen updated API once available.
 
 Required external contracts:
 
@@ -47,6 +78,9 @@ Required external contracts:
 | runtime_host_gateway_ambient*.rs, runtime_host_gateway_semantic*.rs, gateway project/retrieval APIs | A |
 | runtime_host_rel_*.rs, runtime_host_phy_*.rs, runtime_host_gateway_host.rs, worker and route ownership | B |
 | Warlock workspace/conversation/chat/provider files and pinned manifests, relevant CLI callers | C |
+| InteractionRuntime/session plus normalized adapter event/status modules | E |
+| management facade/DTOs and management-specific tests | F |
+| importer/external-source/ACP/Hermes adapter contracts and tests | G |
 | new integration/stress/fault tests and benchmarks | P6-H |
 | runtime_host.rs root, shared gateway module root exports, obsolete legacy runtime_host_* modules, old-only tests, final canonical docs | D/convergence |
 
@@ -58,11 +92,11 @@ Internal hard cut: coherent subgraph tests can replace whole-repo green temporar
 
 **G0 — common base.** All Reliquary tracks branch from one exact main+plan commit, with clean worktrees; Warlock gets a separate clean checkout; both repos' existing dirty changes preserved. Capture real baseline and known inherited exceptions.
 
-**G1 — consumer/API map.** Each still-live old host/public call has a named target method or explicit documented retirement. One minimal final external API freeze, no shims. A/B continue in parallel; C requests missing operations from their owning track.
+**G1 — consumer/API map.** Each still-live old host/public call and each roadmap host-facing responsibility has a named target method/track or explicit documented retirement/deferment. One minimal final external API freeze, no shims. A/B/E/F/G continue in parallel; C requests missing operations from their owning track.
 
-**G2 — per-lane acceptance.** A: owner-scoped REL/private/project tests. B: worker/capability/host-recovery tests. C: Warlock-local branch migrated, provider fake tests; final upgraded build still pending integration revision if A/B not merged. P6: deterministic harness green against current APIs. Include a delete manifest and actual test logs, not just source guards.
+**G2 — per-lane acceptance.** A: owner-scoped REL/private/project tests. B: worker/capability/host-recovery tests. E: live runtime adapter/reconnect/event/status tests. F: management authorization/composition tests. G: normalized import/external-source core plus explicit external adapter blockers/results. C: Warlock-local branch migrated, provider fake tests; final upgraded build still pending integration revision if required Reliquary lanes are not merged. P6: deterministic harness green against current APIs. Include a delete manifest and actual test logs, not just source guards.
 
-**G3 — consumer convergence.** Merge A+B accepted source into one Reliquary integration branch; resolve root module/public exports once. C pins *that* Reliquary revision, aligns direct Arcana pin, regenerates lockfile, compiles/tests upgraded Warlock. Preserve provider ownership and UI channel semantics. If C finds a missing operation, repair canonical owner in A/B and rerun, rather than reinstating old host.
+**G3 — consumer convergence.** First establish one canonical Reliquary convergence base from the existing A+B+C integration line, then merge accepted E/F and applicable G framework-neutral/core source onto it and resolve root exports once. C pins *that* exact revision, aligns direct Arcana, regenerates the lockfile and reruns upgraded Warlock. Preserve provider ownership and UI channel semantics. Missing operations are repaired in their owning lane, never by reinstating the old host.
 
 **G4 — P5-D hard deletion.** Prove no real caller requires legacy host; delete obsolete module tree/exports/aliases; update retired characterization tests to Gateway/Instance test seams and update docs/ADR. Run Rust+CLI+Warlock negative source inventories and integration tests.
 
@@ -74,7 +108,7 @@ Native pending queue stays REL-owned; inspected Warlock cannot claim durable can
 
 ## Completion gates
 
-P5 requires all real consumers migrated and tested, legacy host deleted, one canonical execution path and current-state documentation corrected. P6 requires final fault/recovery/stress/performance and release evidence. The serialized work is only shared API/export convergence, old-host deletion and final release acceptance—not all of P5 and P6.
+P5 requires all real consumers migrated and tested, the live runtime and management surfaces explicitly owned, framework-neutral interoperability/import responsibilities implemented, host-specific unavailable adapter work explicitly blocked rather than hidden, the legacy host deleted, one canonical execution path, and current-state documentation corrected. P6 requires final fault/recovery/stress/performance and release evidence. The serialized work is only shared API/export convergence, old-host deletion and final release acceptance—not all of P5 and P6.
 
 ## Documentation and architecture impact
 
@@ -82,7 +116,7 @@ Planning changes only: do not mark implemented APIs or migrations as shipped. At
 
 ## Related docs
 
-[P5-A](multiplexing-phase5a-rel-consumers-2026-10-06.md) · [P5-B](multiplexing-phase5b-background-host-2026-10-06.md) · [P5-C](multiplexing-phase5c-external-consumers-2026-10-06.md) · [P5-D](multiplexing-phase5d-legacy-deletion-2026-10-06.md) · [P6](multiplexing-phase6-parallel-verification-plan-2026-10-06.md)
+[P5-A](multiplexing-phase5a-rel-consumers-2026-10-06.md) · [P5-B](multiplexing-phase5b-background-host-2026-10-06.md) · [P5-C](multiplexing-phase5c-external-consumers-2026-10-06.md) · [P5-D](multiplexing-phase5d-legacy-deletion-2026-10-06.md) · [P5-E](multiplexing-phase5e-live-runtime-surface-2026-10-06.md) · [P5-F](multiplexing-phase5f-workspace-management-2026-10-06.md) · [P5-G](multiplexing-phase5g-interoperability-2026-10-06.md) · [P6](multiplexing-phase6-parallel-verification-plan-2026-10-06.md)
 
 ## Notes
 

@@ -14,7 +14,7 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 Reliquary is the purpose-built semantic/storage/runtime library embedded by Warlock. Its semantics do not depend upward on Warlock. Project-file history belongs to Lore or Git through Reliquary's Project Environment; REL/PHY retain independent semantic state and history.
 
-The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete. Separately, GatewayRuntime/InstanceRuntime multiplexing Phase 1 is complete locally: owner/instance authority, durable accepted work, ConversationExecution ownership and fenced ambient/project operations passed final verification. Phase 2 multi-principal PHY ownership, exact-owner publication and private access are also verified locally; the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md) records final evidence and inherited verification limits. Phase 3 conversation coordination is accepted locally. P4 production distribution and local acceptance are complete with documented verification limits. Final P3/P4 integration is verified for main ([evidence](multiplexing-p34-main-integration-2026-10-06.md)); host-consumer migration remains Phase 5.
+The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete. Separately, GatewayRuntime/InstanceRuntime multiplexing Phase 1 is complete locally: owner/instance authority, durable accepted work, ConversationExecution ownership and fenced ambient/project operations passed final verification. Phase 2 multi-principal PHY ownership, exact-owner publication and private access are also verified locally; the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md) records final evidence and inherited verification limits. Phase 3 conversation coordination is accepted locally. P4 production distribution and local acceptance are complete with documented verification limits. Final P3/P4 integration is verified for main ([evidence](multiplexing-p34-main-integration-2026-10-06.md)). Phase 5 is now active off-main: A/B implementation is accepted on feature/integration lines, C is late-stage with the Warlock old-host consumer removed on its final-cut branch, and E/F/G plus the D hard cut remain. The [2026-10-07 next-wave plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md) owns the current parallel sequence.
 
 ## Current semantic sequence
 
@@ -409,9 +409,19 @@ The current roadmap does not include:
 - a virtual/copy-on-write filesystem or filesystem driver inside Reliquary; or
 - a mandatory independently deployed Reliquary service.
 
-## Multiplexing next phases after Phase 3 local acceptance
+## Multiplexing Phase 5 active execution
 
-P3.0–P3.9 are accepted locally with the documented structural-analysis tool limitation. [P3.9 evidence](multiplexing-phase3-local-acceptance-2026-10-05.md) records the completion gates. P3/P4 production convergence, including final P3.8 recovery, is verified for main ([integration evidence](multiplexing-p34-main-integration-2026-10-06.md)). Phase 5 public API and host-consumer migration is next. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md) records the hard cut and recovery checks. The snapshot cut is recorded in [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md). The completed generation/control baseline is recorded in [P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md).
+P3.0–P3.9 and P4.0–P4.9 are complete and converged into the accepted main foundation ([integration evidence](multiplexing-p34-main-integration-2026-10-06.md)). Phase 5 is no longer a future monolithic migration:
+
+- P5-A REL/runtime consumer APIs are implemented and runtime-accepted on the current integration line.
+- P5-B background/host capability work is implemented and accepted.
+- P5-C has removed the Warlock old-host consumer on its clean final-cut branch; multi-context/provider/P4 reconnect and final pin/release acceptance remain.
+- P5-E live runtime and P5-F workspace management are the immediate critical-path parallel tracks.
+- P5-G normalized import/external-source core can proceed in parallel; ACP/Hermes host-specific adapters remain explicit source-dependent tails.
+- P5-D may run its reverse-caller inventory now, but source deletion waits for C/E/F convergence.
+- P6-H harness infrastructure is accepted; P6-R remains post-deletion release verification.
+
+Use the [next parallel execution plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md) rather than the completed P3/P4 plans for current work. Historical P3.8/P3.9 and P4 acceptance records remain evidence, not active task lists.
 
 ## Related docs
 

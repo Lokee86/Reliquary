@@ -1,7 +1,7 @@
 # Multiplexing P5-D — final legacy-host hard cut and convergence
 
 Parent: [P5/6 parallel plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
-Status: **Deletion plan ready; execution blocked until A/B/C source acceptance.**
+Status: **D0 reverse-dependency/deletion inventory can start immediately. D1–D4 remain blocked on accepted C closure plus E/F convergence. G must prove any framework-neutral public-runtime contracts are integrated or independent of the legacy host; completion of unavailable host-specific ACP/Hermes adapters is not a deletion blocker.**
 
 ## Purpose
 
@@ -17,9 +17,12 @@ No file is deleted merely because its name starts with runtime_host_: gateway.rs
 
 1. A's exact owner/operation migration matrix accepted and negative authorization tests green.
 2. B's worker/capability matrix accepted; no canonical worker depends on old Shared or ambient state.
-3. C's migrated Warlock actually builds/tests pinned to accepted A+B integration, with one Arcana identity and no old-host imports. CLI checked or explicitly unaffected.
-4. P6-H failure fixtures and baseline runner available.
-5. Readable REL/PHY formats and authenticated external contracts identified; no undocumented assumptions of public compatibility.
+3. E's transport-neutral runtime surface accepted; no host integration still requires legacy session/runtime authority.
+4. F's workspace-management surface accepted for all management calls required by migrated consumers; no raw mutable store escape remains.
+5. G's framework-neutral import/external-source contracts are integrated where they intersect the public runtime; unavailable external adapters are explicitly recorded rather than hidden.
+6. C's migrated Warlock actually builds/tests pinned to accepted A+B+E+F plus applicable G integration, with one Arcana identity and no old-host imports. CLI checked or explicitly unaffected.
+7. P6-H failure fixtures and baseline runner available.
+8. Readable REL/PHY formats and authenticated external contracts identified; no undocumented assumptions of public compatibility.
 
 If any real consumer remains, stop deletion and route it to its owning lane. Do not add a compatibility wrapper.
 

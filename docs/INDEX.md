@@ -37,6 +37,7 @@
 - [Multiplexing Phase 0B G6 consumer verification](multiplexing-phase0b-consumer-verification.md) — source-backed Warlock dependency/caller baseline, authority matrix, executable drift audit, known build exceptions and per-phase integration gates.
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — Phase 1 GatewayRuntime/InstanceRuntime implementation status, durable provisional journal, verification record and remaining whole-stack gates.
 - [Multiplexing Phase 5/6 parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md) — source ownership, independent branches, shared final API freeze and G0–G5 integration gates.
+- [Multiplexing Phase 5 next parallel execution wave — 2026-10-07](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md) — current A/B/C/P6 status and N0–N5 parallel C/E/F/G/D0/P6 execution order.
 - [Multiplexing P5-A REL/runtime consumers](multiplexing-phase5a-rel-consumers-2026-10-06.md) — authorized Archive/Memory/Graph/retrieval/project/status migration and handoff acceptance.
 - [Multiplexing P5-B background/host](multiplexing-phase5b-background-host-2026-10-06.md) — REL/PHY worker ownership, capability routing, cancellation and durable host reconciliation.
 - [P5-B capability ledger](multiplexing-p5b-capability-ledger-2026-10-06.md) — canonical worker/API matrix, executable host boundaries and C/D deletion handoff.
@@ -44,6 +45,9 @@
 - [P5-C conversation metadata consumer API](multiplexing-p5c-conversation-consumer-apis-2026-10-07.md) — canonical exact-instance title, branch, Echo, and compaction endpoints with pending runtime acceptance.
 - [Multiplexing P5-C Warlock/CLI](multiplexing-phase5c-external-consumers-2026-10-06.md) — external app instance, queue, generation/stream, provider and dependency-pin migration.
 - [Multiplexing P5-D legacy deletion](multiplexing-phase5d-legacy-deletion-2026-10-06.md) — source-backed final hard cut after external callers move.
+- [Multiplexing P5-E live runtime surface](multiplexing-phase5e-live-runtime-surface-2026-10-06.md) — transport-neutral adapter/session events, reconnect/resume, controls, capability cache and diagnostics.
+- [Multiplexing P5-F workspace management](multiplexing-phase5f-workspace-management-2026-10-06.md) — authorized conversation/file/Memory/health and import-export management composition.
+- [Multiplexing P5-G interoperability](multiplexing-phase5g-interoperability-2026-10-06.md) — normalized provider imports, ACP/live adapters and reference-only external canonical transcript integration.
 - [Multiplexing Phase 6 parallel verification](multiplexing-phase6-parallel-verification-plan-2026-10-06.md) — concurrent H0–H5 adversarial/performance harness and post-deletion release gate.
 - [Multiplexing Phase 1 remaining work](multiplexing-phase1-remaining-work-2026-10-03.md) — source-audited execution steps, narrow gateway/legacy boundary, targeted verification and Phase 1 exit gates.
 - [Multiplexing Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) — completed F1–F6 execution, final gateway/journal/library/integration/CLI evidence, inherited build/indexing gaps and local branch packaging.
