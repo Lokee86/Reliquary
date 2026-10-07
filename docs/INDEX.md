@@ -42,6 +42,8 @@
 - [Multiplexing P5-C Warlock/CLI](multiplexing-phase5c-external-consumers-2026-10-06.md) — external app instance, queue, generation/stream, provider and dependency-pin migration.
 - [Multiplexing P5-D legacy deletion](multiplexing-phase5d-legacy-deletion-2026-10-06.md) — source-backed final hard cut after external callers move.
 - [Multiplexing Phase 6 parallel verification](multiplexing-phase6-parallel-verification-plan-2026-10-06.md) — concurrent H0–H5 adversarial/performance harness and post-deletion release gate.
+- [Multiplexing P6-H harness guide](multiplexing-p6-harness-guide-2026-10-07.md) — real-runtime topology, durable abort/reopen fixtures, controlled host, repeatable runner and measurement limits.
+- [Multiplexing P6-H acceptance and measurements](multiplexing-p6-harness-acceptance-2026-10-07.md) — full test/guard evidence, matched P3/P4 baseline, [metrics snapshot](multiplexing-p6-harness-metrics-2026-10-07.json), diagnostic limits and outstanding release gates.
 - [Multiplexing Phase 1 remaining work](multiplexing-phase1-remaining-work-2026-10-03.md) — source-audited execution steps, narrow gateway/legacy boundary, targeted verification and Phase 1 exit gates.
 - [Multiplexing Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) — completed F1–F6 execution, final gateway/journal/library/integration/CLI evidence, inherited build/indexing gaps and local branch packaging.
 - [Multiplexing Phase 2 implementation plan](multiplexing-phase2-implementation-plan-2026-10-04.md) — R2.1–R2.7 implementation and final verification record for durable attribution/publication, private access and PHY lifecycle.

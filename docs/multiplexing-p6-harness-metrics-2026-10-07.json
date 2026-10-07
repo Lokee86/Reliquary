@@ -1,0 +1,3656 @@
+{
+  "schema": 1,
+  "phase": "P6-H",
+  "release_accepted": false,
+  "production_inputs": {
+    "e1c8f88": {
+      "src": "75e72aee5f3d61e47203fda0733ff07ad3fbdd8d",
+      "tests": "85eb4ac83d896a4b72e5635ec6ee0276e16ec15c",
+      "Cargo.toml": "7e6b60d37d2770fd7d2d28298cb13ceb9d0a9acb",
+      "Cargo.lock": "cad77352a86faef1d7eb6aa9d3ccfe2b9c3a1b2f",
+      "vendor": "1d8ca07cc58eb7993d2db155bad74cdb14f04c6b",
+      "examples": "2391bb87a0caf15cbdafdca3e463c561f494e323"
+    },
+    "c24b062": {
+      "src": "75e72aee5f3d61e47203fda0733ff07ad3fbdd8d",
+      "tests": "85eb4ac83d896a4b72e5635ec6ee0276e16ec15c",
+      "Cargo.toml": "7e6b60d37d2770fd7d2d28298cb13ceb9d0a9acb",
+      "Cargo.lock": "cad77352a86faef1d7eb6aa9d3ccfe2b9c3a1b2f",
+      "vendor": "1d8ca07cc58eb7993d2db155bad74cdb14f04c6b",
+      "examples": "2391bb87a0caf15cbdafdca3e463c561f494e323"
+    }
+  },
+  "comparison_kind": "same production source repeatability; no performance improvement or threshold claimed",
+  "reports": {
+    "baseline": {
+      "report_sha256": "a842cc8730c5c303a24c66bc10ea554dad4ed01f4479ab992453f9abd90dfe62",
+      "environment": {
+        "revision": "e1c8f88d2dc9ece24713477a27d77ade516de1eb",
+        "git_status": "M src/runtime_inference/runtime_host_gateway_tests.rs\n?? scripts/run_multiplexing_p6_harness.py\n?? src/runtime_inference/runtime_host_gateway_p6_crash_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_fixture_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_harness_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_host_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_load_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_topology_tests.rs",
+        "platform": "Windows-10-10.0.26200-SP0",
+        "python": "3.11.15",
+        "hardware": {
+          "processor": "11th Gen Intel(R) Core(TM) i9-11900H @ 2.50GHz",
+          "machine": "AMD64",
+          "logical_cpus": 16,
+          "physical_cpus": 8,
+          "ram_bytes": 34111545344
+        },
+        "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+        "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+        "build_environment": {
+          "RUSTFLAGS": null,
+          "CARGO_ENCODED_RUSTFLAGS": null,
+          "CARGO_BUILD_TARGET": null,
+          "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+          "CARGO_PROFILE_TEST_DEBUG": null,
+          "RUSTUP_TOOLCHAIN": null
+        },
+        "fixture_sources": {
+          "runtime_host_gateway_p6_crash_tests.rs": "82604f8f9badd6eddc9938281789c7ef90f49593789528f940ebc26d48343f0c",
+          "runtime_host_gateway_p6_fixture_tests.rs": "83c06f4b53c090e66d04c6af94202077abc36367da26ab050e52c35832111393",
+          "runtime_host_gateway_p6_harness_tests.rs": "1455287064d5271d6fe351c7ae98f1510d80fc087bd99b306ec0b430ff3ea8c3",
+          "runtime_host_gateway_p6_host_tests.rs": "c0337e34e22d25884f1cc61035c8beb1ef00e40605409edf7b38fa31fb0a21f9",
+          "runtime_host_gateway_p6_load_tests.rs": "e44f186b0985a9df1d01cbc330064a3b45ab27ac4d4dcd5c0cd6d3d1962337f1",
+          "runtime_host_gateway_p6_topology_tests.rs": "a67d01203dc67e3081d7ba7625973a865e017e89fc56593ec444eb2834b720cf"
+        },
+        "runner_sha256": "72b95f27ff958cb3d00366098fe36a2f99337b6c8e6a22bf466cb1ed749fbe67",
+        "manifest": {
+          "schema": 1,
+          "common_base": "c24b06273abbab383eb74780bf82cb5c0ceef0b5",
+          "accepted_p34": "e1c8f88",
+          "profile": "test/debug",
+          "build_jobs": 1,
+          "harness_threads": 1,
+          "existing_gateway_threads": 4,
+          "workloads": [
+            {
+              "id": "H1-H5",
+              "selector": "runtime_host::gateway::tests::p6_harness",
+              "repeated": true
+            },
+            {
+              "id": "existing-real-gateway-matrix",
+              "selector": "runtime_host::gateway",
+              "repeated": false
+            }
+          ],
+          "crash_boundaries": [
+            "admission",
+            "finalize-intent",
+            "archive-before-receipt",
+            "checkpoint",
+            "checkpoint-source-ahead",
+            "host-after-acceptance",
+            "host-cancel-before-replay"
+          ],
+          "gaps": [
+            "P6-R requires P5-D deletion and upgraded Warlock; neither is invoked by this harness.",
+            "Native endpoint abort and real Warlock adapter conformance are not proved by controlled hosts.",
+            "Owner probe holds are measured; all production coordinator/owner hold intervals are not instrumented.",
+            "PHY worker counts and sampled process threads are observed; exact REL worker count/wake-loop frequency await owning-lane diagnostics.",
+            "Sampled RSS is not an allocator-exact peak; OS file cache is not flushed."
+          ]
+        },
+        "sampling_ms": 20,
+        "psutil_available": true
+      },
+      "workload": {
+        "seed": 38,
+        "instances": "1,8,32",
+        "repeat": 3,
+        "features": ""
+      },
+      "cache_policy": "fresh physical fixture files per process; OS cache not flushed; first repetition is not claimed cold",
+      "binary_sha256": "51b66960dab92ecc64ce88fef52b97b3f9b15fa342f7773731b9206889762b5e",
+      "rollup": {
+        "accepted_queue/admission_receipt_to_commit_ns": {
+          "samples": 36,
+          "min": 83156800,
+          "median": 141380850.0,
+          "p95": 177686600,
+          "max": 186711000,
+          "population_stdev": 29989262.54060169
+        },
+        "accepted_queue/drain_ns": {
+          "samples": 3,
+          "min": 160852600,
+          "median": 164464800,
+          "p95": 164464800,
+          "max": 167972900,
+          "population_stdev": 2906953.8569895923
+        },
+        "checkpoints/checkpoint_ns": {
+          "samples": 3,
+          "min": 71312000,
+          "median": 79737200,
+          "p95": 79737200,
+          "max": 84927800,
+          "population_stdev": 5610667.746356043
+        },
+        "checkpoints/late_join_replay_ns": {
+          "samples": 3,
+          "min": 2640600,
+          "median": 2859200,
+          "p95": 2859200,
+          "max": 3371900,
+          "population_stdev": 306493.96223888145
+        },
+        "checkpoints/restart_and_reconcile_ns": {
+          "samples": 3,
+          "min": 16426400,
+          "median": 18505100,
+          "p95": 18505100,
+          "max": 18902600,
+          "population_stdev": 1085795.4779791634
+        },
+        "fanout:1/registration_ns": {
+          "samples": 3,
+          "min": 328500,
+          "median": 370100,
+          "p95": 370100,
+          "max": 694700,
+          "population_stdev": 163706.43101465364
+        },
+        "fanout:1/sync_mutation_and_fanout_ns": {
+          "samples": 3,
+          "min": 40895000,
+          "median": 49989500,
+          "p95": 49989500,
+          "max": 56159000,
+          "population_stdev": 6269523.78574322
+        },
+        "fanout:32/registration_ns": {
+          "samples": 3,
+          "min": 5983300,
+          "median": 11593400,
+          "p95": 11593400,
+          "max": 12672000,
+          "population_stdev": 2932107.8436283115
+        },
+        "fanout:32/sync_mutation_and_fanout_ns": {
+          "samples": 3,
+          "min": 37635300,
+          "median": 48280700,
+          "p95": 48280700,
+          "max": 50170900,
+          "population_stdev": 5518037.740598252
+        },
+        "fanout:8/registration_ns": {
+          "samples": 3,
+          "min": 1368200,
+          "median": 1895300,
+          "p95": 1895300,
+          "max": 2070000,
+          "population_stdev": 298305.90935406485
+        },
+        "fanout:8/sync_mutation_and_fanout_ns": {
+          "samples": 3,
+          "min": 41010500,
+          "median": 51864100,
+          "p95": 51864100,
+          "max": 75826100,
+          "population_stdev": 14545347.023552086
+        },
+        "independent_owner/unrelated_read_pair_ns": {
+          "samples": 3,
+          "min": 71900,
+          "median": 74500,
+          "p95": 74500,
+          "max": 84000,
+          "population_stdev": 5200.640986134947
+        },
+        "owner_lock_probe/probe_hold_ns": {
+          "samples": 300,
+          "min": 0,
+          "median": 0.0,
+          "p95": 100,
+          "max": 800,
+          "population_stdev": 96.38983348880731
+        },
+        "owner_lock_probe/wait_ns": {
+          "samples": 300,
+          "min": 0,
+          "median": 0.0,
+          "p95": 100,
+          "max": 43400,
+          "population_stdev": 4182.558972155151
+        }
+      },
+      "passed": true,
+      "commands": [
+        {
+          "name": "build",
+          "command": [
+            "cargo",
+            "test",
+            "-j1",
+            "--locked",
+            "--lib",
+            "--no-run",
+            "--message-format=json"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 913.5396306000184,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "harness-0",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 2.3462329999892972,
+          "test_summaries": [
+            [
+              10,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "harness-1",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1.9216835999977775,
+          "test_summaries": [
+            [
+              10,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "harness-2",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1.8906039000139572,
+          "test_summaries": [
+            [
+              10,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "existing-gateway",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway",
+            "--test-threads=4"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 6.54751279996708,
+          "test_summaries": [
+            [
+              246,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-admission",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.16026770003372803,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-admission",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.06851959996856749,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-finalize-intent",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.14863300003344193,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-finalize-intent",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.07986629998777062,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-archive-before-receipt",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.1464395999792032,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-archive-before-receipt",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.051141200005076826,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-checkpoint",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.2321174000389874,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-checkpoint",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.06045699998503551,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-checkpoint-source-ahead",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.1516782999970019,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-checkpoint-source-ahead",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.052624300005845726,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-host-after-acceptance",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.18799100001342595,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-host-after-acceptance",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.20567159994971007,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-host-cancel-before-replay",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.15223990002414212,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-host-cancel-before-replay",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.05886069999542087,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        }
+      ],
+      "sampling": [
+        {
+          "name": "harness-0",
+          "sampled_peak_rss_bytes": 26238976,
+          "sampled_peak_threads": 23,
+          "steady_rss_bytes": {
+            "samples": 6,
+            "min": 20955136,
+            "median": 21307392.0,
+            "p95": 21307392,
+            "max": 21307392,
+            "population_stdev": 129564.6661298262
+          }
+        },
+        {
+          "name": "harness-1",
+          "sampled_peak_rss_bytes": 25358336,
+          "sampled_peak_threads": 23,
+          "steady_rss_bytes": {
+            "samples": 5,
+            "min": 20434944,
+            "median": 20434944,
+            "p95": 20434944,
+            "max": 20434944,
+            "population_stdev": 0.0
+          }
+        },
+        {
+          "name": "harness-2",
+          "sampled_peak_rss_bytes": 25378816,
+          "sampled_peak_threads": 23,
+          "steady_rss_bytes": {
+            "samples": 5,
+            "min": 20443136,
+            "median": 20443136,
+            "p95": 20443136,
+            "max": 20443136,
+            "population_stdev": 0.0
+          }
+        }
+      ],
+      "harness_metrics": [
+        {
+          "name": "harness-0",
+          "metrics": [
+            {
+              "seed": 38,
+              "values": {
+                "calls": [
+                  "handoff:reliquary/conversation-execution/6db3e0549b0bd70adb93bc48803556f31d2227266486477359d61d0c4d7f92b5",
+                  "status:reliquary/conversation-execution/6db3e0549b0bd70adb93bc48803556f31d2227266486477359d61d0c4d7f92b5",
+                  "cancel:reliquary/conversation-execution/6db3e0549b0bd70adb93bc48803556f31d2227266486477359d61d0c4d7f92b5",
+                  "status:reliquary/conversation-execution/6db3e0549b0bd70adb93bc48803556f31d2227266486477359d61d0c4d7f92b5"
+                ],
+                "provider_effects": "not modeled",
+                "unique_acceptances": 1
+              },
+              "workload": "durable_host"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "instances": 32,
+                "phys": 2,
+                "queue_capacity": 16,
+                "rels": 4
+              },
+              "workload": "steady_begin"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "mounted_phys": 2,
+                "mounted_rels": 4,
+                "recipients": 32
+              },
+              "workload": "steady_end"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "checkpoint_ns": 71312000,
+                "checkpoints": 16,
+                "delta_delivery_bytes": 65536,
+                "late_join_replay_ns": 2640600,
+                "restart_and_reconcile_ns": 18505100,
+                "utf8_bytes": 65536
+              },
+              "workload": "checkpoints"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 1,
+                "mutations": 24,
+                "registration_ns": 328500,
+                "slow_resyncs": 0,
+                "sync_mutation_and_fanout_ns": 40895000
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 8,
+                "mutations": 24,
+                "registration_ns": 1368200,
+                "slow_resyncs": 7,
+                "sync_mutation_and_fanout_ns": 41010500
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 32,
+                "mutations": 24,
+                "registration_ns": 5983300,
+                "slow_resyncs": 31,
+                "sync_mutation_and_fanout_ns": 37635300
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "probe_hold_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  200,
+                  400,
+                  800
+                ],
+                "samples": 100,
+                "scope": "one direct owner read versus 100 public summary reads; not instrumentation of all production critical sections",
+                "wait_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  400,
+                  4800,
+                  5100,
+                  43400
+                ]
+              },
+              "workload": "owner_lock_probe"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-dcafc761-5582-454f-8202-7a5cc18c72a7",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 1,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-a0de209f-8e3a-4135-87d1-e41a2f25f25c",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 1,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-41d0e537-051a-4f99-8d2d-bf1ad7743fcc",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 2,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-d91e1212-ce68-41e2-b6e4-4a35ba7cc15f",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 2,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "unrelated_read_pair_ns": 71900
+              },
+              "workload": "independent_owner"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "admission_receipt_to_commit_ns": [
+                  85831400,
+                  94997000,
+                  103809100,
+                  113475800,
+                  123343100,
+                  132205600,
+                  142219200,
+                  149247800,
+                  157447400,
+                  164559300,
+                  170574300,
+                  179213800
+                ],
+                "drain_ns": 160852600,
+                "latency_scope": "includes queued wait, detach, physical restart and commit",
+                "operations": 12
+              },
+              "workload": "accepted_queue"
+            }
+          ]
+        },
+        {
+          "name": "harness-1",
+          "metrics": [
+            {
+              "seed": 38,
+              "values": {
+                "calls": [
+                  "handoff:reliquary/conversation-execution/4e5641750c3bfcbcae93f432546b2faef764bc0c50627a1646a557016b491b8b",
+                  "status:reliquary/conversation-execution/4e5641750c3bfcbcae93f432546b2faef764bc0c50627a1646a557016b491b8b",
+                  "cancel:reliquary/conversation-execution/4e5641750c3bfcbcae93f432546b2faef764bc0c50627a1646a557016b491b8b",
+                  "status:reliquary/conversation-execution/4e5641750c3bfcbcae93f432546b2faef764bc0c50627a1646a557016b491b8b"
+                ],
+                "provider_effects": "not modeled",
+                "unique_acceptances": 1
+              },
+              "workload": "durable_host"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "instances": 32,
+                "phys": 2,
+                "queue_capacity": 16,
+                "rels": 4
+              },
+              "workload": "steady_begin"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "mounted_phys": 2,
+                "mounted_rels": 4,
+                "recipients": 32
+              },
+              "workload": "steady_end"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "checkpoint_ns": 84927800,
+                "checkpoints": 16,
+                "delta_delivery_bytes": 65536,
+                "late_join_replay_ns": 2859200,
+                "restart_and_reconcile_ns": 16426400,
+                "utf8_bytes": 65536
+              },
+              "workload": "checkpoints"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 1,
+                "mutations": 24,
+                "registration_ns": 694700,
+                "slow_resyncs": 0,
+                "sync_mutation_and_fanout_ns": 49989500
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 8,
+                "mutations": 24,
+                "registration_ns": 1895300,
+                "slow_resyncs": 7,
+                "sync_mutation_and_fanout_ns": 51864100
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 32,
+                "mutations": 24,
+                "registration_ns": 11593400,
+                "slow_resyncs": 31,
+                "sync_mutation_and_fanout_ns": 50170900
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "probe_hold_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  300,
+                  800
+                ],
+                "samples": 100,
+                "scope": "one direct owner read versus 100 public summary reads; not instrumentation of all production critical sections",
+                "wait_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  300,
+                  40600
+                ]
+              },
+              "workload": "owner_lock_probe"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-fe7d7e19-52ee-433b-978a-0001f0864653",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 1,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-3b55a860-6fc1-4413-a384-147bbbc092e1",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 1,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-021c56ca-dca6-43c2-93f8-4c8eca7e12bd",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 2,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-92c332af-42b2-4ca5-a32b-0dfedaf8d26c",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 2,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "unrelated_read_pair_ns": 84000
+              },
+              "workload": "independent_owner"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "admission_receipt_to_commit_ns": [
+                  105819400,
+                  113924800,
+                  123119100,
+                  132604500,
+                  140542500,
+                  149988200,
+                  155806900,
+                  162642000,
+                  171474000,
+                  172363300,
+                  175420800,
+                  186711000
+                ],
+                "drain_ns": 167972900,
+                "latency_scope": "includes queued wait, detach, physical restart and commit",
+                "operations": 12
+              },
+              "workload": "accepted_queue"
+            }
+          ]
+        },
+        {
+          "name": "harness-2",
+          "metrics": [
+            {
+              "seed": 38,
+              "values": {
+                "calls": [
+                  "handoff:reliquary/conversation-execution/ff749a6449d7a9caf85c60e5dce9e8782c1dce54b4af6132c303ac412cda1533",
+                  "status:reliquary/conversation-execution/ff749a6449d7a9caf85c60e5dce9e8782c1dce54b4af6132c303ac412cda1533",
+                  "cancel:reliquary/conversation-execution/ff749a6449d7a9caf85c60e5dce9e8782c1dce54b4af6132c303ac412cda1533",
+                  "status:reliquary/conversation-execution/ff749a6449d7a9caf85c60e5dce9e8782c1dce54b4af6132c303ac412cda1533"
+                ],
+                "provider_effects": "not modeled",
+                "unique_acceptances": 1
+              },
+              "workload": "durable_host"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "instances": 32,
+                "phys": 2,
+                "queue_capacity": 16,
+                "rels": 4
+              },
+              "workload": "steady_begin"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "mounted_phys": 2,
+                "mounted_rels": 4,
+                "recipients": 32
+              },
+              "workload": "steady_end"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "checkpoint_ns": 79737200,
+                "checkpoints": 16,
+                "delta_delivery_bytes": 65536,
+                "late_join_replay_ns": 3371900,
+                "restart_and_reconcile_ns": 18902600,
+                "utf8_bytes": 65536
+              },
+              "workload": "checkpoints"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 1,
+                "mutations": 24,
+                "registration_ns": 370100,
+                "slow_resyncs": 0,
+                "sync_mutation_and_fanout_ns": 56159000
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 8,
+                "mutations": 24,
+                "registration_ns": 2070000,
+                "slow_resyncs": 7,
+                "sync_mutation_and_fanout_ns": 75826100
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 32,
+                "mutations": 24,
+                "registration_ns": 12672000,
+                "slow_resyncs": 31,
+                "sync_mutation_and_fanout_ns": 48280700
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "probe_hold_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  600,
+                  700
+                ],
+                "samples": 100,
+                "scope": "one direct owner read versus 100 public summary reads; not instrumentation of all production critical sections",
+                "wait_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  200,
+                  500,
+                  4400,
+                  5800,
+                  41200
+                ]
+              },
+              "workload": "owner_lock_probe"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-1277fc98-66e7-486d-9c24-f09d3879a43d",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 1,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-cb907c0c-4396-49fa-9b2b-5958e972a4f0",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 1,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-5829df12-14c5-4702-a484-bf80ab453818",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 2,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-p34-baseline\\target\\p6-results\\baseline\\fixtures\\p6-topology-c80e4f11-a9e4-4f86-b7b1-5f5fee3d9cf4",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 2,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "unrelated_read_pair_ns": 74500
+              },
+              "workload": "independent_owner"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "admission_receipt_to_commit_ns": [
+                  83156800,
+                  89519500,
+                  95975900,
+                  102278300,
+                  113637100,
+                  124134700,
+                  134976000,
+                  144409600,
+                  153821900,
+                  162115400,
+                  171810700,
+                  177686600
+                ],
+                "drain_ns": 164464800,
+                "latency_scope": "includes queued wait, detach, physical restart and commit",
+                "operations": 12
+              },
+              "workload": "accepted_queue"
+            }
+          ]
+        }
+      ]
+    },
+    "candidate": {
+      "report_sha256": "c59584a5376f320ee910821574a59e1a4982b0c04c97116ad3725b232237c2df",
+      "environment": {
+        "revision": "c24b06273abbab383eb74780bf82cb5c0ceef0b5",
+        "git_status": "M docs/INDEX.md\n M src/runtime_inference/runtime_host_gateway_tests.rs\n?? docs/multiplexing-p6-harness-guide-2026-10-07.md\n?? scripts/run_multiplexing_p6_harness.py\n?? scripts/tests/\n?? src/runtime_inference/runtime_host_gateway_p6_crash_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_fixture_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_harness_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_host_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_load_tests.rs\n?? src/runtime_inference/runtime_host_gateway_p6_topology_tests.rs",
+        "platform": "Windows-10-10.0.26200-SP0",
+        "python": "3.11.15",
+        "hardware": {
+          "processor": "11th Gen Intel(R) Core(TM) i9-11900H @ 2.50GHz",
+          "machine": "AMD64",
+          "logical_cpus": 16,
+          "physical_cpus": 8,
+          "ram_bytes": 34111545344
+        },
+        "rustc": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+        "cargo": "cargo 1.97.1 (c980f4866 2026-06-30)",
+        "build_environment": {
+          "RUSTFLAGS": null,
+          "CARGO_ENCODED_RUSTFLAGS": null,
+          "CARGO_BUILD_TARGET": null,
+          "CARGO_PROFILE_TEST_OPT_LEVEL": null,
+          "CARGO_PROFILE_TEST_DEBUG": null,
+          "RUSTUP_TOOLCHAIN": null
+        },
+        "fixture_sources": {
+          "runtime_host_gateway_p6_crash_tests.rs": "82604f8f9badd6eddc9938281789c7ef90f49593789528f940ebc26d48343f0c",
+          "runtime_host_gateway_p6_fixture_tests.rs": "83c06f4b53c090e66d04c6af94202077abc36367da26ab050e52c35832111393",
+          "runtime_host_gateway_p6_harness_tests.rs": "1455287064d5271d6fe351c7ae98f1510d80fc087bd99b306ec0b430ff3ea8c3",
+          "runtime_host_gateway_p6_host_tests.rs": "c0337e34e22d25884f1cc61035c8beb1ef00e40605409edf7b38fa31fb0a21f9",
+          "runtime_host_gateway_p6_load_tests.rs": "e44f186b0985a9df1d01cbc330064a3b45ab27ac4d4dcd5c0cd6d3d1962337f1",
+          "runtime_host_gateway_p6_topology_tests.rs": "a67d01203dc67e3081d7ba7625973a865e017e89fc56593ec444eb2834b720cf"
+        },
+        "runner_sha256": "72b95f27ff958cb3d00366098fe36a2f99337b6c8e6a22bf466cb1ed749fbe67",
+        "manifest": {
+          "schema": 1,
+          "common_base": "c24b06273abbab383eb74780bf82cb5c0ceef0b5",
+          "accepted_p34": "e1c8f88",
+          "profile": "test/debug",
+          "build_jobs": 1,
+          "harness_threads": 1,
+          "existing_gateway_threads": 4,
+          "workloads": [
+            {
+              "id": "H1-H5",
+              "selector": "runtime_host::gateway::tests::p6_harness",
+              "repeated": true
+            },
+            {
+              "id": "existing-real-gateway-matrix",
+              "selector": "runtime_host::gateway",
+              "repeated": false
+            }
+          ],
+          "crash_boundaries": [
+            "admission",
+            "finalize-intent",
+            "archive-before-receipt",
+            "checkpoint",
+            "checkpoint-source-ahead",
+            "host-after-acceptance",
+            "host-cancel-before-replay"
+          ],
+          "gaps": [
+            "P6-R requires P5-D deletion and upgraded Warlock; neither is invoked by this harness.",
+            "Native endpoint abort and real Warlock adapter conformance are not proved by controlled hosts.",
+            "Owner probe holds are measured; all production coordinator/owner hold intervals are not instrumented.",
+            "PHY worker counts and sampled process threads are observed; exact REL worker count/wake-loop frequency await owning-lane diagnostics.",
+            "Sampled RSS is not an allocator-exact peak; OS file cache is not flushed."
+          ]
+        },
+        "sampling_ms": 20,
+        "psutil_available": true
+      },
+      "workload": {
+        "seed": 38,
+        "instances": "1,8,32",
+        "repeat": 3,
+        "features": ""
+      },
+      "cache_policy": "fresh physical fixture files per process; OS cache not flushed; first repetition is not claimed cold",
+      "binary_sha256": "b52566888295be60fef98cc6f97a22da1f281dfef7c59ea056e2d7a4b9ab9f6a",
+      "rollup": {
+        "accepted_queue/admission_receipt_to_commit_ns": {
+          "samples": 36,
+          "min": 59596500,
+          "median": 96820950.0,
+          "p95": 149708700,
+          "max": 162671400,
+          "population_stdev": 27848392.389731057
+        },
+        "accepted_queue/drain_ns": {
+          "samples": 3,
+          "min": 129544800,
+          "median": 132043900,
+          "p95": 132043900,
+          "max": 151824600,
+          "population_stdev": 9966115.265348993
+        },
+        "checkpoints/checkpoint_ns": {
+          "samples": 3,
+          "min": 73518000,
+          "median": 80551600,
+          "p95": 80551600,
+          "max": 134675200,
+          "population_stdev": 27323247.565560155
+        },
+        "checkpoints/late_join_replay_ns": {
+          "samples": 3,
+          "min": 2479200,
+          "median": 2730500,
+          "p95": 2730500,
+          "max": 3199700,
+          "population_stdev": 298593.10478010407
+        },
+        "checkpoints/restart_and_reconcile_ns": {
+          "samples": 3,
+          "min": 15189100,
+          "median": 20078900,
+          "p95": 20078900,
+          "max": 20904300,
+          "population_stdev": 2522233.142805531
+        },
+        "fanout:1/registration_ns": {
+          "samples": 3,
+          "min": 351100,
+          "median": 538600,
+          "p95": 538600,
+          "max": 648600,
+          "population_stdev": 122819.87714625928
+        },
+        "fanout:1/sync_mutation_and_fanout_ns": {
+          "samples": 3,
+          "min": 43419200,
+          "median": 43879000,
+          "p95": 43879000,
+          "max": 53445100,
+          "population_stdev": 4621692.283376536
+        },
+        "fanout:32/registration_ns": {
+          "samples": 3,
+          "min": 6907400,
+          "median": 9381400,
+          "p95": 9381400,
+          "max": 14791000,
+          "population_stdev": 3292003.7316031232
+        },
+        "fanout:32/sync_mutation_and_fanout_ns": {
+          "samples": 3,
+          "min": 45812600,
+          "median": 49755400,
+          "p95": 49755400,
+          "max": 55339500,
+          "population_stdev": 3908532.948136253
+        },
+        "fanout:8/registration_ns": {
+          "samples": 3,
+          "min": 2660100,
+          "median": 2867600,
+          "p95": 2867600,
+          "max": 3540800,
+          "population_stdev": 375926.5560658831
+        },
+        "fanout:8/sync_mutation_and_fanout_ns": {
+          "samples": 3,
+          "min": 44933800,
+          "median": 46465000,
+          "p95": 46465000,
+          "max": 53346300,
+          "population_stdev": 3658582.2903900295
+        },
+        "independent_owner/unrelated_read_pair_ns": {
+          "samples": 3,
+          "min": 64900,
+          "median": 72700,
+          "p95": 72700,
+          "max": 99600,
+          "population_stdev": 14864.349595219055
+        },
+        "owner_lock_probe/probe_hold_ns": {
+          "samples": 300,
+          "min": 0,
+          "median": 100.0,
+          "p95": 100,
+          "max": 2700,
+          "population_stdev": 216.15323782497967
+        },
+        "owner_lock_probe/wait_ns": {
+          "samples": 300,
+          "min": 0,
+          "median": 100.0,
+          "p95": 4100,
+          "max": 78900,
+          "population_stdev": 6059.614252482487
+        }
+      },
+      "passed": true,
+      "commands": [
+        {
+          "name": "build",
+          "command": [
+            "cargo",
+            "test",
+            "-j1",
+            "--locked",
+            "--lib",
+            "--no-run",
+            "--message-format=json"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 10.95881849998841,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "harness-0",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 2.4444419000064954,
+          "test_summaries": [
+            [
+              10,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "harness-1",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1.7222854000283405,
+          "test_summaries": [
+            [
+              10,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "harness-2",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 1.7467034999863245,
+          "test_summaries": [
+            [
+              10,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "existing-gateway",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway",
+            "--test-threads=4"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 7.089700900018215,
+          "test_summaries": [
+            [
+              246,
+              0,
+              2
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-admission",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.14453629998024553,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-admission",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.06729570002062246,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-finalize-intent",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.13890619995072484,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-finalize-intent",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.06129089999012649,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-archive-before-receipt",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.13968369999201968,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-archive-before-receipt",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.052948800032027066,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-checkpoint",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.1598678000154905,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-checkpoint",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.04896839999128133,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-checkpoint-source-ahead",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.1373684999998659,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-checkpoint-source-ahead",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.04996289999689907,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-host-after-acceptance",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.1505586999701336,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-host-after-acceptance",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.05652280000504106,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "crash-host-cancel-before-replay",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 3221226505,
+          "timed_out": false,
+          "seconds": 0.14177369995741174,
+          "test_summaries": [],
+          "background_build_processes_at_start": []
+        },
+        {
+          "name": "recover-host-cancel-before-replay",
+          "command": [
+            "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\debug\\deps\\reliquary_memory-d6a36fdd0a41b529.exe",
+            "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+            "--ignored",
+            "--exact",
+            "--nocapture",
+            "--test-threads=1"
+          ],
+          "passed": true,
+          "exit_code": 0,
+          "timed_out": false,
+          "seconds": 0.0779144000262022,
+          "test_summaries": [
+            [
+              1,
+              0,
+              0
+            ]
+          ],
+          "background_build_processes_at_start": []
+        }
+      ],
+      "sampling": [
+        {
+          "name": "harness-0",
+          "sampled_peak_rss_bytes": 25358336,
+          "sampled_peak_threads": 23,
+          "steady_rss_bytes": {
+            "samples": 6,
+            "min": 20037632,
+            "median": 20434944.0,
+            "p95": 20434944,
+            "max": 20434944,
+            "population_stdev": 148069.44004606607
+          }
+        },
+        {
+          "name": "harness-1",
+          "sampled_peak_rss_bytes": 25399296,
+          "sampled_peak_threads": 23,
+          "steady_rss_bytes": {
+            "samples": 6,
+            "min": 20025344,
+            "median": 20398080.0,
+            "p95": 20398080,
+            "max": 20398080,
+            "population_stdev": 138910.50561022694
+          }
+        },
+        {
+          "name": "harness-2",
+          "sampled_peak_rss_bytes": 25407488,
+          "sampled_peak_threads": 23,
+          "steady_rss_bytes": {
+            "samples": 5,
+            "min": 20439040,
+            "median": 20439040,
+            "p95": 20439040,
+            "max": 20439040,
+            "population_stdev": 0.0
+          }
+        }
+      ],
+      "harness_metrics": [
+        {
+          "name": "harness-0",
+          "metrics": [
+            {
+              "seed": 38,
+              "values": {
+                "calls": [
+                  "handoff:reliquary/conversation-execution/a2d3f519190a4ffde758dba99d5f9c16ed11717096a34c6b74f7f221ddb8bdc3",
+                  "status:reliquary/conversation-execution/a2d3f519190a4ffde758dba99d5f9c16ed11717096a34c6b74f7f221ddb8bdc3",
+                  "cancel:reliquary/conversation-execution/a2d3f519190a4ffde758dba99d5f9c16ed11717096a34c6b74f7f221ddb8bdc3",
+                  "status:reliquary/conversation-execution/a2d3f519190a4ffde758dba99d5f9c16ed11717096a34c6b74f7f221ddb8bdc3"
+                ],
+                "provider_effects": "not modeled",
+                "unique_acceptances": 1
+              },
+              "workload": "durable_host"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "instances": 32,
+                "phys": 2,
+                "queue_capacity": 16,
+                "rels": 4
+              },
+              "workload": "steady_begin"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "mounted_phys": 2,
+                "mounted_rels": 4,
+                "recipients": 32
+              },
+              "workload": "steady_end"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "checkpoint_ns": 134675200,
+                "checkpoints": 16,
+                "delta_delivery_bytes": 65536,
+                "late_join_replay_ns": 3199700,
+                "restart_and_reconcile_ns": 20078900,
+                "utf8_bytes": 65536
+              },
+              "workload": "checkpoints"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 1,
+                "mutations": 24,
+                "registration_ns": 648600,
+                "slow_resyncs": 0,
+                "sync_mutation_and_fanout_ns": 53445100
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 8,
+                "mutations": 24,
+                "registration_ns": 3540800,
+                "slow_resyncs": 7,
+                "sync_mutation_and_fanout_ns": 53346300
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 32,
+                "mutations": 24,
+                "registration_ns": 14791000,
+                "slow_resyncs": 31,
+                "sync_mutation_and_fanout_ns": 55339500
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "probe_hold_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  200,
+                  300,
+                  500,
+                  600,
+                  800,
+                  1100,
+                  1700
+                ],
+                "samples": 100,
+                "scope": "one direct owner read versus 100 public summary reads; not instrumentation of all production critical sections",
+                "wait_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  200,
+                  200,
+                  900,
+                  7500,
+                  7600,
+                  14400,
+                  15200,
+                  18000,
+                  18300,
+                  78900
+                ]
+              },
+              "workload": "owner_lock_probe"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-0fad31a4-63e6-48ef-8f0b-a96945ce58c6",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 1,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-4c1c24cb-7560-4c7d-9e97-919c84581fe9",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 1,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-45cecb50-b791-4685-917a-ea82fd7a0b3c",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 2,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-c4b80dcf-d3b8-428a-95bf-ac56c55822d5",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 2,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "unrelated_read_pair_ns": 99600
+              },
+              "workload": "independent_owner"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "admission_receipt_to_commit_ns": [
+                  70212200,
+                  75992900,
+                  81727100,
+                  86323500,
+                  94163900,
+                  97920900,
+                  104306400,
+                  111510800,
+                  120249300,
+                  129296100,
+                  136199300,
+                  145052600
+                ],
+                "drain_ns": 132043900,
+                "latency_scope": "includes queued wait, detach, physical restart and commit",
+                "operations": 12
+              },
+              "workload": "accepted_queue"
+            }
+          ]
+        },
+        {
+          "name": "harness-1",
+          "metrics": [
+            {
+              "seed": 38,
+              "values": {
+                "calls": [
+                  "handoff:reliquary/conversation-execution/d9188d9206fa65d0b2adc09f35833e4b6b74c5e9d9554eb55856f1b9abb31e6f",
+                  "status:reliquary/conversation-execution/d9188d9206fa65d0b2adc09f35833e4b6b74c5e9d9554eb55856f1b9abb31e6f",
+                  "cancel:reliquary/conversation-execution/d9188d9206fa65d0b2adc09f35833e4b6b74c5e9d9554eb55856f1b9abb31e6f",
+                  "status:reliquary/conversation-execution/d9188d9206fa65d0b2adc09f35833e4b6b74c5e9d9554eb55856f1b9abb31e6f"
+                ],
+                "provider_effects": "not modeled",
+                "unique_acceptances": 1
+              },
+              "workload": "durable_host"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "instances": 32,
+                "phys": 2,
+                "queue_capacity": 16,
+                "rels": 4
+              },
+              "workload": "steady_begin"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "mounted_phys": 2,
+                "mounted_rels": 4,
+                "recipients": 32
+              },
+              "workload": "steady_end"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "checkpoint_ns": 80551600,
+                "checkpoints": 16,
+                "delta_delivery_bytes": 65536,
+                "late_join_replay_ns": 2479200,
+                "restart_and_reconcile_ns": 15189100,
+                "utf8_bytes": 65536
+              },
+              "workload": "checkpoints"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 1,
+                "mutations": 24,
+                "registration_ns": 538600,
+                "slow_resyncs": 0,
+                "sync_mutation_and_fanout_ns": 43419200
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 8,
+                "mutations": 24,
+                "registration_ns": 2867600,
+                "slow_resyncs": 7,
+                "sync_mutation_and_fanout_ns": 44933800
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 32,
+                "mutations": 24,
+                "registration_ns": 9381400,
+                "slow_resyncs": 31,
+                "sync_mutation_and_fanout_ns": 45812600
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "probe_hold_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  300,
+                  700
+                ],
+                "samples": 100,
+                "scope": "one direct owner read versus 100 public summary reads; not instrumentation of all production critical sections",
+                "wait_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  700,
+                  4100,
+                  5000,
+                  38900
+                ]
+              },
+              "workload": "owner_lock_probe"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-d4e1b43d-d24e-4b4a-a54a-15006b355f17",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 1,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-1a4f8c81-f5d5-4f17-8645-409552999731",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 1,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-e8afabe3-764b-4542-a7f5-d8fc553e37a0",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 2,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-b6fe4368-a239-435b-bb7b-fdf65e0804f2",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 2,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "unrelated_read_pair_ns": 64900
+              },
+              "workload": "independent_owner"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "admission_receipt_to_commit_ns": [
+                  66302400,
+                  73030700,
+                  79475300,
+                  84914200,
+                  90309100,
+                  95721000,
+                  103973600,
+                  112861900,
+                  118949400,
+                  126517300,
+                  134766600,
+                  141784500
+                ],
+                "drain_ns": 129544800,
+                "latency_scope": "includes queued wait, detach, physical restart and commit",
+                "operations": 12
+              },
+              "workload": "accepted_queue"
+            }
+          ]
+        },
+        {
+          "name": "harness-2",
+          "metrics": [
+            {
+              "seed": 38,
+              "values": {
+                "calls": [
+                  "handoff:reliquary/conversation-execution/16504a8cff2e16a6c9978f4d693f16f9a8948c3a413e999ef16441ebf261ed72",
+                  "status:reliquary/conversation-execution/16504a8cff2e16a6c9978f4d693f16f9a8948c3a413e999ef16441ebf261ed72",
+                  "cancel:reliquary/conversation-execution/16504a8cff2e16a6c9978f4d693f16f9a8948c3a413e999ef16441ebf261ed72",
+                  "status:reliquary/conversation-execution/16504a8cff2e16a6c9978f4d693f16f9a8948c3a413e999ef16441ebf261ed72"
+                ],
+                "provider_effects": "not modeled",
+                "unique_acceptances": 1
+              },
+              "workload": "durable_host"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "instances": 32,
+                "phys": 2,
+                "queue_capacity": 16,
+                "rels": 4
+              },
+              "workload": "steady_begin"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "mounted_phys": 2,
+                "mounted_rels": 4,
+                "recipients": 32
+              },
+              "workload": "steady_end"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "checkpoint_ns": 73518000,
+                "checkpoints": 16,
+                "delta_delivery_bytes": 65536,
+                "late_join_replay_ns": 2730500,
+                "restart_and_reconcile_ns": 20904300,
+                "utf8_bytes": 65536
+              },
+              "workload": "checkpoints"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 1,
+                "mutations": 24,
+                "registration_ns": 351100,
+                "slow_resyncs": 0,
+                "sync_mutation_and_fanout_ns": 43879000
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 8,
+                "mutations": 24,
+                "registration_ns": 2660100,
+                "slow_resyncs": 7,
+                "sync_mutation_and_fanout_ns": 46465000
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "capacity": 8,
+                "fast_events": 48,
+                "instances": 32,
+                "mutations": 24,
+                "registration_ns": 6907400,
+                "slow_resyncs": 31,
+                "sync_mutation_and_fanout_ns": 49755400
+              },
+              "workload": "fanout"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "probe_hold_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  300,
+                  300,
+                  600,
+                  900,
+                  2700
+                ],
+                "samples": 100,
+                "scope": "one direct owner read versus 100 public summary reads; not instrumentation of all production critical sections",
+                "wait_ns": [
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  0,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  100,
+                  200,
+                  1000,
+                  4100,
+                  4500,
+                  4600,
+                  6800,
+                  18400,
+                  43500
+                ]
+              },
+              "workload": "owner_lock_probe"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-1e029089-aa83-41b7-bae5-eb96c2bd4f29",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 1,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-d9ec1d2e-c2b6-443f-b4ed-458799f425ef",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 1,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-b751ceff-5304-4738-a543-bc279227f807",
+                "phy_workers_observed": 3,
+                "phys": 1,
+                "rels": 2,
+                "same_principal": true
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "fixture": "C:\\!bin\\workspace\\Reliquary-p6-harness\\target\\p6-results\\candidate\\fixtures\\p6-topology-a9247400-3a37-469a-93ed-bd91699b5f7f",
+                "phy_workers_observed": 3,
+                "phys": 2,
+                "rels": 2,
+                "same_principal": false
+              },
+              "workload": "topology"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "unrelated_read_pair_ns": 72700
+              },
+              "workload": "independent_owner"
+            },
+            {
+              "seed": 38,
+              "values": {
+                "admission_receipt_to_commit_ns": [
+                  59596500,
+                  64591100,
+                  70737700,
+                  76057300,
+                  81549300,
+                  86762400,
+                  92140400,
+                  98643500,
+                  106464600,
+                  149708700,
+                  156473200,
+                  162671400
+                ],
+                "drain_ns": 151824600,
+                "latency_scope": "includes queued wait, detach, physical restart and commit",
+                "operations": 12
+              },
+              "workload": "accepted_queue"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "comparison": {
+    "baseline_revision": "e1c8f88d2dc9ece24713477a27d77ade516de1eb",
+    "candidate_revision": "c24b06273abbab383eb74780bf82cb5c0ceef0b5",
+    "rows": [
+      {
+        "metric": "accepted_queue/admission_receipt_to_commit_ns",
+        "before_median": 141380850.0,
+        "after_median": 96820950.0,
+        "ratio": 0.6848236518594987
+      },
+      {
+        "metric": "accepted_queue/drain_ns",
+        "before_median": 164464800,
+        "after_median": 132043900,
+        "ratio": 0.8028702798410359
+      },
+      {
+        "metric": "checkpoints/checkpoint_ns",
+        "before_median": 79737200,
+        "after_median": 80551600,
+        "ratio": 1.0102135515167325
+      },
+      {
+        "metric": "checkpoints/late_join_replay_ns",
+        "before_median": 2859200,
+        "after_median": 2730500,
+        "ratio": 0.9549874090654729
+      },
+      {
+        "metric": "checkpoints/restart_and_reconcile_ns",
+        "before_median": 18505100,
+        "after_median": 20078900,
+        "ratio": 1.085046824929344
+      },
+      {
+        "metric": "fanout:1/registration_ns",
+        "before_median": 370100,
+        "after_median": 538600,
+        "ratio": 1.4552823561199675
+      },
+      {
+        "metric": "fanout:1/sync_mutation_and_fanout_ns",
+        "before_median": 49989500,
+        "after_median": 43879000,
+        "ratio": 0.8777643305094069
+      },
+      {
+        "metric": "fanout:32/registration_ns",
+        "before_median": 11593400,
+        "after_median": 9381400,
+        "ratio": 0.8092017872237652
+      },
+      {
+        "metric": "fanout:32/sync_mutation_and_fanout_ns",
+        "before_median": 48280700,
+        "after_median": 49755400,
+        "ratio": 1.030544296168034
+      },
+      {
+        "metric": "fanout:8/registration_ns",
+        "before_median": 1895300,
+        "after_median": 2867600,
+        "ratio": 1.5130058565926239
+      },
+      {
+        "metric": "fanout:8/sync_mutation_and_fanout_ns",
+        "before_median": 51864100,
+        "after_median": 46465000,
+        "ratio": 0.895899090122069
+      },
+      {
+        "metric": "independent_owner/unrelated_read_pair_ns",
+        "before_median": 74500,
+        "after_median": 72700,
+        "ratio": 0.9758389261744966
+      },
+      {
+        "metric": "owner_lock_probe/probe_hold_ns",
+        "before_median": 0.0,
+        "after_median": 100.0,
+        "ratio": null
+      },
+      {
+        "metric": "owner_lock_probe/wait_ns",
+        "before_median": 0.0,
+        "after_median": 100.0,
+        "ratio": null
+      }
+    ],
+    "thresholds": "none invented",
+    "caveat": "observational comparison; OS cache and other workloads are not isolated"
+  },
+  "verification": {
+    "cargo_fmt_check": "passed",
+    "cargo_check_locked": "passed",
+    "cargo_test_locked": {
+      "passed": 1095,
+      "ignored_runner_entries": 2,
+      "integration_passed": 128,
+      "doc_tests": 0,
+      "retry_seconds": 164.719
+    },
+    "all_targets_no_run": {
+      "passed": true,
+      "seconds": 345.469
+    },
+    "p2_p3_ownership": "passed",
+    "p4_coverage": {
+      "passed": true,
+      "fixtures": 28,
+      "public_apis": 112
+    },
+    "runner_unit_tests": {
+      "passed": 5
+    },
+    "initial_combined_wrapper_timeout": {
+      "job_id": "job_kVT44SClvx-OMETJuWJ081Sw",
+      "state": "timed_out",
+      "started_at": "2026-10-07T05:47:32.864Z",
+      "completed_at": "2026-10-07T06:07:33.254Z",
+      "timeout_ms": 1200000,
+      "exit_code": 1,
+      "completed_commands": [
+        "cargo fmt",
+        "cargo check -j1 --locked"
+      ],
+      "pending_command": "cargo test -j1 --locked -- --test-threads=4",
+      "all_targets": "not yet reached"
+    },
+    "documentation_policy": {
+      "structural": "passed",
+      "changed_from_origin_main": "passed"
+    }
+  }
+}

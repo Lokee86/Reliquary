@@ -2,7 +2,7 @@
 
 Parent: [P5/6 parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Baseline: [P3/P4 main acceptance](multiplexing-p34-main-integration-2026-10-06.md)  
-Status: **Harness work may start immediately; final release gate depends on P5-D deletion and upgraded Warlock.**
+Status: **P6-H real-runtime harness and matched baseline runs are verified; full H5 diagnostics and P6-R remain incomplete.** See the [harness acceptance report](multiplexing-p6-harness-acceptance-2026-10-07.md), [reproduction guide](multiplexing-p6-harness-guide-2026-10-07.md) and [measurement snapshot](multiplexing-p6-harness-metrics-2026-10-07.json). Final release depends on P5-D deletion and upgraded Warlock.
 
 ## Purpose
 
