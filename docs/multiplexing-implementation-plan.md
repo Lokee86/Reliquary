@@ -159,22 +159,32 @@ See:
 - **Local gate:** sequencer/snapshot/overflow/reconnect and generic stream hub pass against deterministic providers.
 - **Convergence gate:** inactive conversation summaries, late stream join, branch events and checkpoint delivery pass against final P3 semantics. P4.7 verification and P4.8 audit are complete; P4.9 local/convergence functional acceptance passed; see the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md) for repository-wide verification exceptions.
 
-### Phase 5 — Full stack and host-consumer migration
+### Phases 5 and 6 — concurrent consumer migration and verification
 
-- **5.1** Migrate remaining runtime_host modules: Archive, memories, Graph, Entity/Perception, Dream, Insomnia, vectors, runtime status, repository operations, reconciliation and configuration entry points to explicit gateway/instance call direction.
-- **5.2** Adapt public library facade and actual external consumers (Warlock, detachable CLI, ACP/agents as applicable) directly to canonical interfaces. Inventory their actual queue/session/stream/scheduling/cancellation/reconnect capabilities; **prefer the host queue for host-executed work when it can reliably cancel pending items**. Retain native Reliquary machinery for internal work and guarantees an external queue cannot meet. If separate stage queues are necessary, prove cancellation reaches every not-yet-dispatched stage and a cancelled item cannot execute on either side. No duplicate commitment authority. Audit configured finite/runtime routes; do not create a redundant permanent product-host authority.
-- **5.3** Remove obsolete ReliquaryRuntimeHost ambient-state fields, host-global PHY APIs and obsolete session forwarding once every legitimate dependent is migrated. Preserve existing on-disk and authenticated external contracts explicitly where proven.
-- **5.4** Update current-state architecture.md, api.md, maintainer-map.md, behavioral-contracts.md, documentation-coverage.md and current-limitations.md when implemented; update ADR 0037 status/singleton language without deleting its ownership rationale.
-- **Tests:** all migrated consumer entry points enforce per-instance scope and use the same gateway authority; no internal path reads implicit global active state.
-- **Gate:** one canonical runtime implementation, no shadow singleton or dual-owner worker set, no unintended temporary adapters.
+**Status: execution-ready parallel plan, implementation not started.** P3/P4 have converged onto main. Rather than serialize all of P5 followed by P6, run P5-A, P5-B, P5-C, and P6-H concurrently against one accepted planning base. A/B own separate Reliquary source areas, C owns the real Warlock/CLI consumers, and P6-H builds independent stress/host/fault/measurement harnesses. Root API integration and the final old-host deletion occur only when real consumers have migrated; P6-R is the post-deletion release gate.
 
-### Phase 6 — End-to-end verification and measured optimization
+Authoritative handoffs:
+- [P5/P6 parallel execution and convergence plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
+- [P5-A REL/runtime consumer migration](multiplexing-phase5a-rel-consumers-2026-10-06.md)
+- [P5-B background workers and host capabilities](multiplexing-phase5b-background-host-2026-10-06.md)
+- [P5-C Warlock and detachable CLI](multiplexing-phase5c-external-consumers-2026-10-06.md)
+- [P5-D legacy-host deletion after caller convergence](multiplexing-phase5d-legacy-deletion-2026-10-06.md)
+- [P6 concurrent verification harness and final release](multiplexing-phase6-parallel-verification-plan-2026-10-06.md)
 
-- **6.1** Run unit/integration/stress fixtures covering same-PHY and different-PHY instances across one/many RELs; event loss/reconnect; subscriber churn; branch conflicts; shutdown/reconciliation; worker deduplication. Include gateway restart with host immediately available/unavailable, host reconnect with divergent queued/in-flight/committed state, offline cancellation, cancellation racing host dequeue, cancellation during cross-stage handoff, host-owned queue suppression of cancelled dispatch, adapter capability downgrade and idempotent replay. Verify already-running host interruption reports its real outcome.
-- **6.2** Profile per-REL interaction lock contention, fan-out memory, owner background scheduling and many-client update pressure; split locks or add backpressure only where measured, not to preempt a hypothetical bottleneck.
-- **6.3** Run Rust fmt/check/full tests, detachable CLI checks after API migration, docs structural/change-impact checks, and repository architecture policy. Use refreshed Lexicon/Arcana structure checks if a valid current snapshot exists; supplement with direct source search.
-- **6.4** Verify deletion of all obsolete ambient-host paths and ensure current docs describe shipped behavior, not planned behavior.
-- **Final gate:** complete authoritative architecture, no unintended duplicate owner/store/processing state, preservation of all pre-existing semantic tests, tested multi-instance synchronization and concurrency semantics.
+### Phase 5 — full-stack consumer migration, parallel lanes then deletion
+
+- **P5.0 shared API freeze:** map real consumers to existing gateway/instance operations; add only genuinely missing final interface contracts, not compatibility shims.
+- **P5-A REL/runtime lane:** Archive, Memory, Entity/Graph, provenance, retrieval, project/repository, owner-qualified lifecycle/status and private PHY access.
+- **P5-B background/host lane:** Dream, Insomnia, Perception, vectors, REL/PHY worker parity, stage capability negotiation, stable handoff/reconciliation and cancellation.
+- **P5-C external lane:** Warlock workspace/chat/session/provider/stream migration and truthful dependency-pin upgrade; inspect CLI actual usage and migrate only real affected callers. Use a new clean Warlock worktree, preserving currently dirty graph/UI changes.
+- **P5-D final cut:** after A/B/C acceptance, integrate root exports once, delete obsolete ReliquaryRuntimeHost and old-only helpers/characterization, replace old tests with gateway tests, update architecture/docs/ADR.
+- **Exit:** one gateway-owned runtime with every legitimate consumer migrated, no ambient alternate owner and real upgraded Warlock/CLI acceptance.
+
+### Phase 6 — harness in parallel; final release after P5-D
+
+- **P6-H concurrently:** deterministic multi-instance topology, queue/branch/finalization crash faults, exact REL feed/stream reconnect and privacy, host queue and cancellation/reconciliation fakes, reproducible lock/fan-out/memory profiling.
+- **P6-R after P5-D:** real post-deletion adversarial stress, measured optimization if needed, locked Rust/CLI/Warlock tests and builds, docs/source/architecture guards, current state review and final release evidence.
+- **Exit:** validated cancellation and exactly-once local effects, safe multi-principal synchronization, no old host authority, measured scalability and explicit status for any still-blocked architecture refresh or platform gate.
 
 ## Decision register
 
