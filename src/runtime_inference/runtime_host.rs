@@ -113,9 +113,7 @@ pub(super) struct RuntimeMemoryProfiles {
     pub(super) user: Option<CompatibilityProfileId>,
 }
 
-pub use archive_search::{
-    DEFAULT_ARCHIVE_SEARCH_RESULTS, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
-};
+pub use archive_search::DEFAULT_ARCHIVE_SEARCH_RESULTS;
 pub use gateway::conversation::{
     ConversationViewerToken, GatewayConversationAttachment, GatewayConversationSubmission,
     GatewaySubmissionReceipt,
@@ -137,7 +135,6 @@ pub use reconciliation::{RelReconciliationCandidateReport, RelReconciliationRepo
 pub use routes::ReliquaryRuntimeRoutes;
 pub use semantic_access::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind};
 pub use semantic_echo::{RuntimeEchoSource, RuntimeEchoTurn};
-pub use semantic_provenance::RuntimeKnowledgeProvenanceResolution;
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub(super) struct LegacyManagedSessionState {

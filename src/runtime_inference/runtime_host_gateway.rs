@@ -29,10 +29,12 @@ pub(super) mod mount;
 mod phy_lifecycle;
 #[path = "runtime_host_gateway_semantic.rs"]
 mod semantic;
+pub use semantic::provenance::RuntimeKnowledgeProvenanceResolution;
 #[path = "runtime_host_gateway_semantic_search.rs"]
 mod semantic_search;
 pub use admission::{GatewayAdmissionAdapter, VerifiedInstanceAdmission};
 use mount::{MountClaim, MountedFileIdentity};
+pub use semantic_search::{VisibleArchiveSearchOwner, VisibleArchiveSearchResult};
 #[path = "runtime_host_gateway_host.rs"]
 mod host;
 pub use host::{

@@ -3,23 +3,6 @@ use super::{
 };
 use crate::{MemoryId, MemoryProvenance};
 
-#[derive(Clone, Debug)]
-pub enum RuntimeKnowledgeProvenanceResolution {
-    None {
-        memory_owner_id: String,
-        provenance: Option<MemoryProvenance>,
-    },
-    Unresolved {
-        memory_owner_id: String,
-        source_owner_id: String,
-    },
-    Resolved {
-        memory_owner_id: String,
-        source_owner_id: String,
-        provenance: MemoryProvenance,
-    },
-}
-
 impl ReliquaryRuntimeHost {
     pub fn read_memory_provenance_for_owner(
         &self,

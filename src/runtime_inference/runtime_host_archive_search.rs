@@ -6,21 +6,10 @@ use crate::{
     ArchiveSearchHit, ConversationSearchHit, MAX_ARCHIVE_SEARCH_QUERY_BYTES,
     MAX_ARCHIVE_SEARCH_RESULTS,
 };
+use crate::{VisibleArchiveSearchOwner, VisibleArchiveSearchResult};
 use std::collections::HashMap;
 
 pub const DEFAULT_ARCHIVE_SEARCH_RESULTS: usize = 5;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct VisibleArchiveSearchOwner {
-    pub owner: RuntimeSemanticOwner,
-    pub hits: Vec<ConversationSearchHit>,
-    pub error: Option<String>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct VisibleArchiveSearchResult {
-    pub owners: Vec<VisibleArchiveSearchOwner>,
-}
 
 impl ReliquaryRuntimeHost {
     pub fn search_archive(
