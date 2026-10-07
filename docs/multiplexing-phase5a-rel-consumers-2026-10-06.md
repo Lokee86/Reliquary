@@ -1,7 +1,7 @@
 # Multiplexing P5-A — REL/runtime consumer migration
 
 Parent: [P5/6 parallel plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
-Status: **Implementation-ready; no implementation claimed.**
+Status: **Implementation present on `feat/multiplexing-p5-rel-consumers`; verification/acceptance incomplete**. See [P5-A local acceptance](multiplexing-p5a-acceptance-2026-10-06.md) and [consumer matrix](multiplexing-p5a-consumer-matrix-2026-10-06.md).
 
 ## Purpose
 
@@ -59,4 +59,3 @@ Update the canonical API/maintainer and behavioral contract descriptions only fo
 ## Notes
 
 Legacy source paths are inventory only. P5-D owns deletion and final root wiring.
-

@@ -519,3 +519,139 @@ fn profile_wakes_only_the_exact_phy_and_projection_only_the_rel() {
     );
     assert_eq!(epoch(&f.a), a + 1);
 }
+
+#[test]
+fn p5a_semantic_mutations_preserve_phy_privacy_and_replacement_lineage() {
+    let f = Fixture::new();
+    let memory =
+        f.g.create_knowledge_memory_for_owner(
+            &f.alice,
+            &f.a,
+            "Private".into(),
+            "source content".into(),
+            "knowledge".into(),
+            "fact".into(),
+            100,
+        )
+        .unwrap();
+    assert_eq!(
+        f.g.knowledge_memory_for_owner(&f.alice, &f.a, memory.id)
+            .unwrap()
+            .title,
+        "Private"
+    );
+    assert!(
+        f.g.knowledge_memory_for_owner(&f.bob, &f.a, memory.id)
+            .is_err()
+    );
+    assert!(
+        f.g.create_knowledge_memory_for_owner(
+            &f.bob,
+            &f.a,
+            "Forbidden".into(),
+            "secret".into(),
+            "knowledge".into(),
+            "fact".into(),
+            101,
+        )
+        .is_err()
+    );
+    assert!(
+        f.g.create_knowledge_memory_for_owner(
+            &f.alice,
+            "phy-guessed",
+            "Forbidden".into(),
+            "secret".into(),
+            "knowledge".into(),
+            "fact".into(),
+            101,
+        )
+        .is_err()
+    );
+    let successor =
+        f.g.replace_knowledge_memory_for_owner(
+            &f.alice,
+            &f.a,
+            memory.id,
+            "Revised".into(),
+            "updated".into(),
+            102,
+        )
+        .unwrap();
+    let original =
+        f.g.knowledge_memory_for_owner(&f.alice, &f.a, memory.id)
+            .unwrap();
+    assert!(original.archived);
+    assert_eq!(original.superseded_by, Some(successor.id));
+    assert_eq!(successor.title, "Revised");
+    assert!(
+        f.g.semantic_graph_relations_for_owner(&f.alice, &f.a)
+            .unwrap()
+            .iter()
+            .any(|r| r.source == successor.id
+                && r.target == memory.id
+                && r.kind == crate::GraphRelationKind::Supersedes)
+    );
+    assert!(
+        f.g.mutate_knowledge_relation_for_owner(
+            &f.bob,
+            &f.a,
+            successor.id,
+            memory.id,
+            None,
+            Some(crate::GraphRelationKind::Supersedes),
+        )
+        .is_err()
+    );
+    f.g.mutate_knowledge_relation_for_owner(
+        &f.alice,
+        &f.a,
+        successor.id,
+        memory.id,
+        None,
+        Some(crate::GraphRelationKind::Supersedes),
+    )
+    .unwrap();
+    assert!(
+        f.g.read_memory_provenance_for_owner(&f.alice, &f.a, memory.id)
+            .is_err()
+    );
+    assert!(
+        f.g.resolve_knowledge_provenance_for_owner(&f.bob, &f.a, memory.id)
+            .is_err()
+    );
+
+    let mut grants = f.bob.grants_snapshot().unwrap();
+    grants
+        .get_mut(&f.rel)
+        .unwrap()
+        .remove(&OwnerGrant::ManageRel);
+    f.g.replace_instance_grants(&f.bob, grants).unwrap();
+    assert!(
+        f.g.create_knowledge_memory_for_owner(
+            &f.bob,
+            &f.rel,
+            "Denied".into(),
+            "content".into(),
+            "knowledge".into(),
+            "fact".into(),
+            103,
+        )
+        .is_err()
+    );
+    let rel_memory =
+        f.g.create_knowledge_memory_for_owner(
+            &f.alice,
+            &f.rel,
+            "Allowed".into(),
+            "content".into(),
+            "knowledge".into(),
+            "fact".into(),
+            104,
+        )
+        .unwrap();
+    assert!(
+        f.g.knowledge_memory_for_owner(&f.bob, &f.rel, rel_memory.id)
+            .is_ok()
+    );
+}
