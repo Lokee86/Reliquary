@@ -251,9 +251,40 @@ mod tests {
                 None,
                 BTreeMap::from([(
                     rel.clone(),
-                    BTreeSet::from([OwnerGrant::ViewRel, OwnerGrant::ManageRel]),
+                    BTreeSet::from([
+                        OwnerGrant::ViewRel,
+                        OwnerGrant::ManageRel,
+                        OwnerGrant::SubmitConversation,
+                    ]),
                 )]),
             )
+            .unwrap();
+        // A title mutation does not create a conversation. Seed a real
+        // admitted turn before testing title publication and durability.
+        assert!(
+            gateway
+                .set_conversation_title_for(&writer, &rel, "conv", "renamed".into())
+                .is_err()
+        );
+        gateway
+            .submit_conversation(
+                &writer,
+                &rel,
+                crate::GatewayConversationSubmission {
+                    conversation_id: "conv".into(),
+                    submission_id: "metadata-user".into(),
+                    branch_id: "main".into(),
+                    expected_conversation_revision: 0,
+                    expected_parent_node_id: None,
+                    content: "create the conversation".into(),
+                    attachments: Vec::new(),
+                    client_timestamp_ns: None,
+                },
+            )
+            .unwrap();
+        gateway
+            .process_next_conversation_submission(&writer, &rel, "conv")
+            .unwrap()
             .unwrap();
         assert!(
             gateway

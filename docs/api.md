@@ -2,6 +2,13 @@
 Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document owns the current public Rust library surface exposed by `reliquary_memory`.
+## P5-C exact admission and transcript continuation
+
+The isolated P5-C integration adds `conversation_submission_status` (ViewRel) and `process_conversation_submission_if_next` (SubmitConversation). Matching occurs inside the existing coordinator's ordered reservation; a mismatch returns no receipt and leaves queued work untouched. This is not exact-ID scheduling around the queue.
+
+Gateway transcript reads join native prefixes under the existing owner → coordinator → journal observation order. Native stream records are excluded from the legacy session projection; only the exact requested leaf's journal-acknowledged continuation is reconstructed through the existing byte-length/hash-validated checkpoint reader. Historical/sibling leaves do not receive that continuation, completed generations remain Archive turns, and ViewRel/mount fencing still applies. Legacy non-native streams retain their existing projection. No stored format or second mutable authority changes.
+
+
 ## Overview
 The public API exposes `ReliquaryConfig` and model-switchboard types for machine-local runtime routing; `InteractionRuntime` for transport-neutral live session coordination; `Reliquary` for the homogeneous non-user scope storage/runtime model; and the separate `Phylactery` type for user-global state. Every newly created REL/PHY has a durable owner UUID. Current REL owner IDs use `rel-<uuid>` and PHY owner IDs use `phy-<uuid>`. Reliquary includes Archive history, Episodes, Memories, Graph, derived community snapshots, Insomnia state, embedded files/source attachments, vector backing/publication, compatibility profiles, reconciliation, hybrid retrieval, durable REL metadata (`type_label` plus directed REL dependencies), REL Anchors, and one cached owner-local Ego web synthesis. Phylactery exposes mutable principal profile metadata (`display_name`), Memories with optional owner-qualified external source references, Graph, derived community snapshots, Packed Vectors, Memory Vectors, Compatibility Profiles, Identity, Personality, Anchors, and one cached owner-local Ego web synthesis. `Cva` remains exported as the Reliquary compatibility/internal type name. Ego inference/context assembly is not yet part of this API; this surface currently establishes only the durable owner-state substrate. The API remains development-stage.
 ## Exact contract

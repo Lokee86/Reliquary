@@ -126,6 +126,10 @@ runtime_host_gateway_conversation_observation.rs owns the internal authoritative
 
 For workload definitions and matched comparisons, inspect `examples/freshness_performance_baseline.rs` and `scripts/freshness_performance_compare.py`. For complete operation stages, inspect `src/freshness/trace.rs`, the existing Freshness runtime/facade adapters and `examples/freshness_operation_baseline.rs`. [Development](development.md) owns commands and interpretation; [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns verified measurements. Propagation optimization remains gated by the independent oracle and the [hardening plan](freshness-performance-hardening-plan-2026-10-03.md).
 
+## P5-C admission and checkpoint reads
+
+`runtime_host_gateway_conversation.rs` owns exact receipt status and scheduler-matched dispatch. `runtime_host_gateway_conversation_continuation.rs` owns atomic queue matching. `runtime_host_gateway_conversation_observation.rs` joins Archive and acknowledged native checkpoint prefixes. These reuse the existing owner, coordinator and journal; Warlock does not read raw stream storage.
+
 ## Related docs
 
 - [Architecture](architecture.md)

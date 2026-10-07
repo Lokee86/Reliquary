@@ -45,6 +45,101 @@ impl GatewayRuntime {
         with_admission(self, &token, || Ok(snapshot))
     }
 
+    /// Join native generation prefixes at the same semantic-owner/journal cut
+    /// as Archive. Native stream bytes are read only through checkpoint receipts.
+    pub(in super::super) fn conversation_transcript_with_checkpoints(
+        &self,
+        token: &OwnerAccessToken,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<crate::ResolvedInteractionTurn>, ReliquaryRuntimeHostError> {
+        let conversation_id = ConversationId::new(conversation_id).map_err(operation)?;
+        let journal = self.conversation.journal(&token.owner_id)?;
+        let coordinator = self
+            .conversation
+            .coordinator(&token.owner_id, conversation_id.as_str())?;
+        self.with_rel(token, |runtime| {
+            coordinator.observe(&journal, |journal| {
+                let statuses = journal.statuses();
+                if statuses.len() > MAX_CONVERSATION_SOURCE_ITEMS {
+                    return Err(operation("REL conversation journal exceeds its item bound"));
+                }
+                let native_ids = statuses
+                    .iter()
+                    .filter_map(|(id, status)| {
+                        (id.conversation_id == conversation_id)
+                            .then(|| status.generation.as_ref().map(|g| g.generation_id.clone()))
+                            .flatten()
+                    })
+                    .collect();
+                let mut transcript = runtime
+                    .conversation_transcript_excluding_streams(
+                        conversation_id.as_str(),
+                        leaf_node_id,
+                        &native_ids,
+                    )
+                    .map_err(operation)?;
+                for (id, status) in statuses {
+                    if id.conversation_id != conversation_id {
+                        continue;
+                    }
+                    let Some(generation) = status.generation else {
+                        continue;
+                    };
+                    // A prefix is a continuation of this exact leaf, not a
+                    // sibling or a later operation merely sharing an ancestor.
+                    if generation.parent_node_id != leaf_node_id
+                        || runtime
+                            .cva()
+                            .archive()
+                            .has_node(conversation_id.as_str(), &generation.generation_id)
+                    {
+                        continue;
+                    }
+                    let observed = GenerationObservation {
+                        identity: GenerationIdentity {
+                            operation_id: generation.operation_id.clone(),
+                            generation_id: generation.generation_id.clone(),
+                            branch_id: generation.branch_id.clone(),
+                        },
+                        status: generation_status(generation.phase),
+                        transition_revision: generation.transition_revision,
+                        durable_checkpoint_sequence: generation
+                            .checkpoint
+                            .as_ref()
+                            .map(|c| c.sequence),
+                    };
+                    let Some(checkpoint) = checkpoint_from_journal(
+                        runtime,
+                        journal,
+                        token.mount_epoch,
+                        &conversation_id,
+                        &observed,
+                    )?
+                    else {
+                        continue;
+                    };
+                    transcript.push(crate::ResolvedInteractionTurn {
+                        message_id: generation.generation_id,
+                        role: "assistant".into(),
+                        principal_id: None,
+                        timestamp_ns: generation.started_timestamp_ns,
+                        content: checkpoint.text,
+                        attachments: Vec::new(),
+                        status: match observed.status {
+                            GenerationStatus::Running | GenerationStatus::CancellationRequested => {
+                                crate::InteractionTurnStatus::Streaming
+                            }
+                            _ => crate::InteractionTurnStatus::Interrupted,
+                        },
+                    });
+                }
+                transcript.sort_by_key(|turn| turn.timestamp_ns);
+                Ok(transcript)
+            })
+        })
+    }
+
     /// P4-gated broad source. This method does not reacquire the P4 publication
     /// gate or owner admission. REL summaries intentionally omit instance selection.
     pub(in super::super) fn read_conversation_distribution_source(

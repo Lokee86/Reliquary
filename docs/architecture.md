@@ -507,6 +507,13 @@ P2 schedules complete independent events with one bounded pool and stable input-
 
 The opt-in `freshness-performance-trace` feature observes existing accepted-use and pinned initial-Dream operations. `src/freshness/trace.rs` owns bounded process-local diagnostic buffers; runtime/facade adapters retain their existing preparation, propagation and commit responsibilities. The default build does not collect traces. The diagnostic initial-Dream fixture adapter uses the original durable proof checks and does not introduce a new scoring or graph authority. [Development](development.md) owns diagnostic invocation; [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns the baseline; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final local acceptance and remaining deployment limits.
 
+## P5-C exact admission and transcript continuation
+
+The isolated P5-C integration adds `conversation_submission_status` (ViewRel) and `process_conversation_submission_if_next` (SubmitConversation). Matching occurs inside the existing coordinator's ordered reservation; a mismatch returns no receipt and leaves queued work untouched. This is not exact-ID scheduling around the queue.
+
+Gateway transcript reads join native prefixes under the existing owner → coordinator → journal observation order. Native stream records are excluded from the legacy session projection; only the exact requested leaf's journal-acknowledged continuation is reconstructed through the existing byte-length/hash-validated checkpoint reader. Historical/sibling leaves do not receive that continuation, completed generations remain Archive turns, and ViewRel/mount fencing still applies. Legacy non-native streams retain their existing projection. No stored format or second mutable authority changes.
+
+
 ## Related docs
 - [Storage format](storage-format.md)
 - [Local configuration](configuration.md)

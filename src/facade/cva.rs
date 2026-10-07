@@ -576,6 +576,14 @@ impl Cva {
         self.interaction_streams.records_for_session(session_id)
     }
 
+    pub(crate) fn borrowed_interaction_streams_for_session(
+        &self,
+        session_id: &str,
+    ) -> impl Iterator<Item = &crate::InteractionStreamRecord> {
+        self.interaction_streams
+            .borrowed_records_for_session(session_id)
+    }
+
     pub(crate) fn interaction_stream_records(&self) -> Vec<crate::InteractionStreamRecord> {
         self.interaction_streams.all_records()
     }

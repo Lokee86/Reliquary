@@ -10,6 +10,10 @@ This document maps implemented code boundaries to their canonical documentation 
 
 Only implemented code belongs in this matrix. Future-only product/runtime work is owned by [Roadmap](roadmap.md) and is intentionally excluded until concrete implementation roots exist.
 
+## P5-C admission and checkpoint reads
+
+Exact submission status/matching are documented in [API](api.md), checkpoint projection in [Architecture](architecture.md) and [Invariants](invariants.md), source ownership in [Maintainer map](maintainer-map.md), and regressions in [Behavioral contracts](behavioral-contracts.md). Persisted formats and mutable owner boundaries are unchanged.
+
 ## Activity-clock test boundary
 
 `src/archive/archive_activity_measurement_tests.rs` supplies bounded fixture/reference-ledger verification and informational timing/memory measurements; [Development](development.md) owns its invocation and measurement limits, and [the activity-clock plan](rel-activity-clock-implementation-plan.md) records results.

@@ -17,35 +17,40 @@ No new project-creation/adoption convenience API was invented. Those trusted pre
 
 | Gate | Result |
 | --- | --- |
-| `cargo test -j1 --lib p5a_ -- --test-threads=4` | **NOT RUN / FAIL TO START** — timed out after ~124 seconds with no test output; no assertion result claimed |
-| `cargo check -j1` | **NOT COMPLETE** — timed out after ~124 seconds while rebuilding dependencies; ended on missing `cfg_if` rmeta in the temperamental target cache |
+| `cargo test --locked -j4 --lib -- --test-threads=4` | **PASS** — all 1,099 tests, including P5-A search/privacy/mutation and current P5-C regressions |
+| `cargo check --locked -j4` | **PASS** |
 | `cargo fmt --all -- --check` | **PASS** |
-| `python scripts/check_multiplexing_phase4_coverage.py --self-test` | **PASS** — 39 positive/negative fixtures; 128 public APIs classified |
-| `git diff --check` | **PASS** |
-| Existing gateway semantic/auth/project test groups | **NOT RUN** — dependency cache prevented reaching test execution |
-| Integration tests / CLI | **NOT RUN** — no CLI or Warlock changes are in scope |
+| Integration tests | **PASS** — all 128 tests |
+| CLI fmt / locked check / locked test | **PASS** — all 19 CLI tests |
+| P4 coverage guard | **PASS** — 42 positive/negative fixtures; 148 public APIs classified |
+| Documentation structural / change-impact checks | **PASS** |
+| Warlock upgraded all-target check | **PASS** — local Reliquary wrapper; Warlock continuation commit `1782e72` |
+| Warlock conversation / provider / admission fixtures | **PASS** — 19 + 2 + 2 tests; frontend build and 56-rule policy also pass |
+| Reliquary architecture refresh | **TIMED OUT** during Rust indexing; full architecture gate remains open |
 
-The focused runtime acceptance gate is therefore **open**. Formatting and source classification are passing evidence only; this document does not claim P5-A runtime acceptance or external-consumer compilation.
+The previously missing P5-A runtime evidence is supplied on this integration revision. Final consumer convergence, dependency publication/pins, E/F integration and P5-D deletion remain open.
+
+The earlier focused test/check attempts timed out before assertions or lost dependency metadata. They are historical failures and are superseded by the executed results above. The initial full-library run exposed a metadata test trying to rename a nonexistent conversation; the fixture now seeds a real admitted turn and retains the rejection assertion.
 
 ## Documentation impact
 
 - Inspected: P5-A acceptance, P5-A consumer matrix, P5-B acceptance, current gateway implementation, root exports, semantic tests, and source guard.
-- Updated: this integrated acceptance/API stabilization record.
-- Not affected: architecture, storage format, CLI behavior, Warlock, legacy host deletion, worker ownership, journal ownership.
-- Compliance check: formatting, P4 source guard, and diff check passed; documentation policy checks were not run because the Rust dependency cache blocked the broader acceptance cycle.
-- Known documentation gaps: final P5-C consumer proof and P5-D legacy deletion/root cleanup remain pending; runtime tests need an intact dependency/target cache.
+- Updated: this record, API, architecture, invariants, maintainer map, behavioral contracts and documentation coverage.
+- Not affected: persisted formats, CLI behavior, legacy host deletion, worker/journal ownership and unrelated Warlock main.
+- Compliance check: formatting, library/integration/CLI checks, P4 coverage and both documentation policy checks pass. Full architecture refresh timed out.
+- Known documentation gaps: final E/F/consumer convergence and P5-D current-state cleanup remain pending.
 
 ## Architecture impact
 
 - Standards added or changed: none.
-- Ownership or boundary impact: common external result shapes moved to their canonical gateway semantic owners; public names and legacy compatibility remain unchanged.
+- Ownership or boundary impact: canonical gateway result ownership is retained. Exact submission matching uses the existing coordinator reservation; transcript reads join only acknowledged native checkpoints at the existing owner/coordinator/journal cut. No second queue or mutable owner is introduced.
 - Pitlord enforcement impact: none; the existing P4 coverage classifications remain passing.
-- Other verification impact: source-backed public export stability is improved, but compile/test evidence remains blocked by the dependency cache.
-- Known architectural gaps: trusted project creation/adoption convergence and final external consumer migration remain separate gates.
+- Other verification impact: complete library/integration/CLI tests and upgraded Warlock compilation pass. Verification builds use per-task directories outside the cargo-reclaim daemon's C:/!bin scan root.
+- Known architectural gaps: multi-context consumer UX, actual provider conformance, public P4 delivery/reconnect, E/F convergence and production dependency alignment remain open.
 
 ## Current continuation evidence
 
-The 2026-10-07 P5-C continuation repaired missing canonical result re-exports, the legacy provenance consumer import, and project-lifecycle reconciliation/identity visibility. `cargo check --locked` now passes in this integration worktree. Warlock `cargo-local-reliquary.ps1 check --all-targets` also passes against it. Earlier timeout entries above are historical; focused P5-A runtime tests remain unverified. This is not final P5 acceptance.
+The 2026-10-07 P5-C continuation repaired missing canonical result re-exports, the legacy provenance consumer import, and project-lifecycle reconciliation/identity visibility. `cargo check --locked` now passes in this integration worktree. Warlock `cargo-local-reliquary.ps1 check --all-targets` also passes against it. Earlier timeout entries above are historical. The current integration passes all 1,099 library tests, including P5-A owner-qualified search and semantic mutation regressions, exact submission dispatch and acknowledged checkpoint recovery. This supplies the previously missing P5-A runtime evidence; final P5 convergence and release acceptance remain open.
 
 ## Purpose
 

@@ -226,6 +226,13 @@ Conversation snapshots acquire runtime -> coordinator -> journal and copy facts 
 
 Performance diagnostics must preserve the accepted owner/policy/graph/Community cut and every independent consumption event. They may not replace a historical cut with current topology, enroll passive reads, suppress recipients, or treat a timing result as a correctness proof. Real fixture runs require source/copy SHA-256 verification and disposable writable copies. [The hardening plan](freshness-performance-hardening-plan-2026-10-03.md) defines promotion gates.
 
+## P5-C exact admission and transcript continuation
+
+The isolated P5-C integration adds `conversation_submission_status` (ViewRel) and `process_conversation_submission_if_next` (SubmitConversation). Matching occurs inside the existing coordinator's ordered reservation; a mismatch returns no receipt and leaves queued work untouched. This is not exact-ID scheduling around the queue.
+
+Gateway transcript reads join native prefixes under the existing owner → coordinator → journal observation order. Native stream records are excluded from the legacy session projection; only the exact requested leaf's journal-acknowledged continuation is reconstructed through the existing byte-length/hash-validated checkpoint reader. Historical/sibling leaves do not receive that continuation, completed generations remain Archive turns, and ViewRel/mount fencing still applies. Legacy non-native streams retain their existing projection. No stored format or second mutable authority changes.
+
+
 ## Related docs
 
 - [Architecture](architecture.md)
