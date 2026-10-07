@@ -26,6 +26,7 @@ fn active_rel_and_managed_conversation_are_instance_local() {
             ManagedConversationState {
                 conversation_id: Some("conversation-a".into()),
                 branch_id: Some("branch-a".into()),
+                selected_leaf_node_id: None,
                 reopened_session_pending: true,
             },
         )
@@ -38,6 +39,7 @@ fn active_rel_and_managed_conversation_are_instance_local() {
         ManagedConversationState {
             conversation_id: Some("conversation-a".into()),
             branch_id: Some("branch-a".into()),
+            selected_leaf_node_id: None,
             reopened_session_pending: true,
         }
     );
@@ -57,6 +59,7 @@ fn per_rel_managed_selection_survives_switching_rel() {
             ManagedConversationState {
                 conversation_id: Some("session-a".into()),
                 branch_id: Some("branch-a".into()),
+                selected_leaf_node_id: None,
                 reopened_session_pending: false,
             },
         )
@@ -69,6 +72,7 @@ fn per_rel_managed_selection_survives_switching_rel() {
             ManagedConversationState {
                 conversation_id: Some("session-b".into()),
                 branch_id: Some("branch-b".into()),
+                selected_leaf_node_id: None,
                 reopened_session_pending: true,
             },
         )

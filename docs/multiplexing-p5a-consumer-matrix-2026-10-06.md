@@ -46,3 +46,20 @@ Re-audit and remove once P5-C migrated all calls and D tests pass: `runtime_host
 ## Limits
 
 A source-backed first-party audit is not evidence of all unknown external consumers. Final root exports, Warlock integration and release verification remain P5-C/D/P6 and must not be labeled accepted by P5-A.
+
+## Purpose
+
+Record the source contracts and verification for this isolated multiplexing lane.
+
+## Overview
+
+This record is branch-scoped. Source/API progress and executed runtime acceptance are separate gates; the parent parallel plan governs convergence.
+
+## Related docs
+
+- [Parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
+- [External consumer lane](multiplexing-phase5c-external-consumers-2026-10-06.md)
+
+## Notes
+
+Historical test results do not certify later integration revisions. Final release acceptance remains subject to the parent plan's consumer, deletion and release gates.

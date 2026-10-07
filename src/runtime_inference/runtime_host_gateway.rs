@@ -31,7 +31,7 @@ mod phy_lifecycle;
 mod project_lifecycle;
 #[path = "runtime_host_gateway_semantic.rs"]
 mod semantic;
-pub use semantic::provenance::RuntimeKnowledgeProvenanceResolution;
+pub use semantic::RuntimeKnowledgeProvenanceResolution;
 #[path = "runtime_host_gateway_semantic_search.rs"]
 mod semantic_search;
 pub use admission::{GatewayAdmissionAdapter, VerifiedInstanceAdmission};
@@ -56,6 +56,8 @@ mod convergence_tests;
 pub(super) mod conversation;
 #[path = "runtime_host_gateway_conversation_metadata.rs"]
 mod conversation_metadata;
+#[path = "runtime_host_gateway_conversation_selection.rs"]
+mod conversation_selection;
 #[path = "runtime_host_gateway_events.rs"]
 pub(super) mod events;
 #[path = "runtime_host_gateway_mutation_events.rs"]

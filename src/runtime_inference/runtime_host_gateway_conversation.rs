@@ -615,6 +615,7 @@ impl GatewayRuntime {
             super::super::instances::ManagedConversationState {
                 conversation_id: Some(id.conversation_id.as_str().to_owned()),
                 branch_id: Some(selected_branch_id),
+                selected_leaf_node_id: None,
                 reopened_session_pending: false,
             },
         );
@@ -669,6 +670,7 @@ impl GatewayRuntime {
             super::super::instances::ManagedConversationState {
                 conversation_id: Some(conversation_id.as_str().to_owned()),
                 branch_id: Some(branch_id.to_owned()),
+                selected_leaf_node_id: None,
                 reopened_session_pending: false,
             },
         );
@@ -703,6 +705,7 @@ impl GatewayRuntime {
         let managed = super::super::instances::ManagedConversationState {
             conversation_id: Some(conversation_id.as_str().to_owned()),
             branch_id: Some(branch_id.to_owned()),
+            selected_leaf_node_id: None,
             reopened_session_pending: true,
         };
         self.set_instance_managed_state(instance, owner_id, managed.clone())?;

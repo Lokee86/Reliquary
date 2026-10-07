@@ -63,10 +63,10 @@ impl GatewayRuntime {
     pub fn reconcile_rel_file(
         &self,
         canonical: impl AsRef<Path>,
-    ) -> Result<super::RelReconciliationReport, super::ReliquaryRuntimeHostError> {
+    ) -> Result<crate::RelReconciliationReport, super::ReliquaryRuntimeHostError> {
         let path = canonical.as_ref();
         let _claim = self.admit_unmounted_path(path)?;
-        super::reconcile_rel_file_unmounted(path).map_err(super::operation)
+        super::super::reconciliation::reconcile_rel_file_unmounted(path).map_err(super::operation)
     }
     fn admit_unmounted_path(
         &self,

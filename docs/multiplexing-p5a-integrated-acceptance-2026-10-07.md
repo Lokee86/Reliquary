@@ -42,3 +42,24 @@ The focused runtime acceptance gate is therefore **open**. Formatting and source
 - Pitlord enforcement impact: none; the existing P4 coverage classifications remain passing.
 - Other verification impact: source-backed public export stability is improved, but compile/test evidence remains blocked by the dependency cache.
 - Known architectural gaps: trusted project creation/adoption convergence and final external consumer migration remain separate gates.
+
+## Current continuation evidence
+
+The 2026-10-07 P5-C continuation repaired missing canonical result re-exports, the legacy provenance consumer import, and project-lifecycle reconciliation/identity visibility. `cargo check --locked` now passes in this integration worktree. Warlock `cargo-local-reliquary.ps1 check --all-targets` also passes against it. Earlier timeout entries above are historical; focused P5-A runtime tests remain unverified. This is not final P5 acceptance.
+
+## Purpose
+
+Record the source contracts and verification for this isolated multiplexing lane.
+
+## Overview
+
+This record is branch-scoped. Source/API progress and executed runtime acceptance are separate gates; the parent parallel plan governs convergence.
+
+## Related docs
+
+- [Parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
+- [External consumer lane](multiplexing-phase5c-external-consumers-2026-10-06.md)
+
+## Notes
+
+Historical test results do not certify later integration revisions. Final release acceptance remains subject to the parent plan's consumer, deletion and release gates.

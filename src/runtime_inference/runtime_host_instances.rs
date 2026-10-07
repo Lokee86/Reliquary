@@ -36,6 +36,8 @@ pub struct InstanceAuthorization {
 pub struct ManagedConversationState {
     pub conversation_id: Option<String>,
     pub branch_id: Option<String>,
+    /// Read cursor for a historical leaf; it does not move a durable branch head.
+    pub selected_leaf_node_id: Option<String>,
     pub reopened_session_pending: bool,
 }
 

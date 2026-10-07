@@ -102,3 +102,10 @@
 - [External research references](references/INDEX.md) — preserved third-party papers and research snapshots used as supporting design/evaluation evidence; not canonical project architecture.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.
+
+## P5 integration evidence
+
+- [multiplexing-p5a-acceptance-2026-10-06](multiplexing-p5a-acceptance-2026-10-06.md)
+- [multiplexing-p5a-consumer-matrix-2026-10-06](multiplexing-p5a-consumer-matrix-2026-10-06.md)
+- [multiplexing-p5a-integrated-acceptance-2026-10-07](multiplexing-p5a-integrated-acceptance-2026-10-07.md)
+- [multiplexing-p5c-project-contract-2026-10-07](multiplexing-p5c-project-contract-2026-10-07.md)

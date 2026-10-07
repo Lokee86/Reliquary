@@ -38,3 +38,19 @@ Documentation impact: inspected architecture/invariants, project/storage contrac
 ## Verification status boundary
 
 Do **not** mark Phase 5-A completely accepted until the new focused tests and existing gateway auth/project suites execute and pass with an intact Rust dependency cache. The failure traces concern external `lore-io` and `futures-core` compilation, not failing assertions; this is not evidence the new behavior is correct. The standalone production `cargo check` and source guard establish only compilation and classification. P5-C may inspect this branch/API matrix, but final integration should wait for those gates.
+## Purpose
+
+Record the source contracts and verification for this isolated multiplexing lane.
+
+## Overview
+
+This record is branch-scoped. Source/API progress and executed runtime acceptance are separate gates; the parent parallel plan governs convergence.
+
+## Related docs
+
+- [Parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
+- [External consumer lane](multiplexing-phase5c-external-consumers-2026-10-06.md)
+
+## Notes
+
+Historical test results do not certify later integration revisions. Final release acceptance remains subject to the parent plan's consumer, deletion and release gates.

@@ -88,3 +88,9 @@ Planning changes only: do not mark implemented APIs or migrations as shipped. At
 
 The parallel plan freezes ownership and merge gates, not an implemented API. A lane acceptance record supersedes planning status only after actual source and tests establish it.
 
+
+## P5-C recovery checkpoint — 2026-10-07
+
+Warlock isolated branch feat/multiplexing-p5c-final-cut checkpoint 3806cb1 removes its old host field/callers. Upgraded local compilation, 17 conversation regressions, two admission tests, provider round-trip persistence, frontend build, documentation and all 56 Warlock architecture rules pass. Production Reliquary/Arcana pins remain unchanged; this is not C5 acceptance. Interrupted generation reopening still omits the native generation prefix. Stable busy/retry status, multi-context selection, provider/P4 reconnect conformance and A/B/E/F dependency convergence remain open.
+
+The Reliquary integration repairs canonical exports/visibility and instance historical selection; see [P5-C project/API contract](multiplexing-p5c-project-contract-2026-10-07.md). cargo check --locked and P4 coverage pass. Full library test attempts failed in the Windows Rust compiler/Lore build, including the serial nonincremental retry; no library runtime pass is claimed. CLI source audit remains ConfiguredRuntime-only, with locked check/test unverified. Reliquary architecture refresh timed out before Pitlord. D must not delete old library authority based on this checkpoint.

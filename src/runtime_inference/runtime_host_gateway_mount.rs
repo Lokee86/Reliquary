@@ -38,7 +38,7 @@ impl MountedFileIdentity {
         })
     }
 
-    fn inspect(path: &Path, kind: OwnerKind) -> Result<Self, ReliquaryRuntimeHostError> {
+    pub(super) fn inspect(path: &Path, kind: OwnerKind) -> Result<Self, ReliquaryRuntimeHostError> {
         let canonical_path = std::fs::canonicalize(path).map_err(operation)?;
         let mut file = File::open(&canonical_path).map_err(operation)?;
         let (identity, owner_id) = Container::inspect_header(&mut file).map_err(operation)?;

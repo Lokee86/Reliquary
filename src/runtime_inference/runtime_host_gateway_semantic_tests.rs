@@ -588,9 +588,12 @@ fn p5a_semantic_mutations_preserve_phy_privacy_and_replacement_lineage() {
         f.g.semantic_graph_relations_for_owner(&f.alice, &f.a)
             .unwrap()
             .iter()
-            .any(|r| r.source == successor.id
-                && r.target == memory.id
-                && r.kind == crate::GraphRelationKind::Supersedes)
+            .any(|r| r.source == successor.id.into()
+                && r.target == memory.id.into()
+                && r.kind
+                    == crate::SemanticGraphRelationKind::Memory(
+                        crate::GraphRelationKind::Supersedes
+                    ))
     );
     assert!(
         f.g.mutate_knowledge_relation_for_owner(

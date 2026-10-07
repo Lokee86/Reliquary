@@ -123,7 +123,8 @@ pub use gateway::{
     CapabilityRouter, CapabilityState, GatewayAdmissionAdapter, GatewayHostAdapter, GatewayRuntime,
     HandoffReceipt, HostCancelOutcome, HostCapabilityContract, HostConnection, HostContractError,
     HostOperation, HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, OwnerAccessToken,
-    OwnerAdmission, RuntimeCapability, StageAuthority, VerifiedInstanceAdmission,
+    OwnerAdmission, RuntimeCapability, RuntimeKnowledgeProvenanceResolution, StageAuthority,
+    VerifiedInstanceAdmission, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
 };
 pub use instances::{
     InstanceAuthorization, InstanceId, InstanceRuntime, InstanceRuntimeError,

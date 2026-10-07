@@ -1,7 +1,7 @@
 use super::{
     ReliquaryRuntimeHost, ReliquaryRuntimeHostError, semantic_access::RuntimeSemanticOwnerKind,
 };
-use crate::{MemoryId, MemoryProvenance};
+use crate::{MemoryId, MemoryProvenance, RuntimeKnowledgeProvenanceResolution};
 
 impl ReliquaryRuntimeHost {
     pub fn read_memory_provenance_for_owner(

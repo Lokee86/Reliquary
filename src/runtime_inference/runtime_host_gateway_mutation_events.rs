@@ -11,6 +11,7 @@ pub(super) enum RelMutationFamily {
     Semantic,
     Metadata,
     ConversationMetadata,
+    ConversationBranch,
     Project,
     Processing,
     Background,
@@ -103,7 +104,10 @@ pub(super) fn commit<T>(
     let classes = [
         (
             a.archive_version != b.archive_version
-                || (family == RelMutationFamily::ConversationMetadata && auxiliary_changed),
+                || (matches!(
+                    family,
+                    RelMutationFamily::ConversationMetadata | RelMutationFamily::ConversationBranch
+                ) && auxiliary_changed),
             RelEventClass::ArchiveChanged,
         ),
         (semantic, RelEventClass::SemanticOwnerChanged),
@@ -165,6 +169,7 @@ impl GatewayRuntime {
     ) -> Result<T, ReliquaryRuntimeHostError> {
         let required = match family {
             RelMutationFamily::Project => OwnerGrant::ManageProject,
+            RelMutationFamily::ConversationBranch => OwnerGrant::SubmitConversation,
             RelMutationFamily::Semantic if token.grant == OwnerGrant::SubmitConversation => {
                 OwnerGrant::SubmitConversation
             }
