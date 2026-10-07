@@ -2,6 +2,10 @@
 Parent index: [Documentation index](INDEX.md)
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
+## P5-B persistence boundary
+
+P5-B changes no schema or persisted journal framing. Dispatch switches/wake state and the router digest cache remain ephemeral; existing owner receipts, vector profiles/bindings and derived queues reconstruct work. Durable host intent/cancellation/terminal proof remain in the REL journal. Private vector profiles/batches synchronize before runtime visibility/wake.
+
 ## Overview
 The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: latest-wins principal profile metadata, Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, Compatibility Profiles, and Ego Identity/Personality/Anchor/web-synthesis records. REL files may contain Ego Anchors and one cached owner-local web synthesis but reject PHY-only Identity/Personality records. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 

@@ -267,6 +267,10 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
         if stopped(&shared.signal)? {
             return Ok(());
         }
+        if !shared.background_open()? {
+            seen = wait_for_work_timeout(&shared.signal, seen, IDLE_POLL)?;
+            continue;
+        }
         let (endpoint, decision) = {
             let routes = shared
                 .routes

@@ -24,6 +24,10 @@ The Archive projection, historical read API and synced canonical runtime receipt
 
 The internal P4 sequencer, registry and snapshot modules own bounded delivery and exact-watermark resync acknowledgement. Post-snapshot events remain bounded until acknowledgement; overflow invalidates the cut. Snapshot gateway tests protect recovery, disconnect/resubscribe and grant/epoch isolation. P4.7 adds production conversation snapshot/receipt/checkpoint binding while leaving subscriber and cursor state in P4. P4.8 audit passed 1,026 library and 95 integration tests, runtime `cargo check`, formatting check, and a 28-fixture/112-API structural guard across all five REL worker files; this heuristic does not prove indirect arbitrary Rust calls. Strengthened tests cover PHY-private exclusions and maintenance quiescence/reopen continuity. The 120-second architecture refresh timed out during Lexicon analysis before Arcana/Pitlord; unrestricted examples retain the inherited `archive_open_profile` allocator conflict. See the [snapshot/resync record](multiplexing-phase4-snapshot-2026-10-04.md), [P4.7 convergence record](multiplexing-phase4-convergence-2026-10-05.md), and [P4.8 audit](multiplexing-phase4-audit-2026-10-05.md).
 
+## P5-B background controls
+
+`runtime_host_gateway_background.rs` implements exact-owner counters, dispatch switches, wake and route configuration over existing REL/PHY authority. `runtime_host_gateway_background_tests.rs` covers same-principal sharing, two-principal privacy, paused native work, route wake, stale-token/restart isolation and blocked provider I/O during quiesce. Canonical PHY vector publication synchronizes before wake. The host router admits only executable ConversationExecution and validates exact ID/digest retries; its deterministic tests cover unsupported claims, retained debt and changed-input rejection. Canonical contracts are in [Architecture](architecture.md), [Rust API](api.md), [Current limitations](current-limitations.md) and [the B capability ledger](multiplexing-p5b-capability-ledger-2026-10-06.md).
+
 ## Implementation coverage
 
 | Implementation | Responsibility | Canonical owners |

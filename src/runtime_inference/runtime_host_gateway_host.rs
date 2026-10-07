@@ -14,6 +14,11 @@ pub enum RuntimeCapability {
 }
 
 impl RuntimeCapability {
+    /// A host claim cannot replace a stage without an executable result/receipt path.
+    fn host_executable(self) -> bool {
+        matches!(self, Self::ConversationExecution)
+    }
+
     pub const ALL: [Self; 5] = [
         Self::ConversationExecution,
         Self::Insomnia,
@@ -239,6 +244,8 @@ struct RouterState {
     /// contract downgrades and adapter errors until reconciliation proves empty.
     ownership_debt: BTreeSet<RuntimeCapability>,
     owned_operation_ids: BTreeSet<(RuntimeCapability, String)>,
+    // Validation cache only. Durable identity/recovery remains in the REL journal.
+    operation_digests: BTreeMap<(RuntimeCapability, String), [u8; 32]>,
     mutation_generation: u64,
 }
 
@@ -260,7 +267,11 @@ impl CapabilityRouter {
     /// Constructing the router immediately connects and reconciles each advertised
     /// capability before any caller can ask for dispatch authority.
     pub fn connect(adapter: Arc<dyn GatewayHostAdapter>) -> Self {
-        let configured = adapter.configured_capabilities();
+        let configured = adapter
+            .configured_capabilities()
+            .into_iter()
+            .filter(|capability| capability.host_executable())
+            .collect::<BTreeSet<_>>();
         let router = Self {
             adapter,
             configured: configured.clone(),
@@ -269,6 +280,7 @@ impl CapabilityRouter {
                 contracts: BTreeMap::new(),
                 ownership_debt: BTreeSet::new(),
                 owned_operation_ids: BTreeSet::new(),
+                operation_digests: BTreeMap::new(),
                 mutation_generation: 0,
                 states: RuntimeCapability::ALL
                     .into_iter()
@@ -533,28 +545,66 @@ impl CapabilityRouter {
         Ok(())
     }
 
+    fn bind_handoff(
+        &self,
+        capability: RuntimeCapability,
+        operation: &HostOperation,
+        retry: bool,
+    ) -> Result<(), HostContractError> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| HostContractError::LockPoisoned)?;
+        let key = (capability, operation.stable_id.clone());
+        if state
+            .operation_digests
+            .get(&key)
+            .is_some_and(|digest| *digest != operation.payload_digest)
+        {
+            return Err(HostContractError::IdempotencyConflict);
+        }
+        if retry && !state.owned_operation_ids.contains(&key) {
+            return Err(HostContractError::UnknownOperationStatus);
+        }
+        let expected = if retry {
+            CapabilityState::UnknownStatusHeld
+        } else {
+            CapabilityState::Ready
+        };
+        let eligible = state.states.get(&capability) == Some(&expected)
+            && capability.host_executable()
+            && state
+                .contracts
+                .get(&capability)
+                .copied()
+                .is_some_and(HostCapabilityContract::may_own_pending_queue);
+        if !eligible {
+            if capability.host_executable() && !retry {
+                state.owned_operation_ids.insert(key);
+                state.ownership_debt.insert(capability);
+                state
+                    .states
+                    .insert(capability, CapabilityState::UnknownStatusHeld);
+                state.mutation_generation = state.mutation_generation.wrapping_add(1);
+            }
+            return Err(HostContractError::HostNotReady(capability));
+        }
+        state
+            .operation_digests
+            .insert(key.clone(), operation.payload_digest);
+        state.owned_operation_ids.insert(key);
+        state.ownership_debt.insert(capability);
+        state.mutation_generation = state.mutation_generation.wrapping_add(1);
+        Ok(())
+    }
+
     pub fn handoff(
         &self,
         capability: RuntimeCapability,
         operation: &HostOperation,
     ) -> Result<HandoffReceipt, HostContractError> {
         operation.validate()?;
-        let contract = self
-            .state
-            .lock()
-            .map_err(|_| HostContractError::LockPoisoned)?
-            .contracts
-            .get(&capability)
-            .copied();
-        if self.state(capability)? != CapabilityState::Ready
-            || !contract.is_some_and(HostCapabilityContract::may_own_pending_queue)
-        {
-            self.hold_operation(capability, operation.stable_id.clone())?;
-            return Err(HostContractError::HostNotReady(capability));
-        }
-        // Track the in-flight intent before leaving for the adapter. Reconnect
-        // cannot prove this operation resolved while its acknowledgment is away.
-        self.remember_operation(capability, operation.stable_id.clone())?;
+        self.bind_handoff(capability, operation, false)?;
         let result = self.adapter.handoff(capability, operation);
         let receipt = match result {
             Ok(receipt)
@@ -587,25 +637,7 @@ impl CapabilityRouter {
         operation: &HostOperation,
     ) -> Result<HandoffReceipt, HostContractError> {
         operation.validate()?;
-        let (state, contract) = {
-            let state = self
-                .state
-                .lock()
-                .map_err(|_| HostContractError::LockPoisoned)?;
-            (
-                state
-                    .states
-                    .get(&capability)
-                    .cloned()
-                    .unwrap_or(CapabilityState::NativeOnly),
-                state.contracts.get(&capability).copied(),
-            )
-        };
-        if state != CapabilityState::UnknownStatusHeld
-            || !contract.is_some_and(HostCapabilityContract::may_own_pending_queue)
-        {
-            return Err(HostContractError::HostNotReady(capability));
-        }
+        self.bind_handoff(capability, operation, true)?;
         match self.adapter.handoff(capability, operation) {
             Ok(receipt)
                 if receipt.stable_id == operation.stable_id

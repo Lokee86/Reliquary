@@ -32,7 +32,7 @@ pub(super) fn worker_loop(
         if shared.stopped()? {
             return Ok(());
         }
-        if !shared.admission_open()? {
+        if !shared.background_open()? {
             shared.wait(&mut seen, super::IDLE_POLL)?;
             continue;
         }
@@ -72,16 +72,20 @@ pub(super) fn worker_loop(
             if shared.stopped()? {
                 return Ok(());
             }
-            profile = Some(
-                shared
+            let accepted = {
+                let mut owner = shared
                     .owner
                     .lock()
-                    .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?
+                    .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
+                let accepted = owner
                     .accept_runtime_compatibility_profile(
                         candidate.as_ref().expect("profile candidate").clone(),
                     )
-                    .map_err(operation)?,
-            );
+                    .map_err(operation)?;
+                owner.sync().map_err(operation)?;
+                accepted
+            };
+            profile = Some(accepted);
             endpoint_active = Some(Arc::clone(&endpoint));
         }
         if profile.is_none() {
@@ -127,12 +131,16 @@ pub(super) fn worker_loop(
                 if shared.stopped()? {
                     return Ok(());
                 }
-                shared
-                    .owner
-                    .lock()
-                    .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?
-                    .commit_runtime_memory_vector_batch(batch, vectors)
-                    .map_err(operation)?;
+                {
+                    let mut owner = shared
+                        .owner
+                        .lock()
+                        .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
+                    owner
+                        .commit_runtime_memory_vector_batch(batch, vectors)
+                        .map_err(operation)?;
+                    owner.sync().map_err(operation)?;
+                }
                 shared.wake()?;
                 continue;
             }

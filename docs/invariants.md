@@ -12,6 +12,10 @@ These constraints are intentionally stronger than convenience abstractions. Impl
 
 ## Invariants
 
+### Executable host and background authority
+
+Host authority requires an executable payload/result/receipt path; currently only ConversationExecution qualifies. Unsupported background declarations retain Native without releasing unresolved host debt. Exact ID/digest validation precedes adapter I/O; the REL journal remains durable authority. One worker set exists per mounted owner regardless of selection/attachment count. Exact controls/status require ManageRel/ViewRel or UseOwnPhy. Native inference holds no semantic store locks; quiesce fences late results and joins workers before restart. Running calls can delay shutdown and cancellation cannot promise rollback. Private vector profiles/batches synchronize before visibility/wake; private counters never enter REL feeds.
+
 ### Durable conversation dispatch
 
 Only the conversation coordinator selects fresh Pending work. Selection and branch reservation share a critical section; skipped branches retain journal order. A production exact-ID resume must prove an existing durable continuation and cannot admit fresh Pending work. Client timestamps do not influence queue order. The REL journal remains the single pending authority.

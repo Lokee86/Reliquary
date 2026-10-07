@@ -19,6 +19,9 @@ mod perception;
 mod vectors;
 use perception::RelPerceptionQueue;
 
+#[path = "runtime_host_gateway_background.rs"]
+mod background;
+
 pub(super) struct RelShared {
     pub(super) runtime: Arc<Mutex<InteractionRuntime>>,
     pub(super) sequencer: Arc<super::events::RelSequencer>,
@@ -28,6 +31,7 @@ pub(super) struct RelShared {
     pub(super) memory_profile: Arc<Mutex<Option<CompatibilityProfileId>>>,
     pub(super) perception_queue: Arc<Mutex<RelPerceptionQueue>>,
     pub(super) insomnia_enabled: Arc<AtomicBool>,
+    pub(super) background_enabled: AtomicBool,
     pub(super) insomnia_backpressure_until_ns: AtomicI64,
     pub(super) config: InsomniaWorkerConfig,
     pub(super) episode_policy: EpisodePolicy,
@@ -52,6 +56,14 @@ impl RelShared {
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         super::mutation_events::commit(&mut gate, &mut runtime, family, action)
+    }
+
+    pub(super) fn background_open(&self) -> Result<bool, ReliquaryRuntimeHostError> {
+        Ok(!stopped(&self.signal)?
+            && self
+                .background_enabled
+                .load(std::sync::atomic::Ordering::SeqCst)
+            && self.fence.snapshot()?.0 == super::OwnerAdmission::Open)
     }
 
     pub(super) fn admit(&self) -> Result<Option<LeaseGuard>, ReliquaryRuntimeHostError> {
@@ -109,6 +121,7 @@ impl RelRuntime {
             memory_profile: Arc::new(Mutex::new(None)),
             perception_queue: Arc::new(Mutex::new(RelPerceptionQueue::default())),
             insomnia_enabled: Arc::clone(&insomnia_enabled),
+            background_enabled: AtomicBool::new(true),
             insomnia_backpressure_until_ns: AtomicI64::new(0),
             config,
             episode_policy,
@@ -128,6 +141,9 @@ impl RelRuntime {
     }
 
     fn spawn_workers(&mut self) {
+        if !self.workers.is_empty() {
+            return;
+        }
         for index in 0..self.shared.config.workers {
             let shared = Arc::clone(&self.shared);
             self.workers
@@ -164,6 +180,22 @@ impl RelRuntime {
         insomnia::reconcile_completed(&self.shared)
     }
 
+    pub(super) fn control_handle(&self) -> Arc<RelShared> {
+        Arc::clone(&self.shared)
+    }
+
+    pub(super) fn worker_state(&self) -> (usize, bool) {
+        (
+            self.workers
+                .iter()
+                .filter(|worker| !worker.is_finished())
+                .count(),
+            self.shared
+                .background_enabled
+                .load(std::sync::atomic::Ordering::SeqCst),
+        )
+    }
+
     pub(super) fn workers_stopped(&self) -> bool {
         self.workers.is_empty()
     }
@@ -198,6 +230,28 @@ impl RelRuntime {
         if self.runtime.is_none() {
             return Err(operation("REL runtime is unavailable"));
         }
+        if self.shared.fence.snapshot()?.0 != super::OwnerAdmission::Open {
+            return Err(operation("REL runtime fence is closed"));
+        }
+        // A replacement/repack may retire profiles. Never expose a stale active profile.
+        let known = self
+            .shared
+            .runtime
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .cva
+            .compatibility_profiles()
+            .into_iter()
+            .map(|profile| profile.id)
+            .collect::<std::collections::HashSet<_>>();
+        let mut profile = self
+            .memory_profile
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+        if profile.is_some_and(|id| !known.contains(&id)) {
+            *profile = None;
+        }
+        drop(profile);
         {
             let mut control = self
                 .signal
