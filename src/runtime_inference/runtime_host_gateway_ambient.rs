@@ -7,7 +7,7 @@ use super::{
 use crate::{
     ArchiveSearchHit, CommunityId, ConversationSearchHit, ConversationSummary, EchoEvent, Entity,
     GraphRelationChange, GraphRelationKind, GraphRelationOrigin, Memory, MemoryDraft, MemoryId,
-    MemoryProvenance, ResolvedInteractionTurn, StoredFile,
+    InteractionSession, MemoryProvenance, ResolvedInteractionTurn, StoredFile,
 };
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
@@ -181,6 +181,120 @@ impl GatewayRuntime {
         let token = self.explicit_rel_token(instance, owner_id)?;
         self.with_rel(&token, |runtime| {
             Ok(runtime.cva().echo_events(conversation_id, message_id))
+        })
+    }
+
+    /// Open a conversation cursor through the canonical gateway. The cursor
+    /// is runtime-managed; Archive state is changed only when the caller
+    /// explicitly selects the conversation as active below.
+    pub fn open_conversation_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: String,
+        resume_from: Option<String>,
+    ) -> Result<InteractionSession, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::SubmitConversation)?;
+        self.with_rel(&token, |runtime| {
+            runtime
+                .open_session(conversation_id, resume_from)
+                .map_err(operation)
+        })
+    }
+
+    /// Enumerate the branch starts on one authoritative conversation path.
+    pub fn conversation_branch_start_node_ids_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<String>, ReliquaryRuntimeHostError> {
+        let token = self.explicit_rel_token(instance, owner_id)?;
+        self.with_rel(&token, |runtime| {
+            runtime
+                .cva()
+                .conversation_branch_start_node_ids(conversation_id, leaf_node_id)
+                .map_err(operation)
+        })
+    }
+
+    pub fn set_conversation_title_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        title: String,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
+        let conversation_id = conversation_id.to_owned();
+        self.with_rel_mutation(&token, RelMutationFamily::Metadata, |runtime| {
+            let changed = runtime
+                .cva
+                .set_conversation_title(&conversation_id, title)
+                .map_err(operation)?;
+            Ok((changed, false, vec![RelInvalidation::Conversation(
+                crate::multiplexing_journal::ConversationId::new(conversation_id.clone())
+                    .map_err(operation)?,
+            )]))
+        })
+    }
+
+    pub fn put_echo_event_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        event: EchoEvent,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
+        let conversation_id = event.conversation_id.clone();
+        self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
+            let changed = runtime.cva.put_echo_event(event).map_err(operation)?;
+            let id = crate::multiplexing_journal::ConversationId::new(conversation_id)
+                .map_err(operation)?;
+            Ok((changed, false, vec![RelInvalidation::Conversation(id)]))
+        })
+    }
+
+    pub fn conversation_compactions_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<Vec<crate::ConversationCompaction>, ReliquaryRuntimeHostError> {
+        let token = self.explicit_rel_token(instance, owner_id)?;
+        self.with_rel(&token, |runtime| Ok(runtime.cva().conversation_compactions(conversation_id)))
+    }
+
+    pub fn put_conversation_compaction_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: String,
+        through_message_id: String,
+        summary: String,
+        supersedes_through_message_id: Option<&str>,
+    ) -> Result<crate::ConversationCompaction, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ManageRel)?;
+        let invalidation_id = conversation_id.clone();
+        self.with_rel_mutation(&token, RelMutationFamily::Semantic, |runtime| {
+            let value = runtime
+                .cva
+                .put_conversation_compaction(
+                    conversation_id,
+                    through_message_id,
+                    summary,
+                    supersedes_through_message_id,
+                )
+                .map_err(operation)?;
+            Ok((
+                value,
+                true,
+                vec![RelInvalidation::Conversation(
+                    crate::multiplexing_journal::ConversationId::new(invalidation_id)
+                        .map_err(operation)?,
+                )],
+            ))
         })
     }
 
