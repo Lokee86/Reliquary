@@ -1,7 +1,7 @@
 # Multiplexing P5-A — REL/runtime consumer migration
 
 Parent: [P5/6 parallel plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
-Status: **Implementation-ready; no implementation claimed.**
+Status: **Implemented on `feat/multiplexing-p5-rel-consumers` @ `7350149`; the previously missing runtime acceptance was supplied on the combined P5-C integration line @ `4ce4911` (1,099 library, 128 integration and 19 CLI tests passed). Pending convergence/main merge; refreshed architecture indexing remains a bounded tooling gap.**
 
 ## Purpose
 

@@ -2,7 +2,7 @@
 
 Parent: [P5/P6 parallel execution](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Roadmap owner: [Complete the workspace management API](roadmap.md)  
-Status: **implementation-ready; not implemented.**
+Status: **next-wave critical-path track; specified and ready to start in parallel with E and C closure. F0–F4 can proceed immediately; F5 selective import/export waits on G1. No implementation is yet accepted.**
 
 ## Purpose
 

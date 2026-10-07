@@ -2,7 +2,7 @@
 
 Parent: [P5/6 parallel plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Existing audit: [Phase 0B G6](multiplexing-phase0b-consumer-verification.md)  
-Status: **Implementation-ready; actual upgraded external integration not yet verified.**
+Status: **Late-stage implementation. Reliquary integration `feat/multiplexing-p5c-api-integration` @ `4ce4911` and Warlock final-cut `feat/multiplexing-p5c-final-cut` @ `1782e72` are clean. Warlock no longer consumes `ReliquaryRuntimeHost` on that branch and upgraded checks/conversation/provider/admission fixtures pass. Remaining acceptance: multi-context behavior, actual provider conformance, public P4 delivery/reconnect, final Reliquary+Arcana pins/single package identity, and the final integrated release matrix.**
 
 ## Purpose
 

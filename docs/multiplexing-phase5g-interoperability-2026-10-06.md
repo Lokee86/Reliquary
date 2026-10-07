@@ -2,7 +2,7 @@
 
 Parent: [P5/P6 parallel execution](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Canonical external-transcript plan: [External Conversation Index Integration](conversation-index-integration-plan.md)  
-Status: **implementation-ready by subtrack; external host adapters require their actual repositories.**
+Status: **next-wave parallel track. Framework-neutral import/external-source work can start immediately; provider importers and the external-derived R0–R4 core can be split into independent subtracks. ACP/Hermes adapter completion remains source/SDK dependent and does not block legacy-host deletion once core contracts are independent.**
 
 ## Purpose
 

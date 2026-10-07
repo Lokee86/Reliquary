@@ -1,7 +1,7 @@
 # Multiplexing P5-B — background workers and host-capability cut
 
 Parent: [P5/6 parallel plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
-Status: **Implementation-ready; no implementation claimed.**
+Status: **B0–B4 implemented and accepted on `feat/multiplexing-p5-background` @ `c45f50e`: 1,093 library, 128 integration and 19 CLI tests passed with P2/P3/P4 guards. Included in the downstream P5-C integration line; pending final convergence/main merge.**
 
 ## Purpose
 
