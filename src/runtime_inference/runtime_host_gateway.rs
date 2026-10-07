@@ -10,6 +10,9 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use uuid::Uuid;
 
+#[path = "interaction_live.rs"]
+mod live;
+
 #[path = "runtime_host_gateway_admission.rs"]
 mod admission;
 #[path = "runtime_host_owner_operation_journal.rs"]

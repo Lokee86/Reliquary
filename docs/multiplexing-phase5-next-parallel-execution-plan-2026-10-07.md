@@ -219,3 +219,7 @@ The next wave preserves existing deep owners: P3 owns durable conversation state
 ## Notes
 
 This plan distinguishes the hard-cut critical path from adapter tails. Explicitly blocked work remains visible, but unavailable external adapter source does not force obsolete in-process authority to remain alive.
+
+## E draft checkpoint
+
+The [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) tracks the isolated recipient adapter begun at accepted N0. Missing durable tool/artifact receipts and token-bound external cancellation prevent E acceptance and N1 contract freeze. Named exports remain a single convergence-owned cut.

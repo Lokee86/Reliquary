@@ -47,6 +47,7 @@
 - [Multiplexing P5-C Warlock/CLI](multiplexing-phase5c-external-consumers-2026-10-06.md) — external app instance, queue, generation/stream, provider and dependency-pin migration.
 - [Multiplexing P5-D legacy deletion](multiplexing-phase5d-legacy-deletion-2026-10-06.md) — source-backed final hard cut after external callers move.
 - [Multiplexing P5-E live runtime surface](multiplexing-phase5e-live-runtime-surface-2026-10-06.md) — transport-neutral adapter/session events, reconnect/resume, controls, capability cache and diagnostics.
+- [P5-E live runtime execution — 2026-10-07](multiplexing-p5e-live-runtime-execution-2026-10-07.md) — recipient adapter draft, source inventory, owner requests and explicit remaining acceptance gates.
 - [Multiplexing P5-F workspace management](multiplexing-phase5f-workspace-management-2026-10-06.md) — authorized conversation/file/Memory/health and import-export management composition.
 - [Multiplexing P5-G interoperability](multiplexing-phase5g-interoperability-2026-10-06.md) — normalized provider imports, ACP/live adapters and reference-only external canonical transcript integration.
 - [Multiplexing Phase 6 parallel verification](multiplexing-phase6-parallel-verification-plan-2026-10-06.md) — concurrent H0–H5 adversarial/performance harness and post-deletion release gate.

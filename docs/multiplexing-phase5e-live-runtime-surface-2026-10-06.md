@@ -2,7 +2,7 @@
 
 Parent: [P5/P6 parallel execution](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Roadmap owner: [Complete the live runtime seam](roadmap.md)  
-Status: **next-wave critical-path track; specified and ready to start from the common P5 convergence base. No implementation is yet accepted.**
+Status: **isolated recipient-adapter draft in progress; E0 inventory recorded, E1-E5 remain partially implemented and blocked on the listed owner seams. No full P5-E implementation is accepted.** See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md).
 
 ## Purpose
 

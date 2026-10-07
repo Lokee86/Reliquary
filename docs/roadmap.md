@@ -445,3 +445,7 @@ Use the [next parallel execution plan](multiplexing-phase5-next-parallel-executi
 ## Notes
 
 This file is future-only by policy. When a roadmap item ships, remove it from this document and document the resulting behavior in the current-state owners instead.
+
+## P5-E isolated live adapter draft
+
+P5-E implementation has a partial recipient-adapter draft. Complete the P3 token-bound cancellation and A durable tool/artifact receipt requests, finish all E scenario gates, then freeze N1 types and request the single convergence export cut before C consumption or N3 acceptance. See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) for exact scope, owner requests and verification.

@@ -150,3 +150,7 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 For prospective propagation breadth by principal/root layout/membership, use `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py`. [Development](development.md) owns invocation; [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) owns evidence and interpretation. Unknown membership is checked independently by shortest-path arithmetic. These measurements do not establish semantic relevance or historical score trajectories.
 
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
+
+## P5-E isolated live adapter draft
+
+The live recipient draft is owned by src/runtime_inference/interaction_live.rs with interaction_live_tests.rs and tests/live_runtime_adapter.rs. Gateway/P3/P4/B remain lower authorities. Root exports stay with convergence. The P4 source guard includes the E adapter factory. See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) for exact scope, owner requests and verification.

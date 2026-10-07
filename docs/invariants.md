@@ -258,3 +258,7 @@ Cross-database restore activation, actual concurrent writers, checkpointing, and
 ## Recovery hard cut (P3.8)
 
 Mount and quiesced recovery use the same admitted-turn and Archive validation before post-commit acknowledgement. A checkpoint stream must contain the exact previously acknowledged UTF-8 prefix; missing, truncated or changed content fails mount without inventing terminal status. A synchronized extension is recorded before Interrupted or Completed. Coordinator exact acquisition verifies the durable branch and independently rejects fresh Pending work. Durable active metadata cannot create viewers, instance selection or per-viewer writers. Unknown host work and cancellation intent remain reserved until authoritative terminal proof. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).
+
+## P5-E isolated live adapter draft
+
+An E live session retains its original owner epoch and grant generation. Session close removes delivery only; accepted work remains owner-managed. Exact visible text comes only from P4 synchronized checkpoint delivery. External cancellation and tool/artifact events require their existing durable owners before final E acceptance. See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) for exact scope, owner requests and verification.

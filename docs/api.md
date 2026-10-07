@@ -547,3 +547,7 @@ No compatibility promise has yet been made for Rust method signatures or develop
 ## Conversation recovery checks (P3.8)
 
 The public conversation surface is unchanged. resume_conversation_submission and internal generation/control acquisition validate the durable target branch in the coordinator; fresh Pending work must use process_next_conversation_submission. Mount verifies acknowledged checkpoint content before accepting a stream extension and completing or interrupting a recovered generation. Quiescence uses the same admitted-turn/Archive receipt validation as mount, and rejects a missing publication before post-commit acknowledgement. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).
+
+## P5-E isolated live adapter draft
+
+The E draft offers GatewayRuntime::live_runtime_adapter for a verified instance, existing-branch sessions, durable turn/status controls, exact checkpoint streams and owner maintenance. Named root exports are requested from convergence. This is a partial draft; durable session creation, external cancellation and tool/artifact receipts are not accepted. See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) for exact scope, owner requests and verification.
