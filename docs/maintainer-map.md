@@ -10,6 +10,10 @@ This map routes common change intents to canonical documentation, implementation
 
 Use this when ownership is unclear. It does not replace focused architecture/reference documentation.
 
+## P5-B background ownership
+
+Route configuration, exact-owner controls and private status live in `runtime_host_gateway_background.rs`; canonical worker lifecycle remains in `runtime_host_rel_execution.rs` and `runtime_host_phy_execution.rs`. Host executable-capability filtering and exact digest validation live in `runtime_host_gateway_host.rs`. Verification: `runtime_host_gateway_background_tests.rs`, host router and host-operation tests, existing personal publication/recovery and PHY lifecycle tests. See [the B ledger](multiplexing-p5b-capability-ledger-2026-10-06.md) for consumer signatures and the old-only deletion manifest.
+
 ## Change-area routing
 
 | Change area | Canonical documentation | Primary implementation boundary | Verification |

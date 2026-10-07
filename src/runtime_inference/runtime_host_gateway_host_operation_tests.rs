@@ -1,6 +1,8 @@
 use super::*;
 #[path = "runtime_host_gateway_conversation_branch_host_tests.rs"]
 mod branches;
+#[path = "runtime_host_gateway_host_cancellation_tests.rs"]
+mod staged_cancellation;
 use crate::runtime_host_test_support::test_path;
 use crate::{Cva, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime, ReliquaryRuntimeRoutes};
 use std::collections::{BTreeMap, BTreeSet};

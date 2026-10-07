@@ -1,7 +1,7 @@
 # Multiplexing P5-B — background workers and host-capability cut
 
 Parent: [P5/6 parallel plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
-Status: **Implementation-ready; no implementation claimed.**
+Status: **Lane B source implemented; see [acceptance](multiplexing-p5b-acceptance-2026-10-07.md) for actual verification and remaining convergence gates.**
 
 ## Purpose
 

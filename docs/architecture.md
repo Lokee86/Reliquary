@@ -24,6 +24,12 @@ The existing ConversationCoordinator now owns live branch leases and reservation
 
 Archive branch heads remain authoritative. The single owner runtime uses its existing conversation session as a temporary cursor, explicitly rebound to the branch head or captured receipt under the runtime mutex; an in-flight native message cannot be rebound. Post-commit scheduling selects the receipt's path. Coordinator-to-journal eligibility locks are released before runtime acquisition; runtime-to-journal capture remains the other allowed nested order. Provider I/O holds neither. [P3.2 evidence](multiplexing-phase3-branch-acceptance-2026-10-05.md) records scope and verification; native generation/checkpoint integration is implemented in [P3.6](multiplexing-phase3-generation-acceptance-2026-10-05.md).
 
+## P5-B native worker and host capability boundary
+
+The canonical gateway now owns route replacement and exact-owner background status, wake, enable and worker diagnostics through `runtime_host_gateway_background.rs`. One REL worker set remains mounted independently of instance selection; each PHY has one private set shared by same-principal attachments. The REL background switch controls Dream, Perception and vectors; Insomnia retains its existing independent switch. PHY compatibility profiles and vector batches synchronize before active-profile publication or worker wake. Worker restart checks the owner fence and does not spawn a second live set.
+
+Only ConversationExecution has an executable host payload/receipt path. The finite capability router filters Insomnia, Dream, Embedding and ProjectEnvironment declarations to Native; their existing endpoint/project implementations retain authority. Unknown recovered debt still fences a capability until local durable terminal recording and empty reconciliation. The router binds handoff ID/digest and dispatch readiness under one short lock, then releases it before adapter I/O; the cache is validation state, not a second queue or durable journal. The [B ledger](multiplexing-p5b-capability-ledger-2026-10-06.md) records boundaries and the deletion handoff. Legacy host deletion and Warlock migration remain separate convergence gates.
+
 ## Overview
 A homogeneous Reliquary `.rel` is one physical file containing the same explicit concrete owners as the former CVA format. Legacy `.cva` and typed REL files remain readable as compatibility inputs:
 ```text
