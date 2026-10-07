@@ -4,6 +4,31 @@ use super::mutation_events::RelMutationFamily;
 use super::{GatewayRuntime, InstanceRuntime, OwnerGrant, ReliquaryRuntimeHostError, operation};
 
 impl GatewayRuntime {
+    /// Current durable REL-journal revision for exactly one authorized conversation.
+    /// Consumers use this value as the optimistic admission revision; no journal
+    /// handle or mutable queue authority is exported.
+    pub fn conversation_revision_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<u64, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        let conversation =
+            crate::multiplexing_journal::ConversationId::new(conversation_id.to_owned())
+                .map_err(operation)?;
+        // Validate the owner/mount before and after the journal read so an
+        // unmounted/replaced REL cannot deliver a stale revision.
+        self.with_rel(&token, |_| Ok(()))?;
+        let revision = self
+            .conversation
+            .journal(owner_id)?
+            .lock()
+            .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+            .conversation_revision(&conversation);
+        self.with_rel(&token, |_| Ok(revision))
+    }
+
     /// Branch metadata is read only from the exact owner granted to this instance.
     pub fn conversation_branch_start_node_ids_for(
         &self,
@@ -123,6 +148,21 @@ mod tests {
                 BTreeMap::from([(rel.clone(), BTreeSet::from([OwnerGrant::ViewRel]))]),
             )
             .unwrap();
+        assert_eq!(
+            gateway
+                .conversation_revision_for(&view, &rel, "conv")
+                .unwrap(),
+            0
+        );
+        let denied = gateway
+            .attach_instance("denied".into(), None, BTreeMap::new())
+            .unwrap();
+        assert!(
+            gateway
+                .conversation_revision_for(&denied, &rel, "conv")
+                .is_err()
+        );
+        gateway.detach_instance(&denied).unwrap();
         assert!(
             gateway
                 .set_conversation_title_for(&view, &rel, "conv", "not allowed".into())
