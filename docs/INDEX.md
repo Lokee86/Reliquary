@@ -113,6 +113,8 @@
 
 ## P5 integration evidence
 
+- [N3 staging checkpoint](multiplexing-n3-staging-checkpoint-2026-10-08.md) — F-core/G-import merged; E/G-external and final Warlock cut blocked.
+
 - [P5-G native import execution](multiplexing-p5g-import-execution-2026-10-08.md)
 
 - [multiplexing-p5a-acceptance-2026-10-06](multiplexing-p5a-acceptance-2026-10-06.md)

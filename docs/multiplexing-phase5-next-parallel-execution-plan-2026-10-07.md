@@ -164,6 +164,8 @@ A failure is repaired in its owner branch; do not solve integration failures wit
 
 ### N3 — Reliquary convergence and final C pin
 
+**2026-10-08 checkpoint: blocked.** Accepted F-core `13df1ff` and G-import `99b9fa5` are merged on `feat/multiplexing-n3-staging` at `3875463`. E `79a2d34` explicitly remains a draft with E5/N1/N3 open; G-external remains uncommitted and unaccepted. Root formatting/locked check and direct guards pass; full tests failed before assertions on Lore build disk exhaustion, and fresh architecture indexing timed out. Final root exports, convergence advancement and Warlock pins await accepted E/G-external and the complete matrix. See [N3 staging checkpoint](multiplexing-n3-staging-checkpoint-2026-10-08.md).
+
 Merge accepted E, F-core and G framework-neutral/core work onto the N0 convergence line. Resolve root exports once. Run the full Reliquary/CLI/guard matrix. Then pin Warlock C to **that exact revision**, align Arcana, and rerun the full C acceptance matrix.
 
 F5 selective import/export may join here after G1/G-import is accepted.
