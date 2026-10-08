@@ -18,7 +18,7 @@ GROUPS = {
     "trusted_project": "create_project_environment_rel inspect_project_adoption_source adopt_project_environment_rel validate_project_environment_cva",
     "background": "set_routes wake_rel_background_for set_rel_background_enabled_for wake_phy_background_for set_phy_background_enabled_for",
     "private": "set_phylactery_profile quiesce_phy quiesce_phy_for reopen_phy reopen_phy_for unmount_phy mount_phy_path",
-    "conversation": "process_conversation_submission_if_next submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation",
+    "conversation": "process_conversation_submission_if_next submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation complete_conversation_generation_with_artifacts record_conversation_generation_tool_event",
     "attachment": "select_managed_conversation_leaf clear_managed_conversation_selection select_rel detach_instance select_managed_conversation attach_conversation_viewer detach_conversation_viewer mark_managed_conversation_resumed attach_authenticated_instance refresh_authenticated_instance with_admission_adapter",
     "read": "live_runtime_adapter conversation_submission_status conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for latest_project_revision_correlation_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories search_visible_archive search_archive_owner conversation_revision_for conversation_branch_id_for_leaf conversation_branch_leaf_for_id conversation_branch_start_node_ids_for conversation_compactions_for read_memory_provenance_for_owner resolve_knowledge_provenance_for_owner owner_mount_is_path_scoped background_status_for phy_background_status_for background_worker_state_for"
 }
@@ -124,6 +124,15 @@ def check_gateway(source):
                 errors.append(f"{name}: missing canonical committed REL / private PHY writes")
         elif category == "ephemeral" and "with_rel_distribution_admission(" not in body:
             errors.append(f"{name}: missing ephemeral sequencing boundary")
+        elif category == "conversation" and name in {
+            "cancel_conversation_generation", "complete_conversation_generation",
+            "complete_conversation_generation_with_artifacts",
+        }:
+            route = "self.cancel_conversation_generation_admitted(" if name == "cancel_conversation_generation" else "self.complete_native_generation("
+            if route not in body:
+                errors.append(f"{name}: missing exact token-bound/native finalization delegate")
+            if name == "cancel_conversation_generation" and not all(step in route_body for step in ("self.authorize(", "OwnerGrant::CancelSharedGeneration")):
+                errors.append(f"{name}: missing cancellation authorization")
         elif category == "conversation" and not any(route in body for route in ("with_conversation_admission(", "with_accepted_work(", "with_operation(", "self.process_next_accepted_conversation_submission(", ".process_reserved_conversation_submission(")):
             errors.append(f"{name}: missing sequenced P3 persistence route")
         elif category == "host" and "publish_host_capability_change(" not in body:
@@ -276,6 +285,13 @@ def check_live_adapter(source):
     errors = [f"live adapter cannot own or expose {name}" for name in sorted(forbidden & identifiers)]
     if re.search(r"\bGatewayRuntime\s*::\s*(?:new|new_with_host)\s*\(", source):
         errors.append("live adapter cannot construct another gateway owner")
+    for name in ("watch_generation", "resume_stream"):
+        match = re.search(rf"\bfn\s+{name}\b", source)
+        if match is not None:
+            start = source.index("{", match.end())
+            body = source[start:closing(source, start) + 1]
+            if "self.admitted(" not in body:
+                errors.append(f"{name}: stream capture must retain original session admission")
     return errors
 
 def self_test():
@@ -308,6 +324,12 @@ def self_test():
     expect(not check_worker("fn commit() { shared.mutate(Family, |runtime| { runtime.cva.create_knowledge_memory(); }); }"))
     expect(not check_worker("fn sweep() { shared.mutate(Family, |runtime| { runtime.finalize_inactive_session(); }); }"))
     expect(check_gateway("impl GatewayRuntime { pub fn submit_conversation(&self) { with_admission(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn cancel_conversation_generation(&self) { self.cancel_conversation_generation_admitted(); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn cancel_conversation_generation(&self) { self.authorize(OwnerGrant::CancelSharedGeneration); self.cancel_conversation_generation_admitted(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn submit_conversation(&self) { self.complete_native_generation(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn complete_conversation_generation_with_artifacts(&self) {} }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn complete_conversation_generation_with_artifacts(&self) { self.complete_native_generation(); } }"))
+
     expect(check_conversation_stage_helpers("fn with_conversation_admission<T>() { f(); } fn with_accepted_work<T>() { f(); }"))
     expect(check_gateway("impl GatewayRuntime { pub fn reconcile_quiesced_rel_for(&self) { self.reconcile_rel(owner_id); } }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn reconcile_quiesced_rel_for(&self) { self.fence.snapshot_full(); OwnerAdmission::Closed; self.workers_stopped(); self.reconcile_rel(owner_id); } }"))
@@ -382,6 +404,11 @@ def self_test():
     expect(check_live_adapter("GatewayRuntime::new_with_host();"))
     expect(not check_live_adapter('// Cva::new()\nlet note = "RelJournal";'))
     expect(not check_live_adapter("Arc::clone(&gateway); gateway.submit_conversation();"))
+    expect(check_live_adapter("fn watch_generation() { gateway.subscribe_authoritative_conversation_stream(); }"))
+    expect(not check_live_adapter("fn watch_generation() { self.admitted(|| gateway.subscribe_authoritative_conversation_stream()); }"))
+    expect(check_live_adapter("fn resume_stream() { gateway.reconnect_authoritative_conversation_stream(); }"))
+    expect(not check_live_adapter("fn resume_stream() { self.admitted(|| gateway.reconnect_authoritative_conversation_stream()); }"))
+
     print(f"P4 coverage guard: {fixtures} negative/positive fixtures passed")
 
 def main():
@@ -393,14 +420,15 @@ def main():
     errors = []
     directory = ROOT / "src" / "runtime_inference"
     count = 0
-    for path in sorted([*directory.glob("runtime_host_gateway*.rs"), directory / "interaction_live.rs"]):
+    for path in sorted([*directory.glob("runtime_host_gateway*.rs"), *directory.glob("interaction_live*.rs")]):
         if "tests" in path.stem:
             continue
         source = path.read_text(encoding="utf-8")
         count += len(list(gateway_methods(source)))
         errors += [f"{path.name}: {e}" for e in check_gateway(source)]
-    live_path = directory / "interaction_live.rs"
-    errors += [f"{live_path.name}: {e}" for e in check_live_adapter(live_path.read_text(encoding="utf-8"))]
+    for live_path in sorted(directory.glob("interaction_live*.rs")):
+        if "tests" not in live_path.stem:
+            errors += [f"{live_path.name}: {e}" for e in check_live_adapter(live_path.read_text(encoding="utf-8"))]
     conversation_path = directory / "runtime_host_gateway_conversation.rs"
     errors += [f"{conversation_path.name}: {e}" for e in check_conversation_stage_helpers(conversation_path.read_text(encoding="utf-8"))]
     checkpoint_path = directory / "runtime_host_gateway_conversation_observation.rs"

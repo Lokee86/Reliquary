@@ -11,7 +11,10 @@ use super::{
     GatewayRuntime, InstanceRuntime, OwnerAccessToken, OwnerGrant, ReliquaryRuntimeHostError,
 };
 use crate::multiplexing_journal::{ConversationId, RelOwnerId};
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LiveRuntimeError {
@@ -67,6 +70,45 @@ pub struct LiveGeneration {
     pub status: LiveGenerationStatus,
     pub checkpoint_sequence: Option<u64>,
 }
+/// Exact authorized native-generation receipt projection; never a local log.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum LiveToolEventKind {
+    Invocation,
+    Result,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LiveToolEvent {
+    pub generation: LiveGeneration,
+    pub sequence: u64,
+    pub invocation_id: String,
+    pub kind: LiveToolEventKind,
+    pub name: String,
+    pub content: String,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LiveGeneratedArtifact {
+    pub generation: LiveGeneration,
+    pub file_id: crate::FileId,
+    pub content_id: crate::ContentId,
+    pub filename: String,
+    pub mime_type: Option<String>,
+    pub byte_length: u64,
+}
+
+#[path = "interaction_live_resume.rs"]
+mod resume;
+/// Durable identity and position hints, never a capability or writer lease.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct LiveResumeToken {
+    pub owner_id: String,
+    pub conversation_id: String,
+    pub branch_id: String,
+    pub operation_id: String,
+    pub message_id: String,
+    pub cursor: LiveStreamCursor,
+    pub checkpoint_sequence: Option<u64>,
+}
+
 /// Stream positions are delivery hints, never acknowledgement of semantic work.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct LiveStreamCursor {
@@ -119,6 +161,10 @@ pub struct LiveDiagnostics {
     pub workers: usize,
     pub background_enabled: bool,
     pub conversation_execution: LiveCapability,
+    pub pending_submissions: usize,
+    pub held_host_operations: usize,
+    pub cancellation_requests: usize,
+    pub resync_required: bool,
 }
 
 /// A verified instance adapter. Replacing this value creates no semantic writer.
@@ -154,6 +200,54 @@ impl LiveRuntimeAdapter {
             .reopen_rel_for(&self.instance, owner_id)
             .map_err(unavailable)
     }
+    /// Admit the first turn through the existing durable journal. The session
+    /// identity exists at acceptance; Archive branch creation is asynchronous.
+    /// Retrying the same immutable first turn never creates a second writer.
+    pub fn create_session(
+        &self,
+        owner_id: &str,
+        first_turn: GatewayConversationSubmission,
+    ) -> Result<(LiveSession, GatewaySubmissionReceipt), LiveRuntimeError> {
+        if first_turn.expected_parent_node_id.is_some()
+            || first_turn.expected_conversation_revision != 0
+        {
+            return Err(LiveRuntimeError::OperationUnavailable);
+        }
+        let token = self
+            .gateway
+            .authorize(&self.instance, owner_id, OwnerGrant::ViewRel)
+            .map_err(unavailable)?;
+        let conversation_id = first_turn.conversation_id.clone();
+        let branch_id = first_turn.branch_id.clone();
+        let (viewer, receipt) = self
+            .gateway
+            .with_rel_distribution_admission(&token, |_| {
+                let receipt =
+                    self.gateway
+                        .submit_conversation(&self.instance, owner_id, first_turn)?;
+                let viewer = self.gateway.attach_conversation_viewer(
+                    &self.instance,
+                    owner_id,
+                    &conversation_id,
+                )?;
+                Ok((viewer, receipt))
+            })
+            .map_err(unavailable)?;
+        Ok((
+            LiveSession {
+                gateway: Arc::clone(&self.gateway),
+                instance: Arc::clone(&self.instance),
+                token,
+                conversation_id,
+                branch_id,
+                viewer: Some(viewer),
+                stream: None,
+                resync_required: AtomicBool::new(false),
+            },
+            receipt,
+        ))
+    }
+
     /// Open an existing durable branch. Viewer lifetime does not own its work.
     pub fn open_session(
         &self,
@@ -183,8 +277,10 @@ impl LiveRuntimeAdapter {
             instance: Arc::clone(&self.instance),
             token,
             conversation_id: conversation_id.to_owned(),
+            branch_id: branch_id.to_owned(),
             viewer: Some(viewer),
             stream: None,
+            resync_required: AtomicBool::new(false),
         })
     }
 }
@@ -196,8 +292,10 @@ pub struct LiveSession {
     instance: Arc<InstanceRuntime>,
     token: OwnerAccessToken,
     conversation_id: String,
+    branch_id: String,
     viewer: Option<ConversationViewerToken>,
     stream: Option<StreamSubscription>,
+    resync_required: AtomicBool,
 }
 impl LiveSession {
     fn validate(&self) -> Result<(), LiveRuntimeError> {
@@ -222,7 +320,7 @@ impl LiveSession {
         request: GatewayConversationSubmission,
     ) -> Result<GatewaySubmissionReceipt, LiveRuntimeError> {
         self.validate()?;
-        if request.conversation_id != self.conversation_id {
+        if request.conversation_id != self.conversation_id || request.branch_id != self.branch_id {
             return Err(LiveRuntimeError::OperationUnavailable);
         }
         self.admitted(|| {
@@ -258,36 +356,33 @@ impl LiveSession {
             )
         })
     }
-    /// Native interruption retains the original epoch. External cancellation
-    /// requires a token-bound owner seam before this adapter can expose it.
+    /// Cancellation retains the original owner and grant generation at every
+    /// durable stage. Provider I/O runs after the capture lease is released.
     pub fn cancel_generation(
         &self,
         operation_id: &str,
     ) -> Result<GatewaySubmissionReceipt, LiveRuntimeError> {
-        self.validate()?;
-        let native = self.admitted(|| {
-            let observation = self.gateway.conversation_observation_snapshot(
+        let token = self.admitted(|| {
+            let token = self.gateway.authorize(
                 &self.instance,
                 self.token.owner_id(),
-                &self.conversation_id,
+                OwnerGrant::CancelSharedGeneration,
             )?;
-            if !observation
-                .generations
-                .iter()
-                .any(|g| g.identity.operation_id == operation_id)
+            if token.instance_id != self.token.instance_id
+                || token.mount_epoch != self.token.mount_epoch
+                || token.fence_generation != self.token.fence_generation
+                || token.owner_grant_generation != self.token.owner_grant_generation
             {
-                return Ok(None);
+                return Err(super::operation("session authority changed"));
             }
-            self.gateway
-                .cancel_conversation_generation(
-                    &self.instance,
-                    self.token.owner_id(),
-                    &self.conversation_id,
-                    operation_id,
-                )
-                .map(Some)
+            Ok(token)
         })?;
-        native.ok_or(LiveRuntimeError::UnsupportedDurableEvent)
+        let receipt = self
+            .gateway
+            .cancel_conversation_generation_admitted(&token, &self.conversation_id, operation_id)
+            .map_err(unavailable)?;
+        self.validate()?;
+        Ok(receipt)
     }
     /// Register only the exact generation proven by the current durable observation.
     pub fn watch_generation(
@@ -299,35 +394,44 @@ impl LiveSession {
         if self.stream.is_some() {
             return Err(LiveRuntimeError::OperationUnavailable);
         }
-        let observation = self
-            .gateway
-            .conversation_observation_snapshot(
+        let (snapshot, stream) = self.admitted(|| {
+            let observation = self.gateway.conversation_observation_snapshot(
                 &self.instance,
                 self.token.owner_id(),
                 &self.conversation_id,
-            )
-            .map_err(unavailable)?;
-        let generation = observation
-            .generations
-            .iter()
-            .find(|g| g.identity.operation_id == operation_id)
-            .ok_or(LiveRuntimeError::OperationUnavailable)?;
-        let key = StreamKey {
-            rel_id: RelOwnerId::parse_canonical(self.token.owner_id())
-                .map_err(|_| LiveRuntimeError::OperationUnavailable)?,
-            mount_epoch: self.token.mount_epoch,
-            conversation_id: ConversationId::new(self.conversation_id.clone())
-                .map_err(|_| LiveRuntimeError::OperationUnavailable)?,
-            operation_id: generation.identity.operation_id.clone(),
-            generation_id: generation.identity.generation_id.clone(),
-            branch_id: generation.identity.branch_id.clone(),
+            )?;
+            let generation = observation
+                .generations
+                .iter()
+                .find(|g| {
+                    g.identity.operation_id == operation_id
+                        && g.identity.branch_id == self.branch_id
+                })
+                .ok_or_else(|| super::operation("generation unavailable"))?;
+            let key = StreamKey {
+                rel_id: RelOwnerId::parse_canonical(self.token.owner_id())
+                    .map_err(|_| super::operation("invalid owner identity"))?,
+                mount_epoch: self.token.mount_epoch,
+                conversation_id: ConversationId::new(self.conversation_id.clone())
+                    .map_err(super::operation)?,
+                operation_id: generation.identity.operation_id.clone(),
+                generation_id: generation.identity.generation_id.clone(),
+                branch_id: generation.identity.branch_id.clone(),
+            };
+            self.gateway
+                .subscribe_authoritative_conversation_stream(&self.instance, key, capacity)
+        })?;
+        let result = match project_snapshot(snapshot) {
+            Ok(result) => result,
+            Err(error) => {
+                let _ = self
+                    .gateway
+                    .disconnect_conversation_stream(&self.instance, &stream);
+                return Err(error);
+            }
         };
-        let (snapshot, stream) = self
-            .gateway
-            .subscribe_authoritative_conversation_stream(&self.instance, key, capacity)
-            .map_err(unavailable)?;
-        let result = project_snapshot(snapshot)?;
         self.stream = Some(stream);
+        self.validate()?;
         Ok(result)
     }
     /// Always replace the recipient at an authoritative prefix before future deltas.
@@ -341,12 +445,17 @@ impl LiveSession {
             .stream
             .as_ref()
             .ok_or(LiveRuntimeError::OperationUnavailable)?;
-        let (snapshot, replacement) = self
-            .gateway
-            .reconnect_authoritative_conversation_stream(&self.instance, previous, capacity)
-            .map_err(unavailable)?;
+        let (snapshot, replacement) = self.admitted(|| {
+            self.gateway.reconnect_authoritative_conversation_stream(
+                &self.instance,
+                previous,
+                capacity,
+            )
+        })?;
         let result = project_snapshot(snapshot)?;
         self.stream = Some(replacement);
+        self.resync_required.store(false, Ordering::SeqCst);
+        self.validate()?;
         Ok(result)
     }
     pub fn next_event(&self) -> Result<Option<LiveStreamEvent>, LiveRuntimeError> {
@@ -361,6 +470,7 @@ impl LiveSession {
             .map(|event| {
                 event.map(|delivery| match delivery {
                     StreamDelivery::ResyncRequired { key, latest_cursor } => {
+                        self.resync_required.store(true, Ordering::SeqCst);
                         LiveStreamEvent::ResyncRequired {
                             cursor: LiveStreamCursor {
                                 mount_epoch: key.mount_epoch,
@@ -387,6 +497,88 @@ impl LiveSession {
                 })
             })
     }
+    fn native_generation(&self, operation_id: &str) -> Result<LiveGeneration, LiveRuntimeError> {
+        let observation = self.admitted(|| {
+            self.gateway.conversation_observation_snapshot(
+                &self.instance,
+                self.token.owner_id(),
+                &self.conversation_id,
+            )
+        })?;
+        observation
+            .generations
+            .iter()
+            .find(|g| {
+                g.identity.operation_id == operation_id && g.identity.branch_id == self.branch_id
+            })
+            .map(project_generation)
+            .ok_or(LiveRuntimeError::UnsupportedDurableEvent)
+    }
+    /// Read synchronized Echo tool receipts in their immutable source sequence.
+    /// The trusted generation owner validates invocation/result acceptance.
+    pub fn tool_events(&self, operation_id: &str) -> Result<Vec<LiveToolEvent>, LiveRuntimeError> {
+        let generation = self.native_generation(operation_id)?;
+        let events = self.admitted(|| {
+            self.gateway.echo_events_for(
+                &self.instance,
+                self.token.owner_id(),
+                &self.conversation_id,
+                &generation.message_id,
+            )
+        })?;
+        super::conversation::validate_generation_tool_source(&events).map_err(unavailable)?;
+        let mut result = Vec::new();
+        for event in events {
+            let kind = match event.kind {
+                crate::EchoEventKind::ToolCall => LiveToolEventKind::Invocation,
+                crate::EchoEventKind::ToolResult => LiveToolEventKind::Result,
+                _ => continue,
+            };
+            result.push(LiveToolEvent {
+                generation: generation.clone(),
+                sequence: event.sequence,
+                invocation_id: event
+                    .correlation_id
+                    .ok_or(LiveRuntimeError::OperationUnavailable)?,
+                kind,
+                name: event.name.ok_or(LiveRuntimeError::OperationUnavailable)?,
+                content: event.content,
+            });
+        }
+        self.validate()?;
+        Ok(result)
+    }
+    /// Artifacts become visible only through the finalized assistant's exact
+    /// Archive attachment receipt; source or ancestry alone is not authority.
+    pub fn generated_artifacts(
+        &self,
+        operation_id: &str,
+    ) -> Result<Vec<LiveGeneratedArtifact>, LiveRuntimeError> {
+        let generation = self.native_generation(operation_id)?;
+        if generation.status != LiveGenerationStatus::Completed {
+            return Ok(Vec::new());
+        }
+        let files = self.admitted(|| {
+            self.gateway.files_for_source_for(
+                &self.instance,
+                self.token.owner_id(),
+                &self.conversation_id,
+                &generation.message_id,
+            )
+        })?;
+        self.validate()?;
+        Ok(files
+            .into_iter()
+            .map(|file| LiveGeneratedArtifact {
+                generation: generation.clone(),
+                file_id: file.id,
+                content_id: file.content_id,
+                filename: file.filename,
+                mime_type: file.mime_type,
+                byte_length: file.byte_length,
+            })
+            .collect())
+    }
     pub fn diagnostics(&self) -> Result<LiveDiagnostics, LiveRuntimeError> {
         self.validate()?;
         let (workers, background_enabled) = self
@@ -403,12 +595,42 @@ impl LiveSession {
             super::CapabilityState::Unavailable(_) => LiveCapability::Unavailable,
             super::CapabilityState::UnknownStatusHeld => LiveCapability::UnknownStatusHeld,
         };
+        let observation = self.admitted(|| {
+            self.gateway.conversation_observation_snapshot(
+                &self.instance,
+                self.token.owner_id(),
+                &self.conversation_id,
+            )
+        })?;
         self.validate()?;
         Ok(LiveDiagnostics {
             mount_epoch: self.token.mount_epoch,
             workers,
             background_enabled,
             conversation_execution,
+            pending_submissions: observation
+                .submissions
+                .iter()
+                .filter(|s| s.state == crate::multiplexing_journal::SubmissionState::Pending)
+                .count(),
+            held_host_operations: observation
+                .host_operations
+                .iter()
+                .filter(|h| {
+                    h.phase == crate::multiplexing_journal::DurableHostOperationPhase::Unknown
+                })
+                .count(),
+            cancellation_requests: observation
+                .host_operations
+                .iter()
+                .filter(|h| h.cancel_requested)
+                .count()
+                + observation
+                    .generations
+                    .iter()
+                    .filter(|g| g.status == GenerationStatus::CancellationRequested)
+                    .count(),
+            resync_required: self.resync_required.load(Ordering::SeqCst),
         })
     }
     pub fn wake_background(&self) -> Result<(), LiveRuntimeError> {

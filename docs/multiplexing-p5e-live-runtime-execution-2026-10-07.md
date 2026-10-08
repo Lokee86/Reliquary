@@ -5,6 +5,8 @@ Wave: [Next parallel execution plan](multiplexing-phase5-next-parallel-execution
 Branch: `feat/multiplexing-p5-live-runtime`
 Base: `999fbf7d85c9f892a1bf979293588033bcc1484b`
 
+Current continuation: [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md) supersedes the native receipt, original-token cancellation and E scenario blockers below. This document preserves the earlier draft and its verification history.
+
 ## Purpose
 
 Record the E0 inventory, implemented live adapter draft, owner requests and remaining acceptance gates. This is a continuation record, not full E0–E5 acceptance.

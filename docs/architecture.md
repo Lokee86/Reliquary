@@ -540,6 +540,6 @@ Freshness owner reopen uses a disposable disk receipt lookup during validation a
 
 Pitlord also declares the existing Context Engine (src/context_engine.rs and directory), Project Environment (src/project_environment.rs, directory and root test modules), and pure typed-clock helpers (src/staleness) as distinct owners. Context Engine owns provider-neutral compaction/evidence policy; Project Environment owns Lore/Git repository bootstrap and attachment adapters; typed clocks own unit-safe threshold arithmetic only. These declarations repair omitted policy coverage without moving source or changing domain authority.
 
-## P5-E isolated live adapter draft
+## P5-E live runtime surface
 
-The isolated E draft adds interaction_live.rs as a recipient-only adapter over the existing Gateway, P3 journal/coordinator and P4 stream hub. It owns no semantic store or queue. Native interruption retains original session admission; external cancellation requires a token-bound owner seam before E can expose it. See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) for exact scope, owner requests and verification.
+The live adapter owns recipient state only over one shared GatewayRuntime. First-turn session creation uses the existing P3 journal; native tool events use synchronized source-scoped Echo, and generated files use the finalized assistant's existing atomic Archive attachment ingestion. P3 validates exact accepted generation identity and retry; no new event store or writer is introduced. Cancellation retains original mount/grant authority at durable stages and releases admission before provider I/O. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

@@ -446,6 +446,6 @@ Use the [next parallel execution plan](multiplexing-phase5-next-parallel-executi
 
 This file is future-only by policy. When a roadmap item ships, remove it from this document and document the resulting behavior in the current-state owners instead.
 
-## P5-E isolated live adapter draft
+## P5-E live runtime surface
 
-P5-E implementation has a partial recipient-adapter draft. Complete the P3 token-bound cancellation and A durable tool/artifact receipt requests, finish all E scenario gates, then freeze N1 types and request the single convergence export cut before C consumption or N3 acceptance. See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) for exact scope, owner requests and verification.
+E5 native/full-host-contract local acceptance is implemented. Next converge E with accepted F/G core, perform the named live-type export cut, resolve B/C execution-only provider integration and G-external acceptance, then pin/test Warlock against the final Reliquary/Arcana graph. Root convergence and final consumer acceptance are not implied by the isolated E lane. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

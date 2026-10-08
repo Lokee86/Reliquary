@@ -151,6 +151,6 @@ For prospective propagation breadth by principal/root layout/membership, use `ex
 
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
 
-## P5-E isolated live adapter draft
+## P5-E live runtime surface
 
-The live recipient draft is owned by src/runtime_inference/interaction_live.rs with interaction_live_tests.rs and tests/live_runtime_adapter.rs. Gateway/P3/P4/B remain lower authorities. Root exports stay with convergence. The P4 source guard includes the E adapter factory. See the [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) for exact scope, owner requests and verification.
+Recipient adaptation is owned by src/runtime_inference/interaction_live.rs and interaction_live_resume.rs; focused tests live in interaction_live_tests.rs and interaction_live_acceptance_tests.rs, with the public restart contract in tests/live_runtime_adapter.rs. The P3 generation owner owns captured-token cancellation, native tool event validation in runtime_host_gateway_conversation_generation_events.rs, and generated-file finalization. Archive/Echo/file owners retain existing persistence and source identity. P4 owns delivery; B owns routing/workers; convergence owns named root exports. The source guard scans all production interaction_live modules. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

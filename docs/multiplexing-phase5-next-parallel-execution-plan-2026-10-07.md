@@ -19,7 +19,7 @@ The planning-only main branch is not the implementation frontier. Current verifi
 | P5-A | Source commit `7350149`; integrated runtime acceptance on `4ce4911`: 1,099 library, 128 integration, 19 CLI; upgraded Warlock checks also pass | **done for implementation/acceptance; integrated into N0** |
 | P5-B | `c45f50e`; 1,093 library, 128 integration, 19 CLI plus P2/P3/P4 guards | **done for implementation/acceptance; integrated into N0** |
 | P5-C | Reliquary `4ce4911`; Warlock final-cut `1782e72`; old `ReliquaryRuntimeHost` consumer removed on the Warlock branch | **late-stage; remaining real-product gates below** |
-| P5-E | specified only | **start now** |
+| P5-E | native/full-host-contract E5 functional acceptance | **converge verified E cut; exports and final consumers remain** |
 | P5-F | specified only | **start now** |
 | P5-G | specified only; external-derived R0–R7 design already exists | **start framework-neutral/core work now; host-specific adapters separately gated** |
 | P5-D | deletion plan only | **start D0 inventory now; D1–D4 blocked** |
@@ -220,6 +220,6 @@ The next wave preserves existing deep owners: P3 owns durable conversation state
 
 This plan distinguishes the hard-cut critical path from adapter tails. Explicitly blocked work remains visible, but unavailable external adapter source does not force obsolete in-process authority to remain alive.
 
-## E draft checkpoint
+## E5 checkpoint
 
-The [E execution record](multiplexing-p5e-live-runtime-execution-2026-10-07.md) tracks the isolated recipient adapter begun at accepted N0. Missing durable tool/artifact receipts and token-bound external cancellation prevent E acceptance and N1 contract freeze. Named exports remain a single convergence-owned cut.
+The [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md) closes the isolated E native receipt and original-token cancellation requests and records the complete scenario matrix. N3 still needs the accepted E/F/G core merge and named live exports, B/C execution-only provider integration, G-external acceptance, and final Reliquary/Arcana pins plus Warlock tests. The full-contract host fixture verifies E behavior; it is not production provider conformance.

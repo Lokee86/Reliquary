@@ -987,3 +987,7 @@ These remain development formats and may evolve before a stable external-format 
 ## Conversation recovery validation (P3.8)
 
 P3.8 adds no persistent record, schema, queue, clock or migration. It validates the existing generation checkpoint length/hash against the exact UTF-8 prefix in the interaction-stream owner before reconciling a synchronized extension. Archive-backed completion also reconciles that extension. Mount and quiescence validate captured submission/Archive receipts through the same implementation. Pending order, policy revision, branch identity and Unknown/cancel-intent records retain their existing owners and formats. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).
+
+## P5-E native receipt reuse
+
+E5 adds no REL/PHY/container/journal codec. Native tool events use the existing immutable Echo source sequence and correlation fields; P3 validates their accepted generation and ordering before synchronized publication. Generated artifacts are existing embedded files/source attachments atomically ingested with the finalized assistant turn. Exact file identity, ordered source attachment receipt and conflicting retry validation survive ordinary reopen. Resume tokens are caller-held hints, not persisted semantic authority. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

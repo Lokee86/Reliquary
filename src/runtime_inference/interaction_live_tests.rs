@@ -272,3 +272,6 @@ fn completion_status_survives_checkpoint_normalization() {
     };
     assert_eq!(status, LiveGenerationStatus::Completed);
 }
+
+#[path = "interaction_live_acceptance_tests.rs"]
+mod acceptance;
