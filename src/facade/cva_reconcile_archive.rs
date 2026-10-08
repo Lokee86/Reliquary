@@ -8,6 +8,7 @@ use crate::{
 };
 
 pub(crate) enum ArchiveReplayRecord {
+    ImportReceipt(crate::imports::ImportReceipt),
     Node(IncomingTurn),
     IngestedTurn(IncomingTurn),
     Branch(Branch),
@@ -48,6 +49,7 @@ pub(crate) fn read_archive_tail(
         let transaction_time_ns = cva.transaction_time_ns(version.global_version);
         let record_payload = cva.container.read(version.record)?;
         let record = match decode_record(&record_payload)? {
+            ArchiveRecord::ImportReceipt(receipt) => ArchiveReplayRecord::ImportReceipt(receipt),
             ArchiveRecord::Node(node) => {
                 let content = cva.archive.content(&mut cva.container, node.content_id)?;
                 ArchiveReplayRecord::Node(IncomingTurn {
@@ -149,6 +151,10 @@ fn replay_archive_record(
     record: &ArchiveReplayRecord,
 ) -> Result<(), CvaReconcileError> {
     let archive_result = match record {
+        ArchiveReplayRecord::ImportReceipt(receipt) => destination
+            .archive
+            .put_import_receipt(&mut destination.container, receipt.clone())
+            .map(|_| ()),
         ArchiveReplayRecord::Node(turn) => destination
             .append_node_with_principal(
                 turn.id.clone(),

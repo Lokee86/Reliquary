@@ -88,15 +88,13 @@ The management layer composes existing owners; it does not become a new semantic
 
 ### 5. Production import and interoperability adapters
 
-Add normalized ingestion for historical and external interaction sources:
+Extend the supported [native import profiles](native-import.md):
 
-- production ChatGPT import;
-- Claude/provider export import;
-- Codex/Hermes and other structured agent-session imports where available;
-- ACP interoperability over the same normalized live interaction seam;
-- deterministic re-import/idempotency rules;
-- explicit handling of edits, replacements, deletions, and provider-specific branches; and
-- artifact provenance that distinguishes the initiating interaction, produced artifact, and artifact evidence.
+- certify maintained real-account ChatGPT/Claude export fixtures and reviewed additional shapes;
+- add pinned raw Codex and non-text/tool/artifact/lineage agent profiles;
+- compose mounted F5 authorization, P4 admission and coordinator refresh around the native commit path;
+- implement ACP interoperability over E's normalized live interaction seam; and
+- implement reference-only external-derived indexing and Hermes live feed/hydration.
 
 ACP remains an adapter, not a canonical storage schema. See [ADR 0015](decisions/0015-acp-inline-interaction-stream.md) and [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md).
 
@@ -417,7 +415,7 @@ P3.0–P3.9 and P4.0–P4.9 are complete and converged into the accepted main fo
 - P5-B background/host capability work is implemented and accepted.
 - P5-C has removed the Warlock old-host consumer on its clean final-cut branch; multi-context/provider/P4 reconnect and final pin/release acceptance remain.
 - P5-E live runtime and P5-F workspace management are the immediate critical-path parallel tracks.
-- P5-G normalized import/external-source core can proceed in parallel; ACP/Hermes host-specific adapters remain explicit source-dependent tails.
+- P5-G remaining work: certify broader real export fixtures, add reviewed raw Codex and non-text/tool/lineage profiles, compose mounted F5 admission, implement external-derived core and ACP/Hermes live adapters; [Native import](native-import.md) owns supported profiles.
 - P5-D may run its reverse-caller inventory now, but source deletion waits for C/E/F convergence.
 - P6-H harness infrastructure is accepted; P6-R remains post-deletion release verification.
 

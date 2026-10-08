@@ -20,6 +20,7 @@ const FRAGMENT_MAGIC: [u8; 8] = *b"CVAFRAG1";
 const FILE_MAGIC: [u8; 8] = *b"CVAFILE1";
 
 pub enum ArchiveRecord {
+    ImportReceipt(crate::imports::ImportReceipt),
     Content(ContentId, Vec<u8>),
     Node(Node),
     Branch(Branch),
@@ -103,6 +104,9 @@ pub(crate) fn decode_content_id(bytes: &[u8]) -> Result<Option<ContentId>, Archi
 pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 8 {
         return Ok(ArchiveRecord::Other);
+    }
+    if bytes[..8] == *crate::archive_import::IMPORT_MAGIC {
+        return crate::archive_import::decode(bytes).map(ArchiveRecord::ImportReceipt);
     }
     if bytes[..8] == CONTENT_MAGIC {
         return decode_content(bytes);

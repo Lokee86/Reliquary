@@ -93,7 +93,8 @@ impl ReclamationScan {
                 self.archive_content_refs.insert(object, refs);
                 return Ok(());
             }
-            ArchiveRecord::Branch(_)
+            ArchiveRecord::ImportReceipt(_)
+            | ArchiveRecord::Branch(_)
             | ArchiveRecord::ConversationMetadata(_)
             | ArchiveRecord::Fragment(_)
             | ArchiveRecord::Episode(_)

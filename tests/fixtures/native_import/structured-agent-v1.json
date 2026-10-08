@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "source_namespace": "agent/account-1",
+  "source_format": "structured-agent-v1",
+  "conversations": [
+    {
+      "id": "agent-1",
+      "title": "Revision evidence",
+      "messages": [
+        {
+          "id": "u",
+          "revision": "1",
+          "parent_id": null,
+          "replaces": null,
+          "deleted": false,
+          "role": "user",
+          "timestamp_ns": 42,
+          "content": "Question",
+          "artifacts": []
+        },
+        {
+          "id": "removed",
+          "revision": "2",
+          "parent_id": "u",
+          "replaces": null,
+          "deleted": true,
+          "role": "assistant",
+          "timestamp_ns": 43,
+          "content": "",
+          "artifacts": []
+        },
+        {
+          "id": "replacement",
+          "revision": "1",
+          "parent_id": "u",
+          "replaces": "removed",
+          "deleted": false,
+          "role": "assistant",
+          "timestamp_ns": 44,
+          "content": "Answer",
+          "artifacts": [
+            {
+              "id": "artifact-1",
+              "source_ref": "agent://artifact-1",
+              "filename": "answer.txt",
+              "mime_type": "text/plain",
+              "bytes": [
+                97,
+                98,
+                99
+              ]
+            }
+          ]
+        }
+      ],
+      "branches": [
+        {
+          "id": "main",
+          "leaf_message_id": "replacement",
+          "canonical": true
+        }
+      ]
+    }
+  ]
+}

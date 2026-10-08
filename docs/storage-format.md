@@ -1,5 +1,11 @@
 # Reliquary Storage Format
 Parent index: [Documentation index](INDEX.md)
+## Native import receipt record
+
+`CVAIMPT1` is an Archive semantic record: eight magic bytes followed by UTF-8 Serde JSON `imports::ImportReceipt` schema 1. It uses the existing `CVAAREC1` Archive record-version publication. The exact JSON fields are the exported receipt DTO fields: import key, source namespace/profile, conversation identity/title, source message revision/ancestry/replacement/delete marker and native Node references, source artifact reference/hash/native FileId, and source/native branch/head/canonical facts. Bodies remain in existing Node/content/File/turn-attachment records. Unknown fields, invalid schema/key and corrupt native references fail closed.
+
+Rebuild applies only Archive-versioned receipt records. Reconciliation republishes identical source evidence through Archive; reclamation retains published receipt backing. Older readers that do not recognize this new semantic family cannot safely open versioned receipt-bearing files. Existing files without receipts retain their format and open behavior. [Native import contract](native-import.md) owns identity/retry and snapshot semantics.
+
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
 ## P5-B persistence boundary

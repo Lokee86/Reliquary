@@ -2,6 +2,19 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Native import contracts
+
+| Contract | Focused evidence |
+| --- | --- |
+| Ordering-independent exact re-import preserves clocks, source identity and queue state across reopen | `imports::tests::deterministic_reimport_survives_reopen_and_order_changes` |
+| Shared branch prefixes queue each immutable Node once | `imports::tests::branches_queue_each_source_node_once` |
+| Edits/deletions/replacements preserve original historical paths and explicit evidence | `imports::tests::edits_deletions_and_replacements_keep_historical_evidence` |
+| Artifact bytes/hash/source references survive reopen | `imports::tests::artifact_identity_provenance_and_bytes_survive_reopen` |
+| Invalid graph/revision facts do not publish | `imports::tests::malformed_input_and_revision_conflicts_do_not_publish` |
+| Source/Episode/queue handoff cuts recover without duplicate acknowledged work | `imports::tests::interrupted_import_recovers_source_episode_and_queue_cuts` |
+| Native continuation, physical reclaim and divergent reconciliation preserve source receipts | Remaining `imports::tests` preservation cases |
+| Four public supported profiles reject unsupported shapes and never persist hidden reasoning bytes | `tests/native_import.rs`, versioned golden fixtures |
+
 ## Purpose
 
 This document maps critical current behavioral invariants to focused tests and smoke verification.

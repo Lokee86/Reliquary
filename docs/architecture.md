@@ -1,5 +1,9 @@
 # Architecture
 Parent index: [Documentation index](INDEX.md)
+## Native historical import ownership
+
+The branch-local G-import implementation normalizes supplied provider/agent bytes in `src/imports/`; `Cva::import_native` composes existing turn/file/branch publication and Insomnia scheduling. Archive owns source mappings, revision/delete/artifact evidence and `CVAIMPT1` receipt publication/rebuild. Import Episode coverage is per immutable source Node across branches, using existing response-cycle packing. No second queue, runtime, store or semantic clock is introduced. Live scheduling is unchanged. Exact retry and partial progress recovery are specified in [Native historical import](native-import.md). Mounted F5 authorization/P4/coordinator integration remains unimplemented.
+
 ## Purpose
 This document owns the current Reliquary Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
 ## Durable conversation policy
