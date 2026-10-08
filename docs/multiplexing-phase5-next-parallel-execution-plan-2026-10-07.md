@@ -2,7 +2,7 @@
 
 Parent: [P5/P6 parallel execution and convergence](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
 Current implementation line: Reliquary `feat/multiplexing-p5-convergence` — tested N0 base `f9dafba`
-Current external consumer line: Warlock `feat/multiplexing-p5c-final-cut` @ `3a62470` (N0 regression repairs)
+Current external consumer line: Warlock `feat/multiplexing-p5c-final-cut` @ `be17ad5` (native provider binding/Stop/status acceptance)
 Accepted harness line: `feat/multiplexing-p6-harness` @ `81a64b6`
 Status: **N0 accepted; E5/F-core/G-import/G-external R0–R4 are integrated and functionally verified on N3 staging. Fresh graph, production C/provider, final pins and C/D/release gates remain; P6-H stays separately accepted.**
 
@@ -18,7 +18,7 @@ The planning-only main branch is not the implementation frontier. Current verifi
 | --- | --- | --- |
 | P5-A | Source commit `7350149`; integrated runtime acceptance on `4ce4911`: 1,099 library, 128 integration, 19 CLI; upgraded Warlock checks also pass | **done for implementation/acceptance; integrated into N0** |
 | P5-B | `c45f50e`; 1,093 library, 128 integration, 19 CLI plus P2/P3/P4 guards | **done for implementation/acceptance; integrated into N0** |
-| P5-C | Reliquary `4ce4911`; Warlock final-cut `1782e72`; old `ReliquaryRuntimeHost` consumer removed on the Warlock branch | **late-stage; remaining real-product gates below** |
+| P5-C | Warlock `be17ad5` passes native provider acceptance against exact N3; old `ReliquaryRuntimeHost` consumer removed | **late-stage; remaining real-product gates below** |
 | P5-E | accepted E5 `874851ac` integrated with F/G-import on N3 staging | **combined functional matrix passed; named exports verified; final consumers remain** |
 | P5-F | F-core `13df1ff` integrated with E/G-import on N3 staging | **combined functional matrix passed; named exports verified; A standalone gaps and F5 remain** |
 | P5-G | G-import `99b9fa5` and G-external `7c63eb8` integrated with E/F-core on N3 staging | **combined functional matrix passed; framework-neutral core closed; live adapters remain** |
@@ -50,7 +50,9 @@ A regression here belongs to the owning A/B/C source before new tracks begin. Re
 ### Track C-close — real Warlock convergence
 
 **Repo:** clean Warlock P5-C worktree, continuing from `3a62470` (including N0 consumer regression repairs).
-**Reliquary dependency:** exact N0 convergence revision; no old-host fallback.
+**Reliquary dependency:** native C acceptance uses exact N3 staging `f2608029773eb81804fb0d4a8b328001a4b6a84f` through the local wrapper; final published convergence pins remain open. No old-host fallback.
+
+The native execution slice is accepted on Warlock `be17ad5aea51d404b99ab407edd277237665762f`: stable operation/digest exclusion, process-local Unknown retention and local readiness/status, authorized cooperative Stop through actual HTTP, and restart no-replay. Full tests (212 passed, 1 existing benchmark ignored), all-target check/Clippy, frontend/docs/source guards and fresh 56-rule Warlock architecture enforcement pass. The production pins remain unchanged.
 
 Remaining work:
 
@@ -164,7 +166,7 @@ A failure is repaired in its owner branch; do not solve integration failures wit
 
 ### N3 — Reliquary convergence and final C pin
 
-**2026-10-08 checkpoint: E/F/G-import/G-external staged and functionally verified; final N3 remains gated.** E5 `874851ac`, F-core `13df1ff`, G-import `99b9fa5` and G-external `7c63eb8` coexist on `feat/multiplexing-n3-staging`. The combined tree passes 1,156 unit, 137 integration and 19 CLI tests, direct ownership/coverage guards (75 P4 fixtures, 161 public APIs), policy validation (17 areas, 22 rules) and native Archive reopen smoke. Named E/F root exports and explicit external namespace exports are verified by downstream consumers. G-external R0–R4 integration is closed; actual B/C production execution-only provider and C composition acceptance remain. Fresh Rust graph analysis timed out after 600 seconds before Arcana/Pitlord enforcement. N0 convergence and Warlock pins remain unchanged. See [N3 staging checkpoint](multiplexing-n3-staging-checkpoint-2026-10-08.md).
+**2026-10-08 checkpoint: E/F/G-import/G-external staged and functionally verified; final N3 remains gated.** E5 `874851ac`, F-core `13df1ff`, G-import `99b9fa5` and G-external `7c63eb8` coexist on `feat/multiplexing-n3-staging`. The combined tree passes 1,156 unit, 137 integration and 19 CLI tests, direct ownership/coverage guards (75 P4 fixtures, 161 public APIs), policy validation (17 areas, 22 rules) and native Archive reopen smoke. Named E/F root exports and explicit external namespace exports are verified by downstream consumers. G-external R0–R4 integration is closed; C native execution binding/Stop/status is now accepted against this source; B/E execution-only contract negotiation, remote provider reconciliation and broader C composition acceptance remain. Fresh Rust graph analysis timed out after 600 seconds before Arcana/Pitlord enforcement. N0 convergence and Warlock pins remain unchanged. See [N3 staging checkpoint](multiplexing-n3-staging-checkpoint-2026-10-08.md).
 
 Merge accepted E, F-core and G framework-neutral/core work onto the N0 convergence line. Resolve root exports once. Run the full Reliquary/CLI/guard matrix. Then pin Warlock C to **that exact revision**, align Arcana, and rerun the full C acceptance matrix.
 
@@ -231,4 +233,4 @@ The [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) rec
 
 ## E5 checkpoint
 
-The [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md) closes the isolated E native receipt and original-token cancellation requests and records the complete scenario matrix. The E/F/G-import core cut is now staged and functionally verified in N3. Named live/management exports are implemented and verified. G-external R0–R4 is now integrated and combined-tested. B/C execution-only provider/C composition acceptance, fresh graph enforcement, and final Reliquary/Arcana pins plus Warlock tests remain. The full-contract host fixture verifies E behavior; it is not production provider conformance.
+The [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md) closes the isolated E native receipt and original-token cancellation requests and records the complete scenario matrix. The E/F/G-import core cut is now staged and functionally verified in N3. Named live/management exports are implemented and verified. G-external R0–R4 is now integrated and combined-tested. C native execution acceptance now passes on `be17ad5`; B/E execution-only contract negotiation, remote provider reconciliation and broader C composition, fresh Reliquary graph enforcement, and final Reliquary/Arcana pins plus the normal locked Warlock matrix remain. The full-contract host fixture verifies E behavior; it is not production provider conformance.
