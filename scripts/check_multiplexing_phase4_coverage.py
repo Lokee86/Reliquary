@@ -9,6 +9,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 GROUPS = {
+    "external_index": "update_external_index_for rebuild_external_index_for",
+    "external_processing": "process_external_window_for",
     "published": "prepare_conversation_branch_at_leaf set_rel_metadata_for create_knowledge_memory_for replace_knowledge_memory_for rename_knowledge_community_for mutate_knowledge_relation_for validate_project_environment_for checkpoint_manual_project_for ingest_project_attachment_for set_conversation_title_for put_conversation_compaction_for put_echo_event_for",
     "owner_semantic_mutation": "create_knowledge_memory_for_owner replace_knowledge_memory_for_owner mutate_knowledge_relation_for_owner rename_knowledge_community_for_owner",
     "delegated": "set_rel_metadata create_knowledge_memory refresh_principal_projection_for",
@@ -20,7 +22,7 @@ GROUPS = {
     "private": "set_phylactery_profile quiesce_phy quiesce_phy_for reopen_phy reopen_phy_for unmount_phy mount_phy_path",
     "conversation": "process_conversation_submission_if_next submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation",
     "attachment": "select_managed_conversation_leaf clear_managed_conversation_selection select_rel detach_instance select_managed_conversation attach_conversation_viewer detach_conversation_viewer mark_managed_conversation_resumed attach_authenticated_instance refresh_authenticated_instance with_admission_adapter",
-    "read": "conversation_submission_status conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for latest_project_revision_correlation_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories search_visible_archive search_archive_owner conversation_revision_for conversation_branch_id_for_leaf conversation_branch_leaf_for_id conversation_branch_start_node_ids_for conversation_compactions_for read_memory_provenance_for_owner resolve_knowledge_provenance_for_owner owner_mount_is_path_scoped background_status_for phy_background_status_for background_worker_state_for"
+    "read": "external_index_status_for search_external_source_for search_external_lexical_for hydrate_external_chunks_for read_external_memory_evidence_for read_memory_source_evidence_for conversation_submission_status conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for latest_project_revision_correlation_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories search_visible_archive search_archive_owner conversation_revision_for conversation_branch_id_for_leaf conversation_branch_leaf_for_id conversation_branch_start_node_ids_for conversation_compactions_for read_memory_provenance_for_owner resolve_knowledge_provenance_for_owner owner_mount_is_path_scoped background_status_for phy_background_status_for background_worker_state_for"
 }
 CLASSIFICATION = {name: group for group, names in GROUPS.items() for name in names.split()}
 # Conservatively recognize state-changing Cva verbs in production gateway/worker
@@ -30,7 +32,7 @@ WRITE = re.compile(
     r"\.cva\s*\.\s*(?:set_|publish_|commit_|mark_|reconcile_|resolve_|"
     r"correlate_|register_|create_|replace_|rename_|mutate_|validate_|"
     r"checkpoint_|ingest_|accept_|claim_|renew_|freeze_|fail_|finalize_|"
-    r"complete_|remove_|upsert_|retire_|append_)[a-z_]*\s*\("
+    r"complete_|remove_|upsert_|retire_|append_|external_install)[a-z_]*\s*\("
 )
 
 def masked(source):
@@ -106,6 +108,12 @@ def check_gateway(source):
             errors.append(f"{name}: unclassified public GatewayRuntime API")
         elif category == "published" and "with_rel_mutation(" not in body:
             errors.append(f"{name}: missing canonical mutation admission")
+        elif category == "external_index":
+            if "self.authorize(" not in route_body or "OwnerGrant::ManageRel" not in route_body or "self.install_external(" not in route_body:
+                errors.append(f"{name}: missing exact external index mutation route")
+        elif category == "external_processing":
+            if "OwnerGrant::ManageRel" not in body or "with_rel_mutation(" not in body or "with_phy(" not in body or "with_rel_distribution_admission(" not in body:
+                errors.append(f"{name}: missing admitted external semantic publication route")
         elif category == "trusted_project":
             if name == "create_project_environment_rel":
                 if "self.lifecycle.lock(" not in route_body or "rel_path.exists()" not in body or "create_project_rel(" not in body:
@@ -355,6 +363,10 @@ def self_test():
         ),
         "must not clone full stream content before prefix slicing",
     )
+    expect(check_gateway("impl GatewayRuntime { pub fn update_external_index_for(&self) { self.install_external(); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn update_external_index_for(&self) { self.authorize(OwnerGrant::ManageRel); self.install_external(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn process_external_window_for(&self) { self.with_rel_mutation(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn external_index_status_for(&self) { r.cva.external_install(); } }"))
     print(f"P4 coverage guard: {fixtures} negative/positive fixtures passed")
 
 def main():

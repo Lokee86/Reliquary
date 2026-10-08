@@ -4,7 +4,9 @@ use super::candidate_source::{RawSource, optional, parse_source, required_string
 use super::contract::MAX_INSOMNIA_CANDIDATES;
 use super::extraction::{InsomniaCandidate, InsomniaExtractionError, InsomniaRejection};
 use super::ownership::InsomniaOwnership;
-use crate::{EpisodeId, ResolvedTurn};
+#[cfg(test)]
+use crate::EpisodeId;
+use crate::ResolvedTurn;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
@@ -72,8 +74,17 @@ fn parse_candidate(value: &Value) -> Result<RawCandidate, InsomniaExtractionErro
     })
 }
 
+#[cfg(test)]
 pub(super) fn validate_candidates(
     episode_id: EpisodeId,
+    turns: &[ResolvedTurn],
+    raw: Vec<RawCandidate>,
+) -> (Vec<InsomniaCandidate>, Vec<InsomniaRejection>) {
+    validate_candidates_for_source(episode_id.0, turns, raw)
+}
+
+pub(super) fn validate_candidates_for_source(
+    episode_id: [u8; 32],
     turns: &[ResolvedTurn],
     raw: Vec<RawCandidate>,
 ) -> (Vec<InsomniaCandidate>, Vec<InsomniaRejection>) {
@@ -166,7 +177,7 @@ fn canonical_label(value: &str) -> String {
 }
 
 fn candidate_key(
-    episode_id: EpisodeId,
+    episode_id: [u8; 32],
     source_node_id: &str,
     source_quote: &str,
     authority_source: &RawSource,
@@ -175,7 +186,7 @@ fn candidate_key(
 ) -> String {
     let mut hash = Sha256::new();
     hash.update(b"continuity-insomnia-candidate-v3\0");
-    hash.update(episode_id.0);
+    hash.update(episode_id);
     for value in [
         source_node_id,
         source_quote,

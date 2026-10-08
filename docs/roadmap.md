@@ -102,20 +102,9 @@ ACP remains an adapter, not a canonical storage schema. See [ADR 0015](decisions
 
 ### 6. External canonical-transcript integrations
 
-Add the reference-only external integration mode defined by the [External conversation index integration plan](conversation-index-integration-plan.md).
+Framework-neutral external-derived R0–R4 is implemented and functionally accepted on the independent G-external branch; current behavior belongs to [Architecture](architecture.md), [Rust API](api.md), [Storage format](storage-format.md) and [Current limitations](current-limitations.md). [External-core acceptance](multiplexing-p5g-external-acceptance-2026-10-08.md) records local evidence and remaining fresh graph enforcement.
 
-This is additive to native Archive-backed operation. For hosts that already own canonical conversation history, Reliquary should:
-
-- consume a durable/reconstructable host change feed asynchronously;
-- store stable external message IDs, content hashes, offsets, vectors, cursors, and derived semantic metadata without copying canonical transcript bodies into Archive;
-- hydrate source text only transiently through the host's authorized source API;
-- add a generalized identifier-only external provenance lane rather than inventing Archive Episode/node identities;
-- make lost/corrupt derived indexes rebuildable from host canonical history;
-- route external-source semantic extraction through shared Insomnia semantics without persisting a duplicate source transcript;
-- return source references from derived search so the host remains responsible for authorization and canonical hydration; and
-- expose semantic compaction as an optional proposal service whose result the host validates and commits.
-
-The first target is Hermes, but the Reliquary core contract must remain framework-neutral. Hermes-specific transport belongs in an adapter.
+Remaining work is combined N3 acceptance, bounded host feed scheduling, real Hermes/ACP and additional framework adapters, explicit embedding-profile migration and owner-aware divergent reconciliation if required. Semantic compaction remains an optional host-validated proposal service. Host-specific transport stays outside the core and the host retains canonical history, source authorization and lifecycle/commit authority. The [external integration plan](conversation-index-integration-plan.md) owns these future adapters and proposals.
 
 ### 7. File usability
 

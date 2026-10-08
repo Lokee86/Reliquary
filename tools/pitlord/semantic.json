@@ -115,6 +115,13 @@
       "paths": [
         "src/staleness"
       ]
+    },
+    {
+      "id": "external-source",
+      "description": "Host canonical reference contracts and derived index; external semantic publication composes MemoryStore without creating Archive source history",
+      "paths": [
+        "src/external_source"
+      ]
     }
   ],
   "rules": [

@@ -150,3 +150,16 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 For prospective propagation breadth by principal/root layout/membership, use `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py`. [Development](development.md) owns invocation; [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) owns evidence and interpretation. Unknown membership is checked independently by shortest-path arithmetic. These measurements do not establish semantic relevance or historical score trajectories.
 
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
+
+
+## External source core ownership (P5-G branch)
+
+| Concern | Owner/code | Verification |
+| --- | --- | --- |
+| Host contract, hashes and bounds | `src/external_source/model.rs` | External source contract and hydration tests |
+| Reference-only index, cursor and rebuild | `external_source/store.rs`, `index.rs` | Replay/reopen/edit/visibility/delete/corruption/CAS tests |
+| Atomic semantic publication and provenance | `external_source/publication.rs`, `provenance.rs` | Memory receipt, body binding and reopen tests |
+| Shared transient Insomnia input | `insomnia/input.rs`, shared extraction/synthesis, `external_source/processing.rs` | External project/private extraction and native Insomnia regressions |
+| Authorized Gateway delivery/publication | `runtime_host_gateway_external*.rs` | Exact grant, private binding, stale-cut and retry tests; P4 coverage guard |
+
+Container only observes the authenticated embedded version range. MemoryStore owns accepted Memory/evidence/receipt semantics; the Gateway owns frozen operational derivations and exact destination fencing. Host-specific transport and feed implementations remain R5/R7 adapter responsibilities.

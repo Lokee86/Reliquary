@@ -245,6 +245,8 @@ mod cva_global_validation;
 mod cva_graph;
 #[path = "facade/cva_lifecycle.rs"]
 mod cva_lifecycle;
+#[path = "external_source/mod.rs"]
+pub mod external_source;
 pub use cva_freshness::{FreshnessEventCut, FreshnessEventProof};
 #[path = "facade/cva_freshness_due.rs"]
 mod cva_freshness_due;

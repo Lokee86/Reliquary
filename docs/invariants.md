@@ -258,3 +258,16 @@ Cross-database restore activation, actual concurrent writers, checkpointing, and
 ## Recovery hard cut (P3.8)
 
 Mount and quiesced recovery use the same admitted-turn and Archive validation before post-commit acknowledgement. A checkpoint stream must contain the exact previously acknowledged UTF-8 prefix; missing, truncated or changed content fails mount without inventing terminal status. A synchronized extension is recorded before Interrupted or Completed. Coordinator exact acquisition verifies the durable branch and independently rejects fresh Pending work. Durable active metadata cannot create viewers, instance selection or per-viewer writers. Unknown host work and cancellation intent remain reserved until authoritative terminal proof. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).
+
+
+## External source ownership
+
+- A source namespace identifies host canonical history; it is not a REL owner ID or an Archive identity.
+- External index snapshots contain descriptors, IDs, content hashes, offsets, term hashes, vector bindings and cursors. Hydrated transcript bodies remain transient.
+- Cursor advancement and its source-row mutation share one synchronized snapshot. Concurrent preparations use a revision fence; feed gaps require an explicit manifest rebuild.
+- Hash replacement, inactive visibility and conversation deletion suppress source rows. They do not automatically delete independent semantic Memories.
+- Host authorization and Gateway grants are independent. REL access never grants host transcript access. Private output requires the verified caller's exact bound PHY.
+- External provenance contains no synthetic Episode or Archive node IDs. Unavailable, inactive or changed host evidence remains unavailable/stale; semantic ownership persists.
+- Frozen processing plans contain legitimate derived Memory drafts and identifier-only provenance in trusted Gateway operational storage. They contain no canonical transcript cache and are never delivered as REL snapshots.
+
+External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.

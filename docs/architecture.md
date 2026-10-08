@@ -539,3 +539,16 @@ Exact coordinator acquisition now verifies the durable branch and rejects fresh 
 Freshness owner reopen uses a disposable disk receipt lookup during validation and one final canonical replay. It retains no lifetime receipt ID table in RAM. The temporary lookup and sorted runs are rebuilt from the accepted owner prefix and removed after use.
 
 Pitlord also declares the existing Context Engine (src/context_engine.rs and directory), Project Environment (src/project_environment.rs, directory and root test modules), and pure typed-clock helpers (src/staleness) as distinct owners. Context Engine owns provider-neutral compaction/evidence policy; Project Environment owns Lore/Git repository bootstrap and attachment adapters; typed clocks own unit-safe threshold arithmetic only. These declarations repair omitted policy coverage without moving source or changing domain authority.
+
+
+## External canonical transcript core (P5-G branch)
+
+The independent `feat/multiplexing-p5-external` branch adds the framework-neutral R0–R4 lane described in [the external integration plan](conversation-index-integration-plan.md). Native Archive ingestion remains available. A host implements `external_source::ExternalConversationSource` and retains canonical bodies, authorization and transcript lifecycle. REL owns reference-only external index snapshots and packed vector bindings. Lexical routing stores term hashes, not source strings. Search returns hash-bound UTF-8 range references and scores.
+
+Gateway operations require exact REL grants and a verified instance principal. Feed, manifest, hydration and model calls run outside owner locks, distribution gates and admission leases. Publication rechecks the original owner token and source cut. Hydration validates the canonical descriptor, SHA-256 content hash and UTF-8 byte range before transient text delivery.
+
+External Insomnia uses the existing ledger, classification, ownership, wording, enrichment and Chronos machinery through a shared transient input. It creates ordinary project REL and caller-bound private PHY Memories. It creates no Archive nodes, Episodes, Fragments or Echo source evidence. Identifier-only external provenance is bound to the published Memory body, separately from the unchanged native Memory codec.
+
+The Gateway freezes derivation and exact private destination in trusted operational state before recipient publication. Each recipient atomically commits its Memory batch and window receipt. This is recoverable owner-local publication, not an atomic transaction across REL and PHY. A retry uses the frozen plan and recipient receipts. The host never waits for Reliquary to acknowledge a canonical turn.
+
+External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.

@@ -2,7 +2,7 @@
 
 Parent: [P5/P6 parallel execution](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Canonical external-transcript plan: [External Conversation Index Integration](conversation-index-integration-plan.md)  
-Status: **next-wave parallel track. Framework-neutral import/external-source work can start immediately; provider importers and the external-derived R0–R4 core can be split into independent subtracks. ACP/Hermes adapter completion remains source/SDK dependent and does not block legacy-host deletion once core contracts are independent.**
+Status: **Framework-neutral G-external R0–R4 is functionally accepted on its owning branch, with fresh graph enforcement still unverified. G-import and host-specific ACP/Hermes adapters retain their separate acceptance/integration records.**
 
 ## Purpose
 
@@ -10,7 +10,7 @@ Own the external interaction ingestion/interoperability surface that the A-D rew
 
 ## Overview
 
-The roadmap requires normalized historical imports for ChatGPT, Claude/provider exports, Codex/Hermes/structured agent sessions and ACP interoperability. A separate accepted plan defines external-derived mode for hosts such as Hermes that already own canonical transcript history. Current source has native import queue primitives and external Memory provenance, but no complete production adapter family or reference-only external index implementation. Phase 0B found no ACP source checkout and no direct Hermes Reliquary consumer at that time; applicability must be rechecked rather than assumed.
+The roadmap requires normalized historical imports for ChatGPT, Claude/provider exports, Codex/Hermes/structured agent sessions and ACP interoperability. A separate accepted plan defines external-derived mode for hosts such as Hermes that already own canonical transcript history. The independent G-external branch has a reference-only index and generalized external provenance through the shared Insomnia pipeline; native production importers have their own G-import lane. A complete host-specific adapter family remains future work. Phase 0B found no ACP source checkout and no direct Hermes Reliquary consumer at that time; applicability must be rechecked rather than assumed.
 
 ## Target architecture
 
@@ -39,8 +39,9 @@ Implement supported production importers with golden fixtures, branch/edit seman
 ### G3 — ACP/live interoperability
 Implement Reliquary ACP adapter against E's transport-neutral runtime when an ACP source/SDK is available. Capture durable normalized events and context injection without making ACP canonical storage. Protocol version instability remains isolated in adapter code.
 
-### G4 — external canonical transcript R0-R4
-Execute the existing plan's framework-neutral contracts, reference-only derived index, search/rebuild, external provenance/Insomnia processing and lifecycle invalidation. Store no duplicate canonical transcript body. Rebuild from host feed/hydration must reproduce the same derived identity.
+### G4 — external canonical transcript R0–R4
+
+Framework-neutral core is functionally accepted on its owning branch. [External-core acceptance](multiplexing-p5g-external-acceptance-2026-10-08.md) owns exact tests and remaining graph/tooling limits; canonical architecture/API/storage/limitations own implemented behavior. Its exact accepted commit must pass the combined N3 matrix before convergence.
 
 ### G5 — Hermes adapter
 When the real Hermes integration repository/API is available, implement R5: durable/reconstructable change feed, stable message refs, authorized hydration, cursor/rebuild, search source refs and semantic processing. Hermes-specific transport stays outside core.

@@ -22,6 +22,7 @@ cli/Cargo.toml / cli/Cargo.lock      detachable repo-local CLI package + lockfil
 cli/src/*.rs                         interface parsing/prompting/rendering/dispatch over public API
 src/container/                     physical REL/PHY container mechanics + global ordering
 src/archive/                       Archive/source history, Episodes, files, Echo, repository correlation
+src/external_source/               external canonical references, derived index, provenance/publication
 src/memory/                        authoritative Memory records/revisions/provenance
 src/retrieval/                     lexical/semantic retrieval, vectors, profiles, generations
 src/semantic_graph/                Graph, Communities, typed semantic-node traversal

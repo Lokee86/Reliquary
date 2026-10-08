@@ -547,3 +547,18 @@ No compatibility promise has yet been made for Rust method signatures or develop
 ## Conversation recovery checks (P3.8)
 
 The public conversation surface is unchanged. resume_conversation_submission and internal generation/control acquisition validate the durable target branch in the coordinator; fresh Pending work must use process_next_conversation_submission. Mount verifies acknowledged checkpoint content before accepting a stream extension and completing or interrupting a recovered generation. Quiescence uses the same admitted-turn/Archive receipt validation as mount, and rejects a missing publication before post-commit acknowledgement. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).
+
+
+## External canonical conversation API (P5-G branch)
+
+Contracts are under `reliquary_memory::external_source`. Implement `ExternalConversationSource` with a stable namespace, independently authorized bounded change feed, complete snapshot manifest and canonical hydration. Content hashes are SHA-256 over exact UTF-8 content bytes; chunk ranges use UTF-8 byte offsets. Feed events are contiguous after the committed cursor. A lagging cursor below the retained feed floor requires rebuild.
+
+Gateway exposes `rebuild_external_index_for`, `update_external_index_for`, `external_index_status_for`, `search_external_source_for`, `search_external_lexical_for`, `hydrate_external_chunks_for`, `process_external_window_for`, `read_external_memory_evidence_for` and `read_memory_source_evidence_for`. Index rebuild/update and semantic extraction require exact `ManageRel`; reference search/status/hydration require `ViewRel`. Private provenance and publication require `UseOwnPhy` for the caller's bound owner. All host operations receive the verified principal independently of REL authorization.
+
+Search returns references and scores. Hydrated chunks are transient return values. Processing accepts an ordered window of up to 64 current active references from one conversation, a shared Insomnia extractor, scope and completion time. It returns normal owner-qualified Memory references; replay reports `replayed = true` and no newly measured rejection count. Native `MemorySourceRef` remains unchanged; generalized provenance discriminates native and external evidence.
+
+Bounds: 64 changes/hydrated messages per batch, 8,192 manifest messages, 64 KiB per canonical message/query, 256 KiB per extraction window, 128 search results and 4,096 embedding dimensions. Manifest and provider responses must also be bounded by host adapters before allocation. One namespace has one current profile; changing its embedding space requires a separately designed migration.
+
+External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.
+
+External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.

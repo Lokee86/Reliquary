@@ -172,6 +172,42 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         self.endpoint.model()
     }
 
+    /// Shared ledger, metadata, ownership, wording and enrichment over host-owned
+    /// transient turns. External evidence cannot fall back to an Archive lookup.
+    pub(crate) fn extract_external_input(
+        &self,
+        key: [u8; 32],
+        namespace: &str,
+        conversation: &str,
+        turns: &[ResolvedTurn],
+    ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
+        if turns.is_empty() {
+            return Err(InsomniaExtractionError::InvalidOutput(
+                "external input is empty".into(),
+            ));
+        }
+        let input = super::input::InsomniaSourceInput {
+            key,
+            conversation_id: conversation.to_owned(),
+        };
+        let payload = input.external_payload(namespace, turns);
+        let ledger = self.complete_ledger(&payload, turns, &[], false, &no_stage_progress)?;
+        if !parse_evidence_requests(&ledger)?.is_empty() {
+            return Err(InsomniaExtractionError::InvalidOutput(
+                "external evidence must be in the authorized window".into(),
+            ));
+        }
+        let entries = ledger::parse(&ledger, turns, &[])?;
+        self.synthesize(
+            &input,
+            turns,
+            &payload,
+            entries,
+            Vec::new(),
+            &no_stage_progress,
+        )
+    }
+
     pub fn extract(
         &self,
         episode: &Episode,
@@ -222,7 +258,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             let entries = ledger::parse(&initial_ledger, turns, &[])?;
             return self
                 .synthesize(
-                    episode,
+                    &super::input::InsomniaSourceInput::native(episode),
                     turns,
                     &episode_payload,
                     entries,
@@ -286,7 +322,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
         }
         let entries = ledger::parse(&final_ledger, turns, &evidence_turns)?;
         self.synthesize(
-            episode,
+            &super::input::InsomniaSourceInput::native(episode),
             turns,
             &payload["authoritative_episode"],
             entries,
@@ -427,7 +463,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
 
     fn synthesize(
         &self,
-        episode: &Episode,
+        episode: &super::input::InsomniaSourceInput,
         turns: &[ResolvedTurn],
         episode_payload: &Value,
         entries: Vec<ledger::LedgerEntry>,
@@ -474,7 +510,7 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             &synthesis::schema(&groups),
         )?;
         let (mut candidates, rejected) =
-            synthesis::materialize(episode, turns, &evidence_turns, &groups, &wording)?;
+            synthesis::materialize_input(episode, turns, &evidence_turns, &groups, &wording)?;
         if let Some(enrichment_endpoint) = &self.enrichment_endpoint {
             stage_reporter(InsomniaSemanticStage::Enrichment, candidates.len());
             enrichment::enrich(enrichment_endpoint.as_ref(), &mut candidates)?;

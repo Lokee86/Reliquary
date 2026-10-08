@@ -26,6 +26,23 @@ impl MemoryOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), MemoryError> {
+        if let Some(publication) = crate::external_source::publication::decode(payload)? {
+            self.store
+                .apply_grouped_bodies(chunk, &publication.bodies)?;
+            for record in &publication.records {
+                if record.global_version == 0
+                    || record.global_version > latest_global_version
+                    || record.memory_version != self.store.memory_version() + 1
+                {
+                    return Err(MemoryError::InvalidVersion);
+                }
+                self.store.insert_rebuilt(record.clone())?;
+            }
+            self.pending_routing_metadata
+                .extend(publication.routing.clone());
+            self.store.apply_external_publication(&publication)?;
+            return Ok(());
+        }
         if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
             .map_err(MemoryError::CorruptRecord)?
         {
