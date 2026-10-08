@@ -48,6 +48,7 @@
 - [Multiplexing P5-D legacy deletion](multiplexing-phase5d-legacy-deletion-2026-10-06.md) — source-backed final hard cut after external callers move.
 - [Multiplexing P5-E live runtime surface](multiplexing-phase5e-live-runtime-surface-2026-10-06.md) — transport-neutral adapter/session events, reconnect/resume, controls, capability cache and diagnostics.
 - [Multiplexing P5-F workspace management](multiplexing-phase5f-workspace-management-2026-10-06.md) — authorized conversation/file/Memory/health and import-export management composition.
+- [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) — F0–F4 composition, management capability matrix and lane verification.
 - [Multiplexing P5-G interoperability](multiplexing-phase5g-interoperability-2026-10-06.md) — normalized provider imports, ACP/live adapters and reference-only external canonical transcript integration.
 - [Multiplexing Phase 6 parallel verification](multiplexing-phase6-parallel-verification-plan-2026-10-06.md) — concurrent H0–H5 adversarial/performance harness and post-deletion release gate.
 - [Multiplexing Phase 1 remaining work](multiplexing-phase1-remaining-work-2026-10-03.md) — source-audited execution steps, narrow gateway/legacy boundary, targeted verification and Phase 1 exit gates.

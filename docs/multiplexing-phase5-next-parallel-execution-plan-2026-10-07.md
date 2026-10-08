@@ -20,7 +20,7 @@ The planning-only main branch is not the implementation frontier. Current verifi
 | P5-B | `c45f50e`; 1,093 library, 128 integration, 19 CLI plus P2/P3/P4 guards | **done for implementation/acceptance; integrated into N0** |
 | P5-C | Reliquary `4ce4911`; Warlock final-cut `1782e72`; old `ReliquaryRuntimeHost` consumer removed on the Warlock branch | **late-stage; remaining real-product gates below** |
 | P5-E | specified only | **start now** |
-| P5-F | specified only | **start now** |
+| P5-F | isolated F-core composition locally verified; 1,110 library, 129 integration, 19 CLI plus ownership/coverage/docs checks | **supported core matrix verified; A standalone gaps, F5/G1 and N3 integration remain** |
 | P5-G | specified only; external-derived R0–R7 design already exists | **start framework-neutral/core work now; host-specific adapters separately gated** |
 | P5-D | deletion plan only | **start D0 inventory now; D1–D4 blocked** |
 | P6-H | harness accepted on `81a64b6`; full H5 instrumentation incomplete | **continue diagnostic tail now** |
@@ -219,3 +219,8 @@ The next wave preserves existing deep owners: P3 owns durable conversation state
 ## Notes
 
 This plan distinguishes the hard-cut critical path from adapter tails. Explicitly blocked work remains visible, but unavailable external adapter source does not force obsolete in-process authority to remain alive.
+
+
+## F-core lane checkpoint
+
+The [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) records F0–F4 composition on an isolated N0 branch. Source-qualified file inventory and existing project operations are supported; missing A standalone/whole-file primitives, F5/G1 and final C/D convergence remain explicit. Final exports stay with the single N3 cut.

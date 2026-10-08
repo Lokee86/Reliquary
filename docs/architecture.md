@@ -539,3 +539,8 @@ Exact coordinator acquisition now verifies the durable branch and rejects fresh 
 Freshness owner reopen uses a disposable disk receipt lookup during validation and one final canonical replay. It retains no lifetime receipt ID table in RAM. The temporary lookup and sorted runs are rebuilt from the accepted owner prefix and removed after use.
 
 Pitlord also declares the existing Context Engine (src/context_engine.rs and directory), Project Environment (src/project_environment.rs, directory and root test modules), and pure typed-clock helpers (src/staleness) as distinct owners. Context Engine owns provider-neutral compaction/evidence policy; Project Environment owns Lore/Git repository bootstrap and attachment adapters; typed clocks own unit-safe threshold arithmetic only. These declarations repair omitted policy coverage without moving source or changing domain authority.
+
+
+## P5-F-core isolated management composition
+
+The isolated F-core lane adds a stateless WorkspaceManagement facade over existing Gateway/A/P3/P4/B authorities. It returns immutable owner-qualified management results, stores no semantic data or selection, and uses delivery-only original-token validation for composite reads. Named exports remain convergence-owned. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.

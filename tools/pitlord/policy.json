@@ -28,6 +28,90 @@
       "exclude_paths": [
         "src/facade/migration.rs"
       ]
+    },
+    {
+      "id": "management-no-cva",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": ".cva",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-cva-type",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "Cva",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-phy-type",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "Phylactery",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-runtime",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "InteractionRuntime",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-journal",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "RelJournal",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-second-gateway",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "GatewayRuntime::new",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-legacy-host",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "ReliquaryRuntimeHost::",
+      "message": "Management must not restore the duplicate legacy host authority."
     }
   ]
 }

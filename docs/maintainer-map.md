@@ -150,3 +150,8 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 For prospective propagation breadth by principal/root layout/membership, use `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py`. [Development](development.md) owns invocation; [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) owns evidence and interpretation. Unknown membership is checked independently by shortest-path arithmetic. These measurements do not establish semantic relevance or historical score trajectories.
 
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
+
+
+## P5-F-core isolated management composition
+
+Management composition belongs to src/runtime_inference/workspace_management.rs and its conversation/files/knowledge/health modules. workspace_management_tests.rs and tests/workspace_management.rs verify it. The management source guard and Pitlord rules reject raw owners, store/journal inspection and second-gateway construction. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.

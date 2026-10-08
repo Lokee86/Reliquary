@@ -547,3 +547,8 @@ No compatibility promise has yet been made for Rust method signatures or develop
 ## Conversation recovery checks (P3.8)
 
 The public conversation surface is unchanged. resume_conversation_submission and internal generation/control acquisition validate the durable target branch in the coordinator; fresh Pending work must use process_next_conversation_submission. Mount verifies acknowledged checkpoint content before accepting a stream extension and completing or interrupting a recovered generation. Quiescence uses the same admitted-turn/Archive receipt validation as mount, and rejects a missing publication before post-commit acknowledgement. [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md).
+
+
+## P5-F-core isolated management composition
+
+GatewayRuntime::workspace_management binds a verified instance to conversation, source-file/project, knowledge and health operations. Output pages have 1–128 rows; primary browsed text is capped at 1 MiB and resolved files at 8 MiB. Missing standalone/destructive/import capabilities report explicit unsupported results. Named root types await the convergence export cut. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.

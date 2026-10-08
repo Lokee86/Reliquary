@@ -2,7 +2,7 @@
 
 Parent: [P5/P6 parallel execution](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Roadmap owner: [Complete the workspace management API](roadmap.md)  
-Status: **next-wave critical-path track; specified and ready to start in parallel with E and C closure. F0–F4 can proceed immediately; F5 selective import/export waits on G1. No implementation is yet accepted.**
+Status: **isolated F-core F0–F4 composition locally verified for the declared capability matrix; standalone file owner gaps remain explicit. F5 waits for G1; final exports and C/product integration remain convergence gates.** See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md).
 
 ## Purpose
 
