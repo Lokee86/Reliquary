@@ -1,5 +1,9 @@
 # Rust API Reference
 Parent index: [Documentation index](INDEX.md)
+## Native historical import API
+
+The public `reliquary_memory::imports` module exports schema-1 DTOs and `normalize_chatgpt`, `normalize_claude`, `normalize_hermes_jsonl`, `normalize_agent`. Normalizers accept supplied bytes only. `Cva::import_native(&NativeImport, now_ns) -> Result<ImportReceipt, ImportError>` is exclusive/offline and syncs before acknowledgement. `native_import_receipts()` returns Archive-owned source evidence. Public names remain under the G module until convergence resolves final root exports. [Native historical import](native-import.md) owns the exact profiles, bounds, fields, ancestry/revision/delete/artifact identity and partial-failure recovery. No mounted gateway import operation is exposed in this cut.
+
 ## Purpose
 This document owns the current public Rust library surface exposed by `reliquary_memory`.
 ## P5-C exact admission and transcript continuation

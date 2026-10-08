@@ -13,10 +13,9 @@ pub(crate) fn classify_open_record(payload: &[u8]) -> OpenRecordRoute {
     };
 
     match magic {
-        b"CVACONT1" | b"CVANODE1" | b"CVABRCH1" | b"CVAFRAG1" | b"CVAFILE1" | b"CVAAFMT2"
-        | b"CVAAREC1" | b"CVACONV1" | b"CVACONV2" | b"CVAEPIS1" | b"CVAFMEM1" | b"CVATURN1" => {
-            OpenRecordRoute::Archive
-        }
+        b"CVAIMPT1" | b"CVACONT1" | b"CVANODE1" | b"CVABRCH1" | b"CVAFRAG1" | b"CVAFILE1"
+        | b"CVAAFMT2" | b"CVAAREC1" | b"CVACONV1" | b"CVACONV2" | b"CVAEPIS1" | b"CVAFMEM1"
+        | b"CVATURN1" => OpenRecordRoute::Archive,
 
         b"CVAMEMF2" | b"CVAMBDY1" | b"CVAMEMR2" | b"CVAMEMR3" | b"CVAMEMR4" | b"CVAMEMR5"
         | b"CVAMEMR6" | b"CVAMEMR7" | b"CVAMEMV1" | b"CVAMRTE1" | b"CVAMRTE2" => {

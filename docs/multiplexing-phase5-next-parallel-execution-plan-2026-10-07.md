@@ -21,7 +21,7 @@ The planning-only main branch is not the implementation frontier. Current verifi
 | P5-C | Reliquary `4ce4911`; Warlock final-cut `1782e72`; old `ReliquaryRuntimeHost` consumer removed on the Warlock branch | **late-stage; remaining real-product gates below** |
 | P5-E | specified only | **start now** |
 | P5-F | specified only | **start now** |
-| P5-G | specified only; external-derived R0–R7 design already exists | **start framework-neutral/core work now; host-specific adapters separately gated** |
+| P5-G | G-import G0–G2 supported profiles functionally accepted on `feat/multiplexing-p5g-import`; fresh architecture indexing gap recorded | **G-import ready for convergence; G-external and live adapters remain unfinished** |
 | P5-D | deletion plan only | **start D0 inventory now; D1–D4 blocked** |
 | P6-H | harness accepted on `81a64b6`; full H5 instrumentation incomplete | **continue diagnostic tail now** |
 | P6-R | no final post-deletion run | **blocked on D** |
@@ -93,6 +93,8 @@ Keep F5 selective import/export behind the G1 normalized import contract. F may 
 **Constraint:** no generalized semantic CRUD and no mutable Cva/Phylactery escape.
 
 ### Track G-import — normalized importers
+
+Branch-local G0–G2 implementation and supported-profile scope are recorded in [G-import execution](multiplexing-p5g-import-execution-2026-10-08.md). N2 supported-profile functional acceptance passed (1,110 library, 133 integration, 19 CLI tests and direct guards); fresh architecture indexing remains a bounded tooling gap. External/live/raw-agent and mounted F5 tails remain explicit.
 
 Branch from N0 or a G umbrella branch. Execute G0–G2 independently of the external-derived index:
 

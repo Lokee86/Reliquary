@@ -1,0 +1,16 @@
+//! Versioned native historical import. Adapters normalize; Archive remains authoritative.
+mod commit;
+mod contract;
+mod hermes;
+mod prepare;
+mod providers;
+pub use contract::*;
+pub use hermes::normalize_hermes_jsonl;
+#[cfg(test)]
+mod tests;
+pub(crate) use prepare::prepare;
+mod chatgpt;
+mod claude;
+pub use chatgpt::normalize_chatgpt;
+pub use claude::normalize_claude;
+pub use providers::normalize_agent;

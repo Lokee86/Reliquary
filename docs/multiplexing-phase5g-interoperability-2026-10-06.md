@@ -4,13 +4,17 @@ Parent: [P5/P6 parallel execution](multiplexing-phase5-parallel-execution-plan-2
 Canonical external-transcript plan: [External Conversation Index Integration](conversation-index-integration-plan.md)  
 Status: **next-wave parallel track. Framework-neutral import/external-source work can start immediately; provider importers and the external-derived R0–R4 core can be split into independent subtracks. ACP/Hermes adapter completion remains source/SDK dependent and does not block legacy-host deletion once core contracts are independent.**
 
+## Native import implementation scope
+
+Branch-local G0–G2 supported profiles and remaining tails are recorded in [G-import execution](multiplexing-p5g-import-execution-2026-10-08.md); [Native import](native-import.md) owns the implemented contract. G0–G2 supported-profile functional acceptance passed: 1,110 library, 133 integration and 19 CLI tests, plus direct guards. Fresh architecture indexing remains a recorded bounded tooling gap. G3/live ACP, G-external and G5/live Hermes are separate unfinished tracks.
+
 ## Purpose
 
 Own the external interaction ingestion/interoperability surface that the A-D rewrite left unassigned: production transcript imports, ACP/live adapter integration, and the reference-only external canonical transcript mode. Keep protocol/provider formats outside Reliquary semantic ownership and reuse E/F/A/B seams.
 
 ## Overview
 
-The roadmap requires normalized historical imports for ChatGPT, Claude/provider exports, Codex/Hermes/structured agent sessions and ACP interoperability. A separate accepted plan defines external-derived mode for hosts such as Hermes that already own canonical transcript history. Current source has native import queue primitives and external Memory provenance, but no complete production adapter family or reference-only external index implementation. Phase 0B found no ACP source checkout and no direct Hermes Reliquary consumer at that time; applicability must be rechecked rather than assumed.
+The roadmap requires normalized historical imports for ChatGPT, Claude/provider exports, Codex/Hermes/structured agent sessions and ACP interoperability. A separate accepted plan defines external-derived mode for hosts such as Hermes that already own canonical transcript history. This branch implements normalized native import and supported ChatGPT/Claude/Hermes text and structured-agent profiles. Broader adapter certification and the reference-only external index remain unfinished. Phase 0B found no ACP source checkout and no direct Hermes Reliquary consumer at that time; applicability must be rechecked rather than assumed.
 
 ## Target architecture
 

@@ -43,6 +43,22 @@ impl Archive {
             return Err(ArchiveError::InvalidEpisodeConfig);
         }
         let nodes = self.branch_nodes(conversation_id, leaf_node_id)?;
+        if origin == EpisodeOrigin::Import
+            || self
+                .episodes
+                .for_conversation(conversation_id)
+                .iter()
+                .any(|e| e.origin == EpisodeOrigin::Import)
+        {
+            return self.materialize_uncovered_path(
+                container,
+                conversation_id,
+                &nodes,
+                config,
+                origin,
+                close_tail,
+            );
+        }
         let start = self.uncovered_episode_start(conversation_id, &nodes)?;
         if start >= nodes.len() {
             return Ok(EpisodeBuildResult {
@@ -124,7 +140,7 @@ impl Archive {
         Ok(expected)
     }
 
-    fn pack_cycles(
+    pub(crate) fn pack_cycles(
         &self,
         container: &mut Container,
         nodes: &[Node],
@@ -172,7 +188,7 @@ impl Archive {
     }
 }
 
-fn response_cycles(nodes: &[Node]) -> Vec<(usize, usize)> {
+pub(crate) fn response_cycles(nodes: &[Node]) -> Vec<(usize, usize)> {
     if nodes.is_empty() {
         return Vec::new();
     }

@@ -115,6 +115,13 @@
       "paths": [
         "src/staleness"
       ]
+    },
+    {
+      "id": "native-import",
+      "description": "Versioned provider-neutral historical normalization and exclusive Cva import composition; Archive retains all source/receipt authority",
+      "paths": [
+        "src/imports"
+      ]
     }
   ],
   "rules": [
@@ -130,6 +137,78 @@
       "allow_unowned": false,
       "allow_overlaps": false,
       "message": "Every authored Reliquary Rust source file must belong to exactly one architectural owner."
+    },
+    {
+      "id": "native-import-adapters-no-std-fs",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/imports/chatgpt.rs",
+        "src/imports/claude.rs",
+        "src/imports/hermes.rs",
+        "src/imports/providers.rs"
+      ],
+      "literal": "std::fs",
+      "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
+    },
+    {
+      "id": "native-import-adapters-no-reqwest",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/imports/chatgpt.rs",
+        "src/imports/claude.rs",
+        "src/imports/hermes.rs",
+        "src/imports/providers.rs"
+      ],
+      "literal": "reqwest",
+      "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
+    },
+    {
+      "id": "native-import-adapters-no-container",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/imports/chatgpt.rs",
+        "src/imports/claude.rs",
+        "src/imports/hermes.rs",
+        "src/imports/providers.rs"
+      ],
+      "literal": "Container",
+      "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
+    },
+    {
+      "id": "native-import-adapters-no-cva",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/imports/chatgpt.rs",
+        "src/imports/claude.rs",
+        "src/imports/hermes.rs",
+        "src/imports/providers.rs"
+      ],
+      "literal": "Cva",
+      "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
+    },
+    {
+      "id": "native-import-adapters-no-queue-insomnia-episode",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/imports/chatgpt.rs",
+        "src/imports/claude.rs",
+        "src/imports/hermes.rs",
+        "src/imports/providers.rs"
+      ],
+      "literal": "queue_insomnia_episode",
+      "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
+    },
+    {
+      "id": "native-import-adapters-no-ingest-turn",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/imports/chatgpt.rs",
+        "src/imports/claude.rs",
+        "src/imports/hermes.rs",
+        "src/imports/providers.rs"
+      ],
+      "literal": "ingest_turn",
+      "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
     }
   ]
 }

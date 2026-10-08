@@ -2,6 +2,15 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Native historical import route
+
+| Change | Implementation owner | Canonical documentation | Verification |
+| --- | --- | --- | --- |
+| Versioned source DTOs, identity and provider profiles | `src/imports/{contract,prepare,chatgpt,claude,hermes,providers}.rs` | [Native import](native-import.md), [API](api.md) | `tests/native_import.rs`, versioned JSON/JSONL golden fixtures |
+| Exclusive import composition and retry | `src/imports/commit.rs` over Cva/Archive/Insomnia | [Native import](native-import.md), [Architecture](architecture.md) | `src/imports/tests.rs` interruption/reopen/idempotence |
+| Import evidence publication/rebuild and branch coverage | `src/archive/archive_import.rs`, `episode_import.rs`, Archive rebuild/codec | [Storage format](storage-format.md), [Invariants](invariants.md) | receipt/branch/artifact recovery and preservation tests |
+| Source ownership and pure normalizers | `tools/pitlord/semantic.json` native-import area/rules | [Architecture](architecture.md) | fresh architecture check plus ordinary Rust suite |
+
 ## Purpose
 
 This map routes common change intents to canonical documentation, implementation boundaries, and verification surfaces.

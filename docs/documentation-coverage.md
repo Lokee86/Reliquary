@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Native historical import coverage
+
+`src/imports/` maps to [Native historical import](native-import.md) and [API](api.md); Archive receipt/branch-aware import Episodes map to [Architecture](architecture.md), [Invariants](invariants.md) and [Storage format](storage-format.md). [Maintainer map](maintainer-map.md) routes ownership and [Behavioral contracts](behavioral-contracts.md) maps recovery/profile fixtures. Current source/format limitations are explicit in [Current limitations](current-limitations.md). The G specification remains the owner of unimplemented ACP/external-derived/host-specific work.
+
 ## Purpose
 
 This document maps implemented code boundaries to their canonical documentation owners.

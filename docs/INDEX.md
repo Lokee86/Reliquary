@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Native historical import](native-import.md) — versioned source profiles, identity, provenance, durability and recovery.
+
 - [Final P3/P4 main integration](multiplexing-p34-main-integration-2026-10-06.md)
 
 - [P3.9 local Phase 3 acceptance](multiplexing-phase3-local-acceptance-2026-10-05.md)
@@ -109,6 +111,8 @@
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.
 
 ## P5 integration evidence
+
+- [P5-G native import execution](multiplexing-p5g-import-execution-2026-10-08.md)
 
 - [multiplexing-p5a-acceptance-2026-10-06](multiplexing-p5a-acceptance-2026-10-06.md)
 - [multiplexing-p5a-consumer-matrix-2026-10-06](multiplexing-p5a-consumer-matrix-2026-10-06.md)
