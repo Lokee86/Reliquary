@@ -297,6 +297,7 @@ fn moved_recipient_keeps_stream_position_and_resync_is_local() {
 #[derive(Default)]
 struct HostState {
     withdrawn: bool,
+    execution_only: bool,
     operations: BTreeMap<String, ([u8; 32], HostOperationStatus)>,
     handoffs: usize,
     block_cancel: bool,
@@ -319,6 +320,11 @@ impl GatewayHostAdapter for Host {
                 RuntimeCapability::ConversationExecution,
                 HostCapabilityContract {
                     host_executes_stage: !state.withdrawn,
+                    execution_mode: if state.execution_only {
+                        super::super::super::HostExecutionMode::ExecutionOnly
+                    } else {
+                        super::super::super::HostExecutionMode::PendingQueue
+                    },
                     queue: HostQueueGuarantees {
                         durable_acceptance: true,
                         stable_submission_ids: true,
@@ -726,5 +732,44 @@ fn historical_echo_cannot_bypass_native_tool_order_validation() {
     assert!(
         g.record_conversation_generation_tool_event(&owner, "session", &op, call)
             .is_err()
+    );
+}
+
+#[test]
+fn execution_only_diagnostics_keep_submission_and_generation_native() {
+    let (g, owner, instance, host) = host_setup("execution-only");
+    host.state.lock().unwrap().execution_only = true;
+    g.reconnect_host();
+    let session = g
+        .live_runtime_adapter(instance.clone())
+        .open_session(&owner, "session", "main")
+        .unwrap();
+    assert_eq!(
+        session.diagnostics().unwrap().conversation_execution,
+        LiveCapability::ExecutionOnlyReady
+    );
+    let op = start_native(&g, &owner, &instance, &session, "native-execution");
+    assert_eq!(host.state.lock().unwrap().handoffs, 0);
+    let receipt = g
+        .conversation_submission_status(&instance, &owner, "session", "native-execution")
+        .unwrap();
+    assert!(receipt.status.host_operations.is_empty());
+    g.checkpoint_conversation_generation(&owner, "session", &op, 1, "native prefix")
+        .unwrap();
+    assert_eq!(
+        session.native_generation(&op).unwrap().status,
+        LiveGenerationStatus::Running
+    );
+    g.complete_conversation_generation(&owner, "session", &op)
+        .unwrap();
+    assert_eq!(
+        session.native_generation(&op).unwrap().status,
+        LiveGenerationStatus::Completed
+    );
+    host.state.lock().unwrap().withdrawn = true;
+    g.reconnect_host();
+    assert_eq!(
+        session.diagnostics().unwrap().conversation_execution,
+        LiveCapability::NativeOnly
     );
 }

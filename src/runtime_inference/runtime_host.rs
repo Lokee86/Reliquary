@@ -122,9 +122,10 @@ use gateway::mount::MountClaim;
 pub use gateway::{
     CapabilityRouter, CapabilityState, GatewayAdmissionAdapter, GatewayHostAdapter, GatewayRuntime,
     HandoffReceipt, HostCancelOutcome, HostCapabilityContract, HostConnection, HostContractError,
-    HostOperation, HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, OwnerAccessToken,
-    OwnerAdmission, RuntimeCapability, RuntimeKnowledgeProvenanceResolution, StageAuthority,
-    VerifiedInstanceAdmission, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
+    HostExecutionMode, HostOperation, HostOperationStatus, HostQueueGuarantees,
+    HostReconcileStatus, OwnerAccessToken, OwnerAdmission, RuntimeCapability,
+    RuntimeKnowledgeProvenanceResolution, StageAuthority, VerifiedInstanceAdmission,
+    VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
 };
 pub use gateway::{
     CommunitySummary, ConversationInspection, MAX_MANAGEMENT_FILE_BYTES, MAX_MANAGEMENT_PAGE_BYTES,

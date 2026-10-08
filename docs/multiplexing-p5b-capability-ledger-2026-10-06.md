@@ -24,7 +24,7 @@ Base: `c24b06273abbab383eb74780bf82cb5c0ceef0b5`. Lane: `feat/multiplexing-p5-ba
 
 | Capability | Executable path | Authority | External payload/result boundary |
 | --- | --- | --- | --- |
-| ConversationExecution | Existing gateway conversation coordinator and REL operation journal | Host only for complete negotiated/reconciled contract; otherwise Native or Held as existing recovery requires | Existing immutable HostOperation, digest, durable HandoffReceipt; exact status/cancel; coordinator owns journal and Archive receipt |
+| ConversationExecution | Existing gateway conversation coordinator and REL operation journal | Host pending ownership only for complete PendingQueue negotiation; explicit ExecutionOnly readiness retains Native admission; unresolved recovery remains Held | Existing immutable HostOperation, digest, durable HandoffReceipt; exact status/cancel; coordinator owns journal and Archive receipt |
 | Insomnia | Existing GeneralEndpoint extraction stages in RelRuntime | Native | GeneralEndpoint::complete_json; native extractor/application/frozen personal publication; no host result/receipt path exists |
 | Dream | Existing GeneralEndpoint pair classifier/verifier in each owner worker | Native | Native Dream candidates/evaluation/revision-checked publication; no typed host result path exists |
 | Embedding | Existing EmbeddingEndpoint in each owner worker and authorized query callers | Native | Existing dimensions/normalization/embed; profile probe and vectors; no durable host result path exists |

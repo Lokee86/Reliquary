@@ -67,8 +67,9 @@ pub use semantic_search::{VisibleArchiveSearchOwner, VisibleArchiveSearchResult}
 mod host;
 pub use host::{
     CapabilityRouter, CapabilityState, GatewayHostAdapter, HandoffReceipt, HostCancelOutcome,
-    HostCapabilityContract, HostConnection, HostContractError, HostOperation, HostOperationStatus,
-    HostQueueGuarantees, HostReconcileStatus, RuntimeCapability, StageAuthority,
+    HostCapabilityContract, HostConnection, HostContractError, HostExecutionMode, HostOperation,
+    HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, RuntimeCapability,
+    StageAuthority,
 };
 #[path = "runtime_host_gateway_convergence.rs"]
 mod convergence;

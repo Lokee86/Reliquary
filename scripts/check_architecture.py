@@ -80,12 +80,16 @@ def adapter_root() -> Path:
     )
 
 
-def run(command: list[str]) -> None:
+def run(command: list[str], *, environment: dict[str, str] | None = None) -> None:
     print("+", subprocess.list2cmdline(command), flush=True)
-    subprocess.run(command, cwd=ROOT, check=True)
+    subprocess.run(command, cwd=ROOT, check=True, env=environment)
 
 
 def refresh_evidence(lexicon: Path, arcana: Path) -> None:
+    # The Rust adapter launches cargo run; optimize analysis without changing
+    # application build/test profiles or excluding authored source.
+    adapter_environment = os.environ.copy()
+    adapter_environment.setdefault("CARGO_PROFILE_DEV_OPT_LEVEL", "3")
     run(
         [
             str(lexicon),
@@ -97,7 +101,8 @@ def refresh_evidence(lexicon: Path, arcana: Path) -> None:
             # semantic.json owns authored Rust under src; Python guards run above.
             "--languages",
             "rust",
-        ]
+        ],
+        environment=adapter_environment,
     )
     run(
         [

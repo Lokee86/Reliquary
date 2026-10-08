@@ -1,4 +1,5 @@
 use super::*;
+use crate::HostExecutionMode;
 #[path = "runtime_host_gateway_conversation_branch_host_tests.rs"]
 mod branches;
 #[path = "runtime_host_gateway_host_cancellation_tests.rs"]
@@ -253,6 +254,7 @@ impl GatewayHostAdapter for ControlledHost {
 fn complete_contract() -> HostCapabilityContract {
     HostCapabilityContract {
         host_executes_stage: true,
+        execution_mode: HostExecutionMode::PendingQueue,
         queue: HostQueueGuarantees {
             durable_acceptance: true,
             stable_submission_ids: true,

@@ -147,3 +147,11 @@ src/runtime_inference/runtime_host_gateway_conversation_recovery.rs and its focu
 P5's `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py` map to [Development](development.md) for commands and [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) for sampled reach, full effect/hop/origin histograms, checksum custody and retained-v1 policy disposition. The diagnostic introduces no production owner or semantic contract.
 
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
+
+## B/E execution-only negotiation coverage
+
+The existing host router, live diagnostics and management health map to [Architecture](architecture.md), [API](api.md), [Invariants](invariants.md), [Maintainer map](maintainer-map.md) and [Behavioral contracts](behavioral-contracts.md). [Current limitations](current-limitations.md) retains application wiring and remote reconciliation gates. Storage formats and native admission/generation ownership are unchanged.
+
+## Architecture adapter profile
+
+The refresh wrapper defaults the Lexicon child environment's `CARGO_PROFILE_DEV_OPT_LEVEL` to `3`, because the Rust adapter launches through `cargo run`. An explicit caller setting takes precedence. This optimizes the analysis tool, retains the complete Rust corpus and all policy rules, and leaves ordinary application build/test profiles unchanged. Python source guards run independently of the Rust graph.

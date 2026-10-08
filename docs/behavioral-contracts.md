@@ -393,3 +393,7 @@ A tracked integer watermark is not by itself a historical materialization API; t
 | Named source owners and test-only exact processing remain enforced | scripts/check_multiplexing_phase3_ownership.py and its negative fixtures |
 
 [P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md) records audit boundaries and verification.
+
+## B/E execution-only contract
+
+`execution_only_negotiates_without_transferring_pending_queue` verifies explicit mode selection, Native queue authority even with complete queue flags, offline fencing, reconnect and withdrawal. `execution_only_cannot_clear_recovered_host_operation_debt` verifies downgrade and Unknown remain held until durable release plus empty reconciliation. `execution_only_diagnostics_keep_submission_and_generation_native` verifies normalized E readiness, native submission/generation/checkpoint/completion and zero host handoffs. Existing full pending-queue and incomplete-contract fixtures retain their prior behavior.

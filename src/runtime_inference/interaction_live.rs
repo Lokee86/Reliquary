@@ -150,6 +150,8 @@ pub enum LiveStreamEvent {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum LiveCapability {
     NativeOnly,
+    /// Host execution negotiated; Reliquary retains pending admission.
+    ExecutionOnlyReady,
     Ready,
     Unavailable,
     UnknownStatusHeld,
@@ -591,6 +593,7 @@ impl LiveSession {
             .map_err(unavailable)?;
         let conversation_execution = match conversation_execution {
             super::CapabilityState::NativeOnly => LiveCapability::NativeOnly,
+            super::CapabilityState::ExecutionOnlyReady => LiveCapability::ExecutionOnlyReady,
             super::CapabilityState::Ready => LiveCapability::Ready,
             super::CapabilityState::Unavailable(_) => LiveCapability::Unavailable,
             super::CapabilityState::UnknownStatusHeld => LiveCapability::UnknownStatusHeld,
