@@ -126,6 +126,18 @@ pub use gateway::{
     OwnerAdmission, RuntimeCapability, RuntimeKnowledgeProvenanceResolution, StageAuthority,
     VerifiedInstanceAdmission, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
 };
+pub use gateway::{
+    CommunitySummary, ConversationInspection, MAX_MANAGEMENT_FILE_BYTES, MAX_MANAGEMENT_PAGE_BYTES,
+    MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch, ManagementError, ManagementPage, ManagementVersions,
+    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, SourceFile,
+    UnsupportedManagementOperation, WorkspaceManagement,
+};
+pub use gateway::{
+    LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
+    LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
+    LiveSession, LiveStreamCursor, LiveStreamEvent, LiveStreamSnapshot, LiveToolEvent,
+    LiveToolEventKind,
+};
 pub use instances::{
     InstanceAuthorization, InstanceId, InstanceRuntime, InstanceRuntimeError,
     ManagedConversationState, OwnerGrant,

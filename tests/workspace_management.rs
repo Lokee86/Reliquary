@@ -1,6 +1,13 @@
+// Explicit downstream names are part of the management consumer contract.
 use reliquary_memory::{
     Branch, Cva, GatewayAdmissionAdapter, GatewayRuntime, InsomniaWorkerConfig, OwnerGrant,
     VerifiedInstanceAdmission,
+};
+pub use reliquary_memory::{
+    CommunitySummary, ConversationInspection, MAX_MANAGEMENT_FILE_BYTES, MAX_MANAGEMENT_PAGE_BYTES,
+    MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch, ManagementError, ManagementPage, ManagementVersions,
+    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, SourceFile,
+    UnsupportedManagementOperation, WorkspaceManagement,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
@@ -62,7 +69,7 @@ fn public_management_consumer_uses_immutable_results() {
     let owner = g.mount_rel_path(&root.join("owner.rel")).unwrap();
     *admission.0.lock().unwrap() = Some(owner.clone());
     let instance = g.attach_authenticated_instance("verified").unwrap();
-    let api = g.workspace_management(instance);
+    let api: WorkspaceManagement = g.workspace_management(instance);
     api.select_conversation(&owner, "conversation", "main")
         .unwrap();
     assert_eq!(
@@ -88,10 +95,13 @@ fn public_management_consumer_uses_immutable_results() {
             1,
         )
         .unwrap();
-    assert_eq!(api.memories(&owner, 0, 1).unwrap().items[0].id, memory.id);
+    let memories: ManagementPage<MemorySummary> = api.memories(&owner, 0, 1).unwrap();
+    assert_eq!(memories.items[0].id, memory.id);
     assert!(api.provenance(&owner, memory.id).is_ok());
-    assert_eq!(api.statistics(&owner).unwrap().memories.memories, 1);
-    assert_eq!(api.health(&owner).unwrap().conversations, 1);
+    let statistics: SemanticOwnerStatistics = api.statistics(&owner).unwrap();
+    assert_eq!(statistics.memories.memories, 1);
+    let health: RelManagementHealth = api.health(&owner).unwrap();
+    assert_eq!(health.conversations, 1);
     api.quiesce(&owner).unwrap();
     api.reconcile_quiesced(&owner).unwrap();
     api.reopen(&owner).unwrap();

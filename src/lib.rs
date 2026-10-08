@@ -1165,6 +1165,18 @@ pub use runtime_host::{
     RuntimeKnowledgeState, RuntimeSemanticOwner, RuntimeSemanticOwnerKind, StageAuthority,
     VerifiedInstanceAdmission, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
 };
+pub use runtime_host::{
+    CommunitySummary, ConversationInspection, MAX_MANAGEMENT_FILE_BYTES, MAX_MANAGEMENT_PAGE_BYTES,
+    MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch, ManagementError, ManagementPage, ManagementVersions,
+    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, SourceFile,
+    UnsupportedManagementOperation, WorkspaceManagement,
+};
+pub use runtime_host::{
+    LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
+    LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
+    LiveSession, LiveStreamCursor, LiveStreamEvent, LiveStreamSnapshot, LiveToolEvent,
+    LiveToolEventKind,
+};
 pub use search_error::SearchError;
 pub use search_model::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,

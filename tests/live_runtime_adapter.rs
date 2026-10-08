@@ -1,6 +1,13 @@
+// Explicit downstream names are part of the live consumer contract.
 use reliquary_memory::{
     Branch, Cva, GatewayAdmissionAdapter, GatewayConversationSubmission, GatewayRuntime,
     InsomniaWorkerConfig, OwnerGrant, VerifiedInstanceAdmission,
+};
+pub use reliquary_memory::{
+    LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
+    LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
+    LiveSession, LiveStreamCursor, LiveStreamEvent, LiveStreamSnapshot, LiveToolEvent,
+    LiveToolEventKind,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
@@ -66,8 +73,8 @@ fn host_uses_adapter_without_receiving_a_store_handle() {
     let owner = gateway.mount_rel_path(&path).unwrap();
     *admission.0.lock().unwrap() = Some(owner.clone());
     let instance = gateway.attach_authenticated_instance("verified").unwrap();
-    let adapter = gateway.live_runtime_adapter(instance);
-    let mut session = adapter
+    let adapter: LiveRuntimeAdapter = gateway.live_runtime_adapter(instance);
+    let mut session: LiveSession = adapter
         .open_session(&owner, "conversation", "main")
         .unwrap();
     let receipt = session
@@ -130,7 +137,7 @@ fn native_receipts_and_artifacts_survive_runtime_restart_without_duplicate_work(
     let owner = gateway.mount_rel_path(&path).unwrap();
     *admission.0.lock().unwrap() = Some(owner.clone());
     let instance = gateway.attach_authenticated_instance("verified").unwrap();
-    let adapter = gateway.live_runtime_adapter(instance.clone());
+    let adapter: LiveRuntimeAdapter = gateway.live_runtime_adapter(instance.clone());
     let (mut session, receipt) = adapter
         .create_session(
             &owner,
@@ -198,15 +205,21 @@ fn native_receipts_and_artifacts_survive_runtime_restart_without_duplicate_work(
             vec![file.clone()],
         )
         .unwrap();
-    let events = session.tool_events(&operation.operation_id).unwrap();
-    let artifacts = session
+    let events: Vec<LiveToolEvent> = session.tool_events(&operation.operation_id).unwrap();
+    let artifacts: Vec<LiveGeneratedArtifact> = session
         .generated_artifacts(&operation.operation_id)
         .unwrap();
     assert_eq!(artifacts.len(), 1);
-    let snapshot = session
+    assert_eq!(events[0].kind, LiveToolEventKind::Invocation);
+    assert_eq!(events[1].kind, LiveToolEventKind::Result);
+    assert_eq!(
+        artifacts[0].generation.status,
+        LiveGenerationStatus::Completed
+    );
+    let snapshot: LiveStreamSnapshot = session
         .watch_generation(&operation.operation_id, 4)
         .unwrap();
-    let hint = session.resume_token(&snapshot).unwrap();
+    let hint: LiveResumeToken = session.resume_token(&snapshot).unwrap();
     session.close().unwrap();
     let mut replacement = adapter.open_session(&owner, "new", "main").unwrap();
     assert_eq!(
@@ -229,8 +242,8 @@ fn native_receipts_and_artifacts_survive_runtime_restart_without_duplicate_work(
     let reopened = make_gateway();
     assert_eq!(reopened.mount_rel_path(&path).unwrap(), owner);
     let instance = reopened.attach_authenticated_instance("verified").unwrap();
-    let adapter = reopened.live_runtime_adapter(instance.clone());
-    let mut session = adapter.open_session(&owner, "new", "main").unwrap();
+    let adapter: LiveRuntimeAdapter = reopened.live_runtime_adapter(instance.clone());
+    let mut session: LiveSession = adapter.open_session(&owner, "new", "main").unwrap();
     assert_eq!(
         session.tool_events(&operation.operation_id).unwrap(),
         events

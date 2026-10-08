@@ -414,7 +414,7 @@ P3.0–P3.9 and P4.0–P4.9 are complete and converged into the accepted main fo
 - P5-A REL/runtime consumer APIs are implemented and runtime-accepted on the current integration line.
 - P5-B background/host capability work is implemented and accepted.
 - P5-C has removed the Warlock old-host consumer on its clean final-cut branch; multi-context/provider/P4 reconnect and final pin/release acceptance remain.
-- P5-E live runtime and P5-F workspace management are the immediate critical-path parallel tracks.
+- P5-E/F remaining work is production consumer/provider acceptance and unsupported management owner operations; the named public API is documented in [Rust API](api.md).
 - P5-G remaining work: certify broader real export fixtures, add reviewed raw Codex and non-text/tool/lineage profiles, compose mounted F5 admission, implement external-derived core and ACP/Hermes live adapters; [Native import](native-import.md) owns supported profiles.
 - P5-D may run its reverse-caller inventory now, but source deletion waits for C/E/F convergence.
 - P6-H harness infrastructure is accepted; P6-R remains post-deletion release verification.
@@ -447,8 +447,8 @@ This file is future-only by policy. When a roadmap item ships, remove it from th
 
 ## P5-F-core isolated management composition
 
-Remaining workspace management work is the listed A standalone/whole-file/bounded-read primitives, F5 after G1, final E integration where useful, one convergence export cut and C product acceptance. The isolated F-core lane implements the concrete F0–F4 capability matrix without claiming completion of those remaining product gates. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
+Remaining workspace management work is the listed A standalone/whole-file/bounded-read primitives, F5 after G1, final E integration where useful and C product acceptance. The isolated F-core lane implements the concrete F0–F4 capability matrix without claiming completion of those remaining product gates. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
 
 ## P5-E live runtime surface
 
-E5 native/full-host-contract local acceptance is implemented. Next converge E with accepted F/G core, perform the named live-type export cut, resolve B/C execution-only provider integration and G-external acceptance, then pin/test Warlock against the final Reliquary/Arcana graph. Root convergence and final consumer acceptance are not implied by the isolated E lane. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
+Remaining live-runtime work is B/C execution-only provider integration and G-external acceptance, advancement of accepted convergence, then final Reliquary/Arcana pins and Warlock tests. Current live types and named imports are documented in [Rust API](api.md). See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

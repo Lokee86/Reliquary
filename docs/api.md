@@ -2,7 +2,7 @@
 Parent index: [Documentation index](INDEX.md)
 ## Native historical import API
 
-The public `reliquary_memory::imports` module exports schema-1 DTOs and `normalize_chatgpt`, `normalize_claude`, `normalize_hermes_jsonl`, `normalize_agent`. Normalizers accept supplied bytes only. `Cva::import_native(&NativeImport, now_ns) -> Result<ImportReceipt, ImportError>` is exclusive/offline and syncs before acknowledgement. `native_import_receipts()` returns Archive-owned source evidence. Public names remain under the G module until convergence resolves final root exports. [Native historical import](native-import.md) owns the exact profiles, bounds, fields, ancestry/revision/delete/artifact identity and partial-failure recovery. No mounted gateway import operation is exposed in this cut.
+The public `reliquary_memory::imports` module exports schema-1 DTOs and `normalize_chatgpt`, `normalize_claude`, `normalize_hermes_jsonl`, `normalize_agent`. Normalizers accept supplied bytes only. `Cva::import_native(&NativeImport, now_ns) -> Result<ImportReceipt, ImportError>` is exclusive/offline and syncs before acknowledgement. `native_import_receipts()` returns Archive-owned source evidence. Native import names are available under the public imports namespace; the E/F root cut preserves that namespace. [Native historical import](native-import.md) owns the exact profiles, bounds, fields, ancestry/revision/delete/artifact identity and partial-failure recovery. No mounted gateway import operation is exposed in this cut.
 
 ## Purpose
 This document owns the current public Rust library surface exposed by `reliquary_memory`.
@@ -555,8 +555,28 @@ The public conversation surface is unchanged. resume_conversation_submission and
 
 ## P5-F-core isolated management composition
 
-GatewayRuntime::workspace_management binds a verified instance to conversation, source-file/project, knowledge and health operations. Output pages have 1–128 rows; primary browsed text is capped at 1 MiB and resolved files at 8 MiB. Missing standalone/destructive/import capabilities report explicit unsupported results. Named root types await the convergence export cut. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
+GatewayRuntime::workspace_management binds a verified instance to conversation, source-file/project, knowledge and health operations. Output pages have 1–128 rows; primary browsed text is capped at 1 MiB and resolved files at 8 MiB. Missing standalone/destructive/import capabilities report explicit unsupported results. Named management types and their three response bounds are exported at the crate root. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
 
 ## P5-E live runtime surface
 
-GatewayRuntime::live_runtime_adapter binds a verified instance. create_session admits an immutable first turn; open_session attaches to an existing branch. LiveSession provides turn/status/cancellation controls, watch_generation, resume_stream, resume_token/resume_generation, tool_events, generated_artifacts and privacy-safe diagnostics. Resume hints carry owner/conversation/branch, operation/message identity, epoch/delivery cursor and checkpoint sequence; they confer no authority. The trusted P3 callbacks record_conversation_generation_tool_event and complete_conversation_generation_with_artifacts validate native generation sources and durable retries; transports must not expose them as untrusted owner-ID mutations. Tool receipt sources are capped at 256 events and 1 MiB content; finalization accepts at most 64 files and 8 MiB total bytes. Named live-type root exports remain a single convergence-owned cut. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
+GatewayRuntime::live_runtime_adapter binds a verified instance. create_session admits an immutable first turn; open_session attaches to an existing branch. LiveSession provides turn/status/cancellation controls, watch_generation, resume_stream, resume_token/resume_generation, tool_events, generated_artifacts and privacy-safe diagnostics. Resume hints carry owner/conversation/branch, operation/message identity, epoch/delivery cursor and checkpoint sequence; they confer no authority. The trusted P3 callbacks record_conversation_generation_tool_event and complete_conversation_generation_with_artifacts validate native generation sources and durable retries; transports must not expose them as untrusted owner-ID mutations. Tool receipt sources are capped at 256 events and 1 MiB content; finalization accepts at most 64 files and 8 MiB total bytes. Named live types are exported at the crate root through the existing composition roots. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
+
+## Named E/F root imports
+
+Consumers import these original owner types directly from reliquary_memory. Re-exports follow the existing Gateway → runtime_host → lib.rs composition chain; the live and management implementation modules remain private. These names also work in explicit function signatures, fields, enum matches and `ManagementPage<T>` annotations.
+
+| Surface | Root names |
+| --- | --- |
+| Live session and diagnostics | LiveRuntimeAdapter, LiveSession, LiveRuntimeError, LiveCapability, LiveDiagnostics |
+| Generation and durable receipt | LiveGeneration, LiveGenerationStatus, LiveToolEvent, LiveToolEventKind, LiveGeneratedArtifact, LiveResumeToken |
+| Stream/checkpoint delivery | LiveStreamCursor, LiveStreamEvent, LiveStreamSnapshot, LiveCheckpoint, LiveCheckpointShape |
+| Management composition | WorkspaceManagement, ManagementError, UnsupportedManagementOperation, ManagementPage, ManagementVersions |
+| Management result DTOs | ManagedBranch, ConversationInspection, SourceFile, MemorySummary, CommunitySummary, RelManagementHealth, SemanticOwnerStatistics |
+| Management bounds | MAX_MANAGEMENT_PAGE_ITEMS (128), MAX_MANAGEMENT_PAGE_BYTES (1 MiB), MAX_MANAGEMENT_FILE_BYTES (8 MiB) |
+
+    use reliquary_memory::{
+        LiveRuntimeAdapter, LiveSession, LiveStreamEvent,
+        ManagementPage, MemorySummary, WorkspaceManagement,
+    };
+
+The public live-runtime and workspace-management integration tests import every listed name explicitly and exercise typed factory/session, receipt and management results. Native import DTOs retain their public reliquary_memory::imports namespace.

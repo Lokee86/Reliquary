@@ -547,7 +547,7 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 
 ## P5-F-core isolated management composition
 
-The isolated F-core lane adds a stateless WorkspaceManagement facade over existing Gateway/A/P3/P4/B authorities. It returns immutable owner-qualified management results, stores no semantic data or selection, and uses delivery-only original-token validation for composite reads. Named exports remain convergence-owned. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
+The isolated F-core lane adds a stateless WorkspaceManagement facade over existing Gateway/A/P3/P4/B authorities. It returns immutable owner-qualified management results, stores no semantic data or selection, and uses delivery-only original-token validation for composite reads. The convergence cut re-exports the original E/F public types through Gateway, runtime_host and lib.rs while implementation modules remain private. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
 
 ## P5-E live runtime surface
 

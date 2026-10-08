@@ -23,7 +23,13 @@ Previous checkpoint: `737c8618d5524a6465187e637e5fb3ede667c66c`.
 
 E adds the accepted native/full-host-contract live adapter and narrow P3 cancellation/tool/artifact seams. F remains stateless management composition, and G-import retains pure normalization and its existing Archive/Insomnia publication owner. Gateway registers both E and F modules. The combined coverage guard preserves both factories and scans Gateway, management and all production live modules. Shared documentation preserves each lane's current contract rather than selecting one side of the merge.
 
-The combined source introduces no duplicate semantic authority, format change, provider-contract substitute or compatibility forwarding. Named root exports remain the single convergence-owned cut. The N0 convergence branch and Warlock pins are unchanged by this staging import.
+The combined source introduces no duplicate semantic authority, format change, provider-contract substitute or compatibility forwarding. The single E/F named root export cut is implemented and downstream consumer contracts use explicit names. The N0 convergence branch and Warlock pins are unchanged by this staging import.
+
+## Named E/F export cut
+
+The import base is f139ba3b9b30c4a29faf6bb0fb9088f3e4e31911. The follow-up cut exports 16 live types, 12 management types and three management bounds through the existing Gateway/runtime_host/root composition chain, without aliases or duplicate DTOs. Native import types keep their public imports namespace. [Rust API](api.md) lists the exact names.
+
+All 31 E/F names compile in the existing downstream integration consumers, which use explicit typed adapters, sessions, resume hints, event/artifact vectors and management results. The final export source passes the full root/CLI and direct ownership matrix; logs are retained in target/n3-named-exports-verification/. Existing fresh graph enforcement remains unverified from the preceding indexing timeout; the export cut changes no domain ownership, persistence, lifecycle or policy.
 
 ## Verification
 
@@ -54,7 +60,6 @@ The earlier F/G-only checkpoint passed formatting, locked check and direct guard
 
 | Gate | Current state | Required next outcome |
 | --- | --- | --- |
-| Named E/F root exports | E/F return types remain reachable through inferred public factory results; named root exports are pending | Perform one export cut and verify explicit downstream type imports |
 | G-external R0–R4 | No accepted framework-neutral external-core commit imported | Finish rebuild/privacy/lifecycle acceptance on its owning lane and integrate its exact accepted commit |
 | B/C execution-only provider | E tests the existing full ConversationExecution host contract; production Warlock does not advertise a durable pending queue | Resolve truthful execution-only readiness, stable ID/digest reconciliation and cooperative cancellation |
 | Exact task-root retrieval and attribution | E provides native accepted generation/tool/file receipts; broader C composition still needs acceptance | Verify authorized C/A/F composition against the converged surface |
@@ -65,7 +70,7 @@ F5 selective import/export remains optional at N3. G3/G5 host-specific adapters 
 
 ## Resume sequence
 
-1. Complete the single named export cut and G-external acceptance; integrate exact accepted owner commits.
+1. Complete G-external acceptance and integrate its exact accepted owner commit.
 2. Resolve B/C production provider conformance and fresh architecture enforcement, and run checks appropriate to the resulting source changes.
 3. Advance the N0 convergence line only after combined acceptance.
 4. Pin Warlock to the exact accepted Reliquary revision and matching Arcana; verify one Arcana identity, locked Rust/provider/admission/conversation fixtures, frontend build and actual product acceptance.
@@ -77,7 +82,7 @@ F5 selective import/export remains optional at N3. G3/G5 host-specific adapters 
 - Updated: combined canonical lane sections through conflict resolution, this checkpoint and next-wave staging status.
 - Not affected: historical N0 evidence, owner-lane acceptance evidence, G-external drafts, Warlock source/pins, CLI behavior and P6 historical measurements.
 - Compliance check: structural and changed-from origin/main policy modes passed; staged whitespace check passed.
-- Known documentation gaps: final named exports, G-external and actual C/N3 release acceptance remain open and explicit.
+- Known documentation gaps: G-external and actual C/N3 release acceptance remain open and explicit.
 
 ## Architecture impact
 
@@ -85,7 +90,7 @@ F5 selective import/export remains optional at N3. G3/G5 host-specific adapters 
 - Ownership or boundary impact: E recipient adaptation and narrow P3 validation coexist with F management composition and G normalization/Archive import ownership; existing P3/P4/A/B authorities remain canonical.
 - Pitlord enforcement impact: preserve F management and G native-import policy rules; combine E/F source classification and module scans.
 - Other verification impact: merged root/CLI functional matrix, focused E and public consumer recovery, P2/P3/P4/management guards and Archive roundtrip smoke.
-- Known architectural gaps: fresh Lexicon indexing timed out at 240 seconds during Python analysis, before Arcana synchronization and graph-based Pitlord enforcement; named exports, G-external authority and production provider/consumer acceptance remain separate.
+- Known architectural gaps: fresh Lexicon indexing timed out at 240 seconds during Python analysis, before Arcana synchronization and graph-based Pitlord enforcement; G-external authority and production provider/consumer acceptance remain separate.
 
 ## Related docs
 

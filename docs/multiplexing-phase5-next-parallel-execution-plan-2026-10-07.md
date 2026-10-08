@@ -4,7 +4,7 @@ Parent: [P5/P6 parallel execution and convergence](multiplexing-phase5-parallel-
 Current implementation line: Reliquary `feat/multiplexing-p5-convergence` — tested N0 base `f9dafba`
 Current external consumer line: Warlock `feat/multiplexing-p5c-final-cut` @ `3a62470` (N0 regression repairs)
 Accepted harness line: `feat/multiplexing-p6-harness` @ `81a64b6`
-Status: **N0 accepted; E5/F-core/G-import are integrated and functionally verified on N3 staging. Named exports, G-external, C/D and final release gates remain; P6-H stays separately accepted.**
+Status: **N0 accepted; E5/F-core/G-import are integrated and functionally verified on N3 staging. G-external, C/D and final release gates remain; P6-H stays separately accepted.**
 
 ## Purpose
 
@@ -19,8 +19,8 @@ The planning-only main branch is not the implementation frontier. Current verifi
 | P5-A | Source commit `7350149`; integrated runtime acceptance on `4ce4911`: 1,099 library, 128 integration, 19 CLI; upgraded Warlock checks also pass | **done for implementation/acceptance; integrated into N0** |
 | P5-B | `c45f50e`; 1,093 library, 128 integration, 19 CLI plus P2/P3/P4 guards | **done for implementation/acceptance; integrated into N0** |
 | P5-C | Reliquary `4ce4911`; Warlock final-cut `1782e72`; old `ReliquaryRuntimeHost` consumer removed on the Warlock branch | **late-stage; remaining real-product gates below** |
-| P5-E | accepted E5 `874851ac` integrated with F/G-import on N3 staging | **combined functional matrix passed; named exports and final consumers remain** |
-| P5-F | F-core `13df1ff` integrated with E/G-import on N3 staging | **combined functional matrix passed; named exports, A standalone gaps and F5 remain** |
+| P5-E | accepted E5 `874851ac` integrated with F/G-import on N3 staging | **combined functional matrix passed; named exports verified; final consumers remain** |
+| P5-F | F-core `13df1ff` integrated with E/G-import on N3 staging | **combined functional matrix passed; named exports verified; A standalone gaps and F5 remain** |
 | P5-G | G-import `99b9fa5` integrated with E/F-core on N3 staging | **combined functional matrix passed; G-external and live adapters remain unfinished** |
 | P5-D | deletion plan only | **start D0 inventory now; D1–D4 blocked** |
 | P6-H | harness accepted on `81a64b6`; full H5 instrumentation incomplete | **continue diagnostic tail now** |
@@ -164,7 +164,7 @@ A failure is repaired in its owner branch; do not solve integration failures wit
 
 ### N3 — Reliquary convergence and final C pin
 
-**2026-10-08 checkpoint: E/F/G-import staged and functionally verified; final N3 remains gated.** E5 `874851ac`, F-core `13df1ff` and G-import `99b9fa5` now coexist on `feat/multiplexing-n3-staging`. The resolved tree passes 1,138 unit, 136 integration and 19 CLI tests, direct ownership/coverage guards and Archive reopen smoke. G-external, the single named export cut and B/C production execution-only provider acceptance remain unfinished. Fresh architecture indexing again timed out during Python analysis at 240 seconds; graph enforcement remains unverified. The accepted N0 convergence line and Warlock pins remain unchanged. See [N3 staging checkpoint](multiplexing-n3-staging-checkpoint-2026-10-08.md).
+**2026-10-08 checkpoint: E/F/G-import staged and functionally verified; final N3 remains gated.** E5 `874851ac`, F-core `13df1ff` and G-import `99b9fa5` now coexist on `feat/multiplexing-n3-staging`. The resolved tree passes 1,138 unit, 136 integration and 19 CLI tests, direct ownership/coverage guards and Archive reopen smoke. The single E/F named export cut is implemented and downstream type imports are verified. G-external and B/C production execution-only provider acceptance remain unfinished. Fresh architecture indexing again timed out during Python analysis at 240 seconds; graph enforcement remains unverified. The accepted N0 convergence line and Warlock pins remain unchanged. See [N3 staging checkpoint](multiplexing-n3-staging-checkpoint-2026-10-08.md).
 
 Merge accepted E, F-core and G framework-neutral/core work onto the N0 convergence line. Resolve root exports once. Run the full Reliquary/CLI/guard matrix. Then pin Warlock C to **that exact revision**, align Arcana, and rerun the full C acceptance matrix.
 
@@ -227,8 +227,8 @@ This plan distinguishes the hard-cut critical path from adapter tails. Explicitl
 
 ## F-core lane checkpoint
 
-The [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) records F0–F4 composition on an isolated N0 branch. Source-qualified file inventory and existing project operations are supported; missing A standalone/whole-file primitives, F5/G1 and final C/D convergence remain explicit. Final exports stay with the single N3 cut.
+The [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) records F0–F4 composition on an isolated N0 branch. Source-qualified file inventory and existing project operations are supported; missing A standalone/whole-file primitives, F5/G1 and final C/D convergence remain explicit. The single E/F export cut is implemented on N3 staging.
 
 ## E5 checkpoint
 
-The [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md) closes the isolated E native receipt and original-token cancellation requests and records the complete scenario matrix. The E/F/G-import core cut is now staged and functionally verified in N3. Named live/management exports, B/C execution-only provider integration, G-external acceptance, and final Reliquary/Arcana pins plus Warlock tests remain. The full-contract host fixture verifies E behavior; it is not production provider conformance.
+The [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md) closes the isolated E native receipt and original-token cancellation requests and records the complete scenario matrix. The E/F/G-import core cut is now staged and functionally verified in N3. Named live/management exports are implemented and verified. B/C execution-only provider integration, G-external acceptance, and final Reliquary/Arcana pins plus Warlock tests remain. The full-contract host fixture verifies E behavior; it is not production provider conformance.
