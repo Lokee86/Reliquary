@@ -355,3 +355,10 @@ impl Drop for PhyRuntime {
 pub(super) fn operation(error: impl std::fmt::Display) -> ReliquaryRuntimeHostError {
     ReliquaryRuntimeHostError::Operation(error.to_string())
 }
+
+#[cfg(test)]
+impl PhyRuntime {
+    pub(super) fn p6_notification_epoch(&self) -> u64 {
+        self.shared.control.0.lock().unwrap().epoch
+    }
+}

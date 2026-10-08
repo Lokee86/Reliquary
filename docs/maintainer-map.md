@@ -150,3 +150,7 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 For prospective propagation breadth by principal/root layout/membership, use `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py`. [Development](development.md) owns invocation; [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) owns evidence and interpretation. Unknown membership is checked independently by shortest-path arithmetic. These measurements do not establish semantic relevance or historical score trajectories.
 
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
+
+## P6-H5 measurement routing
+
+Harness workloads live in `runtime_host_gateway_p6_*tests.rs`; `scripts/run_multiplexing_p6_harness.py` owns provenance, evidence validation and repeated runs. Read-only diagnostic code remains in the owning coordinator, sequencer, registries and PHY module. Production diagnostics belong to B/E/P4. See [P6-H5 N0 diagnostic acceptance](multiplexing-p6-h5-acceptance-2026-10-08.md).

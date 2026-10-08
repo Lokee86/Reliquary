@@ -143,3 +143,7 @@ src/runtime_inference/runtime_host_gateway_conversation_recovery.rs and its focu
 P5's `examples/freshness_breadth.rs` and `scripts/freshness_breadth_report.py` map to [Development](development.md) for commands and [P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) for sampled reach, full effect/hop/origin histograms, checksum custody and retained-v1 policy disposition. The diagnostic introduces no production owner or semantic contract.
 
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
+
+## P6-H5 diagnostic coverage
+
+The test-only harness and read-only observations in `runtime_host_gateway_conversation_continuation.rs`, `runtime_host_gateway_events.rs`, `runtime_host_gateway_subscriptions.rs`, `runtime_host_gateway_stream_registry.rs` and `runtime_host_phy_execution.rs` are covered by [P6-H5 N0 diagnostic acceptance](multiplexing-p6-h5-acceptance-2026-10-08.md) and its metrics snapshot. Public API, persisted records, semantic ownership and CLI behavior are unchanged.

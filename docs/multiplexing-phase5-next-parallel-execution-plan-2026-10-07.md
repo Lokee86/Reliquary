@@ -23,7 +23,7 @@ The planning-only main branch is not the implementation frontier. Current verifi
 | P5-F | specified only | **start now** |
 | P5-G | specified only; external-derived R0–R7 design already exists | **start framework-neutral/core work now; host-specific adapters separately gated** |
 | P5-D | deletion plan only | **start D0 inventory now; D1–D4 blocked** |
-| P6-H | harness accepted on `81a64b6`; full H5 instrumentation incomplete | **continue diagnostic tail now** |
+| P6-H | historical harness `81a64b6` plus [P6-H5 N0 diagnostic acceptance](multiplexing-p6-h5-acceptance-2026-10-08.md) on `feat/multiplexing-p6-h5` | **N0 diagnostic gate complete; port/rerun after D** |
 | P6-R | no final post-deletion run | **blocked on D** |
 
 The architecture refresh remains a bounded tooling gap on several accepted branches; direct ownership/coverage guards and actual tests are still required and have passed where recorded. Do not promote a stale Arcana snapshot into acceptance evidence.
@@ -132,6 +132,8 @@ D0 may add a negative no-legacy-caller guard, but **must not delete or rewire ro
 Full G adapter completion is not a D blocker. D requires only that G's framework-neutral contracts that touch the public runtime are integrated or explicitly independent of the legacy host.
 
 ### Track P6-H5 — diagnostic tail
+
+**N0 diagnostic gate verified on the isolated H5 branch.** See [P6-H5 N0 diagnostic acceptance](multiplexing-p6-h5-acceptance-2026-10-08.md) for exact scope, source hashes, repeated results and later post-D gate. Broad-feed payload bytes and comprehensive production critical-section/wake-loop telemetry remain outside the maintained diagnostics; no mutable test control was added.
 
 Keep P6 production-neutral. Complete the missing measurement visibility identified by the accepted harness:
 

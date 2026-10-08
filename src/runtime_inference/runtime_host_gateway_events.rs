@@ -339,3 +339,13 @@ impl RelSequencerGate<'_> {
 #[cfg(test)]
 #[path = "runtime_host_gateway_events_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+impl RelSequencerGate<'_> {
+    pub(super) fn p6_diagnostics(&self) -> serde_json::Value {
+        serde_json::json!({
+            "broad": self.state.subscribers.p6_diagnostics(),
+            "streams": self.state.streams.p6_diagnostics()
+        })
+    }
+}

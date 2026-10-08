@@ -2,7 +2,7 @@
 
 Parent: [P5/6 parallel execution plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
 Baseline: [P3/P4 main acceptance](multiplexing-p34-main-integration-2026-10-06.md)  
-Status: **P6-H harness infrastructure accepted on `feat/multiplexing-p6-harness` @ `81a64b6` (1,095 library + 128 integration in its acceptance run, plus crash/recovery and baseline/candidate runners). H5 diagnostic coverage remains incomplete. P6-R still waits for P5-D and the final upgraded Warlock.**
+Status: **P6-H infrastructure is accepted historically on `81a64b6`. The N0 H5 diagnostic tail is runnable and verified on `feat/multiplexing-p6-h5`; see [P6-H5 N0 diagnostic acceptance](multiplexing-p6-h5-acceptance-2026-10-08.md). Post-D measurements and P6-R still wait for D and upgraded Warlock.**
 
 ## Purpose
 

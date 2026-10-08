@@ -114,3 +114,5 @@
 - [multiplexing-p5a-consumer-matrix-2026-10-06](multiplexing-p5a-consumer-matrix-2026-10-06.md)
 - [multiplexing-p5a-integrated-acceptance-2026-10-07](multiplexing-p5a-integrated-acceptance-2026-10-07.md)
 - [multiplexing-p5c-project-contract-2026-10-07](multiplexing-p5c-project-contract-2026-10-07.md)
+
+- [P6-H5 N0 diagnostic acceptance](multiplexing-p6-h5-acceptance-2026-10-08.md) — read-only owner, notification, queue/byte observations and repeated N0 contention/fan-out/memory evidence.

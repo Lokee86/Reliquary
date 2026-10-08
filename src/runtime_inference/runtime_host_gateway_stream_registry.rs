@@ -286,3 +286,19 @@ mod tests {
         assert_eq!(state.revision, 1);
     }
 }
+
+// Observe the existing maintained counter; never reconstruct allocator accounting.
+#[cfg(test)]
+impl StreamHub {
+    pub(in super::super) fn p6_diagnostics(&self) -> serde_json::Value {
+        let queued: usize = self.recipients.values().map(|r| r.pending.len()).sum();
+        let bytes: usize = self.recipients.values().map(|r| r.pending_text_bytes).sum();
+        serde_json::json!({
+            "recipients": self.recipients.len(),
+            "queued_events": queued,
+            "retained_text_bytes": bytes,
+            "resync_recipients": self.recipients.values().filter(|r| r.resync.is_some()).count(),
+            "byte_scope": "sum of maintained recipient pending_text_bytes; shared Arc payloads counted per recipient; not allocator usage"
+        })
+    }
+}

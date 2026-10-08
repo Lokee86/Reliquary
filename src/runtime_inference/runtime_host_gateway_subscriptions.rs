@@ -185,3 +185,21 @@ impl SubscriberRegistry {
         self.entries.clear();
     }
 }
+
+// Read-only harness observation. No production counters or mutation controls.
+#[cfg(test)]
+impl SubscriberRegistry {
+    pub(super) fn p6_diagnostics(&self) -> serde_json::Value {
+        let queued: usize = self.entries.values().map(|r| r.pending.len()).sum();
+        let slots: usize = self.entries.values().map(|r| r.pending.capacity()).sum();
+        serde_json::json!({
+            "recipients": self.entries.len(),
+            "queued_events": queued,
+            "queue_slots": slots,
+            "queue_slot_bytes": slots * std::mem::size_of::<Arc<RelEventEnvelope>>(),
+            "resync_recipients": self.entries.values().filter(|r| r.resync_cursor.is_some()).count(),
+            "retained_payload_bytes": null,
+            "byte_scope": "broad feed has no maintained payload-byte counter; slot bytes exclude Arc and payload allocations"
+        })
+    }
+}

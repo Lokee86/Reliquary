@@ -350,3 +350,6 @@ fn failed_fence_reopen_does_not_restart_owner_workers() {
     drop(fence);
     drop(gateway.unmount_rel(&owner).unwrap());
 }
+
+#[path = "runtime_host_gateway_p6_harness_tests.rs"]
+mod p6_harness;

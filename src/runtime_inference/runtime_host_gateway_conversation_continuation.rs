@@ -332,3 +332,28 @@ impl ConversationRegistry {
         Ok(())
     }
 }
+
+// Read-only observation of the real coordinator mutex, compiled only in tests.
+#[cfg(test)]
+impl ConversationRegistry {
+    pub(in super::super) fn p6_coordinator_probe(
+        &self,
+        owner: &str,
+        conversation: &str,
+    ) -> (u64, u64) {
+        let coordinator = self
+            .coordinators
+            .lock()
+            .unwrap()
+            .get(&(owner.to_owned(), conversation.to_owned()))
+            .unwrap()
+            .clone();
+        let start = std::time::Instant::now();
+        let guard = coordinator.state.lock().unwrap();
+        let wait = start.elapsed().as_nanos() as u64;
+        let start = std::time::Instant::now();
+        std::hint::black_box(guard.branches.len());
+        drop(guard);
+        (wait, start.elapsed().as_nanos() as u64)
+    }
+}
