@@ -52,9 +52,18 @@ impl HostQueueGuarantees {
     }
 }
 
+/// The negotiated execution boundary. Execution-only keeps pending admission native.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum HostExecutionMode {
+    #[default]
+    PendingQueue,
+    ExecutionOnly,
+}
+
 /// One capability's executable boundary and optional queue contract.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct HostCapabilityContract {
+    pub execution_mode: HostExecutionMode,
     /// The connected host executes this capability's stage.
     pub host_executes_stage: bool,
     /// Required only when the host asks to own pending queue admission.
@@ -62,8 +71,25 @@ pub struct HostCapabilityContract {
 }
 
 impl HostCapabilityContract {
+    /// Opt into host execution without claiming durable pending queue ownership.
+    /// The application binds its native generation before provider I/O; this
+    /// negotiation does not supply a provider dispatcher or prove remote outcomes.
+    pub fn execution_only() -> Self {
+        Self {
+            host_executes_stage: true,
+            execution_mode: HostExecutionMode::ExecutionOnly,
+            queue: HostQueueGuarantees::default(),
+        }
+    }
+
+    fn requests_execution_only(self) -> bool {
+        self.host_executes_stage && self.execution_mode == HostExecutionMode::ExecutionOnly
+    }
+
     pub fn may_own_pending_queue(self) -> bool {
-        self.host_executes_stage && self.queue.complete()
+        self.host_executes_stage
+            && self.execution_mode == HostExecutionMode::PendingQueue
+            && self.queue.complete()
     }
 }
 
@@ -137,11 +163,14 @@ pub enum HostCancelOutcome {
 
 /// Adapter boundary for host-owned stage execution.
 ///
-/// Implementations must return durable acceptance and exact status by stable ID.
+/// PendingQueue implementations must return durable acceptance and exact status by stable ID.
 /// The cancel operation and provider dequeue must linearize on the same
 /// pending-state transition. A cancel accepted before dequeue prevents execution;
 /// if dequeue already won, the result must be RunningCancellationRequested. These
 /// method contracts do not by themselves establish that a real external host conforms.
+/// ExecutionOnly mode never calls handoff: the application executes a bound native
+/// generation while Reliquary retains admission and checkpoint authority. Reconnect
+/// still reconciles prior host-owned work, and status/cancel remain available for it.
 pub trait GatewayHostAdapter: Send + Sync {
     /// Capability intent configured by the application before connecting.
     /// On connect failure, only these dependent stages become unavailable.
@@ -176,9 +205,11 @@ pub trait GatewayHostAdapter: Send + Sync {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CapabilityState {
-    /// No host stage is configured or the adapter lacks the full queue contract.
+    /// No executable host contract is configured or its queue contract is incomplete.
     NativeOnly,
-    /// The complete advertised contract reconciled successfully.
+    /// Explicit execution-only contract reconciled; pending admission stays native.
+    ExecutionOnlyReady,
+    /// The complete pending queue contract reconciled successfully.
     Ready,
     /// This stage's configured host boundary is unavailable.
     Unavailable(String),
@@ -370,7 +401,9 @@ impl CapabilityRouter {
 
                     let complete =
                         advertised.is_some_and(HostCapabilityContract::may_own_pending_queue);
-                    if !complete && !has_debt {
+                    let execution_only =
+                        advertised.is_some_and(HostCapabilityContract::requests_execution_only);
+                    if !complete && !execution_only && !has_debt {
                         // An initially unsupported/incomplete stage remains native.
                         continue;
                     }
@@ -387,13 +420,24 @@ impl CapabilityRouter {
                                 *capability,
                                 if complete {
                                     CapabilityState::Ready
+                                } else if execution_only {
+                                    CapabilityState::ExecutionOnlyReady
                                 } else {
                                     CapabilityState::NativeOnly
                                 },
                             );
                         }
-                        Ok(HostReconcileStatus::Ready) if complete && !has_debt => {
-                            states.insert(*capability, CapabilityState::Ready);
+                        Ok(HostReconcileStatus::Ready)
+                            if (complete || execution_only) && !has_debt =>
+                        {
+                            states.insert(
+                                *capability,
+                                if complete {
+                                    CapabilityState::Ready
+                                } else {
+                                    CapabilityState::ExecutionOnlyReady
+                                },
+                            );
                         }
                         Ok(
                             HostReconcileStatus::NoOutstandingWork
@@ -463,7 +507,9 @@ impl CapabilityRouter {
     ) -> Result<StageAuthority, HostContractError> {
         let state = self.state(capability)?;
         Ok(match state {
-            CapabilityState::NativeOnly => StageAuthority::Native,
+            CapabilityState::NativeOnly | CapabilityState::ExecutionOnlyReady => {
+                StageAuthority::Native
+            }
             CapabilityState::Ready => StageAuthority::Host,
             CapabilityState::Unavailable(_) | CapabilityState::UnknownStatusHeld => {
                 StageAuthority::Held

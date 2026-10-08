@@ -283,3 +283,7 @@ Live sessions retain original mount, fence and grant generations. Close removes 
 - Frozen processing plans contain legitimate derived Memory drafts and identifier-only provenance in trusted Gateway operational storage. They contain no canonical transcript cache and are never delivered as REL snapshots.
 
 External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.
+
+## Execution-only negotiation
+
+An explicitly negotiated execution-only host contract never transfers pending queue ownership, even when its queue guarantee flags are complete. Only PendingQueue mode with all five guarantees may perform a durable host handoff. Mode downgrade, withdrawal or reconnect cannot release locally unresolved operation IDs; durable local terminal recording and empty reconciliation remain required. Negotiated execution readiness is not remote provider outcome proof.

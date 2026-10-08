@@ -75,7 +75,10 @@ impl WorkspaceManagement {
             insomnia_enabled: state.processing_enabled,
             workers,
             background_enabled,
-            external_execution_ready: matches!(capability, CapabilityState::Ready),
+            external_execution_ready: matches!(
+                capability,
+                CapabilityState::Ready | CapabilityState::ExecutionOnlyReady
+            ),
             external_work_held: matches!(capability, CapabilityState::UnknownStatusHeld),
         };
         self.deliver(&token, value)

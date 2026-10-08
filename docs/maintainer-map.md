@@ -180,3 +180,7 @@ Recipient adaptation is owned by src/runtime_inference/interaction_live.rs and i
 | Authorized Gateway delivery/publication | `runtime_host_gateway_external*.rs` | Exact grant, private binding, stale-cut and retry tests; P4 coverage guard |
 
 Container only observes the authenticated embedded version range. MemoryStore owns accepted Memory/evidence/receipt semantics; the Gateway owns frozen operational derivations and exact destination fencing. Host-specific transport and feed implementations remain R5/R7 adapter responsibilities.
+
+## B/E execution-only negotiation
+
+`runtime_host_gateway_host.rs` owns explicit execution mode and reconnect/debt fencing. `interaction_live.rs` projects its readiness into the normalized E diagnostics; `workspace_management_health.rs` projects negotiated readiness into F health. The existing REL coordinator/journal retain pending authority and native generation receipts. Router and E acceptance tests cover queue isolation, withdrawal, reconnect and unresolved debt. The application provider dispatcher remains outside this negotiation boundary.

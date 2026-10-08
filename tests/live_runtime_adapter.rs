@@ -4,10 +4,10 @@ use reliquary_memory::{
     InsomniaWorkerConfig, OwnerGrant, VerifiedInstanceAdmission,
 };
 pub use reliquary_memory::{
-    LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
-    LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
-    LiveSession, LiveStreamCursor, LiveStreamEvent, LiveStreamSnapshot, LiveToolEvent,
-    LiveToolEventKind,
+    HostCapabilityContract, HostExecutionMode, LiveCapability, LiveCheckpoint, LiveCheckpointShape,
+    LiveDiagnostics, LiveGeneratedArtifact, LiveGeneration, LiveGenerationStatus, LiveResumeToken,
+    LiveRuntimeAdapter, LiveRuntimeError, LiveSession, LiveStreamCursor, LiveStreamEvent,
+    LiveStreamSnapshot, LiveToolEvent, LiveToolEventKind,
 };
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex};
