@@ -13,6 +13,9 @@ use uuid::Uuid;
 #[path = "workspace_management.rs"]
 mod management;
 
+#[path = "interaction_live.rs"]
+mod live;
+
 #[path = "runtime_host_gateway_admission.rs"]
 mod admission;
 #[path = "runtime_host_owner_operation_journal.rs"]

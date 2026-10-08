@@ -267,3 +267,7 @@ Mount and quiesced recovery use the same admitted-turn and Archive validation be
 ## P5-F-core isolated management composition
 
 Management selection remains instance-local viewing and cannot implicitly admit a writer. Composite results are delivered only under their original exact owner token. Private PHY and provenance source access retain independent grants; management health contains body-free exact REL clocks/counters. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
+
+## P5-E live runtime surface
+
+Live sessions retain original mount, fence and grant generations. Close removes delivery and leaves accepted work with its owner. Resume tokens are untrusted identity/position hints: fresh sessions validate exact owner/conversation/branch/generation, reject stale epochs and future positions, and obtain a full authoritative P4 prefix without replay. Tool results require their earlier exact invocation; conflicting sequence retries fail. Generated artifacts refer only to the finalized native assistant source, never its ancestor. Cancellation intent is durable; Running host cancellation remains cooperative and Unknown work stays held. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

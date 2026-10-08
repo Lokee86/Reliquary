@@ -548,3 +548,7 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 ## P5-F-core isolated management composition
 
 The isolated F-core lane adds a stateless WorkspaceManagement facade over existing Gateway/A/P3/P4/B authorities. It returns immutable owner-qualified management results, stores no semantic data or selection, and uses delivery-only original-token validation for composite reads. Named exports remain convergence-owned. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
+
+## P5-E live runtime surface
+
+The live adapter owns recipient state only over one shared GatewayRuntime. First-turn session creation uses the existing P3 journal; native tool events use synchronized source-scoped Echo, and generated files use the finalized assistant's existing atomic Archive attachment ingestion. P3 validates exact accepted generation identity and retry; no new event store or writer is introduced. Cancellation retains original mount/grant authority at durable stages and releases admission before provider I/O. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

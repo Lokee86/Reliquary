@@ -164,3 +164,7 @@ P6 matched release collection is owned by `scripts/freshness_release_verificatio
 ## P5-F-core isolated management composition
 
 Management composition belongs to src/runtime_inference/workspace_management.rs and its conversation/files/knowledge/health modules. workspace_management_tests.rs and tests/workspace_management.rs verify it. The management source guard and Pitlord rules reject raw owners, store/journal inspection and second-gateway construction. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
+
+## P5-E live runtime surface
+
+Recipient adaptation is owned by src/runtime_inference/interaction_live.rs and interaction_live_resume.rs; focused tests live in interaction_live_tests.rs and interaction_live_acceptance_tests.rs, with the public restart contract in tests/live_runtime_adapter.rs. The P3 generation owner owns captured-token cancellation, native tool event validation in runtime_host_gateway_conversation_generation_events.rs, and generated-file finalization. Archive/Echo/file owners retain existing persistence and source identity. P4 owns delivery; B owns routing/workers; convergence owns named root exports. The source guard scans all production interaction_live modules. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).

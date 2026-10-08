@@ -448,3 +448,7 @@ This file is future-only by policy. When a roadmap item ships, remove it from th
 ## P5-F-core isolated management composition
 
 Remaining workspace management work is the listed A standalone/whole-file/bounded-read primitives, F5 after G1, final E integration where useful, one convergence export cut and C product acceptance. The isolated F-core lane implements the concrete F0–F4 capability matrix without claiming completion of those remaining product gates. See the [F-core execution record](multiplexing-p5f-core-execution-2026-10-08.md) for the capability matrix, owner requests and verification.
+
+## P5-E live runtime surface
+
+E5 native/full-host-contract local acceptance is implemented. Next converge E with accepted F/G core, perform the named live-type export cut, resolve B/C execution-only provider integration and G-external acceptance, then pin/test Warlock against the final Reliquary/Arcana graph. Root convergence and final consumer acceptance are not implied by the isolated E lane. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
