@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## P5-D0 coverage
+
+`scripts/check_multiplexing_phase5d_inventory.py` and the [source inventory](multiplexing-p5d-source-inventory-2026-10-08.json) account for all 134 runtime-host files, 170 old-host methods, ten host fields, Shared/OwnerExecution fields, module/type/candidate method callers and actual CLI/Warlock imports. [The deletion manifest](multiplexing-p5d-deletion-manifest-2026-10-06.md) owns dispositions, persisted-reader obligations, test routing and remaining gates. This lexical drift/identifier check complements compilation, direct guards and actual consumers; it does not establish deletion or current graph acceptance.
+
 ## Purpose
 
 This document maps implemented code boundaries to their canonical documentation owners.

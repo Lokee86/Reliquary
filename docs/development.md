@@ -6,6 +6,10 @@ Parent index: [Documentation index](INDEX.md)
 
 The converged `244d23f` source passed 1,026 library tests, 95 integration tests, and 19 CLI tests, runtime/CLI locked checks, formatting, and the 28-fixture/112-API direct coverage guard. The [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md) records command-level evidence and the separate unrestricted example-build and refreshed architecture gaps. No runtime or test code changed for this acceptance step.
 
+## P5-D0 inventory checks
+
+Run `python scripts/check_multiplexing_phase5d_inventory.py --self-test --check` to verify the reviewed legacy inventory. Add repeated `--warlock <path>` arguments for the exact known consumer checkouts recorded in [the manifest](multiplexing-p5d-deletion-manifest-2026-10-06.md). Updating with `--write-baseline` requires deliberate source/caller review; do not automatically regenerate after failure. `--hard-cut --warlock <accepted migrated checkout>` is the later D2/D3 identifier gate and must currently fail. D0 changes only documentation and source-audit tooling.
+
 ## Purpose
 
 This document owns repository workflow, layout, verification commands, corpus smoke harnesses, and current measurements.

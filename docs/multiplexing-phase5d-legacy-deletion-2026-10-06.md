@@ -1,7 +1,7 @@
 # Multiplexing P5-D — final legacy-host hard cut and convergence
 
 Parent: [P5/6 parallel plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)  
-Status: **D0 reverse-dependency/deletion inventory can start immediately. D1–D4 remain blocked on accepted C closure plus E/F convergence. G must prove any framework-neutral public-runtime contracts are integrated or independent of the legacy host; completion of unavailable host-specific ACP/Hermes adapters is not a deletion blocker.**
+Status: **D0 inventory is complete on `feat/multiplexing-p5d-inventory` from N0 `999fbf7`; see [deletion manifest](multiplexing-p5d-deletion-manifest-2026-10-06.md). D1–D4 remain blocked on accepted C closure plus E/F convergence. G must prove any framework-neutral public-runtime contracts are integrated or independent of the legacy host; completion of unavailable host-specific ACP/Hermes adapters is not a deletion blocker.**
 
 ## Purpose
 

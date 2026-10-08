@@ -22,7 +22,7 @@ The planning-only main branch is not the implementation frontier. Current verifi
 | P5-E | specified only | **start now** |
 | P5-F | specified only | **start now** |
 | P5-G | specified only; external-derived R0–R7 design already exists | **start framework-neutral/core work now; host-specific adapters separately gated** |
-| P5-D | deletion plan only | **start D0 inventory now; D1–D4 blocked** |
+| P5-D | D0 source/consumer/deletion manifest completed on `feat/multiplexing-p5d-inventory` | **D0 complete; D1–D4 blocked on accepted C/E/F/N3** |
 | P6-H | harness accepted on `81a64b6`; full H5 instrumentation incomplete | **continue diagnostic tail now** |
 | P6-R | no final post-deletion run | **blocked on D** |
 
@@ -116,6 +116,8 @@ In a separate non-overlapping G worktree, implement the existing external conver
 Do **not** implement Hermes or ACP transport in core. G3/G5 adapters occupy their own external seams after the framework-neutral contracts pass.
 
 ### Track D0 — deletion inventory only
+
+D0 is complete for exact N0 `999fbf7` on `feat/multiplexing-p5d-inventory`; see the [deletion manifest](multiplexing-p5d-deletion-manifest-2026-10-06.md) and its current C/E/F/G source audit. The inventory guard requires renewed review after integration. D1–D4 remain blocked.
 
 D0 starts immediately against N0 and is read-only/source-audit plus documentation/scripts. Produce the definitive old-host deletion manifest:
 

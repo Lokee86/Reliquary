@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## P5-D0 source inventory route
+
+Legacy-host deletion preparation is owned by the [D0 manifest](multiplexing-p5d-deletion-manifest-2026-10-06.md), its [exact inventory](multiplexing-p5d-source-inventory-2026-10-08.json) and `scripts/check_multiplexing_phase5d_inventory.py`. Run `--self-test --check` for reviewed-source drift and supply actual Warlock checkouts for external verification. The later `--hard-cut` identifier gate must fail while old authority exists. D0 changes no runtime owner or format; D1–D4 require accepted convergence.
+
 ## Purpose
 
 This map routes common change intents to canonical documentation, implementation boundaries, and verification surfaces.

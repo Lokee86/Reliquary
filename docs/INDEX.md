@@ -1,5 +1,8 @@
 # Reliquary Memory v2 Documentation
 
+- [P5-D0 deletion manifest](multiplexing-p5d-deletion-manifest-2026-10-06.md) — branch-scoped legacy fields/methods/modules, caller/test/reader disposition and blocked deletion gates.
+- [P5-D0 source inventory](multiplexing-p5d-source-inventory-2026-10-08.json) — exact source hashes, registrations, lexical references and audited consumer revisions.
+
 - [Final P3/P4 main integration](multiplexing-p34-main-integration-2026-10-06.md)
 
 - [P3.9 local Phase 3 acceptance](multiplexing-phase3-local-acceptance-2026-10-05.md)
