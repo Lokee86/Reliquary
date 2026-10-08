@@ -112,6 +112,42 @@
       ],
       "literal": "ReliquaryRuntimeHost::",
       "message": "Management must not restore the duplicate legacy host authority."
+    },
+    {
+      "id": "external-source-no-native-append",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/external_source/**/*.rs"
+      ],
+      "exclude_paths": [
+        "src/external_source/tests.rs"
+      ],
+      "literal": ".append_node(",
+      "message": "External canonical transcript bodies and IDs must not become native Archive history."
+    },
+    {
+      "id": "external-source-no-native-fragments",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/external_source/**/*.rs"
+      ],
+      "exclude_paths": [
+        "src/external_source/tests.rs"
+      ],
+      "literal": ".materialize_path_fragments(",
+      "message": "External canonical transcript bodies and IDs must not become native Archive history."
+    },
+    {
+      "id": "external-source-no-native-episode",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/external_source/**/*.rs"
+      ],
+      "exclude_paths": [
+        "src/external_source/tests.rs"
+      ],
+      "literal": "Episode {",
+      "message": "External canonical transcript bodies and IDs must not become native Archive history."
     }
   ]
 }

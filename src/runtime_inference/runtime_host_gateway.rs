@@ -29,6 +29,13 @@ pub use management::{
     UnsupportedManagementOperation, WorkspaceManagement,
 };
 
+#[path = "runtime_host_gateway_external.rs"]
+mod external;
+#[path = "runtime_host_gateway_external_plan.rs"]
+mod external_plan;
+#[path = "runtime_host_gateway_external_processing.rs"]
+mod external_processing;
+
 #[path = "runtime_host_gateway_admission.rs"]
 mod admission;
 #[path = "runtime_host_owner_operation_journal.rs"]
@@ -1548,3 +1555,7 @@ impl Drop for GatewayRuntime {
         let _ = self.shutdown();
     }
 }
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_external_tests.rs"]
+mod external_tests;

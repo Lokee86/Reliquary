@@ -123,3 +123,5 @@
 - [multiplexing-p5a-consumer-matrix-2026-10-06](multiplexing-p5a-consumer-matrix-2026-10-06.md)
 - [multiplexing-p5a-integrated-acceptance-2026-10-07](multiplexing-p5a-integrated-acceptance-2026-10-07.md)
 - [multiplexing-p5c-project-contract-2026-10-07](multiplexing-p5c-project-contract-2026-10-07.md)
+
+- [P5-G external-core acceptance](multiplexing-p5g-external-acceptance-2026-10-08.md)

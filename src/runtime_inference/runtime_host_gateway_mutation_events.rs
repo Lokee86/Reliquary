@@ -26,6 +26,8 @@ struct Cut {
     communities: crate::CommunityStats,
     community_names: Vec<crate::CommunitySemanticName>,
     profiles: usize,
+    external_indexes: Vec<crate::external_source::ExternalIndexStatus>,
+    external_damaged: bool,
 }
 fn cut(runtime: &crate::InteractionRuntime) -> Cut {
     let cva = runtime.cva();
@@ -36,6 +38,13 @@ fn cut(runtime: &crate::InteractionRuntime) -> Cut {
         communities: cva.community_stats(),
         community_names: cva.community_semantic_names(),
         profiles: cva.compatibility_profiles().len(),
+        external_damaged: cva.external_index.damaged,
+        external_indexes: cva
+            .external_index
+            .sources
+            .values()
+            .map(|s| s.status())
+            .collect(),
     }
 }
 

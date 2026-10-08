@@ -1,11 +1,11 @@
-use super::candidate::{parse_candidates, validate_candidates};
+use super::candidate::parse_candidates;
 use super::contract::MAX_INSOMNIA_CANDIDATES;
 use super::extraction::{
     InsomniaCandidate, InsomniaEvidenceTurn, InsomniaExtractionError, InsomniaRejection,
 };
 use super::ledger::LedgerEntry;
 use super::ownership::InsomniaOwnership;
-use crate::{Episode, ResolvedTurn};
+use crate::ResolvedTurn;
 use serde_json::{Map, Value, json};
 
 pub(super) const SYNTHESIS_SYSTEM_PROMPT: &str = r#"You are the wording pass for Reliquary Insomnia.
@@ -106,8 +106,8 @@ pub(super) fn schema(groups: &[SynthesisGroup]) -> Value {
     })
 }
 
-pub(super) fn materialize(
-    episode: &Episode,
+pub(super) fn materialize_input(
+    episode: &super::input::InsomniaSourceInput,
     turns: &[ResolvedTurn],
     evidence_turns: &[InsomniaEvidenceTurn],
     groups: &[SynthesisGroup],
@@ -177,7 +177,11 @@ pub(super) fn materialize(
         }));
     }
     let raw = parse_candidates(&json!({"candidates": candidates}))?;
-    Ok(validate_candidates(episode.id, turns, raw))
+    Ok(super::candidate::validate_candidates_for_source(
+        episode.key,
+        turns,
+        raw,
+    ))
 }
 
 fn same_signature(group: &SynthesisGroup, entry: &LedgerEntry) -> bool {
@@ -221,7 +225,7 @@ fn group_json(group: &SynthesisGroup) -> Value {
 }
 
 fn source_text(
-    episode: &Episode,
+    episode: &super::input::InsomniaSourceInput,
     turns: &[ResolvedTurn],
     evidence_turns: &[InsomniaEvidenceTurn],
     node_id: &str,
@@ -246,7 +250,7 @@ fn source_text(
 }
 
 fn optional_source_text(
-    episode: &Episode,
+    episode: &super::input::InsomniaSourceInput,
     turns: &[ResolvedTurn],
     evidence_turns: &[InsomniaEvidenceTurn],
     node_id: &str,
@@ -268,4 +272,21 @@ fn required_string(value: &Value, key: &str) -> Result<String, InsomniaExtractio
 
 fn invalid(message: impl Into<String>) -> InsomniaExtractionError {
     InsomniaExtractionError::InvalidOutput(message.into())
+}
+
+#[cfg(test)]
+pub(super) fn materialize(
+    episode: &crate::Episode,
+    turns: &[ResolvedTurn],
+    evidence: &[InsomniaEvidenceTurn],
+    groups: &[SynthesisGroup],
+    wording: &Value,
+) -> Result<(Vec<InsomniaCandidate>, Vec<InsomniaRejection>), InsomniaExtractionError> {
+    materialize_input(
+        &super::input::InsomniaSourceInput::native(episode),
+        turns,
+        evidence,
+        groups,
+        wording,
+    )
 }

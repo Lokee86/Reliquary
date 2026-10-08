@@ -552,3 +552,15 @@ The isolated F-core lane adds a stateless WorkspaceManagement facade over existi
 ## P5-E live runtime surface
 
 The live adapter owns recipient state only over one shared GatewayRuntime. First-turn session creation uses the existing P3 journal; native tool events use synchronized source-scoped Echo, and generated files use the finalized assistant's existing atomic Archive attachment ingestion. P3 validates exact accepted generation identity and retry; no new event store or writer is introduced. Cancellation retains original mount/grant authority at durable stages and releases admission before provider I/O. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
+
+## External canonical transcript core (P5-G core)
+
+N3 staging integrates the framework-neutral R0–R4 lane described in [the external integration plan](conversation-index-integration-plan.md). Native Archive ingestion remains available. A host implements `external_source::ExternalConversationSource` and retains canonical bodies, authorization and transcript lifecycle. REL owns reference-only external index snapshots and packed vector bindings. Lexical routing stores term hashes, not source strings. Search returns hash-bound UTF-8 range references and scores.
+
+Gateway operations require exact REL grants and a verified instance principal. Feed, manifest, hydration and model calls run outside owner locks, distribution gates and admission leases. Publication rechecks the original owner token and source cut. Hydration validates the canonical descriptor, SHA-256 content hash and UTF-8 byte range before transient text delivery.
+
+External Insomnia uses the existing ledger, classification, ownership, wording, enrichment and Chronos machinery through a shared transient input. It creates ordinary project REL and caller-bound private PHY Memories. It creates no Archive nodes, Episodes, Fragments or Echo source evidence. Identifier-only external provenance is bound to the published Memory body, separately from the unchanged native Memory codec.
+
+The Gateway freezes derivation and exact private destination in trusted operational state before recipient publication. Each recipient atomically commits its Memory batch and window receipt. This is recoverable owner-local publication, not an atomic transaction across REL and PHY. A retry uses the frozen plan and recipient receipts. The host never waits for Reliquary to acknowledge a canonical turn.
+
+External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.

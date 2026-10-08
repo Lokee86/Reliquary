@@ -94,6 +94,9 @@ def refresh_evidence(lexicon: Path, arcana: Path) -> None:
             str(ROOT),
             "--adapters",
             str(adapter_root()),
+            # semantic.json owns authored Rust under src; Python guards run above.
+            "--languages",
+            "rust",
         ]
     )
     run(
@@ -118,6 +121,8 @@ def main() -> int:
     args = parser.parse_args()
 
     run([sys.executable, "scripts/check_multiplexing_phase4_coverage.py", "--self-test"])
+
+    run([sys.executable, "scripts/check_external_source_ownership.py", "--self-test"])
 
     pitlord = resolve(
         "PITLORD",

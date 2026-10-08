@@ -168,3 +168,15 @@ Management composition belongs to src/runtime_inference/workspace_management.rs 
 ## P5-E live runtime surface
 
 Recipient adaptation is owned by src/runtime_inference/interaction_live.rs and interaction_live_resume.rs; focused tests live in interaction_live_tests.rs and interaction_live_acceptance_tests.rs, with the public restart contract in tests/live_runtime_adapter.rs. The P3 generation owner owns captured-token cancellation, native tool event validation in runtime_host_gateway_conversation_generation_events.rs, and generated-file finalization. Archive/Echo/file owners retain existing persistence and source identity. P4 owns delivery; B owns routing/workers; convergence owns named root exports in src/runtime_inference/runtime_host_gateway.rs, src/runtime_inference/runtime_host.rs and src/lib.rs. The existing public live-runtime and management tests import all E/F root names explicitly. The source guard scans all production interaction_live modules. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
+
+## External source core ownership (P5-G core)
+
+| Concern | Owner/code | Verification |
+| --- | --- | --- |
+| Host contract, hashes and bounds | `src/external_source/model.rs` | External source contract and hydration tests |
+| Reference-only index, cursor and rebuild | `external_source/store.rs`, `index.rs` | Replay/reopen/edit/visibility/delete/corruption/CAS tests |
+| Atomic semantic publication and provenance | `external_source/publication.rs`, `provenance.rs` | Memory receipt, body binding and reopen tests |
+| Shared transient Insomnia input | `insomnia/input.rs`, shared extraction/synthesis, `external_source/processing.rs` | External project/private extraction and native Insomnia regressions |
+| Authorized Gateway delivery/publication | `runtime_host_gateway_external*.rs` | Exact grant, private binding, stale-cut and retry tests; P4 coverage guard |
+
+Container only observes the authenticated embedded version range. MemoryStore owns accepted Memory/evidence/receipt semantics; the Gateway owns frozen operational derivations and exact destination fencing. Host-specific transport and feed implementations remain R5/R7 adapter responsibilities.

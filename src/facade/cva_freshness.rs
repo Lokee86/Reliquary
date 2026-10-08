@@ -708,6 +708,12 @@ impl Cva {
         let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
         let mut cohort = std::collections::BTreeSet::from([source]);
         scan.visit_payloads::<CvaError>(|_, payload| {
+            if let Some(publication) = crate::external_source::publication::decode(payload)?
+                && publication.birth_turn.is_some()
+                && publication.records.iter().any(|r| r.id == source)
+            {
+                cohort.extend(publication.records.iter().map(|r| r.id));
+            }
             if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
                 .map_err(|message| CvaError::Freshness(message.into()))?
                 && completion.freshness_birth_turn.is_some()
@@ -728,6 +734,11 @@ impl Cva {
         let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
         let mut same = false;
         scan.visit_payloads::<CvaError>(|_, payload| {
+            if let Some(publication) = crate::external_source::publication::decode(payload)? {
+                same |= publication.birth_turn.is_some()
+                    && publication.records.iter().any(|r| r.id == a)
+                    && publication.records.iter().any(|r| r.id == b);
+            }
             if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
                 .map_err(|message| CvaError::Freshness(message.into()))?
             {

@@ -271,3 +271,15 @@ Management selection remains instance-local viewing and cannot implicitly admit 
 ## P5-E live runtime surface
 
 Live sessions retain original mount, fence and grant generations. Close removes delivery and leaves accepted work with its owner. Resume tokens are untrusted identity/position hints: fresh sessions validate exact owner/conversation/branch/generation, reject stale epochs and future positions, and obtain a full authoritative P4 prefix without replay. Tool results require their earlier exact invocation; conflicting sequence retries fail. Generated artifacts refer only to the finalized native assistant source, never its ancestor. Cancellation intent is durable; Running host cancellation remains cooperative and Unknown work stays held. See [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
+
+## External source ownership
+
+- A source namespace identifies host canonical history; it is not a REL owner ID or an Archive identity.
+- External index snapshots contain descriptors, IDs, content hashes, offsets, term hashes, vector bindings and cursors. Hydrated transcript bodies remain transient.
+- Cursor advancement and its source-row mutation share one synchronized snapshot. Concurrent preparations use a revision fence; feed gaps require an explicit manifest rebuild.
+- Hash replacement, inactive visibility and conversation deletion suppress source rows. They do not automatically delete independent semantic Memories.
+- Host authorization and Gateway grants are independent. REL access never grants host transcript access. Private output requires the verified caller's exact bound PHY.
+- External provenance contains no synthetic Episode or Archive node IDs. Unavailable, inactive or changed host evidence remains unavailable/stale; semantic ownership persists.
+- Frozen processing plans contain legitimate derived Memory drafts and identifier-only provenance in trusted Gateway operational storage. They contain no canonical transcript cache and are never delivered as REL snapshots.
+
+External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.

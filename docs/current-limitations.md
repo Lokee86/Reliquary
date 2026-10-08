@@ -210,3 +210,15 @@ F-core composition supports the recorded capability matrix. Whole-file/standalon
 ## P5-E live runtime surface
 
 E5 local functional acceptance covers native session/text/tool/artifact receipts and cancellation through the existing full ConversationExecution host contract. External host tool/artifact receipts without native generation identity remain unsupported. Diagnostic resync state records a delivered ResyncRequired until authoritative replacement; it is recipient presentation state. Runtime/provider abort, execution-only Warlock contract integration and final N3/Warlock pins remain separate gates. Existing Echo APIs materialize the exact source before adapter response bounds are checked; this is not a new preallocation bound for arbitrary legacy Echo content. Architecture refresh evidence and exact test results are recorded in [E5 acceptance record](multiplexing-p5e-e5-acceptance-2026-10-08.md).
+
+## External-derived core limits
+
+Framework-neutral external-source R0–R4 and accepted native import profiles are integrated on N3 staging. Final convergence and Warlock pins remain gated. Hermes/ACP host adapters and compaction proposal services are separate lanes.
+
+Logical external index metadata is rebuildable; physical CVA framing or packed-vector corruption follows existing strict Container/vector recovery and must be repaired before opening. Source absence never fabricates native provenance. Current external evidence is bound to the published body: a later manually replaced body does not automatically inherit that evidence.
+
+External window publication has synchronized owner-local receipts and a frozen Gateway plan; it is not a cross-owner transaction. Recovery needs the operational state directory as well as REL/PHY files. Frozen plans are retained with explicit file/directory limits; automatic retention/pruning remains follow-up. Processing routes personal output only for the verified caller's authored evidence and bound PHY, rather than routing arbitrary other principals from a host transcript.
+
+This core does not schedule external feed polling, modify host lifecycle state, count host turns as native Archive activity, automatically withdraw Memories on source deletion, migrate a namespace between embedding profiles, or provide host compaction. Host adapters own bounded polling, source access checks and canonical commit behavior.
+
+Reference delivery and processing require a complete authorized manifest (bounded to 8,192 messages) at the host check cut. Search fails the request if a candidate is outside that authorized view; it does not return a partial filtered ranking. The host can change after the check, so canonical text delivery still requires authorized fresh hydration. Index status exposes derived REL metadata under ViewRel, without granting canonical host content access. Divergent semantic reconciliation rejects external index or processing-receipt state; identical/strict-extension physical copy remains supported.
