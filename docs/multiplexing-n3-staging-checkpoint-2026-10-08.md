@@ -4,102 +4,105 @@ Parent: [Next execution wave](multiplexing-phase5-next-parallel-execution-plan-2
 
 ## Purpose
 
-Record the accepted E/F/G-import source integration and the remaining gates for final Reliquary convergence and the locked Warlock dependency cut.
+Record the exact accepted E/F/G-import/G-external integration and remaining gates for final Reliquary convergence and the locked Warlock dependency cut.
 
 ## Overview
 
-Status: **E5, F-core and G-import integrated and functionally verified on N3 staging; final N3 acceptance remains gated.**
+Status: **E5, F-core, G-import and G-external R0–R4 integrated and functionally verified on N3 staging; final N3 acceptance remains gated.**
 
 Branch: `feat/multiplexing-n3-staging`. Worktree: `C:\!bin\workspace\Reliquary-n3-staging`.
 Accepted N0 base: `999fbf7d85c9f892a1bf979293588033bcc1484b`.
-Previous F/G merge: `38754638f0e551bb3255142ef478c7bca55f20da`.
-Previous checkpoint: `737c8618d5524a6465187e637e5fb3ede667c66c`.
+E/F/import integration: `f139ba3b9b30c4a29faf6bb0fb9088f3e4e31911`.
+Named E/F export cut: `760ce855cc443055739b45160ed05412e3f04c10`.
+G-external integration: `b8a373b1b0bd50ccb4ade95bec24693c38eee547`.
 
 | Lane | Accepted source |
 | --- | --- |
 | E5 | `874851ac4c81fb9bb29f897fefe421c335fac7d4` |
 | F-core | `13df1ff14ea8d7bfb1777289968ff7d5c87b3998` |
 | G-import | `99b9fa5e83f9c0052d5ceef0952a47275b3903cc` |
+| G-external R0–R4 | `7c63eb8f0891c8086993d885025c290888a0fdb4` |
 
-E adds the accepted native/full-host-contract live adapter and narrow P3 cancellation/tool/artifact seams. F remains stateless management composition, and G-import retains pure normalization and its existing Archive/Insomnia publication owner. Gateway registers both E and F modules. The combined coverage guard preserves both factories and scans Gateway, management and all production live modules. Shared documentation preserves each lane's current contract rather than selecting one side of the merge.
+E adds native/full-host-contract live adaptation and narrow P3 cancellation/tool/artifact seams. F remains stateless management composition. G-import retains pure normalization and existing Archive/Insomnia publication ownership. G-external keeps host canonical history outside REL, with reference-only source snapshots, independently authorized source evidence, rebuildable search and shared transient Insomnia processing. Ordinary Memories and body-bound identifier-only provenance retain existing REL/PHY ownership.
 
-The combined source introduces no duplicate semantic authority, format change, provider-contract substitute or compatibility forwarding. The single E/F named root export cut is implemented and downstream consumer contracts use explicit names. The N0 convergence branch and Warlock pins are unchanged by this staging import.
+Merge resolution preserves all E/F named exports, both adapter factories, native import rules and the external-source owner/rules. Gateway registers the accepted external modules alongside E/F. Fresh message authorization applies to search and completed processing replay; source sequencing fences private publication. Host callbacks, including metadata getters, run outside owner/admission closures. Canonical docs carry the combined current contracts.
 
-## Named E/F export cut
+The accepted N0 convergence branch and Warlock pins remain unchanged.
 
-The import base is f139ba3b9b30c4a29faf6bb0fb9088f3e4e31911. The follow-up cut exports 16 live types, 12 management types and three management bounds through the existing Gateway/runtime_host/root composition chain, without aliases or duplicate DTOs. Native import types keep their public imports namespace. [Rust API](api.md) lists the exact names.
+## Named export cut
 
-All 31 E/F names compile in the existing downstream integration consumers, which use explicit typed adapters, sessions, resume hints, event/artifact vectors and management results. The final export source passes the full root/CLI and direct ownership matrix; logs are retained in target/n3-named-exports-verification/. Existing fresh graph enforcement remains unverified from the preceding indexing timeout; the export cut changes no domain ownership, persistence, lifecycle or policy.
+All 31 E/F names remain exported through the Gateway → runtime_host → crate-root chain with private implementation modules. Existing downstream live/management consumers import them explicitly. Native import contracts keep `reliquary_memory::imports`; external contracts use explicit named exports under `reliquary_memory::external_source`. The external downstream consumer verifies authorized reference search/hydration, message access denial and source-body-free reopen. No duplicate DTO or compatibility-forwarding owner is introduced.
 
 ## Verification
 
 | Gate | Result |
 | --- | --- |
 | Root formatting and locked check | Passed |
-| Focused E scenarios | 17 executed and passed |
-| Unrestricted root matrix | 1,138 unit and 136 integration tests passed; none ignored |
+| Unrestricted root tests, including example compilation | 1,156 unit and 137 integration tests passed; none ignored |
 | CLI formatting, locked check and tests | Passed; 19 tests |
 | P2/P3 enforced ownership and P3 fixtures | Passed; 7 fixtures |
-| P4 coverage | Passed; 71 fixtures, 152 public APIs |
-| Management guard | Passed; 25 fixtures |
-| Pitlord policy validation | Passed; 16 areas, 19 rules |
-| Archive roundtrip smoke | Passed; 6 nodes, 2 branches, 2 fragments and 8 expanded references preserved after reopen |
-| Fresh architecture refresh | Incomplete; exit 124 after 240 seconds during Python indexing |
+| P4 coverage | Passed; 75 fixtures, 161 public APIs |
+| Management ownership guard | Passed; 25 fixtures |
+| External ownership guard | Passed; 11 fixtures |
+| Pitlord policy validation | Passed; 17 areas, 22 rules |
+| Native Archive roundtrip smoke | Passed; 6 nodes, 2 branches, 2 fragments and 8 expanded references preserved after reopen |
+| Documentation policy and whitespace | Both policy modes, unstaged and staged diff checks passed |
+| Fresh architecture graph | Incomplete; exit 124 after 600 seconds during Rust analysis |
 
-Logs are retained in `target/n3-e-import-verification/`. The source matrix was executed on the resolved E/F/G-import tree, with the shared verification target and stripped development/test debug information. Existing compiler/linker warnings remain. Focused E acceptance asserts that all 17 intended tests actually execute; a zero-match filter cannot satisfy this gate.
+Logs are retained in `target/n3-g-external-verification/`: `runtime.json`, `tail.json`, `architecture.json`, individual command logs and the prepared native Archive graph fixture. Locked Cargo commands use one build job, one test thread and the independent D verification cache with stripped debug information. Existing compiler/linker warnings remain.
 
-The fresh `python scripts/check_architecture.py --refresh` attempt passed its embedded P4 guard, then timed out after 240 seconds during Lexicon Python indexing. Its complete subprocess tree was terminated. Arcana synchronization and graph-based Pitlord enforcement did not execute; the policy validation and direct guards above do not substitute for fresh graph enforcement.
+The first matrix wrapper used a nonexistent management-guard filename after root/CLI/P2/P3/P4 had passed. The corrected tail executes the existing `scripts/check_workspace_management.py`, external guard, policy validation, Archive smoke and documentation gates. This orchestration error required no source repair and does not replace any runtime result.
 
-Both documentation policy modes and staged whitespace checks passed on the final documented tree.
+The fresh architecture refresh explicitly selected Rust, matching the authored Rust ownership policy under src/. Direct Python guards execute independently. The Rust adapter remained active but did not publish complete evidence within 600 seconds; the full subprocess tree was terminated. Arcana synchronization and graph-based Pitlord enforcement did not run. Direct guard/policy validation does not substitute for fresh graph evidence, and no Python dependency graph is claimed.
 
-## Previous attempt
+## Previous evidence
 
-The earlier F/G-only checkpoint passed formatting, locked check and direct guards, but its unrestricted tests stopped before assertions with Lore static-archive disk exhaustion. CLI check/tests and Archive smoke did not run. Its 240-second architecture attempt timed out during Python indexing. Those results remain historical evidence; the E/F/G-import matrix above supersedes that incomplete functional run. No stale graph is used as fresh enforcement evidence.
+The E/F/G-import named-export cut passed 1,138 unit, 136 integration and 19 CLI tests. Its fresh graph attempt timed out after 240 seconds during Python analysis. G-external owning-lane acceptance passed 1,117 unit, 129 integration and 19 CLI tests; its Rust-only graph attempt timed out after 300 seconds. Earlier cache disk-exhaustion failures occurred before assertions and were superseded by successful unrestricted runs. The combined matrix above is the current functional evidence.
 
 ## Remaining convergence gates
 
 | Gate | Current state | Required next outcome |
 | --- | --- | --- |
-| G-external R0–R4 | No accepted framework-neutral external-core commit imported | Finish rebuild/privacy/lifecycle acceptance on its owning lane and integrate its exact accepted commit |
-| B/C execution-only provider | E tests the existing full ConversationExecution host contract; production Warlock does not advertise a durable pending queue | Resolve truthful execution-only readiness, stable ID/digest reconciliation and cooperative cancellation |
-| Exact task-root retrieval and attribution | E provides native accepted generation/tool/file receipts; broader C composition still needs acceptance | Verify authorized C/A/F composition against the converged surface |
-| Fresh architecture graph | fresh Lexicon indexing timed out at 240 seconds during Python analysis, before Arcana synchronization and graph-based Pitlord enforcement | Complete current Lexicon/Arcana indexing and Pitlord enforcement |
-| Final C matrix and pins | C-close and historical Reliquary/Arcana pins remain unchanged | Advance accepted convergence, publish/pin the exact revision, align Arcana and run all C gates |
+| G-external R0–R4 | Accepted owner cut integrated and combined functional matrix passed | Core integration gate closed; host-specific adapters remain separate |
+| B/C execution-only provider | E verifies the full ConversationExecution host contract; production Warlock does not advertise a durable pending queue | Resolve truthful execution-only readiness, stable ID/digest reconciliation and cooperative cancellation |
+| Exact task-root retrieval and attribution | E supplies native accepted generation/tool/file receipts; broader C composition needs acceptance | Verify authorized C/A/F composition against this converged surface |
+| Fresh architecture graph | Rust analysis timed out after 600 seconds before Arcana/Pitlord | Complete current Lexicon/Arcana evidence and graph-based Pitlord enforcement |
+| Final C matrix and pins | C-close and historical Reliquary/Arcana pins remain unchanged | Advance accepted convergence, pin the exact revision, align Arcana and run every C gate |
 
-F5 selective import/export remains optional at N3. G3/G5 host-specific adapters remain separate tails, distinct from the unfinished G-external core. P6-H5 is separately accepted on N0; post-D port and measurements remain P6-R work.
+F5 selective import/export remains optional at N3. G3/G5 host-specific adapters and external polling/profile migration/reconciliation/proposals remain separate tails. P6-H5 is separately accepted on N0; post-D port and measurements remain P6-R work.
 
 ## Resume sequence
 
-1. Complete G-external acceptance and integrate its exact accepted owner commit.
-2. Resolve B/C production provider conformance and fresh architecture enforcement, and run checks appropriate to the resulting source changes.
-3. Advance the N0 convergence line only after combined acceptance.
-4. Pin Warlock to the exact accepted Reliquary revision and matching Arcana; verify one Arcana identity, locked Rust/provider/admission/conversation fixtures, frontend build and actual product acceptance.
-5. Keep D deletion gated by final C/E/F acceptance; P6-R remains post-D.
+1. Resolve B/C production provider conformance, actual C composition acceptance and fresh architecture enforcement; verify resulting source changes in their owning lanes.
+2. Advance the N0 convergence line only after combined acceptance.
+3. Pin Warlock to the exact accepted Reliquary revision and matching Arcana; verify one Arcana identity, locked Rust/provider/admission/conversation fixtures, frontend build and actual product acceptance.
+4. Keep D deletion gated by final C/E/F acceptance; P6-R remains post-D.
 
 ## Documentation impact
 
-- Inspected: canonical architecture/invariants/storage/maintainer/limitations/roadmap/API, E/F/G acceptance records, next-wave plan, previous N3 checkpoint and shared standards.
-- Updated: combined canonical lane sections through conflict resolution, this checkpoint and next-wave staging status.
-- Not affected: historical N0 evidence, owner-lane acceptance evidence, G-external drafts, Warlock source/pins, CLI behavior and P6 historical measurements.
-- Compliance check: structural and changed-from origin/main policy modes passed; staged whitespace check passed.
-- Known documentation gaps: G-external and actual C/N3 release acceptance remain open and explicit.
+- Inspected: canonical architecture/invariants/storage/maintainer/limitations/roadmap/API, accepted E/F/G records, current checkpoint, next-wave plan and shared standards.
+- Updated: merged external-core current contracts, G plan/roadmap scope, this checkpoint and next-wave status.
+- Not affected: historical owner-lane/N0 acceptance records, Warlock source/pins, host-specific adapters and native codec meanings.
+- Compliance check: structural and changed-from origin/main policy modes and staged/unstaged whitespace checks passed.
+- Known documentation gaps: actual C/provider, final convergence/pin and release acceptance remain explicit.
 
 ## Architecture impact
 
 - Standards added or changed: none.
-- Ownership or boundary impact: E recipient adaptation and narrow P3 validation coexist with F management composition and G normalization/Archive import ownership; existing P3/P4/A/B authorities remain canonical.
-- Pitlord enforcement impact: preserve F management and G native-import policy rules; combine E/F source classification and module scans.
-- Other verification impact: merged root/CLI functional matrix, focused E and public consumer recovery, P2/P3/P4/management guards and Archive roundtrip smoke.
-- Known architectural gaps: fresh Lexicon indexing timed out at 240 seconds during Python analysis, before Arcana synchronization and graph-based Pitlord enforcement; G-external authority and production provider/consumer acceptance remain separate.
+- Ownership or boundary impact: preserve E recipient, F composition, native import/Archive and external reference-index owners; MemoryStore retains semantic Memory authority and Gateway retains authorization/sequencing/delivery.
+- Pitlord enforcement impact: combined 17 areas/22 rules, native-import and external-source protections, 75 P4 fixtures plus management/external guards.
+- Other verification impact: unrestricted merged root/CLI matrix, downstream named consumers, source authorization/recovery/privacy and native Archive reopen smoke.
+- Known architectural gaps: fresh Rust graph analysis timed out after 600 seconds before Arcana synchronization and graph-based Pitlord enforcement; production provider/consumer and final pin gates remain.
 
 ## Related docs
 
 - [E5 acceptance](multiplexing-p5e-e5-acceptance-2026-10-08.md)
 - [F-core execution](multiplexing-p5f-core-execution-2026-10-08.md)
 - [G-import execution](multiplexing-p5g-import-execution-2026-10-08.md)
+- [G-external acceptance](multiplexing-p5g-external-acceptance-2026-10-08.md)
 - [Architecture](architecture.md)
 - [Current limitations](current-limitations.md)
 
 ## Notes
 
-This staging import does not complete D deletion, final Warlock pinning or the Phase 5 release.
+This staging integration does not complete D deletion, final Warlock pinning or the Phase 5 release.
