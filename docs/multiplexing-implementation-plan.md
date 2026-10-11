@@ -95,28 +95,81 @@ The six numbered deliverables are the **only current progress sequence**. Subtas
 
 ## Step 1 — Warlock consumer completion
 
-1. Wire actual execution-only provider host adapter and retain native pending authority where the host lacks durable queue semantics.
-2. Reconcile remote outcomes and Unknown states across disconnect/restart; never redispatch an ambiguous operation; prove cancellation before replay.
-3. Verify two authenticated independent instances, same-principal shared PHY worker and different-principal privacy, detached viewer continuity and per-context conversation/branch selections.
-4. Ensure late join, slow subscribers, reconnect, mount epoch, cursor invalidation, resync and revocation use P4 durable stream/checkpoint paths; do not display provider deltas as committed output.
-5. Verify exact task-root attribution and authorized project file reference propagation.
-6. Run real HTTP/provider, Tauri/frontend, locked Rust, privacy, owner and no-legacy-consumer tests.
+**Status: partial.** Native provider/Stop/status accepted on `be17ad5`; end-to-end Warlock acceptance outstanding. Tasks marked partial reflect existing slice evidence, not independently reverified completion.
+
+| ID | Action | Status |
+|---|---|---|
+| 1.1 | Audit current Warlock consumer against N3 interfaces and actual dependency pins | Not started |
+| 1.2 | Finish execution-only provider adapter | Partial |
+| 1.3 | Implement remote outcome reconciliation, reconnect and Unknown recovery | Partial |
+| 1.4 | Complete cancellation and provider operation lifecycle | Partial |
+| 1.5 | Complete multi-instance context and session management | Not verified |
+| 1.6 | Verify shared PHY ownership and cross-principal isolation | Not verified |
+| 1.7 | Integrate checkpointed durable conversation streams with Warlock UI/Tauri | Not verified |
+| 1.8 | Implement public reconnect, resync and subscription recovery | Not verified |
+| 1.9 | Complete exact task-root attribution and ProjectFileRef propagation | Not verified |
+| 1.10 | Run full real-provider, frontend, privacy and Warlock acceptance matrix | Blocked on 1.2–1.9 |
+
+**Exit gate:** upgraded Warlock uses canonical Gateway/Instance APIs with correct real-provider recovery, streaming, authorization and multi-context behavior; commit and log exact tests and pins.
 
 ## Step 2 — Merge and pin
 
-1. Reconcile the N3 staging line with accepted A/B/C/E/F/G commits; preserve **one** owner for each public DTO/export.
-2. Re-run Reliquary formatting, locked check, all tests/examples, CLI, P2/P3/P4 guards, F/external guard and documentation checks.
-3. Pin Warlock to the **same** verified Reliquary revision and matching direct Arcana revision, regenerate lockfile and confirm one Arcana package identity.
-4. Re-run actual Warlock providers, admission, conversations, frontend production build and multi-context/reconnect fixtures.
-5. Do not treat a green N3-local fixture as a production consumer pass.
+**Status: partial.** E/F/G/B-E core is staged in N3, while final convergence and production dependency pins are unaccepted.
+
+| ID | Action | Status |
+|---|---|---|
+| 2.1 | Audit all active integration branches, unique changes and accepted SHAs | Not verified |
+| 2.2 | Establish final convergence candidate from accepted N3 source | Partial |
+| 2.3 | Integrate accepted Gateway/Instance, background and queue ownership cuts | Partial |
+| 2.4 | Integrate accepted live runtime and management surfaces | Partial |
+| 2.5 | Integrate accepted native import and external-reference core | Partial |
+| 2.6 | Resolve exports, interface ownership and dependency conflicts | Partial |
+| 2.7 | Run full locked Reliquary/CLI tests, examples and architecture/ownership guards | Blocked on final candidate |
+| 2.8 | Pin Warlock to exact accepted Reliquary and Arcana revisions | Blocked on Step 1 and final candidate |
+| 2.9 | Run full pinned Warlock provider, context, stream and frontend matrix | Blocked on 2.8 |
+| 2.10 | Commit and verify integrated source, exact pins and acceptance evidence | Blocked on 2.7–2.9 |
+
+**Exit gate:** one integrated code revision, one intended Arcana package identity, and no untested or conflicting runtime interfaces. Do not reimplement already accepted core features.
 
 ## Step 3 — Legacy deletion
 
-Use the prepared D0 reverse-caller inventory, not module-name globbing. Move surviving errors/reports/queries to their canonical owners and preserve persisted decoders. Remove `ReliquaryRuntimeHost`, ambient REL/PHY/session selection and duplicated workers/mount/router state. Migrate tests from legacy authority to Gateway/Instance behavior. Enforce absent imports/callers in Reliquary, CLI and Warlock. No compatibility facade.
+**Status: blocked on Steps 1–2.** D0 reverse-caller inventory accepted at `bfdd267`; no claim of completed deletion.
+
+| ID | Action | Status |
+|---|---|---|
+| 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: historical inventory exists |
+| 3.2 | Identify all remaining old callers and live consumers | Blocked on convergence |
+| 3.3 | Relocate retained types, domain queries and persisted readers | Blocked |
+| 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Blocked |
+| 3.5 | Delete old ambient REL/PHY/session selector authority | Blocked |
+| 3.6 | Remove duplicate worker, mount, router and execution authority | Blocked |
+| 3.7 | Migrate/delete tests that encode legacy-only behavior | Blocked |
+| 3.8 | Enforce no-legacy-import/caller/build guards in Reliquary, CLI and Warlock | Blocked |
+| 3.9 | Verify storage compatibility, restart and crash recovery | Blocked |
+| 3.10 | Run complete post-deletion locked functional matrix and commit | Blocked |
+
+**Exit gate:** one authoritative Gateway/Instance implementation with no legacy facade, duplicated state, callers or regressions. Use reverse dependencies, not filename-based deletion.
 
 ## Step 4 — Final release verification
 
-Use the existing P6 real-runtime harness on the **post-deletion** tree. Test multiple REL/PHY/instances, chronological pending order, branch policy, crash and receipt-loss recovery, cancellation-versus-finalization, unknown host state, stream durability, queue overflow/resync, late join, privacy/revocation, host interruption and reconnection. Measure contention, queue latency, fan-out, worker count, memory and startup against a reproducible baseline. Run full locked Reliquary/CLI/Warlock matrices plus actual UI/provider acceptance; capture logs outside active docs. Unavailable platforms or unresolved gates stay explicitly open.
+**Status: harness prepared, final acceptance blocked on Step 3.** Existing P6 harness `81a64b6` and H5 diagnostics `b2b4bf4` are baseline evidence, not the final release verdict.
+
+| ID | Action | Status |
+|---|---|---|
+| 4.1 | Port accepted harness to post-deletion runtime | Blocked |
+| 4.2 | Verify concurrent instances and shared REL/PHY execution | Blocked |
+| 4.3 | Verify grant enforcement, revocation and principal privacy | Blocked |
+| 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Blocked |
+| 4.5 | Verify conversation branch policy and Archive ancestry consistency | Blocked |
+| 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Blocked |
+| 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Blocked |
+| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Blocked |
+| 4.9 | Run actual Warlock UI/Tauri integration tests | Blocked |
+| 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Partial: diagnostic tooling exists |
+| 4.11 | Run all locked code, test, architecture and documentation checks | Blocked |
+| 4.12 | Repair regressions and record final release acceptance with evidence | Blocked |
+
+**Exit gate:** actual post-deletion production consumer and runtime pass, with measured performance and no unresolved unacknowledged exceptions.
 
 ## Steps 5–6 — Hermes
 
