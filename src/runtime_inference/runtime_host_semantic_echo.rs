@@ -1,22 +1,7 @@
 use super::{
     ReliquaryRuntimeHost, ReliquaryRuntimeHostError, semantic_access::RuntimeSemanticOwnerKind,
 };
-use crate::EchoEvent;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RuntimeEchoTurn {
-    pub message_id: String,
-    pub events: Vec<EchoEvent>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RuntimeEchoSource {
-    pub owner_id: String,
-    pub conversation_id: String,
-    pub start_message_id: String,
-    pub end_message_id: String,
-    pub turns: Vec<RuntimeEchoTurn>,
-}
+pub use crate::runtime_shared::{RuntimeEchoSource, RuntimeEchoTurn};
 
 impl ReliquaryRuntimeHost {
     pub fn read_echo_source_for(

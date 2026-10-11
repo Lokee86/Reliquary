@@ -805,6 +805,8 @@ mod review_clocks;
 mod runtime_config;
 #[path = "runtime_inference/runtime_host.rs"]
 mod runtime_host;
+#[path = "runtime_inference/runtime_shared.rs"]
+mod runtime_shared;
 #[path = "runtime_inference/runtime_vector_step.rs"]
 mod runtime_vector_step;
 #[path = "retrieval/search.rs"]

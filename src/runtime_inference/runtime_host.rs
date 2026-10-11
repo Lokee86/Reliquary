@@ -60,8 +60,6 @@ mod phylactery_host;
 mod project_environment;
 #[path = "runtime_host_reconciliation.rs"]
 mod reconciliation;
-#[path = "runtime_host_routes.rs"]
-mod routes;
 #[path = "runtime_host_semantic_access.rs"]
 mod semantic_access;
 #[path = "runtime_host_semantic_echo.rs"]
@@ -83,24 +81,7 @@ pub(super) const IDLE_POLL: Duration = Duration::from_secs(1);
 pub(super) const DREAM_RETRY_POLL: Duration = Duration::from_secs(60);
 pub(super) const VECTOR_RETRY_POLL: Duration = Duration::from_secs(60);
 
-#[derive(Debug)]
-pub enum ReliquaryRuntimeHostError {
-    Operation(String),
-    LockPoisoned,
-    ThreadPanicked,
-}
-
-impl std::fmt::Display for ReliquaryRuntimeHostError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Operation(message) => f.write_str(message),
-            Self::LockPoisoned => f.write_str("Reliquary runtime host lock is poisoned"),
-            Self::ThreadPanicked => f.write_str("Reliquary runtime host worker panicked"),
-        }
-    }
-}
-
-impl std::error::Error for ReliquaryRuntimeHostError {}
+pub use crate::runtime_shared::{ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes};
 
 pub(super) struct Control {
     pub(super) stop: bool,
@@ -146,7 +127,6 @@ pub use instances::{
 pub use knowledge::RuntimeKnowledgeState;
 use owner_execution::{OwnerExecution, Shared};
 pub use reconciliation::{RelReconciliationCandidateReport, RelReconciliationReport};
-pub use routes::ReliquaryRuntimeRoutes;
 pub use semantic_access::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind};
 pub use semantic_echo::{RuntimeEchoSource, RuntimeEchoTurn};
 

@@ -1,52 +1,20 @@
 use super::{
     ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation,
-    semantic_access::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind},
+    semantic_access::RuntimeSemanticOwnerKind,
 };
 use crate::compatibility_profile_probe::profile_from_endpoint;
 use crate::{
-    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, Memory, MemoryId,
-    MemoryRetrievalConfig, MemoryRetrievalResult, VectorNormalization,
+    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, MemoryId, MemoryRetrievalConfig,
+    MemoryRetrievalResult, VectorNormalization,
 };
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub const MAX_MEMORY_SEARCH_QUERY_BYTES: usize = 512;
-pub const DEFAULT_MEMORY_SEARCH_RESULTS: usize = 5;
-pub const MAX_MEMORY_SEARCH_RESULTS: usize = 10;
-pub const DEFAULT_MEMORY_SEARCH_DEPTH: usize = 3;
-pub const MAX_MEMORY_SEARCH_DEPTH: usize = 8;
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct MemorySearchItem {
-    pub memory: Memory,
-    pub seed_score: Option<f64>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct MemorySearchLane {
-    pub owner_id: String,
-    pub retrieval: MemoryRetrievalResult,
-    pub items: Vec<MemorySearchItem>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct MemorySearchResult {
-    pub reliquary: MemorySearchLane,
-    pub phylactery: Option<MemorySearchLane>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct VisibleMemorySearchOwner {
-    pub owner: RuntimeSemanticOwner,
-    pub lane: Option<MemorySearchLane>,
-    pub error: Option<String>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct VisibleMemorySearchResult {
-    pub owners: Vec<VisibleMemorySearchOwner>,
-    pub traversal_depth: usize,
-}
+pub use crate::runtime_shared::{
+    DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
+    MAX_MEMORY_SEARCH_QUERY_BYTES, MAX_MEMORY_SEARCH_RESULTS, MemorySearchItem, MemorySearchLane,
+    MemorySearchResult, VisibleMemorySearchOwner, VisibleMemorySearchResult,
+};
 
 impl ReliquaryRuntimeHost {
     pub fn search_visible_memories(

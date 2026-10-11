@@ -1,16 +1,6 @@
 use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeSemanticOwnerKind {
-    Reliquary,
-    Phylactery,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RuntimeSemanticOwner {
-    pub owner_id: String,
-    pub kind: RuntimeSemanticOwnerKind,
-}
+pub use crate::runtime_shared::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind};
 
 impl ReliquaryRuntimeHost {
     pub fn visible_semantic_owners(
