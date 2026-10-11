@@ -370,6 +370,57 @@ fn semantic_events_preserve_canonical_order_and_empty_completion() {
     );
 }
 
+#[test]
+fn semantic_effects_cover_saturation_negative_and_partial_decay() {
+    let owner = [7; 16];
+    let store = enrolled();
+    let target = MemoryId([1; 32]);
+    let negative = MemoryId([2; 32]);
+
+    let mut store = store;
+    store.records.get_mut(&target).unwrap().score = 95;
+    store.records.get_mut(&negative).unwrap().score = -60;
+
+    let effects = BTreeMap::from([(target, 10), (negative, 10)]);
+    let payload = store
+        .encode_semantic_event(
+            owner,
+            semantic_evidence(owner, "live", "saturation", 0),
+            effects,
+        )
+        .unwrap();
+    store.ingest(&payload).unwrap();
+    assert_eq!(store.records[&target].score, 100);
+    assert_eq!(store.records[&negative].score, -50);
+    assert_eq!(
+        store.records[&negative]
+            .state_at_with_policy(0, &store.policy)
+            .unwrap(),
+        crate::FreshnessState::Stale
+    );
+
+    store.records.get_mut(&target).unwrap().score = 50;
+    let first = store
+        .encode_semantic_event(
+            owner,
+            semantic_evidence(owner, "live", "remainder-a", 9),
+            BTreeMap::from([(target, 1)]),
+        )
+        .unwrap();
+    store.ingest(&first).unwrap();
+    assert_eq!(store.records[&target].score, 51);
+
+    let second = store
+        .encode_semantic_event(
+            owner,
+            semantic_evidence(owner, "live", "remainder-b", 10),
+            BTreeMap::from([(target, 1)]),
+        )
+        .unwrap();
+    store.ingest(&second).unwrap();
+    assert_eq!(store.records[&target].score, 51);
+}
+
 fn enrolled() -> FreshnessStore {
     let owner = [7; 16];
     let mut store = FreshnessStore::new(Some(owner));

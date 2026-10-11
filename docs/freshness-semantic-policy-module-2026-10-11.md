@@ -8,7 +8,7 @@ Implement the graph-independent numerical and candidate-reduction core frozen by
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** Steps 5–9 complete; live F8 remains disabled pending recovery, correctness fixtures and release gates. The architecture refresh exception is recorded below.
+**Date:** 2026-10-11. **Status:** Steps 5–10 complete; live F8 remains disabled pending recovery and release gates. The architecture refresh exception is recorded below.
 
 ## Related docs
 
@@ -93,6 +93,10 @@ Six focused tests cover the filter-before-limit rule, future admission, lifecycl
 Step 8 extends the existing FreshnessStore journal with semantic producer kind 3. The stable semantic-live-v1 identity is derived only from owner UUID plus exact conversation/node strings; REL position, policy and effects remain receipt evidence rather than identity. Typed evidence records the accepted turn, base and semantic policy digests, compatibility profile, and source/target evidence digests. Empty semantic completions are valid, and semantic evidence is encoded only for producer kind 3 so Dream/use records remain backward-compatible.
 
 Semantic events use the existing exactly-once lookup, conflict detection, canonical accepted-turn/event-ID ordering, replay projection, and reopen path. Duplicate payloads are idempotent; same-identity evidence or effect changes are rejected as receipt conflicts. No separate ledger, score revision, graph propagation, or semantic Memory revision was added.
+
+## Step 10 correctness fixtures
+
+The semantic policy and source/search fixtures now cover inclusive threshold boundaries, monotone and capped bonuses, incompatible profiles/generations, empty and invalid vectors, self-source exclusion, strongest-match dedupe, candidate limits, deterministic ties, and owner-local non-propagation. Freshness storage fixtures additionally cover semantic saturation at +100, negative-score/dormant-state targets, and ten-turn remainder behavior. Accepted-use and mixed-event permutation fixtures continue to verify independent +25 behavior and order determinism.
 
 ## Documentation impact
 
