@@ -17,6 +17,7 @@ Execute live F8 through its independent release gate before historical reconstru
 
 ## Related docs
 
+- [Step 2 live semantic policy/API contract](freshness-live-semantic-policy-contract.md)
 - [Step 1 source and test baseline](freshness-semantic-historical-baseline-2026-10-11.md)
 - [Memory Freshness policy](memory-staleness-plan.md)
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
@@ -39,7 +40,7 @@ Normal live semantic reinforcement remains **local and non-propagating**. Histor
 | # | Model | Work | Done when |
 | ---: | :---: | --- | --- |
 | **1 — complete** | **Luna** | **Freeze the current baseline.** Inspect current `main`, exact Freshness owner/storage APIs, accepted-turn ingestion seams, semantic/vector search APIs, fragment/vector availability, reconciliation code and existing R1–R7 tests. Record the source/test files F8 will touch and the currently passing focused baseline. | A dated baseline note lists the exact seams, current test commands/results and confirms no F8 code already exists. |
-| **2** | **Sol** | **Freeze the live semantic policy interface.** Define the semantic policy/version object, eligible owner/lifecycle/profile rules, self-source exclusion, one-credit-per-Memory-per-turn identity, deterministic ties, candidate limit behavior, and how the semantic event is represented without pretending it is +25 accepted use or +50 Dream linkage. | A narrow policy/API contract is written and no unresolved ownership or event-identity decision remains. |
+| **2 — complete** | **Sol** | **Freeze the live semantic policy interface.** Define the semantic policy/version object, eligible owner/lifecycle/profile rules, self-source exclusion, one-credit-per-Memory-per-turn identity, deterministic ties, candidate limit behavior, and how the semantic event is represented without pretending it is +25 accepted use or +50 Dream linkage. | A narrow policy/API contract is written and no unresolved ownership or event-identity decision remains. |
 | **3** | **Luna** | **Build the calibration/oracle harness.** Make threshold and similarity-to-bonus curves parameterized; measure compatible-vector coverage, nearest-neighbor counts, false-match neighborhoods, candidate-search cost and resulting score trajectories on synthetic fixtures plus already-retained corpora. Do not require new REL/PHY inference. | Reproducible calibration commands produce comparable results for several thresholds/bonus curves. |
 | **4** | **Sol** | **Select and freeze F8 constants.** Review Step 3 evidence and choose the production cosine threshold, monotone local bonus curve, per-turn cap/candidate limits and policy-version transition rules. The old 0.75 value remains tentative until this step. | Selected constants/rationale are recorded in a semantic calibration document and the policy version is frozen. |
 | **5** | **Luna** | **Implement the pure semantic policy module.** Add policy types/functions for thresholding, bonus calculation, compatibility checks, deterministic dedupe/tie behavior and direct local effect calculation. Keep it graph-independent. | Focused unit tests cover below/at/above threshold, monotonicity, cap, ties, incompatible profile/generation and invalid inputs. |
