@@ -348,7 +348,7 @@ The plan update is recorded on Reliquary `main` at `28a59c1`. Step 2.10 can clos
 | ID | Action | Status |
 |---|---|---|
 | 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: converged-source scan rerun; reviewed baseline refresh required |
-| 3.2 | Identify all remaining old callers and live consumers | Blocked on convergence |
+| 3.2 | Identify all remaining old callers and live consumers | Audited: four Reliquary test callers and the root export remain; Warlock uses canonical shared support types |
 | 3.3 | Relocate retained types, domain queries and persisted readers | Blocked |
 | 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Blocked |
 | 3.5 | Delete old ambient REL/PHY/session selector authority | Blocked |
@@ -373,6 +373,28 @@ The remaining legacy methods and fields are deletion targets for Step 3, not evi
 Therefore 3.1 remains partial pending the reviewed baseline refresh and the D1 ownership cuts.
 
 Documentation impact: this plan records the revalidation result; no runtime, storage, or source deletion was performed.
+
+### Step 3.2 caller and consumer audit — 2026-10-11
+
+The converged-source audit separates concrete old-host callers from canonical support consumers:
+
+- Concrete external old-host callers are confined to four Reliquary test surfaces: `src/project_environment_tests.rs`,
+  `src/project_environment_lore_tests.rs`, `src/project_environment_git_tests.rs`, and
+  `src/semantic_graph/semantic_graph_runtime_host_tests.rs`. They construct `ReliquaryRuntimeHost` and are the
+  explicit D2/D3 replacement set; the semantic-graph fixture also requires the canonical graph-owner mutation path.
+- `src/lib.rs` is the remaining reachability seam: it registers `runtime_host`, re-exports
+  `ReliquaryRuntimeHost`, and registers the legacy test modules. D1 must split common exports before D2 removes this
+  seam.
+- Reliquary's canonical Gateway/REL/PHY modules still share the runtime-host-named implementation files for current
+  Gateway, worker, journal, publication, stream, and maintenance code. These are live canonical consumers and must be
+  retained or relocated according to the D0 disposition; they are not evidence of external old-host use.
+- Warlock `dee7ba0` has no concrete `ReliquaryRuntimeHost` caller. Its live imports are the reusable
+  `ReliquaryRuntimeHostError` and `ReliquaryRuntimeRoutes` support types in `chat_gateway_execution.rs`,
+  `reliquary_routes.rs`, `workspace_admission.rs`, `workspace_set.rs`, and related test support. These are the
+  shared-type relocation set, not a surviving host facade.
+
+This closes the caller-identification portion of 3.2. The source changes remain deferred to 3.3–3.8, after the
+reviewed inventory refresh and ownership cuts; no compatibility alias or forwarding layer is introduced.
 
 ## Step 4 — Final release verification
 
