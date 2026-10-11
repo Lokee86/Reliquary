@@ -88,6 +88,7 @@ On reconciliation, map the exact conversation/node source to the destination's a
 
 ## Related docs
 
+- [Step 4 frozen v1 constants, evidence and activation rules](freshness-semantic-calibration-2026-10-11.md)
 - [Step 1 baseline](freshness-semantic-historical-baseline-2026-10-11.md)
 - [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
