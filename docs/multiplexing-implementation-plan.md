@@ -289,15 +289,16 @@ Documentation impact: inspected the candidate manifests, lockfile, composition r
 
 ### Step 2.7 verification — 2026-10-11
 
-Verification was run against the exact candidate SHA `dcf500e` in `Reliquary-n3-staging`.
+Verification was rerun against the aligned candidate SHA `c36ca5f` in `Reliquary-n3-staging`.
 
 - Passed: `cargo check --locked --tests --examples -j2`.
+- Passed: `cargo check --manifest-path cli/Cargo.toml --locked --offline` after aligning the CLI lockfile to Arcana
+  `66b4e96`; the lockfile update is committed at candidate `c36ca5f`.
 - Passed: P4/P4.8 coverage (75 fixtures, 161 API classifications), external-source ownership (11 fixtures and production boundaries), workspace-management ownership, and both documentation-policy modes.
-- Passed: CLI formatting and locked CLI check reached the dependency graph successfully.
-- Not accepted: the full Rust test process stopped after compilation without producing test results. The CLI test attempt lost a generated `crypto_common` artifact; a single-threaded retry entered a clean rebuild and was stopped before test execution. The Archive round-trip smoke likewise began a rebuild and was stopped before execution.
-- Not available: `cargo fmt --all -- --check` reports Windows path canonicalization access denied (`os error 5`) in this worktree, and Pitlord cannot read `.arcana/CURRENT` because the candidate lacks a refreshed architecture snapshot. A refresh attempt previously failed while Arcana synchronized the generated Lexicon snapshot with `os error 2`.
+- Not accepted: the full Rust test process and the locked CLI test process stalled while compiling the `lore`/test target and were stopped before test execution; no test count is claimed. Focused 2.9 provider/context/stream tests remain accepted separately.
+- Not available: `cargo fmt --all -- --check` and CLI formatting report Windows path canonicalization access denied (`os error 5`) in this worktree. Architecture refresh ran the static guards but could not synchronize the snapshot: Arcana returned `os error 2`, and direct Lexicon diagnostics returned `os error 5` for the local repository state.
 
-This leaves 2.7 partially verified. The source compiles with tests and examples, and all static ownership/documentation guards pass; full test execution, Archive smoke, and refreshed architecture enforcement require a stable Cargo/Lexicon environment. The earlier N3 acceptance records remain historical evidence and are not promoted to fresh 2.7 results.
+This leaves 2.7 partially verified. The source compiles with tests and examples, the CLI dependency graph/check and all static ownership/documentation guards pass, and the aligned CLI lockfile is committed. Full test execution and refreshed architecture enforcement still require a stable Cargo/Lexicon environment; formatting remains blocked by the Windows canonicalization denial. Earlier N3 acceptance records remain historical evidence and are not promoted to fresh 2.7 results.
 
 ### Step 2.8 Warlock dependency pins — 2026-10-11
 
@@ -334,7 +335,7 @@ The direct GitHub fetch for Reliquary still cannot complete because `dcf500e` is
 
 Local integration commits are now created:
 
-- Reliquary candidate `80a5fde` (`Align candidate with Arcana metadata reader`) updates the candidate's Arcana manifest and lockfile to `66b4e96`.
+- Reliquary candidate `80a5fde` (`Align candidate with Arcana metadata reader`) updates the candidate's Arcana manifest and lockfile to `66b4e96`; candidate `c36ca5f` (`Align CLI lockfile with Arcana metadata reader`) updates the detachable CLI lockfile as well.
 - Warlock `dee7ba0` (`Complete multiplexed Warlock consumer integration`) records the consumer changes and exact Reliquary/Arcana pins.
 
 The aligned pair compiles and passes the focused 2.9 consumer matrix. The final release gate remains open because Reliquary `dcf500e` is not published at the declared Git source, and Step 2.7 still lacks accepted full Reliquary/CLI test, example, formatting and refreshed-architecture evidence.
