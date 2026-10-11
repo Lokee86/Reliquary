@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Multiplexing distribution status
 
-P4.1–P4.4 are implemented on the independent distribution branch, including internal snapshot/resync and non-conversation gateway/worker publication. The [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md) owns coverage and verification. P4.5 snapshot-based reconnect, grant/epoch recovery and reconciled lifecycle summaries are implemented; the [P4.5 record](multiplexing-phase4-reconnect-2026-10-05.md) owns acceptance. P4.6 generic stream mechanics are implemented against a deterministic frozen-contract provider; the [stream record](multiplexing-phase4-streams-2026-10-05.md) owns acceptance and bounds. P4.7 production P3 convergence is implemented and verified; see the [convergence record](multiplexing-phase4-convergence-2026-10-05.md). P4.8 coverage/lock/privacy audit is complete; P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md).
+P4.1–P4.4 are implemented on the independent distribution branch, including internal snapshot/resync and non-conversation gateway/worker publication. The [P4.4 record](multiplexing-implementation-plan.md) owns coverage and verification. P4.5 snapshot-based reconnect, grant/epoch recovery and reconciled lifecycle summaries are implemented; the [P4.5 record](multiplexing-implementation-plan.md) owns acceptance. P4.6 generic stream mechanics are implemented against a deterministic frozen-contract provider; the [stream record](multiplexing-implementation-plan.md) owns acceptance and bounds. P4.7 production P3 convergence is implemented and verified; see the [convergence record](multiplexing-implementation-plan.md). P4.8 coverage/lock/privacy audit is complete; P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-implementation-plan.md).
 
 ## Purpose
 
@@ -14,7 +14,7 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 Reliquary is the purpose-built semantic/storage/runtime library embedded by Warlock. Its semantics do not depend upward on Warlock. Project-file history belongs to Lore or Git through Reliquary's Project Environment; REL/PHY retain independent semantic state and history.
 
-The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete. Separately, GatewayRuntime/InstanceRuntime multiplexing Phase 1 is complete locally: owner/instance authority, durable accepted work, ConversationExecution ownership and fenced ambient/project operations passed final verification. Phase 2 multi-principal PHY ownership, exact-owner publication and private access are also verified locally; the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md) records final evidence and inherited verification limits. Phase 3 conversation coordination is accepted locally. P4 production distribution and local acceptance are complete with documented verification limits. Final P3/P4 integration is verified for main ([evidence](multiplexing-p34-main-integration-2026-10-06.md)). Phase 5 is now active off-main: A/B implementation is accepted on feature/integration lines, C is late-stage with the Warlock old-host consumer removed on its final-cut branch, and E/F/G plus the D hard cut remain. The [2026-10-07 next-wave plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md) owns the current parallel sequence.
+The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete. Separately, GatewayRuntime/InstanceRuntime multiplexing Phase 1 is complete locally: owner/instance authority, durable accepted work, ConversationExecution ownership and fenced ambient/project operations passed final verification. Phase 2 multi-principal PHY ownership, exact-owner publication and private access are also verified locally; the [Phase 2 finish record](multiplexing-implementation-plan.md) records final evidence and inherited verification limits. Phase 3 conversation coordination is accepted locally. P4 production distribution and local acceptance are complete with documented verification limits. Final P3/P4 integration is verified for main ([evidence](multiplexing-implementation-plan.md)). Phase 5 is now active off-main: A/B implementation is accepted on feature/integration lines, C is late-stage with the Warlock old-host consumer removed on its final-cut branch, and E/F/G plus the D hard cut remain. The [2026-10-07 next-wave plan](multiplexing-implementation-plan.md) owns the current parallel sequence.
 
 ## Current semantic sequence
 
@@ -411,7 +411,7 @@ The current roadmap does not include:
 
 ## Multiplexing Phase 5 active execution
 
-P3.0–P3.9 and P4.0–P4.9 are complete and converged into the accepted main foundation ([integration evidence](multiplexing-p34-main-integration-2026-10-06.md)). Phase 5 is no longer a future monolithic migration:
+P3.0–P3.9 and P4.0–P4.9 are complete and converged into the accepted main foundation ([integration evidence](multiplexing-implementation-plan.md)). Phase 5 is no longer a future monolithic migration:
 
 - P5-A REL/runtime consumer APIs are implemented and runtime-accepted on the current integration line.
 - P5-B background/host capability work is implemented and accepted.
@@ -421,7 +421,7 @@ P3.0–P3.9 and P4.0–P4.9 are complete and converged into the accepted main fo
 - P5-D may run its reverse-caller inventory now, but source deletion waits for C/E/F convergence.
 - P6-H harness infrastructure is accepted; P6-R remains post-deletion release verification.
 
-Use the [next parallel execution plan](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md) rather than the completed P3/P4 plans for current work. Historical P3.8/P3.9 and P4 acceptance records remain evidence, not active task lists.
+Use the [next parallel execution plan](multiplexing-implementation-plan.md) rather than the completed P3/P4 plans for current work. Historical P3.8/P3.9 and P4 acceptance records remain evidence, not active task lists.
 
 ## Related docs
 

@@ -16,14 +16,14 @@ The matrix covers implemented behavior. Future cross-database restore and concur
 
 ## REL non-conversation publication contracts
 
-The converged P4 path publishes body-free classified summaries after gateway and concrete REL worker synchronization. Rejected and unchanged owner mutations emit nothing; detectable partial failures invalidate continuity. Typed Memory/Entity/community/file/profile IDs and synchronized source clocks support refresh without private bodies. The processing switch is explicitly ephemeral. P3 conversation transitions feed safe queue/branch/operation summaries after the corresponding Archive synchronization or journal receipt; the generic ArchiveChanged invalidation can precede a journal ArchiveCommitted receipt, while typed ArchiveCommitted requires that exact receipt. Checkpoint text stays in the exact stream. The [P4.4 record](multiplexing-phase4-mutations-2026-10-05.md) owns non-conversation coverage, and the [P4.7 record](multiplexing-phase4-convergence-2026-10-05.md) owns production convergence. P4.7 production convergence verification passed. P4.8's audit verified the expanded mutator coverage guard, private-PHY exclusion, P4 subscriber ownership, lock/order boundaries, post-durability publication, and maintenance-quiescence epoch recovery. The coverage guard is structural heuristic coverage; it does not prove indirect arbitrary Rust calls. See [P4.7](multiplexing-phase4-convergence-2026-10-05.md) and [P4.8](multiplexing-phase4-audit-2026-10-05.md); the bounded architecture refresh remains incomplete.
+The converged P4 path publishes body-free classified summaries after gateway and concrete REL worker synchronization. Rejected and unchanged owner mutations emit nothing; detectable partial failures invalidate continuity. Typed Memory/Entity/community/file/profile IDs and synchronized source clocks support refresh without private bodies. The processing switch is explicitly ephemeral. P3 conversation transitions feed safe queue/branch/operation summaries after the corresponding Archive synchronization or journal receipt; the generic ArchiveChanged invalidation can precede a journal ArchiveCommitted receipt, while typed ArchiveCommitted requires that exact receipt. Checkpoint text stays in the exact stream. The [P4.4 record](multiplexing-implementation-plan.md) owns non-conversation coverage, and the [P4.7 record](multiplexing-implementation-plan.md) owns production convergence. P4.7 production convergence verification passed. P4.8's audit verified the expanded mutator coverage guard, private-PHY exclusion, P4 subscriber ownership, lock/order boundaries, post-durability publication, and maintenance-quiescence epoch recovery. The coverage guard is structural heuristic coverage; it does not prove indirect arbitrary Rust calls. See [P4.7](multiplexing-implementation-plan.md) and [P4.8](multiplexing-implementation-plan.md); the bounded architecture refresh remains incomplete.
 
 ## REL distribution recovery contracts
 
 `runtime_host_gateway_snapshots_tests` protects exact-capacity delivery, latched
 latest-cursor recovery, bounded post-snapshot buffering, stale acknowledgement
 rejection after another overflow, disconnect/resubscribe isolation and grant/epoch
-revalidation. [The snapshot/resync record](multiplexing-phase4-snapshot-2026-10-04.md)
+revalidation. [The snapshot/resync record](multiplexing-implementation-plan.md)
 records the internal API behavior and verification.
 
 The P4.5 `reconnect_tests` additionally protect snapshot-based replacement at
@@ -31,18 +31,18 @@ the subscriber limit, failure preservation, valid and expired same-epoch cursor
 recovery, prior-epoch rejection, identical grant refresh and revoke/regrant,
 queued detach, revoke racing admitted publication, and native commits without a
 host adapter. Both reopen entry points establish a reconciled lifecycle cut in
-the new epoch. See the [reconnect record](multiplexing-phase4-reconnect-2026-10-05.md).
+the new epoch. See the [reconnect record](multiplexing-implementation-plan.md).
 
 ## Exact conversation stream contracts
 
-P4.6 regressions cover durable full-prefix late join, exact conversation/operation/generation/branch/REL isolation, independent cursors, terminal/interrupted status without cancellation, count/byte overflow and atomic fresh-prefix replacement. They also protect reader/validation failure preservation, recipient/identity/text bounds, checkpoint sequence/revision gaps, join/persist and revoke/snapshot races, grant refresh, detach and owner epoch teardown. P4.7 adds production P3 binding at durable transitions and journal-validated UTF-8 prefix delivery. P4.8 adds the maintenance quiescence/reopen contract, exact borrowed checkpoint prefix lookup, and strengthened privacy/coverage checks; 1,026 library and 95 integration tests passed. See the [stream record](multiplexing-phase4-streams-2026-10-05.md) and [P4.7 convergence record](multiplexing-phase4-convergence-2026-10-05.md).
+P4.6 regressions cover durable full-prefix late join, exact conversation/operation/generation/branch/REL isolation, independent cursors, terminal/interrupted status without cancellation, count/byte overflow and atomic fresh-prefix replacement. They also protect reader/validation failure preservation, recipient/identity/text bounds, checkpoint sequence/revision gaps, join/persist and revoke/snapshot races, grant refresh, detach and owner epoch teardown. P4.7 adds production P3 binding at durable transitions and journal-validated UTF-8 prefix delivery. P4.8 adds the maintenance quiescence/reopen contract, exact borrowed checkpoint prefix lookup, and strengthened privacy/coverage checks; 1,026 library and 95 integration tests passed. See the [stream record](multiplexing-implementation-plan.md) and [P4.7 convergence record](multiplexing-implementation-plan.md).
 ## P3.4 sequential finalization contracts
 
-`runtime_host_gateway_conversation_finalization_tests.rs` verifies selected-branch/parent identity, sequential head advancement, no provisional Archive/Activity/Episode effects, unrelated-parent rejection, captured publication fencing, immutable retries after compaction, and shared-prefix branch validity. Seven restart handoffs cover FinalizeWon, Node/branch publication, Archive receipt and postcommit scheduling/marker loss with real persistent owners. Existing stale-fence/remount tests remain authoritative; the cancel/finalize barrier race now uses public automatic dispatch. See [P3.4 evidence](multiplexing-phase3-sequential-acceptance-2026-10-05.md).
+`runtime_host_gateway_conversation_finalization_tests.rs` verifies selected-branch/parent identity, sequential head advancement, no provisional Archive/Activity/Episode effects, unrelated-parent rejection, captured publication fencing, immutable retries after compaction, and shared-prefix branch validity. Seven restart handoffs cover FinalizeWon, Node/branch publication, Archive receipt and postcommit scheduling/marker loss with real persistent owners. Existing stale-fence/remount tests remain authoritative; the cancel/finalize barrier race now uses public automatic dispatch. See [P3.4 evidence](multiplexing-implementation-plan.md).
 
 ## P3.5 visible automatic branch contracts
 
-`runtime_host_gateway_conversation_auto_branch_tests.rs` verifies two-writer stale-head branching with submitter-only selection, three-writer deterministic ordering with distinct conflict branches, exact branch identity across restart before and after Archive branch publication, detached-submitter lifetime, non-canonical automatic branches, and fail-closed unrelated retained ancestry. Full library regression retains the P3.1–P3.4 policy/scheduler/finalization gates. See [P3.5 evidence](multiplexing-phase3-auto-branch-acceptance-2026-10-05.md).
+`runtime_host_gateway_conversation_auto_branch_tests.rs` verifies two-writer stale-head branching with submitter-only selection, three-writer deterministic ordering with distinct conflict branches, exact branch identity across restart before and after Archive branch publication, detached-submitter lifetime, non-canonical automatic branches, and fail-closed unrelated retained ancestry. Full library regression retains the P3.1–P3.4 policy/scheduler/finalization gates. See [P3.5 evidence](multiplexing-implementation-plan.md).
 
 ## P3.3 durable scheduler contracts
 
@@ -229,11 +229,11 @@ Before persistent checkpoints are added, larger-scale benchmarks must show that 
 | Restart preserves identity and synchronized content | generation_restart_recovers_interrupted_checkpoint_and_stable_identity; generation_recovery_reconciles_checkpoint_and_archive_handoffs |
 | Host cancellation reaches an in-flight handoff | cancellation_reaches_host_before_blocked_handoff_ack_and_cannot_be_resurrected |
 
-[P3.6 evidence](multiplexing-phase3-generation-acceptance-2026-10-05.md) records the production seams and verification.
+[P3.6 evidence](multiplexing-implementation-plan.md) records the production seams and verification.
 
 ## Authoritative conversation snapshots (P3.7)
 
-The plain internal snapshot reads the existing runtime/coordinator/journal cut under current ViewRel and revalidates delivery. Archive publication and journal receipt state remain independently visible at their actual handoffs: a published branch with Finalizing is valid, while an unpublished captured branch is absent from inventory. Instance selection never becomes conversation-global. Terminal queue and operation identities survive compaction/restart. Unknown host status is preserved, including cancellation intent; the observer does not contact or acknowledge providers. [P3.7 evidence](multiplexing-phase3-observation-acceptance-2026-10-05.md).
+The plain internal snapshot reads the existing runtime/coordinator/journal cut under current ViewRel and revalidates delivery. Archive publication and journal receipt state remain independently visible at their actual handoffs: a published branch with Finalizing is valid, while an unpublished captured branch is absent from inventory. Instance selection never becomes conversation-global. Terminal queue and operation identities survive compaction/restart. Unknown host status is preserved, including cancellation intent; the observer does not contact or acknowledge providers. [P3.7 evidence](multiplexing-implementation-plan.md).
 
 ## Freshness bounded receipt lookup
 
@@ -254,7 +254,7 @@ Independent oracle tests compare exact maps and input order. Fixed-seed batches 
 
 ## Phase 2 owner isolation and recovery
 
-R2.1–R2.6 acceptance passed 115 gateway cases and the expanded two-case routing guard. Final library/integration/CLI verification and local packaging are recorded in the [Phase 2 execution record](multiplexing-phase2-implementation-plan-2026-10-04.md); the older checkpoint below is historical.
+R2.1–R2.6 acceptance passed 115 gateway cases and the expanded two-case routing guard. Final library/integration/CLI verification and local packaging are recorded in the [Phase 2 execution record](multiplexing-implementation-plan.md); the older checkpoint below is historical.
 
 | Contract | Production protection |
 | --- | --- |
@@ -269,7 +269,7 @@ R2.1–R2.6 acceptance passed 115 gateway cases and the expanded two-case routin
 
 ## Historical Phase 2 durable User-attribution checkpoint
 
-The focused gateway run passed 86/86 on 2026-10-04. This includes the six newly activated `owner_operations::tests` and the following live admission regressions. Generated-source and frozen personal-publication acceptance remain open in the [Phase 2 plan](multiplexing-phase2-implementation-plan-2026-10-04.md).
+The focused gateway run passed 86/86 on 2026-10-04. This includes the six newly activated `owner_operations::tests` and the following live admission regressions. Generated-source and frozen personal-publication acceptance remain open in the [Phase 2 plan](multiplexing-implementation-plan.md).
 
 | Current invariant | Production regression |
 | --- | --- |
@@ -279,11 +279,11 @@ The focused gateway run passed 86/86 on 2026-10-04. This includes the six newly 
 
 ## Phase 1 Gateway/journal verification
 
-The [2026-10-04 F1–F6 verification record](multiplexing-phase1-finish-plan-2026-10-04.md) closes Phase 1. The final source passed 69 gateway cases, 862 library cases, all integration targets, both public multiplexing contracts, two routing guards, legacy isolation, journal/instance suites, 19 CLI tests and documentation checks. Earlier F1–F5 counts below remain snapshot evidence. Production host conformance and later privacy/feed/branch contracts are not claimed; bounded architecture indexing timed out and direct source guards passed.
+The [2026-10-04 F1–F6 verification record](multiplexing-implementation-plan.md) closes Phase 1. The final source passed 69 gateway cases, 862 library cases, all integration targets, both public multiplexing contracts, two routing guards, legacy isolation, journal/instance suites, 19 CLI tests and documentation checks. Earlier F1–F5 counts below remain snapshot evidence. Production host conformance and later privacy/feed/branch contracts are not claimed; bounded architecture indexing timed out and direct source guards passed.
 
 The controlled host suite exercises lost acknowledgment, stable identity/digest recovery retry, digest conflict, unknown-status hold, exact-once original-turn publication and cancellation before a blocked acknowledgment. F1 adds reconnect/configuration/downgrade debt, concurrent contract withdrawal and durable terminal proof without an adapter. Journal tests retain phase-transition, sticky cancellation/compaction, framing and attachment durability coverage. The contract-to-test mapping below owns the specific recovery invariants.
 
-F2 verification passed **55/55 gateway**, **848/848 library**, both public contracts and **19/19 CLI**; see the dated [F2 record](multiplexing-phase1-finish-plan-2026-10-04.md).
+F2 verification passed **55/55 gateway**, **848/848 library**, both public contracts and **19/19 CLI**; see the dated [F2 record](multiplexing-implementation-plan.md).
 
 ## Accepted conversation lifetime
 
@@ -297,7 +297,7 @@ F2 verification passed **55/55 gateway**, **848/848 library**, both public contr
 
 ## Gateway instance-routing boundary
 
-The [F3 audit inventory](multiplexing-phase1-finish-plan-2026-10-04.md) enumerates the 88 Phase 1 public GatewayRuntime methods and separates attachment/credential/token admission from trusted service controls. The source guard is conservative textual enforcement of named direct dependencies, not a general proof of every indirect authorization path.
+The [F3 audit inventory](multiplexing-implementation-plan.md) enumerates the 88 Phase 1 public GatewayRuntime methods and separates attachment/credential/token admission from trusted service controls. The source guard is conservative textual enforcement of named direct dependencies, not a general proof of every indirect authorization path.
 
 | Contract | Protecting verification |
 | --- | --- |
@@ -317,7 +317,7 @@ The [F3 audit inventory](multiplexing-phase1-finish-plan-2026-10-04.md) enumerat
 | An old mount authority cannot publish after remount | accepted_owner_authority_cannot_publish_after_remount |
 | Host I/O holds neither owner/runtime/journal lock; quiesce fences a late ack and retains stable ownership debt | quiesce_during_handoff_fences_late_ack_and_preserves_owner_debt |
 
-F4 focused verification passed (61/61 gateway cases; public API 1/1 and routing guard 2/2); the [finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) owns its final result. Journal transitions and semantic publication use separate lexical lock scopes; owner registry handles are cloned before waits. The per-conversation processing guard serializes coordinator work without becoming semantic or journal authority.
+F4 focused verification passed (61/61 gateway cases; public API 1/1 and routing guard 2/2); the [finish plan](multiplexing-implementation-plan.md) owns its final result. Journal transitions and semantic publication use separate lexical lock scopes; owner registry handles are cloned before waits. The per-conversation processing guard serializes coordinator work without becoming semantic or journal authority.
 
 ## Expanded gateway authorization
 
@@ -332,11 +332,11 @@ F4 focused verification passed (61/61 gateway cases; public API 1/1 and routing 
 | Embedding detach denies result delivery; embedding revocation retains the original token boundary | detach_during_embedding_denies_delivery_without_holding_owner_locks; revocation_during_embedding_invalidates_the_original_owner_token |
 | A bound UseOwnPhy capability does not expose private semantic work through REL gateway APIs | phy_private_semantic_operations_remain_unsupported_on_gateway_surface |
 
-F5 focused verification passed (69/69 gateway cases); the [finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) owns its final result. Project race instrumentation is attachment-independent, instance-local test state only and is absent from production. External authorized filesystem/Git effects may already exist when authorization changes; the retained token prevents resulting REL publication or stale result delivery, rather than introducing a cross-system rollback protocol.
+F5 focused verification passed (69/69 gateway cases); the [finish plan](multiplexing-implementation-plan.md) owns its final result. Project race instrumentation is attachment-independent, instance-local test state only and is absent from production. External authorized filesystem/Git effects may already exist when authorization changes; the retained token prevents resulting REL publication or stale result delivery, rather than introducing a cross-system rollback protocol.
 
 ## Future multiplexing reference oracles
 
-[Phase 0B design contracts](multiplexing-phase0b-design.md) include five std-only reference fixtures under `tests/multiplexing_phase0b_*_contract.rs`. They test proposed conversation, personal-publication, events/authorization, lifecycle and host-handoff rules. They are future architecture oracles, separate from the current-behavior matrix above; runtime conformance requires tests against the eventual GatewayRuntime interface.
+[Phase 0B design contracts](multiplexing-implementation-plan.md) include five std-only reference fixtures under `tests/multiplexing_phase0b_*_contract.rs`. They test proposed conversation, personal-publication, events/authorization, lifecycle and host-handoff rules. They are future architecture oracles, separate from the current-behavior matrix above; runtime conformance requires tests against the eventual GatewayRuntime interface.
 
 ## Host-operation recovery
 
@@ -363,4 +363,4 @@ A tracked integer watermark is not by itself a historical materialization API; t
 | Unknown host work retains cancellation and branch debt across restart; terminal proof releases it without replay | repeated_restart_preserves_unknown_cancel_intent_without_host_replay |
 | Named source owners and test-only exact processing remain enforced | scripts/check_multiplexing_phase3_ownership.py and its negative fixtures |
 
-[P3.8 evidence](multiplexing-phase3-recovery-acceptance-2026-10-05.md) records audit boundaries and verification.
+[P3.8 evidence](multiplexing-implementation-plan.md) records audit boundaries and verification.

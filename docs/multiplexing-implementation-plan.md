@@ -1,230 +1,92 @@
-# Reliquary multiplexing implementation plan
+# Multiplexing — authoritative completion plan
 
-Parent index: [Documentation index](INDEX.md)
-Architectural decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)
-Current-source audit: [Phase 0 baseline](multiplexing-phase0-baseline.md)
+Parent: [Documentation index](INDEX.md) · Decision: [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)
 
 ## Purpose
 
-Specify the GatewayRuntime/InstanceRuntime migration across Reliquary, including shared REL/PHY execution, instance-specific context, conversation synchronization, correctness gates and consumer migration.
+Complete multiplexing across Reliquary and its Warlock and Hermes consumers with one canonical execution plan.
 
 ## Overview
 
-Status: Phase 1 is complete locally on feat/multiplexing-phase1 after the completed Phase 0B design package. The [Phase 1 finish record](multiplexing-phase1-finish-plan-2026-10-04.md) documents F1–F6 ownership/recovery, accepted-work lifetime, routing, lifecycle/fencing, authorization, final serial verification and packaging. The [earlier remaining-work plan](multiplexing-phase1-remaining-work-2026-10-03.md) remains the historical audit. This accepts the in-process authority foundation; Phase 2 multi-principal PHY ownership, exact-owner publication and private access are now verified locally; see the [Phase 2 finish record](multiplexing-phase2-implementation-plan-2026-10-04.md). Phase 3 conversation coordination is accepted locally; event-feed convergence and consumer/other-capability migration remain Phase 4–5. It is an independent whole-stack project, not an Ego workstream.
+See the ordered status table below for the current implementation and remaining work.
 
-## Problem statement
+## Scope and source of truth
 
-ReliquaryRuntimeHost combines long-lived shared resource authority with one operating instance's active REL, attached PHY, managed session and background-worker activation. It mounts multiple RELs but cannot safely host independent concurrent users/devices/agents. It has no broad REL update feed, no explicit active-conversation stream subscriptions, and no branch-level write-coordination interface for several instances viewing the same conversation.
+This is the **single active execution and progress plan** for Reliquary multiplexing, Warlock adoption and Hermes integration. Status records are updated **in place**, not in dated acceptance/checkpoint files. Current implemented interfaces belong in [architecture](architecture.md), [API](api.md) and [behavioral contracts](behavioral-contracts.md). Verification evidence belongs in test output, CI, commit history and retained logs, not new root documentation snapshots.
 
-The goal is **one authoritative GatewayRuntime with many InstanceRuntimes**, not many processes or stores running a single-user runtime independently. Retain existing REL/PHY semantic owners, multi-REL infrastructure, per-owner workers, Archive persistence and model/provider boundaries.
+**Assessment date: 2026-10-11.** This plan records the latest inspected committed evidence, **not** a fresh test run. Reliquary `main` at `2407dbe` is a planning branch, **not** the implementation frontier. Current N3 integration: `feat/multiplexing-n3-staging` at `dcf500e` (October 10). Do not merge forward without rerunning the combined gates.
 
-## Final architecture and contracts
+## End-state
 
-### Lifetime and ownership
+One Gateway authority owns each mounted REL/PHY; many independently authorized instances share it. REL conversations and pending work remain durable and recoverable. REL-wide updates reach authorized instances; active generation text reaches only authorized conversation subscribers, after synchronized checkpoints. Host execution is negotiated per capability; never build a duplicate queue or legacy-host facade. Hermes retains authority over its own canonical transcripts when integrated through the external reference index.
 
-```text
-GatewayRuntime (long-lived, one authority for each mounted durable owner)
-├── rel_executions: REL ID -> REL execution / Archive / per-REL workers
-├── phy_executions: PHY ID -> PHY execution / personal processing
-├── instances: instance ID -> authorized InstanceRuntime context
-├── rel_update_feeds: REL ID -> attached authorized instance subscribers
-└── conversations: (REL ID, conversation/branch) -> operation coordination
-    └── generation streams -> only active authorized subscribers
+## Progress and linear execution
 
-InstanceRuntime (short-lived attachment)
-├── verified principal / one attached PHY
-├── one active REL + authorized access to other RELs
-├── managed conversation selection per REL
-└── attached REL update feed(s), active conversation stream subscription(s)
-```
+| # | Owner | Deliverable | Status | Completion condition |
+|---|---|---|---|---|
+| Foundation | Reliquary | Gateway/Instance, REL/PHY worker identity, durable conversation scheduler, P4 distribution | **Accepted on existing implementation lines** | Historical integration verification exists; must remain green during final integration |
+| 1 | Warlock | Actual provider execution-only adapter, remote outcome/reconnect, multi-context privacy, P4 public delivery, exact task-root attribution | **In progress / blocking** | Provider lifecycle works against exact staged Reliquary; tests demonstrate reconnect, cancellation, privacy and checkpoint-only visible text |
+| 2 | Reliquary + Warlock | Combine accepted runtime, management, import and external-reference source; pin one Reliquary and one Arcana revision in Warlock | **Partially staged / blocking** | One integrated source, one Arcana identity, locked Warlock checks/tests/frontend, downstream fixtures and exact commit-pinned acceptance |
+| 3 | Reliquary | Delete `ReliquaryRuntimeHost` and old-only mutable selection, duplicate workers and forwarding | **Inventory done; removal blocked on 1–2** | No legacy host imports/exports/callers; preserved readers, relocated useful types, full targeted matrix green |
+| 4 | Both | Release verification of post-deletion runtime and real Warlock | **Harness exists; final pass blocked on 3** | Crash/reopen, multi-instance identity/privacy, queue/cancel/replay, stream slow/reconnect/epoch, actual provider, locked builds and measured baseline pass |
+| 5 | Hermes + Reliquary | Implement Hermes feed/hydration and plugin session/runtime adapter | **Planned; not yet accepted** | Live authorized bridge maps Hermes identities, sessions, branches and lifecycle without copying canonical transcript bodies to REL |
+| 6 | Hermes + Reliquary | End-to-end Hermes multiplexing acceptance | **Not started** | Two concurrent sessions/principals, shared/isolated PHY behavior, restart/replay, revoke/delete/rewind, exact hydration and failure isolation pass |
 
-Gateway owns physical owner handles, operation authority, resource shutdown and real mutation. Instance stores only its own context, attachment references and observed event cursors. REL owns conversations; PHY never owns a conversation. More than one instance may share a PHY and/or REL but may not duplicate their authoritative execution.
+Only completion of step 4 qualifies **Reliquary + Warlock multiplexing** as finished. Only step 6 qualifies **Hermes multiplexing** as finished. Independent external format adapters and selective F5 import/export are tracked separately and are not grounds to keep the old runtime alive.
 
-### Interfaces to implement
+## Existing implementation and evidence
 
-Names are illustrative Rust-level contracts; Phase 1 defines exact types without introducing an intermediate forwarding host.
+- Reliquary N3 `dcf500e`: E5 live runtime, F-core management, native import, external reference-only core, and B/E execution-only negotiation are integrated. The latest documented combined matrix reports **1,159 unit, 137 integration and 19 CLI tests passed**.
+- Warlock `be17ad5` against the staged Reliquary revision: native provider binding, stable request digest, process-local Unknown/no replay, authorization-first cooperative Stop/status passed **212 tests**, with one existing external benchmark ignored. This is **not** complete remote reconciliation or full product multi-context/P4 acceptance.
+- A fresh Rust publication/Arcana refresh on the B/E cut verified all authored Rust source hashes and **22 owner/content rules**. Its graph reported zero relationships, so it **does not prove dependency/call-graph correctness**.
+- P6 real-runtime test harness `81a64b6`, instrumentation work `b2b4bf4`, and D0 deletion inventory `bfdd267` exist on separate branches. Historical acceptance of these branches does not substitute for post-deletion testing.
+- No new claim is made that Warlock production dependency pins, deletion or release acceptance have occurred.
 
-- Gateway lifecycle: mount/unmount REL or PHY with duplicate-owner rejection; create authenticated instance attachment; revoke/drop attachment; query authorized owner topology; quiesce/reconcile owner; gateway shutdown. On startup, immediately initiate configured host reconnection and reconcile queue/operation state before host-dependent dispatch.
-- Instance context: current principal/PHY, select REL, select or create/reopen managed conversation, read authorized ambient/explicit owner data, acquire/release conversation stream subscription; access to PHY is bound at attachment, never chosen through untrusted request parameters.
-- REL update feed: attach to selected/authorized REL and obtain an atomic snapshot plus mount epoch/cursor; deliver **all relevant post-commit REL changes** to every connected instance accessing that REL, including inactive conversations, index changes and status. No conversation-level update filtering. **Every disconnected instance and REL must resynchronize on reconnection**, not only on restart or a detected event gap: revalidate instance grants, restore the authorized REL snapshot/current branch/queue/operation status, then reattach active streams using checkpoint-plus-cursor. On REL remount/lost continuity, reconcile owner durable state and advance mount epoch, invalidating affected instance caches. Resume incremental delivery only if epoch/cursor continuity is provable; otherwise atomic authoritative snapshot-and-watermark must close the reconnect race.
-- Conversation live stream: explicitly attach only when the conversation is active for that instance; return authorized durable checkpoint and current operation cursor, then deliver future synchronized deltas and terminal events for that specific generation; detach without terminating the underlying generation.
-- Native runtime / host integration: retain Reliquary's native queue, coordination, cancellation, recovery and synchronization for its own processing and correctness. Integrate **per capability**, prioritizing **host queue ownership for host-executed work where the host supports effective pending cancellation and status/reconciliation**. Avoid a second Reliquary queue competing for the same host dispatch; keep native machinery where needed for Reliquary correctness or the host's cancellation/reconciliation contract is insufficient. Separate host and Reliquary stage queues may coexist with explicit ownership handoff, cancellation propagation and a cancellation check immediately before every dispatch. Map who owns admission, pending order, dispatch, cancellation, generation and completion for each integration, using stable IDs to prevent cancelled work being replayed or duplicate execution/Archive commitment. Evaluate Warlock's actual capabilities instead of assuming an integration mode. Immediately attempt host connection at startup, exchange capabilities and reconcile cross-boundary pending/in-flight/committed work before resuming that boundary; preserve unrelated native processing. Hold unknown external operation status for reconciliation rather than duplicate execution; reconcile cancellation before replay and retry unavailable hosts automatically. For already-running external operations, distinguish cooperative interruption from the strict guarantee that cancelled *pending* work does not execute.
-- Conversation command: accept idempotent submissions with expected current leaf/revision and enforce the conversation's gateway-coordinated policy (**default: sequential chronological queue; option: visible automatic branching**). Queue entries are provisional, independently cancellable, and entirely outside canonical conversation history. A submission becomes an Archive turn only when its finalization/commit wins the queue-item state transition; cancellation while queued must eliminate it without a turn, Archive activity, Episode, Insomnia work or branch. Reliquary-admitted native queued work **must survive gateway restarts** through a separately durable pending-submission journal (not Archive history); acknowledge native enqueue only after journal durability. Host-owned upstream queued work remains under its host's persistence/recovery contract and is reconciled at handoff. Stable submission IDs, persisted cancellation and finalization reconciliation against Archive must prevent resurrection or duplicate commits after a crash. Reserve or join one authorized generation, checkpoint output durably before publishing, and complete/cancel with authorization. Queued messages arriving during an in-flight generation join at the next safe continuation, never retroactively change the generation context. Preserve the final committed order and original Archive-local parent identity when branching; determine verified timestamp/tie handling and the pending journal's concrete storage, idempotent replay and cancel-versus-finalize fencing in Phase 0B.
-- Owner-local work: REL owner queue/scheduler independent of any client selection; PHY owner work de-duplicated by PHY ID; personal-context work captures an explicit immutable principal/visibility context.
-- Explicit authorization: every instance-facing operation enforces grants, including explicit owner calls, REL dependencies, historical Echo/provenance and subscriptions. Internal maintenance does not implicitly become user access.
+## Step 1 — Warlock consumer completion
 
-No new persistent event log is required for the first in-process version: an ephemeral per-mount ordered event sequence plus authoritative revision/checkpoint reconciliation is sufficient. Distinguish Archive semantic versions, clock-neutral streaming checkpoints and ephemeral notification sequence; do not conflate them.
+1. Wire actual execution-only provider host adapter and retain native pending authority where the host lacks durable queue semantics.
+2. Reconcile remote outcomes and Unknown states across disconnect/restart; never redispatch an ambiguous operation; prove cancellation before replay.
+3. Verify two authenticated independent instances, same-principal shared PHY worker and different-principal privacy, detached viewer continuity and per-context conversation/branch selections.
+4. Ensure late join, slow subscribers, reconnect, mount epoch, cursor invalidation, resync and revocation use P4 durable stream/checkpoint paths; do not display provider deltas as committed output.
+5. Verify exact task-root attribution and authorized project file reference propagation.
+6. Run real HTTP/provider, Tauri/frontend, locked Rust, privacy, owner and no-legacy-consumer tests.
 
-### Invariants
+## Step 2 — Merge and pin
 
-1. Exactly one authoritative live execution per mounted durable REL or PHY. No instance-owned clone of a mutable store.
-2. One bound PHY and one active REL per instance; independent per-instance managed selection, even for instances using the same PHY and REL.
-3. REL-wide changes are broadcast to every connected authorized instance accessing that REL; live generation output is restricted to active subscribers of that conversation.
-4. The durability rule remains: no visible committed streaming delta before its checkpoint has synchronized.
-5. An instance joins a stream without restarting/stealing its operation; viewers do not acquire cancellation authority by subscribing.
-6. REL dependency closure intersects instance authorization; one PHY's private state is invisible to another principal despite shared REL, shared Entity identities or background work.
-7. Every final conversation mutation has explicit expected branch parent/revision; stale writes cannot silently overwrite a newer head. Enqueued submissions are cancellable provisional state, not conversation history, and cancellation racing finalization has one atomic, observable outcome.
-8. All owner-local semantic invariants, durable IDs, transaction clocks, Archive history and project repository boundaries survive unchanged.
-9. A client disappearing never implies the shared REL, PHY, other sessions or owner workers should shut down.
-10. One REL's slow work or lock must not serialize unrelated RELs; inference holds no long-lived owner-store locks.
+1. Reconcile the N3 staging line with accepted A/B/C/E/F/G commits; preserve **one** owner for each public DTO/export.
+2. Re-run Reliquary formatting, locked check, all tests/examples, CLI, P2/P3/P4 guards, F/external guard and documentation checks.
+3. Pin Warlock to the **same** verified Reliquary revision and matching direct Arcana revision, regenerate lockfile and confirm one Arcana package identity.
+4. Re-run actual Warlock providers, admission, conversations, frontend production build and multi-context/reconnect fixtures.
+5. Do not treat a green N3-local fixture as a production consumer pass.
 
-## Implementation decisions and migration strategy
+## Step 3 — Legacy deletion
 
-Use a **staged internal hard cut**. Establish canonical target owners and interfaces first; move responsibilities once; migrate callers directly; delete obsolete ambient source-of-truth fields/APIs when their callers have moved. Do not maintain synchronized old/new runtime state or add permanent compatibility shims. The Rust public and external consumer compatibility obligations must be checked before a breaking surface is removed; retain interoperability only at a demonstrably required external boundary.
+Use the prepared D0 reverse-caller inventory, not module-name globbing. Move surviving errors/reports/queries to their canonical owners and preserve persisted decoders. Remove `ReliquaryRuntimeHost`, ambient REL/PHY/session selection and duplicated workers/mount/router state. Migrate tests from legacy authority to Gateway/Instance behavior. Enforce absent imports/callers in Reliquary, CLI and Warlock. No compatibility facade.
 
-The old ReliquaryRuntimeHost is a source of behavior to migrate, **not** a permanent facade around GatewayRuntime. No new generalized physical storage framework, model provider redesign, standalone daemon requirement, semantic Ego change or REL/PHY format migration is part of this plan.
+## Step 4 — Final release verification
 
-## Phases and actionable steps
+Use the existing P6 real-runtime harness on the **post-deletion** tree. Test multiple REL/PHY/instances, chronological pending order, branch policy, crash and receipt-loss recovery, cancellation-versus-finalization, unknown host state, stream durability, queue overflow/resync, late join, privacy/revocation, host interruption and reconnection. Measure contention, queue latency, fan-out, worker count, memory and startup against a reproducible baseline. Run full locked Reliquary/CLI/Warlock matrices plus actual UI/provider acceptance; capture logs outside active docs. Unavailable platforms or unresolved gates stay explicitly open.
 
-### Phase 0 — Baseline and specification (this document set)
+## Steps 5–6 — Hermes
 
-- **0.1** Inspect the current ownership, routing, session, PHY, worker, retrieval, Archive and external-consumer boundaries. Record source/test inventory and known active worktree changes in the [baseline](multiplexing-phase0-baseline.md).
-- **0.2** Record target authority and privacy model in [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md); clarify that ADR 0037's single active REL/PHY is current behavior superseded for the final target, while ADR 0034's PHY privacy invariant becomes instance-relative.
-- **0.3** Establish the characterization matrix from existing tests. Run existing targeted tests without modifying concurrent unrelated implementation; record results and missing tests.
-- **0.4** Specify integration order, failure/recovery semantics, tests and unresolved policy gates. Validate documentation index/structural checks.
-- **Exit:** target boundaries, audit and testing matrix are explicit; no runtime implementation committed.
+Hermes remains the canonical owner of its conversation history. Design its stable feed/high-water/cursor, profile/message/branch identity, authorized hydration, edit/rewind/delete, and replay/rebuild behavior around the shared external-reference index. Build a thin plugin-facing adapter for Hermes sessions, provider execution and lifecycle over Gateway/Instance APIs. Preserve owner authorization; do not build a second multiplexing scheduler inside the plugin. Validate concurrent sessions and principals, shared PHY de-duplication, no transcript-body duplication, idempotent indexing and restart/cancellation/reconnect; verify that Hermes continues working while Reliquary is unavailable. The current conversation-index design is useful but **does not yet constitute a complete live plugin contract**.
 
-### Phase 0B — Required design hardening before implementation
+## Stable technical references
 
-Resolve the six source-backed blocking gates in [the readiness review](multiplexing-readiness-review.md): shared conversation execution/attachment, multi-principal Insomnia routing and recovery, mutation coverage for REL events, enforceable authorization/revocation, quiescence and lock/single-writer scope, and actual downstream consumer/baseline verification. Produce state machines, matrices, concrete interface contracts and adversarial fixture definitions, not just diagrams. **Gate: no broad implementation until these are settled and baseline tests actually run.**
+- [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md) — architecture decision
+- [Architecture](architecture.md), [API](api.md), [behavioral contracts](behavioral-contracts.md), [invariants](invariants.md) — implemented state
+- [External canonical conversation design](conversation-index-integration-plan.md) — remaining Hermes-specific design details, not implementation status
+- [Current limitations](current-limitations.md) — known incomplete behavior
+- Git history and retained verification logs — historical checkpoint evidence
 
-### Phase 0B integration record (2026-10-03)
+## Documentation lifecycle rule
 
-The [Phase 0B design package](multiplexing-phase0b-design.md) now specifies the six gates with five executable reference fixtures. Review its cross-contract rules and verification record before implementation. Production migration remains pending; existing baseline and consumer build failures keep the broad hard-cut gate closed. The canonical dependency order is authority foundation, coordinator, then instance selector routing.
-
-### Phase 1 — Gateway/instance authority extraction
-
-- **1.1** Define exact public/internal GatewayRuntime and InstanceRuntime ownership contracts and errors, including native queue semantics, per-capability host integration/authority negotiation, explicit stage handoffs and immediate startup reconnect/reconciliation hook. Gateway retains the existing keyed REL executions, routes and policy; introduce keyed PHY execution/instance attachment shapes at their **final owner**, even if first implementation supports a narrow test configuration.
-- **1.2** Establish a minimal gateway-owned conversation coordinator with shared writable continuation, multiple read/view attachments, explicit writer admission, gateway-owned durable provisional queue for Reliquary-admitted work (available to Warlock where appropriate), serialized cancel-versus-finalize and correct detach/finalization; this is **a prerequisite**, not deferred Phase 3 machinery. Keep existing interaction/session primitives beneath it, but do not create duplicate writable `open_session` objects for the same conversation.
-- **1.2a** Only after 1.2, relocate active REL selection, per-instance managed conversation selection and reopen-pending state from host/execution singletons into instance context. Keep explicit owner operations as gateway internals.
-- **1.3** Make all user-facing ambient semantic operations resolve through the initiating instance; no hidden active_execution() path may determine an operation's target in the completed architecture.
-- **1.4** Convert instance lifecycle into attach/detach independent of shared REL/PHY lifecycle. Establish an explicit quiesce/fence interface for global owner maintenance.
-- **Tests:** two instance selections cannot affect each other; instance detach never unmounts an owner; same-instance existing reopen/active-conversation behavior holds; explicit owner operations cannot bypass instance authorization.
-- **Gate:** only one authoritative selection source (instance); no synchronized legacy active REL, active PHY, or managed-session shadow state. If Phase 1 is not yet multi-PHY capable, do not advertise general multi-user operation before Phase 2's gate.
-
-### Phase 1 implementation and verification record (2026-10-03; finish scope updated 2026-10-04)
-
-**Status: Phase 1 complete locally, 2026-10-04.** GatewayRuntime/InstanceRuntime provides trusted identity/path admission, process-local gateway/legacy owner exclusion, REL-wide durable provisional conversation work, shared continuation, instance-authorized ambient/project APIs, lifecycle fencing and ConversationExecution host-stage ownership. Accepted work outlives its attachment; client cancellation/delivery retains current grants. Reopen failure is closed/stopped and external-work races reauthorize before commit/delivery.
-
-Final-source verification passed: gateway 69/69, journal 15/15, instances 7/7, legacy isolation 3/3, public gateway API and baseline contracts 1/1 each, routing guard 2/2, library 862/862, every integration target, CLI formatting/locked check and 19/19 tests, and both documentation checks. The unrestricted Cargo suite retains only the inherited archive_open_profile/lore_base allocator conflict. Refreshed architecture indexing timed out after 180 seconds; current source guards passed and no refreshed Pitlord pass is claimed. See the [final execution record](multiplexing-phase1-finish-plan-2026-10-04.md) for command-level evidence and packaging.
-
-The [Phase 1 finish plan](multiplexing-phase1-finish-plan-2026-10-04.md) is now the completion record. Production host transfer for Insomnia, Dream, Embedding and ProjectEnvironment, real Warlock conformance and legacy-host deletion remain Phase 5; Phase 1 integrates ConversationExecution ownership only and does not synthesize host assistant results.
-
-### Phase 2 — PHY registry, private access and work ownership
-
-**Status: R2.1–R2.7 complete and verified; committed locally on feat/multiplexing-phase2.** Exact PHY workers, durable User/explicit Agent attribution, frozen multi-principal publication and withdrawal, restart recovery, private retrieval/profile isolation, pending-work lifecycle and the expanded hard-cut guards pass production acceptance and the final library/integration/CLI matrix. The completed R2.7 gate in the [Phase 2 implementation plan](multiplexing-phase2-implementation-plan-2026-10-04.md) owns broad regression and commit evidence.
-
-- **2.1** Deepen the existing gateway PHY registry into one execution/worker owner per durable PHY; same-principal instances share it and different principals cannot alias it.
-- **2.2** Remove Phylactery, personal profile and personal worker state from REL `OwnerExecution`; split vectors/Dream/Perception into REL-local and PHY-local execution.
-- **2.3** Persist instance-derived actor/generation attribution so restart and shared conversations never infer a principal from ambient selection or parent ancestry.
-- **2.4** Implement G2 frozen multi-principal Episode routing and crash recovery: exact principal→PHY destinations, idempotent external writes, REL semantic receipt, no ambiguous personal fallback.
-- **2.5** Migrate private semantic/retrieval access to instance-authorized owner sets: granted REL closure plus only the bound PHY.
-- **2.6** Make principal profile projections and worker wakeups explicitly owner/principal keyed.
-- **2.7** Add PHY quiesce/fencing/recovery equivalent to its new execution responsibility.
-- **2.8** Hard-cut remaining ambient personal ownership from the new gateway path; legacy external host deletion remains Phase 5.
-- **2.9** Run final multi-principal privacy, recovery, worker-deduplication, library/integration/CLI/docs verification and package the Phase 2 branch.
-- **Gate:** two principals safely share a REL while personal writes/retrieval/workers remain isolated; same-principal instances share exactly one PHY execution; no background job consults mutable global active PHY.
-
-### Phases 3 and 4 — parallel implementation after Phase 2
-
-**Execution model:** after Phase 2 reaches its acceptance gate, freeze the final P3/P4 observation/event seam once, then fork Phase 3 and Phase 4 from the same integration base. Phase 3 owns conversation queue/branch/generation semantics. Phase 4 owns REL sequencer/subscriber/resync infrastructure. They proceed concurrently; only the production conversation-stream adapter and final conversation event hooks wait for convergence.
-
-See:
-- [Phase 3 conversation coordination implementation plan](multiplexing-phase3-conversation-implementation-plan-2026-10-04.md)
-- [Phase 4 REL distribution implementation plan](multiplexing-phase4-distribution-implementation-plan-2026-10-04.md)
-
-### Phase 3 — REL conversation coordination
-
-**Status: P3.0–P3.9 accepted locally; P4.0–P4.9 and production distribution binding are accepted with documented verification limits.** [P3.9 evidence](multiplexing-phase3-local-acceptance-2026-10-05.md) and [P4.9 evidence](multiplexing-phase4-acceptance-2026-10-05.md) record the lane gates. Final P3/P4 integration is verified for main ([integration evidence](multiplexing-p34-main-integration-2026-10-06.md)); Phase 5 consumer migration remains separate.
-
-- Deepen the existing `ConversationRegistry` rather than creating another coordinator.
-- Make the durable REL journal order the automatic scheduler authority.
-- Persist and enforce `SequentialChronological` and `VisibleAutoBranch`.
-- Move from one conversation-wide processing flag to branch-local continuation/generation ownership.
-- Preserve durable cancel/finalize/Archive idempotency and accepted-work lifetime.
-- Expose an authoritative conversation observation snapshot for Phase 4; do not own delivery cursors/subscribers.
-- **Local gate:** queue/branch/generation/recovery semantics pass without requiring Phase 4 transport.
-- **Convergence gate:** P4 consumes P3 post-durability observations and checkpoint state without moving subscriber authority into the coordinator.
-
-### Phase 4 — REL distribution, stream subscription and resynchronization
-
-**Status: P4.0–P4.9 implemented, audited and locally validated; P4.9 local/convergence functional acceptance passed with documented verification exceptions.**
-
-- Add one `RelSequencer` per mounted REL with mount epoch, checked cursor, typed watermarks and bounded subscribers.
-- Add atomic authorized snapshot+subscribe and explicit ResyncRequired overflow handling.
-- Cover every instance-visible gateway mutation family with safe REL summaries/invalidation events.
-- Add reconnect/remount/revoke behavior with epoch/grant revalidation.
-- Bind the production conversation stream hub to P3's authoritative snapshot, receipt, and checkpoint sources; keep P4 subscriber/cursor ownership separate. P4.7 is implemented and verified; see the [convergence record](multiplexing-phase4-convergence-2026-10-05.md). P4.8 coverage/lock/privacy audit is complete; see the [audit record](multiplexing-phase4-audit-2026-10-05.md).
-- Keep generation text out of broad REL feeds and private PHY content out of all REL-wide payloads.
-- **Local gate:** sequencer/snapshot/overflow/reconnect and generic stream hub pass against deterministic providers.
-- **Convergence gate:** inactive conversation summaries, late stream join, branch events and checkpoint delivery pass against final P3 semantics. P4.7 verification and P4.8 audit are complete; P4.9 local/convergence functional acceptance passed; see the [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md) for repository-wide verification exceptions.
-
-### Phases 5 and 6 — concurrent consumer migration and verification
-
-**Status: active implementation.** P3/P4 are complete on main. P5-A and P5-B are implemented and accepted on feature/integration lines; the combined Reliquary P5-C integration head is `4ce4911`. Warlock's clean final-cut branch is `1782e72`, where the legacy `ReliquaryRuntimeHost` consumer has been removed, but multi-context/provider/P4 reconnect/final-pin acceptance remains. P6-H harness infrastructure is accepted on `81a64b6`. P5-E, P5-F, P5-G and the P5-D hard cut remain.
-
-Current execution authority:
-- [P5 next parallel execution wave — 2026-10-07](multiplexing-phase5-next-parallel-execution-plan-2026-10-07.md)
-- [P5/P6 parent ownership and convergence plan](multiplexing-phase5-parallel-execution-plan-2026-10-06.md)
-- [P5-A REL/runtime consumer migration](multiplexing-phase5a-rel-consumers-2026-10-06.md)
-- [P5-B background workers and host capabilities](multiplexing-phase5b-background-host-2026-10-06.md)
-- [P5-C Warlock and detachable CLI](multiplexing-phase5c-external-consumers-2026-10-06.md)
-- [P5-E live runtime and public adapter surface](multiplexing-phase5e-live-runtime-surface-2026-10-06.md)
-- [P5-F workspace management surface](multiplexing-phase5f-workspace-management-2026-10-06.md)
-- [P5-G import, interoperability, and external transcript adapters](multiplexing-phase5g-interoperability-2026-10-06.md)
-- [P5-D legacy-host deletion](multiplexing-phase5d-legacy-deletion-2026-10-06.md)
-- [P6 concurrent verification harness and release](multiplexing-phase6-parallel-verification-plan-2026-10-06.md)
-
-### Phase 5 — current lane disposition
-
-- **P5-A:** implementation and runtime acceptance complete on the integration line; merge/convergence only.
-- **P5-B:** B0–B4 implementation and acceptance complete; merge/convergence only.
-- **P5-C:** late-stage. Core Gateway consumer hard cut exists; finish multi-context, real provider conformance, public P4 delivery/reconnect, final dependency pins and release matrix.
-- **P5-E:** start now from the common convergence base; owns reusable live runtime/adapter/session/status surface.
-- **P5-F:** start now in parallel; F0–F4 are independent, F5 waits on G1 normalized import contracts.
-- **P5-G:** start framework-neutral work now. Split normalized importers from external-derived R0–R4 core; ACP/Hermes adapters remain explicit source-dependent tails.
-- **P5-D:** D0 deletion inventory can run now. D1–D4 wait for C/E/F convergence and proof that G core does not depend on legacy authority.
-- **Exit:** one Gateway/Instance runtime authority, final Warlock/CLI consumers accepted, old host deleted, framework-neutral adapter/management surfaces owned and tested, and no hidden compatibility authority.
-
-### Phase 6 — accepted harness, remaining release gate
-
-- **P6-H:** harness accepted; continue only the missing H5 diagnostics and rerun it against convergence/post-D revisions.
-- **P6-R:** after P5-D, run real post-deletion failure/recovery/privacy/provider/Tauri/operator/performance and full release verification.
-- **Exit:** safe multi-principal synchronization and cancellation/recovery, no old host authority, upgraded external consumer acceptance, measured scalability, and explicit status for any still-blocked architecture-index or host-adapter gate.
-
-## Decision register
-
-| Topic | Resolution / gate |
-| --- | --- |
-| Gateway/instance split | Agreed and accepted in ADR 0038. |
-| Instance PHY and REL selection | One verified PHY and one active REL per instance; independent managed conversation selection per REL. |
-| Same PHY in many instances | Allowed; one authoritative gateway PHY execution and one personal processing owner. |
-| Same REL in many instances | Allowed; owner execution shared; scope/visibility instance-authorized. |
-| REL updates | Broadcast to every connected authorized instance accessing the REL, regardless of current conversation. |
-| Active generation output | Deliver only to actively subscribed instances of that conversation, with late-join checkpoint catch-up. |
-| Concurrent message policy | **Agreed:** default sequential queue ordered chronologically among pending submissions, randomly chosen, permanently fixed order for genuinely simultaneous messages; selectable automatic branching with clear visible branches. Phase 0B must settle verified clock/admission details, mandatory durable pending journal and idempotent restart recovery, atomic cancel-versus-finalize, in-flight generation behavior and preference storage. |
-| Host integration | Preventing cancelled work from executing is paramount. Prefer the host's queue for host-executed work when pending cancellation and status reconciliation are reliable; preserve Reliquary's own machinery wherever its guarantees require it. Distinct stage queues may coexist with cancellation-safe handoff and a cancellation check before dispatch; one authority per transition. Evaluate Warlock's real capabilities. Startup connects promptly and reconciles cancellations before replay. |
-| Global durable conversation_active | **Phase 3 storage/lifecycle investigation:** preserve current on-disk decoding, separate runtime presence, document any semantic change before writing. |
-| Runtime event durability | Initially ephemeral ordered mount-local notifications plus authoritative snapshot/reconciliation; no new persistent log without measured need. |
-| Cross-process gateway | Not required initially; establish an interface and lifecycle suitable for a future single-service authority. |
-
-## Out of scope
-
-Ego synthesis algorithms, Perception/Chronos/Dream semantic changes, new REL/PHY file formats, universal cross-owner Graph authority, distributed multi-writer storage, live cross-process lease arbitration, provider transport redesign, and automatic new UI features. Consumers may require interface migration without semantic redesign.
-
-## Completion gates and documentation impact
-
-The final repository must have one canonical gateway-owned REL/PHY execution path and one instance-local selection path, with obsolete internal host sources deleted. Existing persisted REL/PHY files must remain readable. Updated public behavior must have owner/instance contract tests and appropriate current-state docs; documentation checker and architecture policy must pass against the integration snapshot.
-
-Work on this roadmap should not silently absorb or overwrite the separately modified REL activity-clock, Ego, Chronos, Archive or Perception changes present during the Phase 0 audit.
+One active plan. No new dated multiplexing acceptance, baseline, checkpoint, or next-wave Markdown files. Update the status table and canonical current-state documentation; store exact command logs in CI/external verification artifacts and reference commit hashes only where they matter. Historical documents retired from the active tree remain recoverable from Git. If new design materially changes an interface, update the stable design owner or record an ADR; don't create another parallel project plan.
 
 ## Related docs
 
-- [Multiplexing Phase 0 baseline](multiplexing-phase0-baseline.md)
-- [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)
-- [Architecture](architecture.md)
-- [Roadmap](roadmap.md)
+See the Stable technical references section above.
 
 ## Notes
 
-Phase ordering is a dependency plan, not evidence that any proposed interface or feature currently exists. Both user-facing policies are selected; the Phase 0B gate is their exact queue/cancel/finalize, ordering and branch state machine, which must precede writable shared-conversation extraction.
+This document is an execution roadmap, not proof that any unrun release test passed.

@@ -2,11 +2,11 @@
 
 Parent index: [Architectural decisions](INDEX.md)
 Implementation plan: [Multiplexing implementation plan](../multiplexing-implementation-plan.md)
-Baseline evidence: [Multiplexing Phase 0 baseline](../multiplexing-phase0-baseline.md)
+Baseline evidence: [Multiplexing Phase 0 baseline](../multiplexing-implementation-plan.md)
 
 ## Status
 
-Accepted architectural direction — 2026-10-02; **not approved for implementation** until [Phase 0B readiness gates](../multiplexing-readiness-review.md) are satisfied. Conversation-attachment semantics, multi-principal processing, reliable update publication, authorization and lifecycle fencing need more than the current preliminary roadmap. The user-facing concurrent-submission policy is selected below; its durable queue and execution state-machine mechanics remain a Phase 0B gate.
+Accepted architectural direction — 2026-10-02; **not approved for implementation** until [Phase 0B readiness gates](../multiplexing-implementation-plan.md) are satisfied. Conversation-attachment semantics, multi-principal processing, reliable update publication, authorization and lifecycle fencing need more than the current preliminary roadmap. The user-facing concurrent-submission policy is selected below; its durable queue and execution state-machine mechanics remain a Phase 0B gate.
 
 This amends [ADR 0037](0037-reliquary-context-memory-project-environment.md): Reliquary still owns the complete environment, but its single active REL, single PHY, and managed-session selection move from the shared host to operating-instance context. It clarifies [ADR 0034](0034-cross-owner-relationship-graph-and-active-phy-privacy.md): "active PHY" means the requesting instance's authorized active PHY, never whichever PHY another instance most recently activated. The underlying privacy rule remains unchanged.
 
@@ -91,4 +91,4 @@ This work is an independent whole-stack initiative. Ego is an ordinary consumer 
 
 ## Phase 0B design elaboration (2026-10-03)
 
-The [integrated design contracts](../multiplexing-phase0b-design.md) define conversation coordination, durable provisional/owner-operation journals, personal-publication provenance, feed continuity, grant leases, lifecycle fencing and host handoff. These are target contracts, not shipped runtime behavior. The original implementation approval gate remains pending the package's recorded baseline and consumer checks.
+The [integrated design contracts](../multiplexing-implementation-plan.md) define conversation coordination, durable provisional/owner-operation journals, personal-publication provenance, feed continuity, grant leases, lifecycle fencing and host handoff. These are target contracts, not shipped runtime behavior. The original implementation approval gate remains pending the package's recorded baseline and consumer checks.

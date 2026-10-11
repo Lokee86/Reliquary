@@ -36,6 +36,7 @@ The repository uses the `library-engine` profile with the `stateful` capability.
 5. Storage ownership, mutation, recovery, compatibility, and testing changes update their canonical owners in the same change.
 6. A documentation checker pass proves structural compliance only; known semantic gaps remain explicit.
 7. Planning documents are future-only. When planned behavior becomes current, remove it from the plan and document the resulting behavior in the appropriate current-state owner.
+8. Multiplexing has one active execution plan, `multiplexing-implementation-plan.md`. Update it in place. Do not create dated acceptance, handoff, checkpoint or next-wave documents; keep verification artifacts in CI/external logs and commit history. Technical facts belong in the canonical architecture/API/behavioral contracts or an ADR.
 
 ## Enforcement
 

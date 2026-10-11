@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## P4.9 acceptance verification
 
-The converged `244d23f` source passed 1,026 library tests, 95 integration tests, and 19 CLI tests, runtime/CLI locked checks, formatting, and the 28-fixture/112-API direct coverage guard. The [P4.9 acceptance record](multiplexing-phase4-acceptance-2026-10-05.md) records command-level evidence and the separate unrestricted example-build and refreshed architecture gaps. No runtime or test code changed for this acceptance step.
+The converged `244d23f` source passed 1,026 library tests, 95 integration tests, and 19 CLI tests, runtime/CLI locked checks, formatting, and the 28-fixture/112-API direct coverage guard. The [P4.9 acceptance record](multiplexing-implementation-plan.md) records command-level evidence and the separate unrestricted example-build and refreshed architecture gaps. No runtime or test code changed for this acceptance step.
 
 ## Purpose
 
@@ -62,7 +62,7 @@ python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-fr
 python scripts/check_architecture.py --refresh
 ```
 
-For the 2026-10-04 UTC multiplexing F6 completion, all 862 library tests passed with zero ignored tests; the locked --tests integration gate, 69 gateway cases, focused journal/instance/legacy suites, public contracts and source guard passed. Independent CLI formatting/locked check and 19/19 tests passed. Unrestricted cargo test --locked retains the existing archive_open_profile/lore_base global-allocator conflict. The bounded architecture refresh timed out after 180 seconds in Rust/Python indexing before a usable refreshed enforcement result; no Pitlord pass is claimed. Both documentation policy modes passed. See the [final completion record](multiplexing-phase1-finish-plan-2026-10-04.md).
+For the 2026-10-04 UTC multiplexing F6 completion, all 862 library tests passed with zero ignored tests; the locked --tests integration gate, 69 gateway cases, focused journal/instance/legacy suites, public contracts and source guard passed. Independent CLI formatting/locked check and 19/19 tests passed. Unrestricted cargo test --locked retains the existing archive_open_profile/lore_base global-allocator conflict. The bounded architecture refresh timed out after 180 seconds in Rust/Python indexing before a usable refreshed enforcement result; no Pitlord pass is claimed. Both documentation policy modes passed. See the [final completion record](multiplexing-implementation-plan.md).
 
 The ordinary `cargo test` suite contains only correctness/regression tests and should report zero ignored tests. Fourteen Community performance, routing-quality, and operating-point experiments live behind the opt-in `community-benchmarks` Cargo feature instead of registering as ignored unit tests. Use `cargo test --release --features community-benchmarks` when intentionally rerunning that benchmark/validation set. Feature-gated Community benchmarks must not become the only coverage for a correctness contract.
 
