@@ -13,7 +13,18 @@ impl Cva {
         let accepted = self
             .archive
             .ingest_turn(&mut self.container, &self.project_files, turn)?;
-        self.freshness_on_accepted_activity(self.archive.rel_turn_count());
+        let accepted_turn = self.archive.rel_turn_count();
+        self.freshness_on_accepted_activity(accepted_turn);
+        let source_memory_cohort = self
+            .freshness
+            .records()
+            .iter()
+            .filter_map(|(id, record)| {
+                (record.admitted_at_turn == Some(accepted_turn)).then_some(*id)
+            })
+            .collect();
+        let _ =
+            self.apply_accepted_semantic_reinforcement(&accepted.value.node, &source_memory_cohort);
         Ok(accepted)
     }
 

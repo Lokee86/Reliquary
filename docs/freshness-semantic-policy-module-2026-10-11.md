@@ -8,7 +8,7 @@ Implement the graph-independent numerical and candidate-reduction core frozen by
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** Steps 5–8 complete; live F8 remains disabled pending live wiring, recovery and release gates. The architecture refresh exception is recorded below.
+**Date:** 2026-10-11. **Status:** Steps 5–9 complete; live F8 remains disabled pending recovery, correctness fixtures and release gates. The architecture refresh exception is recorded below.
 
 ## Related docs
 
@@ -100,7 +100,7 @@ Semantic events use the existing exactly-once lookup, conflict detection, canoni
 - Updated: this module record, the linear plan completion marker, and the live semantic contract status.
 - Not affected: Dream/use producer kinds, public API/CLI, graph propagation, historical import, and existing score principals.
 - Compliance check: focused storage tests, formatting, repository diff checks, and the documented Rust/docs gates are run for this step.
-- Known gaps: Step 9 live accepted-turn wiring, Step 11 transformation matrix, and Step 12 release gate remain pending.
+- Known gaps: Step 11 transformation matrix, Step 12 release gate, and full end-to-end test execution remain pending.
 
 ## Architecture impact
 

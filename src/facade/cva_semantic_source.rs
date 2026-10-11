@@ -173,6 +173,93 @@ impl Cva {
     }
 }
 
+impl Cva {
+    /// Apply one accepted-turn semantic event using the newest retained vector
+    /// generation. Missing or incomplete vector evidence is a no-op; the
+    /// accepted Archive turn remains authoritative and can be retried later.
+    pub(crate) fn apply_accepted_semantic_reinforcement(
+        &mut self,
+        node: &crate::Node,
+        source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
+    ) -> Result<usize, CvaError> {
+        let Some(generation) = self
+            .vector_generations
+            .generations()
+            .iter()
+            .max_by_key(|generation| generation.vector_version)
+            .copied()
+        else {
+            return Ok(0);
+        };
+        let source = match self.prepare_accepted_semantic_source(node, Some(generation.id))? {
+            SemanticSourceReadiness::Pending => return Ok(0),
+            SemanticSourceReadiness::Ready(source) => source,
+        };
+        let search = self.search_eligible_semantic_targets(&source, source_memory_cohort)?;
+        let effects = search
+            .effects
+            .iter()
+            .map(|effect| (effect.memory_id, effect.bonus))
+            .collect::<std::collections::BTreeMap<_, _>>();
+        let evidence = crate::freshness_storage::SemanticEventEvidence {
+            owner_uuid: source.owner_uuid,
+            conversation_id: source.node.conversation_id.clone(),
+            node_id: source.node.id.clone(),
+            accepted_turn: source.activity_position,
+            base_policy_digest: freshness_policy_digest(source.base_policy),
+            semantic_policy_version: source.semantic_policy.version,
+            semantic_policy_digest: source.policy_digest,
+            compatibility_profile_id: source.generation.compatibility_profile_id.0,
+            source_evidence_digest: source.source_digest,
+            target_evidence_digest: semantic_target_digest(&effects),
+        };
+        let payload = self
+            .freshness
+            .encode_semantic_event(source.owner_uuid, evidence, effects.clone())
+            .map_err(CvaError::Freshness)?;
+        self.freshness
+            .persist_policy_if_needed(&mut self.container, source.owner_uuid)
+            .map_err(CvaError::Freshness)?;
+        self.container
+            .append(&payload)
+            .map_err(|error| CvaError::Freshness(error.to_string()))?;
+        self.container
+            .sync()
+            .map_err(|error| CvaError::Freshness(error.to_string()))?;
+        self.freshness
+            .ingest_appended(&payload)
+            .map_err(CvaError::Freshness)?;
+        if !effects.is_empty() {
+            self.freshness_refresh_due(
+                effects.keys().copied().collect::<Vec<_>>(),
+                source.activity_position,
+            )?;
+        }
+        Ok(effects.len())
+    }
+}
+
+fn freshness_policy_digest(policy: crate::freshness::FreshnessPolicy) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    digest.update(b"reliquary:freshness-policy:v1\0");
+    digest.update(policy.decay_turns_per_point.to_le_bytes());
+    digest.update(policy.access_principal.to_le_bytes());
+    digest.update(policy.linkage_principal.to_le_bytes());
+    digest.update(policy.local_hop_cost.to_le_bytes());
+    digest.update(policy.outside_hop_cost.to_le_bytes());
+    digest.finalize().into()
+}
+
+fn semantic_target_digest(effects: &std::collections::BTreeMap<crate::MemoryId, i16>) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    digest.update(b"reliquary:semantic-target-evidence:v1\0");
+    for (memory_id, bonus) in effects {
+        digest.update(memory_id.0);
+        digest.update(bonus.to_le_bytes());
+    }
+    digest.finalize().into()
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct SemanticCandidateSearch {
     pub effects: Vec<crate::freshness::semantic_policy::SemanticEffect>,
