@@ -35,7 +35,7 @@ The immediate semantic sequence remains cross-scope Entity identity, Observation
 
 ## Memory Freshness remaining integration and calibration
 
-Connect a genuine accepted-context delivery producer and live Ego routine selection consumer to the verified library seams. Ordinary reads/search hydration remain passive. Obtain time-positioned admission/link/use evidence before historical score-trajectory calibration: the available 14-day, 28-day and Ellis fixtures supply prospective graph topology only. Complete any unresolved repository/calibration gate recorded in [core verification](freshness-core-release-verification-2026-10-03.md). Semantic relevance and import bootstrap (F8/S1–S6) remain a separate deferred milestone.
+Connect a genuine accepted-context delivery producer and live Ego routine selection consumer to the verified library seams. Ordinary reads/search hydration remain passive. Obtain time-positioned admission/link/use evidence before historical score-trajectory calibration: the available 14-day, 28-day and Ellis fixtures supply prospective graph topology only. Complete any unresolved repository/calibration gate recorded in [core verification](freshness-core-release-verification-2026-10-03.md). Semantic relevance and import bootstrap (F8/S1–S6) remain a separate deferred milestone. When activated, execute the [linear F8 + H1–H8 implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md): finish live local-only F8 first, then historical reconstruction.
 
 ## Additional backlog
 
