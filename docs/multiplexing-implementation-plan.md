@@ -351,7 +351,7 @@ The plan update is recorded on Reliquary `main` at `28a59c1`. Step 2.10 can clos
 |---|---|---|
 | 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: converged-source scan rerun; reviewed baseline refresh required |
 | 3.2 | Identify all remaining old callers and live consumers | Audited: four Reliquary test callers and the root export remain; Warlock uses canonical shared support types |
-| 3.3 | Relocate retained types, domain queries and persisted readers | Blocked |
+| 3.3 | Relocate retained types, domain queries and persisted readers | Complete in candidate `ba1ce9e`: shared contracts moved; canonical Gateway query/read paths retained; locked Reliquary and Warlock all-target checks pass |
 | 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Blocked |
 | 3.5 | Delete old ambient REL/PHY/session selector authority | Blocked |
 | 3.6 | Remove duplicate worker, mount, router and execution authority | Blocked |
@@ -397,6 +397,19 @@ The converged-source audit separates concrete old-host callers from canonical su
 
 This closes the caller-identification portion of 3.2. The source changes remain deferred to 3.3–3.8, after the
 reviewed inventory refresh and ownership cuts; no compatibility alias or forwarding layer is introduced.
+
+### Step 3.3 retained contracts and readers — 2026-10-11
+
+Candidate `ba1ce9e` moves the reusable error, route, semantic-owner, Echo-source, and memory-search contracts into
+`runtime_inference/runtime_shared.rs`. The old host module re-exports these existing types while it remains in the
+tree for Step 3.4; the types no longer depend on the host implementation. The canonical Gateway already owns the
+live semantic search, archive search, Echo, memory-provenance, knowledge, project-file, and external-source reader
+entry points. Their persisted decoders and storage authorities remain in the underlying Archive/REL/PHY owners; no
+new reader or writer was introduced.
+
+`cargo check --locked --lib -j2` passed on the candidate, and Warlock's locked offline all-target check passed against
+that exact local candidate through the repository-local verification override. Formatting and diff checks passed.
+The remaining concrete legacy-host callers and host removal belong to Steps 3.4–3.8.
 
 ## Step 4 — Final release verification
 
