@@ -42,6 +42,57 @@ Only completion of step 4 qualifies **Reliquary + Warlock multiplexing** as fini
 - P6 real-runtime test harness `81a64b6`, instrumentation work `b2b4bf4`, and D0 deletion inventory `bfdd267` exist on separate branches. Historical acceptance of these branches does not substitute for post-deletion testing.
 - No new claim is made that Warlock production dependency pins, deletion or release acceptance have occurred.
 
+## Execution rules and dependency gates
+
+The six numbered deliverables are the **only current progress sequence**. Subtasks may run concurrently, but acceptance is ordered. A passing isolated branch does not imply a finished release. Update the status table **in place** with accepted SHA, owning repo/branch, test command and counts, skipped/blocked fixtures and next action; keep raw logs in CI/external verification storage.
+
+- **Source of implementation truth:** Reliquary N3 `dcf500e`; `main` currently holds the documentation cleanup, not the new implementation.
+- **Warlock source baseline:** `be17ad5` accepted the native execution/Stop/status slice against N3. Inspect current Warlock tip and dependency pins before implementation; these may have moved.
+- **Parallel work allowed:** Warlock real provider/context/stream work, Reliquary N3 consolidation preparation, P6 fixture/measurement work, and Hermes contract inspection. Merge ownership changes only through their canonical source.
+- **Hard dependencies:** Final pin acceptance waits for the working Warlock adapter. Legacy deletion waits for accepted pinned consumers. P6 release checks run on the post-deletion tree, not only against the pre-deletion harness. Hermes implementation signs off against the frozen runtime, although planning can start earlier.
+- **Failure policy:** Unknown remote provider outcomes stay held for reconciliation; do not replay ambiguous work. Do not introduce a second queue, ambient global context, compatibility host, or duplicate transcript authority to make tests pass.
+
+### Ready-to-close gate — Warlock
+
+1. Implement execution-only provider adapter against negotiated live readiness; keep native pending queue when host pending cancellation/reconciliation is insufficient.
+2. Verify stable execution ID and request digest across restart, authorized Stop, remote timeout/unknown reconciliation, and pending-vs-running cancellation semantics against real HTTP/provider fixtures.
+3. Verify two independently selected instances, same-principal PHY worker deduplication, cross-principal privacy, viewer detach and independent REL/branch selection.
+4. Verify Tauri-visible text is only committed after P4 checkpoint synchronization, with late join, slow readers, revocation, resume, epoch rotation and required resync.
+5. Verify exact task-root and ProjectFileRef attribution across authorized retrieval and management.
+6. Record exact Warlock commit, tests, frontend production build, source guards and remaining product/environment exceptions.
+
+### Ready-to-close gate — convergence and pins
+
+1. Merge accepted N3 A/B/E/F/G core exports and B/E execution-only negotiation into a single candidate; preserve one implementation owner for each type.
+2. Run full locked Reliquary and detachable CLI checks/tests/examples, ownership/coverage guards, docs and current architecture checks.
+3. Pin Warlock to exact accepted Reliquary **and** direct Arcana SHAs; regenerate lockfile, prove exactly one intended Arcana identity, rerun provider/context/stream tests plus frontend.
+4. Commit merged source and pin changes; record successful real-consumer acceptance (not a local wrapper-only pass).
+
+### Ready-to-close gate — legacy removal
+
+1. Use the accepted D0 reverse-caller inventory `bfdd267`; recheck it against merged source and Warlock.
+2. Relocate surviving report/error/query types and persisted readers; remove `ReliquaryRuntimeHost` and obsolete session/worker/mount routing authority.
+3. Replace legacy-behavior tests with Gateway/Instance equivalents, reject legacy symbols/callers, and run complete locked suites.
+4. Confirm no second journal owner, queue, personal worker, writable global selector or compatibility facade.
+
+### Ready-to-close gate — post-deletion release
+
+1. Port P6 harness `81a64b6` and H5 diagnostics `b2b4bf4` to the final integrated source.
+2. Test multiple REL/PHY/instances, queue chronological order and cancellation/finalization races, branch history, crash/reopen, durable receipt loss and no duplicate work.
+3. Test stream join, slow subscribers, bounded overflow/resync, revocation, epoch rotation, checkpoint durability and private PHY delivery.
+4. Test actual Warlock provider, host reconciliation, frontend/Tauri and model interruption; do not equate local transport stop with remote stop.
+5. Measure worker count, queue latency, lock contention, fanout memory, restart time and throughput on frozen before/after workloads; record exact hardware, profiles and variance.
+6. Run all locked test matrices, code guards, documentation validation and current architecture enforcement. Mark unreached environments explicitly incomplete.
+
+### Hermes adapter — build and acceptance
+
+1. Inventory actual Hermes plugin/source API and canonical session/message/branch identity; capture change-feed and authorization contracts.
+2. Freeze a minimal normalized feed (floor, high-water, cursor, operation ID, hashes, edit/delete/rewind semantics) and authorized transient hydration.
+3. Implement plugin-side adapter for sessions, live events, capability-specific execution, cancellation and lifecycle over Gateway/Instance; keep Hermes canonical transcripts in Hermes, not duplicated in REL Archive.
+4. Use existing reference-only external core and Insomnia normalizer; prove deterministic reindex/rebuild, no double publication, no cross-profile hydration and Hermes independence during Reliquary outage.
+5. Exercise simultaneous sessions/contexts, same-principal shared PHY, different-principal isolation, stream reconnect and ambiguous in-flight recovery with actual Hermes fixtures/providers.
+6. Pin, test and commit both sides; record real end-to-end test evidence. This is the second release milestone, independent of optional import/ACP adapter breadth.
+
 ## Step 1 — Warlock consumer completion
 
 1. Wire actual execution-only provider host adapter and retain native pending authority where the host lacks durable queue semantics.

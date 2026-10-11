@@ -2,9 +2,20 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-## Multiplexing distribution status
+## Active release track — multiplexing
 
-P4.1–P4.4 are implemented on the independent distribution branch, including internal snapshot/resync and non-conversation gateway/worker publication. The [P4.4 record](multiplexing-implementation-plan.md) owns coverage and verification. P4.5 snapshot-based reconnect, grant/epoch recovery and reconciled lifecycle summaries are implemented; the [P4.5 record](multiplexing-implementation-plan.md) owns acceptance. P4.6 generic stream mechanics are implemented against a deterministic frozen-contract provider; the [stream record](multiplexing-implementation-plan.md) owns acceptance and bounds. P4.7 production P3 convergence is implemented and verified; see the [convergence record](multiplexing-implementation-plan.md). P4.8 coverage/lock/privacy audit is complete; P4.9 local/convergence functional acceptance passed with the verification exceptions in the [P4.9 acceptance record](multiplexing-implementation-plan.md).
+Authoritative execution details: [Multiplexing implementation plan](multiplexing-implementation-plan.md). Current implementation frontier: Reliquary N3 `feat/multiplexing-n3-staging` at `dcf500e`, not documentation-only `main`.
+
+| Order | Owner | Remaining work | State | Completion |
+|---|---|---|---|---|
+| 1 | Warlock | Production provider execution-only adapter, remote reconciliation, multi-context privacy, P4 public delivery, task-root attribution | Open, native execution/Stop/status accepted | Real provider and contextual/reconnect/stream fixtures |
+| 2 | Both | Consolidate N3 code, pin exact Reliquary/Arcana versions, run locked acceptance | Partially staged | One code/Arcana identity and passing Reliquary/CLI/Warlock/frontend suites |
+| 3 | Reliquary | Remove `ReliquaryRuntimeHost` and duplicate ambient authority | Inventory prepared, blocked on 1–2 | No legacy callers/exports/facades, full regression pass |
+| 4 | Both | Post-deletion P6 release verification | Harness exists, blocked on 3 | Crash/restart, scheduling, privacy, streams, real provider/Tauri and measured performance |
+| 5 | Hermes + Reliquary | Implement live Hermes change-feed/hydration and session/plugin adapter | Planned | Host-owned canonical transcript, strict authorization and integration fixtures |
+| 6 | Hermes + Reliquary | Real multi-session/plugin acceptance | Not started | Shared PHY, multi-principal isolation, cancellation, reconnect and replay tests |
+
+**Release A:** 1–4 completes Reliquary/Warlock multiplexing. **Release B:** 5–6 completes Hermes plugin integration. Optional F5, broad import formats and ACP adapters remain separate backlog. No new dated checkpoint or acceptance files: update the active plan, with test logs retained externally.
 
 ## Purpose
 
@@ -14,7 +25,7 @@ This document owns future implementation work for Reliquary. Completed behavior 
 
 Reliquary is the purpose-built semantic/storage/runtime library embedded by Warlock. Its semantics do not depend upward on Warlock. Project-file history belongs to Lore or Git through Reliquary's Project Environment; REL/PHY retain independent semantic state and history.
 
-The immediate semantic sequence is now: finish cross-scope Entity identity, then Observation composition—including relational Observations—then Ego. The graph-aware runtime host, cross-owner retrieval substrate, Project Environment ownership, conversation/session ownership, Context Engine policy, and Warlock cleanup that these stages depend on are already complete. Separately, GatewayRuntime/InstanceRuntime multiplexing Phase 1 is complete locally: owner/instance authority, durable accepted work, ConversationExecution ownership and fenced ambient/project operations passed final verification. Phase 2 multi-principal PHY ownership, exact-owner publication and private access are also verified locally; the [Phase 2 finish record](multiplexing-implementation-plan.md) records final evidence and inherited verification limits. Phase 3 conversation coordination is accepted locally. P4 production distribution and local acceptance are complete with documented verification limits. Final P3/P4 integration is verified for main ([evidence](multiplexing-implementation-plan.md)). Phase 5 is now active off-main: A/B implementation is accepted on feature/integration lines, C is late-stage with the Warlock old-host consumer removed on its final-cut branch, and E/F/G plus the D hard cut remain. The [2026-10-07 next-wave plan](multiplexing-implementation-plan.md) owns the current parallel sequence.
+The immediate semantic sequence remains cross-scope Entity identity, Observation composition and Ego. Multiplexing is a separate release track; see the ordered active work above. N3 E/F/G/B-E core is implemented, but the final Warlock integration, dependency pins, old-host deletion and release checks remain.
 
 ## Current semantic sequence
 
@@ -58,9 +69,9 @@ Future work should:
 
 The current reconciliation API remains compatibility behavior; do not expand it into a second project VCS.
 
-### 3. Complete the live runtime seam
+### 3. Live runtime follow-on after multiplexing convergence
 
-Finish the host-facing runtime behavior that is not yet covered by the in-process `InteractionRuntime` / `ReliquaryRuntimeHost` boundary:
+E5 live runtime is staged and verified on N3. The following are remaining production-consumer acceptance or product extensions, not unimplemented E0–E5 groundwork:
 
 - adapter reconnect/resume and adapter migration around durable session/message cursors;
 - normalized tool, session, and generated-artifact events without transport-specific semantic authority;
@@ -71,9 +82,9 @@ Finish the host-facing runtime behavior that is not yet covered by the in-proces
 
 Do not turn Reliquary into an independently deployed service merely to host these capabilities. Any future IPC/server boundary requires a separate architectural decision.
 
-### 4. Complete the workspace management API
+### 4. Workspace management follow-on
 
-Expose the remaining concrete owner operations Warlock needs without creating a generalized mutable semantic object layer.
+F0–F4 workspace management is staged and verified on N3. Finish missing consumer-specific primitives and optional F5 import/export without creating a generalized mutable semantic object layer.
 
 Needed surfaces include:
 
@@ -86,9 +97,9 @@ Needed surfaces include:
 
 The management layer composes existing owners; it does not become a new semantic owner.
 
-### 5. Production import and interoperability adapters
+### 5. Additional production import and interoperability adapters
 
-Add normalized ingestion for historical and external interaction sources:
+G-import normalized ChatGPT, Claude, Hermes JSONL and structured-agent text profiles are staged on N3. The following production-grade adapters and real-export conformance remain:
 
 - production ChatGPT import;
 - Claude/provider export import;
@@ -100,9 +111,9 @@ Add normalized ingestion for historical and external interaction sources:
 
 ACP remains an adapter, not a canonical storage schema. See [ADR 0015](decisions/0015-acp-inline-interaction-stream.md) and [ADR 0016](decisions/0016-native-product-surface-and-shared-interaction-runtime.md).
 
-### 6. External canonical-transcript integrations
+### 6. External canonical-transcript adapter follow-on
 
-Add the reference-only external integration mode defined by the [External conversation index integration plan](conversation-index-integration-plan.md).
+The framework-neutral R0–R4 reference-only external index is implemented on N3. The remaining host-specific adapters follow the [External conversation index integration plan](conversation-index-integration-plan.md).
 
 This is additive to native Archive-backed operation. For hosts that already own canonical conversation history, Reliquary should:
 
