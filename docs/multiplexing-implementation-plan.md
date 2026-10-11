@@ -99,18 +99,86 @@ The six numbered deliverables are the **only current progress sequence**. Subtas
 
 | ID | Action | Status |
 |---|---|---|
-| 1.1 | Audit current Warlock consumer against N3 interfaces and actual dependency pins | Not started |
-| 1.2 | Finish execution-only provider adapter | Partial |
-| 1.3 | Implement remote outcome reconciliation, reconnect and Unknown recovery | Partial |
-| 1.4 | Complete cancellation and provider operation lifecycle | Partial |
-| 1.5 | Complete multi-instance context and session management | Not verified |
-| 1.6 | Verify shared PHY ownership and cross-principal isolation | Not verified |
-| 1.7 | Integrate checkpointed durable conversation streams with Warlock UI/Tauri | Not verified |
-| 1.8 | Implement public reconnect, resync and subscription recovery | Not verified |
-| 1.9 | Complete exact task-root attribution and ProjectFileRef propagation | Not verified |
-| 1.10 | Run full real-provider, frontend, privacy and Warlock acceptance matrix | Blocked on 1.2–1.9 |
+| 1.1 | Audit current Warlock consumer against N3 interfaces and actual dependency pins | Audited 2026-10-11: main `4da92b3`, consumer branch `90fdb61`; production pins remain pre-N3; build compatibility unverified |
+| 1.2 | Finish execution-only provider adapter | Implemented on consumer branch `90fdb61` plus local readiness fix; N3 library suite 223 passed, 1 benchmark ignored; final pins remain Step 2 |
+| 1.3 | Implement remote outcome reconciliation, reconnect and Unknown recovery | Partial; provider contract audit found no remote recovery API in either registered transport |
+| 1.4 | Complete cancellation and provider operation lifecycle | Local lifecycle repaired and HTTP Stop fixtures pass; remote termination acceptance still depends on 1.3 |
+| 1.5 | Complete multi-instance context and session management | Backend task contexts verified against N3; independent desktop window selection remains unaccepted |
+| 1.6 | Verify shared PHY ownership and cross-principal isolation | Verified against N3 `dcf500e`: 9 production runtime tests and 3 Warlock consumer tests passed; final pinned/product acceptance remains open |
+| 1.7 | Integrate checkpointed durable conversation streams with Warlock UI/Tauri | Implemented and targeted N3/frontend checks passed; interactive Tauri operator acceptance remains open |
+| 1.8 | Implement public reconnect, resync and subscription recovery | Implemented with bounded observer reconnect; targeted N3/backend and frontend checks passed |
+| 1.9 | Complete exact task-root attribution and ProjectFileRef propagation | Task-root attribution verified; exact ProjectFileRef propagation blocked on N3 submission API |
+| 1.10 | Run full real-provider, frontend, privacy and Warlock acceptance matrix | Targeted matrix passed; full fresh rebuild hit Lore/rustc environment ICE; final acceptance remains blocked on 1.3, 1.5, 1.9 and pins |
 
 **Exit gate:** upgraded Warlock uses canonical Gateway/Instance APIs with correct real-provider recovery, streaming, authorization and multi-context behavior; commit and log exact tests and pins.
+
+### Step 1.1 audit — 2026-10-11
+
+Warlock `main` is `4da92b3`; it does not contain consumer branch `feat/multiplexing-p5c-final-cut` at `90fdb61` (including `69c4642` and the earlier `be17ad5` slice). The consumer worktree was clean at audit time; main has existing graph/UI and roadmap edits. Reliquary N3 remains `dcf500e`. This was a source and Git audit; no fresh build or test pass is claimed.
+
+Both Warlock manifests still pin Reliquary `83b3ac87a80a4221039fa07d9722f5f8076464ba` and direct Arcana `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`; the consumer lockfile agrees and contains one Arcana package entry. N3 requires Arcana `9ebccd6e7d089b98a8992c5451ba57f903f295fb`. Therefore the committed production dependency graph does not establish N3 compatibility; changing only the Reliquary pin would leave distinct Arcana revisions.
+
+The later consumer source implements `GatewayHostAdapter` with execution-only conversation capability, native pending ownership, local status/cancel/reconciliation, authorized `LiveSession` checkpoint receipt consumption, resync snapshots and bounded viewer reattachment. Local cancelled/unknown outcomes remain remotely Unknown. Remote provider reconciliation is still absent. Legacy-named `ReliquaryRuntimeHostError` imports survive and require type relocation during Step 3; their names alone do not demonstrate a duplicate host owner.
+
+Next action: verify the current main consumer against N3 with aligned Arcana in an isolated candidate, retaining production pin acceptance for Step 2. Exercise provider recovery and current task/viewer behavior before upgrading the remaining Step 1 statuses. Existing source/tests are implementation evidence, not fresh acceptance of real HTTP providers, frontend delivery or privacy gates.
+
+### Step 1.2 implementation — 2026-10-11
+
+The existing execution-only adapter on `Warlock-p5c-final-cut` is installed at startup and uses the real provider lifecycle. Local changes require negotiated `ExecutionOnlyReady` before provider context preparation and again before durable generation creation. The new production-task fixture rejects unconfigured and Unknown-held execution and accepts negotiated readiness. Pending work remains native; remote reconciliation remains Step 1.3.
+
+Fresh command: `scripts/cargo-local-reliquary.ps1 test -ReliquaryPath C:\!bin\workspace\Reliquary-n3-staging --offline --lib`, with TEMP/TMP inside the consumer worktree and GIT_CEILING_DIRECTORIES set to that temporary directory: **223 passed, 0 failed, 1 existing benchmark ignored** against N3 `dcf500e`. The first run had 222 passed and one missing-Git-repository fixture failure caused by discovering the enclosing worktree; bounding discovery resolved it. Existing compiler/linker warnings persist. Both Warlock docs modes and existing Pitlord enforcement passed (63 rules); fresh graph refresh, frontend release acceptance and locked production pins remain open. The transient wrapper restores the production lockfile and currently resolves two Arcana revisions.
+
+### Step 1.3 provider contract audit — 2026-10-11
+
+The registered transports are OpenAI-compatible Chat Completions and OpenAI Codex. `ProviderTransport` exposes inference and credential operations, with no remote operation lookup, resume or terminal-outcome reconciliation contract. Codex request construction sets `store: false`. The local execution record binds owner/operation/digest but retains neither a remote recovery receipt nor a provider-specific query identity. The host adapter therefore reconciles only process-local records; missing and locally cancelled executions remain Unknown. REL remains the durable generation/no-replay owner.
+
+Completing remote recovery requires selecting a provider protocol that supplies authenticated durable operation lookup and defining how its receipt, request digest and terminal result bind to the native generation. Generic HTTP retry or a fabricated status endpoint cannot supply that evidence. Step 1.3 remains partial pending that protocol decision; no remote recovery implementation or new test acceptance is claimed by this audit.
+
+### Step 1.4 local lifecycle — 2026-10-11
+
+Consumer changes finalize the durable generation and execution lease before optional usage accounting, preventing telemetry failure from bypassing completion/cleanup. The public readiness query now includes negotiated execution-only readiness. The actual HTTP Stop fixture additionally verifies authorized repeated Stop and rejection of late output after interruption; its three provider acceptance tests pass against N3 `dcf500e` through the transient wrapper (`test --offline --lib provider_execution_acceptance_tests`). Production pins remain unchanged. Local Stop requests cooperative cancellation and fences durable output; remote termination cannot be accepted until Step 1.3 supplies a recovery protocol. No complete cancellation/release acceptance is claimed.
+
+### Step 1.5 backend context verification — 2026-10-11
+
+Existing production operating contexts attach distinct authenticated instances to one Gateway and keep provider REL/conversation/branch roots independent of desktop selection. A new fixture verifies duplicate context-key rejection, detach invalidation, key reuse with a fresh instance, and preservation of the other selected session. The five `chat_task_context_tests` pass against N3 `dcf500e` through `scripts/cargo-local-reliquary.ps1 test --offline --lib chat_task_context_tests` with the exact N3 path override. These fixtures also cover selection changes during two accepted generations, shared PHY identity, task-local retrieval and grant revocation.
+
+The desktop RPC surface still uses a primary workspace instance and viewer opening checks the currently selected owner. Independently selected backend tasks/viewers are implemented; fully independent desktop windows have not been implemented or accepted by this verification. Production dependency pins, UI acceptance and remote recovery remain open.
+
+### Step 1.6 PHY ownership and privacy verification — 2026-10-11
+
+Fresh locked/offline N3 library compilation used `cargo test --locked --offline --lib --target-dir ../Warlock-p5c-final-cut/src-tauri/target`; TEMP/TMP stayed inside the N3 worktree. The initial filename-based filter selected zero tests and is not acceptance evidence. The resulting `reliquary_memory-d6a36fdd0a41b529.exe` then passed **9 production tests** using filters `gateway::phy_tests` (4), `combined_search_and_private_reads`, `private_search_rejects`, `attachment_churn_preserves`, `private_provider_io`, and `broad_snapshot_never` (1 each).
+
+These tests count exactly one three-worker PHY set across same-principal attachment/detach, reject foreign-principal binding and retargeting, fence stale tokens across remount, join workers at shutdown, preserve ownership during attachment churn, deny foreign private semantic reads, revalidate revocation during embedding/provider I/O, and exclude PHY bodies from broad snapshots. They exercise production Gateway code; the Phase 0B reference-model contract files were not counted.
+
+The current N3-built Warlock test executable passed **3 consumer tests**: `actual_task_contexts_share_one_phy` and both `workspace_admission_tests`. This verifies shared PHY identity and authenticated grant/identity isolation through Warlock's existing adapter. No source change was required for Step 1.6. Compiler/linker warnings remain; production pins, independent-window UI and release acceptance remain separate gates.
+
+### Step 1.7 checkpointed Tauri/UI integration — 2026-10-11
+
+Existing `DurableStream` stages provider text, synchronizes its native generation checkpoint, and emits only the authorized P4 receipt consumed through `ChatLiveDelivery`. The UI replaces full prefixes. Consumer changes add direct-channel operation/message/epoch validation and integer-safe monotonic receipt handling, rejecting duplicates, wrong generations and regressing deliveries.
+
+Fresh verification: the N3-built Warlock executable passed both `chat_live_delivery_tests` and both `chat_stream::prefix_tests` (**4 tests**); `npx --no-install tsx scripts/durable-text.test.ts` passed identity, duplicate, ordering, malformed-sequence and beyond-safe-integer checks; `npm run build` passed (existing large-chunk warning persists). Backend fixtures cover checkpoint-before-text, Unicode, late join, slow-reader resync, revocation, channel failure, remount and durable no-replay. Interactive Tauri operator acceptance, final pins and full release gates remain open; this is targeted integration evidence.
+
+### Step 1.8 public reconnect and resync — 2026-10-11
+
+The public `generationObserver` now treats a failed viewer read as recoverable while an active generation exists. It closes the stale authorized handle, re-reads the current generation hint, opens a fresh viewer, consumes the server-authoritative prefix snapshot, and resumes polling with bounded exponential backoff. It never submits work or restarts a provider operation. The initial open still reports an error to the UI; subsequent transient reconnect attempts remain quiet until they recover or the generation disappears.
+
+Fresh verification passed: `chat_live_delivery_tests` (2), `chat_generation_viewers_tests` (2), the durable receipt UI checks, and `npm run build`. These cover late join, slow-reader overflow/resync, Unicode prefixes, revocation, failed recipients, mount-epoch rotation, reauthorization, detach/rejoin and no duplicate provider dispatch. Interactive Tauri reconnect under an actual window lifecycle remains a release-level check; production pins and final release gates remain open.
+
+### Step 1.9 attribution and ProjectFileRef audit — 2026-10-11
+
+Task-root attribution is implemented and verified: `ChatTaskContext` freezes owner, conversation, branch, accepted leaf and submission identity from the native Archive receipt; provider context, tools, checkpoints, completion and viewer delivery use that frozen authenticated attachment. The existing consumer tests also verify selection changes do not retarget accepted work, sibling owners are rejected, and stable attachment retries do not duplicate the user turn.
+
+Exact project-file propagation remains blocked at the Reliquary boundary. Warlock calls `ingest_project_attachment_for` for the original owner and project directory, but discards the returned `StoredFile`. It then sends raw bytes in `GatewayConversationAttachment`; N3 `GatewayConversationSubmission` has no `ProjectFileRef` or project-file identity field, and N3 admission stages embedded attachment bytes. Warlock cannot reconstruct canonical repository revision/path provenance safely after that point. The canonical fix belongs in Reliquary: return/bind the ingested file identity as part of the immutable submission attachment contract and preserve it through journal admission, retries, rejection side effects and finalization.
+
+Fresh targeted evidence passed against the N3-built Warlock executable: `stable_attachment_retry_does_not_duplicate_the_user_turn` (1), `workspace_memory_provenance_tests` (2), and `actual_task_contexts_share_one_phy_and_keep_roots_and_native_writes_independent` (1). The provenance tests validate existing ProjectFileRef reads for already-bound records; they do not close the new-submission propagation gap. No Warlock-side workaround or completion claim is recorded.
+
+### Step 1.10 Warlock acceptance matrix — 2026-10-11
+
+The existing N3-built Warlock acceptance executable passed **224 tests, 0 failed, 1 ignored** in a serial run with repository-local TEMP/TMP and bounded Git discovery. The matrix includes the actual OpenAI-compatible HTTP transport, authorized Stop, digest/idempotency/replay guards, task-root and privacy isolation, shared PHY/context behavior, P4 checkpoint delivery, viewer reconnect fixtures, ProjectFileRef read/provenance checks, workspace lifecycle and frontend-facing command contracts. The ignored test is the existing Arcana inspection benchmark requiring an external fixture.
+
+The frontend production build and durable checkpoint UI checks passed. Warlock docs, change-impact docs and Pitlord passed (63 rules, 16,214 source nodes, 23,857 relationships). A fresh full rebuild against the N3 override compiled application sources but failed during Lore linking with a rustc 1.97.1 compiler ICE (`Os { code: 2, kind: NotFound }`) while producing `lore.dll`; this is an environment/toolchain failure, so the prebuilt executable result is retained as the runtime matrix evidence and the fresh locked build is not claimed green. The build also resolves two Arcana revisions (`9ebccd6` and the production `66b4e96`), confirming the Step 2 pin issue.
+
+Step 1.10 does not close the release gate: remote provider reconciliation (1.3), independent desktop window selection (1.5), exact new-submission ProjectFileRef propagation (1.9), final dependency pins and interactive operator acceptance remain open.
 
 ## Step 2 — Merge and pin
 
@@ -118,18 +186,160 @@ The six numbered deliverables are the **only current progress sequence**. Subtas
 
 | ID | Action | Status |
 |---|---|---|
-| 2.1 | Audit all active integration branches, unique changes and accepted SHAs | Not verified |
-| 2.2 | Establish final convergence candidate from accepted N3 source | Partial |
-| 2.3 | Integrate accepted Gateway/Instance, background and queue ownership cuts | Partial |
-| 2.4 | Integrate accepted live runtime and management surfaces | Partial |
-| 2.5 | Integrate accepted native import and external-reference core | Partial |
-| 2.6 | Resolve exports, interface ownership and dependency conflicts | Partial |
-| 2.7 | Run full locked Reliquary/CLI tests, examples and architecture/ownership guards | Blocked on final candidate |
-| 2.8 | Pin Warlock to exact accepted Reliquary and Arcana revisions | Blocked on Step 1 and final candidate |
-| 2.9 | Run full pinned Warlock provider, context, stream and frontend matrix | Blocked on 2.8 |
-| 2.10 | Commit and verify integrated source, exact pins and acceptance evidence | Blocked on 2.7–2.9 |
+| 2.1 | Audit all active integration branches, unique changes and accepted SHAs | Audited 2026-10-11: accepted lane tips are identified; no source merge performed |
+| 2.2 | Establish final convergence candidate from accepted N3 source | Candidate established 2026-10-11 at `feat/multiplexing-final-convergence` / `dcf500e`; overlay review remains |
+| 2.3 | Integrate accepted Gateway/Instance, background and queue ownership cuts | Integrated in candidate 2026-10-11; candidate guards pass, architecture refresh environment-blocked |
+| 2.4 | Integrate accepted live runtime and management surfaces | Integrated in candidate 2026-10-11; source guards pass, locked Rust acceptance build-blocked |
+| 2.5 | Integrate accepted native import and external-reference core | Integrated in candidate 2026-10-11; ownership guards pass |
+| 2.6 | Resolve exports, interface ownership and dependency conflicts | Complete for candidate `dcf500e`: locked graph and library compilation passed; exact consumer pins applied in 2.8 |
+| 2.7 | Run full locked Reliquary/CLI tests, examples and architecture/ownership guards | Partial verification 2026-10-11: locked compile, guards and docs pass; tests/examples/refresh remain environment-blocked |
+| 2.8 | Pin Warlock to exact accepted Reliquary and Arcana revisions | Pinned 2026-10-11; locked metadata verified through local candidate override; remote Reliquary fetch remains unavailable |
+| 2.9 | Run full pinned Warlock provider, context, stream and frontend matrix | Complete 2026-10-11 against Reliquary candidate `dcf500e` and Arcana `66b4e96`; local candidate override used because Reliquary revision is unpublished |
+| 2.10 | Commit and verify integrated source, exact pins and acceptance evidence | Local integration commits created; final release gate remains blocked on 2.7 evidence and remote publication |
 
 **Exit gate:** one integrated code revision, one intended Arcana package identity, and no untested or conflicting runtime interfaces. Do not reimplement already accepted core features.
+
+### Step 2.1 branch audit — 2026-10-11
+
+The active branch audit used the exact local refs and recorded tip SHAs below. `dcf500e` is the N3 staging tip. The accepted lane tips marked **in N3** are ancestors of that staging tip; their changes are already represented in the N3 source candidate and must not be reimplemented. The later inventory/diagnostic branches are evidence overlays from the recorded convergence base and are not additional runtime implementations.
+
+| Lane | Ref and accepted tip | Relationship to N3 | Scope / convergence note |
+|---|---|---|---|
+| N3 staging | `feat/multiplexing-n3-staging` — `dcf500e` | Candidate base | B/E negotiation, architecture acceptance and staging verification |
+| B/E execution-only | `feat/multiplexing-be-execution-only` — `b8fba6a` | In N3 | Execution-only negotiation; preserve native pending authority |
+| P5-A REL consumers | `feat/multiplexing-p5-rel-consumers` — `7350149` | In N3 | Canonical REL and semantic consumer APIs |
+| P5-B background | `feat/multiplexing-p5-background` — `c45f50e` | In N3 | Background controls and executable host capability cut |
+| E5 live runtime | `feat/multiplexing-p5-live-runtime` — `874851a` | In N3 | Live runtime acceptance and native receipt seams |
+| F-core management | `feat/multiplexing-p5-management` — `13df1ff` | In N3 | Workspace management facade |
+| P5-G external core | `feat/multiplexing-p5-external` — `7c63eb8` | In N3 | External canonical transcript R0–R4 |
+| P5-C API | `feat/multiplexing-p5c-api-integration` — `4ce4911` | In N3 | Exact dispatch and acknowledged transcript recovery |
+| P5-C conversation API | `feat/multiplexing-p5c-conversation-apis` — `f64676e` | In N3 | Managed branch selection and conversation correlation |
+| P5-C project contract | `feat/multiplexing-p5c-project-contract` — `a999f49` | In N3 | Canonical project creation and admission guard |
+| P5-C conversation contract | `feat/multiplexing-p5c-conversation-contract` — `beb122c` | Two commits beyond convergence base; not in N3 | Contract export overlay; requires explicit conflict/ownership review before inclusion |
+| P5-D0 inventory | `feat/multiplexing-p5d-inventory` — `bfdd267` | One commit beyond convergence base; not in N3 | Legacy-host inventory/deletion manifest; verification evidence, not runtime authority |
+| P5-G native import | `feat/multiplexing-p5g-import` — `99b9fa5` | In N3 | Native import contracts and supported profiles |
+| P6-H5 diagnostics | `feat/multiplexing-p6-h5` — `b2b4bf4` | One commit beyond convergence base; not in N3 | Reproducible N0 diagnostics and measurements |
+| P6-H harness | `feat/multiplexing-p6-harness` — `81a64b6` | One commit beyond its P6 verification base; not in N3 | Real-runtime crash/profiling harness |
+| Warlock consumer | `Warlock/feat/multiplexing-p5c-final-cut` — `90fdb61` | Separate repository; contains Warlock `main` `4da92b3` | Consumer frontier; production pins still target Reliquary `83b3ac8` and Arcana `66b4e96` |
+
+The audit found no clean final convergence commit. Reliquary `main` at `f03ab9d` is documentation/planning history and is not a replacement for the N3 source candidate. The working trees also contain uncommitted Step 1 changes (this plan in Reliquary and consumer/runtime changes in Warlock), so the listed SHAs are accepted branch tips, not yet release pins. Step 2.2 must create a clean convergence candidate from N3, explicitly review the four overlay branches, and retain only their accepted evidence or source deltas. Step 2.8 must then align both the Reliquary and direct Arcana revisions; the current Warlock graph still resolves the pre-N3 Arcana revision alongside N3's Arcana revision.
+
+No source merge or dependency pin change was performed for this audit.
+
+### Step 2.2 convergence candidate — 2026-10-11
+
+Created the local Reliquary ref `feat/multiplexing-final-convergence` at exact commit `dcf500ea8438e9b3e782959dd0176efcb58b7b0a` (short SHA `dcf500e`). This is a clean candidate ref at the N3 staging tip, with zero candidate-only commits and zero diff relative to `feat/multiplexing-n3-staging`. The earlier `feat/multiplexing-p5-convergence` ref (`999fbf7`) is an ancestor of N3 and is retained as historical convergence-base evidence, not as the final candidate.
+
+The candidate intentionally does not cherry-pick or merge the four overlay branches identified in Step 2.1. P5-C conversation-contract (`beb122c`) requires an ownership/export review; P5-D0 (`bfdd267`), P6-H5 (`b2b4bf4`) and P6-H harness (`81a64b6`) are inventory/diagnostic evidence and must not silently become runtime source. Their inclusion, if any, belongs in Steps 2.3–2.6 with targeted verification. The candidate also does not include Warlock's uncommitted Step 1 work or change dependency pins.
+
+The current checkout remains on Reliquary `main` with the implementation plan modified in the working tree; creating the candidate ref did not switch or rewrite that checkout. The candidate is therefore a stable source starting point for Step 2.3, but not yet a release commit: full locked checks, overlay decisions, Arcana identity resolution and real Warlock acceptance remain outstanding.
+
+### Step 2.3 Gateway/Instance, background and queue ownership — 2026-10-11
+
+The N3 candidate already contains the accepted ownership cuts; no duplicate implementation or cherry-pick was required:
+
+- `GatewayRuntime` is the canonical mounted-owner authority. It owns the shared REL/PHY execution objects, owner journals, mount epochs and owner-scoped operation paths in `src/runtime_inference/runtime_host_gateway.rs` and its gateway submodules.
+- `InstanceRuntime` is a selection/authorization context, not a second owner. `src/runtime_inference/runtime_host_instances.rs` keeps active selection, grants and token generations while detaching only the instance context.
+- Background controls are exact-owner gateway operations in `src/runtime_inference/runtime_host_gateway_background.rs`. They authorize before reading or mutating owner state and deliberately do not create a second queue or store authority.
+- The accepted queue path remains owner-local: background status and wake operations reach the mounted owner's perception queue, while the interaction background processor remains the typed processing seam in `src/runtime_inference/interaction_background.rs`.
+
+Candidate verification from an isolated worktree at `dcf500e` passed the P4/P4.8 ownership guard (75 fixtures, 161 public API classifications), workspace-management guard, and external-source ownership guard. A fresh architecture refresh was attempted with the sibling Lexicon/Arcana tools, but Arcana failed while syncing the generated Lexicon snapshot with `os error 2`; this is an environment/toolchain exception, not a source failure. The previously recorded N3 architecture acceptance remains the applicable source evidence until the refresh can be rerun successfully.
+
+Step 2.3 therefore closes the source-integration portion. Remaining work is Step 2.4 management/live-runtime verification, followed by the full locked candidate checks and dependency pin acceptance.
+
+### Step 2.4 live runtime and management surfaces — 2026-10-11
+
+The candidate at `dcf500e` contains both accepted tips: P5-E live runtime `874851a` and P5-F-core management `13df1ff`. Their composition is present through the existing gateway seams rather than a second host:
+
+- `GatewayRuntime::live_runtime_adapter` binds live sessions to a verified instance. `LiveSession`, resume cursors/hints, generation status, cancellation, tool receipts and generated-artifact finalization remain under the existing P3/P4 durable and delivery authorities.
+- `GatewayRuntime::workspace_management` binds management calls to a verified instance. `WorkspaceManagement` is a forwarding facade; it does not retain semantic data, queue state, selection copies, recipient state or an independent cache.
+- The crate-root exports in `src/lib.rs` expose the named E/F types (`LiveSession`, `LiveStreamCursor`, `LiveStreamEvent`, `LiveStreamSnapshot`, `LiveToolEvent`, `WorkspaceManagement`, management DTOs and bounds) from their single composition roots.
+- Maintainer ownership is explicit: live recipient adaptation is in `interaction_live*.rs`, management composition is in `workspace_management*.rs`, and gateway management tests cover the authorized binding boundary.
+
+Candidate-specific guards passed: P4/P4.8 coverage, workspace-management ownership, and external-source ownership. A locked focused Rust run was started against the exact candidate with the existing N3 target. It did not reach test execution: the Lore build failed with missing generated dependency artifacts (`can't find crate` / missing `.rlib` paths) while compiling the locked graph. The retry was stopped after reproducing the dependency rebuild path; this is retained as a build-environment limitation, not a source-level failure. Prior N3 E5/F-core acceptance records remain the applicable runtime evidence.
+
+Step 2.4 closes source integration and guard verification. Full locked candidate execution remains required before Step 2.7, and Step 2.8 still requires aligned Reliquary/Arcana pins.
+
+### Step 2.5 native import and external-reference core — 2026-10-11
+
+The candidate at `dcf500e` contains both accepted lanes: P5-G native import `99b9fa5` and P5-G external core `7c63eb8`.
+
+- Native import is composed through `src/imports/` and the archive/episode import seams. The normalized `NativeImport` contract, provider adapters, receipts, branch/artifact identity and CLI import boundary remain one import authority; the fixtures and `tests/native_import.rs` are present in the candidate.
+- External references are composed through `src/external_source/` and the gateway external modules. `ExternalConversationSource`, immutable message/chunk references, content hashes, source evidence and owner-local publication/processing receipts remain the canonical external boundary.
+- `runtime_host_gateway_external*.rs` performs instance-bound authorization before index, search, hydration, processing or provenance reads. It forwards to the existing owner-local external source state and does not create a second gateway, store or ownership registry.
+- The candidate root includes the external-source module and the import module without introducing a competing runtime host export. Project/file provenance continues through the existing `ProjectFileRef` and source-evidence contracts.
+
+Candidate guards passed: external-source ownership (11 negative/positive fixtures plus production-boundary checks) and P4/P4.8 coverage (75 fixtures, 161 public API classifications). A `cargo fmt --all -- --check` attempt in the existing N3 worktree was blocked by Windows path canonicalization access denied (`os error 5`) before formatting diagnostics; no formatting change was made. The prior N3 import/external acceptance records remain the applicable runtime evidence pending the clean locked candidate run.
+
+Step 2.5 closes source integration and ownership verification. Full locked tests and formatting remain release evidence for Step 2.7; no new import or external implementation is needed.
+
+### Step 2.6 exports, interfaces and dependencies — 2026-10-11
+
+Candidate `dcf500e` defines GatewayRuntime, InstanceRuntime, LiveSession and WorkspaceManagement once each. The existing gateway composition re-exports E/F types through the runtime and crate roots; no additional export overlay is required.
+
+Exclude conversation-contract tip `beb122c` from convergence. Its five metadata/branch/Echo methods already exist in `runtime_host_gateway_conversation_metadata.rs`; replaying the old ambient implementation would duplicate those methods. Its additional `open_conversation_for` returns the historical InteractionSession cursor and is not needed by the accepted managed conversation/live-session API. Retain the branch only as historical evidence. D0 and P6 inventory/diagnostic overlays remain separate evidence pending current-source verification.
+
+The candidate Cargo manifest and lockfile agree on one Arcana revision, `9ebccd6e7d089b98a8992c5451ba57f903f295fb`. Warlock still pins Reliquary `83b3ac87a80a4221039fa07d9722f5f8076464ba` and Arcana `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`. Both must change together in Step 2.8 after candidate acceptance. Step 2.6 is therefore partial across repositories: export and overlay ownership decisions are resolved, while dependency alignment and compiled verification remain outstanding. No source or pin changes were necessary for the reviewed candidate.
+
+### Step 2.6 completion verification — 2026-10-11
+
+The candidate dependency choice is verified: locked Windows metadata resolves exactly one Arcana package at `9ebccd6e7d089b98a8992c5451ba57f903f295fb`, and `cargo check --locked --lib -j4` passed on the exact N3 candidate outside the filesystem sandbox (15 existing warnings). Earlier Windows canonicalization/missing-artifact failures did not recur in this unrestricted check. This establishes compiled candidate exports and dependency compatibility. The preceding partial assessment is superseded for candidate integration; actual production Warlock pin application and consumer verification remain the explicit Steps 2.8–2.9. Warlock's manifest pins were retained together at their existing compatibility pair until that application step.
+
+Documentation impact: inspected the candidate manifests, lockfile, composition roots and overlay diff; updated this plan; runtime/storage documentation unchanged; both documentation policy modes passed. Architecture impact: no ownership rules or source boundaries changed; existing ownership guards remain applicable. Full test and refreshed architecture acceptance remain Step 2.7.
+
+### Step 2.7 verification — 2026-10-11
+
+Verification was run against the exact candidate SHA `dcf500e` in `Reliquary-n3-staging`.
+
+- Passed: `cargo check --locked --tests --examples -j2`.
+- Passed: P4/P4.8 coverage (75 fixtures, 161 API classifications), external-source ownership (11 fixtures and production boundaries), workspace-management ownership, and both documentation-policy modes.
+- Passed: CLI formatting and locked CLI check reached the dependency graph successfully.
+- Not accepted: the full Rust test process stopped after compilation without producing test results. The CLI test attempt lost a generated `crypto_common` artifact; a single-threaded retry entered a clean rebuild and was stopped before test execution. The Archive round-trip smoke likewise began a rebuild and was stopped before execution.
+- Not available: `cargo fmt --all -- --check` reports Windows path canonicalization access denied (`os error 5`) in this worktree, and Pitlord cannot read `.arcana/CURRENT` because the candidate lacks a refreshed architecture snapshot. A refresh attempt previously failed while Arcana synchronized the generated Lexicon snapshot with `os error 2`.
+
+This leaves 2.7 partially verified. The source compiles with tests and examples, and all static ownership/documentation guards pass; full test execution, Archive smoke, and refreshed architecture enforcement require a stable Cargo/Lexicon environment. The earlier N3 acceptance records remain historical evidence and are not promoted to fresh 2.7 results.
+
+### Step 2.8 Warlock dependency pins — 2026-10-11
+
+Warlock `feat/multiplexing-p5c-final-cut` now pins the candidate pair in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`:
+
+- Reliquary: `dcf500ea8438e9b3e782959dd0176efcb58b7b0a`.
+- Direct Arcana: `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`.
+
+The prior Reliquary `83b3ac8` and Arcana `9ebccd6` pins are absent. Locked Cargo metadata resolves the aligned Arcana revision, and the dependency graph contains one Arcana package identity. The direct GitHub fetch for Reliquary cannot complete because `dcf500e` is not published on that remote; this remains a 2.10 publication/release limitation.
+
+### Step 2.9 Warlock consumer matrix — 2026-10-11
+
+The Arcana alignment fix is applied in both Reliquary and Warlock: Reliquary `Cargo.toml`/`Cargo.lock` and Warlock `src-tauri/Cargo.toml`/`src-tauri/Cargo.lock` now use `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`. The previous direct-only `9ebccd6` alignment is removed. Rust verification used the repository-local Reliquary override in an isolated `.verification-tmp` target directory so the unpublished candidate could be compiled without changing the committed lockfile.
+
+The earlier all-target failure against Arcana `9ebccd6` is superseded: the compatible metadata-reader API is now available from the same Arcana `66b4e96` revision in both repositories. No Warlock source workaround or duplicate Arcana identity was introduced.
+
+Accepted 2.9 evidence:
+
+- Reliquary `cargo check --locked --lib -j2`: passed with Arcana `66b4e96`.
+- Warlock all-target check through the local Reliquary candidate override: passed.
+- Provider execution tests: 4 passed.
+- Task-context tests: 5 passed.
+- Generation-viewer tests: 2 passed.
+- Live-delivery/P4 stream tests: 2 passed.
+- Warlock Clippy all-targets: passed with existing warnings.
+- Frontend production build: passed.
+- Graph-render client checks: passed.
+- Documentation checks and changed-document policy: passed.
+- Pitlord architecture enforcement: passed.
+
+The direct GitHub fetch for Reliquary still cannot complete because `dcf500e` is not published. That distribution step and final release commit remain in 2.10.
+
+### Step 2.10 commit and release evidence — 2026-10-11
+
+Local integration commits are now created:
+
+- Reliquary candidate `80a5fde` (`Align candidate with Arcana metadata reader`) updates the candidate's Arcana manifest and lockfile to `66b4e96`.
+- Warlock `dee7ba0` (`Complete multiplexed Warlock consumer integration`) records the consumer changes and exact Reliquary/Arcana pins.
+
+The aligned pair compiles and passes the focused 2.9 consumer matrix. The final release gate remains open because Reliquary `dcf500e` is not published at the declared Git source, and Step 2.7 still lacks accepted full Reliquary/CLI test, example, formatting and refreshed-architecture evidence.
+
+The plan update remains uncommitted on Reliquary `main`. Step 2.10 can close after the committed candidate is published and the outstanding 2.7 evidence is accepted.
 
 ## Step 3 — Legacy deletion
 
