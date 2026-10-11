@@ -87,6 +87,7 @@ fn mixed_event_permutations_match_independent_saturating_history() {
             proof,
             effects: BTreeMap::from([(target, 25)]),
             records: BTreeMap::new(),
+            semantic: None,
         });
     }
     let dream_id = format!("dream-initial:{}:{}", hex_bytes(&owner), hex_id(&source));
@@ -103,6 +104,7 @@ fn mixed_event_permutations_match_independent_saturating_history() {
         proof,
         effects: BTreeMap::from([(target, 50)]),
         records: BTreeMap::new(),
+        semantic: None,
     });
     let mut logical = events.clone();
     logical.sort_by_key(event_sort_key);
@@ -257,6 +259,117 @@ fn canonical_history_scaling_measurement() {
     }
 }
 
+fn semantic_evidence(
+    owner: [u8; 16],
+    conversation_id: &str,
+    node_id: &str,
+    turn: u64,
+) -> SemanticEventEvidence {
+    SemanticEventEvidence {
+        owner_uuid: owner,
+        conversation_id: conversation_id.into(),
+        node_id: node_id.into(),
+        accepted_turn: turn,
+        base_policy_digest: [1; 32],
+        semantic_policy_version: 1,
+        semantic_policy_digest: [2; 32],
+        compatibility_profile_id: [3; 32],
+        source_evidence_digest: [4; 32],
+        target_evidence_digest: [5; 32],
+    }
+}
+
+#[test]
+fn semantic_event_identity_is_exact_and_stable() {
+    let owner = [7; 16];
+    let id = semantic_live_event_id(owner, "conversation", "node");
+    assert!(id.starts_with("semantic-live-v1:"));
+    assert_eq!(id.len(), "semantic-live-v1:".len() + 64);
+    assert_ne!(id, semantic_live_event_id(owner, "conversation", "other"));
+    assert_ne!(id, semantic_live_event_id(owner, "other", "node"));
+    assert_ne!(id, semantic_live_event_id([8; 16], "conversation", "node"));
+}
+
+#[test]
+fn semantic_event_round_trips_retries_and_rejects_identity_conflicts() {
+    let owner = [7; 16];
+    let store = enrolled();
+    let evidence = semantic_evidence(owner, "conversation-1", "node-1", 12);
+    let effects = BTreeMap::new();
+    let payload = store
+        .encode_semantic_event(owner, evidence.clone(), effects.clone())
+        .unwrap();
+    let (_, decoded) = decode(&payload).unwrap();
+    let JournalEntry::Event {
+        provenance,
+        semantic,
+        effects: decoded_effects,
+        ..
+    } = decoded
+    else {
+        panic!("semantic payload did not decode as an event");
+    };
+    assert_eq!(provenance.producer_kind, SEMANTIC_EVENT_PRODUCER_KIND);
+    assert_eq!(semantic, Some(evidence.clone()));
+    assert!(decoded_effects.is_empty());
+
+    let mut replay = enrolled();
+    replay.ingest(&payload).unwrap();
+    let id = semantic_live_event_id(owner, "conversation-1", "node-1");
+    assert!(
+        replay
+            .semantic_event_matches(&id, &evidence, &effects)
+            .unwrap()
+    );
+    replay.ingest(&payload).unwrap();
+
+    let mut conflicting = evidence.clone();
+    conflicting.semantic_policy_digest = [9; 32];
+    let conflict_payload = store
+        .encode_semantic_event(owner, conflicting, effects)
+        .unwrap();
+    let error = replay.ingest(&conflict_payload).unwrap_err();
+    assert!(error.contains("identity collides"));
+}
+
+#[test]
+fn semantic_events_preserve_canonical_order_and_empty_completion() {
+    let owner = [7; 16];
+    let store = enrolled();
+    let first = semantic_evidence(owner, "conversation", "first", 10);
+    let second = semantic_evidence(owner, "conversation", "second", 10);
+    let first_payload = store
+        .encode_semantic_event(owner, first.clone(), BTreeMap::new())
+        .unwrap();
+    let second_payload = store
+        .encode_semantic_event(owner, second.clone(), BTreeMap::new())
+        .unwrap();
+
+    let mut replay = enrolled();
+    replay.ingest(&second_payload).unwrap();
+    replay.ingest(&first_payload).unwrap();
+    let events = replay.canonical_projection(10, None, 0, &[]).unwrap();
+    assert_eq!(events, replay.records);
+    assert!(
+        replay
+            .semantic_event_matches(
+                &semantic_live_event_id(owner, "conversation", "first"),
+                &first,
+                &BTreeMap::new(),
+            )
+            .unwrap()
+    );
+    assert!(
+        replay
+            .semantic_event_matches(
+                &semantic_live_event_id(owner, "conversation", "second"),
+                &second,
+                &BTreeMap::new(),
+            )
+            .unwrap()
+    );
+}
+
 fn enrolled() -> FreshnessStore {
     let owner = [7; 16];
     let mut store = FreshnessStore::new(Some(owner));
@@ -304,6 +417,7 @@ fn source_provenance_and_postimages_are_validated_before_projection() {
         proof,
         effects,
         records,
+        semantic: None,
     };
 
     let rejected = |entry: JournalEntry| {
@@ -349,6 +463,7 @@ fn source_provenance_and_postimages_are_validated_before_projection() {
         proof,
         effects,
         records,
+        semantic: _,
     } = bad
     else {
         unreachable!()
@@ -445,6 +560,7 @@ fn accepted_use_source_identity_must_match_principal_event() {
         },
         effects: BTreeMap::from([(source, 25), (target, 20)]),
         records: BTreeMap::new(),
+        semantic: None,
     };
     store.validate_event_entry(owner, &valid).unwrap();
     let mut bad = valid;

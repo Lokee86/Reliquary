@@ -1,5 +1,6 @@
 use crate::freshness::{FreshnessPolicy, FreshnessRecord};
 use crate::{FreshnessEventProof, MemoryId};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 const MAGIC: &[u8; 8] = b"CVAFRS02";
@@ -16,6 +17,22 @@ pub(crate) struct FreshnessEventProvenance {
     pub(crate) origin_owner: [u8; 16],
     pub(crate) accepted_turn: u64,
     pub(crate) policy_version: u64,
+}
+
+pub(crate) const SEMANTIC_EVENT_PRODUCER_KIND: u8 = 3;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SemanticEventEvidence {
+    pub(crate) owner_uuid: [u8; 16],
+    pub(crate) conversation_id: String,
+    pub(crate) node_id: String,
+    pub(crate) accepted_turn: u64,
+    pub(crate) base_policy_digest: [u8; 32],
+    pub(crate) semantic_policy_version: u16,
+    pub(crate) semantic_policy_digest: [u8; 32],
+    pub(crate) compatibility_profile_id: [u8; 32],
+    pub(crate) source_evidence_digest: [u8; 32],
+    pub(crate) target_evidence_digest: [u8; 32],
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -36,6 +53,7 @@ enum JournalEntry {
         proof: FreshnessEventProof,
         effects: BTreeMap<MemoryId, i16>,
         records: BTreeMap<MemoryId, FreshnessRecord>,
+        semantic: Option<SemanticEventEvidence>,
     },
     AcceptedUseReceipt {
         use_id: String,
@@ -606,23 +624,31 @@ impl FreshnessStore {
                 provenance,
                 proof,
                 effects,
+                semantic,
                 ..
             } = event
             else {
                 return Err("expected Freshness event".into());
             };
             if event_id.is_empty()
-            || effects.is_empty()
-            || provenance.source_id.trim().is_empty()
-            || provenance.origin_owner != owner
-            // The original accepted producer cut is immutable provenance, not
-            // a bound on the destination event turn: reordered reconciliations
-            // can move it in either direction. Local Dream/consumption producers
-            // validate exact equality before committing a new source event.
-            || !(1..=2).contains(&provenance.producer_kind)
-            || provenance.policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
+                || (effects.is_empty() && semantic.is_none())
+                || provenance.source_id.trim().is_empty()
+                || provenance.origin_owner != owner
+                // The original accepted producer cut is immutable provenance, not
+                // a bound on the destination event turn: reordered reconciliations
+                // can move it in either direction. Local producers validate exact
+                // equality before committing a new source event.
+                || !(1..=SEMANTIC_EVENT_PRODUCER_KIND).contains(&provenance.producer_kind)
+                || provenance.policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
             {
                 return Err("invalid Freshness event source provenance".into());
+            }
+            if provenance.producer_kind == SEMANTIC_EVENT_PRODUCER_KIND {
+                let evidence = semantic
+                    .as_ref()
+                    .ok_or("semantic event lacks typed evidence")?;
+                validate_semantic_evidence(owner, *turn, evidence)?;
+                return Ok(());
             }
             validate_proof(*proof)?;
             match provenance.producer_kind {
@@ -1154,6 +1180,7 @@ impl FreshnessStore {
                     proof,
                     effects,
                     records: BTreeMap::new(),
+                    semantic: None,
                 };
                 self.validate_event_entry(owner, &event)?;
                 events.push(event);
@@ -1203,6 +1230,57 @@ impl FreshnessStore {
             },
         )
     }
+    pub(crate) fn encode_semantic_event(
+        &self,
+        owner: [u8; 16],
+        evidence: SemanticEventEvidence,
+        effects: BTreeMap<MemoryId, i16>,
+    ) -> Result<Vec<u8>, String> {
+        if evidence.owner_uuid != owner {
+            return Err("semantic evidence owner mismatch".into());
+        }
+        let event_id = semantic_live_event_id(owner, &evidence.conversation_id, &evidence.node_id);
+        let provenance = FreshnessEventProvenance {
+            producer_kind: SEMANTIC_EVENT_PRODUCER_KIND,
+            source_id: event_id.clone(),
+            origin_owner: owner,
+            accepted_turn: evidence.accepted_turn,
+            policy_version: crate::freshness::FRESHNESS_POLICY_VERSION as u64,
+        };
+        let entry = JournalEntry::Event {
+            event_id,
+            turn: evidence.accepted_turn,
+            provenance,
+            proof: FreshnessEventProof {
+                graph_version: 0,
+                community_generation: None,
+                community_graph_version: None,
+            },
+            effects,
+            records: BTreeMap::new(),
+            semantic: Some(evidence),
+        };
+        self.validate_event_entry(owner, &entry)?;
+        Ok(encode(owner, &entry))
+    }
+
+    pub(crate) fn semantic_event_matches(
+        &self,
+        id: &str,
+        evidence: &SemanticEventEvidence,
+        effects: &BTreeMap<MemoryId, i16>,
+    ) -> Result<bool, String> {
+        Ok(matches!(
+            self.find_event(id)?,
+            Some(JournalEntry::Event {
+                event_id,
+                effects: stored_effects,
+                semantic: Some(stored),
+                ..
+            }) if event_id == id && stored == *evidence && &stored_effects == effects
+        ))
+    }
+
     pub(crate) fn encode_event(
         &self,
         owner: [u8; 16],
@@ -1228,6 +1306,7 @@ impl FreshnessStore {
                 proof,
                 effects,
                 records,
+                semantic: None,
             },
         )
     }
@@ -1255,6 +1334,7 @@ impl FreshnessStore {
             proof,
             effects,
             records,
+            semantic: None,
         };
         self.validate_event_entry(owner, &entry)?;
         let JournalEntry::Event {
@@ -1321,10 +1401,18 @@ fn encode(owner: [u8; 16], entry: &JournalEntry) -> Vec<u8> {
                 proof,
                 effects,
                 records,
+                semantic,
             } => {
                 out.push(2);
                 put_event(
-                    &mut out, event_id, *turn, provenance, *proof, effects, records,
+                    &mut out,
+                    event_id,
+                    *turn,
+                    provenance,
+                    *proof,
+                    effects,
+                    records,
+                    semantic.as_ref(),
                 );
             }
             JournalEntry::AcceptedUseReceipt {
@@ -1366,10 +1454,18 @@ fn encode(owner: [u8; 16], entry: &JournalEntry) -> Vec<u8> {
                         proof,
                         effects,
                         records,
+                        semantic,
                     } = event
                     {
                         put_event(
-                            &mut out, event_id, *turn, provenance, *proof, effects, records,
+                            &mut out,
+                            event_id,
+                            *turn,
+                            provenance,
+                            *proof,
+                            effects,
+                            records,
+                            semantic.as_ref(),
                         );
                     }
                 }
@@ -1417,6 +1513,7 @@ fn put_event(
     proof: FreshnessEventProof,
     effects: &BTreeMap<MemoryId, i16>,
     records: &BTreeMap<MemoryId, FreshnessRecord>,
+    semantic: Option<&SemanticEventEvidence>,
 ) {
     put_bytes(out, event_id.as_bytes());
     out.extend_from_slice(&turn.to_le_bytes());
@@ -1425,6 +1522,14 @@ fn put_event(
     out.extend_from_slice(&provenance.origin_owner);
     out.extend_from_slice(&provenance.accepted_turn.to_le_bytes());
     out.extend_from_slice(&provenance.policy_version.to_le_bytes());
+    if provenance.producer_kind == SEMANTIC_EVENT_PRODUCER_KIND {
+        put_semantic_evidence(
+            out,
+            semantic
+                .ok_or("semantic event missing evidence")
+                .expect("validated event"),
+        );
+    }
     out.extend_from_slice(&proof.graph_version.to_le_bytes());
     for value in [proof.community_generation, proof.community_graph_version] {
         match value {
@@ -1461,6 +1566,19 @@ fn put_record(out: &mut Vec<u8>, record: FreshnessRecord) {
 fn put_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
     out.extend_from_slice(&(bytes.len() as u32).to_le_bytes());
     out.extend_from_slice(bytes);
+}
+
+fn put_semantic_evidence(out: &mut Vec<u8>, evidence: &SemanticEventEvidence) {
+    out.extend_from_slice(&evidence.owner_uuid);
+    put_bytes(out, evidence.conversation_id.as_bytes());
+    put_bytes(out, evidence.node_id.as_bytes());
+    out.extend_from_slice(&evidence.accepted_turn.to_le_bytes());
+    out.extend_from_slice(&evidence.base_policy_digest);
+    out.extend_from_slice(&evidence.semantic_policy_version.to_le_bytes());
+    out.extend_from_slice(&evidence.semantic_policy_digest);
+    out.extend_from_slice(&evidence.compatibility_profile_id);
+    out.extend_from_slice(&evidence.source_evidence_digest);
+    out.extend_from_slice(&evidence.target_evidence_digest);
 }
 
 fn decode(payload: &[u8]) -> Result<([u8; 16], JournalEntry), String> {
@@ -1644,6 +1762,11 @@ impl Reader<'_> {
             accepted_turn,
             policy_version,
         };
+        let semantic = if producer_kind == SEMANTIC_EVENT_PRODUCER_KIND {
+            Some(self.semantic_evidence()?)
+        } else {
+            None
+        };
         let graph_version = self.u64()?;
         let community_generation = self.optional_turn()?;
         let community_graph_version = self.optional_turn()?;
@@ -1679,6 +1802,23 @@ impl Reader<'_> {
             proof,
             effects,
             records,
+            semantic,
+        })
+    }
+    fn semantic_evidence(&mut self) -> Result<SemanticEventEvidence, String> {
+        Ok(SemanticEventEvidence {
+            owner_uuid: self.array()?,
+            conversation_id: String::from_utf8(self.bytes()?)
+                .map_err(|_| "invalid semantic conversation ID UTF-8")?,
+            node_id: String::from_utf8(self.bytes()?)
+                .map_err(|_| "invalid semantic node ID UTF-8")?,
+            accepted_turn: self.u64()?,
+            base_policy_digest: self.array()?,
+            semantic_policy_version: u16::from_le_bytes(self.array()?),
+            semantic_policy_digest: self.array()?,
+            compatibility_profile_id: self.array()?,
+            source_evidence_digest: self.array()?,
+            target_evidence_digest: self.array()?,
         })
     }
     fn record(&mut self) -> Result<FreshnessRecord, String> {
@@ -1696,6 +1836,44 @@ impl Reader<'_> {
         }
         Ok(record)
     }
+}
+
+fn validate_semantic_evidence(
+    owner: [u8; 16],
+    turn: u64,
+    evidence: &SemanticEventEvidence,
+) -> Result<(), String> {
+    if evidence.owner_uuid != owner
+        || evidence.conversation_id.is_empty()
+        || evidence.node_id.is_empty()
+        || evidence.accepted_turn != turn
+        || evidence.semantic_policy_version == 0
+    {
+        return Err("invalid semantic event evidence".into());
+    }
+    Ok(())
+}
+
+pub(crate) fn semantic_live_event_id(
+    owner: [u8; 16],
+    conversation_id: &str,
+    node_id: &str,
+) -> String {
+    let mut hash = Sha256::new();
+    hash.update(b"reliquary:freshness:semantic-live:v1\0");
+    hash.update(owner);
+    hash.update((conversation_id.len() as u64).to_le_bytes());
+    hash.update(conversation_id.as_bytes());
+    hash.update((node_id.len() as u64).to_le_bytes());
+    hash.update(node_id.as_bytes());
+    let digest = hash.finalize();
+    format!(
+        "semantic-live-v1:{}",
+        digest
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
+    )
 }
 
 fn hex_bytes(bytes: &[u8]) -> String {
@@ -1728,6 +1906,7 @@ fn event_receipts_equal(left: &JournalEntry, right: &JournalEntry) -> bool {
                 provenance: left_provenance,
                 proof: left_proof,
                 effects: left_effects,
+                semantic: left_semantic,
                 ..
             },
             JournalEntry::Event {
@@ -1736,6 +1915,7 @@ fn event_receipts_equal(left: &JournalEntry, right: &JournalEntry) -> bool {
                 provenance: right_provenance,
                 proof: right_proof,
                 effects: right_effects,
+                semantic: right_semantic,
                 ..
             },
         ) => {
@@ -1744,6 +1924,7 @@ fn event_receipts_equal(left: &JournalEntry, right: &JournalEntry) -> bool {
                 && left_provenance == right_provenance
                 && left_proof == right_proof
                 && left_effects == right_effects
+                && left_semantic == right_semantic
         }
         _ => false,
     }

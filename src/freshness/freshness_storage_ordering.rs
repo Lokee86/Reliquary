@@ -32,6 +32,7 @@ mod tests {
             },
             effects: std::collections::BTreeMap::from([(crate::MemoryId([1; 32]), 25)]),
             records: std::collections::BTreeMap::new(),
+            semantic: None,
         }
     }
     #[test]

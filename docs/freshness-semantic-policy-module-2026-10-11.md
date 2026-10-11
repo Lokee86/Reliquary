@@ -8,7 +8,7 @@ Implement the graph-independent numerical and candidate-reduction core frozen by
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** Steps 5–6 complete; live F8 remains disabled pending candidate search, durability, wiring and release gates. The architecture refresh exception is recorded below.
+**Date:** 2026-10-11. **Status:** Steps 5–8 complete; live F8 remains disabled pending live wiring, recovery and release gates. The architecture refresh exception is recorded below.
 
 ## Related docs
 
@@ -88,6 +88,28 @@ The adapter reports scanned, eligible and excluded counts and returns no partial
 
 Six focused tests cover the filter-before-limit rule, future admission, lifecycle exclusion, source cohort/provenance exclusion, strongest-match dedupe, generation compatibility, pending/empty readiness and read-only reopen stability.
 
+## Step 8 durability extension
+
+Step 8 extends the existing FreshnessStore journal with semantic producer kind 3. The stable semantic-live-v1 identity is derived only from owner UUID plus exact conversation/node strings; REL position, policy and effects remain receipt evidence rather than identity. Typed evidence records the accepted turn, base and semantic policy digests, compatibility profile, and source/target evidence digests. Empty semantic completions are valid, and semantic evidence is encoded only for producer kind 3 so Dream/use records remain backward-compatible.
+
+Semantic events use the existing exactly-once lookup, conflict detection, canonical accepted-turn/event-ID ordering, replay projection, and reopen path. Duplicate payloads are idempotent; same-identity evidence or effect changes are rejected as receipt conflicts. No separate ledger, score revision, graph propagation, or semantic Memory revision was added.
+
+## Documentation impact
+
+- Inspected: existing Freshness journal codec, replay ordering, durable scan/reopen path, event conflict checks, frozen semantic identity contract, and Step 8 implementation plan.
+- Updated: this module record, the linear plan completion marker, and the live semantic contract status.
+- Not affected: Dream/use producer kinds, public API/CLI, graph propagation, historical import, and existing score principals.
+- Compliance check: focused storage tests, formatting, repository diff checks, and the documented Rust/docs gates are run for this step.
+- Known gaps: Step 9 live accepted-turn wiring, Step 11 transformation matrix, and Step 12 release gate remain pending.
+
+## Architecture impact
+
+- Standards changed: semantic producer kind 3 and typed semantic evidence are added to existing Freshness event storage.
+- Ownership/boundaries: Freshness remains the sole durable receipt and replay owner; the semantic producer supplies evidence and local effects.
+- Pitlord enforcement: no new ownership boundary is introduced; the existing architecture refresh exception remains documented above.
+- Other verification: retry, duplicate, identity-conflict, exact-ID, empty-event, and canonical-order fixtures are included in the storage test module.
+- Known gaps: live processing is intentionally not wired until Step 9.
+
 ## Notes
 
-This module provides a deterministic pure-policy seam for later accepted-turn production and bounded search. It does not activate semantic reinforcement or change existing Freshness scoring principals.
+This module provides deterministic semantic policy, bounded search, and now the versioned durable receipt seam for later accepted-turn production. It does not activate live semantic reinforcement or change existing Freshness scoring principals.
