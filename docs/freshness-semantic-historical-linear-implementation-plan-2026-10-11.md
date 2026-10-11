@@ -1,9 +1,25 @@
 # Freshness semantic reinforcement + historical reconstruction — linear implementation plan
 
+Parent: [Documentation index](INDEX.md).
+
+## Purpose
+
+Provide one sequential, implementation-ready execution order for live semantic Freshness reinforcement (F8) and the separate historical import reconstruction (H1–H8).
+
+## Overview
+
+Execute live F8 through its independent release gate before historical reconstruction. Assign Luna to bounded work under frozen policy and Sol to ownership, policy, durability, and recovery decisions. Step 1 baseline evidence is recorded in [the dated baseline](freshness-semantic-historical-baseline-2026-10-11.md).
+
 **Date:** 2026-10-11  
 **Status:** implementation-ready sequencing document; no step is complete merely because it appears here.  
 **Scope:** F8/S1–S6 live semantic Freshness reinforcement followed by H1–H8 historical import reconstruction.  
 **Source specs:** [Freshness completion execution plan](freshness-completion-execution-plan-2026-10-03.md), [historical import reconstruction spec](freshness-historical-import-reconstruction-spec-2026-10-03.md), [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [Memory Freshness policy](memory-staleness-plan.md).
+
+## Related docs
+
+- [Step 1 source and test baseline](freshness-semantic-historical-baseline-2026-10-11.md)
+- [Memory Freshness policy](memory-staleness-plan.md)
+- [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
 
 ## Model assignment
 
@@ -22,7 +38,7 @@ Normal live semantic reinforcement remains **local and non-propagating**. Histor
 
 | # | Model | Work | Done when |
 | ---: | :---: | --- | --- |
-| **1** | **Luna** | **Freeze the current baseline.** Inspect current `main`, exact Freshness owner/storage APIs, accepted-turn ingestion seams, semantic/vector search APIs, fragment/vector availability, reconciliation code and existing R1–R7 tests. Record the source/test files F8 will touch and the currently passing focused baseline. | A dated baseline note lists the exact seams, current test commands/results and confirms no F8 code already exists. |
+| **1 — complete** | **Luna** | **Freeze the current baseline.** Inspect current `main`, exact Freshness owner/storage APIs, accepted-turn ingestion seams, semantic/vector search APIs, fragment/vector availability, reconciliation code and existing R1–R7 tests. Record the source/test files F8 will touch and the currently passing focused baseline. | A dated baseline note lists the exact seams, current test commands/results and confirms no F8 code already exists. |
 | **2** | **Sol** | **Freeze the live semantic policy interface.** Define the semantic policy/version object, eligible owner/lifecycle/profile rules, self-source exclusion, one-credit-per-Memory-per-turn identity, deterministic ties, candidate limit behavior, and how the semantic event is represented without pretending it is +25 accepted use or +50 Dream linkage. | A narrow policy/API contract is written and no unresolved ownership or event-identity decision remains. |
 | **3** | **Luna** | **Build the calibration/oracle harness.** Make threshold and similarity-to-bonus curves parameterized; measure compatible-vector coverage, nearest-neighbor counts, false-match neighborhoods, candidate-search cost and resulting score trajectories on synthetic fixtures plus already-retained corpora. Do not require new REL/PHY inference. | Reproducible calibration commands produce comparable results for several thresholds/bonus curves. |
 | **4** | **Sol** | **Select and freeze F8 constants.** Review Step 3 evidence and choose the production cosine threshold, monotone local bonus curve, per-turn cap/candidate limits and policy-version transition rules. The old 0.75 value remains tentative until this step. | Selected constants/rationale are recorded in a semantic calibration document and the policy version is frozen. |
@@ -76,3 +92,7 @@ Normal live semantic reinforcement remains **local and non-propagating**. Histor
 4. Do not run new expensive model-generated REL/PHY calibration merely to select a semantic baseline. Use synthetic fixtures and existing retained corpora first.
 5. Historical import reconstruction remains **REL-local** until a separate PHY activity/ownership design is approved.
 6. The normal live invariant is permanent unless a new ADR changes it: **semantic reinforcement is local and non-propagating.**
+
+## Notes
+
+The current per-step status is recorded in the first column of the sequence table. Step completion requires the evidence named in that row; a listed step is not implicitly complete.
