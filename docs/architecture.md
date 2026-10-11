@@ -122,6 +122,10 @@ The internal reconnect operation reads a fresh authorized snapshot and replaces 
 
 The P4 stream hub lives inside each mounted REL sequencer and shares its publication gate while keeping exact conversation/operation/generation/branch cursors and queues separate from broad REL summaries. Production joins use P3's authoritative snapshot and a validated durable full prefix before registration; delivery follows only persisted checkpoint/status facts. If Archive has advanced ahead of the journal, the prefix is bounded to the journal-authoritative UTF-8 length and checked against its SHA-256 before delivery. Count/byte overflow requires fresh prefix replacement. Authority and epoch teardown apply to both namespaces. The deterministic-provider tests remain the P4.6 mechanical evidence; production convergence is recorded in [P4.7](multiplexing-implementation-plan.md), and the coverage/lock/privacy audit is recorded in [P4.8](multiplexing-implementation-plan.md). P4.9 local/convergence functional acceptance passed with repository-wide verification exceptions recorded in [P4.9 acceptance record](multiplexing-implementation-plan.md).
 
+## Semantic Freshness source preparation
+
+The internal `Cva::prepare_accepted_semantic_source` seam coordinates Archive's immutable accepted Node/activity position with retained ArchiveVectorStore and VectorGenerationStore evidence. It selects exact-turn fragment rows at an explicit generation cut and reports pending versus complete (possibly empty) evidence without mutating state. Freshness retains scoring/receipt ownership; this source-only seam has no Graph/Community dependency and does not activate live reinforcement. See [semantic policy and source module](freshness-semantic-policy-module-2026-10-11.md).
+
 ## Responsibilities
 
 ### Gateway ConversationExecution recovery
