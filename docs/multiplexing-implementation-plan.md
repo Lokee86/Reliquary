@@ -192,7 +192,7 @@ Step 1.10 does not close the release gate: remote provider reconciliation (1.3),
 | 2.4 | Integrate accepted live runtime and management surfaces | Integrated in candidate 2026-10-11; source guards pass, locked Rust acceptance build-blocked |
 | 2.5 | Integrate accepted native import and external-reference core | Integrated in candidate 2026-10-11; ownership guards pass |
 | 2.6 | Resolve exports, interface ownership and dependency conflicts | Complete for candidate `dcf500e`: locked graph and library compilation passed; exact consumer pins applied in 2.8 |
-| 2.7 | Run full locked Reliquary/CLI tests, examples and architecture/ownership guards | Partial verification 2026-10-11: locked compile, guards and docs pass; tests/examples/refresh remain environment-blocked |
+| 2.7 | Run full locked Reliquary/CLI tests, examples and architecture/ownership guards | Partial verification 2026-10-11: full Rust/CLI tests, compile checks, formatting, examples and static guards pass; refreshed architecture snapshot remains environment-blocked |
 | 2.8 | Pin Warlock to exact accepted Reliquary and Arcana revisions | Pinned 2026-10-11; locked metadata verified through local candidate override; remote Reliquary fetch remains unavailable |
 | 2.9 | Run full pinned Warlock provider, context, stream and frontend matrix | Complete 2026-10-11 against Reliquary candidate `dcf500e` and Arcana `66b4e96`; local candidate override used because Reliquary revision is unpublished |
 | 2.10 | Commit and verify integrated source, exact pins and acceptance evidence | Local integration commits created; final release gate remains blocked on 2.7 evidence and remote publication |
@@ -289,16 +289,17 @@ Documentation impact: inspected the candidate manifests, lockfile, composition r
 
 ### Step 2.7 verification — 2026-10-11
 
-Verification was rerun against the aligned candidate SHA `c36ca5f` in `Reliquary-n3-staging`.
+Verification was rerun against the aligned candidate SHA `c36ca5f` in `Reliquary-n3-staging`. The Windows path failure was isolated to long-path canonicalization by running the candidate through a temporary drive mapping (`R:`); no source workaround or repository mutation was required.
 
+- Passed: `cargo fmt --all -- --check` and CLI formatting through the mapped candidate path.
 - Passed: `cargo check --locked --tests --examples -j2`.
-- Passed: `cargo check --manifest-path cli/Cargo.toml --locked --offline` after aligning the CLI lockfile to Arcana
-  `66b4e96`; the lockfile update is committed at candidate `c36ca5f`.
+- Passed: `cargo check --manifest-path cli/Cargo.toml --locked --offline` after aligning the CLI lockfile to Arcana `66b4e96`; the lockfile update is committed at candidate `c36ca5f`.
+- Passed: full `cargo test --locked --offline -j2`: 1,159 unit tests, 138 integration tests, and doc tests; 0 failures.
+- Passed: full locked CLI tests: 19 tests; 0 failures.
 - Passed: P4/P4.8 coverage (75 fixtures, 161 API classifications), external-source ownership (11 fixtures and production boundaries), workspace-management ownership, and both documentation-policy modes.
-- Not accepted: the full Rust test process and the locked CLI test process stalled while compiling the `lore`/test target and were stopped before test execution; no test count is claimed. Focused 2.9 provider/context/stream tests remain accepted separately.
-- Not available: `cargo fmt --all -- --check` and CLI formatting report Windows path canonicalization access denied (`os error 5`) in this worktree. Architecture refresh ran the static guards but could not synchronize the snapshot: Arcana returned `os error 2`, and direct Lexicon diagnostics returned `os error 5` for the local repository state.
+- Still blocked: refreshed architecture synchronization. The static guards pass, but Lexicon initialization still reports `File not found` for the candidate `.lexicon` state and does not complete; prior Arcana synchronization also returned `os error 2`. This is an external Windows Lexicon/Arcana environment failure, not a Reliquary test or formatting failure.
 
-This leaves 2.7 partially verified. The source compiles with tests and examples, the CLI dependency graph/check and all static ownership/documentation guards pass, and the aligned CLI lockfile is committed. Full test execution and refreshed architecture enforcement still require a stable Cargo/Lexicon environment; formatting remains blocked by the Windows canonicalization denial. Earlier N3 acceptance records remain historical evidence and are not promoted to fresh 2.7 results.
+This leaves 2.7 partially verified solely because the refreshed architecture snapshot cannot be completed in the current Lexicon/Arcana environment. All locked Reliquary and CLI tests, examples/target compilation, formatting, ownership guards and documentation checks now have fresh passing evidence. Earlier N3 acceptance records remain historical evidence and are not used to fill the architecture-refresh gap.
 
 ### Step 2.8 Warlock dependency pins — 2026-10-11
 
