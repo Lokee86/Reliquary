@@ -339,7 +339,7 @@ Local integration commits are now created:
 
 The aligned pair compiles and passes the focused 2.9 consumer matrix. The final release gate remains open because Reliquary `dcf500e` is not published at the declared Git source, and Step 2.7 still lacks accepted full Reliquary/CLI test, example, formatting and refreshed-architecture evidence.
 
-The plan update remains uncommitted on Reliquary `main`. Step 2.10 can close after the committed candidate is published and the outstanding 2.7 evidence is accepted.
+The plan update is recorded on Reliquary `main` at `28a59c1`. Step 2.10 can close after the committed candidate is published and the outstanding 2.7 evidence is accepted.
 
 ## Step 3 — Legacy deletion
 
@@ -347,7 +347,7 @@ The plan update remains uncommitted on Reliquary `main`. Step 2.10 can close aft
 
 | ID | Action | Status |
 |---|---|---|
-| 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: historical inventory exists |
+| 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: converged-source scan rerun; reviewed baseline refresh required |
 | 3.2 | Identify all remaining old callers and live consumers | Blocked on convergence |
 | 3.3 | Relocate retained types, domain queries and persisted readers | Blocked |
 | 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Blocked |
@@ -359,6 +359,20 @@ The plan update remains uncommitted on Reliquary `main`. Step 2.10 can close aft
 | 3.10 | Run complete post-deletion locked functional matrix and commit | Blocked |
 
 **Exit gate:** one authoritative Gateway/Instance implementation with no legacy facade, duplicated state, callers or regressions. Use reverse dependencies, not filename-based deletion.
+
+### Step 3.1 inventory revalidation — 2026-10-11
+
+The accepted D0 inventory at `bfdd267` was rerun against the converged Reliquary candidate and current Warlock
+consumer. The scanner self-tests passed all 17 fixtures. The candidate reports 918 Rust files and 139 runtime-host
+modules, compared with the accepted D0 counts of 873 files and 134 modules. It still reports 170 legacy methods and
+10 legacy fields, with zero CLI legacy references. Warlock at `dee7ba0` reports zero concrete legacy references.
+
+The scanner's `--check` mode correctly rejected the result as inventory drift. No baseline was rewritten
+automatically: the 45-file/5-module growth requires source and caller review before a refreshed inventory is accepted.
+The remaining legacy methods and fields are deletion targets for Step 3, not evidence that deletion is complete.
+Therefore 3.1 remains partial pending the reviewed baseline refresh and the D1 ownership cuts.
+
+Documentation impact: this plan records the revalidation result; no runtime, storage, or source deletion was performed.
 
 ## Step 4 — Final release verification
 
