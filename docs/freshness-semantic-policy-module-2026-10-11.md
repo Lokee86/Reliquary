@@ -80,6 +80,14 @@ The returned proof binds owner UUID, immutable Node/content, accepted REL positi
 
 Tests exercise pending versus completed-empty, immutable-source conflict and role rejection, exact turn-only evidence, mixed-turn exclusion, generation-cut completeness, stable retained evidence after newer activity/generation, and retry/reopen without mutations.
 
+## Bounded candidate search and target eligibility (Step 7)
+
+`Cva::search_eligible_semantic_targets` is the crate-private candidate adapter. It reads only the current owner REL's Memory vector bindings for the accepted source generation profile, then filters before the usable candidate limit: missing vectors, archived/superseded or unsettled lifecycle states, missing or future Freshness admission, and the complete caller-supplied newly-created source cohort are excluded. Content and grounding provenance matching the exact accepted conversation/node are also excluded. Foreign REL and PHY candidates cannot enter because the adapter only enumerates this Cva's owner-local MemoryStore.
+
+The adapter reports scanned, eligible and excluded counts and returns no partial result on vector-store errors. For each eligible target it evaluates every selected genuine source vector with the frozen numerical cosine routine; `plan_local_effects` retains the strongest match per Memory, ranks by descending cosine and MemoryId bytes, applies the inclusive threshold and candidate limit, then returns MemoryId-sorted local effects. Search remains read-only and does not apply scores, traverse Graph/Community, or publish receipts. The complete self-source cohort is an explicit input so asynchronous Memory publication must be resolved by the coordinator before search is accepted.
+
+Six focused tests cover the filter-before-limit rule, future admission, lifecycle exclusion, source cohort/provenance exclusion, strongest-match dedupe, generation compatibility, pending/empty readiness and read-only reopen stability.
+
 ## Notes
 
 This module provides a deterministic pure-policy seam for later accepted-turn production and bounded search. It does not activate semantic reinforcement or change existing Freshness scoring principals.

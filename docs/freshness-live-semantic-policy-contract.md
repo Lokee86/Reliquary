@@ -70,7 +70,11 @@ Apply the inclusive threshold before selecting at most the policy's usable candi
 
 The usable limit counts distinct eligible above-threshold Memories across the turn. Future, self-source, wrong-owner, invalid, duplicate and incompatible candidates do not consume it. A raw top-K followed by filtering is insufficient. The adapter must continue scanning/paging until it proves the eligible ranking is complete or fills the limit with a correctness-preserving search bound. An explicit resource exhaustion/incomplete-search result publishes no partial event or completion receipt and remains retryable. Exact streaming scan is a valid initial implementation; temporary candidate memory is bounded, while calibration must measure total vector work. No approximate-neighbor recall contract is silently introduced.
 
-### Event identity, durability and replay
+### Step 7 candidate adapter status
+
+The crate-private candidate adapter now enumerates only the current owner-local Memory vector bindings for the accepted source profile. It filters lifecycle, Freshness admission, exact source provenance and the complete newly-created source cohort before the usable candidate limit, and delegates strongest-match reduction and deterministic ordering to the pure semantic policy. It reports scan coverage and remains read-only; durable event identity and score application remain Step 8/9.
+
+## Event identity, durability and replay
 
 The event namespace is `semantic-live-v1`. Its stable ID is the string prefix `semantic-live-v1:` followed by lowercase hexadecimal SHA-256 of the following concatenation: ASCII `reliquary:freshness:semantic-live:v1`, one zero byte, the owner's 16 UUID bytes, the conversation ID's UTF-8 byte length as little-endian u64 followed by its bytes, then the node ID's UTF-8 byte length as little-endian u64 followed by its bytes. IDs use exact Archive strings without Unicode normalization. Step 8 implements this frozen identity format; it is distinct from scoring-policy versions. REL position, policy version, profile, fragment count, worker count and effects are excluded from identity. Thus one accepted turn has one semantic event and at most one effect per Memory. Any codec version change must preserve duplicate lookup for already accepted source identities.
 

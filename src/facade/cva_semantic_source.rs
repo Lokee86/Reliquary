@@ -173,6 +173,151 @@ impl Cva {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct SemanticCandidateSearch {
+    pub effects: Vec<crate::freshness::semantic_policy::SemanticEffect>,
+    pub scanned_memories: usize,
+    pub eligible_memories: usize,
+    pub excluded_memories: usize,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct SemanticTargetSnapshot {
+    pub memory: crate::Memory,
+    pub body_id: crate::MemoryBodyId,
+    pub admitted_at_turn: Option<u64>,
+    pub vector: Vec<f32>,
+}
+
+impl Cva {
+    /// Search only this REL's current Memory bindings at the accepted source cut.
+    ///
+    /// The complete newly-created cohort must be supplied by the publication
+    /// owner. Filtering precedes the semantic usable limit; the policy planner
+    /// then performs strongest-per-target reduction and deterministic ranking.
+    pub(crate) fn search_eligible_semantic_targets(
+        &mut self,
+        source: &AcceptedSemanticSource,
+        source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
+    ) -> Result<SemanticCandidateSearch, CvaError> {
+        let memory_ids = self.memories.current_ids();
+        let vectors = crate::memory_retrieval_vectors::load_memory_vectors(
+            &mut self.container,
+            &self.memories,
+            &self.memory_vectors,
+            &self.packed_vectors,
+            source.generation.compatibility_profile_id,
+        )
+        .map_err(|error| CvaError::Freshness(error.to_string()))?;
+        let mut targets = Vec::new();
+        let mut excluded_memories = 0;
+        for id in &memory_ids {
+            let memory = self
+                .memories
+                .memory(&mut self.container, *id)
+                .map_err(|error| CvaError::Freshness(error.to_string()))?;
+            let body_id = self
+                .memories
+                .current_body_id(*id)
+                .map_err(|error| CvaError::Freshness(error.to_string()))?;
+            let admitted_at_turn = self
+                .freshness
+                .records()
+                .get(id)
+                .and_then(|record| record.admitted_at_turn);
+            let Some(vector) = vectors.get(&body_id).cloned() else {
+                excluded_memories += 1;
+                continue;
+            };
+            targets.push(SemanticTargetSnapshot {
+                memory,
+                body_id,
+                admitted_at_turn,
+                vector,
+            });
+        }
+        let (effects, eligible_memories, filtered) =
+            plan_eligible_semantic_targets(source, source_memory_cohort, targets)?;
+        excluded_memories += filtered;
+        Ok(SemanticCandidateSearch {
+            effects,
+            scanned_memories: memory_ids.len(),
+            eligible_memories,
+            excluded_memories,
+        })
+    }
+}
+
+fn plan_eligible_semantic_targets(
+    source: &AcceptedSemanticSource,
+    source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
+    targets: impl IntoIterator<Item = SemanticTargetSnapshot>,
+) -> Result<
+    (
+        Vec<crate::freshness::semantic_policy::SemanticEffect>,
+        usize,
+        usize,
+    ),
+    CvaError,
+> {
+    use crate::freshness::semantic_policy::{
+        SemanticCandidate, cosine_similarity, plan_local_effects,
+    };
+    let mut candidates = Vec::new();
+    let mut eligible_memories = 0;
+    let mut filtered = 0;
+    for target in targets {
+        let id = target.memory.id;
+        let source_excluded = source_memory_cohort.contains(&id)
+            || target
+                .memory
+                .content_source_conversation_id
+                .as_deref()
+                .zip(target.memory.content_source_node_id.as_deref())
+                .is_some_and(|(conversation, node)| {
+                    conversation == source.node.conversation_id && node == source.node.id
+                })
+            || target
+                .memory
+                .grounding_source_conversation_id
+                .as_deref()
+                .zip(target.memory.grounding_source_node_id.as_deref())
+                .is_some_and(|(conversation, node)| {
+                    conversation == source.node.conversation_id && node == source.node.id
+                });
+        let admitted_before_source = target
+            .admitted_at_turn
+            .is_some_and(|turn| turn < source.activity_position);
+        let lifecycle_eligible = !target.memory.archived
+            && target.memory.superseded_by.is_none()
+            && matches!(
+                target.memory.lifecycle_state.as_str(),
+                "knowledge" | "canonical"
+            );
+        if source_excluded || !admitted_before_source || !lifecycle_eligible {
+            filtered += 1;
+            continue;
+        }
+        eligible_memories += 1;
+        for source_vector in &source.vectors {
+            let cosine = cosine_similarity(&source_vector.components, &target.vector)
+                .map_err(|error| CvaError::Freshness(error.to_string()))?;
+            candidates.push(SemanticCandidate {
+                memory_id: id,
+                cosine,
+                fragment_id: source_vector.fragment_id.0.to_vec(),
+                vector_binding_id: target.body_id.0,
+                profile_compatible: true,
+                generation_valid: source.generation.id.0 != [0; 32],
+                source_excluded: false,
+            });
+        }
+    }
+    let effects = plan_local_effects(source.semantic_policy, candidates)
+        .map_err(|error| CvaError::Freshness(error.to_string()))?;
+    Ok((effects, eligible_memories, filtered))
+}
+
 fn hash_text(digest: &mut Sha256, text: &str) {
     digest.update((text.len() as u64).to_le_bytes());
     digest.update(text.as_bytes());

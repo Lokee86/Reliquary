@@ -205,3 +205,105 @@ fn incomplete_mapping_stays_pending_even_with_one_valid_source_vector() {
         SemanticSourceReadiness::Pending
     );
 }
+
+#[test]
+fn candidate_search_filters_before_limit_and_deduplicates_targets() {
+    use crate::freshness::semantic_policy::SemanticPolicy;
+    let source_node = Node {
+        id: "source".into(),
+        conversation_id: "conversation".into(),
+        parent_id: None,
+        role: "user".into(),
+        principal_id: None,
+        timestamp_ns: 0,
+        content_id: crate::ContentId([1; 32]),
+    };
+    let source = AcceptedSemanticSource {
+        owner_uuid: [9; 16],
+        node: source_node,
+        activity_position: 10,
+        generation: VectorGeneration {
+            id: VectorGenerationId([1; 32]),
+            compatibility_profile_id: crate::CompatibilityProfileId([2; 32]),
+            archive_vector_id: crate::ArchiveVectorId([3; 32]),
+            source_archive_version: 1,
+            global_version: 1,
+            vector_version: 1,
+        },
+        base_policy: crate::freshness::FreshnessPolicy::default(),
+        semantic_policy: SemanticPolicy {
+            candidate_limit: 1,
+            ..SemanticPolicy::default()
+        },
+        policy_digest: [4; 32],
+        source_digest: [5; 32],
+        vectors: vec![
+            SemanticSourceVector {
+                fragment_id: FragmentId([1; 32]),
+                row: 0,
+                components: vec![1.0, 0.0],
+            },
+            SemanticSourceVector {
+                fragment_id: FragmentId([2; 32]),
+                row: 1,
+                components: vec![0.9, 0.1],
+            },
+        ],
+        excluded_mixed_fragments: 0,
+        invalid_vectors: 0,
+    };
+    fn memory(id: u8, lifecycle: &str, source: Option<(&str, &str)>) -> crate::Memory {
+        crate::Memory {
+            id: crate::MemoryId([id; 32]),
+            revision: 1,
+            category: "fact".into(),
+            memory_type: "project".into(),
+            authority_kind: "unknown".into(),
+            temporal_status: "unknown".into(),
+            title: "title".into(),
+            content: "content".into(),
+            scope: "project".into(),
+            lifecycle_state: lifecycle.into(),
+            archived: false,
+            superseded_by: None,
+            parent_id: None,
+            source_node_id: None,
+            content_source_conversation_id: source.map(|(conversation, _)| conversation.into()),
+            content_source_node_id: source.map(|(_, node)| node.into()),
+            grounding_source_conversation_id: None,
+            grounding_source_node_id: None,
+            source_episode_id: None,
+            source_time_ns: None,
+            source_ref: None,
+            temporal_inference: None,
+            routing_metadata: None,
+            mutation_id: format!("m{id}"),
+            created_at_ns: 0,
+            updated_at_ns: 0,
+            global_version: 1,
+            memory_version: 1,
+        }
+    }
+    let target = |id, lifecycle, admitted, vector| SemanticTargetSnapshot {
+        memory: memory(id, lifecycle, None),
+        body_id: crate::MemoryBodyId([id; 32]),
+        admitted_at_turn: admitted,
+        vector,
+    };
+    let cohort = std::collections::BTreeSet::new();
+    let mut provenance_target = target(4, "knowledge", Some(1), vec![1.0, 0.0]);
+    provenance_target.memory.content_source_conversation_id = Some("conversation".into());
+    provenance_target.memory.content_source_node_id = Some("source".into());
+    let targets = vec![
+        target(1, "knowledge", Some(1), vec![1.0, 0.0]),
+        target(2, "knowledge", Some(20), vec![1.0, 0.0]),
+        target(3, "extracted", Some(1), vec![1.0, 0.0]),
+        provenance_target,
+    ];
+    let (effects, eligible, filtered) =
+        plan_eligible_semantic_targets(&source, &cohort, targets).unwrap();
+    assert_eq!(eligible, 1);
+    assert_eq!(filtered, 3);
+    assert_eq!(effects.len(), 1);
+    assert_eq!(effects[0].memory_id, crate::MemoryId([1; 32]));
+}
