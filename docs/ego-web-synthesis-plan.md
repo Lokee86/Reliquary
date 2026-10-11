@@ -24,7 +24,7 @@ The target project summary is user-relative. Shared evidence remains REL-owned, 
 
 ## Status
 
-This document records the current design direction and the measurements that motivated it. The durable Ego substrate exists, but the working-Web selector, audit controller, candidate-selection pass, summary inference, reconciliation, activity accounting, and refresh scheduling described here are not yet implemented.
+This document is the design rationale and calibration record. The authoritative implementation sequence, interfaces, inference boundaries, failure/retry semantics, acceptance gates, and completion definition are now owned by [Ego Memory-Web Summary implementation plan](ego-memory-web-summary-implementation-plan.md). The durable Ego substrate exists, but the working-Web selector, audit controller, candidate-selection pass, summary inference, reconciliation, activity accounting, and refresh scheduling described here are not yet implemented.
 
 ## Pre-established Ego pieces
 
@@ -871,6 +871,7 @@ Still unresolved:
 
 ## Related docs
 
+- [Ego Memory-Web Summary implementation plan](ego-memory-web-summary-implementation-plan.md)
 - [Roadmap](roadmap.md)
 - [Current limitations](current-limitations.md)
 - [Architecture](architecture.md)

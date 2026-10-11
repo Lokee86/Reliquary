@@ -356,7 +356,7 @@ Next, Ego should:
 - project the host-owned Phylactery through explicit role/privacy policy; and
 - keep source/provenance access available without flooding the default prompt.
 
-The Memory-Web Summary rationale, measurements, staged audit/candidate/summary architecture, and calibration sequence are recorded in [Ego Memory-Web summary plan](ego-web-synthesis-plan.md). Cross-chat selection and budgeting are recorded in [Ego Cross-chat context plan](ego-cross-chat-context-plan.md). Bidirectional authorized summary selection (distinct from synthesis and from dependency inheritance) is recorded in [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md).
+The authoritative Memory-Web Summary execution contract is [Ego Memory-Web Summary implementation plan](ego-memory-web-summary-implementation-plan.md): source-cut capture, no-pruning-while-fit population construction, full-Web audit search, separate candidate resolution, exact-source candidate summarization, reconciliation, persisted tiers, failure/retry semantics, and refresh scheduling. The design rationale, measurements, and calibration background remain in [Ego Memory-Web summary plan](ego-web-synthesis-plan.md). Cross-chat selection and budgeting are recorded in [Ego Cross-chat context plan](ego-cross-chat-context-plan.md). Bidirectional authorized summary selection (distinct from synthesis and from dependency inheritance) is recorded in [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md).
 
 Ego context-assembly policy is Reliquary-owned under the graph-aware host boundary established by ADR 0037. Warlock's Ego document is a host-facing integration contract; it must not become a second source of semantic policy.
 
