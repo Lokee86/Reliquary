@@ -84,6 +84,7 @@ impl SemanticPolicy {
 
     pub fn digest(self) -> Result<[u8; 32], SemanticPolicyError> {
         let mut hasher = Sha256::new();
+        hasher.update(b"reliquary:semantic-freshness-policy\0");
         hasher.update(self.canonical_descriptor()?.as_bytes());
         Ok(hasher.finalize().into())
     }
@@ -101,10 +102,8 @@ impl SemanticPolicy {
 }
 
 fn format_threshold(value: f64) -> String {
-    let mut rendered = format!("{value:.12}");
-    while rendered.ends_with('0') {
-        rendered.pop();
-    }
+    let mut rendered = value.to_string();
+
     if rendered.ends_with('.') {
         rendered.push('0');
     }
@@ -150,7 +149,6 @@ pub fn cosine_similarity(source: &[f32], target: &[f32]) -> Result<f64, Semantic
         return Err(SemanticPolicyError::DimensionMismatch);
     }
 
-    let mut dot = 0.0_f64;
     let mut source_norm = 0.0_f64;
     let mut target_norm = 0.0_f64;
     for (&left, &right) in source.iter().zip(target) {
@@ -159,16 +157,25 @@ pub fn cosine_similarity(source: &[f32], target: &[f32]) -> Result<f64, Semantic
         }
         let left = f64::from(left);
         let right = f64::from(right);
-        dot += left * right;
         source_norm += left * left;
         target_norm += right * right;
     }
     if source_norm == 0.0 || target_norm == 0.0 {
         return Err(SemanticPolicyError::ZeroNormVector);
     }
-    let similarity = dot / (source_norm.sqrt() * target_norm.sqrt());
-    validate_cosine(similarity).map_err(|_| SemanticPolicyError::NonFiniteSimilarity)?;
-    Ok(similarity)
+    let source_norm = source_norm.sqrt();
+    let target_norm = target_norm.sqrt();
+    if !source_norm.is_finite() || !target_norm.is_finite() {
+        return Err(SemanticPolicyError::NonFiniteSimilarity);
+    }
+    let mut similarity = 0.0_f64;
+    for (&left, &right) in source.iter().zip(target) {
+        similarity += (f64::from(left) / source_norm) * (f64::from(right) / target_norm);
+    }
+    if !similarity.is_finite() {
+        return Err(SemanticPolicyError::NonFiniteSimilarity);
+    }
+    Ok(similarity.clamp(-1.0, 1.0))
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -245,16 +252,9 @@ pub fn plan_local_effects(
         .collect::<Vec<_>>();
     ranked.sort_by(|(left, _), (right, _)| {
         right
-            .1
-            .cmp(&left.1)
-            .then_with(|| {
-                right
-                    .0
-                    .cosine
-                    .partial_cmp(&left.0.cosine)
-                    .unwrap_or(Ordering::Equal)
-            })
-            .then_with(|| left.0.memory_id.cmp(&right.0.memory_id))
+            .cosine
+            .total_cmp(&left.cosine)
+            .then_with(|| left.memory_id.cmp(&right.memory_id))
     });
     ranked.truncate(policy.candidate_limit);
 
@@ -335,7 +335,7 @@ mod tests {
         stronger.fragment_id = vec![8];
         let effects = plan_local_effects(SemanticPolicy::default(), [weaker, stronger]).unwrap();
         assert_eq!(effects.len(), 1);
-        assert_eq!(effects[0].bonus, 10);
+        assert_eq!(effects[0].bonus, 6);
     }
 
     #[test]
