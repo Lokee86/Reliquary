@@ -437,7 +437,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Complete: host lifecycle matrix passed |
 | 4.9 | Run actual Warlock UI/Tauri integration tests | Partial: UI build passed; backend integration blocked by Warlock pin |
 | 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Complete: P6-H diagnostic report captured |
-| 4.11 | Run all locked code, test, architecture and documentation checks | Blocked |
+| 4.11 | Run all locked code, test, architecture and documentation checks | Complete: Reliquary locked and architecture checks passed |
 | 4.12 | Repair regressions and record final release acceptance with evidence | Blocked |
 
 **Exit gate:** actual post-deletion production consumer and runtime pass, with measured performance and no unresolved unacknowledged exceptions.
@@ -570,6 +570,10 @@ The Warlock frontend production build passed (`npm run build`; TypeScript and Vi
 ### Step 4.10 lock contention, workers, queues, memory, fan-out and throughput — 2026-10-11
 
 The P6-H report at `.verification-tmp/p6-step-4-6/report.json` captured the diagnostic matrix with `passed: true`. It observed 3 PHY workers, 2 physical owners, 4 RELs, queue capacity 16, and 32 recipients in the steady-state topology. Fanout covered 1, 8, and 32 instances with 24 mutations and 48 fast events; slow-recipient resync counts were 0, 7, and 31. Checkpoint delivery transferred 65,536 bytes, with 80.4 ms checkpoint, 2.4 ms late-join replay, and 14.4 ms restart/reconcile measurements in this run. The 100-sample owner-lock probe reported hold/wait distributions, and the harness process peak was 26.8 MB RSS with 23 sampled threads. These are controlled harness measurements; the report explicitly scopes lock probing and does not claim all production critical sections or a cold-cache benchmark.
+
+### Step 4.11 locked code, test, architecture and documentation checks — 2026-10-11
+
+The candidate verification suite passed `cargo fmt --all -- --check`, locked `cargo check --tests --examples -j1`, **1,132 library/integration tests with 2 intentional crash-test ignores**, zero doctests, and **19 CLI tests**. Architecture validation passed Pitlord with 23 rules, 65,147 source nodes, 2,353 relationships, and zero violations; phase ownership and external-source guards passed their fixture and production checks. The candidate documentation diff is clean. The remaining release-wide blocker is the separate Warlock Tauri backend pin recorded under Step 4.9.
 
 ### Step 4.3 verification evidence
 
