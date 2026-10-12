@@ -100,3 +100,7 @@ Normal live semantic reinforcement remains **local and non-propagating**. Histor
 ## Notes
 
 The current per-step status is recorded in the first column of the sequence table. Step completion requires the evidence named in that row; a listed step is not implicitly complete.
+
+## Step 15 implementation record
+
+The read-only `Cva::historical_freshness_timeline()` gate derives the complete retained source timeline from Archive and rejects any mismatch with actual first-accepted activity positions. Matching plans share the existing REL clock; reordered-history conversion is unsupported. See [planner and clock verification](freshness-historical-planner-verification-2026-10-12.md). This implements the clock gate only; Steps 16–25 remain outstanding.

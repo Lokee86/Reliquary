@@ -248,6 +248,8 @@ mod cva_freshness;
 mod cva_global_validation;
 #[path = "facade/cva_graph.rs"]
 mod cva_graph;
+#[path = "facade/cva_historical_freshness.rs"]
+mod cva_historical_freshness;
 #[path = "facade/cva_lifecycle.rs"]
 mod cva_lifecycle;
 pub use cva_freshness::{FreshnessEventCut, FreshnessEventProof};
