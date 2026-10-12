@@ -429,7 +429,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 |---|---|---|
 | 4.1 | Port accepted harness to post-deletion runtime | Complete: P6-H port compiled and focused runtime matrix passed |
 | 4.2 | Verify concurrent instances and shared REL/PHY execution | Complete: topology and fanout/checkpoint matrices passed |
-| 4.3 | Verify grant enforcement, revocation and principal privacy | Blocked |
+| 4.3 | Verify grant enforcement, revocation and principal privacy | Complete: gateway authorization/privacy matrix passed |
 | 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Blocked |
 | 4.5 | Verify conversation branch policy and Archive ancestry consistency | Blocked |
 | 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Blocked |
@@ -540,3 +540,7 @@ Verification passed with `cargo fmt --all -- --check`, the locked offline P6 har
 The post-deletion topology matrix passed all **4 tests**. It covers deterministic instance selection with private physical identity, shared-principal physical-worker deduplication, independent REL/PHY ownership, unrelated-owner reads while another owner is held, stale-token rejection after reopen, pending-order recovery, and cancel/finalize race replay. The observed topology cases include 1–2 physical workers and 1–2 RELs while preserving the expected principal-sharing boundary.
 
 The load matrix passed all **4 tests**. It exercised fanout at **1, 8, and 32 instances**, bounded slow-recipient resynchronization, a 32-instance steady-state window with 2 physical workers and 4 RELs, checkpoint/late-join/restart delivery of an exact 65,536-byte UTF-8 prefix, and owner-lock contention sampling. All selected tests passed with zero failures under locked offline Cargo; no source or persistence changes were required.
+
+### Step 4.3 grant enforcement, revocation and principal privacy — 2026-10-11
+
+The complete gateway authorization/privacy family passed under locked offline Cargo: **298 passed, 0 failed, 2 intentionally ignored crash subprocess tests**. This matrix covers exact-owner and grant checks, credential substitution rejection, instance and delivery-token fencing, grant replacement and revocation races, private REL/PHY and semantic reads, dependency-grant scoping, mixed-principal publication attribution, stream/snapshot reconnect revocation, and cross-principal isolation. No source or persistence changes were required.
