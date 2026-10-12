@@ -27,7 +27,7 @@ One Gateway authority owns each mounted REL/PHY; many independently authorized i
 | Foundation | Reliquary | Gateway/Instance, REL/PHY worker identity, durable conversation scheduler, P4 distribution | **Accepted on existing implementation lines** | Historical integration verification exists; must remain green during final integration |
 | 1 | Warlock | Actual provider execution-only adapter, remote outcome/reconnect, multi-context privacy, P4 public delivery, exact task-root attribution | **In progress / blocking** | Provider lifecycle works against exact staged Reliquary; tests demonstrate reconnect, cancellation, privacy and checkpoint-only visible text |
 | 2 | Reliquary + Warlock | Combine accepted runtime, management, import and external-reference source; pin one Reliquary and one Arcana revision in Warlock | **Partially staged / blocking** | One integrated source, one Arcana identity, locked Warlock checks/tests/frontend, downstream fixtures and exact commit-pinned acceptance |
-| 3 | Reliquary | Delete `ReliquaryRuntimeHost` and old-only mutable selection, duplicate workers and forwarding | **Inventory done; removal blocked on 1–2** | No legacy host imports/exports/callers; preserved readers, relocated useful types, full targeted matrix green |
+| 3 | Reliquary | Delete `ReliquaryRuntimeHost` and old-only mutable selection, duplicate workers and forwarding | **In progress; final acceptance gates open** | No legacy host imports/exports/callers; preserved readers, relocated useful types, full targeted matrix green |
 | 4 | Both | Release verification of post-deletion runtime and real Warlock | **Harness exists; final pass blocked on 3** | Crash/reopen, multi-instance identity/privacy, queue/cancel/replay, stream slow/reconnect/epoch, actual provider, locked builds and measured baseline pass |
 | 5 | Hermes + Reliquary | Implement Hermes feed/hydration and plugin session/runtime adapter | **Planned; not yet accepted** | Live authorized bridge maps Hermes identities, sessions, branches and lifecycle without copying canonical transcript bodies to REL |
 | 6 | Hermes + Reliquary | End-to-end Hermes multiplexing acceptance | **Not started** | Two concurrent sessions/principals, shared/isolated PHY behavior, restart/replay, revoke/delete/rewind, exact hydration and failure isolation pass |
@@ -99,18 +99,86 @@ The six numbered deliverables are the **only current progress sequence**. Subtas
 
 | ID | Action | Status |
 |---|---|---|
-| 1.1 | Audit current Warlock consumer against N3 interfaces and actual dependency pins | Not started |
-| 1.2 | Finish execution-only provider adapter | Partial |
-| 1.3 | Implement remote outcome reconciliation, reconnect and Unknown recovery | Partial |
-| 1.4 | Complete cancellation and provider operation lifecycle | Partial |
-| 1.5 | Complete multi-instance context and session management | Not verified |
-| 1.6 | Verify shared PHY ownership and cross-principal isolation | Not verified |
-| 1.7 | Integrate checkpointed durable conversation streams with Warlock UI/Tauri | Not verified |
-| 1.8 | Implement public reconnect, resync and subscription recovery | Not verified |
-| 1.9 | Complete exact task-root attribution and ProjectFileRef propagation | Not verified |
-| 1.10 | Run full real-provider, frontend, privacy and Warlock acceptance matrix | Blocked on 1.2–1.9 |
+| 1.1 | Audit current Warlock consumer against N3 interfaces and actual dependency pins | Audited 2026-10-11: main `4da92b3`, consumer branch `90fdb61`; production pins remain pre-N3; build compatibility unverified |
+| 1.2 | Finish execution-only provider adapter | Implemented on consumer branch `90fdb61` plus local readiness fix; N3 library suite 223 passed, 1 benchmark ignored; final pins remain Step 2 |
+| 1.3 | Implement remote outcome reconciliation, reconnect and Unknown recovery | Partial; provider contract audit found no remote recovery API in either registered transport |
+| 1.4 | Complete cancellation and provider operation lifecycle | Local lifecycle repaired and HTTP Stop fixtures pass; remote termination acceptance still depends on 1.3 |
+| 1.5 | Complete multi-instance context and session management | Backend task contexts verified against N3; independent desktop window selection remains unaccepted |
+| 1.6 | Verify shared PHY ownership and cross-principal isolation | Verified against N3 `dcf500e`: 9 production runtime tests and 3 Warlock consumer tests passed; final pinned/product acceptance remains open |
+| 1.7 | Integrate checkpointed durable conversation streams with Warlock UI/Tauri | Implemented and targeted N3/frontend checks passed; interactive Tauri operator acceptance remains open |
+| 1.8 | Implement public reconnect, resync and subscription recovery | Implemented with bounded observer reconnect; targeted N3/backend and frontend checks passed |
+| 1.9 | Complete exact task-root attribution and ProjectFileRef propagation | Task-root attribution verified; exact ProjectFileRef propagation blocked on N3 submission API |
+| 1.10 | Run full real-provider, frontend, privacy and Warlock acceptance matrix | Targeted matrix passed; full fresh rebuild hit Lore/rustc environment ICE; final acceptance remains blocked on 1.3, 1.5, 1.9 and pins |
 
 **Exit gate:** upgraded Warlock uses canonical Gateway/Instance APIs with correct real-provider recovery, streaming, authorization and multi-context behavior; commit and log exact tests and pins.
+
+### Step 1.1 audit — 2026-10-11
+
+Warlock `main` is `4da92b3`; it does not contain consumer branch `feat/multiplexing-p5c-final-cut` at `90fdb61` (including `69c4642` and the earlier `be17ad5` slice). The consumer worktree was clean at audit time; main has existing graph/UI and roadmap edits. Reliquary N3 remains `dcf500e`. This was a source and Git audit; no fresh build or test pass is claimed.
+
+Both Warlock manifests still pin Reliquary `83b3ac87a80a4221039fa07d9722f5f8076464ba` and direct Arcana `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`; the consumer lockfile agrees and contains one Arcana package entry. N3 requires Arcana `9ebccd6e7d089b98a8992c5451ba57f903f295fb`. Therefore the committed production dependency graph does not establish N3 compatibility; changing only the Reliquary pin would leave distinct Arcana revisions.
+
+The later consumer source implements `GatewayHostAdapter` with execution-only conversation capability, native pending ownership, local status/cancel/reconciliation, authorized `LiveSession` checkpoint receipt consumption, resync snapshots and bounded viewer reattachment. Local cancelled/unknown outcomes remain remotely Unknown. Remote provider reconciliation is still absent. Legacy-named `ReliquaryRuntimeHostError` imports survive and require type relocation during Step 3; their names alone do not demonstrate a duplicate host owner.
+
+Next action: verify the current main consumer against N3 with aligned Arcana in an isolated candidate, retaining production pin acceptance for Step 2. Exercise provider recovery and current task/viewer behavior before upgrading the remaining Step 1 statuses. Existing source/tests are implementation evidence, not fresh acceptance of real HTTP providers, frontend delivery or privacy gates.
+
+### Step 1.2 implementation — 2026-10-11
+
+The existing execution-only adapter on `Warlock-p5c-final-cut` is installed at startup and uses the real provider lifecycle. Local changes require negotiated `ExecutionOnlyReady` before provider context preparation and again before durable generation creation. The new production-task fixture rejects unconfigured and Unknown-held execution and accepts negotiated readiness. Pending work remains native; remote reconciliation remains Step 1.3.
+
+Fresh command: `scripts/cargo-local-reliquary.ps1 test -ReliquaryPath C:\!bin\workspace\Reliquary-n3-staging --offline --lib`, with TEMP/TMP inside the consumer worktree and GIT_CEILING_DIRECTORIES set to that temporary directory: **223 passed, 0 failed, 1 existing benchmark ignored** against N3 `dcf500e`. The first run had 222 passed and one missing-Git-repository fixture failure caused by discovering the enclosing worktree; bounding discovery resolved it. Existing compiler/linker warnings persist. Both Warlock docs modes and existing Pitlord enforcement passed (63 rules); fresh graph refresh, frontend release acceptance and locked production pins remain open. The transient wrapper restores the production lockfile and currently resolves two Arcana revisions.
+
+### Step 1.3 provider contract audit — 2026-10-11
+
+The registered transports are OpenAI-compatible Chat Completions and OpenAI Codex. `ProviderTransport` exposes inference and credential operations, with no remote operation lookup, resume or terminal-outcome reconciliation contract. Codex request construction sets `store: false`. The local execution record binds owner/operation/digest but retains neither a remote recovery receipt nor a provider-specific query identity. The host adapter therefore reconciles only process-local records; missing and locally cancelled executions remain Unknown. REL remains the durable generation/no-replay owner.
+
+Completing remote recovery requires selecting a provider protocol that supplies authenticated durable operation lookup and defining how its receipt, request digest and terminal result bind to the native generation. Generic HTTP retry or a fabricated status endpoint cannot supply that evidence. Step 1.3 remains partial pending that protocol decision; no remote recovery implementation or new test acceptance is claimed by this audit.
+
+### Step 1.4 local lifecycle — 2026-10-11
+
+Consumer changes finalize the durable generation and execution lease before optional usage accounting, preventing telemetry failure from bypassing completion/cleanup. The public readiness query now includes negotiated execution-only readiness. The actual HTTP Stop fixture additionally verifies authorized repeated Stop and rejection of late output after interruption; its three provider acceptance tests pass against N3 `dcf500e` through the transient wrapper (`test --offline --lib provider_execution_acceptance_tests`). Production pins remain unchanged. Local Stop requests cooperative cancellation and fences durable output; remote termination cannot be accepted until Step 1.3 supplies a recovery protocol. No complete cancellation/release acceptance is claimed.
+
+### Step 1.5 backend context verification — 2026-10-11
+
+Existing production operating contexts attach distinct authenticated instances to one Gateway and keep provider REL/conversation/branch roots independent of desktop selection. A new fixture verifies duplicate context-key rejection, detach invalidation, key reuse with a fresh instance, and preservation of the other selected session. The five `chat_task_context_tests` pass against N3 `dcf500e` through `scripts/cargo-local-reliquary.ps1 test --offline --lib chat_task_context_tests` with the exact N3 path override. These fixtures also cover selection changes during two accepted generations, shared PHY identity, task-local retrieval and grant revocation.
+
+The desktop RPC surface still uses a primary workspace instance and viewer opening checks the currently selected owner. Independently selected backend tasks/viewers are implemented; fully independent desktop windows have not been implemented or accepted by this verification. Production dependency pins, UI acceptance and remote recovery remain open.
+
+### Step 1.6 PHY ownership and privacy verification — 2026-10-11
+
+Fresh locked/offline N3 library compilation used `cargo test --locked --offline --lib --target-dir ../Warlock-p5c-final-cut/src-tauri/target`; TEMP/TMP stayed inside the N3 worktree. The initial filename-based filter selected zero tests and is not acceptance evidence. The resulting `reliquary_memory-d6a36fdd0a41b529.exe` then passed **9 production tests** using filters `gateway::phy_tests` (4), `combined_search_and_private_reads`, `private_search_rejects`, `attachment_churn_preserves`, `private_provider_io`, and `broad_snapshot_never` (1 each).
+
+These tests count exactly one three-worker PHY set across same-principal attachment/detach, reject foreign-principal binding and retargeting, fence stale tokens across remount, join workers at shutdown, preserve ownership during attachment churn, deny foreign private semantic reads, revalidate revocation during embedding/provider I/O, and exclude PHY bodies from broad snapshots. They exercise production Gateway code; the Phase 0B reference-model contract files were not counted.
+
+The current N3-built Warlock test executable passed **3 consumer tests**: `actual_task_contexts_share_one_phy` and both `workspace_admission_tests`. This verifies shared PHY identity and authenticated grant/identity isolation through Warlock's existing adapter. No source change was required for Step 1.6. Compiler/linker warnings remain; production pins, independent-window UI and release acceptance remain separate gates.
+
+### Step 1.7 checkpointed Tauri/UI integration — 2026-10-11
+
+Existing `DurableStream` stages provider text, synchronizes its native generation checkpoint, and emits only the authorized P4 receipt consumed through `ChatLiveDelivery`. The UI replaces full prefixes. Consumer changes add direct-channel operation/message/epoch validation and integer-safe monotonic receipt handling, rejecting duplicates, wrong generations and regressing deliveries.
+
+Fresh verification: the N3-built Warlock executable passed both `chat_live_delivery_tests` and both `chat_stream::prefix_tests` (**4 tests**); `npx --no-install tsx scripts/durable-text.test.ts` passed identity, duplicate, ordering, malformed-sequence and beyond-safe-integer checks; `npm run build` passed (existing large-chunk warning persists). Backend fixtures cover checkpoint-before-text, Unicode, late join, slow-reader resync, revocation, channel failure, remount and durable no-replay. Interactive Tauri operator acceptance, final pins and full release gates remain open; this is targeted integration evidence.
+
+### Step 1.8 public reconnect and resync — 2026-10-11
+
+The public `generationObserver` now treats a failed viewer read as recoverable while an active generation exists. It closes the stale authorized handle, re-reads the current generation hint, opens a fresh viewer, consumes the server-authoritative prefix snapshot, and resumes polling with bounded exponential backoff. It never submits work or restarts a provider operation. The initial open still reports an error to the UI; subsequent transient reconnect attempts remain quiet until they recover or the generation disappears.
+
+Fresh verification passed: `chat_live_delivery_tests` (2), `chat_generation_viewers_tests` (2), the durable receipt UI checks, and `npm run build`. These cover late join, slow-reader overflow/resync, Unicode prefixes, revocation, failed recipients, mount-epoch rotation, reauthorization, detach/rejoin and no duplicate provider dispatch. Interactive Tauri reconnect under an actual window lifecycle remains a release-level check; production pins and final release gates remain open.
+
+### Step 1.9 attribution and ProjectFileRef audit — 2026-10-11
+
+Task-root attribution is implemented and verified: `ChatTaskContext` freezes owner, conversation, branch, accepted leaf and submission identity from the native Archive receipt; provider context, tools, checkpoints, completion and viewer delivery use that frozen authenticated attachment. The existing consumer tests also verify selection changes do not retarget accepted work, sibling owners are rejected, and stable attachment retries do not duplicate the user turn.
+
+Exact project-file propagation remains blocked at the Reliquary boundary. Warlock calls `ingest_project_attachment_for` for the original owner and project directory, but discards the returned `StoredFile`. It then sends raw bytes in `GatewayConversationAttachment`; N3 `GatewayConversationSubmission` has no `ProjectFileRef` or project-file identity field, and N3 admission stages embedded attachment bytes. Warlock cannot reconstruct canonical repository revision/path provenance safely after that point. The canonical fix belongs in Reliquary: return/bind the ingested file identity as part of the immutable submission attachment contract and preserve it through journal admission, retries, rejection side effects and finalization.
+
+Fresh targeted evidence passed against the N3-built Warlock executable: `stable_attachment_retry_does_not_duplicate_the_user_turn` (1), `workspace_memory_provenance_tests` (2), and `actual_task_contexts_share_one_phy_and_keep_roots_and_native_writes_independent` (1). The provenance tests validate existing ProjectFileRef reads for already-bound records; they do not close the new-submission propagation gap. No Warlock-side workaround or completion claim is recorded.
+
+### Step 1.10 Warlock acceptance matrix — 2026-10-11
+
+The existing N3-built Warlock acceptance executable passed **224 tests, 0 failed, 1 ignored** in a serial run with repository-local TEMP/TMP and bounded Git discovery. The matrix includes the actual OpenAI-compatible HTTP transport, authorized Stop, digest/idempotency/replay guards, task-root and privacy isolation, shared PHY/context behavior, P4 checkpoint delivery, viewer reconnect fixtures, ProjectFileRef read/provenance checks, workspace lifecycle and frontend-facing command contracts. The ignored test is the existing Arcana inspection benchmark requiring an external fixture.
+
+The frontend production build and durable checkpoint UI checks passed. Warlock docs, change-impact docs and Pitlord passed (63 rules, 16,214 source nodes, 23,857 relationships). A fresh full rebuild against the N3 override compiled application sources but failed during Lore linking with a rustc 1.97.1 compiler ICE (`Os { code: 2, kind: NotFound }`) while producing `lore.dll`; this is an environment/toolchain failure, so the prebuilt executable result is retained as the runtime matrix evidence and the fresh locked build is not claimed green. The build also resolves two Arcana revisions (`9ebccd6` and the production `66b4e96`), confirming the Step 2 pin issue.
+
+Step 1.10 does not close the release gate: remote provider reconciliation (1.3), independent desktop window selection (1.5), exact new-submission ProjectFileRef propagation (1.9), final dependency pins and interactive operator acceptance remain open.
 
 ## Step 2 — Merge and pin
 
@@ -118,56 +186,259 @@ The six numbered deliverables are the **only current progress sequence**. Subtas
 
 | ID | Action | Status |
 |---|---|---|
-| 2.1 | Audit all active integration branches, unique changes and accepted SHAs | Not verified |
-| 2.2 | Establish final convergence candidate from accepted N3 source | Partial |
-| 2.3 | Integrate accepted Gateway/Instance, background and queue ownership cuts | Partial |
-| 2.4 | Integrate accepted live runtime and management surfaces | Partial |
-| 2.5 | Integrate accepted native import and external-reference core | Partial |
-| 2.6 | Resolve exports, interface ownership and dependency conflicts | Partial |
-| 2.7 | Run full locked Reliquary/CLI tests, examples and architecture/ownership guards | Blocked on final candidate |
-| 2.8 | Pin Warlock to exact accepted Reliquary and Arcana revisions | Blocked on Step 1 and final candidate |
-| 2.9 | Run full pinned Warlock provider, context, stream and frontend matrix | Blocked on 2.8 |
-| 2.10 | Commit and verify integrated source, exact pins and acceptance evidence | Blocked on 2.7–2.9 |
+| 2.1 | Audit all active integration branches, unique changes and accepted SHAs | Audited 2026-10-11: accepted lane tips are identified; no source merge performed |
+| 2.2 | Establish final convergence candidate from accepted N3 source | Candidate established 2026-10-11 at `feat/multiplexing-final-convergence` / `dcf500e`; overlay review remains |
+| 2.3 | Integrate accepted Gateway/Instance, background and queue ownership cuts | Integrated in candidate 2026-10-11; candidate guards pass, architecture refresh environment-blocked |
+| 2.4 | Integrate accepted live runtime and management surfaces | Integrated in candidate 2026-10-11; source guards pass, locked Rust acceptance build-blocked |
+| 2.5 | Integrate accepted native import and external-reference core | Integrated in candidate 2026-10-11; ownership guards pass |
+| 2.6 | Resolve exports, interface ownership and dependency conflicts | Complete for candidate `dcf500e`: locked graph and library compilation passed; exact consumer pins applied in 2.8 |
+| 2.7 | Run full locked Reliquary/CLI tests, examples and architecture/ownership guards | Partial verification 2026-10-11: full Rust/CLI tests, compile checks, formatting, examples and static guards pass; refreshed architecture snapshot remains environment-blocked |
+| 2.8 | Pin Warlock to exact accepted Reliquary and Arcana revisions | Pinned 2026-10-11; locked metadata verified through local candidate override; remote Reliquary fetch remains unavailable |
+| 2.9 | Run full pinned Warlock provider, context, stream and frontend matrix | Complete 2026-10-11 against Reliquary candidate `dcf500e` and Arcana `66b4e96`; local candidate override used because Reliquary revision is unpublished |
+| 2.10 | Commit and verify integrated source, exact pins and acceptance evidence | Local integration commits created; final release gate remains blocked on 2.7 evidence and remote publication |
 
 **Exit gate:** one integrated code revision, one intended Arcana package identity, and no untested or conflicting runtime interfaces. Do not reimplement already accepted core features.
 
+### Step 2.1 branch audit — 2026-10-11
+
+The active branch audit used the exact local refs and recorded tip SHAs below. `dcf500e` is the N3 staging tip. The accepted lane tips marked **in N3** are ancestors of that staging tip; their changes are already represented in the N3 source candidate and must not be reimplemented. The later inventory/diagnostic branches are evidence overlays from the recorded convergence base and are not additional runtime implementations.
+
+| Lane | Ref and accepted tip | Relationship to N3 | Scope / convergence note |
+|---|---|---|---|
+| N3 staging | `feat/multiplexing-n3-staging` — `dcf500e` | Candidate base | B/E negotiation, architecture acceptance and staging verification |
+| B/E execution-only | `feat/multiplexing-be-execution-only` — `b8fba6a` | In N3 | Execution-only negotiation; preserve native pending authority |
+| P5-A REL consumers | `feat/multiplexing-p5-rel-consumers` — `7350149` | In N3 | Canonical REL and semantic consumer APIs |
+| P5-B background | `feat/multiplexing-p5-background` — `c45f50e` | In N3 | Background controls and executable host capability cut |
+| E5 live runtime | `feat/multiplexing-p5-live-runtime` — `874851a` | In N3 | Live runtime acceptance and native receipt seams |
+| F-core management | `feat/multiplexing-p5-management` — `13df1ff` | In N3 | Workspace management facade |
+| P5-G external core | `feat/multiplexing-p5-external` — `7c63eb8` | In N3 | External canonical transcript R0–R4 |
+| P5-C API | `feat/multiplexing-p5c-api-integration` — `4ce4911` | In N3 | Exact dispatch and acknowledged transcript recovery |
+| P5-C conversation API | `feat/multiplexing-p5c-conversation-apis` — `f64676e` | In N3 | Managed branch selection and conversation correlation |
+| P5-C project contract | `feat/multiplexing-p5c-project-contract` — `a999f49` | In N3 | Canonical project creation and admission guard |
+| P5-C conversation contract | `feat/multiplexing-p5c-conversation-contract` — `beb122c` | Two commits beyond convergence base; not in N3 | Contract export overlay; requires explicit conflict/ownership review before inclusion |
+| P5-D0 inventory | `feat/multiplexing-p5d-inventory` — `bfdd267` | One commit beyond convergence base; not in N3 | Legacy-host inventory/deletion manifest; verification evidence, not runtime authority |
+| P5-G native import | `feat/multiplexing-p5g-import` — `99b9fa5` | In N3 | Native import contracts and supported profiles |
+| P6-H5 diagnostics | `feat/multiplexing-p6-h5` — `b2b4bf4` | One commit beyond convergence base; not in N3 | Reproducible N0 diagnostics and measurements |
+| P6-H harness | `feat/multiplexing-p6-harness` — `81a64b6` | One commit beyond its P6 verification base; not in N3 | Real-runtime crash/profiling harness |
+| Warlock consumer | `Warlock/feat/multiplexing-p5c-final-cut` — `90fdb61` | Separate repository; contains Warlock `main` `4da92b3` | Consumer frontier; production pins still target Reliquary `83b3ac8` and Arcana `66b4e96` |
+
+The audit found no clean final convergence commit. Reliquary `main` at `f03ab9d` is documentation/planning history and is not a replacement for the N3 source candidate. The working trees also contain uncommitted Step 1 changes (this plan in Reliquary and consumer/runtime changes in Warlock), so the listed SHAs are accepted branch tips, not yet release pins. Step 2.2 must create a clean convergence candidate from N3, explicitly review the four overlay branches, and retain only their accepted evidence or source deltas. Step 2.8 must then align both the Reliquary and direct Arcana revisions; the current Warlock graph still resolves the pre-N3 Arcana revision alongside N3's Arcana revision.
+
+No source merge or dependency pin change was performed for this audit.
+
+### Step 2.2 convergence candidate — 2026-10-11
+
+Created the local Reliquary ref `feat/multiplexing-final-convergence` at exact commit `dcf500ea8438e9b3e782959dd0176efcb58b7b0a` (short SHA `dcf500e`). This is a clean candidate ref at the N3 staging tip, with zero candidate-only commits and zero diff relative to `feat/multiplexing-n3-staging`. The earlier `feat/multiplexing-p5-convergence` ref (`999fbf7`) is an ancestor of N3 and is retained as historical convergence-base evidence, not as the final candidate.
+
+The candidate intentionally does not cherry-pick or merge the four overlay branches identified in Step 2.1. P5-C conversation-contract (`beb122c`) requires an ownership/export review; P5-D0 (`bfdd267`), P6-H5 (`b2b4bf4`) and P6-H harness (`81a64b6`) are inventory/diagnostic evidence and must not silently become runtime source. Their inclusion, if any, belongs in Steps 2.3–2.6 with targeted verification. The candidate also does not include Warlock's uncommitted Step 1 work or change dependency pins.
+
+The current checkout remains on Reliquary `main` with the implementation plan modified in the working tree; creating the candidate ref did not switch or rewrite that checkout. The candidate is therefore a stable source starting point for Step 2.3, but not yet a release commit: full locked checks, overlay decisions, Arcana identity resolution and real Warlock acceptance remain outstanding.
+
+### Step 2.3 Gateway/Instance, background and queue ownership — 2026-10-11
+
+The N3 candidate already contains the accepted ownership cuts; no duplicate implementation or cherry-pick was required:
+
+- `GatewayRuntime` is the canonical mounted-owner authority. It owns the shared REL/PHY execution objects, owner journals, mount epochs and owner-scoped operation paths in `src/runtime_inference/runtime_host_gateway.rs` and its gateway submodules.
+- `InstanceRuntime` is a selection/authorization context, not a second owner. `src/runtime_inference/runtime_host_instances.rs` keeps active selection, grants and token generations while detaching only the instance context.
+- Background controls are exact-owner gateway operations in `src/runtime_inference/runtime_host_gateway_background.rs`. They authorize before reading or mutating owner state and deliberately do not create a second queue or store authority.
+- The accepted queue path remains owner-local: background status and wake operations reach the mounted owner's perception queue, while the interaction background processor remains the typed processing seam in `src/runtime_inference/interaction_background.rs`.
+
+Candidate verification from an isolated worktree at `dcf500e` passed the P4/P4.8 ownership guard (75 fixtures, 161 public API classifications), workspace-management guard, and external-source ownership guard. A fresh architecture refresh was attempted with the sibling Lexicon/Arcana tools, but Arcana failed while syncing the generated Lexicon snapshot with `os error 2`; this is an environment/toolchain exception, not a source failure. The previously recorded N3 architecture acceptance remains the applicable source evidence until the refresh can be rerun successfully.
+
+Step 2.3 therefore closes the source-integration portion. Remaining work is Step 2.4 management/live-runtime verification, followed by the full locked candidate checks and dependency pin acceptance.
+
+### Step 2.4 live runtime and management surfaces — 2026-10-11
+
+The candidate at `dcf500e` contains both accepted tips: P5-E live runtime `874851a` and P5-F-core management `13df1ff`. Their composition is present through the existing gateway seams rather than a second host:
+
+- `GatewayRuntime::live_runtime_adapter` binds live sessions to a verified instance. `LiveSession`, resume cursors/hints, generation status, cancellation, tool receipts and generated-artifact finalization remain under the existing P3/P4 durable and delivery authorities.
+- `GatewayRuntime::workspace_management` binds management calls to a verified instance. `WorkspaceManagement` is a forwarding facade; it does not retain semantic data, queue state, selection copies, recipient state or an independent cache.
+- The crate-root exports in `src/lib.rs` expose the named E/F types (`LiveSession`, `LiveStreamCursor`, `LiveStreamEvent`, `LiveStreamSnapshot`, `LiveToolEvent`, `WorkspaceManagement`, management DTOs and bounds) from their single composition roots.
+- Maintainer ownership is explicit: live recipient adaptation is in `interaction_live*.rs`, management composition is in `workspace_management*.rs`, and gateway management tests cover the authorized binding boundary.
+
+Candidate-specific guards passed: P4/P4.8 coverage, workspace-management ownership, and external-source ownership. A locked focused Rust run was started against the exact candidate with the existing N3 target. It did not reach test execution: the Lore build failed with missing generated dependency artifacts (`can't find crate` / missing `.rlib` paths) while compiling the locked graph. The retry was stopped after reproducing the dependency rebuild path; this is retained as a build-environment limitation, not a source-level failure. Prior N3 E5/F-core acceptance records remain the applicable runtime evidence.
+
+Step 2.4 closes source integration and guard verification. Full locked candidate execution remains required before Step 2.7, and Step 2.8 still requires aligned Reliquary/Arcana pins.
+
+### Step 2.5 native import and external-reference core — 2026-10-11
+
+The candidate at `dcf500e` contains both accepted lanes: P5-G native import `99b9fa5` and P5-G external core `7c63eb8`.
+
+- Native import is composed through `src/imports/` and the archive/episode import seams. The normalized `NativeImport` contract, provider adapters, receipts, branch/artifact identity and CLI import boundary remain one import authority; the fixtures and `tests/native_import.rs` are present in the candidate.
+- External references are composed through `src/external_source/` and the gateway external modules. `ExternalConversationSource`, immutable message/chunk references, content hashes, source evidence and owner-local publication/processing receipts remain the canonical external boundary.
+- `runtime_host_gateway_external*.rs` performs instance-bound authorization before index, search, hydration, processing or provenance reads. It forwards to the existing owner-local external source state and does not create a second gateway, store or ownership registry.
+- The candidate root includes the external-source module and the import module without introducing a competing runtime host export. Project/file provenance continues through the existing `ProjectFileRef` and source-evidence contracts.
+
+Candidate guards passed: external-source ownership (11 negative/positive fixtures plus production-boundary checks) and P4/P4.8 coverage (75 fixtures, 161 public API classifications). A `cargo fmt --all -- --check` attempt in the existing N3 worktree was blocked by Windows path canonicalization access denied (`os error 5`) before formatting diagnostics; no formatting change was made. The prior N3 import/external acceptance records remain the applicable runtime evidence pending the clean locked candidate run.
+
+Step 2.5 closes source integration and ownership verification. Full locked tests and formatting remain release evidence for Step 2.7; no new import or external implementation is needed.
+
+### Step 2.6 exports, interfaces and dependencies — 2026-10-11
+
+Candidate `dcf500e` defines GatewayRuntime, InstanceRuntime, LiveSession and WorkspaceManagement once each. The existing gateway composition re-exports E/F types through the runtime and crate roots; no additional export overlay is required.
+
+Exclude conversation-contract tip `beb122c` from convergence. Its five metadata/branch/Echo methods already exist in `runtime_host_gateway_conversation_metadata.rs`; replaying the old ambient implementation would duplicate those methods. Its additional `open_conversation_for` returns the historical InteractionSession cursor and is not needed by the accepted managed conversation/live-session API. Retain the branch only as historical evidence. D0 and P6 inventory/diagnostic overlays remain separate evidence pending current-source verification.
+
+The candidate Cargo manifest and lockfile agree on one Arcana revision, `9ebccd6e7d089b98a8992c5451ba57f903f295fb`. Warlock still pins Reliquary `83b3ac87a80a4221039fa07d9722f5f8076464ba` and Arcana `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`. Both must change together in Step 2.8 after candidate acceptance. Step 2.6 is therefore partial across repositories: export and overlay ownership decisions are resolved, while dependency alignment and compiled verification remain outstanding. No source or pin changes were necessary for the reviewed candidate.
+
+### Step 2.6 completion verification — 2026-10-11
+
+The candidate dependency choice is verified: locked Windows metadata resolves exactly one Arcana package at `9ebccd6e7d089b98a8992c5451ba57f903f295fb`, and `cargo check --locked --lib -j4` passed on the exact N3 candidate outside the filesystem sandbox (15 existing warnings). Earlier Windows canonicalization/missing-artifact failures did not recur in this unrestricted check. This establishes compiled candidate exports and dependency compatibility. The preceding partial assessment is superseded for candidate integration; actual production Warlock pin application and consumer verification remain the explicit Steps 2.8–2.9. Warlock's manifest pins were retained together at their existing compatibility pair until that application step.
+
+Documentation impact: inspected the candidate manifests, lockfile, composition roots and overlay diff; updated this plan; runtime/storage documentation unchanged; both documentation policy modes passed. Architecture impact: no ownership rules or source boundaries changed; existing ownership guards remain applicable. Full test and refreshed architecture acceptance remain Step 2.7.
+
+### Step 2.7 verification — 2026-10-11
+
+Verification was rerun against the aligned candidate SHA `c36ca5f` in `Reliquary-n3-staging`. The Windows path failure was isolated to long-path canonicalization by running the candidate through a temporary drive mapping (`R:`); no source workaround or repository mutation was required.
+
+- Passed: `cargo fmt --all -- --check` and CLI formatting through the mapped candidate path.
+- Passed: `cargo check --locked --tests --examples -j2`.
+- Passed: `cargo check --manifest-path cli/Cargo.toml --locked --offline` after aligning the CLI lockfile to Arcana `66b4e96`; the lockfile update is committed at candidate `c36ca5f`.
+- Passed: full `cargo test --locked --offline -j2`: 1,159 unit tests, 138 integration tests, and doc tests; 0 failures.
+- Passed: full locked CLI tests: 19 tests; 0 failures.
+- Passed: P4/P4.8 coverage (75 fixtures, 161 API classifications), external-source ownership (11 fixtures and production boundaries), workspace-management ownership, and both documentation-policy modes.
+- Still blocked: refreshed architecture synchronization. The static guards pass, but Lexicon initialization still reports `File not found` for the candidate `.lexicon` state and does not complete; prior Arcana synchronization also returned `os error 2`. This is an external Windows Lexicon/Arcana environment failure, not a Reliquary test or formatting failure.
+
+This leaves 2.7 partially verified solely because the refreshed architecture snapshot cannot be completed in the current Lexicon/Arcana environment. All locked Reliquary and CLI tests, examples/target compilation, formatting, ownership guards and documentation checks now have fresh passing evidence. Earlier N3 acceptance records remain historical evidence and are not used to fill the architecture-refresh gap.
+
+### Step 2.8 Warlock dependency pins — 2026-10-11
+
+Warlock `feat/multiplexing-p5c-final-cut` now pins the candidate pair in `src-tauri/Cargo.toml` and `src-tauri/Cargo.lock`:
+
+- Reliquary: `dcf500ea8438e9b3e782959dd0176efcb58b7b0a`.
+- Direct Arcana: `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`.
+
+The prior Reliquary `83b3ac8` and Arcana `9ebccd6` pins are absent. Locked Cargo metadata resolves the aligned Arcana revision, and the dependency graph contains one Arcana package identity. The direct GitHub fetch for Reliquary cannot complete because `dcf500e` is not published on that remote; this remains a 2.10 publication/release limitation.
+
+### Step 2.9 Warlock consumer matrix — 2026-10-11
+
+The Arcana alignment fix is applied in both Reliquary and Warlock: Reliquary `Cargo.toml`/`Cargo.lock` and Warlock `src-tauri/Cargo.toml`/`src-tauri/Cargo.lock` now use `66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3`. The previous direct-only `9ebccd6` alignment is removed. Rust verification used the repository-local Reliquary override in an isolated `.verification-tmp` target directory so the unpublished candidate could be compiled without changing the committed lockfile.
+
+The earlier all-target failure against Arcana `9ebccd6` is superseded: the compatible metadata-reader API is now available from the same Arcana `66b4e96` revision in both repositories. No Warlock source workaround or duplicate Arcana identity was introduced.
+
+Accepted 2.9 evidence:
+
+- Reliquary `cargo check --locked --lib -j2`: passed with Arcana `66b4e96`.
+- Warlock all-target check through the local Reliquary candidate override: passed.
+- Provider execution tests: 4 passed.
+- Task-context tests: 5 passed.
+- Generation-viewer tests: 2 passed.
+- Live-delivery/P4 stream tests: 2 passed.
+- Warlock Clippy all-targets: passed with existing warnings.
+- Frontend production build: passed.
+- Graph-render client checks: passed.
+- Documentation checks and changed-document policy: passed.
+- Pitlord architecture enforcement: passed.
+
+The direct GitHub fetch for Reliquary still cannot complete because `dcf500e` is not published. That distribution step and final release commit remain in 2.10.
+
+### Step 2.10 commit and release evidence — 2026-10-11
+
+Local integration commits are now created:
+
+- Reliquary candidate `80a5fde` (`Align candidate with Arcana metadata reader`) updates the candidate's Arcana manifest and lockfile to `66b4e96`; candidate `c36ca5f` (`Align CLI lockfile with Arcana metadata reader`) updates the detachable CLI lockfile as well.
+- Warlock `dee7ba0` (`Complete multiplexed Warlock consumer integration`) records the consumer changes and exact Reliquary/Arcana pins.
+
+The aligned pair compiles and passes the focused 2.9 consumer matrix. The final release gate remains open because Reliquary `dcf500e` is not published at the declared Git source, and Step 2.7 still lacks accepted full Reliquary/CLI test, example, formatting and refreshed-architecture evidence.
+
+The plan update is recorded on Reliquary `main` at `28a59c1`. Step 2.10 can close after the committed candidate is published and the outstanding 2.7 evidence is accepted.
+
 ## Step 3 — Legacy deletion
 
-**Status: blocked on Steps 1–2.** D0 reverse-caller inventory accepted at `bfdd267`; no claim of completed deletion.
+**Status: candidate deletion complete.** D0 reverse-caller inventory accepted at `bfdd267`; Steps 3.3–3.10 are implemented and committed in N3. Final consumer/release acceptance remains open.
 
 | ID | Action | Status |
 |---|---|---|
-| 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: historical inventory exists |
-| 3.2 | Identify all remaining old callers and live consumers | Blocked on convergence |
-| 3.3 | Relocate retained types, domain queries and persisted readers | Blocked |
-| 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Blocked |
-| 3.5 | Delete old ambient REL/PHY/session selector authority | Blocked |
-| 3.6 | Remove duplicate worker, mount, router and execution authority | Blocked |
-| 3.7 | Migrate/delete tests that encode legacy-only behavior | Blocked |
-| 3.8 | Enforce no-legacy-import/caller/build guards in Reliquary, CLI and Warlock | Blocked |
-| 3.9 | Verify storage compatibility, restart and crash recovery | Blocked |
-| 3.10 | Run complete post-deletion locked functional matrix and commit | Blocked |
+| 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: converged-source scan rerun; reviewed baseline refresh required |
+| 3.2 | Identify all remaining old callers and live consumers | Audited: four Reliquary test callers and the root export remain; Warlock uses canonical shared support types |
+| 3.3 | Relocate retained types, domain queries and persisted readers | Complete in candidate `ba1ce9e`: shared contracts moved; canonical Gateway query/read paths retained; locked Reliquary and Warlock all-target checks pass |
+| 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Struct and exports removed with 3.5 in the uncommitted N3 candidate; final commit remains 3.10 |
+| 3.5 | Delete old ambient REL/PHY/session selector authority | Complete in uncommitted N3 candidate: 1,122 unit, 138 integration and 19 CLI tests pass; refreshed architecture policy passes |
+| 3.6 | Remove duplicate worker, mount, router and execution authority | Complete in uncommitted N3 candidate; regression and ownership checks passed |
+| 3.7 | Migrate/delete tests that encode legacy-only behavior | Complete in uncommitted N3 candidate; canonical replacement coverage passes |
+| 3.8 | Enforce no-legacy-import/caller/build guards in Reliquary, CLI and Warlock | Complete in uncommitted N3 candidate; all source and build guards pass |
+| 3.9 | Verify storage compatibility, restart and crash recovery | Complete in uncommitted N3 candidate; focused compatibility and recovery matrix passes |
+| 3.10 | Run complete post-deletion locked functional matrix and commit | Complete in N3 candidate; final matrix passed and committed |
 
 **Exit gate:** one authoritative Gateway/Instance implementation with no legacy facade, duplicated state, callers or regressions. Use reverse dependencies, not filename-based deletion.
 
+### Step 3.1 inventory revalidation — 2026-10-11
+
+The accepted D0 inventory at `bfdd267` was rerun against the converged Reliquary candidate and current Warlock
+consumer. The scanner self-tests passed all 17 fixtures. The candidate reports 918 Rust files and 139 runtime-host
+modules, compared with the accepted D0 counts of 873 files and 134 modules. It still reports 170 legacy methods and
+10 legacy fields, with zero CLI legacy references. Warlock at `dee7ba0` reports zero concrete legacy references.
+
+The scanner's `--check` mode correctly rejected the result as inventory drift. No baseline was rewritten
+automatically: the 45-file/5-module growth requires source and caller review before a refreshed inventory is accepted.
+The remaining legacy methods and fields are deletion targets for Step 3, not evidence that deletion is complete.
+Therefore 3.1 remains partial pending the reviewed baseline refresh and the D1 ownership cuts.
+
+Documentation impact: this plan records the revalidation result; no runtime, storage, or source deletion was performed.
+
+### Step 3.2 caller and consumer audit — 2026-10-11
+
+The converged-source audit separates concrete old-host callers from canonical support consumers:
+
+- Concrete external old-host callers are confined to four Reliquary test surfaces: `src/project_environment_tests.rs`,
+  `src/project_environment_lore_tests.rs`, `src/project_environment_git_tests.rs`, and
+  `src/semantic_graph/semantic_graph_runtime_host_tests.rs`. They construct `ReliquaryRuntimeHost` and are the
+  explicit D2/D3 replacement set; the semantic-graph fixture also requires the canonical graph-owner mutation path.
+- `src/lib.rs` is the remaining reachability seam: it registers `runtime_host`, re-exports
+  `ReliquaryRuntimeHost`, and registers the legacy test modules. D1 must split common exports before D2 removes this
+  seam.
+- Reliquary's canonical Gateway/REL/PHY modules still share the runtime-host-named implementation files for current
+  Gateway, worker, journal, publication, stream, and maintenance code. These are live canonical consumers and must be
+  retained or relocated according to the D0 disposition; they are not evidence of external old-host use.
+- Warlock `dee7ba0` has no concrete `ReliquaryRuntimeHost` caller. Its live imports are the reusable
+  `ReliquaryRuntimeHostError` and `ReliquaryRuntimeRoutes` support types in `chat_gateway_execution.rs`,
+  `reliquary_routes.rs`, `workspace_admission.rs`, `workspace_set.rs`, and related test support. These are the
+  shared-type relocation set, not a surviving host facade.
+
+This closes the caller-identification portion of 3.2. The source changes remain deferred to 3.3–3.8, after the
+reviewed inventory refresh and ownership cuts; no compatibility alias or forwarding layer is introduced.
+
+### Step 3.3 retained contracts and readers — 2026-10-11
+
+Candidate `ba1ce9e` moves the reusable error, route, semantic-owner, Echo-source, and memory-search contracts into
+`runtime_inference/runtime_shared.rs`. The old host module re-exports these existing types while it remains in the
+tree for Step 3.4; the types no longer depend on the host implementation. The canonical Gateway already owns the
+live semantic search, archive search, Echo, memory-provenance, knowledge, project-file, and external-source reader
+entry points. Their persisted decoders and storage authorities remain in the underlying Archive/REL/PHY owners; no
+new reader or writer was introduced.
+
+`cargo check --locked --lib -j2` passed on the candidate, and Warlock's locked offline all-target check passed against
+that exact local candidate through the repository-local verification override. Formatting and diff checks passed.
+The remaining concrete legacy-host callers and host removal belong to Steps 3.4–3.8.
+
+### Step 3.4 public host boundary — 2026-10-11
+
+Candidate `1c127f2` removes `ReliquaryRuntimeHost` from the public Reliquary API. The type remains crate-test-only
+through the existing characterization surface while its implementation modules are migrated. A locked compile attempt
+after the API cut reached the dependency build but failed in the mapped Windows target directory with Cargo metadata
+path errors; formatting and diff checks pass. The remaining source dependency is concrete: legacy implementation
+modules still attach live query, lifecycle, mount, worker, session, perception and reconciliation methods to the
+struct. Deleting the struct at this point would remove those behaviors rather than complete their Gateway/Instance
+migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8.
+
 ## Step 4 — Final release verification
 
-**Status: harness prepared, final acceptance blocked on Step 3.** Existing P6 harness `81a64b6` and H5 diagnostics `b2b4bf4` are baseline evidence, not the final release verdict.
+**Status: automated candidate verification passed; production release acceptance remains open.** Post-deletion runtime and actual Warlock consumer tests passed against the local candidate. Production dependency-pin reproducibility and interactive desktop acceptance remain unverified.
 
 | ID | Action | Status |
 |---|---|---|
-| 4.1 | Port accepted harness to post-deletion runtime | Blocked |
-| 4.2 | Verify concurrent instances and shared REL/PHY execution | Blocked |
-| 4.3 | Verify grant enforcement, revocation and principal privacy | Blocked |
-| 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Blocked |
-| 4.5 | Verify conversation branch policy and Archive ancestry consistency | Blocked |
-| 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Blocked |
-| 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Blocked |
-| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Blocked |
-| 4.9 | Run actual Warlock UI/Tauri integration tests | Blocked |
-| 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Partial: diagnostic tooling exists |
-| 4.11 | Run all locked code, test, architecture and documentation checks | Blocked |
-| 4.12 | Repair regressions and record final release acceptance with evidence | Blocked |
+| 4.1 | Port accepted harness to post-deletion runtime | Complete: P6-H port compiled and focused runtime matrix passed |
+| 4.2 | Verify concurrent instances and shared REL/PHY execution | Complete: topology and fanout/checkpoint matrices passed |
+| 4.3 | Verify grant enforcement, revocation and principal privacy | Complete: gateway authorization/privacy matrix passed |
+| 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Complete: conversation and P6 topology matrices passed |
+| 4.5 | Verify conversation branch policy and Archive ancestry consistency | Complete: locked conversation matrix passed |
+| 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Complete: seven isolated crash/recovery pairs passed |
+| 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Complete: stream and snapshot matrices passed |
+| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Complete: actual Warlock HTTP executor lifecycle fixtures passed |
+| 4.9 | Run actual Warlock UI/Tauri integration tests | Complete: Tauri consumer suite and UI contract checks passed against local candidate |
+| 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Complete: P6-H diagnostic report captured |
+| 4.11 | Run all locked code, test, architecture and documentation checks | Complete for candidate: code, consumer, architecture and both documentation policies passed |
+| 4.12 | Repair regressions and record final release acceptance with evidence | Partial: candidate acceptance recorded; production release withheld |
 
 **Exit gate:** actual post-deletion production consumer and runtime pass, with measured performance and no unresolved unacknowledged exceptions.
 
@@ -194,3 +465,134 @@ See the Stable technical references section above.
 ## Notes
 
 This document is an execution roadmap, not proof that any unrun release test passed.
+
+### Step 3.5 ambient selector removal — 2026-10-11
+
+The N3 candidate removes `ReliquaryRuntimeHost`, `LegacyManagedSessionState`, the global active REL key, host-wide managed-session map and active-processing switch, and the dependent ambient session/query/lifecycle facade. Canonical Gateway/Instance selection, authorization, mounted executions, journals, Archive readers and non-native checkpoint decoding are retained. The existing project-environment and semantic-graph fixtures use attached authorized instances; persisted reconciliation fixtures use Gateway, which now preserves endpoint-assisted vector recovery under its unmounted file claim. Provider backpressure coverage is ported to the canonical REL worker. Old ambient-only characterization tests no longer keep a second selector alive. The routing source guard rejects reintroduced selector fields and host definitions across runtime sources.
+
+This necessary facade cut also completes the struct-removal portion of 3.4. It does not close 3.6–3.10: unused legacy mixed-owner worker and mount-claim helpers remain, replacement coverage still needs its full review, and storage/crash/full consumer acceptance remain separate gates. Verification against `Reliquary-n3-staging` on `feat/multiplexing-n3-staging` (base `1c127f2`, changes intentionally uncommitted pending 3.10), using the existing short `R:` workspace mapping and repository-local TEMP/TMP:
+
+- `cargo fmt --all -- --check` and CLI formatting: passed.
+- `cargo check --locked --tests --examples -j2`: passed; locked offline CLI check also passed.
+- `cargo test --locked --offline --lib --tests -j2`: **1,122 unit and 138 integration tests passed; 0 failed, 0 ignored**.
+- `cargo test --locked --offline --doc -j2`: passed (0 doctests).
+- `cargo test --manifest-path cli/Cargo.toml --locked --offline -j2`: **19 passed; 0 failed, 0 ignored**.
+- P2/P3 ownership, P4 coverage (75 fixtures, 161 API classifications), external ownership (11 fixtures), workspace-management guard and diff check: passed. The recursive selector guard passes in the integration suite.
+- Both documentation policy modes: passed in the candidate. The documentation checkout's checks still report four unrelated missing sections in `freshness-semantic-historical-linear-implementation-plan-2026-10-11.md`.
+- Pitlord policy validation: 22 rules valid. Refreshed architecture remains blocked: the installed Arcana executable rejects Lexicon's `dependency_index_id` snapshot field; no current Arcana snapshot is available for enforcement. No refreshed graph acceptance is claimed.
+
+Porting the backpressure fixture exposed one missing canonical behavior: route replacement woke REL workers but retained the previous provider's dispatch cooldown. `RelRuntime::routes_changed` now clears that existing ephemeral gate before waking the owner, preserving durable Episode retry deadlines. The initial library run had 1,121 passes and this one failure; the repaired complete library/integration and CLI reruns are the accepted evidence above. No second queue, worker owner or publication authority was introduced.
+
+The initial default test command was interrupted during verification; its partial output is not acceptance evidence. All library/integration tests and documentation tests were then completed explicitly, with examples covered by the passing compilation check. Final release acceptance and actual consumer verification remain 3.10 and Step 4.
+
+### Step 3.6 duplicate execution removal — 2026-10-11
+
+The N3 candidate removes the unused `OwnerExecution`/mixed `Shared` worker group, `RuntimeMemoryProfiles`, mixed Perception queue and REL/PHY routing flags. Reverse references form a closed group of 11 modules: dependency graph, execution, Insomnia, Dream/snapshot, vectors, and Perception worker/flow/owner/queue/reconciliation. Their root registrations are removed. No canonical caller or persisted decoder depends on this group.
+
+The legacy synthetic-container identity constructor and `MountClaim::acquire_legacy_rel/phy` are removed; MountClaim visibility is restricted to its Gateway owner. Canonical typed/physical mount admission, the one LIVE_MOUNTS exclusion registry and lease/fence handling remain. `RelRuntime/RelShared`, `PhyRuntime/WorkerShared`, the one CapabilityRouter and native publication/coordinator/journal owners are retained. Shared stop/wake/timing helpers and reusable endpoint routes are still directly consumed by canonical workers. The recursive selector guard now also rejects the retired worker/queue/profile types, mixed flag and legacy claim entry points.
+
+Documentation is updated for canonical worker ownership. Source review also found that mounted REL Dream does not invoke the first-pass Freshness orchestration present in the already-unused legacy wrapper. Bounded Dream/Freshness helpers and journals remain; this existing integration gap is recorded in current limitations instead of claiming mounted-runtime Freshness acceptance. This step changes no persisted format or canonical execution behavior.
+
+Verification in `Reliquary-n3-staging`, branch `feat/multiplexing-n3-staging` (base `1c127f2`), using the existing short `R:` mapping and repository-local TEMP/TMP:
+
+- Root and CLI formatting checks passed. `cargo check --locked --tests --examples -j2` and locked offline CLI check passed. Library warnings dropped from 82 to 16.
+- `cargo test --locked --offline --lib --tests -j1`: **1,122 unit and 138 integration tests passed; 0 failed, 0 ignored**.
+- `cargo test --manifest-path cli/Cargo.toml --locked --offline -j1`: **19 passed; 0 failed, 0 ignored**.
+- `cargo test --locked --offline --doc -j1`: passed (0 doctests).
+- P2/P3 ownership enforcement passed; P2 reports zero retired references and zero Gateway violations. P4 self-test passed (75 fixtures, 161 classifications), external ownership self-test passed (11 fixtures), and workspace-management guard and diff check passed.
+- Both candidate documentation-policy modes passed. The documentation checkout still has four unrelated missing sections in `freshness-semantic-historical-linear-implementation-plan-2026-10-11.md`.
+- Refreshed architecture check passed after the Pitlord policy correction: Lexicon snapshot `sha256:74d5579a08b443ccef355484718fe6ef9c299e7aa1ee1a686727681da223d60e`, Arcana rebuild with zero compatibility warnings, and Pitlord **23 rules / 65,147 source nodes / 2,353 relationships / zero violations**. This supersedes both the earlier Step 3.5 schema blocker and the initial Step 3.6 zero-relationship report. The earlier inference that the graph lacked relationship data was not established by that report. Compiler checks, reverse references and source guards provide complementary evidence. Recheck log: `.verification-tmp/step-3-6/architecture-policy-recheck.log`.
+
+The initial `-j2` library and CLI test builds failed before execution when rustc 1.97.1 panicked in Lore linking on missing dependency artifacts. Serial `-j1` retries restored those artifacts and completed the suites above; no dependency or source workaround was introduced. Logs are retained under `.verification-tmp/step-3-6/` in the candidate.
+
+Architecture, maintainer-map, behavioral-contracts, current-limitations and documentation-coverage pages were inspected and updated for canonical worker ownership. Invariants and storage-format were inspected and require no changes: persisted layouts, journals and publication authority are unaffected. Steps 3.7–3.10 and final release acceptance remain open; changes stay uncommitted pending 3.10.
+
+### Step 3.7 legacy-only test cleanup — 2026-10-11
+
+The remaining legacy-only characterization surfaces were removed or migrated to the canonical Gateway/Instance boundary. Eight obsolete test modules were deleted: the old host knowledge, legacy-isolation, perception, semantic-access, session, topology, vector, and aggregate runtime-host suites. The four retained external fixtures now construct `GatewayRuntime`, mount an owner, attach an authorized `InstanceRuntime`, and pass that instance explicitly through project-environment and semantic-graph operations. Backpressure coverage was moved under the canonical REL worker. The Gateway ambient test families were retained because they exercise instance-local selection and grant checks, rather than a process-wide host selector.
+
+The replacement matrix passes with 1,122 unit tests, 138 integration tests, and 19 CLI tests; the recursive runtime-source guard finds no retired host authority. No compatibility alias, second selector, or test-only legacy execution path remains. Steps 3.8–3.10 and final release acceptance remain open; changes stay uncommitted pending 3.10.
+
+### Step 3.8 no-legacy import, caller and build guards — 2026-10-11
+
+The Reliquary phase-2 ownership guard reports zero legacy references and zero Gateway violations. The recursive `multiplexing_gateway_routing_guard` passes all three tests, including the source-wide retired-authority scan. The CLI locked offline check passes against the N3 candidate. Warlock's C5-final consumer scanner reports 220 Rust files, 76 direct Reliquary-import files, zero explicit old-host files, and zero candidate receiver calls; its self-test passes 11 positive/negative cases. The Warlock candidate locked check, using the local N3 Reliquary override and repository-local TEMP/TMP, also passes.
+
+This closes the guard/build portion of the legacy deletion gate. The scanners intentionally allow canonical `ReliquaryRuntimeHostError`, `ReliquaryRuntimeRoutes`, and instance-qualified `active_rel_id(instance)` support; they reject the removed host owner, receiver accessors, mutable selector authority, duplicate worker types, and legacy mount claims. Steps 3.9–3.10 and final consumer/release acceptance remain open; changes stay uncommitted pending 3.10.
+
+### Step 3.9 storage compatibility, restart and crash recovery — 2026-10-11
+
+The focused post-deletion matrix passes without changing persisted formats or recovery authorities. Legacy typed REL/PHY and project CVA migration tests pass (6), storage-reclamation preservation tests pass (3), container truncated-tail recovery passes, and external-source reopen/corruption tests pass (11). Freshness crash-prefix and trailing-record recovery fixtures pass, including partial Dream settlement recovery. Gateway reconnect/remount and durable conversation recovery fixtures pass (19 selected cases), Insomnia restart/requeue/finalization recovery passes (5), REL activity-clock compatibility passes (10), and the live-runtime restart/no-duplicate-work tests pass (2). Exact focused logs are retained under `.verification-tmp/step-3-9-*.log` in the candidate.
+
+These checks cover legacy format admission, owner identity/state preservation, truncated or partial durable tails, restart-derived pending work, mount-epoch rotation, journal/Archive handoff recovery and idempotent replay. They do not claim the separate full release crash/stress harness or actual consumer acceptance; those remain Step 4 and 3.10. Changes stay uncommitted pending 3.10.
+
+### Step 3.10 post-deletion matrix and commit — 2026-10-11
+
+The final locked candidate matrix passed after the 3.9 recovery checks: `cargo fmt --all -- --check`; `cargo check --locked --tests --examples -j1`; `cargo test --locked --offline --lib --tests -j1` with **1,122 unit and 138 integration tests passed, 0 failed, 0 ignored**; `cargo test --locked --offline --doc -j1` with 0 doctests; and `cargo test --manifest-path cli/Cargo.toml --locked --offline -j1` with **19 passed, 0 failed, 0 ignored**. The no-legacy Reliquary guards, Warlock C5-final scanner/build, focused storage/restart/crash recovery matrix, architecture policy refresh, documentation policy checks and diff check also pass. The candidate change set is committed on `feat/multiplexing-n3-staging`; final consumer/release acceptance remains Step 4.
+
+### Step 4.1 P6-H harness port — 2026-10-11
+
+The accepted P6-H harness from `81a64b6` is now registered under the canonical post-deletion `runtime_host::gateway::tests::p6_harness` module. Its fixture, topology, load, host-adapter, crash and recovery tests, runner, and runner self-tests were ported into the candidate. One current contract field was added to the file-backed host fixture (`HostExecutionMode::PendingQueue`); runtime ownership and persistence behavior were unchanged. The runner manifest now records the Step 3.10 post-deletion base `d978b1b`.
+
+Verification passed with `cargo fmt --all -- --check`, the locked offline P6 harness compile, direct execution of the harness (**10 passed, 2 intentionally ignored crash subprocess tests**), and the Python runner self-test (**5 passed**). The full P6-H subprocess runner remains an execution harness for the later Step 4 concurrency, crash and performance gates; this step does not claim P6-R release acceptance or actual Warlock provider/UI acceptance.
+
+### Step 4.2 concurrent instances and shared REL/PHY execution — 2026-10-11
+
+The post-deletion topology matrix passed all **4 tests**. It covers deterministic instance selection with private physical identity, shared-principal physical-worker deduplication, independent REL/PHY ownership, unrelated-owner reads while another owner is held, stale-token rejection after reopen, pending-order recovery, and cancel/finalize race replay. The observed topology cases include 1–2 physical workers and 1–2 RELs while preserving the expected principal-sharing boundary.
+
+The load matrix passed all **4 tests**. It exercised fanout at **1, 8, and 32 instances**, bounded slow-recipient resynchronization, a 32-instance steady-state window with 2 physical workers and 4 RELs, checkpoint/late-join/restart delivery of an exact 65,536-byte UTF-8 prefix, and owner-lock contention sampling. All selected tests passed with zero failures under locked offline Cargo; no source or persistence changes were required.
+
+### Step 4.4 durable scheduling, cancellation/finalization races and ties — 2026-10-11
+
+Locked offline verification passed: **96 conversation tests and 4 P6 topology tests; zero failures or ignored tests**. Coverage includes durable admission order independent of client timestamps, equal verified-timestamp ties preserved after restart, retry deduplication, atomic branch reservation, captured finalization ancestry, unknown host debt, and cancellation/finalization races with one winner and stable Archive replay. No runtime changes were required.
+
+### Step 4.5 conversation branch policy and Archive ancestry consistency — 2026-10-11
+
+The locked offline conversation matrix passed **96 tests, zero failures and zero ignored tests**. Reviewed coverage includes exact-owner policy management, policy changes affecting pending capture while preserving frozen finalization ancestry, sequential branch serialization, visible auto-branch conflicts from two and three writers, submitter-local selection, invalid-parent rejection before publication, restart reuse of frozen branch identity, branch-local finalization fencing, and durable Archive parent consistency. No runtime changes were required.
+
+### Step 4.6 crash, restart, receipt-loss, replay and recovery — 2026-10-11
+
+The complete P6-H runner passed with one harness repetition and the existing gateway matrix, followed by **seven isolated crash/recovery pairs**: admission, finalize intent, Archive-before-receipt, checkpoint, checkpoint source ahead, host acceptance with lost acknowledgement, and host cancellation before replay. Each crash child proved abrupt termination and each recovery process reopened the retained physical files successfully. The runner report records `passed: true` at `.verification-tmp/p6-step-4-6/report.json` in the candidate. This verifies controlled file-backed host recovery; actual provider/UI acceptance remains in the later gates. No runtime changes were required.
+
+### Step 4.7 event distribution, stream checkpoints, resync and reconnect — 2026-10-11
+
+Locked offline verification passed across the stream and snapshot families: **16 stream tests and 25 snapshot tests, zero failures or ignored tests**. Coverage includes exact stream scope and cursors, checkpoint prefix and late-join delivery, bounded overflow and resync, reconnect slot reuse, epoch and grant revalidation, revocation during snapshot/join, private PHY isolation, and mutation/join race consistency. No runtime changes were required.
+
+### Step 4.8 provider lifecycle, Unknown hold and truthful cancellation — 2026-10-11
+
+Completion evidence: Warlock consumer `dee7ba02e48011ad9ed4fcd0cb1011ec3bbb10fe` passed **24 provider-selected tests, zero failures or ignores**, using its local Reliquary override against post-deletion candidate `43e2bc9` with offline Cargo and repository-local TEMP/TMP. The production async HTTP executor fixtures verify authorized Stop interrupting a stalled HTTP request, revoked/incorrect cancellation authority rejection, late-output fencing, restart rejection of generation replay, Unknown status when process execution records are absent, durable completion despite missing process records, immutable execution binding, negotiated readiness, and one credential-refresh retry. This supplies the actual consumer HTTP fixture evidence absent from the earlier controlled adapter run. Unknown remains truthful about remote effects; these fixtures do not claim remote cancellation acknowledgement or hosted-service end-to-end acceptance. The 4.12 audit's real-provider fixture gap is superseded by this result; UI/Tauri and documentation acceptance remain separate gates.
+
+Locked offline verification passed across host-operation, host negotiation, external adapter, and live-runtime families: **57 tests passed, zero failures or ignored tests** (15 + 17 + 7 + 18). Coverage includes durable handoff identity and digest, lost acknowledgements, Unknown status holding work without blind replay, cooperative running cancellation, pending cancellation before dequeue, adapter replacement without duplicate admission, startup reconciliation, execution-only negotiation, and provider I/O fencing. No runtime changes were required.
+
+### Step 4.9 Warlock UI/Tauri integration — 2026-10-11
+
+Completion evidence supersedes the initial interrupted build below: Warlock `dee7ba02` compiled its Tauri library tests against local post-deletion Reliquary `7331923`; the resulting binary passed **224 tests, zero failures, one ignored test**. UI durable checkpoint checks, graph-render client checks, and TypeScript/Vite production build passed. Consumer tests include production P4 Unicode/late-join/slow-consumer delivery, revoked or failed Tauri recipients, checkpoint acknowledgement gating, conversation/workspace lifecycle, and provider commands. Repository-local TEMP/TMP required `GIT_CEILING_DIRECTORIES` at the temporary directory so the missing-repository fixture did not discover the enclosing Warlock worktree; the rerun passed. This is automated consumer and UI-contract integration evidence, not an interactive desktop end-to-end run or proof of the unchanged production Git pin.
+
+The Warlock frontend production build passed (`npm run build`; TypeScript and Vite completed successfully). The direct offline Tauri backend test build is blocked before compilation because `src-tauri/Cargo.toml` still pins Reliquary revision `dcf500e…`, which is not present in the local Cargo git cache; the local-override wrapper began a full build but did not finish within the verification window. Therefore Step 4.9 remains partial until the consumer is aligned to the accepted post-deletion Reliquary/Arcana pins and the locked Tauri test suite completes. No Warlock source changes were made.
+
+### Step 4.10 lock contention, workers, queues, memory, fan-out and throughput — 2026-10-11
+
+The P6-H report at `.verification-tmp/p6-step-4-6/report.json` captured the diagnostic matrix with `passed: true`. It observed 3 PHY workers, 2 physical owners, 4 RELs, queue capacity 16, and 32 recipients in the steady-state topology. Fanout covered 1, 8, and 32 instances with 24 mutations and 48 fast events; slow-recipient resync counts were 0, 7, and 31. Checkpoint delivery transferred 65,536 bytes, with 80.4 ms checkpoint, 2.4 ms late-join replay, and 14.4 ms restart/reconcile measurements in this run. The 100-sample owner-lock probe reported hold/wait distributions, and the harness process peak was 26.8 MB RSS with 23 sampled threads. These are controlled harness measurements; the report explicitly scopes lock probing and does not claim all production critical sections or a cold-cache benchmark.
+
+### Step 4.11 locked code, test, architecture and documentation checks — 2026-10-11
+
+Completion evidence: both shared Reliquary documentation policy modes passed (`--repo .` and `--changed-from origin/main`, library-engine); Warlock's documentation checker also passed (umbrella-product). The prior test count is corrected to **1,132 library tests passed, 138 integration tests passed, 19 CLI tests passed**, with two intentional subprocess crash-test ignores in the library suite. Step 4.6 explicitly executed those crash/recovery cases. Step 4.9 supplies 224 passing consumer tests against the local candidate. Together with the recorded formatting, locked compilation/examples, and architecture/ownership passes, this closes candidate verification. Production Git-pin reproducibility and interactive desktop acceptance remain separate release limitations.
+
+The candidate verification suite passed `cargo fmt --all -- --check`, locked `cargo check --tests --examples -j1`, **1,132 library/integration tests with 2 intentional crash-test ignores**, zero doctests, and **19 CLI tests**. Architecture validation passed Pitlord with 23 rules, 65,147 source nodes, 2,353 relationships, and zero violations; phase ownership and external-source guards passed their fixture and production checks. The candidate documentation diff is clean. The remaining release-wide blocker is the separate Warlock Tauri backend pin recorded under Step 4.9.
+
+### Step 4.3 grant enforcement, revocation and principal privacy — 2026-10-11
+
+### Step 4.12 release acceptance audit — 2026-10-11
+
+Published-pin follow-up: the user authorized publication of Reliquary `437edada819c60111bb2e176e5f7270aae12f643` to `origin/feat/multiplexing-n3-staging`. Warlock commit `c960e42` pins that exact Git revision in its manifest and regenerated lockfile. Cargo resolved it from GitHub without a local override, and the full consumer library suite passed **224 tests, zero failures, one ignore**; locked offline metadata validation also passed. The existing Arcana revision `66b4e96e` agrees across both manifests. Production dependency resolution is now verified. Interactive desktop end-to-end verification remains unperformed; no such run is claimed.
+
+Updated decision after completion of Steps 4.8, 4.9 and 4.11: **automated local candidate accepted; production release not yet accepted**. Reliquary `6031562` includes the post-deletion runtime and P6-H harness; Warlock consumer `dee7ba02` passed its production HTTP executor fixtures and 224-test Tauri library suite against the local candidate. UI checkpoint/graph client checks and production frontend build passed. Reliquary's 1,132 library, 138 integration and 19 CLI tests, seven isolated crash/recovery pairs, architecture guards, and both documentation policy modes passed. No runtime regression requiring a source fix was identified; the Git fixture failure was resolved by bounding discovery at the repository-local temporary directory.
+
+The earlier audit below is superseded for provider fixtures, automated consumer verification, and documentation policies. Remaining production acceptance requirements are reproducible committed Reliquary/Arcana dependency pins and an interactive desktop end-to-end verification. The local override restores Warlock's lockfile and therefore does not establish the shipped dependency graph. These limitations are explicitly recorded rather than waived. Step 4.12 remains partial until that evidence exists.
+
+Final release acceptance is withheld. The controlled Reliquary runtime, seven crash/recovery pairs, candidate compilation/tests, and architecture guards have passing evidence, but the actual production consumer exit gate is not established. Step 4.8 exercised controlled adapters rather than real-provider lifecycle acceptance; Step 4.9 completed a frontend build rather than actual UI/Tauri integration tests; Step 4.11 performed a documentation diff check rather than the full documentation policy checks. Those statuses are corrected above. The latest library result is 1,132 passed plus 2 intentionally ignored crash tests; integration results were emitted separately and must not be conflated with that library count.
+
+Remaining acceptance work: complete real-provider lifecycle fixtures, finish the post-deletion Warlock consumer test/build and actual UI/Tauri integration, run the full documentation policies, and record their exact source revisions and evidence. No failing runtime regression was identified in the completed matrices. Passing controlled measurements do not waive these remaining gates.
+
+### Step 4.3 verification evidence
+
+The complete gateway authorization/privacy family passed under locked offline Cargo: **298 passed, 0 failed, 2 intentionally ignored crash subprocess tests**. This matrix covers exact-owner and grant checks, credential substitution rejection, instance and delivery-token fencing, grant replacement and revocation races, private REL/PHY and semantic reads, dependency-grant scoping, mixed-principal publication attribution, stream/snapshot reconnect revocation, and cross-principal isolation. No source or persistence changes were required.

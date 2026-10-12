@@ -99,3 +99,46 @@ fn guard_distinguishes_instance_selection_from_legacy_authority() {
         assert!(forbidden_dependency(source).is_some(), "{source}");
     }
 }
+
+#[test]
+fn runtime_sources_have_no_ambient_host_selector() {
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("src/runtime_inference");
+    let mut directories = vec![root];
+    while let Some(directory) = directories.pop() {
+        for entry in std::fs::read_dir(directory).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if entry.file_type().unwrap().is_dir() {
+                directories.push(path);
+                continue;
+            }
+            if path.extension().and_then(|value| value.to_str()) != Some("rs") {
+                continue;
+            }
+            let source = std::fs::read_to_string(&path).unwrap();
+            for identifier in source.split(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_') {
+                assert!(
+                    !matches!(
+                        identifier,
+                        "ReliquaryRuntimeHost"
+                            | "LegacyManagedSessionState"
+                            | "active_key"
+                            | "managed_sessions"
+                            | "active_execution"
+                            | "active_insomnia_enabled"
+                            | "OwnerExecution"
+                            | "RuntimeMemoryProfiles"
+                            | "PerceptionOwner"
+                            | "PerceptionQueue"
+                            | "phylactery_enabled"
+                            | "acquire_legacy_rel"
+                            | "acquire_legacy_phy"
+                            | "legacy_container"
+                    ),
+                    "removed ambient authority {identifier} in {}",
+                    path.display()
+                );
+            }
+        }
+    }
+}

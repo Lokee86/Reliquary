@@ -607,3 +607,30 @@ fn private_profile_change_has_no_rel_event_but_projection_has_safe_entity_id() {
     assert!(!g.refresh_principal_projection_for(&i, &rel).unwrap());
     assert!(drain(&g, &i, &s).is_empty());
 }
+
+#[test]
+fn conversation_branch_permission_does_not_allow_general_metadata_mutation() {
+    let (g, rel, _) = setup("p5c-branch-grant");
+    let sender = g
+        .attach_instance(
+            "sender".into(),
+            None,
+            BTreeMap::from([(
+                rel.clone(),
+                BTreeSet::from([OwnerGrant::ViewRel, OwnerGrant::SubmitConversation]),
+            )]),
+        )
+        .unwrap();
+    let token = g
+        .authorize(&sender, &rel, OwnerGrant::SubmitConversation)
+        .unwrap();
+    g.with_rel_mutation(&token, RelMutationFamily::ConversationBranch, |_| {
+        Ok(((), false, Vec::new()))
+    })
+    .unwrap();
+    let denied: Result<(), _> =
+        g.with_rel_mutation(&token, RelMutationFamily::ConversationMetadata, |_| {
+            panic!("submit permission must not enter general metadata mutation");
+        });
+    assert!(denied.is_err());
+}

@@ -819,9 +819,11 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
     }
     f.cva().set_semantic_freshness_enabled(true).unwrap();
     f.turn("worker-live", None, "user");
-    let cva = f.cva.take().unwrap();
-    let host = crate::ReliquaryRuntimeHost::start(
-        crate::InteractionRuntime::new(cva),
+    f.cva().sync().unwrap();
+    drop(f.cva.take());
+    let state = f.path.with_extension("gateway-state");
+    let gateway = crate::GatewayRuntime::new(
+        state.clone(),
         crate::ReliquaryRuntimeRoutes::new(
             None,
             None,
@@ -830,35 +832,50 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
             Some(std::sync::Arc::new(ConstantSemanticEndpoint)),
         ),
         crate::InsomniaWorkerConfig {
-            workers: 1,
+            workers: 0,
             ..Default::default()
         },
         crate::EpisodePolicy::default(),
-    )
-    .unwrap();
-    let owner: [u8; 16] = uuid::Uuid::parse_str(
-        host.owner_id()
-            .unwrap()
-            .unwrap()
-            .strip_prefix("rel-")
-            .unwrap(),
-    )
-    .unwrap()
-    .into_bytes();
-    let id = crate::freshness_storage::semantic_live_event_id(owner, "c", "worker-live");
+    );
+    let owner = gateway.mount_rel_path(&f.path).unwrap();
+    struct Admission(String);
+    impl crate::GatewayAdmissionAdapter for Admission {
+        fn verify(&self, _: &str) -> Result<crate::VerifiedInstanceAdmission, String> {
+            Ok(crate::VerifiedInstanceAdmission {
+                principal_id: "semantic-worker".into(),
+                phy_id: None,
+                grants: std::collections::BTreeMap::from([(
+                    self.0.clone(),
+                    std::collections::BTreeSet::from([crate::OwnerGrant::ViewRel]),
+                )]),
+            })
+        }
+    }
+    let gateway = gateway.with_admission_adapter(std::sync::Arc::new(Admission(owner.clone())));
+    let instance = gateway
+        .attach_authenticated_instance("test-credential")
+        .unwrap();
     let start = std::time::Instant::now();
-    while !host.semantic_event_completed_for_test(&id).unwrap()
+    while gateway
+        .background_status_for(&instance, &owner)
+        .unwrap()
+        .reliquary_semantic_pending
+        != 0
         && start.elapsed() < std::time::Duration::from_secs(10)
     {
         std::thread::sleep(std::time::Duration::from_millis(10));
     }
-    assert!(host.semantic_event_completed_for_test(&id).unwrap());
     assert_eq!(
-        host.background_status().unwrap().reliquary_semantic_pending,
+        gateway
+            .background_status_for(&instance, &owner)
+            .unwrap()
+            .reliquary_semantic_pending,
         0
     );
-    let cva = host.into_cva().unwrap();
-    f.cva = Some(cva);
+    gateway.shutdown().unwrap();
+    drop(gateway);
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    std::fs::remove_dir_all(state).unwrap();
     let owner = f.cva().owner_uuid().unwrap();
     let id = crate::freshness_storage::semantic_live_event_id(owner, "c", "worker-live");
     assert_eq!(

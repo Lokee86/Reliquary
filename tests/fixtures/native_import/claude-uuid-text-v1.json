@@ -1,0 +1,29 @@
+[
+  {
+    "uuid": "claude-1",
+    "name": "Text example",
+    "chat_messages": [
+      {
+        "uuid": "cu",
+        "sender": "human",
+        "created_at": "2026-10-07T00:00:00Z",
+        "text": "Question"
+      },
+      {
+        "uuid": "ca",
+        "sender": "assistant",
+        "created_at": "2026-10-07T00:00:01Z",
+        "content": [
+          {
+            "type": "thinking",
+            "thinking": "PRIVATE MARKER"
+          },
+          {
+            "type": "text",
+            "text": "Answer"
+          }
+        ]
+      }
+    ]
+  }
+]

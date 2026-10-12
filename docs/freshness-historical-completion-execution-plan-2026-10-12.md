@@ -81,6 +81,50 @@ Historical reconstruction is complete when a supported **explicit opt-in, REL-lo
 | **C11** | **Luna** | **Run the full release gate.** Execute focused C2–C10 suites, all existing F8/Historical/Core Freshness regressions, full root tests, CLI tests, formatting, documentation policy, architecture checks and patch hygiene on the converged branch. Update API/storage/architecture/invariants/current-limitations only to describe actually supported behavior. | All required gates pass on the final source; a new dated historical release verification record contains exact commands/results and supersedes the partial Step 22/24/25 records without deleting their historical evidence. |
 | **C12** | **Sol** | **Final production disposition.** Audit the final implementation against ADR 0039 and H1. If C1–C11 are green, mark H1–H8 complete as a supported explicit opt-in REL-local feature and merge-ready. Default activation may remain off. Keep PHY explicitly deferred. If retained-corpus semantic quality argues against default enablement, record that as a product policy decision rather than mislabeling the implementation incomplete. | One truthful final disposition exists; roadmap/index/status docs distinguish “implemented explicit opt-in” from “enabled by default.” |
 
+## C1 post-convergence seams — 2026-10-12
+
+Current main cut: `ca2076cf657925cabdb6e48e39ce6e8d4619ff5c`. The merge preserves current Gateway/Instance ownership and removes the retired mixed-owner host/vector modules. The F8 runtime fixture now uses a mounted REL through Gateway; exact-owner background status includes pending semantic turns.
+
+| Seam for C2–C8 | Current source owner |
+| --- | --- |
+| Native offline/exclusive import and retry | `src/imports/commit.rs`: `Cva::import_native`; pure normalization/preparation in `src/imports/` |
+| Import receipts and per-Node Episode coverage | Archive `archive_import.rs` / `episode_import.rs`; `CVAIMPT1` remains Archive authority |
+| Generation completion | Insomnia queue/completion plus settled first-cycle Dream proof; current `freeze_historical_import` rejects unfinished work and pending passes |
+| Mounted owner lifecycle and quiescence | Gateway `runtime_host_gateway.rs`, exact admission tokens, REL execution lifecycle and existing owner mutation sequencer |
+| Genuine source vectors and live F8 | `runtime_host_rel_vectors.rs`; prepare/commit through Cva semantic adapters, provider embedding outside owner locks, commit under revalidated lease and `RelShared::mutate` |
+| Exact-owner work inventory | `runtime_host_gateway_background.rs`: `background_status_for`; ambient selection is not operation authority |
+| Native historical publication/reopen | `cva_historical_import.rs`, `historical_import_input.rs`, `historical_import_transform.rs`, Cva lifecycle validation and FreshnessStore `CVAFRS03` |
+
+C2–C8 must compose these owners. Native import receipts acknowledge source/queue publication, not completed inference. The current freeze guard is not yet a mounted generation/quiescence operation. Caller-provided manifest hashes remain a C3 defect; the in-memory checkpoint composition remains experimental. Mounted REL Dream integration is still limited as recorded in [Current limitations](current-limitations.md); convergence does not claim to close that gate.
+
+### C1 disposition and verification
+
+**C1 complete.** Main `ca2076c` is merged; finished F8 and historical primitives are preserved. C2 is next. Historical production remains blocked by C2–C12.
+
+- `cargo check --locked -j 2`: passed.
+- Focused library filters: semantic 72 passed (1 measurement ignored), historical 61, import_checkpoint_storage 2, background 10.
+- Full library: 1,208 passed, 3 ignored. All integration targets: 138 passed, 0 failed. Doctests passed (0 tests).
+- CLI format/check/tests passed: 19 tests. Root format, both documentation-policy modes and patch hygiene passed.
+- `python scripts/check_architecture.py --refresh` passed: 75 P4 fixtures, 161 classified APIs, 11 external ownership fixtures and 23 Pitlord rules. The fresh snapshot has 66,519 source nodes and **0 relationships**; this is not edge-based architecture proof.
+
+Windows verification used process-local TMP/TEMP in the short worktree directory `.t`. Longer `target/test-tmp` and `target/t` paths exceeded or reached the native Windows rename bound for external plans. An intermediate retry exhausted disk space; only generated branch-local PDB files were removed, recovering about 17 GB. Failed attempts are not passing evidence.
+
+The initial plain full `cargo test --locked -j 2` stopped at LNK1318 PDB LIMIT for the `live_runtime_adapter` test and `dream_write_validate` example. The complete runtime matrix passed through `cargo test --lib` and each integration target. The affected targets were built with `cargo rustc --locked -j 2 --test live_runtime_adapter -- -C debuginfo=0` and the equivalent `--example dream_write_validate` command; the resulting live-runtime executable passed. Build profiles are unchanged. The original plain full command is not claimed green.
+
+Documentation impact:
+- Inspected: AGENTS, canonical owner docs, roadmap and this plan.
+- Updated: merged docs, canonical REL worker wording and C1 seam/evidence.
+- Not affected: numerical policy, H1 policy and release scope.
+- Compliance check: both required documentation-policy modes passed.
+- Known documentation gaps: C2–C12 remain pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: main Gateway/Instance and native import owners preserved; retired host modules stay deleted.
+- Pitlord enforcement impact: main policy retained; refreshed check passed with zero-relationship limitation above.
+- Other verification impact: authenticated mounted F8 fixture and exact-owner pending status migrated; runtime gates passed with recorded Windows adjustments.
+- Known architectural gaps: native coordinator, manifest authority, generation/embedding and recovery remain later steps.
+
 ## Native coordinator shape
 
 The preferred architecture is a deep facade-owned coordinator rather than a new subsystem:

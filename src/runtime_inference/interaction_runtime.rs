@@ -140,9 +140,22 @@ impl InteractionRuntime {
         conversation_id: &str,
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedInteractionTurn>, ArchiveError> {
+        self.conversation_transcript_excluding_streams(
+            conversation_id,
+            leaf_node_id,
+            &std::collections::HashSet::new(),
+        )
+    }
+
+    pub(crate) fn conversation_transcript_excluding_streams(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+        excluded: &std::collections::HashSet<String>,
+    ) -> Result<Vec<ResolvedInteractionTurn>, ArchiveError> {
         let durable = self.cva.conversation_turns(conversation_id, leaf_node_id)?;
         let mut transcript = self.resolve_interaction_turns(conversation_id, durable);
-        self.append_stream_records(conversation_id, &mut transcript);
+        self.append_stream_records(conversation_id, &mut transcript, excluded);
         transcript.sort_by_key(|turn| turn.timestamp_ns);
         Ok(transcript)
     }
@@ -159,7 +172,11 @@ impl InteractionRuntime {
                 .conversation_turn_page(conversation_id, end_node_id, limit)?;
         let mut transcript = self.resolve_interaction_turns(conversation_id, durable);
         if include_stream_records {
-            self.append_stream_records(conversation_id, &mut transcript);
+            self.append_stream_records(
+                conversation_id,
+                &mut transcript,
+                &std::collections::HashSet::new(),
+            );
             transcript.sort_by_key(|turn| turn.timestamp_ns);
         }
         Ok((transcript, older_cursor))
@@ -191,12 +208,19 @@ impl InteractionRuntime {
         &self,
         conversation_id: &str,
         transcript: &mut Vec<ResolvedInteractionTurn>,
+        excluded: &std::collections::HashSet<String>,
     ) {
         let path_ids = transcript
             .iter()
             .map(|turn| turn.message_id.clone())
             .collect::<std::collections::HashSet<_>>();
-        for record in self.cva.interaction_streams_for_session(conversation_id) {
+        for record in self
+            .cva
+            .borrowed_interaction_streams_for_session(conversation_id)
+        {
+            if excluded.contains(&record.message_id) {
+                continue;
+            }
             if self
                 .cva
                 .archive()
@@ -228,7 +252,7 @@ impl InteractionRuntime {
                     .filter(|message| message.message_id == record.message_id)
                     .and_then(|message| message.principal_id.clone()),
                 timestamp_ns: record.timestamp_ns,
-                content: record.content,
+                content: record.content.clone(),
                 attachments: Vec::new(),
                 status,
             });

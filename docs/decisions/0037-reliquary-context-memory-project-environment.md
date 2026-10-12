@@ -8,6 +8,8 @@ Supersedes the Warlock-owned repository/runtime portions of [ADR 0017](0017-cva-
 
 Accepted — 2026-09-24. The ownership migration is complete: runtime-host topology, REL reconciliation/recovery, Project Environment mechanics, managed conversation/session lifecycle, cross-owner semantic access, deterministic Context Engine policy, and the corresponding Warlock cleanup are implemented. Remaining work is new semantic capability construction (cross-scope Entity identity, Observation composition including relational Observations, then Ego), not further ownership evacuation.
 
+The runtime shape is now governed by [ADR 0038](0038-gateway-instance-runtime-multiplexing.md): Gateway owns mounted REL/PHY execution, while each attached Instance owns its authorized REL/conversation/branch selection. The historical singleton/ambient host described below is removed from the N3 candidate. Context, Memory and Project Environment ownership remains inside Reliquary.
+
 ## Context
 
 Reliquary began as a purpose-built semantic database embedded by Warlock. It now owns Archive history, Memories, Echo, Ego state, Perception Entities, the transitional Relationship persistence substrate, semantic Graph state, vectors, Dream/Insomnia processing, provenance, project-revision correlations, and repository-backed project-file references. ADR 0034 now assigns the eventual relational semantics to Observation rather than to an independent Relationship object family.

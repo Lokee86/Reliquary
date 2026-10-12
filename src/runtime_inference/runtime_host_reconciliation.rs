@@ -1,4 +1,3 @@
-use super::{ReliquaryRuntimeHost, ReliquaryRuntimeHostError, operation};
 use crate::{
     Cva, CvaRelation, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, VectorNormalization,
 };
@@ -43,18 +42,13 @@ impl EmbeddingEndpoint for SharedEmbeddingEndpoint {
     }
 }
 
-impl ReliquaryRuntimeHost {
-    pub fn reconcile_rel_file(
-        &self,
-        canonical: impl AsRef<Path>,
-    ) -> Result<RelReconciliationReport, ReliquaryRuntimeHostError> {
-        let canonical = canonical.as_ref();
-        let mut report = reconcile_rel_siblings(canonical).map_err(operation)?;
-        let endpoint = self.embedding_route()?;
-        recover_reconciliation_vectors(canonical, &mut report, endpoint.as_ref())
-            .map_err(operation)?;
-        Ok(report)
-    }
+pub(crate) fn reconcile_rel_file_unmounted(
+    canonical: &Path,
+    endpoint: Option<&Arc<dyn EmbeddingEndpoint + Send + Sync>>,
+) -> Result<RelReconciliationReport, String> {
+    let mut report = reconcile_rel_siblings(canonical)?;
+    recover_reconciliation_vectors(canonical, &mut report, endpoint)?;
+    Ok(report)
 }
 
 fn reconcile_rel_siblings(canonical: &Path) -> Result<RelReconciliationReport, String> {

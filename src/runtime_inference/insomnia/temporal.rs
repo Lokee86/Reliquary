@@ -22,7 +22,7 @@ pub(crate) fn infer_prepared(
     Ok(inferred)
 }
 
-fn infer_memory<E: GeneralEndpoint>(
+pub(crate) fn infer_memory<E: GeneralEndpoint>(
     inferencer: &TemporalInferencer<E>,
     prepared: &mut crate::insomnia::processor::PreparedMemory,
 ) -> Result<usize, InsomniaExtractionError> {

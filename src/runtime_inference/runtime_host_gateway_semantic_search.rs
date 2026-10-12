@@ -9,6 +9,19 @@ use crate::{
 };
 use std::collections::HashMap;
 
+/// Archive hits visible through one instance's authorized REL set.
+#[derive(Clone, Debug, PartialEq)]
+pub struct VisibleArchiveSearchOwner {
+    pub owner: RuntimeSemanticOwner,
+    pub hits: Vec<crate::ConversationSearchHit>,
+    pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct VisibleArchiveSearchResult {
+    pub owners: Vec<VisibleArchiveSearchOwner>,
+}
+
 struct AuthorizedLane {
     owner: RuntimeSemanticOwner,
     token: OwnerAccessToken,

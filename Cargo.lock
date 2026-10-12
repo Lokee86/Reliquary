@@ -85,13 +85,14 @@ checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 [[package]]
 name = "arcana"
 version = "0.1.0"
-source = "git+https://github.com/Lokee86/lexicon-arcana.git?rev=9ebccd6e7d089b98a8992c5451ba57f903f295fb#9ebccd6e7d089b98a8992c5451ba57f903f295fb"
+source = "git+https://github.com/Lokee86/lexicon-arcana.git?rev=66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3#66b4e96ecf18cc79dfd6b1ea30232bef7c86bba3"
 dependencies = [
  "atomicwrites",
  "fs2",
  "serde",
  "serde_json",
  "sha2",
+ "tempfile",
 ]
 
 [[package]]

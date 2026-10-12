@@ -5,10 +5,15 @@ mod cva_semantic_live;
 #[path = "facade/cva_semantic_source.rs"]
 mod cva_semantic_source;
 pub use cva_semantic_live::SemanticFreshnessReport;
+#[path = "archive/archive_import.rs"]
+mod archive_import;
+#[path = "archive/episode_import.rs"]
+mod episode_import;
 #[path = "freshness/mod.rs"]
 pub mod freshness;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
+pub mod imports;
 pub use freshness::{
     CommunityMembership, FreshnessBoundaryIndex, FreshnessError, FreshnessRecord, FreshnessState,
     MemoryAdjacency, PropagationError, PropagationEvent, propagate,
@@ -257,6 +262,8 @@ pub use cva_historical_import::{FrozenHistoricalImport, PreparedHistoricalImport
 mod cva_historical_freshness;
 #[path = "facade/cva_lifecycle.rs"]
 mod cva_lifecycle;
+#[path = "external_source/mod.rs"]
+pub mod external_source;
 pub use cva_freshness::{FreshnessEventCut, FreshnessEventProof};
 #[path = "facade/cva_freshness_due.rs"]
 mod cva_freshness_due;
@@ -767,15 +774,6 @@ mod processing_epoch_model;
 mod processing_epoch_store;
 #[path = "project_environment.rs"]
 mod project_environment;
-#[cfg(test)]
-#[path = "project_environment_git_tests.rs"]
-mod project_environment_git_tests;
-#[cfg(test)]
-#[path = "project_environment_lore_tests.rs"]
-mod project_environment_lore_tests;
-#[cfg(test)]
-#[path = "project_environment_tests.rs"]
-mod project_environment_tests;
 #[path = "archive/project_file_binding_codec.rs"]
 mod project_file_binding_codec;
 #[path = "archive/project_file_binding_store.rs"]
@@ -810,6 +808,8 @@ mod review_clocks;
 mod runtime_config;
 #[path = "runtime_inference/runtime_host.rs"]
 mod runtime_host;
+#[path = "runtime_inference/runtime_shared.rs"]
+mod runtime_shared;
 #[path = "runtime_inference/runtime_vector_step.rs"]
 mod runtime_vector_step;
 #[path = "retrieval/search.rs"]
@@ -1163,14 +1163,28 @@ pub use runtime_host::{
     CapabilityRouter, CapabilityState, ConversationViewerToken, DEFAULT_ARCHIVE_SEARCH_RESULTS,
     GatewayAdmissionAdapter, GatewayConversationAttachment, GatewayConversationSubmission,
     GatewayHostAdapter, GatewayRuntime, GatewaySubmissionReceipt, HandoffReceipt,
-    HostCancelOutcome, HostCapabilityContract, HostConnection, HostContractError, HostOperation,
-    HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, InstanceAuthorization,
-    InstanceId, InstanceRuntime, InstanceRuntimeError, ManagedConversationState, OwnerAccessToken,
-    OwnerAdmission, OwnerGrant, RelReconciliationCandidateReport, RelReconciliationReport,
-    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, RuntimeCapability,
-    RuntimeEchoSource, RuntimeEchoTurn, RuntimeKnowledgeProvenanceResolution,
-    RuntimeKnowledgeState, RuntimeSemanticOwner, RuntimeSemanticOwnerKind, StageAuthority,
-    VerifiedInstanceAdmission, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
+    HostCancelOutcome, HostCapabilityContract, HostConnection, HostContractError,
+    HostExecutionMode, HostOperation, HostOperationStatus, HostQueueGuarantees,
+    HostReconcileStatus, InstanceAuthorization, InstanceId, InstanceRuntime, InstanceRuntimeError,
+    ManagedConversationState, OwnerAccessToken, OwnerAdmission, OwnerGrant,
+    RelReconciliationCandidateReport, RelReconciliationReport, ReliquaryRuntimeHostError,
+    ReliquaryRuntimeRoutes, RuntimeCapability, RuntimeEchoSource, RuntimeEchoTurn,
+    RuntimeKnowledgeProvenanceResolution, RuntimeKnowledgeState, RuntimeSemanticOwner,
+    RuntimeSemanticOwnerKind, StageAuthority, VerifiedInstanceAdmission, VisibleArchiveSearchOwner,
+    VisibleArchiveSearchResult,
+};
+pub use runtime_host::{
+    CommunitySummary, ConversationInspection, MAX_MANAGEMENT_FILE_BYTES, MAX_MANAGEMENT_PAGE_BYTES,
+    MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch, ManagementError, ManagementPage, ManagementVersions,
+    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, SourceFile,
+    UnsupportedManagementOperation, WorkspaceManagement,
+};
+
+pub use runtime_host::{
+    LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
+    LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
+    LiveSession, LiveStreamCursor, LiveStreamEvent, LiveStreamSnapshot, LiveToolEvent,
+    LiveToolEventKind,
 };
 pub use search_error::SearchError;
 pub use search_model::{
@@ -1518,41 +1532,14 @@ mod relationship_tests;
 #[path = "facade/reliquary_tests.rs"]
 mod reliquary_tests;
 #[cfg(test)]
-#[path = "runtime_inference/runtime_host_backpressure_tests.rs"]
-mod runtime_host_backpressure_tests;
-#[cfg(test)]
-#[path = "runtime_inference/runtime_host_knowledge_tests.rs"]
-mod runtime_host_knowledge_tests;
-#[cfg(test)]
-#[path = "runtime_inference/runtime_host_perception_test_support.rs"]
-mod runtime_host_perception_test_support;
-#[cfg(test)]
-#[path = "runtime_inference/runtime_host_perception_tests.rs"]
-mod runtime_host_perception_tests;
-#[cfg(test)]
 #[path = "runtime_inference/runtime_host_reconciliation_tests.rs"]
 mod runtime_host_reconciliation_tests;
 #[cfg(test)]
 #[path = "runtime_inference/runtime_host_route_tests.rs"]
 mod runtime_host_route_tests;
 #[cfg(test)]
-#[path = "runtime_inference/runtime_host_semantic_access_tests.rs"]
-mod runtime_host_semantic_access_tests;
-#[cfg(test)]
-#[path = "runtime_inference/runtime_host_session_tests.rs"]
-mod runtime_host_session_tests;
-#[cfg(test)]
 #[path = "runtime_inference/runtime_host_test_support.rs"]
 mod runtime_host_test_support;
-#[cfg(test)]
-#[path = "runtime_inference/runtime_host_tests.rs"]
-mod runtime_host_tests;
-#[cfg(test)]
-#[path = "runtime_inference/runtime_host_topology_tests.rs"]
-mod runtime_host_topology_tests;
-#[cfg(test)]
-#[path = "runtime_inference/runtime_host_vector_tests.rs"]
-mod runtime_host_vector_tests;
 #[cfg(test)]
 #[path = "retrieval/search_policy_tests.rs"]
 mod search_policy_tests;
@@ -1562,9 +1549,6 @@ mod search_tests;
 #[cfg(test)]
 #[path = "semantic_graph/semantic_graph_reconcile_tests.rs"]
 mod semantic_graph_reconcile_tests;
-#[cfg(test)]
-#[path = "semantic_graph/semantic_graph_runtime_host_tests.rs"]
-mod semantic_graph_runtime_host_tests;
 #[cfg(test)]
 #[path = "semantic_graph/semantic_graph_tests.rs"]
 mod semantic_graph_tests;

@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub(crate) struct ReclamationScan {
+    external_index: crate::external_source::store::ExternalIndexStore,
     backing_candidates: HashSet<ObjectRef>,
     published_backing: HashSet<ObjectRef>,
     archive_content_refs: HashMap<ObjectRef, Vec<ContentId>>,
@@ -31,6 +32,14 @@ pub(crate) struct ReclamationPlan {
 
 impl ReclamationScan {
     pub(crate) fn ingest(&mut self, object: ObjectRef, payload: &[u8]) -> Result<(), String> {
+        self.external_index.ingest(payload);
+        if let Some(publication) = crate::external_source::publication::decode(payload)
+            .map_err(|error| error.to_string())?
+        {
+            self.completion_body_refs
+                .extend(publication.records.into_iter().map(|r| r.body_id));
+            return Ok(());
+        }
         if let Some(version) = crate::archive_history_codec::decode_record_version(payload)
             .map_err(|error| error.to_string())?
         {
@@ -93,7 +102,8 @@ impl ReclamationScan {
                 self.archive_content_refs.insert(object, refs);
                 return Ok(());
             }
-            ArchiveRecord::Branch(_)
+            ArchiveRecord::ImportReceipt(_)
+            | ArchiveRecord::Branch(_)
             | ArchiveRecord::ConversationMetadata(_)
             | ArchiveRecord::Fragment(_)
             | ArchiveRecord::Episode(_)
@@ -226,6 +236,14 @@ impl ReclamationScan {
             .collect();
 
         let mut referenced_packed = self.memory_vector_packed_refs;
+        referenced_packed.extend(
+            self.external_index
+                .sources
+                .values()
+                .flat_map(|s| &s.messages)
+                .flat_map(|m| &m.chunks)
+                .map(|c| PackedVectorId(c.matrix)),
+        );
         let unactivated_archive_vectors: HashSet<_> = self
             .archive_vector_chunks
             .iter()

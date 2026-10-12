@@ -9,15 +9,20 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 GROUPS = {
-    "published": "set_rel_metadata_for create_knowledge_memory_for replace_knowledge_memory_for rename_knowledge_community_for mutate_knowledge_relation_for validate_project_environment_for checkpoint_manual_project_for ingest_project_attachment_for",
+    "external_index": "update_external_index_for rebuild_external_index_for",
+    "external_processing": "process_external_window_for",
+    "published": "prepare_conversation_branch_at_leaf set_rel_metadata_for create_knowledge_memory_for replace_knowledge_memory_for rename_knowledge_community_for mutate_knowledge_relation_for validate_project_environment_for checkpoint_manual_project_for ingest_project_attachment_for set_conversation_title_for put_conversation_compaction_for put_echo_event_for",
+    "owner_semantic_mutation": "create_knowledge_memory_for_owner replace_knowledge_memory_for_owner mutate_knowledge_relation_for_owner rename_knowledge_community_for_owner",
     "delegated": "set_rel_metadata create_knowledge_memory refresh_principal_projection_for",
     "ephemeral": "set_rel_processing_enabled_for",
     "host": "reconnect_host",
-    "epoch": "quiesce_rel quiesce_rel_for reopen_rel reopen_rel_for reconcile_quiesced_rel_for shutdown unmount_rel mount_rel_path",
+    "epoch": "quiesce_rel quiesce_rel_for reopen_rel reopen_rel_for reconcile_quiesced_rel_for shutdown unmount_rel mount_rel_path reconcile_rel_file",
+    "trusted_project": "create_project_environment_rel inspect_project_adoption_source adopt_project_environment_rel validate_project_environment_cva",
+    "background": "set_routes wake_rel_background_for set_rel_background_enabled_for wake_phy_background_for set_phy_background_enabled_for",
     "private": "set_phylactery_profile quiesce_phy quiesce_phy_for reopen_phy reopen_phy_for unmount_phy mount_phy_path",
-    "conversation": "submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation",
-    "attachment": "select_rel detach_instance select_managed_conversation attach_conversation_viewer detach_conversation_viewer attach_authenticated_instance refresh_authenticated_instance with_admission_adapter",
-    "read": "conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories owner_mount_is_path_scoped"
+    "conversation": "process_conversation_submission_if_next submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation complete_conversation_generation_with_artifacts record_conversation_generation_tool_event",
+    "attachment": "select_managed_conversation_leaf clear_managed_conversation_selection select_rel detach_instance select_managed_conversation attach_conversation_viewer detach_conversation_viewer mark_managed_conversation_resumed attach_authenticated_instance refresh_authenticated_instance with_admission_adapter",
+    "read": "workspace_management live_runtime_adapter conversation_submission_status conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for latest_project_revision_correlation_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories search_visible_archive search_archive_owner conversation_revision_for conversation_branch_id_for_leaf conversation_branch_leaf_for_id conversation_branch_start_node_ids_for conversation_compactions_for read_memory_provenance_for_owner resolve_knowledge_provenance_for_owner owner_mount_is_path_scoped background_status_for phy_background_status_for background_worker_state_for external_index_status_for search_external_source_for search_external_lexical_for hydrate_external_chunks_for read_external_memory_evidence_for read_memory_source_evidence_for"
 }
 CLASSIFICATION = {name: group for group, names in GROUPS.items() for name in names.split()}
 # Conservatively recognize state-changing Cva verbs in production gateway/worker
@@ -27,7 +32,7 @@ WRITE = re.compile(
     r"\.cva\s*\.\s*(?:set_|publish_|commit_|mark_|reconcile_|resolve_|"
     r"correlate_|register_|create_|replace_|rename_|mutate_|validate_|"
     r"checkpoint_|ingest_|accept_|claim_|renew_|freeze_|fail_|finalize_|"
-    r"complete_|remove_|upsert_|retire_|append_)[a-z_]*\s*\("
+    r"complete_|remove_|upsert_|retire_|append_|external_install)[a-z_]*\s*\("
 )
 
 def masked(source):
@@ -103,8 +108,39 @@ def check_gateway(source):
             errors.append(f"{name}: unclassified public GatewayRuntime API")
         elif category == "published" and "with_rel_mutation(" not in body:
             errors.append(f"{name}: missing canonical mutation admission")
+        elif category == "external_index":
+            if "self.authorize(" not in route_body or "OwnerGrant::ManageRel" not in route_body or "self.install_external(" not in route_body:
+                errors.append(f"{name}: missing exact external index mutation route")
+        elif category == "external_processing":
+            if "OwnerGrant::ManageRel" not in body or "with_rel_mutation(" not in body or "with_phy(" not in body or "with_rel_distribution_admission(" not in body:
+                errors.append(f"{name}: missing admitted external semantic publication route")
+        elif category == "trusted_project":
+            if name == "create_project_environment_rel":
+                if "self.lifecycle.lock(" not in route_body or "rel_path.exists()" not in body or "create_project_rel(" not in body:
+                    errors.append(f"{name}: missing atomic new-file path admission")
+                if "admit_unmounted_path(" in body:
+                    errors.append(f"{name}: cannot inspect header before Project REL creation")
+            elif name != "validate_project_environment_cva" and "admit_unmounted_path(" not in body:
+                errors.append(f"{name}: missing unmounted trusted path admission")
+        elif category == "owner_semantic_mutation":
+            if "semantic_write_token(" not in body or "OwnerKind::Rel" not in body or "OwnerKind::Phy" not in body:
+                errors.append(f"{name}: missing exact-owner REL/PHY write discrimination")
+            elif name == "rename_knowledge_community_for_owner":
+                if "rename_knowledge_community_for(" not in body or "with_phy(" not in body:
+                    errors.append(f"{name}: missing canonical semantic/PHY rename")
+            elif "with_rel_mutation(" not in body or "with_phy(" not in body:
+                errors.append(f"{name}: missing canonical committed REL / private PHY writes")
         elif category == "ephemeral" and "with_rel_distribution_admission(" not in body:
             errors.append(f"{name}: missing ephemeral sequencing boundary")
+        elif category == "conversation" and name in {
+            "cancel_conversation_generation", "complete_conversation_generation",
+            "complete_conversation_generation_with_artifacts",
+        }:
+            route = "self.cancel_conversation_generation_admitted(" if name == "cancel_conversation_generation" else "self.complete_native_generation("
+            if route not in body:
+                errors.append(f"{name}: missing exact token-bound/native finalization delegate")
+            if name == "cancel_conversation_generation" and not all(step in route_body for step in ("self.authorize(", "OwnerGrant::CancelSharedGeneration")):
+                errors.append(f"{name}: missing cancellation authorization")
         elif category == "conversation" and not any(route in body for route in ("with_conversation_admission(", "with_accepted_work(", "with_operation(", "self.process_next_accepted_conversation_submission(", ".process_reserved_conversation_submission(")):
             errors.append(f"{name}: missing sequenced P3 persistence route")
         elif category == "host" and "publish_host_capability_change(" not in body:
@@ -124,9 +160,23 @@ def check_gateway(source):
                 "shutdown": ("sequencer.close(",),
                 "unmount_rel": ("sequencer.close(",),
                 "mount_rel_path": ("mount_rel_inner(",),
+                "reconcile_rel_file": ("admit_unmounted_path(", "reconcile_rel_file_unmounted("),
             }.get(name, ())
             if not route or not all(step in route_body for step in route):
                 errors.append(f"{name}: missing classified REL epoch/resync route")
+        elif category == "background":
+            # Owner-local controls change no durable CVA or REL feed state.
+            routes = {
+                "set_routes": ("self.lifecycle.lock(", "self.routes.write(", "self.shutting_down.load("),
+                "wake_rel_background_for": ("self.authorize(", "OwnerGrant::ManageRel", "self.with_rel(", "notify_work("),
+                "set_rel_background_enabled_for": ("self.authorize(", "OwnerGrant::ManageRel", "self.with_rel(", "background_enabled.store(", "notify_work("),
+                "wake_phy_background_for": ("self.authorize(", "OwnerGrant::UseOwnPhy", "self.with_phy(", "shared.wake("),
+                "set_phy_background_enabled_for": ("self.authorize(", "OwnerGrant::UseOwnPhy", "self.with_phy(", "background_enabled.store(", "shared.wake("),
+            }[name]
+            if not all(step in route_body for step in routes):
+                errors.append(f"{name}: missing exact native background control route")
+            if WRITE.search(body):
+                errors.append(f"{name}: authoritative write in background control classification")
         elif category == "private":
             route = {
                 "set_phylactery_profile": ("with_phy(",),
@@ -144,8 +194,11 @@ def check_gateway(source):
                 "select_rel": ("attachment_entry(", "instance.select_rel("),
                 "detach_instance": ("remove_instance(", "detach_instance_viewers("),
                 "select_managed_conversation": ("select_rel(", "set_instance_managed_state("),
+                "select_managed_conversation_leaf": ("authorize(", "OwnerGrant::ViewRel", "with_rel(", "select_rel(", "set_instance_managed_state("),
+                "clear_managed_conversation_selection": ("authorize(", "OwnerGrant::ViewRel", "with_rel(", "set_instance_managed_state("),
                 "attach_conversation_viewer": ("viewers", "insert("),
                 "detach_conversation_viewer": ("viewers", "remove("),
+                "mark_managed_conversation_resumed": ("instance_managed_state(", "set_instance_managed_state("),
                 "attach_authenticated_instance": ("adapter.verify(", "attach_instance("),
                 "refresh_authenticated_instance": ("adapter.verify(", "replace_instance_grants("),
                 "with_admission_adapter": ("admission_adapter",),
@@ -228,6 +281,27 @@ def check_checkpoint_accessor(source):
         errors.append("checkpoint_from_journal: must not use cloned() for the stream record before prefix slicing")
     return errors
 
+def check_live_adapter(source):
+    source = masked(source)
+    forbidden = {
+        "Cva", "Reliquary", "Phylactery", "InteractionRuntime", "RelJournal",
+        "SessionState", "ConversationRegistry", "ConversationCoordinator",
+        "StreamHub", "CapabilityRouter", "with_rel", "with_phy",
+        "with_rel_mutation", "with_quiesced_rel",
+    }
+    identifiers = set(re.findall(r"\b[A-Za-z_]\w*\b", source))
+    errors = [f"live adapter cannot own or expose {name}" for name in sorted(forbidden & identifiers)]
+    if re.search(r"\bGatewayRuntime\s*::\s*(?:new|new_with_host)\s*\(", source):
+        errors.append("live adapter cannot construct another gateway owner")
+    for name in ("watch_generation", "resume_stream"):
+        match = re.search(rf"\bfn\s+{name}\b", source)
+        if match is not None:
+            start = source.index("{", match.end())
+            body = source[start:closing(source, start) + 1]
+            if "self.admitted(" not in body:
+                errors.append(f"{name}: stream capture must retain original session admission")
+    return errors
+
 def self_test():
     fixtures = 0
     def expect(value):
@@ -236,12 +310,19 @@ def self_test():
         assert value
 
     expect(check_gateway("impl GatewayRuntime { pub fn new_mutator(&self) {} }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn live_runtime_adapter(&self) { LiveRuntimeAdapter::new(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn live_runtime_adapter(&self) { runtime.cva.commit_memory(); } }"))
     expect(check_gateway("impl GatewayRuntime { pub async fn new_mutator(&self) {} }"))
     expect(check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for(&self) { self.with_rel(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for_owner(&self) { self.semantic_write_token(); self.with_rel_mutation(); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn create_knowledge_memory_for_owner(&self) { self.semantic_write_token(); match token.kind { OwnerKind::Rel => self.with_rel_mutation(), OwnerKind::Phy => self.with_phy() } } }"))
     expect(check_gateway("impl GatewayRuntime { pub fn rel_metadata_for(&self) { runtime.cva.set_rel_metadata(); } }"))
     expect(not check_gateway('impl GatewayRuntime { pub fn rel_metadata_for(&self) { let text = "runtime.cva.set_metadata()"; } }'))
     expect(check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) {} }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn reopen_rel(&self) { self.allocate_mount_epoch(); self.reopen_rel_distribution(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.admit_unmounted_path(rel_path); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } create_project_rel(rel_path); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } self.admit_unmounted_path(rel_path); create_project_rel(rel_path); } }"))
     expect(check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) {} }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) { self.with_phy(|_| {}); } }"))
     expect(check_worker("fn commit() { runtime.cva.publish_memory(); }"))
@@ -251,9 +332,22 @@ def self_test():
     expect(not check_worker("fn commit() { shared.mutate(Family, |runtime| { runtime.cva.create_knowledge_memory(); }); }"))
     expect(not check_worker("fn sweep() { shared.mutate(Family, |runtime| { runtime.finalize_inactive_session(); }); }"))
     expect(check_gateway("impl GatewayRuntime { pub fn submit_conversation(&self) { with_admission(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn cancel_conversation_generation(&self) { self.cancel_conversation_generation_admitted(); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn cancel_conversation_generation(&self) { self.authorize(OwnerGrant::CancelSharedGeneration); self.cancel_conversation_generation_admitted(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn submit_conversation(&self) { self.complete_native_generation(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn complete_conversation_generation_with_artifacts(&self) {} }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn complete_conversation_generation_with_artifacts(&self) { self.complete_native_generation(); } }"))
+
     expect(check_conversation_stage_helpers("fn with_conversation_admission<T>() { f(); } fn with_accepted_work<T>() { f(); }"))
     expect(check_gateway("impl GatewayRuntime { pub fn reconcile_quiesced_rel_for(&self) { self.reconcile_rel(owner_id); } }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn reconcile_quiesced_rel_for(&self) { self.fence.snapshot_full(); OwnerAdmission::Closed; self.workers_stopped(); self.reconcile_rel(owner_id); } }"))
+    for name in GROUPS["background"].split():
+        expect(check_gateway(f"impl GatewayRuntime {{ pub fn {name}(&self) {{}} }}"))
+    background = "impl GatewayRuntime { pub fn set_rel_background_enabled_for(&self) { self.authorize(OwnerGrant::ManageRel); self.with_rel(); shared.background_enabled.store(); notify_work(); } }"
+    expect(not check_gateway(background))
+    expect(check_gateway(background.replace("OwnerGrant::ManageRel", "OwnerGrant::ViewRel")))
+    expect(check_gateway(background.replace("notify_work();", "runtime.cva.publish_memory(); notify_work();")))
+    expect(check_gateway("impl GatewayRuntime { pub fn phy_background_status_for(&self) { runtime.cva.commit_memory(); } }"))
     checkpoint = """fn checkpoint_from_journal() {
         let record = runtime.cva().interaction_stream_record(&generation.generation_id);
         let byte_len = usize::try_from(checkpoint.utf8_bytes);
@@ -307,6 +401,27 @@ def self_test():
         ),
         "must not clone full stream content before prefix slicing",
     )
+    for owner in (
+        "Cva", "Reliquary", "Phylactery", "InteractionRuntime", "RelJournal",
+        "SessionState", "ConversationRegistry", "ConversationCoordinator",
+        "StreamHub", "CapabilityRouter", "with_rel", "with_phy",
+        "with_rel_mutation", "with_quiesced_rel",
+    ):
+        expect(check_live_adapter(f"use crate::{owner} as Alias;"))
+    expect(check_live_adapter("GatewayRuntime :: new ();"))
+    expect(check_live_adapter("GatewayRuntime::new_with_host();"))
+    expect(not check_live_adapter('// Cva::new()\nlet note = "RelJournal";'))
+    expect(not check_live_adapter("Arc::clone(&gateway); gateway.submit_conversation();"))
+    expect(check_live_adapter("fn watch_generation() { gateway.subscribe_authoritative_conversation_stream(); }"))
+    expect(not check_live_adapter("fn watch_generation() { self.admitted(|| gateway.subscribe_authoritative_conversation_stream()); }"))
+    expect(check_live_adapter("fn resume_stream() { gateway.reconnect_authoritative_conversation_stream(); }"))
+    expect(not check_live_adapter("fn resume_stream() { self.admitted(|| gateway.reconnect_authoritative_conversation_stream()); }"))
+
+
+    expect(check_gateway("impl GatewayRuntime { pub fn update_external_index_for(&self) { self.install_external(); } }"))
+    expect(not check_gateway("impl GatewayRuntime { pub fn update_external_index_for(&self) { self.authorize(OwnerGrant::ManageRel); self.install_external(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn process_external_window_for(&self) { self.with_rel_mutation(); } }"))
+    expect(check_gateway("impl GatewayRuntime { pub fn external_index_status_for(&self) { r.cva.external_install(); } }"))
     print(f"P4 coverage guard: {fixtures} negative/positive fixtures passed")
 
 def main():
@@ -318,12 +433,15 @@ def main():
     errors = []
     directory = ROOT / "src" / "runtime_inference"
     count = 0
-    for path in sorted(directory.glob("runtime_host_gateway*.rs")):
+    for path in sorted([*directory.glob("runtime_host_gateway*.rs"), directory / "workspace_management.rs", *directory.glob("interaction_live*.rs")]):
         if "tests" in path.stem:
             continue
         source = path.read_text(encoding="utf-8")
         count += len(list(gateway_methods(source)))
         errors += [f"{path.name}: {e}" for e in check_gateway(source)]
+    for live_path in sorted(directory.glob("interaction_live*.rs")):
+        if "tests" not in live_path.stem:
+            errors += [f"{live_path.name}: {e}" for e in check_live_adapter(live_path.read_text(encoding="utf-8"))]
     conversation_path = directory / "runtime_host_gateway_conversation.rs"
     errors += [f"{conversation_path.name}: {e}" for e in check_conversation_stage_helpers(conversation_path.read_text(encoding="utf-8"))]
     checkpoint_path = directory / "runtime_host_gateway_conversation_observation.rs"

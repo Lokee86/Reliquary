@@ -13,6 +13,8 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[path = "runtime_host_gateway_ambient_archive.rs"]
+mod archive;
 #[path = "runtime_host_gateway_ambient_extended.rs"]
 mod extended;
 #[path = "runtime_host_gateway_ambient_project.rs"]
@@ -99,11 +101,7 @@ impl GatewayRuntime {
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedInteractionTurn>, ReliquaryRuntimeHostError> {
         let token = self.ambient_rel_token(instance)?;
-        self.with_rel(&token, |runtime| {
-            runtime
-                .conversation_transcript(conversation_id, leaf_node_id)
-                .map_err(operation)
-        })
+        self.conversation_transcript_with_checkpoints(&token, conversation_id, leaf_node_id)
     }
 
     /// Search a branch in the REL selected by this exact instance attachment.
@@ -144,11 +142,7 @@ impl GatewayRuntime {
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedInteractionTurn>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
-        self.with_rel(&token, |runtime| {
-            runtime
-                .conversation_transcript(conversation_id, leaf_node_id)
-                .map_err(operation)
-        })
+        self.conversation_transcript_with_checkpoints(&token, conversation_id, leaf_node_id)
     }
 
     /// Explicit-owner branch search still requires this instance's ViewRel grant.

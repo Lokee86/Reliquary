@@ -22,6 +22,7 @@ cli/Cargo.toml / cli/Cargo.lock      detachable repo-local CLI package + lockfil
 cli/src/*.rs                         interface parsing/prompting/rendering/dispatch over public API
 src/container/                     physical REL/PHY container mechanics + global ordering
 src/archive/                       Archive/source history, Episodes, files, Echo, repository correlation
+src/external_source/               external canonical references, derived index, provenance/publication
 src/memory/                        authoritative Memory records/revisions/provenance
 src/retrieval/                     lexical/semantic retrieval, vectors, profiles, generations
 src/semantic_graph/                Graph, Communities, typed semantic-node traversal
@@ -539,3 +540,6 @@ Run `cargo test --locked --lib propagation -j 2` for ordinary and historical imp
 Run `cargo test --locked --lib historical_dream -j 2` for the historical Dream producer and real retained-proof/reopen fixture. Keep Windows temporary output inside the worktree, e.g. set process-local TMP/TEMP to `target/test-tmp` before tests. [Step 18 evidence](freshness-historical-dream-verification-2026-10-12.md) records precedence, canonical-target and identity checks.
 For Step 21 checkpoint fixtures, run `cargo test --locked --lib historical_import -j 2` and `cargo test --locked --lib import_checkpoint_storage -j 2` with process-local TMP/TEMP under `target/test-tmp`. These synthetic native imports run no model inference. [Step 21 evidence](freshness-historical-checkpoint-verification-2026-10-12.md) separates the atomic publication API from the remaining full coordinator and expanded recovery matrix.
 Run `cargo test --locked -j 2 --lib historical_transform` for the real native H7 copy/reconcile/repack/reclamation/regeneration/conflict matrix, with process-local TMP/TEMP under `target/test-tmp`. [Step 23 evidence](freshness-historical-transform-verification-2026-10-12.md) records preservation and unsupported conversion boundaries.
+## Architecture adapter profile
+
+The refresh wrapper defaults the Lexicon child environment's `CARGO_PROFILE_DEV_OPT_LEVEL` to `3`, because the Rust adapter launches through `cargo run`. An explicit caller setting takes precedence. This optimizes the analysis tool, retains the complete Rust corpus and all policy rules, and leaves ordinary application build/test profiles unchanged. Python source guards run independently of the Rust graph.

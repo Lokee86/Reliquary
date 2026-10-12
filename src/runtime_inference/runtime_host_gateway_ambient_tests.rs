@@ -680,3 +680,83 @@ fn detach_during_embedding_denies_delivery_without_holding_owner_locks() {
     drop(execution);
     drop(gateway.unmount_rel(&owner).unwrap());
 }
+
+#[test]
+fn p5a_archive_search_is_branch_wide_and_dependency_grant_scoped() {
+    let gateway = gateway();
+    let rel_a = gateway
+        .mount_rel(InteractionRuntime::new(mounted_rel(
+            test_path("p5a-archive-a.rel"),
+            "p5a-branch-a",
+            "p5a-node-a",
+            "bluejay evidence A",
+        )))
+        .unwrap();
+    let rel_b = gateway
+        .mount_rel(InteractionRuntime::new(mounted_rel(
+            test_path("p5a-archive-b.rel"),
+            "p5a-branch-b",
+            "p5a-node-b",
+            "bluejay evidence B",
+        )))
+        .unwrap();
+    let admin = gateway
+        .attach_instance(
+            "p5a-admin".into(),
+            None,
+            BTreeMap::from([
+                (
+                    rel_a.clone(),
+                    BTreeSet::from([OwnerGrant::ViewRel, OwnerGrant::ManageRel]),
+                ),
+                (rel_b.clone(), BTreeSet::from([OwnerGrant::ViewRel])),
+            ]),
+        )
+        .unwrap();
+    gateway
+        .set_rel_metadata_for(&admin, &rel_a, None, vec![rel_b.clone()])
+        .unwrap();
+    let restricted = gateway
+        .attach_instance("p5a-restricted".into(), None, view_grants(&[&rel_a]))
+        .unwrap();
+    gateway.select_rel(&restricted, &rel_a).unwrap();
+    let restricted_result = gateway
+        .search_visible_archive(&restricted, "bluejay", 5)
+        .unwrap();
+    assert_eq!(restricted_result.owners.len(), 1);
+    assert_eq!(restricted_result.owners[0].owner.owner_id, rel_a);
+    assert_eq!(restricted_result.owners[0].hits.len(), 1);
+    assert!(restricted_result.owners[0].error.is_none());
+    assert!(
+        gateway
+            .search_archive_owner(&restricted, &rel_b, "bluejay", 5)
+            .is_err()
+    );
+    assert!(
+        gateway
+            .read_memory_provenance_for_owner(&restricted, &rel_b, crate::MemoryId([7; 32]),)
+            .is_err()
+    );
+
+    let mut granted = restricted.grants_snapshot().unwrap();
+    granted.insert(rel_b.clone(), BTreeSet::from([OwnerGrant::ViewRel]));
+    gateway
+        .replace_instance_grants(&restricted, granted)
+        .unwrap();
+    let visible = gateway
+        .search_visible_archive(&restricted, "bluejay", 5)
+        .unwrap();
+    assert_eq!(visible.owners.len(), 2);
+    assert_eq!(visible.owners[0].owner.owner_id, rel_a);
+    assert_eq!(visible.owners[1].owner.owner_id, rel_b);
+    assert!(
+        visible
+            .owners
+            .iter()
+            .all(|o| o.hits.len() == 1 && o.error.is_none())
+    );
+    gateway.detach_instance(&restricted).unwrap();
+    gateway.detach_instance(&admin).unwrap();
+    drop(gateway.unmount_rel(&rel_a).unwrap());
+    drop(gateway.unmount_rel(&rel_b).unwrap());
+}

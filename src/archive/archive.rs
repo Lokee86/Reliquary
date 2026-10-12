@@ -11,6 +11,7 @@ use crate::{
 };
 
 pub struct Archive {
+    pub(crate) import_receipts: std::collections::BTreeMap<String, crate::imports::ImportReceipt>,
     pub(crate) contents: ContentIndex,
     pub(crate) nodes: NodeIndex,
     pub(crate) activity: crate::archive_activity::ArchiveActivityIndex,

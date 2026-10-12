@@ -183,6 +183,7 @@ impl Cva {
         vector_generations.initialize(&mut container)?;
         container.sync()?;
         Ok(Self {
+            external_index: crate::external_source::store::ExternalIndexStore::default(),
             container,
             archive,
             memories,
@@ -241,6 +242,7 @@ impl Cva {
         let mut dream_freshness = DreamFreshnessJournal::default();
         let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
+        let mut external_index = crate::external_source::store::ExternalIndexStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
             match classify_open_record(payload) {
                 OpenRecordRoute::Archive => {
@@ -254,6 +256,7 @@ impl Cva {
                 }
                 OpenRecordRoute::ContainerVersion => {}
                 OpenRecordRoute::Fallback => {
+                    external_index.ingest(payload);
                     archive_state.ingest(chunk, payload, latest_global)?;
                     memory_state.ingest(chunk, payload, latest_global)?;
                     graph_state.ingest(chunk, payload, latest_global)?;
@@ -281,6 +284,12 @@ impl Cva {
                             .map_err(|message| CvaError::Freshness(message.into()))?
                         && completion.freshness_birth_turn.is_some()
                         && !completion.freshness_birth_memory_ids.is_empty()
+                    {
+                        freshness.freeze_derived_birth_policy();
+                    }
+                    if let Some(publication) = crate::external_source::publication::decode(payload)?
+                        && publication.birth_turn.is_some()
+                        && !publication.records.is_empty()
                     {
                         freshness.freeze_derived_birth_policy();
                     }
@@ -413,6 +422,35 @@ impl Cva {
                         dream_freshness.derive_publication_birth(id);
                     }
                 }
+                if let Some(publication) = crate::external_source::publication::decode(payload)? {
+                    if let Some(turn) = publication.birth_turn {
+                        let archive_version = archive
+                            .record_versions()
+                            .iter()
+                            .filter(|r| r.global_version < publication.global_start)
+                            .map(|r| r.archive_version)
+                            .max()
+                            .unwrap_or(0);
+                        if turn != archive.activity_cut_at_archive_version(archive_version)? {
+                            return Err(CvaError::Freshness(
+                                "external publication birth activity cut differs".into(),
+                            ));
+                        }
+                        for record in &publication.records {
+                            if memories.first_mutation_id(record.id)
+                                != Some(record.mutation_id.as_str())
+                            {
+                                return Err(CvaError::Freshness(
+                                    "external publication birth identity differs".into(),
+                                ));
+                            }
+                            freshness
+                                .derive_birth(owner, record.id, turn, false)
+                                .map_err(CvaError::Freshness)?;
+                            dream_freshness.derive_publication_birth(record.id);
+                        }
+                    }
+                }
                 freshness
                     .ingest_scanned(payload, end)
                     .map_err(CvaError::Freshness)?;
@@ -455,6 +493,7 @@ impl Cva {
         let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
+        external_index.validate_backing(&packed_vectors, &compatibility_profiles);
         let memory_vectors =
             memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
         let archive_vectors = archive_vector_state.finish(&archive, &packed_vectors)?;
@@ -483,6 +522,7 @@ impl Cva {
             container.sync()?;
         }
         let mut result = Self {
+            external_index,
             container,
             archive,
             memories,

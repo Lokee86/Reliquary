@@ -1,6 +1,6 @@
 use crate::{
-    Cva, EpisodeConfig, EpisodePolicy, GeneralEndpoint, GeneralEndpointError, InsomniaWorkerConfig,
-    InteractionRuntime, ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
+    Cva, EpisodeConfig, EpisodePolicy, GatewayRuntime, GeneralEndpoint, GeneralEndpointError,
+    InsomniaWorkerConfig, InteractionRuntime, OwnerGrant, ReliquaryRuntimeRoutes,
 };
 use serde_json::{Value, json};
 use std::fs;
@@ -108,8 +108,8 @@ fn queue_imports(cva: &mut Cva, count: usize) {
 }
 
 #[test]
-fn runtime_host_gates_new_claims_during_provider_backpressure() {
-    let mut cva = Cva::create(test_path()).unwrap();
+fn gateway_gates_new_claims_during_provider_backpressure() {
+    let mut cva = Cva::create_project(test_path()).unwrap();
     queue_imports(&mut cva, 8);
     let blocked_calls = Arc::new(AtomicUsize::new(0));
     let routes = ReliquaryRuntimeRoutes::new(
@@ -126,20 +126,40 @@ fn runtime_host_gates_new_claims_during_provider_backpressure() {
         poll_interval_ns: 100_000,
         ..Default::default()
     };
-    let host = ReliquaryRuntimeHost::start(
-        InteractionRuntime::new(cva),
+    let host = GatewayRuntime::new(
+        test_path().with_extension("state"),
         routes,
         config,
         EpisodePolicy::default(),
-    )
-    .unwrap();
+    );
+    let owner = host.mount_rel(InteractionRuntime::new(cva)).unwrap();
+    let instance = host
+        .attach_instance(
+            "backpressure".into(),
+            None,
+            std::collections::BTreeMap::from([(
+                owner.clone(),
+                std::collections::BTreeSet::from([OwnerGrant::ViewRel]),
+            )]),
+        )
+        .unwrap();
 
+    let deadline = std::time::Instant::now() + Duration::from_secs(10);
+    while blocked_calls.load(Ordering::SeqCst) == 0 && std::time::Instant::now() < deadline {
+        std::thread::sleep(Duration::from_millis(10));
+    }
     std::thread::sleep(Duration::from_millis(100));
     let first_wave = blocked_calls.load(Ordering::SeqCst);
     assert!(first_wave > 0 && first_wave <= 4);
     std::thread::sleep(Duration::from_millis(100));
     assert_eq!(blocked_calls.load(Ordering::SeqCst), first_wave);
-    assert_eq!(host.insomnia_stats().unwrap().terminal, 0);
+    assert_eq!(
+        host.background_status_for(&instance, &owner)
+            .unwrap()
+            .insomnia
+            .terminal,
+        0
+    );
 
     let resumed_calls = Arc::new(AtomicUsize::new(0));
     host.set_routes(ReliquaryRuntimeRoutes::new(
@@ -160,6 +180,6 @@ fn runtime_host_gates_new_claims_during_provider_backpressure() {
     }
     assert!(resumed_calls.load(Ordering::SeqCst) > 0);
 
-    let cva = host.into_cva().unwrap();
+    let cva = host.unmount_rel(&owner).unwrap();
     assert_eq!(cva.insomnia_stats().terminal, 0);
 }

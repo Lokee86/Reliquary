@@ -10,6 +10,32 @@ use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use uuid::Uuid;
 
+#[path = "workspace_management.rs"]
+mod management;
+
+#[path = "interaction_live.rs"]
+mod live;
+
+pub use live::{
+    LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
+    LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
+    LiveSession, LiveStreamCursor, LiveStreamEvent, LiveStreamSnapshot, LiveToolEvent,
+    LiveToolEventKind,
+};
+pub use management::{
+    CommunitySummary, ConversationInspection, MAX_MANAGEMENT_FILE_BYTES, MAX_MANAGEMENT_PAGE_BYTES,
+    MAX_MANAGEMENT_PAGE_ITEMS, ManagedBranch, ManagementError, ManagementPage, ManagementVersions,
+    MemorySummary, RelManagementHealth, SemanticOwnerStatistics, SourceFile,
+    UnsupportedManagementOperation, WorkspaceManagement,
+};
+
+#[path = "runtime_host_gateway_external.rs"]
+mod external;
+#[path = "runtime_host_gateway_external_plan.rs"]
+mod external_plan;
+#[path = "runtime_host_gateway_external_processing.rs"]
+mod external_processing;
+
 #[path = "runtime_host_gateway_admission.rs"]
 mod admission;
 #[path = "runtime_host_owner_operation_journal.rs"]
@@ -27,18 +53,23 @@ mod ambient;
 pub(super) mod mount;
 #[path = "runtime_host_gateway_phy_lifecycle.rs"]
 mod phy_lifecycle;
+#[path = "runtime_host_gateway_project_lifecycle.rs"]
+mod project_lifecycle;
 #[path = "runtime_host_gateway_semantic.rs"]
 mod semantic;
+pub use semantic::RuntimeKnowledgeProvenanceResolution;
 #[path = "runtime_host_gateway_semantic_search.rs"]
 mod semantic_search;
 pub use admission::{GatewayAdmissionAdapter, VerifiedInstanceAdmission};
 use mount::{MountClaim, MountedFileIdentity};
+pub use semantic_search::{VisibleArchiveSearchOwner, VisibleArchiveSearchResult};
 #[path = "runtime_host_gateway_host.rs"]
 mod host;
 pub use host::{
     CapabilityRouter, CapabilityState, GatewayHostAdapter, HandoffReceipt, HostCancelOutcome,
-    HostCapabilityContract, HostConnection, HostContractError, HostOperation, HostOperationStatus,
-    HostQueueGuarantees, HostReconcileStatus, RuntimeCapability, StageAuthority,
+    HostCapabilityContract, HostConnection, HostContractError, HostExecutionMode, HostOperation,
+    HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, RuntimeCapability,
+    StageAuthority,
 };
 #[path = "runtime_host_gateway_convergence.rs"]
 mod convergence;
@@ -50,6 +81,10 @@ mod convergence_race_tests;
 mod convergence_tests;
 #[path = "runtime_host_gateway_conversation.rs"]
 pub(super) mod conversation;
+#[path = "runtime_host_gateway_conversation_metadata.rs"]
+mod conversation_metadata;
+#[path = "runtime_host_gateway_conversation_selection.rs"]
+mod conversation_selection;
 #[path = "runtime_host_gateway_events.rs"]
 pub(super) mod events;
 #[path = "runtime_host_gateway_mutation_events.rs"]
@@ -1521,3 +1556,7 @@ impl Drop for GatewayRuntime {
         let _ = self.shutdown();
     }
 }
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_external_tests.rs"]
+mod external_tests;

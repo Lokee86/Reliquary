@@ -2,6 +2,12 @@
 use super::*;
 use crate::{RuntimeSemanticOwner, RuntimeSemanticOwnerKind};
 
+#[path = "runtime_host_gateway_semantic_mutation.rs"]
+mod mutation;
+#[path = "runtime_host_gateway_semantic_provenance.rs"]
+mod provenance;
+pub use provenance::RuntimeKnowledgeProvenanceResolution;
+
 impl GatewayRuntime {
     fn semantic_token(
         &self,

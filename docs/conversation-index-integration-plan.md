@@ -368,89 +368,20 @@ This distinction is important for Hermes, whose current memory-provider API incl
 
 | Phase | Status | Completion gate |
 | --- | --- | --- |
-| R0. External source contracts | Planned | Stable ref/cursor/hydration model accepted |
-| R1. Reference-only derived index | Planned | Host messages index without durable text duplication |
-| R2. Search + rebuild | Planned | Lost index rebuilds and returns validated refs |
-| R3. External provenance + Insomnia input | Planned | Memories derive from transient host evidence without Archive copies |
-| R4. Lifecycle invalidation | Planned | Edit/rewind/delete semantics are deterministic |
+| R0. External source contracts | Implemented on P5-G | Stable ref/cursor/hydration model accepted |
+| R1. Reference-only derived index | Implemented on P5-G | Host messages index without durable text duplication |
+| R2. Search + rebuild | Implemented on P5-G | Lost index rebuilds and returns validated refs |
+| R3. External provenance + Insomnia input | Implemented on P5-G | Memories derive from transient host evidence without Archive copies |
+| R4. Lifecycle invalidation | Implemented on P5-G | Edit/rewind/delete semantics are deterministic |
 | R5. Hermes adapter | Planned after Hermes feed API | End-to-end async indexing works |
 | R6. Semantic compaction proposals | Later | Hermes can consume proposals without storage ownership transfer |
 | R7. Additional framework adapters | Later | Second adapter proves contract is not Hermes-specific |
 
-## R0 — External source contracts
+## Implemented framework-neutral R0–R4
 
-**Work**
+The P5-G external core implements normalized host contracts, synchronized reference-only source snapshots, hash-bound lexical/vector search and rebuild, external Memory provenance, shared transient Insomnia input and deterministic edit/visibility/delete invalidation. Current ownership, API, formats and bounds live in [Architecture](architecture.md), [Rust API](api.md), [Storage format](storage-format.md) and [Current limitations](current-limitations.md).
 
-- define normalized change, source namespace, message ref, chunk ref, snapshot manifest, and hydration types;
-- design generalized Memory provenance representation without fake Episodes;
-- define cursor/replay/idempotency rules;
-- define canonical content-hash expectations at the adapter boundary;
-- decide where external index state lives physically inside REL without conflating it with Archive; and
-- add corruption/reopen tests before production use.
-
-**Exit**
-
-The contract can describe Hermes source history without persisting a Hermes transcript copy or inventing Archive identities.
-
-## R1 — Reference-only derived index
-
-**Work**
-
-- add durable source cursor/index-generation metadata;
-- add external message/chunk -> vector bindings;
-- reuse packed vector backing where appropriate;
-- hydrate new/changed source messages transiently;
-- index under exact content hash;
-- invalidate replaced rows deterministically; and
-- prove no source text is retained in the external index records.
-
-**Tests**
-
-- append/change replay is idempotent;
-- crash before cursor commit replays safely;
-- same message ID with changed hash replaces old derived rows;
-- reopen restores cursor/index state;
-- serialized index contains no fixture source body.
-
-## R2 — Search and rebuild
-
-Implement external vector/lexical routing as reference-returning search.
-
-A lost/corrupt index must rebuild from the host manifest and resume at the captured watermark.
-
-Search acceptance requires:
-
-- stable ref ordering;
-- hash-bound results;
-- stale-row suppression;
-- profile/source namespace isolation; and
-- no source hydration inside durable result storage.
-
-## R3 — External provenance and Insomnia processing
-
-Extract a normalized transient processing input from the existing Archive/Episode-bound pipeline where required.
-
-Publish resulting Memories with:
-
-- external source identity;
-- exact message/content-hash evidence;
-- source-derived chronology;
-- ordinary REL/PHY semantic ownership; and
-- no copied source transcript body.
-
-Dream/Perception must consume those Memories without assuming every source ref resolves to an owner-local Archive Episode.
-
-## R4 — Lifecycle invalidation
-
-Implement change handling for:
-
-- edit/replacement;
-- active/inactive transitions;
-- rewind;
-- compaction visibility changes; and
-- conversation deletion.
-
-Define exactly which derived source rows are deleted/tombstoned and which semantic objects are merely marked for reconsideration.
+[External-core acceptance](multiplexing-implementation-plan.md) records branch scope, replay/reopen/corruption/privacy/lifecycle evidence, recipient recovery and verification limits. Host-specific adapters, compaction proposals and external polling remain future work below.
 
 ## R5 — Hermes adapter
 
@@ -524,4 +455,4 @@ Native Archive-backed Reliquary operation remains fully supported and semantical
 
 ## Notes
 
-This document is future-only. When external-derived functionality ships, move implemented ownership/API/storage facts into the canonical current-state documents and remove completed work from this plan/roadmap. The Hermes adapter must not become a hidden dependency of native Reliquary operation.
+Implemented R0–R4 facts have moved to canonical current-state documents. This plan retains host-specific adapters, proposal services and outstanding integration work; the acceptance record preserves the implemented core's evidence. The Hermes adapter must not become a hidden dependency of native Reliquary operation.

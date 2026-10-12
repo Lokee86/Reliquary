@@ -1,0 +1,79 @@
+[
+  {
+    "id": "chat-1",
+    "title": "Branch example",
+    "current_node": "a2",
+    "mapping": {
+      "root": {
+        "parent": null,
+        "message": null
+      },
+      "hidden": {
+        "parent": "root",
+        "message": {
+          "id": "hidden",
+          "author": {
+            "role": "system"
+          },
+          "metadata": {
+            "is_visually_hidden_from_conversation": true
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "PRIVATE MARKER"
+            ]
+          }
+        }
+      },
+      "u": {
+        "parent": "hidden",
+        "message": {
+          "id": "u",
+          "author": {
+            "role": "user"
+          },
+          "create_time": 1700000000,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Question"
+            ]
+          }
+        }
+      },
+      "a1": {
+        "parent": "u",
+        "message": {
+          "id": "a1",
+          "author": {
+            "role": "assistant"
+          },
+          "create_time": 1700000001,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "First answer"
+            ]
+          }
+        }
+      },
+      "a2": {
+        "parent": "u",
+        "message": {
+          "id": "a2",
+          "author": {
+            "role": "assistant"
+          },
+          "create_time": 1700000002,
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Revised answer"
+            ]
+          }
+        }
+      }
+    }
+  }
+]
