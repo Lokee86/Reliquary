@@ -15,6 +15,7 @@ Implement the graph-independent numerical and candidate-reduction core frozen by
 - [Live semantic Freshness calibration and v1 policy](freshness-semantic-calibration-2026-10-11.md)
 - [Live semantic policy/API contract](freshness-live-semantic-policy-contract.md)
 - [Implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Step 12 release verification](freshness-semantic-release-verification-2026-10-12.md)
 
 ## Scope
 
