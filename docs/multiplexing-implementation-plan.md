@@ -435,7 +435,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Complete: seven isolated crash/recovery pairs passed |
 | 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Complete: stream and snapshot matrices passed |
 | 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Complete: actual Warlock HTTP executor lifecycle fixtures passed |
-| 4.9 | Run actual Warlock UI/Tauri integration tests | Partial: UI build passed; backend integration blocked by Warlock pin |
+| 4.9 | Run actual Warlock UI/Tauri integration tests | Complete: Tauri consumer suite and UI contract checks passed against local candidate |
 | 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Complete: P6-H diagnostic report captured |
 | 4.11 | Run all locked code, test, architecture and documentation checks | Partial: candidate code/architecture passed; documentation policy and consumer checks outstanding |
 | 4.12 | Repair regressions and record final release acceptance with evidence | Open: acceptance audit recorded; release gates remain unresolved |
@@ -564,6 +564,8 @@ Completion evidence: Warlock consumer `dee7ba02e48011ad9ed4fcd0cb1011ec3bbb10fe`
 Locked offline verification passed across host-operation, host negotiation, external adapter, and live-runtime families: **57 tests passed, zero failures or ignored tests** (15 + 17 + 7 + 18). Coverage includes durable handoff identity and digest, lost acknowledgements, Unknown status holding work without blind replay, cooperative running cancellation, pending cancellation before dequeue, adapter replacement without duplicate admission, startup reconciliation, execution-only negotiation, and provider I/O fencing. No runtime changes were required.
 
 ### Step 4.9 Warlock UI/Tauri integration — 2026-10-11
+
+Completion evidence supersedes the initial interrupted build below: Warlock `dee7ba02` compiled its Tauri library tests against local post-deletion Reliquary `7331923`; the resulting binary passed **224 tests, zero failures, one ignored test**. UI durable checkpoint checks, graph-render client checks, and TypeScript/Vite production build passed. Consumer tests include production P4 Unicode/late-join/slow-consumer delivery, revoked or failed Tauri recipients, checkpoint acknowledgement gating, conversation/workspace lifecycle, and provider commands. Repository-local TEMP/TMP required `GIT_CEILING_DIRECTORIES` at the temporary directory so the missing-repository fixture did not discover the enclosing Warlock worktree; the rerun passed. This is automated consumer and UI-contract integration evidence, not an interactive desktop end-to-end run or proof of the unchanged production Git pin.
 
 The Warlock frontend production build passed (`npm run build`; TypeScript and Vite completed successfully). The direct offline Tauri backend test build is blocked before compilation because `src-tauri/Cargo.toml` still pins Reliquary revision `dcf500e…`, which is not present in the local Cargo git cache; the local-override wrapper began a full build but did not finish within the verification window. Therefore Step 4.9 remains partial until the consumer is aligned to the accepted post-deletion Reliquary/Arcana pins and the locked Tauri test suite completes. No Warlock source changes were made.
 
