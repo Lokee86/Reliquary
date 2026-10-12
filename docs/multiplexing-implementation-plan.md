@@ -428,7 +428,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | ID | Action | Status |
 |---|---|---|
 | 4.1 | Port accepted harness to post-deletion runtime | Complete: P6-H port compiled and focused runtime matrix passed |
-| 4.2 | Verify concurrent instances and shared REL/PHY execution | Blocked |
+| 4.2 | Verify concurrent instances and shared REL/PHY execution | Complete: topology and fanout/checkpoint matrices passed |
 | 4.3 | Verify grant enforcement, revocation and principal privacy | Blocked |
 | 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Blocked |
 | 4.5 | Verify conversation branch policy and Archive ancestry consistency | Blocked |
@@ -534,3 +534,9 @@ The final locked candidate matrix passed after the 3.9 recovery checks: `cargo f
 The accepted P6-H harness from `81a64b6` is now registered under the canonical post-deletion `runtime_host::gateway::tests::p6_harness` module. Its fixture, topology, load, host-adapter, crash and recovery tests, runner, and runner self-tests were ported into the candidate. One current contract field was added to the file-backed host fixture (`HostExecutionMode::PendingQueue`); runtime ownership and persistence behavior were unchanged. The runner manifest now records the Step 3.10 post-deletion base `d978b1b`.
 
 Verification passed with `cargo fmt --all -- --check`, the locked offline P6 harness compile, direct execution of the harness (**10 passed, 2 intentionally ignored crash subprocess tests**), and the Python runner self-test (**5 passed**). The full P6-H subprocess runner remains an execution harness for the later Step 4 concurrency, crash and performance gates; this step does not claim P6-R release acceptance or actual Warlock provider/UI acceptance.
+
+### Step 4.2 concurrent instances and shared REL/PHY execution — 2026-10-11
+
+The post-deletion topology matrix passed all **4 tests**. It covers deterministic instance selection with private physical identity, shared-principal physical-worker deduplication, independent REL/PHY ownership, unrelated-owner reads while another owner is held, stale-token rejection after reopen, pending-order recovery, and cancel/finalize race replay. The observed topology cases include 1–2 physical workers and 1–2 RELs while preserving the expected principal-sharing boundary.
+
+The load matrix passed all **4 tests**. It exercised fanout at **1, 8, and 32 instances**, bounded slow-recipient resynchronization, a 32-instance steady-state window with 2 physical workers and 4 RELs, checkpoint/late-join/restart delivery of an exact 65,536-byte UTF-8 prefix, and owner-lock contention sampling. All selected tests passed with zero failures under locked offline Cargo; no source or persistence changes were required.
