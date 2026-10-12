@@ -434,7 +434,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.5 | Verify conversation branch policy and Archive ancestry consistency | Complete: locked conversation matrix passed |
 | 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Complete: seven isolated crash/recovery pairs passed |
 | 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Complete: stream and snapshot matrices passed |
-| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Partial: controlled host lifecycle passed; real-provider acceptance outstanding |
+| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Complete: actual Warlock HTTP executor lifecycle fixtures passed |
 | 4.9 | Run actual Warlock UI/Tauri integration tests | Partial: UI build passed; backend integration blocked by Warlock pin |
 | 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Complete: P6-H diagnostic report captured |
 | 4.11 | Run all locked code, test, architecture and documentation checks | Partial: candidate code/architecture passed; documentation policy and consumer checks outstanding |
@@ -558,6 +558,8 @@ The complete P6-H runner passed with one harness repetition and the existing gat
 Locked offline verification passed across the stream and snapshot families: **16 stream tests and 25 snapshot tests, zero failures or ignored tests**. Coverage includes exact stream scope and cursors, checkpoint prefix and late-join delivery, bounded overflow and resync, reconnect slot reuse, epoch and grant revalidation, revocation during snapshot/join, private PHY isolation, and mutation/join race consistency. No runtime changes were required.
 
 ### Step 4.8 provider lifecycle, Unknown hold and truthful cancellation — 2026-10-11
+
+Completion evidence: Warlock consumer `dee7ba02e48011ad9ed4fcd0cb1011ec3bbb10fe` passed **24 provider-selected tests, zero failures or ignores**, using its local Reliquary override against post-deletion candidate `43e2bc9` with offline Cargo and repository-local TEMP/TMP. The production async HTTP executor fixtures verify authorized Stop interrupting a stalled HTTP request, revoked/incorrect cancellation authority rejection, late-output fencing, restart rejection of generation replay, Unknown status when process execution records are absent, durable completion despite missing process records, immutable execution binding, negotiated readiness, and one credential-refresh retry. This supplies the actual consumer HTTP fixture evidence absent from the earlier controlled adapter run. Unknown remains truthful about remote effects; these fixtures do not claim remote cancellation acknowledgement or hosted-service end-to-end acceptance. The 4.12 audit's real-provider fixture gap is superseded by this result; UI/Tauri and documentation acceptance remain separate gates.
 
 Locked offline verification passed across host-operation, host negotiation, external adapter, and live-runtime families: **57 tests passed, zero failures or ignored tests** (15 + 17 + 7 + 18). Coverage includes durable handoff identity and digest, lost acknowledgements, Unknown status holding work without blind replay, cooperative running cancellation, pending cancellation before dequeue, adapter replacement without duplicate admission, startup reconciliation, execution-only negotiation, and provider I/O fencing. No runtime changes were required.
 
