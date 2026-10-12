@@ -299,6 +299,11 @@ fn semantic_event_round_trips_retries_and_rejects_identity_conflicts() {
     let payload = store
         .encode_semantic_event(owner, evidence.clone(), effects.clone())
         .unwrap();
+    // Physical copy/repack/reclamation must retain semantic evidence verbatim.
+    assert_eq!(
+        crate::storage_reclamation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
+        payload
+    );
     let (_, decoded) = decode(&payload).unwrap();
     let JournalEntry::Event {
         provenance,
@@ -373,52 +378,47 @@ fn semantic_events_preserve_canonical_order_and_empty_completion() {
 #[test]
 fn semantic_effects_cover_saturation_negative_and_partial_decay() {
     let owner = [7; 16];
-    let store = enrolled();
     let target = MemoryId([1; 32]);
-    let negative = MemoryId([2; 32]);
-
-    let mut store = store;
-    store.records.get_mut(&target).unwrap().score = 95;
-    store.records.get_mut(&negative).unwrap().score = -60;
-
-    let effects = BTreeMap::from([(target, 10), (negative, 10)]);
-    let payload = store
+    let mut store = enrolled();
+    let saturation = store
         .encode_semantic_event(
             owner,
             semantic_evidence(owner, "live", "saturation", 0),
-            effects,
+            BTreeMap::from([(target, 10)]),
         )
         .unwrap();
-    store.ingest(&payload).unwrap();
+    store.ingest(&saturation).unwrap();
     assert_eq!(store.records[&target].score, 100);
-    assert_eq!(store.records[&negative].score, -50);
+
+    let mut dormant = enrolled();
+    assert_eq!(dormant.records_at(1600).unwrap()[&target].score, -60);
+    let payload = dormant
+        .encode_semantic_event(
+            owner,
+            semantic_evidence(owner, "live", "reactivation", 1600),
+            BTreeMap::from([(target, 10)]),
+        )
+        .unwrap();
+    dormant.ingest(&payload).unwrap();
+    assert_eq!(dormant.records[&target].score, -50);
     assert_eq!(
-        store.records[&negative]
-            .state_at_with_policy(0, &store.policy)
-            .unwrap(),
+        dormant.records[&target].state_at(1600).unwrap(),
         crate::FreshnessState::Stale
     );
 
-    store.records.get_mut(&target).unwrap().score = 50;
-    let first = store
-        .encode_semantic_event(
-            owner,
-            semantic_evidence(owner, "live", "remainder-a", 9),
-            BTreeMap::from([(target, 1)]),
-        )
-        .unwrap();
-    store.ingest(&first).unwrap();
-    assert_eq!(store.records[&target].score, 51);
-
-    let second = store
-        .encode_semantic_event(
-            owner,
-            semantic_evidence(owner, "live", "remainder-b", 10),
-            BTreeMap::from([(target, 1)]),
-        )
-        .unwrap();
-    store.ingest(&second).unwrap();
-    assert_eq!(store.records[&target].score, 51);
+    let mut remainder = enrolled();
+    for (node, turn) in [("remainder-a", 509), ("remainder-b", 510)] {
+        let payload = remainder
+            .encode_semantic_event(
+                owner,
+                semantic_evidence(owner, "live", node, turn),
+                BTreeMap::from([(target, 1)]),
+            )
+            .unwrap();
+        remainder.ingest(&payload).unwrap();
+        assert_eq!(remainder.records[&target].score, 51);
+    }
+    assert_eq!(remainder.records[&target].accounted_turn, Some(510));
 }
 
 fn enrolled() -> FreshnessStore {

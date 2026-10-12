@@ -59,6 +59,7 @@ pub(crate) fn replay_freshness(
     let mut by_identity = BTreeMap::<String, RebasedEntry>::new();
     for (source, turns) in [(left, &left_turns), (right, &right_turns)] {
         for entry in source.freshness_replay_entries()? {
+            validate_semantic_source(source, &entry)?;
             let source_turn = entry.source_turn();
             let destination_turn = rebase_turn(source_turn, turns, &merged_turns)?;
             let kind = match &entry {
@@ -124,9 +125,21 @@ pub(crate) fn replay_freshness(
                 effects,
                 proof,
                 provenance,
+                semantic,
                 ..
             } => {
-                output.freshness_replay_event(event_id, rebased.turn, proof, effects, provenance)?
+                if let Some(mut evidence) = semantic {
+                    evidence.accepted_turn = rebased.turn;
+                    output.freshness_replay_semantic_event(event_id, evidence, effects)?;
+                } else {
+                    output.freshness_replay_event(
+                        event_id,
+                        rebased.turn,
+                        proof,
+                        effects,
+                        provenance,
+                    )?;
+                }
             }
             FreshnessReplayEntry::AcceptedUseReceipt {
                 use_id,
@@ -185,6 +198,7 @@ pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaRecon
     let mut identities = BTreeMap::<String, (u64, FreshnessReplayEntry)>::new();
     for (source, turns) in [(left, &left_turns), (right, &right_turns)] {
         for entry in source.freshness_replay_entries()? {
+            validate_semantic_source(source, &entry)?;
             let destination_turn = rebase_turn(entry.source_turn(), turns, &merged)?;
             let identity = match &entry {
                 FreshnessReplayEntry::Initialize { memory_id, .. } => {
@@ -281,6 +295,7 @@ fn same_rebased_identity(a: &FreshnessReplayEntry, b: &FreshnessReplayEntry) -> 
                 effects: ae,
                 proof: ap,
                 provenance: av,
+                semantic: ase,
                 ..
             },
             FreshnessReplayEntry::Event {
@@ -288,9 +303,22 @@ fn same_rebased_identity(a: &FreshnessReplayEntry, b: &FreshnessReplayEntry) -> 
                 effects: be,
                 proof: bp,
                 provenance: bv,
+                semantic: bse,
                 ..
             },
-        ) => ai == bi && ae == be && ap == bp && same_rebased_provenance(av, bv),
+        ) => {
+            let normalize = |e: &Option<crate::freshness_storage::SemanticEventEvidence>| {
+                e.clone().map(|mut evidence| {
+                    evidence.accepted_turn = 0;
+                    evidence
+                })
+            };
+            ai == bi
+                && ae == be
+                && ap == bp
+                && same_rebased_provenance(av, bv)
+                && normalize(ase) == normalize(bse)
+        }
         (
             FreshnessReplayEntry::AcceptedUseReceipt {
                 use_id: a,
@@ -307,6 +335,53 @@ fn same_rebased_identity(a: &FreshnessReplayEntry, b: &FreshnessReplayEntry) -> 
         ) => a == b && sa == sb && pa == pb,
         _ => false,
     }
+}
+
+fn validate_semantic_source(
+    source: &Cva,
+    entry: &FreshnessReplayEntry,
+) -> Result<(), CvaReconcileError> {
+    if let FreshnessReplayEntry::Event {
+        event_id,
+        source_turn,
+        provenance,
+        semantic,
+        ..
+    } = entry
+    {
+        if let Some(evidence) = semantic {
+            let owner = source
+                .owner_uuid()
+                .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                    "semantic replay lacks owner",
+                ))?;
+            let expected = crate::freshness_storage::semantic_live_event_id(
+                owner,
+                &evidence.conversation_id,
+                &evidence.node_id,
+            );
+            if event_id != &expected
+                || evidence.owner_uuid != owner
+                || evidence.accepted_turn != *source_turn
+                || source.activity_position_for_turn(&evidence.conversation_id, &evidence.node_id)
+                    != Some(*source_turn)
+                || provenance.as_ref().is_none_or(|p| {
+                    p.producer_kind != crate::freshness_storage::SEMANTIC_EVENT_PRODUCER_KIND
+                })
+            {
+                return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                    "semantic Freshness source identity is unavailable or conflicting",
+                ));
+            }
+        } else if provenance.as_ref().is_some_and(|p| {
+            p.producer_kind == crate::freshness_storage::SEMANTIC_EVENT_PRODUCER_KIND
+        }) {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "semantic Freshness event lacks typed evidence",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn activity_turns(cva: &Cva) -> BTreeMap<u64, (String, String)> {

@@ -207,6 +207,262 @@ fn incomplete_mapping_stays_pending_even_with_one_valid_source_vector() {
 }
 
 #[test]
+fn semantic_completion_retry_after_rotation_is_read_only_and_reopens() {
+    let mut f = Fixture::new();
+    let node = f.turn("accepted", None, "user");
+    f.fragments("accepted", 1);
+    f.generation();
+    let cohort = std::collections::BTreeSet::new();
+    assert_eq!(
+        f.cva()
+            .apply_accepted_semantic_reinforcement(&node, &cohort)
+            .unwrap(),
+        0
+    );
+    let completed = f.cva().latest_global_version();
+    assert_eq!(
+        f.cva()
+            .apply_accepted_semantic_reinforcement(&node, &cohort)
+            .unwrap(),
+        0
+    );
+    assert_eq!(f.cva().latest_global_version(), completed);
+    f.turn("later", Some("accepted"), "assistant");
+    f.fragments("later", 1);
+    f.generation();
+    let rotated = f.cva().latest_global_version();
+    f.cva()
+        .apply_accepted_semantic_reinforcement(&node, &cohort)
+        .unwrap();
+    assert_eq!(f.cva().latest_global_version(), rotated);
+    f.cva().sync().unwrap();
+    drop(f.cva.take());
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    let reopened = f.cva().latest_global_version();
+    f.cva()
+        .apply_accepted_semantic_reinforcement(&node, &cohort)
+        .unwrap();
+    assert_eq!(f.cva().latest_global_version(), reopened);
+    let mut forged = node;
+    forged.content_id.0[0] ^= 1;
+    assert!(
+        f.cva()
+            .apply_accepted_semantic_reinforcement(&forged, &cohort)
+            .is_err()
+    );
+    assert_eq!(f.cva().latest_global_version(), reopened);
+}
+
+#[test]
+fn semantic_evidence_survives_divergent_rebase_twice_merge_and_reclamation() {
+    struct TestDir(std::path::PathBuf);
+    impl TestDir {
+        fn path(&self) -> &std::path::Path {
+            &self.0
+        }
+    }
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let dir =
+        TestDir(std::env::temp_dir().join(format!("semantic-transform-{}", uuid::Uuid::new_v4())));
+    std::fs::create_dir(&dir.0).unwrap();
+    let left_path = dir.path().join("left.rel");
+    let right_path = dir.path().join("right.rel");
+    let merged_path = dir.path().join("merged.rel");
+    let twice_path = dir.path().join("twice.rel");
+    let reclaimed_path = dir.path().join("reclaimed.rel");
+    let mut left = Cva::create(&left_path).unwrap();
+    left.append_node("base".into(), "c".into(), None, "user".into(), 0, "base")
+        .unwrap();
+    let draft = crate::MemoryDraft {
+        category: "fact".into(),
+        memory_type: "project".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        title: "older target".into(),
+        content: "older knowledge".into(),
+        scope: "project".into(),
+        lifecycle_state: "knowledge".into(),
+        archived: false,
+        superseded_by: None,
+        parent_id: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_time_ns: None,
+        mutation_id: "target".into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+    };
+    let (target, _) = left.publish_memory(None, 0, draft).unwrap();
+    for n in 0..100 {
+        left.append_node(
+            format!("shared-{n}"),
+            "c".into(),
+            None,
+            "user".into(),
+            n,
+            "activity",
+        )
+        .unwrap();
+    }
+    left.sync().unwrap();
+    std::fs::copy(&left_path, &right_path).unwrap();
+    let mut right = Cva::open(&right_path).unwrap();
+    left.append_node(
+        "left".into(),
+        "c".into(),
+        Some("base".into()),
+        "user".into(),
+        0,
+        "left",
+    )
+    .unwrap();
+    let source = right
+        .append_node(
+            "right".into(),
+            "c".into(),
+            Some("base".into()),
+            "assistant".into(),
+            0,
+            "right",
+        )
+        .unwrap();
+    right
+        .materialize_path_fragments(
+            "c",
+            "right",
+            FragmentConfig {
+                turns: 1,
+                overlap: 0,
+            },
+            true,
+        )
+        .unwrap();
+    let endpoint = SimulatedEmbeddingEndpoint::new(12, VectorNormalization::L2, 123);
+    let profile = right.establish_compatibility_profile(&endpoint).unwrap();
+    let generation = right
+        .build_archive_vector_generation(profile.id, &endpoint)
+        .unwrap();
+    let prepared = ready(
+        right
+            .prepare_accepted_semantic_source(&source, Some(generation.id))
+            .unwrap(),
+    );
+    let effects = std::collections::BTreeMap::from([(target.id, 3)]);
+    let event_id =
+        crate::freshness_storage::semantic_live_event_id(prepared.owner_uuid, "c", "right");
+    let evidence = crate::freshness_storage::SemanticEventEvidence {
+        owner_uuid: prepared.owner_uuid,
+        conversation_id: "c".into(),
+        node_id: "right".into(),
+        accepted_turn: prepared.activity_position,
+        base_policy_digest: freshness_policy_digest(prepared.base_policy),
+        semantic_policy_version: prepared.semantic_policy.version,
+        semantic_policy_digest: prepared.policy_digest,
+        compatibility_profile_id: profile.id.0,
+        source_evidence_digest: prepared.source_digest,
+        target_evidence_digest: semantic_target_digest(&effects),
+    };
+    right
+        .freshness_replay_semantic_event(event_id, evidence, effects)
+        .unwrap();
+    assert_eq!(right.freshness_record(target.id).unwrap().score, 93);
+    let original = right
+        .freshness_replay_entries()
+        .unwrap()
+        .into_iter()
+        .find_map(|entry| {
+            if let crate::freshness_storage::FreshnessReplayEntry::Event {
+                semantic: Some(evidence),
+                ..
+            } = entry
+            {
+                Some(evidence)
+            } else {
+                None
+            }
+        })
+        .unwrap();
+    assert_eq!(original.accepted_turn, 102);
+    let durable_before = std::fs::read(&right_path).unwrap();
+    let event_id =
+        crate::freshness_storage::semantic_live_event_id(original.owner_uuid, "c", "right");
+    let mut conflict = original.clone();
+    let changed_effects = std::collections::BTreeMap::from([(target.id, 4)]);
+    conflict.target_evidence_digest = semantic_target_digest(&changed_effects);
+    assert!(
+        right
+            .freshness_replay_semantic_event(event_id.clone(), conflict, changed_effects)
+            .is_err()
+    );
+    let mut missing_cut = original.clone();
+    missing_cut.accepted_turn += 1;
+    assert!(
+        right
+            .freshness_replay_semantic_event(
+                event_id,
+                missing_cut,
+                std::collections::BTreeMap::from([(target.id, 3)])
+            )
+            .is_err()
+    );
+    assert_eq!(std::fs::read(&right_path).unwrap(), durable_before);
+    left.sync().unwrap();
+    right.sync().unwrap();
+    drop(left);
+    drop(right);
+    Cva::reconcile(&left_path, &right_path, &merged_path).unwrap();
+    let mut merged = Cva::open(&merged_path).unwrap();
+    assert_eq!(merged.activity_position_for_turn("c", "right"), Some(103));
+    let rebased = merged
+        .freshness_replay_entries()
+        .unwrap()
+        .into_iter()
+        .find_map(|entry| {
+            if let crate::freshness_storage::FreshnessReplayEntry::Event {
+                semantic: Some(evidence),
+                ..
+            } = entry
+            {
+                Some(evidence)
+            } else {
+                None
+            }
+        })
+        .unwrap();
+    let mut expected = original;
+    expected.accepted_turn = 103;
+    assert_eq!(rebased, expected);
+    assert_eq!(merged.freshness_record(target.id).unwrap().score, 93);
+    let before = std::fs::metadata(&merged_path).unwrap().len();
+    merged
+        .apply_accepted_semantic_reinforcement(&source, &std::collections::BTreeSet::new())
+        .unwrap();
+    assert_eq!(std::fs::metadata(&merged_path).unwrap().len(), before);
+    let entries = merged.freshness_replay_entries().unwrap();
+    merged.reclaim_storage(&reclaimed_path).unwrap();
+    assert_eq!(
+        Cva::open(&reclaimed_path)
+            .unwrap()
+            .freshness_replay_entries()
+            .unwrap(),
+        entries
+    );
+    drop(merged);
+    Cva::reconcile(&merged_path, &right_path, &twice_path).unwrap();
+    let twice = Cva::open(&twice_path).unwrap();
+    assert_eq!(twice.freshness_replay_entries().unwrap(), entries);
+    assert_eq!(twice.freshness_record(target.id).unwrap().score, 93);
+}
+
+#[test]
 fn candidate_search_filters_before_limit_and_deduplicates_targets() {
     use crate::freshness::semantic_policy::SemanticPolicy;
     let source_node = Node {

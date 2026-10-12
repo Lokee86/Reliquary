@@ -8,7 +8,7 @@ Implement the graph-independent numerical and candidate-reduction core frozen by
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** Steps 5–10 complete; live F8 remains disabled pending recovery and release gates. The architecture refresh exception is recorded below.
+**Date:** 2026-10-11. **Status:** Steps 5–11 implemented; live F8 is not released pending Step 12. Step 11 repairs and verification supersede the earlier unexecuted storage/correctness claims. The architecture refresh exception is recorded below.
 
 ## Related docs
 
@@ -104,7 +104,7 @@ The semantic policy and source/search fixtures now cover inclusive threshold bou
 - Updated: this module record, the linear plan completion marker, and the live semantic contract status.
 - Not affected: Dream/use producer kinds, public API/CLI, graph propagation, historical import, and existing score principals.
 - Compliance check: focused storage tests, formatting, repository diff checks, and the documented Rust/docs gates are run for this step.
-- Known gaps: Step 11 transformation matrix, Step 12 release gate, and full end-to-end test execution remain pending.
+- Known gaps at Step 8: transformation and release verification were deferred; the Step 11 evidence below supersedes that status.
 
 ## Architecture impact
 
@@ -112,7 +112,35 @@ The semantic policy and source/search fixtures now cover inclusive threshold bou
 - Ownership/boundaries: Freshness remains the sole durable receipt and replay owner; the semantic producer supplies evidence and local effects.
 - Pitlord enforcement: no new ownership boundary is introduced; the existing architecture refresh exception remains documented above.
 - Other verification: retry, duplicate, identity-conflict, exact-ID, empty-event, and canonical-order fixtures are included in the storage test module.
-- Known gaps: live processing is intentionally not wired until Step 9.
+- Known gaps at Step 8: live processing was deferred to Step 9; production readiness remains subject to Step 12.
+
+## Recovery and transformations (Step 11)
+
+Verification on 2026-10-12 exposed Step 8's decoder still rejecting producer kind 3 and empty semantic events, and Step 10's score fixture mutating disposable projection state. Both are repaired. The semantic-filtered suite now executes successfully (64 tests), as does the broader Freshness suite (65 tests). The repaired score fixture obtains negative scores through durable decay and preserves the partial ten-turn remainder.
+
+Ordinary retries verify immutable Archive source equality and resolve durable event identity before selecting current vectors, including after rotation, reconciliation or reopen. Accepted semantic evidence and effects are carried through FreshnessReplayEntry; reconciliation validates the exact source identity against accepted Archive activity, maps that identity to the destination cut and preserves all pinned policy/profile/source/target evidence. Same-source evidence conflicts compare independently of relocated turn numbers. Replay verifies supported policy evidence and existing receipt equality before append, and stages canonical projection with the owner policy before publication. No Graph/Community traversal or new semantic ledger is introduced.
+
+The transformation fixture retains a nonempty +3 event and score 93 through divergent destination-turn rebasing, reclamation, retry and a second reconciliation. Missing source cuts and conflicting same-identity effects are rejected before writing. The shared physical relocation seam used by attachment repack and reclamation retains semantic event bytes unchanged; exact-copy reconciliation retains the same receipts. Receipt-cache byte accounting now includes the semantic evidence strings.
+
+Step 11 gates on 2026-10-12: `cargo fmt --all -- --check`, `cargo check --locked --tests -j 2`, and `cargo test --locked -j 2` passed; the full root run passed 1,107 library tests and every integration/doc-test target. Focused semantic (64) and Freshness (65) tests also passed. Builds used the isolated `target/semantic-step11-20261012` with dev/test debug information disabled after stale shared-cache artifacts prevented compilation. Both documentation-policy modes and `git diff --check` passed. No CLI gate was required: these changes are crate-private recovery seams, with no CLI/public API changes.
+
+`python scripts/check_architecture.py --refresh` passed the 28-fixture/112-public-API coverage guard, then timed out after 180 seconds during Lexicon analysis. Arcana/Pitlord enforcement did not complete; this is an explicit verification exception, not a passing gate. No tracked generated architecture files changed.
+
+Documentation impact:
+
+- Inspected: required repository guidance, Freshness codec/replay/reconciliation, physical repack/reclamation and the frozen live semantic contract.
+- Updated: this implementation record and linear plan; current policy contract receives the recovery status.
+- Not affected: public API/CLI, historical import, Dream/use principals, graph propagation and roadmap activation.
+- Compliance check: structural and changed-from-origin/main documentation gates and diff checks are run for this step.
+- Known documentation gaps: Step 12 owns shipped API/storage documentation and production release disposition.
+
+Architecture impact:
+
+- Standards added or changed: none; typed proof now remains attached to the existing replay seam.
+- Ownership or boundary impact: Freshness remains the receipt/scoring owner; Archive remains accepted-activity authority.
+- Pitlord enforcement impact: no new owner; architecture verification status is reported separately rather than inferred from Rust checks.
+- Other verification impact: actual semantic and Freshness runtime tests now pass rather than compile-only claims.
+- Known architectural gaps: final live readiness/cohort integration and production release review remain Step 12 work.
 
 ## Notes
 

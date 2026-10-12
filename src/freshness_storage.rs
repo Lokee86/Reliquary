@@ -87,6 +87,7 @@ pub(crate) enum FreshnessReplayEntry {
         effects: BTreeMap<MemoryId, i16>,
         proof: FreshnessEventProof,
         provenance: Option<FreshnessEventProvenance>,
+        semantic: Option<SemanticEventEvidence>,
     },
     AcceptedUseReceipt {
         use_id: String,
@@ -648,6 +649,20 @@ impl FreshnessStore {
                     .as_ref()
                     .ok_or("semantic event lacks typed evidence")?;
                 validate_semantic_evidence(owner, *turn, evidence)?;
+                if *event_id
+                    != semantic_live_event_id(owner, &evidence.conversation_id, &evidence.node_id)
+                    || provenance.source_id != *event_id
+                    || provenance.accepted_turn != *turn
+                    || effects.values().any(|amount| {
+                        !(1..=crate::freshness::semantic_policy::SEMANTIC_BONUS_CAP)
+                            .contains(amount)
+                    })
+                    || effects
+                        .keys()
+                        .any(|id| !self.births.get(id).is_some_and(|(birth, _)| birth <= turn))
+                {
+                    return Err("invalid semantic Freshness identity or local effect".into());
+                }
                 return Ok(());
             }
             validate_proof(*proof)?;
@@ -1091,6 +1106,7 @@ impl FreshnessStore {
                     provenance,
                     proof,
                     effects,
+                    semantic,
                     ..
                 } = event
                 {
@@ -1100,6 +1116,7 @@ impl FreshnessStore {
                         effects: effects.clone(),
                         proof: *proof,
                         provenance: Some(provenance.clone()),
+                        semantic: semantic.clone(),
                     });
                 }
                 Ok(())
@@ -1230,6 +1247,18 @@ impl FreshnessStore {
             },
         )
     }
+    pub(crate) fn validate_semantic_preappend(
+        &self,
+        owner: [u8; 16],
+        payload: &[u8],
+    ) -> Result<(), String> {
+        let mut staged = self.clone();
+        if !staged.policy_persisted {
+            staged.ingest(&encode_policy(owner, self.policy))?;
+        }
+        staged.ingest(payload)
+    }
+
     pub(crate) fn encode_semantic_event(
         &self,
         owner: [u8; 16],
@@ -1749,7 +1778,7 @@ impl Reader<'_> {
         let origin_owner = self.array::<16>()?;
         let accepted_turn = self.u64()?;
         let policy_version = self.u64()?;
-        if !(1..=2).contains(&producer_kind)
+        if !(1..=SEMANTIC_EVENT_PRODUCER_KIND).contains(&producer_kind)
             || source_id.is_empty()
             || policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
         {
@@ -1792,7 +1821,7 @@ impl Reader<'_> {
                 return Err("duplicate Memory in Freshness event batch".into());
             }
         }
-        if event_id.is_empty() || count == 0 {
+        if event_id.is_empty() || (count == 0 && semantic.is_none()) {
             return Err("empty Freshness event batch".into());
         }
         Ok(JournalEntry::Event {
@@ -2004,10 +2033,14 @@ fn receipt_bytes(entry: &JournalEntry) -> usize {
             provenance,
             effects,
             records,
+            semantic,
             ..
         } => {
             256 + event_id.capacity()
                 + provenance.source_id.capacity()
+                + semantic.as_ref().map_or(0, |e| {
+                    400 + e.conversation_id.capacity() + e.node_id.capacity()
+                })
                 + 128 * (effects.len() + records.len())
         }
         JournalEntry::AcceptedUseBatch {

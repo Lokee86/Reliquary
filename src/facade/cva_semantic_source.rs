@@ -174,6 +174,72 @@ impl Cva {
 }
 
 impl Cva {
+    pub(crate) fn freshness_replay_semantic_event(
+        &mut self,
+        event_id: String,
+        evidence: crate::freshness_storage::SemanticEventEvidence,
+        effects: std::collections::BTreeMap<crate::MemoryId, i16>,
+    ) -> Result<(), CvaError> {
+        let owner = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
+            "semantic replay requires owner",
+        ))?;
+        if evidence.owner_uuid != owner
+            || self.activity_position_for_turn(&evidence.conversation_id, &evidence.node_id)
+                != Some(evidence.accepted_turn)
+            || event_id
+                != crate::freshness_storage::semantic_live_event_id(
+                    owner,
+                    &evidence.conversation_id,
+                    &evidence.node_id,
+                )
+            || evidence.base_policy_digest != freshness_policy_digest(self.freshness.policy())
+            || evidence.semantic_policy_version != SemanticPolicy::default().version
+            || evidence.semantic_policy_digest
+                != SemanticPolicy::default()
+                    .digest()
+                    .map_err(|e| CvaError::Freshness(e.to_string()))?
+            || evidence.target_evidence_digest != semantic_target_digest(&effects)
+        {
+            return Err(CvaError::Freshness(
+                "unsupported or conflicting semantic replay evidence".into(),
+            ));
+        }
+        if self
+            .freshness
+            .contains_event(&event_id)
+            .map_err(CvaError::Freshness)?
+        {
+            return if self
+                .freshness
+                .semantic_event_matches(&event_id, &evidence, &effects)
+                .map_err(CvaError::Freshness)?
+            {
+                Ok(())
+            } else {
+                Err(CvaError::Freshness(
+                    "semantic replay identity conflicts".into(),
+                ))
+            };
+        }
+        let payload = self
+            .freshness
+            .encode_semantic_event(owner, evidence.clone(), effects.clone())
+            .map_err(CvaError::Freshness)?;
+        self.freshness
+            .validate_semantic_preappend(owner, &payload)
+            .map_err(CvaError::Freshness)?;
+        self.freshness
+            .persist_policy_if_needed(&mut self.container, owner)
+            .map_err(CvaError::Freshness)?;
+        self.container.append(&payload)?;
+        self.container.sync()?;
+        self.freshness
+            .ingest_appended(&payload)
+            .map_err(CvaError::Freshness)?;
+        self.freshness_refresh_due(effects.keys().copied(), evidence.accepted_turn)?;
+        Ok(())
+    }
+
     /// Apply one accepted-turn semantic event using the newest retained vector
     /// generation. Missing or incomplete vector evidence is a no-op; the
     /// accepted Archive turn remains authoritative and can be retried later.
@@ -182,6 +248,29 @@ impl Cva {
         node: &crate::Node,
         source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
     ) -> Result<usize, CvaError> {
+        // Resolve accepted completion before consulting today's vectors/profile.
+        // The Archive source must still match its immutable accepted identity.
+        let owner = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
+            "semantic source requires REL UUID",
+        ))?;
+        let actual = self.archive.nodes.get(&node.conversation_id, &node.id);
+        if actual != Some(node) {
+            return Err(CvaError::Freshness(
+                "conflicting accepted semantic source".into(),
+            ));
+        }
+        let event_id = crate::freshness_storage::semantic_live_event_id(
+            owner,
+            &node.conversation_id,
+            &node.id,
+        );
+        if self
+            .freshness
+            .contains_event(&event_id)
+            .map_err(CvaError::Freshness)?
+        {
+            return Ok(0);
+        }
         let Some(generation) = self
             .vector_generations
             .generations()
@@ -216,6 +305,11 @@ impl Cva {
         let payload = self
             .freshness
             .encode_semantic_event(source.owner_uuid, evidence, effects.clone())
+            .map_err(CvaError::Freshness)?;
+        // Validate canonical projection and identity before durable append.
+        // A rejected late event must not poison the accepted journal prefix.
+        self.freshness
+            .validate_semantic_preappend(source.owner_uuid, &payload)
             .map_err(CvaError::Freshness)?;
         self.freshness
             .persist_policy_if_needed(&mut self.container, source.owner_uuid)
