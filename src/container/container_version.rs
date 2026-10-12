@@ -155,6 +155,19 @@ pub(crate) fn observe_version_payload_state(
             )?;
         }
     }
+    if let Some((start, count, transaction_ns)) =
+        crate::external_source::publication::decode_embedded_version_range(payload)
+            .map_err(|_| ContainerError::InvalidVersionRecord)?
+    {
+        observe_version_range(next_version, start, u64::from(count))?;
+        observe_transaction_time_range(
+            *next_version,
+            transaction_times,
+            start,
+            u64::from(count),
+            transaction_ns,
+        )?;
+    }
     Ok(())
 }
 

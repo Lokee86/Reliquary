@@ -10,6 +10,7 @@ struct MockHost {
     connection: Mutex<Result<HostConnection, String>>,
     reconciliation: Mutex<BTreeMap<RuntimeCapability, Result<HostReconcileStatus, String>>>,
     connects: AtomicUsize,
+    handoffs: AtomicUsize,
 }
 
 impl MockHost {
@@ -19,6 +20,7 @@ impl MockHost {
             connection: Mutex::new(Ok(HostConnection::default())),
             reconciliation: Mutex::new(BTreeMap::new()),
             connects: AtomicUsize::new(0),
+            handoffs: AtomicUsize::new(0),
         }
     }
 
@@ -72,6 +74,7 @@ impl GatewayHostAdapter for MockHost {
         _capability: RuntimeCapability,
         operation: &HostOperation,
     ) -> Result<HandoffReceipt, String> {
+        self.handoffs.fetch_add(1, Ordering::SeqCst);
         Ok(HandoffReceipt {
             stable_id: operation.stable_id.clone(),
             payload_digest: operation.payload_digest,
@@ -99,6 +102,7 @@ impl GatewayHostAdapter for MockHost {
 fn complete() -> HostCapabilityContract {
     HostCapabilityContract {
         host_executes_stage: true,
+        execution_mode: HostExecutionMode::PendingQueue,
         queue: HostQueueGuarantees {
             durable_acceptance: true,
             stable_submission_ids: true,
@@ -164,15 +168,19 @@ fn incomplete_queue_stays_native_without_prior_host_work() {
 
 #[test]
 fn failed_startup_holds_only_configured_host_stage_and_reconnect_recovers() {
-    let adapter = Arc::new(MockHost::new(&[RuntimeCapability::Insomnia]));
+    let adapter = Arc::new(MockHost::new(&[RuntimeCapability::ConversationExecution]));
     adapter.set_connection(Err("offline".to_owned()));
     let router = CapabilityRouter::connect(adapter.clone());
     assert_eq!(
-        router.state(RuntimeCapability::Insomnia).unwrap(),
+        router
+            .state(RuntimeCapability::ConversationExecution)
+            .unwrap(),
         CapabilityState::Unavailable("offline".into())
     );
     assert_eq!(
-        router.authority(RuntimeCapability::Insomnia).unwrap(),
+        router
+            .authority(RuntimeCapability::ConversationExecution)
+            .unwrap(),
         StageAuthority::Held
     );
     assert_eq!(
@@ -180,14 +188,16 @@ fn failed_startup_holds_only_configured_host_stage_and_reconnect_recovers() {
         StageAuthority::Native
     );
     let mut contracts = BTreeMap::new();
-    contracts.insert(RuntimeCapability::Insomnia, complete());
+    contracts.insert(RuntimeCapability::ConversationExecution, complete());
     adapter.set_connection(Ok(HostConnection {
         capabilities: contracts,
     }));
     router.reconnect();
     assert_eq!(adapter.connects.load(Ordering::SeqCst), 2);
     assert_eq!(
-        router.authority(RuntimeCapability::Insomnia).unwrap(),
+        router
+            .authority(RuntimeCapability::ConversationExecution)
+            .unwrap(),
         StageAuthority::Host
     );
 }
@@ -495,19 +505,23 @@ fn withdrawn_contract_fences_recovered_intent_retry_but_allows_status_and_cancel
 
 #[test]
 fn reconciliation_error_fences_prior_host_work_and_preserves_other_stages() {
-    let adapter = Arc::new(MockHost::new(&[RuntimeCapability::Insomnia]));
-    adapter.advertise(RuntimeCapability::Insomnia, complete());
+    let adapter = Arc::new(MockHost::new(&[RuntimeCapability::ConversationExecution]));
+    adapter.advertise(RuntimeCapability::ConversationExecution, complete());
     adapter.set_reconciliation(
-        RuntimeCapability::Insomnia,
+        RuntimeCapability::ConversationExecution,
         Err("recovery unavailable".into()),
     );
     let router = CapabilityRouter::connect(adapter);
     assert_eq!(
-        router.state(RuntimeCapability::Insomnia).unwrap(),
+        router
+            .state(RuntimeCapability::ConversationExecution)
+            .unwrap(),
         CapabilityState::Unavailable("recovery unavailable".into())
     );
     assert_eq!(
-        router.authority(RuntimeCapability::Insomnia).unwrap(),
+        router
+            .authority(RuntimeCapability::ConversationExecution)
+            .unwrap(),
         StageAuthority::Held
     );
     assert_eq!(
@@ -548,4 +562,175 @@ fn known_pending_handoff_debt_survives_contract_downgrade() {
         router.authority(capability).unwrap(),
         StageAuthority::Native
     );
+}
+
+#[test]
+fn declared_background_capabilities_without_executable_stages_remain_native() {
+    let capabilities = [
+        RuntimeCapability::Insomnia,
+        RuntimeCapability::Dream,
+        RuntimeCapability::Embedding,
+        RuntimeCapability::ProjectEnvironment,
+    ];
+    let adapter = Arc::new(MockHost::new(&capabilities));
+    for capability in capabilities {
+        adapter.advertise(capability, complete());
+    }
+    let router = CapabilityRouter::connect(adapter.clone());
+    let payload = b"unsupported stage".to_vec();
+    let operation = HostOperation {
+        stable_id: "unsupported".into(),
+        payload_digest: Sha256::digest(&payload).into(),
+        payload,
+    };
+    for capability in capabilities {
+        assert_eq!(
+            router.authority(capability).unwrap(),
+            StageAuthority::Native
+        );
+        assert_eq!(
+            router.handoff(capability, &operation),
+            Err(HostContractError::HostNotReady(capability))
+        );
+        assert_eq!(
+            router.authority(capability).unwrap(),
+            StageAuthority::Native
+        );
+    }
+    assert_eq!(adapter.handoffs.load(Ordering::SeqCst), 0);
+    adapter.set_connection(Err("offline".into()));
+    router.reconnect();
+    for capability in capabilities {
+        assert_eq!(
+            router.authority(capability).unwrap(),
+            StageAuthority::Native
+        );
+    }
+}
+
+#[test]
+fn unsupported_stage_filter_cannot_erase_recovered_host_ownership_debt() {
+    let capability = RuntimeCapability::Dream;
+    let adapter = Arc::new(MockHost::new(&[capability]));
+    adapter.advertise(capability, complete());
+    let router = CapabilityRouter::connect(adapter.clone());
+    router
+        .hold_operation(capability, "recovered-dream")
+        .unwrap();
+    router.reconnect();
+    assert_eq!(router.authority(capability).unwrap(), StageAuthority::Held);
+    let payload = b"durable old intent".to_vec();
+    let operation = HostOperation {
+        stable_id: "recovered-dream".into(),
+        payload_digest: Sha256::digest(&payload).into(),
+        payload,
+    };
+    assert_eq!(
+        router.retry_handoff(capability, &operation),
+        Err(HostContractError::HostNotReady(capability))
+    );
+    assert_eq!(adapter.handoffs.load(Ordering::SeqCst), 0);
+    router
+        .release_operation(capability, "recovered-dream")
+        .unwrap();
+    router.reconnect();
+    assert_eq!(
+        router.authority(capability).unwrap(),
+        StageAuthority::Native
+    );
+}
+
+#[test]
+fn exact_digest_retry_is_allowed_but_changed_digest_never_reaches_adapter() {
+    let capability = RuntimeCapability::ConversationExecution;
+    let adapter = Arc::new(MockHost::new(&[capability]));
+    adapter.advertise(capability, complete());
+    let router = CapabilityRouter::connect(adapter.clone());
+    let payload = b"immutable input".to_vec();
+    let operation = HostOperation {
+        stable_id: "stable".into(),
+        payload_digest: Sha256::digest(&payload).into(),
+        payload,
+    };
+    let first = router.handoff(capability, &operation).unwrap();
+    assert!(first.durably_accepted);
+    assert_eq!(router.handoff(capability, &operation).unwrap(), first);
+    router.hold_operation(capability, "stable").unwrap();
+    assert_eq!(router.retry_handoff(capability, &operation).unwrap(), first);
+    let payload = b"changed input".to_vec();
+    let changed = HostOperation {
+        stable_id: "stable".into(),
+        payload_digest: Sha256::digest(&payload).into(),
+        payload,
+    };
+    assert_eq!(
+        router.retry_handoff(capability, &changed),
+        Err(HostContractError::IdempotencyConflict)
+    );
+    assert_eq!(adapter.handoffs.load(Ordering::SeqCst), 3);
+    let mut unrelated = operation;
+    unrelated.stable_id = "never-admitted".into();
+    assert_eq!(
+        router.retry_handoff(capability, &unrelated),
+        Err(HostContractError::UnknownOperationStatus)
+    );
+    assert_eq!(adapter.handoffs.load(Ordering::SeqCst), 3);
+}
+
+#[test]
+fn execution_only_negotiates_without_transferring_pending_queue() {
+    let cap = RuntimeCapability::ConversationExecution;
+    let host = Arc::new(MockHost::new(&[cap]));
+    let mut contract = HostCapabilityContract::execution_only();
+    // Even complete queue flags cannot override the explicitly selected mode.
+    contract.queue = complete().queue;
+    assert!(!contract.may_own_pending_queue());
+    host.advertise(cap, contract);
+    let router = CapabilityRouter::connect(host.clone());
+    assert_eq!(
+        router.state(cap).unwrap(),
+        CapabilityState::ExecutionOnlyReady
+    );
+    assert_eq!(router.authority(cap).unwrap(), StageAuthority::Native);
+    assert_eq!(host.handoffs.load(Ordering::SeqCst), 0);
+    host.set_connection(Err("offline".into()));
+    router.reconnect();
+    assert_eq!(router.authority(cap).unwrap(), StageAuthority::Held);
+    host.set_connection(Ok(HostConnection {
+        capabilities: BTreeMap::from([(cap, contract)]),
+    }));
+    router.reconnect();
+    assert_eq!(
+        router.state(cap).unwrap(),
+        CapabilityState::ExecutionOnlyReady
+    );
+    host.set_connection(Ok(HostConnection::default()));
+    router.reconnect();
+    assert_eq!(router.state(cap).unwrap(), CapabilityState::NativeOnly);
+}
+
+#[test]
+fn execution_only_cannot_clear_recovered_host_operation_debt() {
+    let cap = RuntimeCapability::ConversationExecution;
+    let host = Arc::new(MockHost::new(&[cap]));
+    host.advertise(cap, complete());
+    let router = CapabilityRouter::connect(host.clone());
+    router.hold_operation(cap, "prior-operation").unwrap();
+    host.advertise(cap, HostCapabilityContract::execution_only());
+    router.reconnect();
+    assert_eq!(
+        router.state(cap).unwrap(),
+        CapabilityState::UnknownStatusHeld
+    );
+    router.release_operation(cap, "prior-operation").unwrap();
+    host.set_reconciliation(cap, Ok(HostReconcileStatus::UnknownStatus));
+    router.reconnect();
+    assert_eq!(router.authority(cap).unwrap(), StageAuthority::Held);
+    host.set_reconciliation(cap, Ok(HostReconcileStatus::NoOutstandingWork));
+    router.reconnect();
+    assert_eq!(
+        router.state(cap).unwrap(),
+        CapabilityState::ExecutionOnlyReady
+    );
+    assert_eq!(router.authority(cap).unwrap(), StageAuthority::Native);
 }

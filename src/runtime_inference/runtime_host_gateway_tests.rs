@@ -3,6 +3,10 @@ use crate::runtime_host_test_support::test_path;
 use crate::{Cva, InteractionRuntime};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[cfg(test)]
+#[path = "runtime_host_gateway_p6_harness_tests.rs"]
+mod p6_harness;
+
 fn gateway() -> GatewayRuntime {
     GatewayRuntime::new(
         test_path("gateway-lifecycle-state"),

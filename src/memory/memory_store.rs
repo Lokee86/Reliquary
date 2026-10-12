@@ -13,6 +13,9 @@ use std::collections::{HashMap, HashSet};
 mod grouped_publish;
 
 pub(crate) struct MemoryStore {
+    pub(crate) external_evidence:
+        HashMap<(MemoryId, MemoryBodyId), crate::external_source::ExternalMemoryEvidence>,
+    pub(crate) external_windows: HashMap<[u8; 32], Vec<MemoryId>>,
     bodies: HashMap<MemoryBodyId, ObjectRef>,
     routing_metadata: HashMap<MemoryId, MemoryRoutingMetadata>,
     entity_mentions_by_surface: HashMap<String, HashSet<MemoryEntityMentionKey>>,
@@ -34,6 +37,8 @@ pub(crate) enum PublishPreflight {
 impl MemoryStore {
     pub(crate) fn empty() -> Self {
         Self {
+            external_evidence: HashMap::new(),
+            external_windows: HashMap::new(),
             bodies: HashMap::new(),
             routing_metadata: HashMap::new(),
             entity_mentions_by_surface: HashMap::new(),
@@ -573,6 +578,14 @@ impl MemoryStore {
                 .into_iter()
                 .find(|body| body.id == id)
                 .map(|body| body.bytes)
+                .ok_or(MemoryError::MissingBody);
+        }
+        if let Some(publication) = crate::external_source::publication::decode(&payload)? {
+            return publication
+                .bodies
+                .into_iter()
+                .find(|b| b.id == id)
+                .map(|b| b.bytes)
                 .ok_or(MemoryError::MissingBody);
         }
         Err(MemoryError::CorruptBody)

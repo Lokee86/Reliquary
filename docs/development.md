@@ -22,6 +22,7 @@ cli/Cargo.toml / cli/Cargo.lock      detachable repo-local CLI package + lockfil
 cli/src/*.rs                         interface parsing/prompting/rendering/dispatch over public API
 src/container/                     physical REL/PHY container mechanics + global ordering
 src/archive/                       Archive/source history, Episodes, files, Echo, repository correlation
+src/external_source/               external canonical references, derived index, provenance/publication
 src/memory/                        authoritative Memory records/revisions/provenance
 src/retrieval/                     lexical/semantic retrieval, vectors, profiles, generations
 src/semantic_graph/                Graph, Communities, typed semantic-node traversal
@@ -529,3 +530,7 @@ python scripts/freshness_release_verification.py --out <frozen-build-directory>/
 ```
 
 Variants alternate under compiler/indexer guards. The collector preserves raw samples and checks exact propagation maps, current/historical records and reopen. It covers synthetic/three real topologies, complete accepted-use/initial-Dream/reopen operations, and source-only history depths 160/1024 at batches 1/64. Trace parents are inclusive. Sample p95/p99 are not reliable production tails. Windows peak process working set is not allocator peak heap. Host/provider latency and production event frequencies remain unavailable. [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final evidence and disposition.
+
+## Architecture adapter profile
+
+The refresh wrapper defaults the Lexicon child environment's `CARGO_PROFILE_DEV_OPT_LEVEL` to `3`, because the Rust adapter launches through `cargo run`. An explicit caller setting takes precedence. This optimizes the analysis tool, retains the complete Rust corpus and all policy rules, and leaves ordinary application build/test profiles unchanged. Python source guards run independently of the Rust graph.

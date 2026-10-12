@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Native historical import invariants
+
+Schema-1 source identity is namespace-qualified and deterministic. Imports preserve immutable historical revisions; omission never implies deletion. Explicit tombstones carry no body, and source artifact references accompany supplied-byte hashes/native File identity. Provider normalizers perform no filesystem/network/credential or semantic writes. Archive owns receipt records and per-Node imported Episode coverage; Insomnia owns the only work queue. A receipt is returned only after synchronization. Interrupted unacknowledged batches resume through identical normalized input, not a second journal. Mounted management must retain exact owner admission; the offline API is not an authorization escape. [Exact contract](native-import.md).
+
 ## Purpose
 
 This document defines the governing architectural constraints for the Reliquary Memory v2 rebuild.
@@ -11,6 +15,10 @@ This document defines the governing architectural constraints for the Reliquary 
 These constraints are intentionally stronger than convenience abstractions. Implementation status remains owned by current architecture, roadmap, and limitations documents.
 
 ## Invariants
+
+### Executable host and background authority
+
+Host authority requires an executable payload/result/receipt path; currently only ConversationExecution qualifies. Unsupported background declarations retain Native without releasing unresolved host debt. Exact ID/digest validation precedes adapter I/O; the REL journal remains durable authority. One worker set exists per mounted owner regardless of selection/attachment count. Exact controls/status require ManageRel/ViewRel or UseOwnPhy. Native inference holds no semantic store locks; quiesce fences late results and joins workers before restart. Running calls can delay shutdown and cancellation cannot promise rollback. Private vector profiles/batches synchronize before visibility/wake; private counters never enter REL feeds.
 
 ### Durable conversation dispatch
 
@@ -222,6 +230,13 @@ Conversation snapshots acquire runtime -> coordinator -> journal and copy facts 
 
 Performance diagnostics must preserve the accepted owner/policy/graph/Community cut and every independent consumption event. They may not replace a historical cut with current topology, enroll passive reads, suppress recipients, or treat a timing result as a correctness proof. Real fixture runs require source/copy SHA-256 verification and disposable writable copies. [The hardening plan](freshness-performance-hardening-plan-2026-10-03.md) defines promotion gates.
 
+## P5-C exact admission and transcript continuation
+
+The isolated P5-C integration adds `conversation_submission_status` (ViewRel) and `process_conversation_submission_if_next` (SubmitConversation). Matching occurs inside the existing coordinator's ordered reservation; a mismatch returns no receipt and leaves queued work untouched. This is not exact-ID scheduling around the queue.
+
+Gateway transcript reads join native prefixes under the existing owner → coordinator → journal observation order. Native stream records are excluded from the legacy session projection; only the exact requested leaf's journal-acknowledged continuation is reconstructed through the existing byte-length/hash-validated checkpoint reader. Historical/sibling leaves do not receive that continuation, completed generations remain Archive turns, and ViewRel/mount fencing still applies. Legacy non-native streams retain their existing projection. No stored format or second mutable authority changes.
+
+
 ## Related docs
 
 - [Architecture](architecture.md)
@@ -247,3 +262,28 @@ Cross-database restore activation, actual concurrent writers, checkpointing, and
 ## Recovery hard cut (P3.8)
 
 Mount and quiesced recovery use the same admitted-turn and Archive validation before post-commit acknowledgement. A checkpoint stream must contain the exact previously acknowledged UTF-8 prefix; missing, truncated or changed content fails mount without inventing terminal status. A synchronized extension is recorded before Interrupted or Completed. Coordinator exact acquisition verifies the durable branch and independently rejects fresh Pending work. Durable active metadata cannot create viewers, instance selection or per-viewer writers. Unknown host work and cancellation intent remain reserved until authoritative terminal proof. [P3.8 evidence](multiplexing-implementation-plan.md).
+
+
+## P5-F-core isolated management composition
+
+Management selection remains instance-local viewing and cannot implicitly admit a writer. Composite results are delivered only under their original exact owner token. Private PHY and provenance source access retain independent grants; management health contains body-free exact REL clocks/counters. See the [F-core execution record](multiplexing-implementation-plan.md) for the capability matrix, owner requests and verification.
+
+## P5-E live runtime surface
+
+Live sessions retain original mount, fence and grant generations. Close removes delivery and leaves accepted work with its owner. Resume tokens are untrusted identity/position hints: fresh sessions validate exact owner/conversation/branch/generation, reject stale epochs and future positions, and obtain a full authoritative P4 prefix without replay. Tool results require their earlier exact invocation; conflicting sequence retries fail. Generated artifacts refer only to the finalized native assistant source, never its ancestor. Cancellation intent is durable; Running host cancellation remains cooperative and Unknown work stays held. See [E5 acceptance record](multiplexing-implementation-plan.md).
+
+## External source ownership
+
+- A source namespace identifies host canonical history; it is not a REL owner ID or an Archive identity.
+- External index snapshots contain descriptors, IDs, content hashes, offsets, term hashes, vector bindings and cursors. Hydrated transcript bodies remain transient.
+- Cursor advancement and its source-row mutation share one synchronized snapshot. Concurrent preparations use a revision fence; feed gaps require an explicit manifest rebuild.
+- Hash replacement, inactive visibility and conversation deletion suppress source rows. They do not automatically delete independent semantic Memories.
+- Host authorization and Gateway grants are independent. REL access never grants host transcript access. Private output requires the verified caller's exact bound PHY.
+- External provenance contains no synthetic Episode or Archive node IDs. Unavailable, inactive or changed host evidence remains unavailable/stale; semantic ownership persists.
+- Frozen processing plans contain legitimate derived Memory drafts and identifier-only provenance in trusted Gateway operational storage. They contain no canonical transcript cache and are never delivered as REL snapshots.
+
+External reference search validates candidate descriptors against a fresh, independently authorized host manifest before returning IDs/hashes/scores. A namespace grant alone does not authorize each message. Missing authorized rows fail closed; changed hashes/visibility are stale evidence. The original REL token and index cut are checked again after host I/O. Processing applies the same message authority check to new work and receipt replay; private publication holds the source REL sequencer across cut validation and recipient write.
+
+## Execution-only negotiation
+
+An explicitly negotiated execution-only host contract never transfers pending queue ownership, even when its queue guarantee flags are complete. Only PendingQueue mode with all five guarantees may perform a durable host handoff. Mode downgrade, withdrawal or reconnect cannot release locally unresolved operation IDs; durable local terminal recording and empty reconciliation remain required. Negotiated execution readiness is not remote provider outcome proof.

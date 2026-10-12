@@ -5,6 +5,22 @@
 **Scope:** F8/S1–S6 live semantic Freshness reinforcement followed by H1–H8 historical import reconstruction.  
 **Source specs:** [Freshness completion execution plan](freshness-completion-execution-plan-2026-10-03.md), [historical import reconstruction spec](freshness-historical-import-reconstruction-spec-2026-10-03.md), [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [Memory Freshness policy](memory-staleness-plan.md).
 
+## Purpose
+
+Sequence the existing F8 semantic reinforcement and historical reconstruction work.
+
+## Overview
+
+The numbered steps below preserve the live-first, historical-second implementation order.
+
+## Related docs
+
+See the source specs and ADR linked above.
+
+## Notes
+
+This plan records intended work, not completed acceptance.
+
 ## Model assignment
 
 - **Luna** — use when the policy/interface is already frozen and the task is bounded implementation, fixtures, mechanical integration, targeted debugging, or verification.

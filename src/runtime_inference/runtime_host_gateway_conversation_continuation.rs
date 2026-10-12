@@ -54,6 +54,18 @@ impl ConversationCoordinator {
         conversation_id: &ConversationId,
     ) -> Result<Option<(ConversationSubmissionId, ProcessingGuard)>, ReliquaryRuntimeHostError>
     {
+        self.acquire_next_matching(journal, conversation_id, None)
+    }
+
+    /// Match only the scheduler's chosen entry while holding its reservation
+    /// lock. A caller cannot dispatch an unrelated entry or bypass queue order.
+    pub(super) fn acquire_next_matching(
+        self: &Arc<Self>,
+        journal: &Arc<Mutex<RelJournal>>,
+        conversation_id: &ConversationId,
+        expected: Option<&ConversationSubmissionId>,
+    ) -> Result<Option<(ConversationSubmissionId, ProcessingGuard)>, ReliquaryRuntimeHostError>
+    {
         let mut state = self
             .state
             .lock()
@@ -109,6 +121,9 @@ impl ConversationCoordinator {
                 || branch.durable.as_ref().is_some_and(|owner| owner != &key)
             {
                 continue;
+            }
+            if expected.is_some_and(|expected| expected != &key) {
+                return Ok(None);
             }
             branch.executing = Some(key.clone());
             return Ok(Some((

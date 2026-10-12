@@ -8,6 +8,7 @@ Reliquary composes the shared Laughing Skull architecture-core Pitlord policy wi
 - `container`: physical REL/PHY substrate and global ordering;
 - `archive`: source history, conversation state, Episodes, attachments, Echo, and repository correlations;
 - `memory`: authoritative Memory state;
+- `external-source`: host canonical reference contracts, rebuildable indexes and external publication composition;
 - `retrieval`: lexical/semantic retrieval plus vector/profile/generation state;
 - `semantic-graph`: Graph, Communities, and typed semantic-node traversal;
 - `perception`: durable Entity state plus candidate/admission/resolution workflows;
@@ -39,3 +40,4 @@ python scripts/check_architecture.py --refresh
 The checker resolves Pitlord, Lexicon, Arcana, and adapters from environment overrides, PATH, or the normal sibling development repositories. Reliquary follows the same sibling `engineering-standards` source used by its documentation checker, so the shared architecture-core include must be present there. The push/PR architecture workflow builds the tools, prebuilds the Rust Lexicon adapter in release mode, refreshes evidence, and runs the same policy check.
 
 Policy changes that alter architectural ownership must update `docs/architecture.md` and `docs/maintainer-map.md`; consequential ownership changes also require the appropriate ADR. Do not change ownership merely to silence a Pitlord finding.
+The refresh explicitly selects Lexicon Rust analysis because the ownership policy covers authored Rust files under src/. Python ownership/coverage guards run directly before graph refresh. This prevents unrelated Python-adapter indexing from blocking Rust ownership evidence, while retaining a fresh Arcana sync and complete Pitlord check. This gate does not claim a Python dependency graph.

@@ -64,6 +64,22 @@ impl GatewayRuntime {
         operation_id: &str,
     ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
         let token = self.authorize(instance, owner_id, OwnerGrant::CancelSharedGeneration)?;
+        self.cancel_conversation_generation_admitted(&token, conversation_id, operation_id)
+    }
+
+    /// Reuse captured authority across durable stages; no lease spans host I/O.
+    pub(in super::super) fn cancel_conversation_generation_admitted(
+        &self,
+        token: &OwnerAccessToken,
+        conversation_id: &str,
+        operation_id: &str,
+    ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
+        if token.grant() != OwnerGrant::CancelSharedGeneration {
+            return Err(operation(
+                "generation cancellation requires its exact grant",
+            ));
+        }
+        let owner_id = token.owner_id();
         let conversation = ConversationId::new(conversation_id.to_owned()).map_err(operation)?;
         if operation_id.trim().is_empty() {
             return Err(operation("generation operation ID must not be empty"));
@@ -507,6 +523,39 @@ impl GatewayRuntime {
         conversation_id: &str,
         operation_id: &str,
     ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
+        self.complete_native_generation(owner_id, conversation_id, operation_id, None)
+    }
+
+    /// Finalize native text and generated files as one immutable Archive turn.
+    /// File identity and source linkage are owned by Archive's existing ingest.
+    /// Trusted accepted-work callback; never bind to untrusted transport input.
+    pub fn complete_conversation_generation_with_artifacts(
+        &self,
+        owner_id: &str,
+        conversation_id: &str,
+        operation_id: &str,
+        artifacts: Vec<crate::IncomingAttachment>,
+    ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
+        if artifacts.len() > 64
+            || artifacts
+                .iter()
+                .try_fold(0usize, |size, a| size.checked_add(a.bytes.len()))
+                .is_none_or(|size| size > 8 * 1024 * 1024)
+        {
+            return Err(operation(
+                "generated artifacts exceed their finalization bound",
+            ));
+        }
+        self.complete_native_generation(owner_id, conversation_id, operation_id, Some(artifacts))
+    }
+
+    fn complete_native_generation(
+        &self,
+        owner_id: &str,
+        conversation_id: &str,
+        operation_id: &str,
+        artifacts: Option<Vec<crate::IncomingAttachment>>,
+    ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
         let authority = OperationAuthority::capture(self, owner_id)?;
         let conversation = ConversationId::new(conversation_id.to_owned()).map_err(operation)?;
         let journal = self.conversation.journal(owner_id)?;
@@ -533,6 +582,31 @@ impl GatewayRuntime {
             .generation(&key)
             .ok_or_else(|| operation("generation not found"))?;
         if generation.phase == DurableGenerationPhase::Completed {
+            if let Some(artifacts) = artifacts.as_ref() {
+                with_operation(self, &authority, |runtime| {
+                    let expected = artifacts
+                        .iter()
+                        .map(|a| {
+                            crate::file_store::build_stored_file(
+                                a.filename.clone(),
+                                a.mime_type.clone(),
+                                &a.bytes,
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(operation)?;
+                    if runtime
+                        .cva()
+                        .files_for_source(conversation.as_str(), &generation.generation_id)
+                        != expected
+                    {
+                        return Err(operation(
+                            "generated artifact retry differs from the accepted source",
+                        ));
+                    }
+                    Ok(())
+                })?;
+            }
             let status = journal
                 .lock()
                 .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
@@ -586,6 +660,28 @@ impl GatewayRuntime {
                 .archive()
                 .has_node(conversation.as_str(), &generation.generation_id);
             if node_exists {
+                if let Some(artifacts) = artifacts.as_ref() {
+                    let expected = artifacts
+                        .iter()
+                        .map(|a| {
+                            crate::file_store::build_stored_file(
+                                a.filename.clone(),
+                                a.mime_type.clone(),
+                                &a.bytes,
+                            )
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                        .map_err(operation)?;
+                    if runtime
+                        .cva()
+                        .files_for_source(conversation.as_str(), &generation.generation_id)
+                        != expected
+                    {
+                        return Err(operation(
+                            "generated artifact retry differs from the accepted source",
+                        ));
+                    }
+                }
                 validate_generation_archive_turn(
                     runtime,
                     conversation.as_str(),
@@ -616,15 +712,17 @@ impl GatewayRuntime {
                 }
                 runtime
                     .cva
-                    .append_node_with_principal(
-                        generation.generation_id.clone(),
-                        conversation.as_str().to_owned(),
-                        Some(generation.parent_node_id.clone()),
-                        "assistant".to_owned(),
-                        Some(principal_id.clone()),
-                        generation.started_timestamp_ns,
-                        &record.content,
-                    )
+                    .ingest_turn(crate::IncomingTurn {
+                        id: generation.generation_id.clone(),
+                        conversation_id: conversation.as_str().to_owned(),
+                        parent_id: Some(generation.parent_node_id.clone()),
+                        role: "assistant".to_owned(),
+                        principal_id: Some(principal_id.clone()),
+                        timestamp_ns: generation.started_timestamp_ns,
+                        content: record.content.clone(),
+                        attachments: artifacts.clone().unwrap_or_default(),
+                        project_attachments: Vec::new(),
+                    })
                     .map_err(operation)?;
                 runtime.cva().sync().map_err(operation)?;
                 publish_branch(

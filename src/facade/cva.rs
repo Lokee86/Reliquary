@@ -30,6 +30,7 @@ use crate::{
 };
 
 pub struct Cva {
+    pub(crate) external_index: crate::external_source::store::ExternalIndexStore,
     pub(crate) container: Container,
     pub(crate) archive: Archive,
     pub(crate) memories: MemoryStore,
@@ -574,6 +575,14 @@ impl Cva {
         session_id: &str,
     ) -> Vec<crate::InteractionStreamRecord> {
         self.interaction_streams.records_for_session(session_id)
+    }
+
+    pub(crate) fn borrowed_interaction_streams_for_session(
+        &self,
+        session_id: &str,
+    ) -> impl Iterator<Item = &crate::InteractionStreamRecord> {
+        self.interaction_streams
+            .borrowed_records_for_session(session_id)
     }
 
     pub(crate) fn interaction_stream_records(&self) -> Vec<crate::InteractionStreamRecord> {

@@ -1,7 +1,17 @@
 # Reliquary Storage Format
 Parent index: [Documentation index](INDEX.md)
+## Native import receipt record
+
+`CVAIMPT1` is an Archive semantic record: eight magic bytes followed by UTF-8 Serde JSON `imports::ImportReceipt` schema 1. It uses the existing `CVAAREC1` Archive record-version publication. The exact JSON fields are the exported receipt DTO fields: import key, source namespace/profile, conversation identity/title, source message revision/ancestry/replacement/delete marker and native Node references, source artifact reference/hash/native FileId, and source/native branch/head/canonical facts. Bodies remain in existing Node/content/File/turn-attachment records. Unknown fields, invalid schema/key and corrupt native references fail closed.
+
+Rebuild applies only Archive-versioned receipt records. Reconciliation republishes identical source evidence through Archive; reclamation retains published receipt backing. Older readers that do not recognize this new semantic family cannot safely open versioned receipt-bearing files. Existing files without receipts retain their format and open behavior. [Native import contract](native-import.md) owns identity/retry and snapshot semantics.
+
 ## Purpose
 This document is the exact reference owner for persistent records currently implemented by Reliquary Memory v2.
+## P5-B persistence boundary
+
+P5-B changes no schema or persisted journal framing. Dispatch switches/wake state and the router digest cache remain ephemeral; existing owner receipts, vector profiles/bindings and derived queues reconstruct work. Durable host intent/cancellation/terminal proof remain in the REL journal. Private vector profiles/batches synchronize before runtime visibility/wake.
+
 ## Overview
 The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: latest-wins principal profile metadata, Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, Compatibility Profiles, and Ego Identity/Personality/Anchor/web-synthesis records. REL files may contain Ego Anchors and one cached owner-local web synthesis but reject PHY-only Identity/Personality records. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
@@ -983,3 +993,18 @@ These remain development formats and may evolve before a stable external-format 
 ## Conversation recovery validation (P3.8)
 
 P3.8 adds no persistent record, schema, queue, clock or migration. It validates the existing generation checkpoint length/hash against the exact UTF-8 prefix in the interaction-stream owner before reconciling a synchronized extension. Archive-backed completion also reconciles that extension. Mount and quiescence validate captured submission/Archive receipts through the same implementation. Pending order, policy revision, branch identity and Unknown/cancel-intent records retain their existing owners and formats. [P3.8 evidence](multiplexing-implementation-plan.md).
+
+## P5-E native receipt reuse
+
+E5 adds no REL/PHY/container/journal codec. Native tool events use the existing immutable Echo source sequence and correlation fields; P3 validates their accepted generation and ordering before synchronized publication. Generated artifacts are existing embedded files/source attachments atomically ingested with the finalized assistant turn. Exact file identity, ordered source attachment receipt and conflicting retry validation survive ordinary reopen. Resume tokens are caller-held hints, not persisted semantic authority. See [E5 acceptance record](multiplexing-implementation-plan.md).
+
+
+## External-derived index and Memory records (P5-G core)
+
+The external core adds three concrete formats without reinterpreting native Memory record v8 or `MemorySourceRef` bytes.
+
+`CVAXIDX1` is an append-only complete source snapshot: 8-byte magic, little-endian u64 JSON length, UTF-8 JSON, then SHA-256 of all preceding bytes. JSON is bounded to 8 MiB and contains namespace/contract/profile/dimensions, generation/revision/cursor, sorted descriptors and external chunk-to-packed-vector bindings, plus previous cursor/change digest. No source strings are stored. The snapshot is installed after sync. Invalid logical index metadata is discarded and requires rebuild; missing profile/vector backing also invalidates that source. Physical Container framing/checksum failure retains the existing Container recovery policy.
+
+`CVAXMEM1` atomically publishes an owner-local semantic Memory batch, external evidence bindings, routing attachments and window receipt. Its fixed header is magic (8), JSON length (u64), embedded global version start (u64), record count (u32), and transaction timestamp (i64), followed by bounded JSON and SHA-256. The authenticated fixed range lets Container recover physical global versions without interpreting Memory semantics. MemoryStore validates the embedded native Memory records, body hashes, provenance and versions. Legitimate semantic Memory bodies are stored; canonical transcript bodies are absent. Empty receipts reserve no global versions. Typed REL publication carries its accepted activity cut for freshness reconstruction.
+
+`CVAXPLN1` is a bounded checksummed processing plan in trusted Gateway state at `external-processing/<rel-owner>/<window-hash>.rxp`. It uses the magic/u64-length/JSON/SHA-256 envelope and the existing frozen PreparedMemory codec. It freezes project/private derivations, exact private principal/destination and identifier-only evidence before recipient writes. Publication uses synchronized temporary files and atomic rename (write-through rename on Windows). The plan is not REL/PHY source history; it needs the same access protection and backup treatment as existing owner-operation plans. Per-plan size is 16 MiB; each REL plan directory is limited to 4,096 plans and 256 MiB. There is no automatic plan-pruning policy in this core.

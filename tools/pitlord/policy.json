@@ -28,6 +28,126 @@
       "exclude_paths": [
         "src/facade/migration.rs"
       ]
+    },
+    {
+      "id": "management-no-cva",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": ".cva",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-cva-type",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "Cva",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-phy-type",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "Phylactery",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-runtime",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "InteractionRuntime",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-journal",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "RelJournal",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-second-gateway",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "GatewayRuntime::new",
+      "message": "Workspace management must compose existing owner operations without raw stores or another runtime authority."
+    },
+    {
+      "id": "management-no-legacy-host",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/runtime_inference/workspace_management*.rs"
+      ],
+      "exclude_paths": [
+        "src/runtime_inference/workspace_management_tests.rs"
+      ],
+      "literal": "ReliquaryRuntimeHost::",
+      "message": "Management must not restore the duplicate legacy host authority."
+    },
+    {
+      "id": "external-source-no-native-append",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/external_source/**/*.rs"
+      ],
+      "exclude_paths": [
+        "src/external_source/tests.rs"
+      ],
+      "literal": ".append_node(",
+      "message": "External canonical transcript bodies and IDs must not become native Archive history."
+    },
+    {
+      "id": "external-source-no-native-fragments",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/external_source/**/*.rs"
+      ],
+      "exclude_paths": [
+        "src/external_source/tests.rs"
+      ],
+      "literal": ".materialize_path_fragments(",
+      "message": "External canonical transcript bodies and IDs must not become native Archive history."
+    },
+    {
+      "id": "external-source-no-native-episode",
+      "type": "forbid_content",
+      "include_paths": [
+        "src/external_source/**/*.rs"
+      ],
+      "exclude_paths": [
+        "src/external_source/tests.rs"
+      ],
+      "literal": "Episode {",
+      "message": "External canonical transcript bodies and IDs must not become native Archive history."
     }
   ]
 }

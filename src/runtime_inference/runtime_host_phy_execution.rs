@@ -1,6 +1,7 @@
 use super::{LeaseGate, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes};
 use crate::{CompatibilityProfile, CompatibilityProfileId, Phylactery};
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -74,6 +75,7 @@ pub(super) struct WorkerShared {
     pub(super) routes: Arc<RwLock<ReliquaryRuntimeRoutes>>,
     pub(super) fence: Arc<LeaseGate>,
     control: Arc<(Mutex<Control>, Condvar)>,
+    pub(super) background_enabled: AtomicBool,
     pub(super) profile: Mutex<Option<CompatibilityProfile>>,
     perception: Mutex<MentionQueue>,
 }
@@ -85,6 +87,10 @@ impl WorkerShared {
             .lock()
             .map(|c| c.stop)
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)
+    }
+
+    pub(super) fn background_open(&self) -> Result<bool, ReliquaryRuntimeHostError> {
+        Ok(self.background_enabled.load(Ordering::SeqCst) && self.admission_open()?)
     }
 
     pub(super) fn admission_open(&self) -> Result<bool, ReliquaryRuntimeHostError> {
@@ -178,6 +184,7 @@ impl PhyRuntime {
                 }),
                 Condvar::new(),
             )),
+            background_enabled: AtomicBool::new(true),
             profile: Mutex::new(None),
             perception: Mutex::new(MentionQueue::default()),
         });
@@ -297,6 +304,20 @@ impl PhyRuntime {
     pub(super) fn workers_stopped(&self) -> bool {
         self.workers.is_empty()
     }
+    pub(super) fn control_handle(&self) -> Arc<WorkerShared> {
+        Arc::clone(&self.shared)
+    }
+
+    pub(super) fn worker_state(&self) -> (usize, bool) {
+        (
+            self.workers
+                .iter()
+                .filter(|worker| !worker.is_finished())
+                .count(),
+            self.shared.background_enabled.load(Ordering::SeqCst),
+        )
+    }
+
     pub(super) fn worker_count(&self) -> usize {
         self.workers.len()
     }

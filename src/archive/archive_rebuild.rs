@@ -12,6 +12,7 @@ use crate::{Archive, ArchiveError, ArchiveRecordVersion, ObjectRef};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct ArchiveOpenState {
+    import_receipts: std::collections::BTreeMap<String, crate::imports::ImportReceipt>,
     contents: ContentIndex,
     nodes: NodeIndex,
     activity: crate::archive_activity::ArchiveActivityIndex,
@@ -32,6 +33,7 @@ pub(crate) struct ArchiveOpenState {
 impl ArchiveOpenState {
     pub(crate) fn new() -> Self {
         Self {
+            import_receipts: Default::default(),
             contents: Default::default(),
             nodes: Default::default(),
             activity: Default::default(),
@@ -81,6 +83,7 @@ impl ArchiveOpenState {
             | ArchiveRecord::Episode(_)
             | ArchiveRecord::File(_)
             | ArchiveRecord::IngestedTurn(_)
+            | ArchiveRecord::ImportReceipt(_)
             | ArchiveRecord::FileMemoryLink(_)) => {
                 self.pending_records.insert(chunk, record);
             }
@@ -94,6 +97,7 @@ impl ArchiveOpenState {
             return Err(ArchiveError::MissingArchiveFormat);
         }
         Ok(Archive {
+            import_receipts: self.import_receipts,
             contents: self.contents,
             nodes: self.nodes,
             activity: self.activity,
@@ -148,6 +152,16 @@ impl ArchiveOpenState {
         archive_version: u64,
     ) -> Result<(), ArchiveError> {
         match record {
+            ArchiveRecord::ImportReceipt(receipt) => {
+                if let Some(existing) = self
+                    .import_receipts
+                    .insert(receipt.import_key.clone(), receipt.clone())
+                    && existing != receipt
+                {
+                    return Err(ArchiveError::CorruptRecord("conflicting import receipt"));
+                }
+                Ok(())
+            }
             ArchiveRecord::Node(node) => {
                 let prepared = self.activity.prepare_node(&mut self.nodes, &node)?;
                 let inserted = self.nodes.insert(node)?;

@@ -14,6 +14,11 @@ pub enum RuntimeCapability {
 }
 
 impl RuntimeCapability {
+    /// A host claim cannot replace a stage without an executable result/receipt path.
+    fn host_executable(self) -> bool {
+        matches!(self, Self::ConversationExecution)
+    }
+
     pub const ALL: [Self; 5] = [
         Self::ConversationExecution,
         Self::Insomnia,
@@ -47,9 +52,18 @@ impl HostQueueGuarantees {
     }
 }
 
+/// The negotiated execution boundary. Execution-only keeps pending admission native.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum HostExecutionMode {
+    #[default]
+    PendingQueue,
+    ExecutionOnly,
+}
+
 /// One capability's executable boundary and optional queue contract.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct HostCapabilityContract {
+    pub execution_mode: HostExecutionMode,
     /// The connected host executes this capability's stage.
     pub host_executes_stage: bool,
     /// Required only when the host asks to own pending queue admission.
@@ -57,8 +71,25 @@ pub struct HostCapabilityContract {
 }
 
 impl HostCapabilityContract {
+    /// Opt into host execution without claiming durable pending queue ownership.
+    /// The application binds its native generation before provider I/O; this
+    /// negotiation does not supply a provider dispatcher or prove remote outcomes.
+    pub fn execution_only() -> Self {
+        Self {
+            host_executes_stage: true,
+            execution_mode: HostExecutionMode::ExecutionOnly,
+            queue: HostQueueGuarantees::default(),
+        }
+    }
+
+    fn requests_execution_only(self) -> bool {
+        self.host_executes_stage && self.execution_mode == HostExecutionMode::ExecutionOnly
+    }
+
     pub fn may_own_pending_queue(self) -> bool {
-        self.host_executes_stage && self.queue.complete()
+        self.host_executes_stage
+            && self.execution_mode == HostExecutionMode::PendingQueue
+            && self.queue.complete()
     }
 }
 
@@ -132,11 +163,14 @@ pub enum HostCancelOutcome {
 
 /// Adapter boundary for host-owned stage execution.
 ///
-/// Implementations must return durable acceptance and exact status by stable ID.
+/// PendingQueue implementations must return durable acceptance and exact status by stable ID.
 /// The cancel operation and provider dequeue must linearize on the same
 /// pending-state transition. A cancel accepted before dequeue prevents execution;
 /// if dequeue already won, the result must be RunningCancellationRequested. These
 /// method contracts do not by themselves establish that a real external host conforms.
+/// ExecutionOnly mode never calls handoff: the application executes a bound native
+/// generation while Reliquary retains admission and checkpoint authority. Reconnect
+/// still reconciles prior host-owned work, and status/cancel remain available for it.
 pub trait GatewayHostAdapter: Send + Sync {
     /// Capability intent configured by the application before connecting.
     /// On connect failure, only these dependent stages become unavailable.
@@ -171,9 +205,11 @@ pub trait GatewayHostAdapter: Send + Sync {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CapabilityState {
-    /// No host stage is configured or the adapter lacks the full queue contract.
+    /// No executable host contract is configured or its queue contract is incomplete.
     NativeOnly,
-    /// The complete advertised contract reconciled successfully.
+    /// Explicit execution-only contract reconciled; pending admission stays native.
+    ExecutionOnlyReady,
+    /// The complete pending queue contract reconciled successfully.
     Ready,
     /// This stage's configured host boundary is unavailable.
     Unavailable(String),
@@ -239,6 +275,8 @@ struct RouterState {
     /// contract downgrades and adapter errors until reconciliation proves empty.
     ownership_debt: BTreeSet<RuntimeCapability>,
     owned_operation_ids: BTreeSet<(RuntimeCapability, String)>,
+    // Validation cache only. Durable identity/recovery remains in the REL journal.
+    operation_digests: BTreeMap<(RuntimeCapability, String), [u8; 32]>,
     mutation_generation: u64,
 }
 
@@ -260,7 +298,11 @@ impl CapabilityRouter {
     /// Constructing the router immediately connects and reconciles each advertised
     /// capability before any caller can ask for dispatch authority.
     pub fn connect(adapter: Arc<dyn GatewayHostAdapter>) -> Self {
-        let configured = adapter.configured_capabilities();
+        let configured = adapter
+            .configured_capabilities()
+            .into_iter()
+            .filter(|capability| capability.host_executable())
+            .collect::<BTreeSet<_>>();
         let router = Self {
             adapter,
             configured: configured.clone(),
@@ -269,6 +311,7 @@ impl CapabilityRouter {
                 contracts: BTreeMap::new(),
                 ownership_debt: BTreeSet::new(),
                 owned_operation_ids: BTreeSet::new(),
+                operation_digests: BTreeMap::new(),
                 mutation_generation: 0,
                 states: RuntimeCapability::ALL
                     .into_iter()
@@ -358,7 +401,9 @@ impl CapabilityRouter {
 
                     let complete =
                         advertised.is_some_and(HostCapabilityContract::may_own_pending_queue);
-                    if !complete && !has_debt {
+                    let execution_only =
+                        advertised.is_some_and(HostCapabilityContract::requests_execution_only);
+                    if !complete && !execution_only && !has_debt {
                         // An initially unsupported/incomplete stage remains native.
                         continue;
                     }
@@ -375,13 +420,24 @@ impl CapabilityRouter {
                                 *capability,
                                 if complete {
                                     CapabilityState::Ready
+                                } else if execution_only {
+                                    CapabilityState::ExecutionOnlyReady
                                 } else {
                                     CapabilityState::NativeOnly
                                 },
                             );
                         }
-                        Ok(HostReconcileStatus::Ready) if complete && !has_debt => {
-                            states.insert(*capability, CapabilityState::Ready);
+                        Ok(HostReconcileStatus::Ready)
+                            if (complete || execution_only) && !has_debt =>
+                        {
+                            states.insert(
+                                *capability,
+                                if complete {
+                                    CapabilityState::Ready
+                                } else {
+                                    CapabilityState::ExecutionOnlyReady
+                                },
+                            );
                         }
                         Ok(
                             HostReconcileStatus::NoOutstandingWork
@@ -451,7 +507,9 @@ impl CapabilityRouter {
     ) -> Result<StageAuthority, HostContractError> {
         let state = self.state(capability)?;
         Ok(match state {
-            CapabilityState::NativeOnly => StageAuthority::Native,
+            CapabilityState::NativeOnly | CapabilityState::ExecutionOnlyReady => {
+                StageAuthority::Native
+            }
             CapabilityState::Ready => StageAuthority::Host,
             CapabilityState::Unavailable(_) | CapabilityState::UnknownStatusHeld => {
                 StageAuthority::Held
@@ -533,28 +591,66 @@ impl CapabilityRouter {
         Ok(())
     }
 
+    fn bind_handoff(
+        &self,
+        capability: RuntimeCapability,
+        operation: &HostOperation,
+        retry: bool,
+    ) -> Result<(), HostContractError> {
+        let mut state = self
+            .state
+            .lock()
+            .map_err(|_| HostContractError::LockPoisoned)?;
+        let key = (capability, operation.stable_id.clone());
+        if state
+            .operation_digests
+            .get(&key)
+            .is_some_and(|digest| *digest != operation.payload_digest)
+        {
+            return Err(HostContractError::IdempotencyConflict);
+        }
+        if retry && !state.owned_operation_ids.contains(&key) {
+            return Err(HostContractError::UnknownOperationStatus);
+        }
+        let expected = if retry {
+            CapabilityState::UnknownStatusHeld
+        } else {
+            CapabilityState::Ready
+        };
+        let eligible = state.states.get(&capability) == Some(&expected)
+            && capability.host_executable()
+            && state
+                .contracts
+                .get(&capability)
+                .copied()
+                .is_some_and(HostCapabilityContract::may_own_pending_queue);
+        if !eligible {
+            if capability.host_executable() && !retry {
+                state.owned_operation_ids.insert(key);
+                state.ownership_debt.insert(capability);
+                state
+                    .states
+                    .insert(capability, CapabilityState::UnknownStatusHeld);
+                state.mutation_generation = state.mutation_generation.wrapping_add(1);
+            }
+            return Err(HostContractError::HostNotReady(capability));
+        }
+        state
+            .operation_digests
+            .insert(key.clone(), operation.payload_digest);
+        state.owned_operation_ids.insert(key);
+        state.ownership_debt.insert(capability);
+        state.mutation_generation = state.mutation_generation.wrapping_add(1);
+        Ok(())
+    }
+
     pub fn handoff(
         &self,
         capability: RuntimeCapability,
         operation: &HostOperation,
     ) -> Result<HandoffReceipt, HostContractError> {
         operation.validate()?;
-        let contract = self
-            .state
-            .lock()
-            .map_err(|_| HostContractError::LockPoisoned)?
-            .contracts
-            .get(&capability)
-            .copied();
-        if self.state(capability)? != CapabilityState::Ready
-            || !contract.is_some_and(HostCapabilityContract::may_own_pending_queue)
-        {
-            self.hold_operation(capability, operation.stable_id.clone())?;
-            return Err(HostContractError::HostNotReady(capability));
-        }
-        // Track the in-flight intent before leaving for the adapter. Reconnect
-        // cannot prove this operation resolved while its acknowledgment is away.
-        self.remember_operation(capability, operation.stable_id.clone())?;
+        self.bind_handoff(capability, operation, false)?;
         let result = self.adapter.handoff(capability, operation);
         let receipt = match result {
             Ok(receipt)
@@ -587,25 +683,7 @@ impl CapabilityRouter {
         operation: &HostOperation,
     ) -> Result<HandoffReceipt, HostContractError> {
         operation.validate()?;
-        let (state, contract) = {
-            let state = self
-                .state
-                .lock()
-                .map_err(|_| HostContractError::LockPoisoned)?;
-            (
-                state
-                    .states
-                    .get(&capability)
-                    .cloned()
-                    .unwrap_or(CapabilityState::NativeOnly),
-                state.contracts.get(&capability).copied(),
-            )
-        };
-        if state != CapabilityState::UnknownStatusHeld
-            || !contract.is_some_and(HostCapabilityContract::may_own_pending_queue)
-        {
-            return Err(HostContractError::HostNotReady(capability));
-        }
+        self.bind_handoff(capability, operation, true)?;
         match self.adapter.handoff(capability, operation) {
             Ok(receipt)
                 if receipt.stable_id == operation.stable_id

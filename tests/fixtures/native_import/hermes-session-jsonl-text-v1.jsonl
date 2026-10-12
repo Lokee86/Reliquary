@@ -1,0 +1,1 @@
+{"id":"hermes-1","title":"Hermes example","source":"cli","parent_session_id":null,"messages":[{"id":10,"role":"user","timestamp":1700000000,"content":"Question","active":1},{"id":11,"role":"assistant","timestamp":1700000001,"content":"Answer","active":1,"reasoning":"PRIVATE MARKER","codex_reasoning_items":["PRIVATE MARKER"]}]}

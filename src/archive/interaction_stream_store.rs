@@ -38,6 +38,15 @@ impl InteractionStreamStore {
             .collect()
     }
 
+    pub(crate) fn borrowed_records_for_session(
+        &self,
+        session_id: &str,
+    ) -> impl Iterator<Item = &InteractionStreamRecord> {
+        self.records
+            .values()
+            .filter(move |record| record.session_id == session_id)
+    }
+
     pub(crate) fn all_records(&self) -> Vec<InteractionStreamRecord> {
         self.records.values().cloned().collect()
     }

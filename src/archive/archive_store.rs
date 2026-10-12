@@ -6,6 +6,7 @@ use std::collections::HashSet;
 impl Archive {
     pub(crate) fn empty() -> Self {
         Self {
+            import_receipts: Default::default(),
             contents: Default::default(),
             nodes: Default::default(),
             activity: Default::default(),
@@ -120,6 +121,9 @@ impl Archive {
             if !self.has_conversation(&metadata.conversation_id) {
                 return Err(ArchiveError::MissingConversation);
             }
+        }
+        for receipt in self.import_receipts.values() {
+            self.validate_import_receipt(receipt)?;
         }
         self.validate_fragments()?;
         self.validate_episodes()?;

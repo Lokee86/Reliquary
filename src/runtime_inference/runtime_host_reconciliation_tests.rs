@@ -1,6 +1,6 @@
 use crate::{
-    Cva, CvaRelation, EmbeddingEndpoint, EpisodePolicy, FragmentConfig, InsomniaWorkerConfig,
-    ReliquaryRuntimeHost, ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, VectorNormalization,
+    Cva, CvaRelation, EmbeddingEndpoint, EpisodePolicy, FragmentConfig, GatewayRuntime,
+    InsomniaWorkerConfig, ReliquaryRuntimeRoutes, SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -13,8 +13,9 @@ fn dir() -> PathBuf {
     path
 }
 
-fn host(embedding: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>) -> ReliquaryRuntimeHost {
-    ReliquaryRuntimeHost::new(
+fn host(embedding: Option<Arc<dyn EmbeddingEndpoint + Send + Sync>>) -> GatewayRuntime {
+    GatewayRuntime::new(
+        dir(),
         ReliquaryRuntimeRoutes::new(None, None, None, None, embedding),
         InsomniaWorkerConfig::default(),
         EpisodePolicy::default(),

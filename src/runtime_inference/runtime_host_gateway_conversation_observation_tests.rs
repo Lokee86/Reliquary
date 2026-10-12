@@ -295,6 +295,13 @@ fn snapshot_generation_checkpoint_and_terminal_identity_survive_restart() {
         Some(1)
     );
     assert_eq!(interrupted.branches, checkpoint.branches);
+    let transcript = recovered
+        .conversation_transcript_for(&w, &owner, CONVERSATION, "generation-turn")
+        .unwrap();
+    let last = transcript.last().unwrap();
+    assert_eq!(last.content, "snapshot-private-prefix");
+    assert_eq!(last.status, crate::InteractionTurnStatus::Interrupted);
+    assert_eq!(last.message_id, generation.generation_id);
 }
 
 #[test]
@@ -652,5 +659,103 @@ fn broad_source_buckets_journal_statuses_by_conversation() {
             .map(|entry| &entry.id)
             .collect::<Vec<_>>(),
         [&second.id]
+    );
+}
+
+#[test]
+fn native_transcript_uses_acknowledged_prefix_and_exact_leaf_authority() {
+    let g = gateway();
+    let owner = g.mount_rel(seeded_runtime()).unwrap();
+    let w = writer(&g, &owner);
+    submit(&g, &w, &owner, "native-prefix", "main", "root-one");
+    g.process_next_conversation_submission(&w, &owner, CONVERSATION)
+        .unwrap()
+        .unwrap();
+    let generation = g
+        .start_conversation_generation(&owner, CONVERSATION, "native-prefix")
+        .unwrap()
+        .status
+        .generation
+        .unwrap();
+    let prefix = "acknowledged 🌱";
+    g.checkpoint_conversation_generation(&owner, CONVERSATION, &generation.operation_id, 1, prefix)
+        .unwrap();
+    let authority = OperationAuthority::capture(&g, &owner).unwrap();
+    with_operation(&g, &authority, |runtime| {
+        let mut ahead = runtime
+            .cva()
+            .interaction_stream_record(&generation.generation_id)
+            .unwrap()
+            .clone();
+        ahead.content.push_str("UNACKNOWLEDGED");
+        runtime
+            .cva
+            .put_interaction_stream(ahead)
+            .map_err(operation)?;
+        runtime.cva.sync().map_err(operation)?;
+        Ok(())
+    })
+    .unwrap();
+    let transcript = g
+        .conversation_transcript_for(&w, &owner, CONVERSATION, "native-prefix")
+        .unwrap();
+    let last = transcript.last().unwrap();
+    assert_eq!(last.content, prefix);
+    assert_eq!(last.status, crate::InteractionTurnStatus::Streaming);
+    for leaf in ["root-one", "root-one-alt"] {
+        assert!(
+            g.conversation_transcript_for(&w, &owner, CONVERSATION, leaf)
+                .unwrap()
+                .iter()
+                .all(|turn| turn.message_id != generation.generation_id)
+        );
+    }
+    g.replace_instance_grants(&w, grants(&owner, &[OwnerGrant::SubmitConversation]))
+        .unwrap();
+    assert!(
+        g.conversation_transcript_for(&w, &owner, CONVERSATION, "native-prefix")
+            .is_err()
+    );
+}
+
+#[test]
+fn matching_dispatch_preserves_queue_and_never_dispatches_another_request() {
+    let g = gateway();
+    let owner = g.mount_rel(seeded_runtime()).unwrap();
+    let w = writer(&g, &owner);
+    submit(&g, &w, &owner, "first-exact", "main", "root-one");
+    submit(&g, &w, &owner, "second-exact", "main", "root-one");
+    assert!(
+        g.process_conversation_submission_if_next(&w, &owner, CONVERSATION, "second-exact")
+            .unwrap()
+            .is_none()
+    );
+    for id in ["first-exact", "second-exact"] {
+        assert_eq!(
+            g.conversation_submission_status(&w, &owner, CONVERSATION, id)
+                .unwrap()
+                .status
+                .state,
+            SubmissionState::Pending
+        );
+    }
+    let first = g
+        .process_conversation_submission_if_next(&w, &owner, CONVERSATION, "first-exact")
+        .unwrap()
+        .unwrap();
+    assert_eq!(first.id.submission_id.as_str(), "first-exact");
+    g.cancel_conversation_submission(&w, &owner, CONVERSATION, "second-exact")
+        .unwrap();
+    assert_eq!(
+        g.conversation_submission_status(&w, &owner, CONVERSATION, "second-exact")
+            .unwrap()
+            .status
+            .state,
+        SubmissionState::Cancelled
+    );
+    g.detach_instance(&w).unwrap();
+    assert!(
+        g.conversation_submission_status(&w, &owner, CONVERSATION, "first-exact")
+            .is_err()
     );
 }

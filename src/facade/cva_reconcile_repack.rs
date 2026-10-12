@@ -22,6 +22,17 @@ pub(crate) fn reconcile_diverged(
 ) -> Result<CvaReconcileResult, CvaReconcileError> {
     let mut left = Cva::open(left_path)?;
     let mut right = Cva::open(right_path)?;
+    if !left.external_index.sources.is_empty()
+        || left.external_index.damaged
+        || !right.external_index.sources.is_empty()
+        || right.external_index.damaged
+        || !left.memories.external_windows.is_empty()
+        || !right.memories.external_windows.is_empty()
+    {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "external source state in divergent reconciliation",
+        ));
+    }
     let legacy_scope = left.legacy_scope_kind();
     let left_rel_metadata = left.rel_metadata();
     let right_rel_metadata = right.rel_metadata();

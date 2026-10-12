@@ -3,6 +3,18 @@ use crate::{ProjectRevisionRef, StoredFile};
 use std::path::{Path, PathBuf};
 
 impl GatewayRuntime {
+    pub fn latest_project_revision_correlation_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+    ) -> Result<Option<crate::ProjectRevisionCorrelation>, ReliquaryRuntimeHostError> {
+        let token = self.explicit_rel_token(instance, owner_id)?;
+        let correlation = self.with_rel(&token, |runtime| {
+            Ok(runtime.cva().latest_project_revision_correlation())
+        })?;
+        self.deliver_rel(instance, &token, correlation)
+    }
+
     // Instance-local test instrumentation after real external I/O and before
     // commit/delivery. This is absent from the production gateway.
     #[cfg(test)]

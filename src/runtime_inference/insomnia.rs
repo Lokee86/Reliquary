@@ -28,6 +28,8 @@ mod error;
 mod evidence;
 #[path = "insomnia/extraction.rs"]
 mod extraction;
+#[path = "insomnia/input.rs"]
+mod input;
 #[path = "insomnia/ledger.rs"]
 mod ledger;
 #[path = "insomnia/metadata.rs"]

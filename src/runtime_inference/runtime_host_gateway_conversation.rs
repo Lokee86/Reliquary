@@ -79,6 +79,9 @@ mod observation;
 mod recovery;
 use continuation::ConversationCoordinator;
 use generation::*;
+#[path = "runtime_host_gateway_conversation_generation_events.rs"]
+mod generation_events;
+pub(super) use generation_events::validate_generation_tool_source;
 use recovery::archive_receipt_if_present;
 #[derive(Default)]
 struct ViewerState {
@@ -615,6 +618,7 @@ impl GatewayRuntime {
             super::super::instances::ManagedConversationState {
                 conversation_id: Some(id.conversation_id.as_str().to_owned()),
                 branch_id: Some(selected_branch_id),
+                selected_leaf_node_id: None,
                 reopened_session_pending: false,
             },
         );
@@ -669,6 +673,7 @@ impl GatewayRuntime {
             super::super::instances::ManagedConversationState {
                 conversation_id: Some(conversation_id.as_str().to_owned()),
                 branch_id: Some(branch_id.to_owned()),
+                selected_leaf_node_id: None,
                 reopened_session_pending: false,
             },
         );
@@ -703,6 +708,7 @@ impl GatewayRuntime {
         let managed = super::super::instances::ManagedConversationState {
             conversation_id: Some(conversation_id.as_str().to_owned()),
             branch_id: Some(branch_id.to_owned()),
+            selected_leaf_node_id: None,
             reopened_session_pending: true,
         };
         self.set_instance_managed_state(instance, owner_id, managed.clone())?;
@@ -785,6 +791,59 @@ impl GatewayRuntime {
         let receipt =
             self.process_next_accepted_conversation_submission(owner_id, conversation_id)?;
         with_admission(self, &token, || Ok(receipt))
+    }
+
+    /// Return a body-free durable receipt for an exact accepted submission.
+    pub fn conversation_submission_status(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        submission_id: &str,
+    ) -> Result<GatewaySubmissionReceipt, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
+        let key = ConversationSubmissionId {
+            conversation_id: ConversationId::new(conversation_id).map_err(operation)?,
+            submission_id: SubmissionId::new(submission_id).map_err(operation)?,
+        };
+        let journal = self.conversation.journal(owner_id)?;
+        with_admission(self, &token, || {
+            let status = journal
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .status(&key)
+                .ok_or_else(|| operation("submission not found"))?;
+            Ok(GatewaySubmissionReceipt { id: key, status })
+        })
+    }
+
+    /// Dispatch this entry only if the canonical scheduler chooses it. Matching
+    /// and reservation are atomic; None leaves every pending entry untouched.
+    pub fn process_conversation_submission_if_next(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+        submission_id: &str,
+    ) -> Result<Option<GatewaySubmissionReceipt>, ReliquaryRuntimeHostError> {
+        let token = self.authorize(instance, owner_id, OwnerGrant::SubmitConversation)?;
+        with_admission(self, &token, || Ok(()))?;
+        let authority = OperationAuthority::capture(self, owner_id)?;
+        let conversation = ConversationId::new(conversation_id).map_err(operation)?;
+        let expected = ConversationSubmissionId {
+            conversation_id: conversation.clone(),
+            submission_id: SubmissionId::new(submission_id).map_err(operation)?,
+        };
+        let journal = self.conversation.journal(owner_id)?;
+        let coordinator = self.conversation.coordinator(owner_id, conversation_id)?;
+        let Some((key, guard)) =
+            coordinator.acquire_next_matching(&journal, &conversation, Some(&expected))?
+        else {
+            return with_admission(self, &token, || Ok(None));
+        };
+        let receipt = self
+            .process_reserved_conversation_submission(owner_id, authority, journal, key, guard)?;
+        with_admission(self, &token, || Ok(Some(receipt)))
     }
 
     /// Accepted work remains dispatchable after its submitting instance detaches.

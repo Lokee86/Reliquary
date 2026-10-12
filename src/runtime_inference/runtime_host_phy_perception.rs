@@ -216,7 +216,7 @@ pub(super) fn worker_loop(
         if shared.stopped()? {
             return Ok(());
         }
-        if !shared.admission_open()? {
+        if !shared.background_open()? {
             shared.wait(&mut seen, super::IDLE_POLL)?;
             continue;
         }
