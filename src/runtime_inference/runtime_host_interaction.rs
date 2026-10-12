@@ -29,6 +29,20 @@ impl ReliquaryRuntimeHost {
         action(&mut runtime)
     }
 
+    #[cfg(test)]
+    pub(crate) fn semantic_event_completed_for_test(
+        &self,
+        id: &str,
+    ) -> Result<bool, ReliquaryRuntimeHostError> {
+        self.with_runtime(|runtime| {
+            runtime
+                .cva()
+                .freshness
+                .contains_event(id)
+                .map_err(operation)
+        })
+    }
+
     pub fn owner_id(&self) -> Result<Option<String>, ReliquaryRuntimeHostError> {
         self.with_runtime(|runtime| Ok(runtime.cva().owner_id()))
     }

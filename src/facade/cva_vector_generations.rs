@@ -30,6 +30,7 @@ impl Cva {
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<VectorGeneration, VectorGenerationError> {
         let compatibility_profile_id = profile.id;
+        self.materialize_semantic_turn_fragments()?;
         let fragments = self.fragments();
         if fragments.is_empty() {
             return Err(VectorGenerationError::EmptyPopulation);
@@ -94,12 +95,15 @@ impl Cva {
             &self.compatibility_profiles,
             &candidate,
         )?;
-        self.vector_generations.publish(
+        let generation = self.vector_generations.publish(
             &mut self.container,
             compatibility_profile_id,
             archive_vector_id,
             source_archive_version,
-        )
+        )?;
+        self.process_semantic_freshness(generation.id, 64)
+            .map_err(|e| VectorGenerationError::Freshness(e.to_string()))?;
+        Ok(generation)
     }
 
     pub fn vector_generation(

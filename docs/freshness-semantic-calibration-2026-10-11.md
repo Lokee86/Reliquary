@@ -8,7 +8,7 @@ Freeze Step 4 numerical defaults and policy transitions from reproducible offlin
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** v1 constants and transition contract frozen for implementation; live F8 is not shipped or activated. The initial shipped lane will require explicit owner activation after the Step 12 release gate. Default automatic activation is withheld because labeled genuine-turn calibration is unavailable.
+**Date:** 2026-10-11. **Status:** v1 constants and transitions are frozen and implemented as prospective owner opt-in. [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md) owns release evidence. Automatic activation remains disabled because labeled genuine-turn calibration is unavailable.
 
 ### Selected constants
 

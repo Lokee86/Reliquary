@@ -158,6 +158,47 @@ pub(super) fn worker_loop(shared: Arc<Shared>) -> Result<(), ReliquaryRuntimeHos
             }
         }
 
+        if let Some(profile) = &project_profile {
+            let (batch, progressed) = {
+                let mut runtime = shared
+                    .runtime
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                let before = std::fs::metadata(runtime.cva.container.path())
+                    .map_err(operation)?
+                    .len();
+                let batch = runtime
+                    .cva
+                    .prepare_semantic_archive_batch(profile.id)
+                    .map_err(operation)?;
+                let progressed = std::fs::metadata(runtime.cva.container.path())
+                    .map_err(operation)?
+                    .len()
+                    != before;
+                (batch, progressed)
+            };
+            did_work |= progressed;
+            if let Some(batch) = batch {
+                let vectors = match endpoint.embed(EmbeddingMode::Document, &batch.texts) {
+                    Ok(vectors) => vectors,
+                    Err(_) => {
+                        seen_epoch =
+                            wait_for_work_timeout(&shared.signal, seen_epoch, VECTOR_RETRY_POLL)?;
+                        continue;
+                    }
+                };
+                let mut runtime = shared
+                    .runtime
+                    .lock()
+                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
+                runtime
+                    .cva
+                    .commit_semantic_archive_batch(batch, vectors)
+                    .map_err(operation)?;
+                did_work = true;
+            }
+        }
+
         if shared.phylactery_active()
             && let Some(profile) = &user_profile
         {

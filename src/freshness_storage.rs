@@ -117,6 +117,9 @@ pub(crate) struct FreshnessStore {
     owner_uuid: Option<[u8; 16]>,
     policy: FreshnessPolicy,
     policy_persisted: bool,
+    semantic_activation: Option<activation::SemanticActivation>,
+    semantic_completed: bool,
+    semantic_activation_seen: bool,
     // Derived birth proofs can populate the in-memory projection on ordinary
     // reopen without having written a standalone owner policy chunk yet.
     durable_policy_seen: bool,
@@ -134,6 +137,8 @@ pub(crate) struct FreshnessStore {
 
 const RECENT_LIMIT: usize = 128;
 const RECENT_BYTES: usize = 256 * 1024;
+#[path = "freshness/freshness_semantic_activation.rs"]
+mod activation;
 #[path = "freshness/freshness_storage_membership.rs"]
 mod membership;
 #[path = "freshness/freshness_storage_ordering.rs"]
@@ -142,6 +147,7 @@ mod ordering;
 mod rebuild;
 #[path = "freshness/freshness_storage_stream.rs"]
 mod stream;
+pub(crate) use activation::SemanticActivation;
 
 impl FreshnessStore {
     pub(crate) fn new(owner_uuid: Option<[u8; 16]>) -> Self {
@@ -388,6 +394,12 @@ impl FreshnessStore {
     }
 
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), String> {
+        if payload.starts_with(activation::ACTIVATION_MAGIC) {
+            return self.ingest_semantic_activation(payload);
+        }
+        if payload.starts_with(b"CVAFSA") {
+            return Err("unsupported semantic activation format".into());
+        }
         if payload.get(..8) == Some(POLICY_MAGIC.as_slice()) {
             let (owner, policy) = decode_policy(payload)?;
             policy.validate().map_err(|e| e.to_string())?;
@@ -491,6 +503,13 @@ impl FreshnessStore {
                     };
                 }
                 self.validate_event_entry(owner, &entry)?;
+                let is_semantic = matches!(
+                    &entry,
+                    JournalEntry::Event {
+                        semantic: Some(_),
+                        ..
+                    }
+                );
                 let canonical = if self.rebuild_receipts.is_some() && records.is_empty() {
                     BTreeMap::new()
                 } else {
@@ -511,6 +530,7 @@ impl FreshnessStore {
                     |old| old.max(event_sort_key(&entry)),
                 ));
                 self.remember(entry)?;
+                self.semantic_completed |= is_semantic;
             }
             JournalEntry::AcceptedUseBatch {
                 use_id,

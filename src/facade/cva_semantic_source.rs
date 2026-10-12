@@ -1,4 +1,4 @@
-//! Read-only accepted-turn source production. No scoring or receipt publication.
+//! Accepted-turn source proof, bounded local search, and Freshness acceptance.
 use crate::freshness::semantic_policy::{SemanticPolicy, cosine_similarity};
 use crate::{Cva, CvaError, FragmentId, Node, VectorGeneration, VectorGenerationId};
 use sha2::{Digest, Sha256};
@@ -34,7 +34,6 @@ pub(crate) enum SemanticSourceReadiness {
 impl Cva {
     /// Select retained genuine-source evidence after Archive/vector publication.
     /// Exact Node equality prevents a caller from substituting another source.
-    /// This seam is intentionally unwired until the live durability/application gates.
     pub(crate) fn prepare_accepted_semantic_source(
         &mut self,
         expected: &Node,
@@ -198,7 +197,6 @@ impl Cva {
                 != SemanticPolicy::default()
                     .digest()
                     .map_err(|e| CvaError::Freshness(e.to_string()))?
-            || evidence.target_evidence_digest != semantic_target_digest(&effects)
         {
             return Err(CvaError::Freshness(
                 "unsupported or conflicting semantic replay evidence".into(),
@@ -284,6 +282,14 @@ impl Cva {
             SemanticSourceReadiness::Pending => return Ok(0),
             SemanticSourceReadiness::Ready(source) => source,
         };
+        self.apply_prepared_semantic_reinforcement(source, source_memory_cohort)
+    }
+
+    pub(crate) fn apply_prepared_semantic_reinforcement(
+        &mut self,
+        source: AcceptedSemanticSource,
+        source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
+    ) -> Result<usize, CvaError> {
         let search = self.search_eligible_semantic_targets(&source, source_memory_cohort)?;
         let effects = search
             .effects
@@ -300,7 +306,7 @@ impl Cva {
             semantic_policy_digest: source.policy_digest,
             compatibility_profile_id: source.generation.compatibility_profile_id.0,
             source_evidence_digest: source.source_digest,
-            target_evidence_digest: semantic_target_digest(&effects),
+            target_evidence_digest: search.target_evidence_digest,
         };
         let payload = self
             .freshness
@@ -344,6 +350,7 @@ fn freshness_policy_digest(policy: crate::freshness::FreshnessPolicy) -> [u8; 32
     digest.finalize().into()
 }
 
+#[cfg(test)]
 fn semantic_target_digest(effects: &std::collections::BTreeMap<crate::MemoryId, i16>) -> [u8; 32] {
     let mut digest = Sha256::new();
     digest.update(b"reliquary:semantic-target-evidence:v1\0");
@@ -360,6 +367,7 @@ pub(crate) struct SemanticCandidateSearch {
     pub scanned_memories: usize,
     pub eligible_memories: usize,
     pub excluded_memories: usize,
+    pub target_evidence_digest: [u8; 32],
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -367,6 +375,7 @@ pub(crate) struct SemanticTargetSnapshot {
     pub memory: crate::Memory,
     pub body_id: crate::MemoryBodyId,
     pub admitted_at_turn: Option<u64>,
+    pub birth_turn: Option<u64>,
     pub vector: Vec<f32>,
 }
 
@@ -381,50 +390,108 @@ impl Cva {
         source: &AcceptedSemanticSource,
         source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
     ) -> Result<SemanticCandidateSearch, CvaError> {
-        let memory_ids = self.memories.current_ids();
-        let vectors = crate::memory_retrieval_vectors::load_memory_vectors(
-            &mut self.container,
-            &self.memories,
-            &self.memory_vectors,
-            &self.packed_vectors,
-            source.generation.compatibility_profile_id,
-        )
-        .map_err(|error| CvaError::Freshness(error.to_string()))?;
-        let mut targets = Vec::new();
+        let mut memory_ids = self.memories.current_ids();
+        // Group existing owner IDs by immutable vector set. Retain only one
+        // packed matrix at a time; never reload/hash an entire matrix per row.
+        memory_ids.sort_by_cached_key(|id| {
+            self.memories
+                .current_body_id(*id)
+                .ok()
+                .and_then(|body| {
+                    self.memory_vector_location(source.generation.compatibility_profile_id, body)
+                })
+                .map(|location| location.set_id.0)
+                .unwrap_or([255; 32])
+        });
+        let mut cached: Option<(
+            crate::MemoryVectorId,
+            crate::MemoryVectorSet,
+            crate::PackedVectors,
+        )> = None;
+        let mut selected = Vec::new();
+        let mut eligible_memories = 0;
         let mut excluded_memories = 0;
         for id in &memory_ids {
             let memory = self
                 .memories
                 .memory(&mut self.container, *id)
-                .map_err(|error| CvaError::Freshness(error.to_string()))?;
+                .map_err(|e| CvaError::Freshness(e.to_string()))?;
             let body_id = self
                 .memories
                 .current_body_id(*id)
-                .map_err(|error| CvaError::Freshness(error.to_string()))?;
-            let admitted_at_turn = self
-                .freshness
-                .records()
-                .get(id)
-                .and_then(|record| record.admitted_at_turn);
-            let Some(vector) = vectors.get(&body_id).cloned() else {
+                .map_err(|e| CvaError::Freshness(e.to_string()))?;
+            let Some(location) =
+                self.memory_vector_location(source.generation.compatibility_profile_id, body_id)
+            else {
                 excluded_memories += 1;
                 continue;
             };
-            targets.push(SemanticTargetSnapshot {
+            if cached
+                .as_ref()
+                .is_none_or(|(id, _, _)| *id != location.set_id)
+            {
+                let set = self.memory_vectors(location.set_id)?;
+                let packed = self.packed_vectors(set.packed_vector_id)?;
+                cached = Some((location.set_id, set, packed));
+            }
+            let (_, set, packed) = cached.as_ref().expect("loaded target set");
+            let bytes = packed
+                .row(location.row as usize)
+                .ok_or_else(|| CvaError::Freshness("missing semantic target row".into()))?;
+            let vector: Vec<f32> = bytes
+                .chunks_exact(4)
+                .map(|chunk| f32::from_le_bytes(chunk.try_into().expect("four bytes")))
+                .collect();
+            let mut binding = Sha256::new();
+            binding.update(body_id.0);
+            binding.update(location.set_id.0);
+            binding.update(location.row.to_le_bytes());
+            binding.update(set.packed_vector_id.0);
+            binding.update(bytes);
+            let binding: [u8; 32] = binding.finalize().into();
+            let cosine = source
+                .vectors
+                .iter()
+                .filter_map(|v| cosine_similarity(&v.components, &vector).ok())
+                .max_by(f64::total_cmp)
+                .unwrap_or(-1.0);
+            let target = SemanticTargetSnapshot {
                 memory,
                 body_id,
-                admitted_at_turn,
+                admitted_at_turn: self
+                    .freshness
+                    .records()
+                    .get(id)
+                    .and_then(|r| r.admitted_at_turn),
+                birth_turn: self.freshness.birth_turn(*id),
                 vector,
-            });
+            };
+            let (effects, eligible, excluded) =
+                plan_eligible_semantic_targets(source, source_memory_cohort, [target])?;
+            eligible_memories += eligible;
+            excluded_memories += excluded;
+            if let Some(effect) = effects.into_iter().next() {
+                selected.push((effect, binding, cosine));
+                selected.sort_by(|(a, _, ac), (b, _, bc)| {
+                    bc.total_cmp(ac).then(a.memory_id.0.cmp(&b.memory_id.0))
+                });
+                selected.truncate(source.semantic_policy.candidate_limit);
+            }
         }
-        let (effects, eligible_memories, filtered) =
-            plan_eligible_semantic_targets(source, source_memory_cohort, targets)?;
-        excluded_memories += filtered;
+        selected.sort_by_key(|(effect, _, _)| effect.memory_id.0);
+        let mut digest = Sha256::new();
+        digest.update(b"reliquary:semantic-target-bindings:v1\0");
+        for (effect, binding, _) in &selected {
+            digest.update(effect.memory_id.0);
+            digest.update(binding);
+            digest.update(effect.bonus.to_le_bytes());
+        }
         Ok(SemanticCandidateSearch {
-            effects,
+            effects: selected.into_iter().map(|(effect, _, _)| effect).collect(),
             scanned_memories: memory_ids.len(),
             eligible_memories,
             excluded_memories,
+            target_evidence_digest: digest.finalize().into(),
         })
     }
 }
@@ -468,7 +535,10 @@ fn plan_eligible_semantic_targets(
                 });
         let admitted_before_source = target
             .admitted_at_turn
-            .is_some_and(|turn| turn < source.activity_position);
+            .is_some_and(|turn| turn <= source.activity_position)
+            && target
+                .birth_turn
+                .is_some_and(|turn| turn < source.activity_position);
         let lifecycle_eligible = !target.memory.archived
             && target.memory.superseded_by.is_none()
             && matches!(
@@ -479,10 +549,20 @@ fn plan_eligible_semantic_targets(
             filtered += 1;
             continue;
         }
+        if cosine_similarity(&target.vector, &target.vector).is_err()
+            || source
+                .vectors
+                .iter()
+                .any(|v| v.components.len() != target.vector.len())
+        {
+            filtered += 1;
+            continue;
+        }
         eligible_memories += 1;
         for source_vector in &source.vectors {
-            let cosine = cosine_similarity(&source_vector.components, &target.vector)
-                .map_err(|error| CvaError::Freshness(error.to_string()))?;
+            let Ok(cosine) = cosine_similarity(&source_vector.components, &target.vector) else {
+                continue;
+            };
             candidates.push(SemanticCandidate {
                 memory_id: id,
                 cosine,

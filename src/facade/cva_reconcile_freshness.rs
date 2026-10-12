@@ -26,6 +26,31 @@ pub(crate) fn replay_freshness(
     right: &Cva,
     output: &mut Cva,
 ) -> Result<(), CvaReconcileError> {
+    let mut activation = merged_semantic_activation(left, right)?;
+    if left.freshness.semantic_activation_seen() || right.freshness.semantic_activation_seen() {
+        output.set_freshness_policy_before_enrollment(left.freshness_policy())?;
+        if let Some(a) = activation.as_mut() {
+            a.accepted_turn = match &a.boundary {
+                None => 0,
+                Some((c, n)) => output.activity_position_for_turn(c, n).ok_or(
+                    CvaReconcileError::UnsupportedSemanticOwner(
+                        "missing semantic activation boundary",
+                    ),
+                )?,
+            };
+        }
+        let owner = output
+            .owner_uuid()
+            .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                "semantic activation lacks owner",
+            ))?;
+        output
+            .freshness
+            .persist_semantic_activation(&mut output.container, owner, activation)
+            .map_err(|_| {
+                CvaReconcileError::UnsupportedSemanticOwner("conflicting semantic activation")
+            })?;
+    }
     let any = left.freshness.has_any()
         || right.freshness.has_any()
         || left.dream_freshness.has_any()
@@ -177,6 +202,7 @@ pub(crate) fn replay_freshness(
 
 /// Perform source-history checks before the destination file is created.
 pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaReconcileError> {
+    merged_semantic_activation(left, right)?;
     if (left.freshness.has_any()
         || right.freshness.has_any()
         || left.dream_freshness.has_any()
@@ -444,6 +470,9 @@ fn hex_id(id: crate::MemoryId) -> String {
 /// Whether the right input contributes new accepted Freshness authority.
 /// Re-emitting the shared left projection into a temporary output is not a change.
 pub(crate) fn right_changes_freshness(left: &Cva, right: &Cva) -> Result<bool, CvaReconcileError> {
+    if right.freshness.semantic_activation_seen() && !left.freshness.semantic_activation_seen() {
+        return Ok(true);
+    }
     if right.freshness.has_any() && !left.freshness.has_any() {
         return Ok(true);
     }
@@ -478,4 +507,43 @@ pub(crate) fn right_changes_freshness(left: &Cva, right: &Cva) -> Result<bool, C
             .freshness_settled_dream_pass_ids()
             .iter()
             .any(|id| !settled.contains(id)))
+}
+
+fn merged_semantic_activation(
+    left: &Cva,
+    right: &Cva,
+) -> Result<Option<crate::freshness_storage::SemanticActivation>, CvaReconcileError> {
+    let a = left.freshness.semantic_activation();
+    let b = right.freshness.semantic_activation();
+    if left.freshness.semantic_activation_seen()
+        && right.freshness.semantic_activation_seen()
+        && a.is_some() != b.is_some()
+    {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "divergent semantic activation/cancellation authority",
+        ));
+    }
+    for (source, activation) in [(left, a), (right, b)] {
+        if let Some(activation) = activation {
+            source
+                .validate_semantic_activation(activation)
+                .map_err(|_| {
+                    CvaReconcileError::UnsupportedSemanticOwner(
+                        "unavailable semantic activation authority",
+                    )
+                })?;
+        }
+    }
+    if let (Some(a), Some(b)) = (a, b) {
+        if a.owner_uuid != b.owner_uuid
+            || a.boundary != b.boundary
+            || a.policy_version != b.policy_version
+            || a.policy_digest != b.policy_digest
+        {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "divergent semantic activation boundaries or policies",
+            ));
+        }
+    }
+    Ok(a.or(b).cloned())
 }

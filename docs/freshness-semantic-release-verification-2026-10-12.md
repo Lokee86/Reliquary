@@ -4,41 +4,78 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Record the standalone Step 12 release gate for live semantic Freshness (F8), including test evidence, bounded-receipt evidence, measurements, and explicit release blockers.
+Record Step 12 implementation closure, standalone live F8 verification, synthetic search/event measurements and supported release scope.
 
 ## Overview
 
-**Status:** Step 12 blocked; live F8 is not released. Historical reconstruction remains untouched.
-
-The durable semantic policy, candidate adapter, accepted-source proof, event codec, replay, recovery, and transformation fixtures are green. The runtime activation gate is not green because accepted-turn ingestion invokes semantic processing before vector evidence exists and discards the result; no post-vector-publication coordinator retries the accepted source/cohort. Enabling F8 would make reinforcement timing-dependent and could lose valid semantic events.
+**Status:** Step 12 complete; standalone live F8 release gate passed for prospective opt-in v1. The earlier blocked disposition is superseded by the actual readiness/activation implementation and executed end-to-end tests. Live v1 is prospective, owner-local and opt-in; automatic activation remains disabled. Historical reconstruction is untouched.
 
 ## Related docs
 
 - [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
-- [Semantic policy module](freshness-semantic-policy-module-2026-10-11.md)
-- [Live semantic policy/API contract](freshness-live-semantic-policy-contract.md)
-- [Current limitations](current-limitations.md)
+- [Frozen v1 constants and transitions](freshness-semantic-calibration-2026-10-11.md)
+- [Live semantic contract](freshness-live-semantic-policy-contract.md)
+- [API](api.md), [storage](storage-format.md), [architecture](architecture.md), [current limitations](current-limitations.md)
 
-## Verification evidence
+## Implemented closure
 
-- `cargo test --locked --lib semantic -j 2`: 64 tests passed on the Step 11 isolated target.
-- `cargo test --locked --lib freshness -j 2`: 65 tests passed on the Step 11 isolated target, including bounded receipt eviction/reopen coverage.
-- `cargo test --locked -j 2`: 1,107 library tests and all integration/doc-test targets passed.
-- `cargo fmt --all -- --check`: passed.
-- `cargo check --locked --tests -j 2`: passed.
-- `git diff --check`: passed.
-- Full and changed-from-`origin/main` documentation policy checks: passed before this record was added; they are rerun after the final indexed version.
-- Architecture refresh: coverage guard passed (28 fixtures / 112 public APIs), but Lexicon analysis timed out before Arcana/Pitlord enforcement; this remains an explicit incomplete gate.
-- A fresh Step 12 target rebuild timed out during dependency compilation without reaching tests; the prior isolated target remains the passing Rust evidence.
+- Freshness owns prospective activation in `CVAFSA01`, pinned to exact accepted Archive identity or the empty sentinel. Before completion it can be cancelled/replaced; after any completion its activation/configuration is immutable. Reopen and reconciliation retain activation/cancellation authority, rebase by source identity and reject conflicting enrolled boundaries or active/cancelled branches.
+- Archive remains the source/work authority. No queue or separate ledger is added. The bounded coordinator rediscovers uncompleted eligible accepted nodes, distinguishes pending from completed-empty evidence, and pins effects at their accepted cut. Both REL vector workers perform embedding outside owner locks, then commit through their existing owner admission/mutation boundary. No ingestion-time error is discarded.
+- Births must strictly precede the source, while admission may equal it. Asynchronous/new source births cannot qualify, independently of later lifecycle changes; exact provenance/cohort checks remain additional guards. Invalid vectors are excluded before the usable limit. The adapter streams target rows and retains only top-64 selection rather than a full candidate/vector population. Pinned target evidence commits current immutable body/vector bindings and row bytes, not just effect IDs.
+- Runtime background status includes pending semantic work and does not call the owner quiescent while it remains. Accepted receipts resolve before vector work; retry after cache eviction/reopen/profile rotation never recredits. Direct effects remain non-propagating and independent of +25 use/+50 Dream.
+
+## Verification
+
+The semantic-filtered suite passes 69 tests, including real accepted ingestion, asynchronous-birth exclusion, an actual runtime worker, activation/cancellation/reopen, conflicting activation authority, body-local graph-neighbor isolation, divergent reconciliation, reclaim and twice-reconciled event histories. The explicitly ignored measurement fixture is executed separately and passed. The final full root run passed 1,112 library tests (one separately executed ignored measurement fixture) and every integration/doc target. CLI tests passed all 19 tests. Root and CLI formatting/compile checks, full and changed-from-origin/main documentation policy, and refreshed architecture enforcement passed.
+
+| Gate | Executed command / result |
+| --- | --- |
+| Root formatting | `cargo fmt --all -- --check` — passed |
+| Root compile | `cargo check --locked --tests -j 2` — passed |
+| Root regression | `cargo test --locked -j 2` — 1,112 library tests plus all integration/doc targets passed |
+| Focused semantic | `cargo test --locked --lib semantic -j 2` — 69 passed, one measurement ignored here and executed separately |
+| CLI formatting | `cargo fmt --manifest-path cli/Cargo.toml -- --check` — passed |
+| CLI compile | `cargo check --manifest-path cli/Cargo.toml --locked -j 2` — passed |
+| CLI regression | `cargo test --manifest-path cli/Cargo.toml --locked -j 2` — 19 passed |
+| Documentation | Both required documentation-policy modes — passed |
+| Architecture | `python scripts/check_architecture.py --refresh` — passed with compatible local tools |
+| Whitespace | `git diff --check` — passed |
+
+One full-run attempt exposed an existing Dream concurrency fixture that assumed scheduler overlap during a 40 ms sleep. Its tracking endpoint now waits up to five seconds for observed overlap without weakening the peak-concurrency assertion; all nine focused Dream tests and the full rerun passed. The first architecture attempt completed Lexicon scanning but failed because the newest Lexicon emitted `dependency_index_id`, which the installed Arcana reader did not support. The successful refresh used `lexicon-arcana/bin/lexicon.exe` with `arcana/target/release/arcana.exe`; no source facts or policies were suppressed.
+
+Builds use `target/semantic-step11-20261012`, with dev/test debug information disabled and two compilation jobs. Cold dependencies were rebuilt; timeouts/cancelled preparatory attempts are not counted as test passes. Existing unrelated unused/dead-code and Windows linker warnings remain.
 
 ## Measurements and bounds
 
-The passing Freshness suite includes the long-owner reopen/receipt-cache-turnover test and the semantic transformation matrix. These demonstrate bounded receipt retention, exact duplicate resolution after cache eviction, and byte-preserving reclamation/reconciliation. No production throughput claim is made: the live coordinator is not shipped, so event/search throughput must be measured after the readiness seam is wired.
+Executed command: `cargo test --locked --lib semantic_release_measurement -j 2 -- --ignored --nocapture`.
 
-## Required follow-up
+Synthetic fixture: 128 compatible target bodies, 140 accepted post-activation turns, two-dimensional deterministic unit vectors, at most 64 local effects per event. One unoptimized workstation sample:
 
-Add an explicit post-vector-publication semantic readiness/cohort coordinator. It must retain or rediscover accepted source nodes, wait for complete genuine fragment/vector evidence and the complete newly-created Memory cohort, propagate errors instead of swallowing them, and invoke the existing read-only candidate adapter followed by the durable semantic acceptor exactly once. Add an end-to-end accepted-turn test proving a real vector-ready turn creates one local event, excludes its source cohort, and leaves neighbors unchanged. Rerun this release gate, including throughput/receipt measurements, before marking Step 12 complete.
+| Operation | Result |
+| --- | ---: |
+| 32 exact searches | 84.445 ms total (2.639 ms/search; 48,506 target evaluations/s) |
+| 140 durable event completions, including generation publication | 3,483.156 ms total (40.19 events/s) |
+| Reopen | 222.248 ms |
+| Resident receipts | 29 entries / 261,783 bytes |
+
+The fixture asserts output cardinality 64, recent residency <=128 entries and <=262,144 bytes, exact evicted retry before/after reopen, and no extra file bytes on retry. These are reproducible correctness/measurement commands, not optimized production SLOs, percentile latency, provider/mutex tails, large-corpus throughput or semantic-quality evidence. Archive generation construction currently rebuilds its selected matrix; labeled genuine-turn relevance and default activation remain outside this release.
+
+## Documentation impact
+
+- Inspected: repository instructions, canonical architecture/invariants/storage/API/limitations/roadmap and frozen F8 contracts.
+- Updated: shipped API/storage/limitations, source/runtime routing, policy/module status, linear plan, index and this release record.
+- Not affected: historical reconstruction, PHY Freshness, Dream/use scoring principals, existing semantic Memory versions, and CLI command vocabulary.
+- Compliance check: full and changed-from-origin/main documentation policy plus `git diff --check` passed after final edits.
+- Known documentation gaps: production latency/relevance labels are unavailable; no claim of either is made.
+
+## Architecture impact
+
+- Standards added or changed: additive Freshness activation record; frozen v1 policy/ownership unchanged.
+- Ownership or boundary impact: Freshness retains activation/receipt/scoring authority, Archive retains accepted identity, and existing vector workers coordinate provider I/O outside owner locks.
+- Pitlord enforcement impact: refreshed Lexicon/Arcana evidence, policy validation and Pitlord enforcement passed; the coverage guard passed 28 fixtures and classified 112 public APIs. Existing ownership/static policies are unchanged.
+- Other verification impact: executed runtime, durable transformation and bounded-residency fixtures plus full root/CLI gates.
+- Known architectural gaps: no historical importer, PHY clock, in-place policy upgrade or disabled interval semantics.
 
 ## Notes
 
-No public API, storage format, CLI behavior, current-limitation claim, or historical-import behavior was changed by this blocked release gate. The record is intentionally explicit that correctness fixtures passing is insufficient to release a live producer whose readiness coordinator is absent.
+This release is only the explicitly activated live local lane. It grants no permission to backfill old turns, fabricate historical activity cuts, traverse other owners, propagate similarity over Graph/Community, or enable automatic semantic scoring by default.

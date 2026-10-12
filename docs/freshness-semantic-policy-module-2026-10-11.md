@@ -8,7 +8,7 @@ Implement the graph-independent numerical and candidate-reduction core frozen by
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** Steps 5–11 implemented; live F8 is not released pending Step 12. Step 11 repairs and verification supersede the earlier unexecuted storage/correctness claims. The architecture refresh exception is recorded below.
+**Date:** 2026-10-11. **Status:** Steps 5–11 and Step 12 activation/readiness implementation are complete; final standalone release checks are recorded in [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md). Live v1 is prospective opt-in and disabled by default. The dated earlier-step evidence below is historical; Step 11/12 repairs supersede earlier compile-only correctness claims.
 
 ## Related docs
 
@@ -145,4 +145,4 @@ Architecture impact:
 
 ## Notes
 
-This module provides deterministic semantic policy, bounded search, and now the versioned durable receipt seam for later accepted-turn production. It does not activate live semantic reinforcement or change existing Freshness scoring principals.
+Step 12 adds durable prospective activation and bounded post-vector-ready coordination through the existing REL workers. The candidate adapter streams current body/vector bindings, filters invalid rows and requires earlier birth plus admission no later than the source. Historical integration gaps described in the earlier step sections are superseded by the [current release record](freshness-semantic-release-verification-2026-10-12.md). Existing Dream/use principals and live non-propagation remain unchanged.

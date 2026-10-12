@@ -124,7 +124,7 @@ The P4 stream hub lives inside each mounted REL sequencer and shares its publica
 
 ## Semantic Freshness source preparation
 
-The internal `Cva::prepare_accepted_semantic_source` seam coordinates Archive's immutable accepted Node/activity position with retained ArchiveVectorStore and VectorGenerationStore evidence. It selects exact-turn fragment rows at an explicit generation cut and reports pending versus complete (possibly empty) evidence without mutating state. Freshness retains scoring/receipt ownership; this source-only seam has no Graph/Community dependency and does not activate live reinforcement. See [semantic policy and source module](freshness-semantic-policy-module-2026-10-11.md).
+`Cva::prepare_accepted_semantic_source` coordinates immutable accepted Archive identity/activity with retained generation evidence and reports pending versus complete (possibly empty) genuine-turn vectors. FreshnessStore owns prospective opt-in activation and local semantic receipts; `cva_semantic_live` rediscovers pending work from Archive without a separate queue/ledger. Archive generation publication drains at most 64 turns; both REL vector workers prepare source fragments under owner mutation authority, embed outside owner locks, then publish and accept local effects through the existing durability seam. Background status counts pending semantic turns. Candidate search streams current compatible Memory-body rows with bounded top-64 selection, authoritative birth/admission and source exclusion. This lane has no Graph/Community propagation and is disabled by default. See [F8 release verification](freshness-semantic-release-verification-2026-10-12.md).
 
 ## Responsibilities
 

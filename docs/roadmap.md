@@ -35,7 +35,7 @@ The immediate semantic sequence remains cross-scope Entity identity, Observation
 
 ## Memory Freshness remaining integration and calibration
 
-Connect a genuine accepted-context delivery producer and live Ego routine selection consumer to the verified library seams. Ordinary reads/search hydration remain passive. Obtain time-positioned admission/link/use evidence before historical score-trajectory calibration: the available 14-day, 28-day and Ellis fixtures supply prospective graph topology only. Complete any unresolved repository/calibration gate recorded in [core verification](freshness-core-release-verification-2026-10-03.md). Semantic relevance and import bootstrap (F8/S1–S6) remain a separate deferred milestone. When activated, execute the [linear F8 + H1–H8 implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md): finish live local-only F8 first, then historical reconstruction.
+Connect a genuine accepted-context delivery producer and live Ego routine selection consumer to the verified library seams. Ordinary reads/search hydration remain passive. Obtain time-positioned admission/link/use evidence before historical score-trajectory calibration: the available 14-day, 28-day and Ellis fixtures supply prospective graph topology only. Complete any unresolved repository/calibration gate recorded in [core verification](freshness-core-release-verification-2026-10-03.md). Historical semantic/Dream import reconstruction remains deferred under the [linear F8 + H1–H8 plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md). It may proceed only after the separate live release gate; default semantic activation additionally needs labeled genuine-turn relevance calibration.
 
 ## Additional backlog
 
@@ -317,7 +317,7 @@ Future integration work:
 
 ## Freshness integration and retained source-progress work
 
-Wire only real accepted-context and live Ego consumers when their host contracts exist. Preserve owner-specific authorization, protected keep lanes, full-small-Web selection, searchable Dormant Memories and independent factual truth. Complete historical score-trajectory calibration only after genuine activity/admission/link/use evidence is available. F8 semantic relevance/import bootstrap is deferred separately; PHY Freshness still needs an authorized activity clock.
+Wire only real accepted-context and live Ego consumers when their host contracts exist. Preserve owner-specific authorization, protected keep lanes, full-small-Web selection, searchable Dormant Memories and independent factual truth. Complete historical score-trajectory calibration only after genuine activity/admission/link/use evidence is available. Historical semantic/Dream import bootstrap is deferred separately; PHY Freshness still needs an authorized activity clock.
 
 Retain independently justified Archive progress/checkpoint materialization and Ego REL/PHY summary refresh rules. Do not reintroduce a per-Memory review scheduler or mandatory Perception stale-Memory audit. The [core verification](freshness-core-release-verification-2026-10-03.md) records the accepted library gates and remaining external integration/measurement limits.
 

@@ -7,6 +7,7 @@ use std::fmt;
 #[derive(Debug)]
 pub enum VectorGenerationError {
     Container(ContainerError),
+    Freshness(String),
     Archive(ArchiveError),
     PackedVectors(PackedVectorError),
     ArchiveVectors(ArchiveVectorError),

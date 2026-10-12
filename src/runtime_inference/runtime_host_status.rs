@@ -10,6 +10,7 @@ pub struct RuntimeBackgroundStatus {
     pub phylactery_memories: Option<MemoryStats>,
     pub phylactery_vectors: Option<MemoryVectorStats>,
     pub reliquary_vector_pending: usize,
+    pub reliquary_semantic_pending: usize,
     pub phylactery_vector_pending: usize,
     pub reliquary_dream_pending: usize,
     pub phylactery_dream_pending: usize,
@@ -24,6 +25,7 @@ impl RuntimeBackgroundStatus {
             && self.insomnia.failed == 0
             && self.insomnia.terminal == 0
             && self.reliquary_vector_pending == 0
+            && self.reliquary_semantic_pending == 0
             && self.phylactery_vector_pending == 0
             && self.reliquary_dream_pending == 0
             && self.phylactery_dream_pending == 0
@@ -41,6 +43,7 @@ impl ReliquaryRuntimeHost {
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         let (
             insomnia,
+            reliquary_semantic_pending,
             reliquary_memories,
             reliquary_vectors,
             reliquary_vector_pending,
@@ -62,6 +65,10 @@ impl ReliquaryRuntimeHost {
                 owner_pending(&mut runtime.cva, &ids, profiles.project)?;
             (
                 runtime.cva.insomnia_stats(),
+                runtime
+                    .cva
+                    .semantic_freshness_pending_turns()
+                    .map_err(operation)?,
                 runtime.cva.memory_stats(),
                 runtime.cva.memory_vector_stats(),
                 vector_pending,
@@ -104,6 +111,7 @@ impl ReliquaryRuntimeHost {
 
         Ok(RuntimeBackgroundStatus {
             insomnia,
+            reliquary_semantic_pending,
             reliquary_memories,
             reliquary_vectors,
             phylactery_memories,

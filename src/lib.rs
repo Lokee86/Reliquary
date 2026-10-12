@@ -1,7 +1,10 @@
 #[path = "archive/archive.rs"]
 pub mod archive;
+#[path = "facade/cva_semantic_live.rs"]
+mod cva_semantic_live;
 #[path = "facade/cva_semantic_source.rs"]
 mod cva_semantic_source;
+pub use cva_semantic_live::SemanticFreshnessReport;
 #[path = "freshness/mod.rs"]
 pub mod freshness;
 #[path = "freshness/trace.rs"]

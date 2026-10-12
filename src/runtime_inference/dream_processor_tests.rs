@@ -203,6 +203,12 @@ impl GeneralEndpoint for TrackingClassifier {
     ) -> Result<Value, GeneralEndpointError> {
         let active = self.active.fetch_add(1, Ordering::SeqCst) + 1;
         self.peak.fetch_max(active, Ordering::SeqCst);
+        // Observe actual overlap instead of assuming the scheduler starts a
+        // second worker within 40 ms on a loaded release-gate machine.
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while self.peak.load(Ordering::SeqCst) < 2 && std::time::Instant::now() < deadline {
+            thread::sleep(Duration::from_millis(1));
+        }
         thread::sleep(Duration::from_millis(40));
         self.active.fetch_sub(1, Ordering::SeqCst);
         Ok(json!({"relation": "none", "direction": "none", "evidence": []}))

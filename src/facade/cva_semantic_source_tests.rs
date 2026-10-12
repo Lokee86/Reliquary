@@ -544,6 +544,7 @@ fn candidate_search_filters_before_limit_and_deduplicates_targets() {
         memory: memory(id, lifecycle, None),
         body_id: crate::MemoryBodyId([id; 32]),
         admitted_at_turn: admitted,
+        birth_turn: admitted,
         vector,
     };
     let cohort = std::collections::BTreeSet::new();
@@ -555,11 +556,484 @@ fn candidate_search_filters_before_limit_and_deduplicates_targets() {
         target(2, "knowledge", Some(20), vec![1.0, 0.0]),
         target(3, "extracted", Some(1), vec![1.0, 0.0]),
         provenance_target,
+        target(5, "knowledge", Some(1), vec![0.0, 0.0]),
+        target(6, "knowledge", Some(1), vec![f32::NAN, 0.0]),
+        target(7, "knowledge", None, vec![1.0, 0.0]),
     ];
     let (effects, eligible, filtered) =
         plan_eligible_semantic_targets(&source, &cohort, targets).unwrap();
     assert_eq!(eligible, 1);
-    assert_eq!(filtered, 3);
+    assert_eq!(filtered, 6);
+    let mut same_cut_admission = target(8, "knowledge", Some(10), vec![1.0, 0.0]);
+    same_cut_admission.birth_turn = Some(1);
+    assert_eq!(
+        plan_eligible_semantic_targets(&source, &cohort, [same_cut_admission])
+            .unwrap()
+            .0
+            .len(),
+        1
+    );
     assert_eq!(effects.len(), 1);
     assert_eq!(effects[0].memory_id, crate::MemoryId([1; 32]));
+}
+
+#[test]
+fn semantic_live_activation_is_prospective_cancellable_until_completion() {
+    let mut f = Fixture::new();
+    let old = f.turn("old", None, "user");
+    f.fragments("old", 1);
+    let generation = f.generation();
+    assert!(!f.cva().semantic_freshness_enabled());
+    assert_eq!(
+        f.cva()
+            .process_semantic_freshness(generation.id, 64)
+            .unwrap()
+            .completed_turns,
+        0
+    );
+    assert!(f.cva().set_semantic_freshness_enabled(true).unwrap());
+    assert!(!f.cva().set_semantic_freshness_enabled(true).unwrap());
+    assert!(f.cva().set_semantic_freshness_enabled(false).unwrap());
+    assert!(f.cva().set_semantic_freshness_enabled(true).unwrap());
+    f.cva().sync().unwrap();
+    drop(f.cva.take());
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    assert!(f.cva().semantic_freshness_enabled());
+    let pending = f.turn("new", Some("old"), "assistant");
+    assert_eq!(
+        f.cva()
+            .process_semantic_freshness(generation.id, 64)
+            .unwrap()
+            .pending_turns,
+        1
+    );
+    let generation = f.generation(); // provider creates genuine turn fragments and completes
+    assert_eq!(
+        f.cva()
+            .process_semantic_freshness(generation.id, 64)
+            .unwrap()
+            .completed_turns,
+        0
+    );
+    let owner = f.cva().owner_uuid().unwrap();
+    assert!(
+        !f.cva()
+            .freshness
+            .contains_event(&crate::freshness_storage::semantic_live_event_id(
+                owner,
+                &old.conversation_id,
+                &old.id
+            ))
+            .unwrap()
+    );
+    assert!(
+        f.cva()
+            .freshness
+            .contains_event(&crate::freshness_storage::semantic_live_event_id(
+                owner,
+                &pending.conversation_id,
+                &pending.id
+            ))
+            .unwrap()
+    );
+    assert!(f.cva().set_semantic_freshness_enabled(false).is_err());
+    drop(f.cva.take());
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    assert!(f.cva().set_semantic_freshness_enabled(false).is_err());
+}
+
+fn live_draft(key: &str) -> crate::MemoryDraft {
+    crate::MemoryDraft {
+        category: "fact".into(),
+        memory_type: "project".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        title: key.into(),
+        content: "meaning-target".into(),
+        scope: "project".into(),
+        lifecycle_state: "knowledge".into(),
+        archived: false,
+        superseded_by: None,
+        parent_id: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_time_ns: None,
+        mutation_id: key.into(),
+        created_at_ns: 0,
+        updated_at_ns: 0,
+    }
+}
+
+struct ConstantSemanticEndpoint;
+impl crate::EmbeddingEndpoint for ConstantSemanticEndpoint {
+    fn dimensions(&self) -> u32 {
+        2
+    }
+    fn normalization(&self) -> crate::VectorNormalization {
+        crate::VectorNormalization::L2
+    }
+    fn embed(
+        &self,
+        _: crate::EmbeddingMode,
+        inputs: &[String],
+    ) -> Result<Vec<Vec<f32>>, crate::EmbeddingEndpointError> {
+        Ok(inputs.iter().map(|_| vec![1.0, 0.0]).collect())
+    }
+}
+
+#[test]
+fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births() {
+    let mut f = Fixture::new();
+    f.turn("baseline", None, "user");
+    let target = f
+        .cva()
+        .publish_memory(None, 0, live_draft("target"))
+        .unwrap()
+        .0;
+    let neighbor = f
+        .cva()
+        .publish_memory(None, 0, live_draft("neighbor"))
+        .unwrap()
+        .0;
+    f.cva()
+        .set_memory_relation(
+            target.id,
+            neighbor.id,
+            crate::GraphRelationKind::Topical,
+            true,
+            0,
+        )
+        .unwrap();
+    for n in 0..100 {
+        f.turn(&format!("age-{n}"), None, "user");
+    }
+    f.cva().set_semantic_freshness_enabled(true).unwrap();
+    let source = f
+        .cva()
+        .ingest_turn(crate::IncomingTurn {
+            id: "live".into(),
+            conversation_id: "c".into(),
+            parent_id: None,
+            role: "user".into(),
+            principal_id: None,
+            timestamp_ns: 0,
+            content: "genuine accepted content".into(),
+            attachments: Vec::new(),
+            project_attachments: Vec::new(),
+        })
+        .unwrap()
+        .node;
+    let cohort = f
+        .cva()
+        .publish_memory(None, 0, live_draft("source-cohort"))
+        .unwrap()
+        .0;
+    let endpoint = ConstantSemanticEndpoint;
+    let profile = f.cva().establish_compatibility_profile(&endpoint).unwrap();
+    let schema = crate::VectorSchema::new(2, crate::ScalarType::F32).unwrap();
+    let mut bytes = Vec::new();
+    for vector in [[1.0_f32, 0.0], [0.0, 1.0], [1.0, 0.0]] {
+        for value in vector {
+            bytes.extend(value.to_le_bytes());
+        }
+    }
+    let packed = f
+        .cva()
+        .put_packed_vectors(crate::PackedVectors::from_bytes(schema, bytes).unwrap())
+        .unwrap();
+    let bodies = [target.id, neighbor.id, cohort.id]
+        .into_iter()
+        .map(|id| f.cva().memories.current_body_id(id).unwrap())
+        .collect();
+    f.cva()
+        .put_memory_vectors(profile.id, packed, bodies)
+        .unwrap();
+    let batch = f
+        .cva()
+        .prepare_semantic_archive_batch(profile.id)
+        .unwrap()
+        .unwrap();
+    use crate::EmbeddingEndpoint;
+    let vectors = endpoint
+        .embed(crate::EmbeddingMode::Document, &batch.texts)
+        .unwrap();
+    f.cva()
+        .commit_semantic_archive_batch(batch, vectors)
+        .unwrap();
+    assert_eq!(f.cva().freshness_record(target.id).unwrap().score, 100);
+    assert_eq!(
+        f.cva()
+            .freshness_record(neighbor.id)
+            .unwrap()
+            .score_at(102)
+            .unwrap(),
+        90
+    );
+    assert_eq!(f.cva().freshness_record(cohort.id).unwrap().score, 100);
+    let owner = f.cva().owner_uuid().unwrap();
+    let id = crate::freshness_storage::semantic_live_event_id(owner, "c", &source.id);
+    let receipt = f.cva().freshness.event_receipt(&id).unwrap().unwrap();
+    assert_eq!(
+        receipt.2,
+        std::collections::BTreeMap::from([(target.id, 10)])
+    );
+    let before = f.cva().latest_global_version();
+    let generation = f.cva().current_vector_generation(profile.id).unwrap();
+    assert_eq!(
+        f.cva()
+            .process_semantic_freshness(generation.id, 64)
+            .unwrap()
+            .completed_turns,
+        0
+    );
+    assert_eq!(f.cva().latest_global_version(), before);
+    drop(f.cva.take());
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    assert_eq!(
+        f.cva().freshness.event_receipt(&id).unwrap().unwrap(),
+        receipt
+    );
+    assert!(
+        f.cva()
+            .prepare_semantic_archive_batch(profile.id)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
+fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() {
+    let mut f = Fixture::new();
+    f.turn("baseline", None, "user");
+    let target = f
+        .cva()
+        .publish_memory(None, 0, live_draft("worker-target"))
+        .unwrap()
+        .0;
+    for n in 0..100 {
+        f.turn(&format!("worker-age-{n}"), None, "user");
+    }
+    f.cva().set_semantic_freshness_enabled(true).unwrap();
+    f.turn("worker-live", None, "user");
+    let cva = f.cva.take().unwrap();
+    let host = crate::ReliquaryRuntimeHost::start(
+        crate::InteractionRuntime::new(cva),
+        crate::ReliquaryRuntimeRoutes::new(
+            None,
+            None,
+            None,
+            None,
+            Some(std::sync::Arc::new(ConstantSemanticEndpoint)),
+        ),
+        crate::InsomniaWorkerConfig {
+            workers: 1,
+            ..Default::default()
+        },
+        crate::EpisodePolicy::default(),
+    )
+    .unwrap();
+    let owner: [u8; 16] = uuid::Uuid::parse_str(
+        host.owner_id()
+            .unwrap()
+            .unwrap()
+            .strip_prefix("rel-")
+            .unwrap(),
+    )
+    .unwrap()
+    .into_bytes();
+    let id = crate::freshness_storage::semantic_live_event_id(owner, "c", "worker-live");
+    let start = std::time::Instant::now();
+    while !host.semantic_event_completed_for_test(&id).unwrap()
+        && start.elapsed() < std::time::Duration::from_secs(10)
+    {
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    assert!(host.semantic_event_completed_for_test(&id).unwrap());
+    assert_eq!(
+        host.background_status().unwrap().reliquary_semantic_pending,
+        0
+    );
+    let cva = host.into_cva().unwrap();
+    f.cva = Some(cva);
+    let owner = f.cva().owner_uuid().unwrap();
+    let id = crate::freshness_storage::semantic_live_event_id(owner, "c", "worker-live");
+    assert_eq!(
+        f.cva().freshness.event_receipt(&id).unwrap().unwrap().2,
+        std::collections::BTreeMap::from([(target.id, 10)])
+    );
+}
+
+#[test]
+fn semantic_live_activation_preserved_by_reclaim_and_divergent_reconcile() {
+    let mut f = Fixture::new();
+    f.turn("boundary", None, "user");
+    f.cva().set_semantic_freshness_enabled(true).unwrap();
+    let expected = f.cva().freshness.semantic_activation().cloned().unwrap();
+    let right = f.path.with_extension("right.rel");
+    let merged = f.path.with_extension("merged.rel");
+    let reclaimed = f.path.with_extension("reclaimed.rel");
+    f.cva().sync().unwrap();
+    std::fs::copy(&f.path, &right).unwrap();
+    f.turn("left-divergence", None, "assistant");
+    {
+        let mut other = Cva::open(&right).unwrap();
+        other
+            .append_node(
+                "right-divergence".into(),
+                "c".into(),
+                None,
+                "user".into(),
+                0,
+                "right",
+            )
+            .unwrap();
+        other.sync().unwrap();
+    }
+    f.cva().reclaim_storage(&reclaimed).unwrap();
+    let reclaimed_cva = Cva::open(&reclaimed).unwrap();
+    assert_eq!(
+        reclaimed_cva.freshness.semantic_activation(),
+        Some(&expected)
+    );
+    drop(reclaimed_cva);
+    drop(f.cva.take());
+    Cva::reconcile(&f.path, &right, &merged).unwrap();
+    {
+        let mut result = Cva::open(&merged).unwrap();
+        assert_eq!(result.freshness.semantic_activation(), Some(&expected));
+        result.set_semantic_freshness_enabled(false).unwrap();
+        result.set_semantic_freshness_enabled(true).unwrap();
+        result.sync().unwrap();
+        // Different prospective boundary is a conflict, never a silent enable.
+    }
+    let conflict = f.path.with_extension("conflict.rel");
+    assert!(Cva::reconcile(&f.path, &merged, &conflict).is_err());
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    for path in [right, merged, reclaimed] {
+        std::fs::remove_file(path).unwrap();
+    }
+}
+
+#[test]
+#[ignore = "release measurement; run explicitly with --ignored --nocapture"]
+fn semantic_release_measurement() {
+    let mut f = Fixture::new();
+    f.turn("base", None, "user");
+    for n in 0..128 {
+        f.cva()
+            .publish_memory(None, 0, live_draft(&format!("bench-memory-{n}")))
+            .unwrap();
+    }
+    for n in 0..100 {
+        f.turn(&format!("bench-age-{n}"), None, "user");
+    }
+    f.cva().set_semantic_freshness_enabled(true).unwrap();
+    for n in 0..140 {
+        f.turn(&format!("bench-source-{n}"), None, "user");
+    }
+    let endpoint = ConstantSemanticEndpoint;
+    let profile = f.cva().establish_compatibility_profile(&endpoint).unwrap();
+    f.cva()
+        .build_missing_memory_vectors(profile.id, &endpoint)
+        .unwrap();
+    let batch = f
+        .cva()
+        .prepare_semantic_archive_batch(profile.id)
+        .unwrap()
+        .unwrap();
+    use crate::EmbeddingEndpoint;
+    let vectors = endpoint
+        .embed(crate::EmbeddingMode::Document, &batch.texts)
+        .unwrap();
+    let event_start = std::time::Instant::now();
+    f.cva()
+        .commit_semantic_archive_batch(batch, vectors)
+        .unwrap();
+    let generation = f.cva().current_vector_generation(profile.id).unwrap();
+    loop {
+        let report = f
+            .cva()
+            .process_semantic_freshness(generation.id, 64)
+            .unwrap();
+        if report.completed_turns == 0 {
+            break;
+        }
+    }
+    let event_ms = event_start.elapsed().as_secs_f64() * 1000.0;
+    let node = f
+        .cva()
+        .archive
+        .nodes
+        .get("c", "bench-source-0")
+        .unwrap()
+        .clone();
+    let source = ready(
+        f.cva()
+            .prepare_accepted_semantic_source(&node, Some(generation.id))
+            .unwrap(),
+    );
+    let search_start = std::time::Instant::now();
+    for _ in 0..32 {
+        let result = f
+            .cva()
+            .search_eligible_semantic_targets(&source, &Default::default())
+            .unwrap();
+        assert_eq!(result.scanned_memories, 128);
+        assert_eq!(result.effects.len(), 64);
+    }
+    let search_ms = search_start.elapsed().as_secs_f64() * 1000.0;
+    let (receipts, bytes) = f.cva().freshness.recent_receipt_stats();
+    assert!(receipts <= 128 && bytes <= 256 * 1024);
+    let before = std::fs::metadata(&f.path).unwrap().len();
+    f.cva()
+        .apply_accepted_semantic_reinforcement(&node, &Default::default())
+        .unwrap();
+    assert_eq!(std::fs::metadata(&f.path).unwrap().len(), before);
+    drop(f.cva.take());
+    let open_start = std::time::Instant::now();
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    let reopen_ms = open_start.elapsed().as_secs_f64() * 1000.0;
+    f.cva()
+        .apply_accepted_semantic_reinforcement(&node, &Default::default())
+        .unwrap();
+    assert_eq!(std::fs::metadata(&f.path).unwrap().len(), before);
+    println!(
+        "SEMANTIC_RELEASE targets=128 turns=140 search_iterations=32 search_ms={search_ms:.3} event_ms={event_ms:.3} reopen_ms={reopen_ms:.3} receipts={receipts} receipt_bytes={bytes}"
+    );
+}
+
+#[test]
+fn semantic_live_cancelled_activation_branch_cannot_be_silently_reenrolled() {
+    let mut f = Fixture::new();
+    f.turn("cut", None, "user");
+    f.cva().set_semantic_freshness_enabled(true).unwrap();
+    f.cva().sync().unwrap();
+    let right = f.path.with_extension("cancelled.rel");
+    let output = f.path.with_extension("cancel-conflict.rel");
+    std::fs::copy(&f.path, &right).unwrap();
+    f.turn("left", None, "user");
+    {
+        let mut other = Cva::open(&right).unwrap();
+        other.set_semantic_freshness_enabled(false).unwrap();
+        other.sync().unwrap();
+    }
+    drop(f.cva.take());
+    assert!(Cva::reconcile(&f.path, &right, &output).is_err());
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    f.cva().set_semantic_freshness_enabled(false).unwrap();
+    f.cva().sync().unwrap();
+    drop(f.cva.take());
+    Cva::reconcile(&f.path, &right, &output).unwrap();
+    {
+        let merged = Cva::open(&output).unwrap();
+        assert!(!merged.semantic_freshness_enabled());
+        assert!(merged.freshness.semantic_activation_seen());
+    }
+    f.cva = Some(Cva::open(&f.path).unwrap());
+    std::fs::remove_file(output).unwrap();
+    std::fs::remove_file(right).unwrap();
 }
