@@ -1,22 +1,22 @@
-# Historical one-shot import coordinator verification — 2026-10-12
+# Historical import model composition evidence — 2026-10-12
 
 ## Purpose
 
-Record Step 24 evidence for the one-shot historical import coordinator.
+Record partial Step 24 planning-model evidence. The [Step 26 audit](freshness-combined-production-review-2026-10-12.md) withdraws integrated coordinator completion.
 
 ## Overview
 
-`execute_historical_import` composes the already-frozen historical inputs into one deterministic projection:
+`execute_historical_import` composes caller-supplied inputs into an experimental in-memory model; it never freezes or commits a REL:
 
-1. validate the import identity, manifest, timeline, and provenance barrier;
+1. check that IDs/digests are nonzero and timeline/provenance collections are nonempty (not canonical identity/manifest/owner-proof validation);
 2. convert semantic and first-cycle Dream plans into import-only propagation events;
 3. propagate across the authorized graph with the existing bounded worker path;
 4. reduce recipient contributions through the sparse chronological scorer; and
-5. publish one complete `HistoricalCheckpoint` through the atomic checkpoint store.
+5. assign an in-memory `HistoricalCheckpointStore` snapshot without Container persistence or importer/runtime integration.
 
-The coordinator retains no staged event queue. Repeating the same import identity is handled by the checkpoint store's idempotent publication gate. Semantic/Dream inference remains an input boundary, so the coordinator does not rerun Insomnia or Dream.
+The model retains no staged event queue. An exact retry before model live mutation reuses its snapshot; this does not establish native import retry/recovery or a generation barrier. Semantic/Dream plans are supplied inputs, so no Insomnia or Dream call occurs.
 
-Embedding fallback is explicit rather than implicit: callers may supply a bounded, precomputed semantic plan from an opt-in embedding-only operation; the coordinator consumes that plan and its coverage evidence, and never silently launches an unbounded embedding pass.
+No embedding-only operation is implemented. Supplying a precomputed plan does not establish provider limits, opt-in, cancellation, coverage validation or an actual fallback coordinator. Full source/graph/Community/vector/body/cohort proof validation, original Archive-clock checking, source/cohort exclusions and canonical H1 event IDs remain required.
 
 ## Verification
 
@@ -26,13 +26,13 @@ Focused command:
 cargo test --locked --lib historical_import
 ```
 
-Result on 2026-10-12: 5 passed, 0 failed. This includes the coordinator's complete-projection and repeated-import tests plus the historical import recovery fixtures.
+Result on 2026-10-12: 5 passed, 0 failed. The filter includes two empty-event model tests and three separate native Cva import fixtures; none connects the model coordinator to the native commit path.
 
-The coordinator tests prove:
+Two empty-event model tests establish only:
 
-- a complete import publishes one checkpoint with semantic/Dream counts and propagated output;
-- the checkpoint contains the scored records and applied contribution identities;
-- re-running the same import identity returns the existing checkpoint without changing its identity; and
+- a supplied empty-event model input returns a snapshot (zero semantic/Dream/propagated events);
+- the model snapshot contains scored records and an empty contribution-ID set;
+- retrying before any model live mutation reuses the snapshot; and
 - no permanent event queue is required between planning and publication.
 
 ## Related docs
@@ -44,4 +44,4 @@ The coordinator tests prove:
 
 ## Notes
 
-This record covers the coordinator seam and its focused tests. Full retained-corpus measurement and the combined H1–H8 acceptance gate remain Step 25 work. The normal live semantic path remains local and non-propagating.
+This record covers model composition only. Actual native coordination remains Step 24; integrated H1–H8 acceptance and retained-corpus measurement remain Step 25. The normal live semantic path remains local and non-propagating.

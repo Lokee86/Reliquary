@@ -1,14 +1,14 @@
-# Historical checkpoint recovery and idempotence verification — 2026-10-12
+# Historical checkpoint recovery model evidence — 2026-10-12
 
 ## Purpose
 
-Record Step 22 verification for crash-prefix recovery, reopen-derived indexes, repeated historical imports, and post-checkpoint accepted-use replay.
+Record partial Step 22 model evidence. The [Step 26 production audit](freshness-combined-production-review-2026-10-12.md) withdraws native recovery completion: these tests do not exercise Container byte crash prefixes, REL reopening or durable accepted-use receipts.
 
 ## Overview
 
-The historical checkpoint store now publishes only complete candidate projections, preserves the prior authoritative projection when a staged candidate is invalid, and treats an identical import retry as a no-op. Same-import divergent manifests fail closed. Reopening can rebuild the sparse Freshness due index from committed records, and legitimate post-checkpoint events are applied exactly once by stable event identity.
+The experimental in-memory model accepts nonempty candidate maps and rejects conflicting snapshots. Its tests build a due index from a model and apply one caller-supplied contribution twice. There is no codec, owner UUID, Container I/O or actual reopen. Clearing a map models invalid input rather than a durable crash prefix; exact import retry after live growth and multi-recipient native receipt semantics are not established.
 
-This is the recovery primitive for the Step 21 checkpoint coordinator; it does not create a second durable event ledger or change the live semantic non-propagation invariant.
+This model is not wired to the real Step 21 Cva/Freshness owner and must not become a second scoring/receipt authority. Native recovery remains Step 22 work; live semantic non-propagation is unchanged.
 
 ## Related docs
 
@@ -27,4 +27,4 @@ Focused verification:
 - git diff --check
 - Documentation policy checks for the repository
 
-The recovery fixtures cover invalid crash-prefix discard, repeated-import no-op, conflicting retry rejection, due-index rebuild, and exactly-once post-checkpoint event application.
+The three model fixtures cover an empty-map candidate, retry before model mutation, conflicting snapshots, a model due index and one repeated caller contribution. They do not close native crash recovery or prove a real accepted-use event.

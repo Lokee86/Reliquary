@@ -997,3 +997,7 @@ These remain development formats and may evolve before a stable external-format 
 ## Conversation recovery validation (P3.8)
 
 P3.8 adds no persistent record, schema, queue, clock or migration. It validates the existing generation checkpoint length/hash against the exact UTF-8 prefix in the interaction-stream owner before reconciling a synchronized extension. Archive-backed completion also reconciles that extension. Mount and quiescence validate captured submission/Archive receipts through the same implementation. Pending order, policy revision, branch identity and Unknown/cancel-intent records retain their existing owners and formats. [P3.8 evidence](multiplexing-implementation-plan.md).
+
+## Historical production review boundary
+
+CVAFRS03 remains the only native historical replacement publication in the existing Freshness owner. HistoricalCheckpointStore has no durable codec, Container records or owner-bound recovery path. execute_historical_import writes only that experimental in-memory model and does not publish this payload. Full canonical manifest/contribution proof validation and importer integration remain release blockers; no format change or automatic activation is introduced by the [Step 26 review](freshness-combined-production-review-2026-10-12.md).

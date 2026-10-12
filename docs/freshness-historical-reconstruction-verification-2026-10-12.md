@@ -1,23 +1,23 @@
-# Historical reconstruction end-to-end verification — 2026-10-12
+# Historical reconstruction partial verification — 2026-10-12
 
 ## Purpose
 
-Record Step 25 H1–H8 acceptance and measurement evidence for the supported REL-local historical import shape.
+Record actually executed Step 25 primitive/model and selected regression evidence, with integrated native acceptance and retained-corpus measurements still missing.
 
 ## Overview
 
-This is the final synthetic H1–H8 acceptance record for the historical reconstruction branch. It combines the focused historical fixtures, the coordinator/recovery path, core Freshness regressions, and repository documentation/architecture gates while keeping production activation deferred to Step 26.
+**Status: partial primitive/model and selected regression evidence, not integrated H1–H8 closure.** The [Step 26 audit](freshness-combined-production-review-2026-10-12.md) withdraws the earlier completed disposition. It combines the focused historical fixtures, the coordinator/recovery path, core Freshness regressions, and repository documentation/architecture gates while keeping production activation deferred to Step 26.
 
 ## Scope
 
-This gate covers the shipped historical planner, Archive-clock compatibility, semantic and first-cycle Dream planning, import-only propagation, sparse chronological scoring, checkpoint publication/recovery, physical-transform handling, and the one-shot coordinator. Normal live semantic reinforcement remains local and non-propagating.
+These commands exercise pure planners/math/models and independent native checkpoint/transform fixtures. The model coordinator does not invoke the native checkpoint or importer, and its inputs do not establish canonical manifest/proof/authorization validation. Native byte crash recovery, worker-barrier/importer wiring and integrated historical-to-live acceptance remain open. Normal live semantic reinforcement remains local and non-propagating.
 
 ## Acceptance commands and results
 
 | Gate | Command | Result |
 | --- | --- | --- |
-| Historical H1–H8 fixtures | `cargo test --locked --lib freshness::historical -j 2` | 35 passed, 0 failed |
-| One-shot coordinator | `cargo test --locked --lib historical_import` | 5 passed, 0 failed |
+| Historical primitive/model fixtures | `cargo test --locked --lib freshness::historical -j 2` | 35 passed, 0 failed |
+| Model composition and independent native fixtures | `cargo test --locked --lib historical_import` | 5 passed, 0 failed |
 | Full library regression | `cargo test --locked --lib -j 2` | 1,161 passed, 1 ignored, 0 failed; test execution 105.97s |
 | Core integration contracts | `cargo test --locked --test freshness_r2_contract --test freshness_f7_acceptance --test freshness_f7_recovery --test freshness_reconcile_contract --test freshness_recovery_contract --test freshness_propagation_oracle -j 2` | 16 passed, 0 failed |
 | Documentation policy | `python ../engineering-standards/tools/docs_policy/check.py --repo .` | passed |
@@ -35,10 +35,10 @@ The bounded coordinator fixture reports a complete projection and idempotent ret
 
 ## Supported shape and explicit limitations
 
-- Supported: one complete, frozen, REL-local import with verified Archive chronology, authorized graph/community snapshot, precomputed semantic/Dream plans, deterministic import-only propagation, sparse scoring, and atomic checkpoint publication.
-- Supported: repeat import identity, checkpoint reopen/recovery, post-checkpoint live continuation, copy/repack/reclamation preservation, and explicit manifest/policy conflict rejection.
-- Not yet production-default: retained-corpus performance/coverage evidence, PHY freshness/import semantics, arbitrary reordered-history conversion, and unbounded or implicit embedding inference.
-- The full unrestricted repository gate remains environment-limited by Windows memory/paging capacity; the full library and selected contract gates are green.
+- Implemented primitives: pure timeline/semantic/Dream/propagation/scoring and the separately verified narrow native checkpoint. No connected proof-validated importer-to-checkpoint path is established.
+- Native evidence: Step 21/23 retry/reopen/live-continuation and physical-preservation fixtures. Step 22 model tests do not prove actual Container crash-prefix recovery.
+- Historical production blocked: native proof-validated coordination/recovery and retained-corpus performance/coverage remain open. PHY freshness, arbitrary reordered-history conversion and implicit embedding inference remain unsupported.
+- The Step 25 aggregate attempts were environment-limited; the later [Step 26 review](freshness-combined-production-review-2026-10-12.md) completes a fresh full root/CLI run with two jobs and debug information disabled. That later regression pass does not close missing integrated H coordination or retained-corpus measurements.
 
 ## Related docs
 
@@ -50,4 +50,4 @@ The bounded coordinator fixture reports a complete projection and idempotent ret
 
 ## Notes
 
-This record closes the Step 25 acceptance gate for the supported synthetic REL-local shape. Step 26 still owns the combined production-readiness and roadmap decision, including whether retained-corpus evidence is sufficient for optional or default activation.
+This record preserves executed synthetic/selected results but does not close Step 25. Step 26 blocks historical production/default activation pending actual native coordination, recovery, integrated acceptance and retained-corpus measurement. Live F8 remains independently released as prospective explicit opt-in.

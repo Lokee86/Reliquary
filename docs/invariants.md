@@ -251,3 +251,7 @@ Cross-database restore activation, actual concurrent writers, checkpointing, and
 ## Recovery hard cut (P3.8)
 
 Mount and quiesced recovery use the same admitted-turn and Archive validation before post-commit acknowledgement. A checkpoint stream must contain the exact previously acknowledged UTF-8 prefix; missing, truncated or changed content fails mount without inventing terminal status. A synchronized extension is recorded before Interrupted or Completed. Coordinator exact acquisition verifies the durable branch and independently rejects fresh Pending work. Durable active metadata cannot create viewers, instance selection or per-viewer writers. Unknown host work and cancellation intent remain reserved until authoritative terminal proof. [P3.8 evidence](multiplexing-implementation-plan.md).
+
+## Historical production activation boundary
+
+In-memory historical planning/model results cannot substitute for accepted native REL authority or owner authorization. Production reconstruction requires verified canonical manifest/source/graph/Community/vector/cohort evidence and the existing owner's frozen commit boundary, with source/cohort credit exclusions and canonical event identities. Neither an empty-plan model test nor a supplied authorized-ID set proves those requirements. Preserve local-only live F8, real use/Dream principals and PHY deferral. [Step 26 disposition](freshness-combined-production-review-2026-10-12.md).

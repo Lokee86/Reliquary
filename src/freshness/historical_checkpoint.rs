@@ -1,4 +1,8 @@
-//! Recovery and idempotence primitives for the historical import projection.
+//! Experimental in-memory checkpoint model, without durable REL recovery.
+//!
+//! This type has no codec, owner UUID, accepted Archive proof, or Container I/O.
+//! Actual accepted Freshness remains in the existing Cva/FreshnessStore owner;
+//! this model must not become a second live scoring or receipt authority.
 use super::{FreshnessBoundaryIndex, FreshnessError, FreshnessPolicy, FreshnessRecord};
 use crate::MemoryId;
 use std::collections::{BTreeMap, BTreeSet};
@@ -40,6 +44,9 @@ pub enum HistoricalCheckpointCommit {
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
+/// Experimental model state, not an accepted REL checkpoint store. Its event
+/// identities and mutable records do not provide real accepted-use validation,
+/// multi-recipient receipt semantics, or exact import retries after live growth.
 pub struct HistoricalCheckpointStore {
     committed: Option<HistoricalCheckpoint>,
 }
@@ -69,8 +76,8 @@ impl HistoricalCheckpointStore {
         Ok(HistoricalCheckpointCommit::Published)
     }
 
-    /// Crash recovery only publishes a complete candidate. A dropped staged
-    /// candidate leaves the prior authoritative projection untouched.
+    /// Models candidate validation only; this performs no crash-prefix decoding
+    /// or durable recovery. An invalid candidate leaves the model unchanged.
     pub fn recover_complete_candidate(
         &mut self,
         candidate: HistoricalCheckpoint,
@@ -78,7 +85,7 @@ impl HistoricalCheckpointStore {
         self.publish(candidate)
     }
 
-    /// Rebuilds the sparse due index from the authoritative projection after reopen.
+    /// Builds a due index from the model snapshot; no REL reopen occurs here.
     pub fn rebuild_due_index(
         &self,
         as_of_position: u64,
@@ -99,7 +106,8 @@ impl HistoricalCheckpointStore {
         Ok(index)
     }
 
-    /// Applies a legitimate post-checkpoint event exactly once on the normal REL clock.
+    /// Models a caller-supplied contribution. This does not establish legitimate
+    /// accepted use, owner-clock identity, or the actual live receipt contract.
     pub fn apply_post_checkpoint_event(
         &mut self,
         event_id: [u8; 32],

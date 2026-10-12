@@ -1,4 +1,9 @@
-//! One-shot orchestration of the pure historical import stages.
+//! Experimental composition of caller-supplied historical planning stages.
+//!
+//! This in-memory model neither validates the canonical H1 manifest/Archive
+//! owner proofs nor commits the durable Cva Freshness checkpoint. Importer and
+//! runtime integration remain unimplemented; callers must not treat its result
+//! as accepted REL authority or an authorization decision.
 use super::historical_checkpoint::{
     HistoricalCheckpoint, HistoricalCheckpointCommit, HistoricalCheckpointError,
     HistoricalCheckpointStore,
@@ -80,8 +85,11 @@ impl From<FreshnessError> for HistoricalImportError {
     }
 }
 
-/// Executes the frozen import projection in memory and publishes one complete checkpoint.
-/// No intermediate event queue is retained; retries reuse the checkpoint store's identity gate.
+/// Computes a caller-supplied projection in an experimental in-memory model.
+/// It does not freeze a REL, verify source/graph/Community/vector/cohort proofs,
+/// quiesce workers, or call `Cva::commit_historical_import`. Its event identities
+/// are not the canonical H1 durable source-event identities. No model result is
+/// evidence that a real import has been accepted.
 pub fn execute_historical_import(
     input: HistoricalImportInput,
     store: &mut HistoricalCheckpointStore,
