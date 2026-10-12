@@ -1,5 +1,6 @@
 //! Deterministic owner-local Memory Freshness policy.
 pub mod historical_planner;
+pub mod historical_propagation;
 pub mod historical_semantic;
 mod policy;
 mod propagation;

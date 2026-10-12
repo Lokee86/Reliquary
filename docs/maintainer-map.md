@@ -146,3 +146,5 @@ For prospective propagation breadth by principal/root layout/membership, use `ex
 P6 matched release collection is owned by `scripts/freshness_release_verification.py`. [Development](development.md) owns frozen-build setup; [P6 integrated verification](freshness-performance-verification-2026-10-03.md) owns final numerical equivalence, full-operation evidence, build corrections and release disposition. Production owners and durable contracts are unchanged.
 
 The historical timeline gate is coordinated in `src/facade/cva_historical_freshness.rs`; actual activity positions remain owned by Archive, and ordering policy remains in `src/freshness/historical_planner.rs`. Regression fixtures are in `src/facade/historical_clock_tests.rs`.
+
+Historical import propagation planning is owned by `src/freshness/historical_propagation.rs`, with shared numerical mechanics in `src/freshness/propagation.rs`. `historical_propagation_tests.rs` owns authorization, variable-root max, recipient-only exclusions and bridge fixtures. See [Step 17 verification](freshness-historical-propagation-verification-2026-10-12.md).

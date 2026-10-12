@@ -67,3 +67,5 @@
 - [External research references](references/INDEX.md) — preserved third-party papers and research snapshots used as supporting design/evaluation evidence; not canonical project architecture.
 - [Versioning, historical cuts, and rollback](version-history-plan.md) — future-only whole-CVA historical-view, restore, retention, and reclamation plan.
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.
+
+- [Historical import propagation verification](freshness-historical-propagation-verification-2026-10-12.md)

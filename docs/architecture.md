@@ -530,3 +530,7 @@ Exact coordinator acquisition now verifies the durable branch and rejects fresh 
 Freshness owner reopen uses a disposable disk receipt lookup during validation and one final canonical replay. It retains no lifetime receipt ID table in RAM. The temporary lookup and sorted runs are rebuilt from the accepted owner prefix and removed after use.
 
 Pitlord also declares the existing Context Engine (src/context_engine.rs and directory), Project Environment (src/project_environment.rs, directory and root test modules), and pure typed-clock helpers (src/staleness) as distinct owners. Context Engine owns provider-neutral compaction/evidence policy; Project Environment owns Lore/Git repository bootstrap and attachment adapters; typed clocks own unit-safe threshold arithmetic only. These declarations repair omitted policy coverage without moving source or changing domain authority.
+
+## Historical import frontier ownership
+
+The pure import-only adapter in `src/freshness/historical_propagation.rs` composes a pinned authorized graph, per-root semantic/Dream strengths and recipient eligibility. The crate-private numerical frontier remains in `src/freshness/propagation.rs`, shared with ordinary propagation; each public path validates its own principals. Authorization restricts expansion, while import credit exclusions and availability only restrict awarding credit. No runtime or durable owner changed. [Step 17 evidence](freshness-historical-propagation-verification-2026-10-12.md) records the current planning-only scope.
