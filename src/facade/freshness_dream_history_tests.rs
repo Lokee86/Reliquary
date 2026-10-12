@@ -193,3 +193,59 @@ fn freshness_recovers_inactivated_link_and_uses_accepted_graph_snapshot() {
     assert_eq!(rel.freshness_record(untouched).unwrap(), before_untouched);
     assert!(rel.pending_initial_dream_pass(source).is_none());
 }
+
+#[test]
+fn historical_dream_retained_completed_proof_survives_reopen_without_writes() {
+    let fixture = Fixture::new();
+    let path = fixture.path("historical-completed-proof.rel");
+    let mut rel = Cva::create(&path).unwrap();
+    let root = publish(&mut rel, "historical-proof-root", "knowledge", "Root.");
+    let linked = publish(&mut rel, "historical-proof-linked", "extracted", "Linked.");
+    let empty = publish(&mut rel, "historical-proof-empty", "extracted", "Empty.");
+    for (source, roots) in [(linked, BTreeSet::from([root])), (empty, BTreeSet::new())] {
+        let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+        rel.begin_initial_dream_pass(
+            pass_id.clone(),
+            source,
+            1,
+            0,
+            roots.clone(),
+            rel.graph_version(),
+        )
+        .unwrap();
+        if source == linked {
+            rel.set_memory_relation_with_origin(
+                source,
+                root,
+                GraphRelationKind::Topical,
+                true,
+                GraphRelationOrigin::Dream,
+                rel.graph_version(),
+            )
+            .unwrap();
+        }
+        rel.record_initial_dream_roots(&pass_id, roots).unwrap();
+        rel.accept_initial_dream_settlement(&pass_id, 0).unwrap();
+        crate::dream_freshness::settle_initial_pass(&mut rel, source, false, 1).unwrap();
+    }
+    rel.sync().unwrap();
+    let bytes = std::fs::read(&path).unwrap();
+    let proofs = rel.historical_completed_initial_dream_passes().unwrap();
+    assert_eq!(proofs[&linked].roots, BTreeSet::from([root]));
+    assert!(proofs[&empty].roots.is_empty());
+    assert_eq!(
+        rel.historical_dream_representatives(linked, &proofs[&linked].roots)
+            .unwrap(),
+        std::collections::BTreeMap::from([(root, root)])
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
+    drop(rel);
+    let reopened = Cva::open(&path).unwrap();
+    assert_eq!(
+        reopened
+            .historical_completed_initial_dream_passes()
+            .unwrap(),
+        proofs
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
+}

@@ -534,3 +534,7 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 ## Historical import frontier ownership
 
 The pure import-only adapter in `src/freshness/historical_propagation.rs` composes a pinned authorized graph, per-root semantic/Dream strengths and recipient eligibility. The crate-private numerical frontier remains in `src/freshness/propagation.rs`, shared with ordinary propagation; each public path validates its own principals. Authorization restricts expansion, while import credit exclusions and availability only restrict awarding credit. No runtime or durable owner changed. [Step 17 evidence](freshness-historical-propagation-verification-2026-10-12.md) records the current planning-only scope.
+
+## Historical first-cycle Dream evidence
+
+The Dream journal supplies disposable completed-pass projections from retained bytes through `src/freshness_dream_journal.rs`; normal resident settlement and durable framing are unchanged. `src/facade/cva_historical_dream.rs` exposes proof reads and delegates representative selection to existing Dream authority. `src/freshness/historical_dream.rs` produces pure import events, with actual/no-link precedence and completed-direct-graph fallback. Manifest/proof validation and score publication remain later coordinator/checkpoint responsibilities. See [Step 18 evidence](freshness-historical-dream-verification-2026-10-12.md).

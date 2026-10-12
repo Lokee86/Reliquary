@@ -69,3 +69,5 @@
 - [Architectural decisions](decisions/INDEX.md) — durable decision records and rationale.
 
 - [Historical import propagation verification](freshness-historical-propagation-verification-2026-10-12.md)
+
+- [Historical first-cycle Dream verification](freshness-historical-dream-verification-2026-10-12.md)
