@@ -181,45 +181,20 @@ fn historical_import_rejects_live_completion_and_unfinished_generation() {
 }
 
 #[test]
-fn historical_reconstruction_unavailable_preserves_import_owner_and_file() {
-    let (path, mut cva, id) = historical_import_fixture("historical-coordinator-cut.rel");
+fn historical_embedding_fill_unavailable_preserves_import_owner_and_file() {
+    let (path, mut cva, id) = historical_import_fixture("historical-fill-unavailable.rel");
     cva.sync().unwrap();
     let before = fs::read(&path).unwrap();
     let record = cva.freshness_record(id);
-    let versions = (
-        cva.latest_global_version(),
-        cva.archive_version(),
-        cva.graph_version(),
-    );
-    for fill_missing_embeddings in [false, true] {
-        let error = cva
-            .reconstruct_historical_freshness(HistoricalReconstructionOptions {
-                fill_missing_embeddings,
-            })
-            .unwrap_err();
-        if fill_missing_embeddings {
-            assert!(matches!(
-                error,
-                HistoricalReconstructionError::EmbeddingFillUnavailable
-            ));
-        } else {
-            assert!(matches!(
-                error,
-                HistoricalReconstructionError::PipelineUnavailable
-            ));
-        }
-        assert_eq!(fs::read(&path).unwrap(), before);
-        assert_eq!(cva.freshness_record(id), record);
-        assert_eq!(
-            (
-                cva.latest_global_version(),
-                cva.archive_version(),
-                cva.graph_version()
-            ),
-            versions
-        );
-        assert!(cva.freshness.import_checkpoint().is_none());
-    }
+    assert!(matches!(
+        cva.reconstruct_historical_freshness(HistoricalReconstructionOptions {
+            fill_missing_embeddings: true
+        }),
+        Err(HistoricalReconstructionError::EmbeddingFillUnavailable)
+    ));
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(cva.freshness_record(id), record);
+    assert!(cva.freshness.import_checkpoint().is_none());
 }
 
 #[test]

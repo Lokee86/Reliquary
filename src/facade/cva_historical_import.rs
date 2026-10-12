@@ -22,6 +22,7 @@ mod transform;
 #[derive(Clone, Debug)]
 struct FrozenHistoricalImport {
     events: Option<events::NativeHistoricalEvents>,
+    propagation: Option<manifest::PropagationInputs>,
     checkpoint: ImportCheckpoint,
     initial: BTreeMap<MemoryId, FreshnessRecord>,
 }
@@ -30,6 +31,59 @@ struct PreparedHistoricalImport {
     checkpoint: ImportCheckpoint,
 }
 impl FrozenHistoricalImport {
+    /// Only the owner-derived batch can enter production scoring.
+    fn prepare_native(&self) -> Result<PreparedHistoricalImport, CvaError> {
+        let Some(batch) = &self.events else {
+            return Ok(PreparedHistoricalImport {
+                checkpoint: self.checkpoint.clone(),
+            });
+        };
+        let inputs = self
+            .propagation
+            .as_ref()
+            .ok_or_else(|| fail("missing frozen propagation proof"))?;
+        if batch
+            .ordered
+            .iter()
+            .any(|(_, event)| event.position > self.checkpoint.cut)
+        {
+            return Err(fail(
+                "historical source event exceeds frozen checkpoint cut",
+            ));
+        }
+        let events: Vec<_> = batch
+            .ordered
+            .iter()
+            .map(|(_, event)| event.clone())
+            .collect();
+        let outcomes = crate::freshness::historical_propagation::propagate_historical_events(
+            &events,
+            &inputs.adjacency,
+            &inputs.memberships,
+            &inputs.authorized,
+            &inputs.availability,
+            1,
+            &FreshnessPolicy::default_v1(),
+        )
+        .map_err(|e| fail(&e.to_string()))?;
+        let scores: Vec<_> = batch
+            .ordered
+            .iter()
+            .zip(outcomes)
+            .flat_map(|((id, event), outcome)| {
+                outcome
+                    .candidates
+                    .into_iter()
+                    .map(move |(recipient, amount)| HistoricalScoreEvent {
+                        recipient,
+                        position: event.position,
+                        event_id: *id,
+                        amount,
+                    })
+            })
+            .collect();
+        self.prepare(&scores)
+    }
     fn import_id(&self) -> [u8; 32] {
         self.checkpoint.import_id
     }
@@ -116,6 +170,7 @@ impl Cva {
             }
             return Ok(FrozenHistoricalImport {
                 events: None,
+                propagation: None,
                 checkpoint,
                 initial,
             });
@@ -143,6 +198,7 @@ impl Cva {
         };
         Ok(FrozenHistoricalImport {
             events: Some(events),
+            propagation: Some(manifest.propagation),
             checkpoint,
             initial: manifest.initial,
         })

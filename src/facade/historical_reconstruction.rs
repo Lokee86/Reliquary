@@ -1,6 +1,5 @@
 //! Sole operation boundary for explicit REL-local historical reconstruction.
-//! C3-C4 verify the native manifest/events; C5 integrates publication. Until then
-//! this entry point rejects without publishing any provisional result.
+//! The exclusively borrowed Cva owns freeze, planning, scoring and CVAFRS03 publication.
 use super::*;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -24,7 +23,6 @@ pub struct HistoricalReconstructionReport {
 pub enum HistoricalReconstructionError {
     Owner(CvaError),
     EmbeddingFillUnavailable,
-    PipelineUnavailable,
 }
 
 impl std::fmt::Display for HistoricalReconstructionError {
@@ -33,9 +31,6 @@ impl std::fmt::Display for HistoricalReconstructionError {
             Self::Owner(error) => write!(f, "historical reconstruction: {error}"),
             Self::EmbeddingFillUnavailable => {
                 f.write_str("historical embedding-only fill is unavailable")
-            }
-            Self::PipelineUnavailable => {
-                f.write_str("verified native historical reconstruction pipeline is unavailable")
             }
         }
     }
@@ -63,17 +58,24 @@ impl Cva {
     /// can only use this module's private freeze/prepare/commit primitives and
     /// the existing FreshnessStore CVAFRS03 checkpoint.
     ///
-    /// C2 establishes this hard-cut boundary. It returns an explicit unavailable
-    /// error without mutation until the C3-C5 owner pipeline is integrated.
+    /// Generation must be complete. Missing-embedding fill remains unavailable;
+    /// accepted retries resolve before new owner-input checks and preserve live growth.
     pub fn reconstruct_historical_freshness(
         &mut self,
         options: HistoricalReconstructionOptions,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        self.historical_reconstruction_owner()?;
         if options.fill_missing_embeddings {
             return Err(HistoricalReconstructionError::EmbeddingFillUnavailable);
         }
-        let _frozen = self.freeze_historical_import()?;
-        Err(HistoricalReconstructionError::PipelineUnavailable)
+        let frozen = self.freeze_historical_import()?;
+        let prepared = frozen.prepare_native()?;
+        let committed = self.commit_historical_import(&prepared)?;
+        Ok(HistoricalReconstructionReport {
+            import_id: prepared.checkpoint.import_id,
+            manifest_digest: prepared.checkpoint.manifest_digest,
+            activity_cut: prepared.checkpoint.cut,
+            reconstructed_memories: prepared.checkpoint.records.len(),
+            committed,
+        })
     }
 }

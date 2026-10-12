@@ -7,7 +7,15 @@ use crate::{Cva, CvaError, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[derive(Clone, Debug)]
+pub(super) struct PropagationInputs {
+    pub adjacency: crate::freshness::MemoryAdjacency,
+    pub memberships: crate::freshness::CommunityMembership,
+    pub authorized: BTreeSet<MemoryId>,
+    pub availability: BTreeMap<MemoryId, crate::freshness::historical_planner::MemoryAvailability>,
+}
 pub(super) struct Manifest {
+    pub propagation: PropagationInputs,
     pub input_digest: [u8; 32],
     pub input_bytes: u64,
     pub memory_inputs: BTreeMap<MemoryId, input::HistoricalMemoryInput>,
@@ -134,7 +142,10 @@ pub(super) fn community_proof(
         ("snapshot", evidence),
     ]))
 }
-fn graph_proof(cva: &mut Cva, ids: &BTreeSet<MemoryId>) -> Result<Value, CvaError> {
+fn graph_proof(
+    cva: &mut Cva,
+    ids: &BTreeSet<MemoryId>,
+) -> Result<(Value, crate::freshness::MemoryAdjacency), CvaError> {
     let mut relations = cva.graph.active_semantic_relations();
     relations.sort_by_key(|r| (r.source, r.target, r.kind.code()));
     let mut typed = Vec::new();
@@ -212,6 +223,7 @@ fn graph_proof(cva: &mut Cva, ids: &BTreeSet<MemoryId>) -> Result<Value, CvaErro
     }
     let adjacency = Value::Array(
         neighbors
+            .clone()
             .into_iter()
             .map(|(id, ns)| {
                 Value::map([
@@ -303,43 +315,46 @@ fn graph_proof(cva: &mut Cva, ids: &BTreeSet<MemoryId>) -> Result<Value, CvaErro
             ),
         ]));
     }
-    Ok(Value::map([
-        ("graph_version", Value::Unsigned(cva.graph_version())),
-        (
-            "memory_graph_version",
-            Value::Unsigned(cva.memory_graph_version()),
-        ),
-        ("relationships", typed.clone()),
-        (
-            "relationship_digest",
-            Value::bytes(typed.digest("reliquary:historical-relationships:v1")?),
-        ),
-        ("adjacency", adjacency.clone()),
-        (
-            "adjacency_digest",
-            Value::bytes(adjacency.digest("reliquary:historical-adjacency:v1")?),
-        ),
-        ("duplicate_authority", authority.clone()),
-        (
-            "duplicate_authority_digest",
-            Value::bytes(authority.digest("reliquary:historical-duplicate-authority:v1")?),
-        ),
-        ("dream_proof", Value::Array(dream)),
-        (
-            "excluded_endpoint_kinds",
-            Value::Array(
-                excluded
-                    .into_iter()
-                    .map(|(kind, count)| {
-                        Value::map([
-                            ("kind", Value::Unsigned(u64::from(kind))),
-                            ("count", Value::Unsigned(count)),
-                        ])
-                    })
-                    .collect(),
+    Ok((
+        Value::map([
+            ("graph_version", Value::Unsigned(cva.graph_version())),
+            (
+                "memory_graph_version",
+                Value::Unsigned(cva.memory_graph_version()),
             ),
-        ),
-    ]))
+            ("relationships", typed.clone()),
+            (
+                "relationship_digest",
+                Value::bytes(typed.digest("reliquary:historical-relationships:v1")?),
+            ),
+            ("adjacency", adjacency.clone()),
+            (
+                "adjacency_digest",
+                Value::bytes(adjacency.digest("reliquary:historical-adjacency:v1")?),
+            ),
+            ("duplicate_authority", authority.clone()),
+            (
+                "duplicate_authority_digest",
+                Value::bytes(authority.digest("reliquary:historical-duplicate-authority:v1")?),
+            ),
+            ("dream_proof", Value::Array(dream)),
+            (
+                "excluded_endpoint_kinds",
+                Value::Array(
+                    excluded
+                        .into_iter()
+                        .map(|(kind, count)| {
+                            Value::map([
+                                ("kind", Value::Unsigned(u64::from(kind))),
+                                ("count", Value::Unsigned(count)),
+                            ])
+                        })
+                        .collect(),
+                ),
+            ),
+        ]),
+        neighbors,
+    ))
 }
 fn vector_proof(
     cva: &mut Cva,
@@ -602,8 +617,36 @@ pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
             Value::text("verified-disjoint-provisional-dream-effects-v1"),
         ),
     ]);
-    let graph = graph_proof(cva, &ids)?;
-    let community = community_proof(cva.community_snapshot(), cva.memory_graph_version(), &ids)?;
+    let (graph, adjacency) = graph_proof(cva, &ids)?;
+    let snapshot = cva.community_snapshot();
+    let community = community_proof(snapshot.clone(), cva.memory_graph_version(), &ids)?;
+    let memberships = snapshot
+        .filter(|s| s.derived_graph_version == cva.memory_graph_version())
+        .into_iter()
+        .flat_map(|s| s.communities)
+        .flat_map(|c| c.members.into_iter().map(move |id| (id, c.id)))
+        .collect();
+    let availability = admission
+        .memory_inputs
+        .iter()
+        .map(|(&id, input)| {
+            use crate::freshness::historical_planner::MemoryAvailability;
+            let value = match input.availability {
+                Some(position) if input.credit_eligible => {
+                    MemoryAvailability::Supported { position }
+                }
+                Some(_) => MemoryAvailability::CreditExcluded,
+                None => MemoryAvailability::Unsupported,
+            };
+            (id, value)
+        })
+        .collect();
+    let propagation = PropagationInputs {
+        adjacency,
+        memberships,
+        authorized: ids.clone(),
+        availability,
+    };
     let (vectors, sources) = vector_proof(cva, &timeline.activity_order)?;
     let order = Value::Array(
         timeline
@@ -759,6 +802,7 @@ pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
     ]);
     let digest = value.digest("reliquary:historical-manifest:v1")?;
     Ok(Manifest {
+        propagation,
         input_digest: prefix,
         input_bytes,
         memory_inputs: admission.memory_inputs,

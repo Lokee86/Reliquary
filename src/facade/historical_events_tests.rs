@@ -216,3 +216,140 @@ fn historical_native_actual_dream_no_link_duplicate_authority_and_event_order() 
         assert_eq!(fs::read(&path).unwrap(), before);
     }
 }
+
+#[test]
+fn historical_native_operation_publishes_multi_recipient_projection_and_reopens() {
+    let (path, mut cva, ids) = historical_import_fixture_count("h5-native-pipeline.rel", 2);
+    vectors(&mut cva);
+    cva.sync().unwrap();
+    let frozen = cva.freeze_historical_import().unwrap();
+    let prepared = frozen.prepare_native().unwrap();
+    assert!(prepared.records().values().all(|r| r.score == 100));
+    let before = fs::read(&path).unwrap();
+    let report = cva
+        .reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
+        .unwrap();
+    assert!(report.committed);
+    assert_eq!(report.activity_cut, 32);
+    assert_eq!(report.reconstructed_memories, 2);
+    assert_eq!(report.manifest_digest, prepared.checkpoint.manifest_digest);
+    assert!(
+        fs::read(&path)
+            .unwrap()
+            .windows(8)
+            .any(|w| w == b"CVAFRS03")
+    );
+    assert_ne!(fs::read(&path).unwrap(), before);
+    for id in &ids {
+        assert_eq!(cva.freshness_record(*id), Some(prepared.records()[id]));
+    }
+    drop(cva);
+    let mut cva = Cva::open(&path).unwrap();
+    let accepted = fs::read(&path).unwrap();
+    let retry = cva
+        .reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
+        .unwrap();
+    assert!(!retry.committed);
+    assert_eq!(retry.manifest_digest, report.manifest_digest);
+    assert_eq!(fs::read(&path).unwrap(), accepted);
+    for id in ids {
+        assert_eq!(cva.freshness_record(id), Some(prepared.records()[&id]));
+    }
+}
+#[test]
+fn historical_native_operation_scores_dream_and_preserves_post_checkpoint_activity() {
+    let (path, mut cva, target) = historical_import_fixture("h5-native-dream.rel");
+    let source = linked_source(&mut cva, target, false);
+    let report = cva
+        .reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
+        .unwrap();
+    assert!(report.committed);
+    assert_eq!(cva.freshness_record(target).unwrap().score, 100);
+    assert_eq!(cva.freshness_record(source).unwrap().score, 100);
+    cva.append_node(
+        "live".into(),
+        "later".into(),
+        None,
+        "user".into(),
+        500,
+        "Live growth.",
+    )
+    .unwrap();
+    let before = fs::read(&path).unwrap();
+    assert!(
+        !cva.reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
+            .unwrap()
+            .committed
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
+    drop(cva);
+    let mut reopened = Cva::open(&path).unwrap();
+    assert!(
+        !reopened
+            .reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
+            .unwrap()
+            .committed
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
+}
+#[test]
+fn historical_native_operation_publishes_unadmitted_archived_duplicate_and_reopens() {
+    let (path, mut cva, target) = historical_import_fixture("h5-native-duplicate.rel");
+    let alias = linked_source(&mut cva, target, true);
+    assert!(cva.memory(alias).unwrap().archived);
+    assert!(
+        cva.freshness_record(alias)
+            .unwrap()
+            .admitted_at_turn
+            .is_none()
+    );
+    let report = cva
+        .reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
+        .unwrap();
+    assert!(report.committed);
+    assert_eq!(
+        cva.freshness_record(alias),
+        Some(FreshnessRecord::created())
+    );
+    assert_eq!(cva.freshness_record(target).unwrap().score, 100);
+    drop(cva);
+    let mut cva = Cva::open(&path).unwrap();
+    assert_eq!(
+        cva.freshness_record(alias),
+        Some(FreshnessRecord::created())
+    );
+    let before = fs::read(&path).unwrap();
+    assert!(
+        !cva.reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
+            .unwrap()
+            .committed
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
+}
+#[test]
+fn historical_native_prepared_batch_rejects_exact_file_drift_without_publication() {
+    let (path, mut cva, id) = historical_import_fixture("h5-prefix-drift.rel");
+    let prepared = cva
+        .freeze_historical_import()
+        .unwrap()
+        .prepare_native()
+        .unwrap();
+    let original = cva.freshness_record(id);
+    cva.store_file(
+        "drift.txt".into(),
+        Some("text/plain".into()),
+        b"Changed retained owner evidence.",
+    )
+    .unwrap();
+    cva.sync().unwrap();
+    let before = fs::read(&path).unwrap();
+    assert!(
+        cva.commit_historical_import(&prepared)
+            .unwrap_err()
+            .to_string()
+            .contains("ImportInputDrift")
+    );
+    assert_eq!(cva.freshness_record(id), original);
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert!(cva.freshness.import_checkpoint().is_none());
+}

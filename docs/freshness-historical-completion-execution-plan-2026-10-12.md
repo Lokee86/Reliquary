@@ -26,7 +26,7 @@ Historical reconstruction already has:
 - copy/repack/reclamation/reconciliation preservation tests; and
 - partial model-level orchestration/recovery evidence.
 
-Following C2, the experimental in-memory coordinator and duplicate checkpoint store are deleted. Native checkpoint construction/publication is private to the Cva owner module, and the sole caller operation accepts only options. The owner-derived manifest, canonical event production and native pipeline remain C3–C5 work; until those stages are integrated the operation rejects explicitly without publication.
+C2–C5 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native crash-prefix recovery, mounted/importer and embedding integration, retained-corpus measurements and release disposition remain C6–C12.
 
 At the time this plan was written, `feat/freshness-semantic-historical-linear` was **66 commits behind `main` and 28 commits ahead**. Current `main` contains later multiplexing/import/runtime ownership work. Convergence is therefore a prerequisite, not cleanup after implementation.
 
@@ -322,3 +322,39 @@ Architecture impact:
 - Known architectural gaps: publication/recovery, bounded embedding, importer and retained-corpus/release closure remain C5–C12.
 
 Final architecture evidence: sha256:c9651678ffe85a0b23824b4244ba844f01536dbb584607f093d95cee8b6dcf63; 23 rules, 68906 source nodes, 2369 relationships.
+
+## C5 disposition and verification
+
+**C5 complete: native one-shot reconstruction through Cva → FreshnessStore → CVAFRS03.** Final documentation/architecture checks are recorded below. C6 native crash-prefix recovery is next; this is not H1–H8 release completion.
+
+- The exclusive Cva operation verifies settled generation, derives the final manifest/timeline and canonical semantic/Dream batch, propagates using the graph/Community/availability retained by that manifest, scores chronological sparse recipient contributions, prepares the native checkpoint and commits through the existing owner.
+- Production preparation accepts no supplied score plan. Raw source identity and position remain shared across recipients; contributions must target admitted reconstructed records and stay within the frozen cut. One maximum contribution per recipient/source is emitted. No permanent event queue or alternate ledger is retained.
+- Exact accepted retries return the stored checkpoint before new owner-input/generation checks, with committed=false and no append/rescoring. Legitimate subsequent activity is preserved. Optional embedding fill still explicitly rejects until C7–C8.
+- Native fixtures execute the public operation with genuine Import/Insomnia/Dream and retained vector evidence, prove multi-recipient semantic scoring, Dream scoring, CVAFRS03 bytes and normal reopen, accepted retry/no writes and retry after live growth. A clock-neutral retained-file change invalidates the frozen input before projection replacement, preserving bytes and accepted scores.
+- Mounted callers still require existing Gateway quiescence/admission. Exhaustive crash framing/reopen/due-index/multi-recipient-use recovery remains C6; importer/embedding integration and release acceptance remain C7–C12.
+
+Verification:
+- cargo test --locked --lib historical -j 2: 75 passed.
+- cargo test --locked --lib -j 2: 1,223 passed, 3 ignored. Native import-checkpoint filter: 4 passed.
+- cargo check --locked --tests -j 2: passed, including compilation of all integration-test targets.
+- CLI locked check and tests: passed, 19 tests. Root and CLI formatting checks passed.
+- Full root integration execution remains part of C11; the converged Windows all-target link/PDB limitation is recorded in C1. No full-release claim is made here.
+- Final review closed a native checkpoint validation gap: final credit-excluded replacements now accept only canonical unadmitted creation records. Native archived-duplicate publication/reopen/retry and codec corruption/roundtrip fixtures pass. The first duplicate fixture incorrectly expected prior admission; the actual native Dream alias is already unadmitted, and the expectation was corrected. Initial store_file signature compilation was also corrected. Failed attempts are not passing evidence. Temporary fixtures are removed before architecture verification.
+
+Documentation impact:
+- Inspected: architecture, invariants, storage-format, maintainer-map, current-limitations, roadmap, API, H1 policy and active completion plan; shared engineering rules.
+- Updated: supported C5 operation, frozen propagation inputs, native publication/retry/drift behavior and remaining gates.
+- Not affected: live F8 numerical policy, durable checkpoint framing, PHY scope and default activation.
+- Compliance check: both structural and changed-from-origin/main documentation-policy modes passed.
+- Known documentation gaps: C6–C12 verification/disposition remains pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: Cva derives all production plans and retains verified propagation inputs; existing FreshnessStore/CVAFRS03 remains sole acceptance authority. No generalized store or queue is introduced.
+- Pitlord enforcement impact: policy unchanged; refresh passed all 23 rules without violations.
+- Other verification impact: native public operation, multi-recipient source identity, semantic/Dream scoring, file drift and reopen/retry regressions.
+- Known architectural gaps: exhaustive native recovery, mounted/importer/embedding boundaries, retained-corpus measurement and release gates remain C6–C12.
+
+Final C5 gates:
+- Both documentation-policy modes and git diff --check passed on the final implementation; required ownership guards passed (75 P4 fixtures, 161 classified public APIs, 11 external ownership fixtures).
+- Architecture refresh passed: sha256:6e9f1332083655835663b7480401c2262d17516e34869f660a194c3783bd5d66; 69,021 source nodes, 2,369 relationships, 23 rules, no violations.

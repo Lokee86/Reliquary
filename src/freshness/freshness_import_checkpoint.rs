@@ -83,6 +83,23 @@ mod tests {
         (store, cp, event)
     }
     #[test]
+    fn checkpoint_credit_excluded_replacement_is_canonical_and_roundtrips() {
+        let (mut store, mut cp, _) = fixture();
+        let id = *cp.records.keys().next().unwrap();
+        cp.records.insert(id, FreshnessRecord::created());
+        let bytes = cp.encode();
+        assert_eq!(ImportCheckpoint::decode(&bytes).unwrap(), cp);
+        store.ingest_import_checkpoint(&bytes).unwrap();
+        assert_eq!(store.records()[&id], FreshnessRecord::created());
+        assert_eq!(
+            store.records_at(cp.cut).unwrap()[&id],
+            FreshnessRecord::created()
+        );
+        let mut corrupt = cp;
+        corrupt.records.get_mut(&id).unwrap().score = 99;
+        assert!(ImportCheckpoint::decode(&corrupt.encode()).is_err());
+    }
+    #[test]
     fn checkpoint_corruption_and_conflict_never_partially_replace_records() {
         let (mut store, cp, _) = fixture();
         let bytes = cp.encode();
@@ -292,7 +309,13 @@ impl ImportCheckpoint {
         }
         for record in self.records.values() {
             if record.admitted_at_turn.is_none() {
-                return Err("import replacement records require supported admission proof".into());
+                // The owner manifest may replace provisional admission for a
+                // supported but final credit-excluded Memory. Its sole valid
+                // unadmitted projection is the canonical creation record.
+                if *record != FreshnessRecord::created() {
+                    return Err("invalid unadmitted import replacement record".into());
+                }
+                continue;
             }
             let mut settled = *record;
             settled
