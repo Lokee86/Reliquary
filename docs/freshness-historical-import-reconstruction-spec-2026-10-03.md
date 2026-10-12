@@ -1,7 +1,7 @@
 # Reliquary Freshness — provenance-timed historical import reconstruction
 
 **Date:** 2026-10-03
-**Status:** Accepted design, not implemented or verified.
+**Status:** Accepted design; Step 13/H1 policy is frozen in the [manifest and timeline contract](freshness-historical-manifest-policy.md). Historical reconstruction is not implemented or verified.
 **Scope:** Optional, more computationally intensive one-time mode for freshly generated complete imported owner-REL corpora. Ordinary import and routine live semantic reinforcement do not inherit reconstruction costs or behavior.
 **Governing documents:** [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [F1–F8 plan](generic-staleness-implementation-plan.md), [completion plan](freshness-completion-execution-plan-2026-10-03.md), [REL activity clock](rel-activity-clock-implementation-plan.md).
 
@@ -11,7 +11,7 @@ Define the optional one-time historical reconstruction path for freshly generate
 
 ## Overview
 
-The reconstruction generates the corpus and settled graph once, derives a provenance-timed event stream against that fixed authorized graph, replays eligible contributions chronologically with the existing Freshness score mathematics, and atomically replaces provisional import scoring with one owner-local checkpoint. It is intentionally more expensive than normal import and remains REL-local until separate PHY clock semantics are approved.
+The [frozen v1 manifest/timeline policy](freshness-historical-manifest-policy.md) selects the initial supported rules where this broader design lists alternatives; future conversions or fallback policies require a new approved version. The reconstruction generates the corpus and settled graph once, derives a provenance-timed event stream against that fixed authorized graph, replays eligible contributions chronologically with the existing Freshness score mathematics, and atomically replaces provisional import scoring with one owner-local checkpoint. It is intentionally more expensive than normal import and remains REL-local until separate PHY clock semantics are approved.
 
 ## 1. Decision
 
@@ -59,7 +59,7 @@ Event-generation output is transient: stable origin event ID, source turn identi
 
 For each historical accepted turn, take embeddings of genuinely ingested fragments. Reuse actually retained, compatible embeddings if present. If fragments lack stored vectors, offer a separately disclosed **optional bounded embedding-only pass**, without any new Insomnia/Dream model generation. If declined or unsupported, skip only that unavailable semantic input and report coverage; do not pretend all fragment embeddings were saved.
 
-Query eligible, owner-authorized Memory vectors with compatible embedding profile/generation via a bounded index, without allowing future vectors to crowd out eligible historical candidates. Initial cosine threshold **0.75 is tentative** from F8; similarity bonus curve, cap and index behavior remain versioned F8 policy choices, evaluated with cheap synthetic fixtures or already available retained corpus data, not mandatory new REL/PHY inference. For each (source turn, target Memory), retain the strongest qualifying fragment similarity and only one direct root bonus. Exclude source-self matches and unsupported lifecycle/profile matches.
+Query eligible, owner-authorized Memory vectors with compatible embedding profile/generation via a bounded index, without allowing future vectors to crowd out eligible historical candidates. The shipped F8 v1 policy fixes the inclusive cosine threshold **0.75**, +1..+10 curve and top-64 eligible direct roots. The [historical manifest policy](freshness-historical-manifest-policy.md) reuses those constants and pins recipient-only import propagation separately; no new REL/PHY inference is required to select them. For each (source turn, target Memory), retain the strongest qualifying fragment similarity and only one direct root bonus. Exclude source-self matches and unsupported lifecycle/profile matches.
 
 One **semantic originating event per accepted source turn** can have multiple eligible roots with different semantic bonuses. Evaluate each root with the existing local/outside per-hop costs relative to that root's fixed originating Community, then take the **maximum path/root candidate for each recipient for the whole turn**. Several fragments, roots or traversal paths must NOT sum multiple semantic awards to the same recipient from one turn. A direct root receives its local candidate even if isolated/no graph projection node exists. A recipient ineligible in that historical turn receives nothing, but can still bridge a route to another eligible recipient. A valid match in ordinary live ingestion continues to reinforce **only its target**.
 
