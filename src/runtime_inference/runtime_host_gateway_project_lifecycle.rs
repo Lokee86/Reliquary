@@ -66,7 +66,13 @@ impl GatewayRuntime {
     ) -> Result<crate::RelReconciliationReport, super::ReliquaryRuntimeHostError> {
         let path = canonical.as_ref();
         let _claim = self.admit_unmounted_path(path)?;
-        super::super::reconciliation::reconcile_rel_file_unmounted(path).map_err(super::operation)
+        let endpoint = self
+            .routes
+            .read()
+            .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?
+            .embedding();
+        super::super::reconciliation::reconcile_rel_file_unmounted(path, endpoint.as_ref())
+            .map_err(super::operation)
     }
     fn admit_unmounted_path(
         &self,

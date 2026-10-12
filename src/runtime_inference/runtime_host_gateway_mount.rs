@@ -19,25 +19,6 @@ pub(super) struct MountedFileIdentity {
     pub canonical_path: PathBuf,
 }
 impl MountedFileIdentity {
-    fn legacy_container(
-        container: &Container,
-        kind: OwnerKind,
-    ) -> Result<Self, ReliquaryRuntimeHostError> {
-        let canonical_path = std::fs::canonicalize(container.path()).map_err(operation)?;
-        let owner_id = container
-            .owner_id()
-            .unwrap_or_else(|| format!("legacy-{}", uuid::Uuid::new_v4()));
-        let key = physical_key(container.backing_file())
-            .map_err(operation)?
-            .unwrap_or_else(|| FileKey::PathScoped(canonical_path.clone()));
-        Ok(Self {
-            owner_id,
-            kind,
-            key,
-            canonical_path,
-        })
-    }
-
     pub(super) fn inspect(path: &Path, kind: OwnerKind) -> Result<Self, ReliquaryRuntimeHostError> {
         let canonical_path = std::fs::canonicalize(path).map_err(operation)?;
         let mut file = File::open(&canonical_path).map_err(operation)?;
@@ -102,38 +83,20 @@ impl MountedFileIdentity {
     }
 }
 
-// Claims govern live runtime hosts and gateways in this process, not arbitrary direct
-// file clients or other processes. The semantic registry remains GatewayRuntime's.
+// Claims exclude concurrent Gateway executions in this process. They do not govern
+// arbitrary direct file clients or other processes. Gateway owns the semantic registry.
 #[derive(Clone, Debug)]
 struct ClaimIdentity {
     key: FileKey,
     canonical_path: PathBuf,
 }
 static LIVE_MOUNTS: OnceLock<Mutex<BTreeMap<String, ClaimIdentity>>> = OnceLock::new();
-pub(crate) struct MountClaim(String);
+pub(super) struct MountClaim(String);
 impl MountClaim {
     pub(super) fn acquire(
         identity: &MountedFileIdentity,
     ) -> Result<Self, ReliquaryRuntimeHostError> {
         Self::acquire_identity(identity)
-    }
-
-    pub(crate) fn acquire_legacy_rel(
-        container: &Container,
-    ) -> Result<Self, ReliquaryRuntimeHostError> {
-        Self::acquire_identity(&MountedFileIdentity::legacy_container(
-            container,
-            OwnerKind::Rel,
-        )?)
-    }
-
-    pub(crate) fn acquire_legacy_phy(
-        container: &Container,
-    ) -> Result<Self, ReliquaryRuntimeHostError> {
-        Self::acquire_identity(&MountedFileIdentity::legacy_container(
-            container,
-            OwnerKind::Phy,
-        )?)
     }
 
     fn acquire_identity(identity: &MountedFileIdentity) -> Result<Self, ReliquaryRuntimeHostError> {

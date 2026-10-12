@@ -1,6 +1,6 @@
 use crate::{
-    Cva, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryMode,
-    ReliquaryRuntimeHost, ReliquaryRuntimeRoutes,
+    Cva, GatewayRuntime, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryMode,
+    ReliquaryRuntimeRoutes,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -18,8 +18,9 @@ fn rel_path(label: &str) -> PathBuf {
     temp_dir(label).join("project.rel")
 }
 
-fn host() -> ReliquaryRuntimeHost {
-    ReliquaryRuntimeHost::new(
+fn host() -> GatewayRuntime {
+    GatewayRuntime::new(
+        temp_dir("gateway-state"),
         ReliquaryRuntimeRoutes::default(),
         crate::InsomniaWorkerConfig::default(),
         crate::EpisodePolicy::default(),
@@ -97,20 +98,21 @@ fn manual_lore_checkpoint_is_explicit_and_updates_revision() {
     let project = temp_dir("manual-lore");
     fs::write(project.join("brief.txt"), b"initial").unwrap();
     let rel = rel_path("manual-lore-rel");
-    let mut host = host();
+    let host = host();
     let cva = host
         .create_project_environment_rel(&rel, &project, ProjectRepositoryMode::ManualLore)
         .unwrap();
     let owner = cva.owner_id().unwrap();
     let before = cva.latest_project_revision_correlation().unwrap();
     host.mount_rel(crate::InteractionRuntime::new(cva)).unwrap();
+    let instance = project_instance(&host, &owner);
 
     fs::write(project.join("later.txt"), b"later").unwrap();
     let revision = host
-        .checkpoint_manual_project_for(&owner, &project)
+        .checkpoint_manual_project_for(&instance, &owner, &project)
         .unwrap();
     let after = host
-        .latest_project_revision_correlation_for(&owner)
+        .latest_project_revision_correlation_for(&instance, &owner)
         .unwrap()
         .unwrap();
 
@@ -198,24 +200,28 @@ fn project_adoption_preserves_owner_and_existing_rel_content() {
 fn lore_attachment_reference_reads_exact_historical_bytes() {
     let project = temp_dir("exact-lore");
     let rel = rel_path("exact-lore-rel");
-    let mut host = host();
+    let host = host();
     let cva = host
         .create_project_environment_rel(&rel, &project, ProjectRepositoryMode::ManagedLore)
         .unwrap();
     let owner = cva.owner_id().unwrap();
     host.mount_rel(crate::InteractionRuntime::new(cva)).unwrap();
+    let instance = project_instance(&host, &owner);
 
     let external = temp_dir("exact-lore-source").join("evidence.txt");
     fs::write(&external, b"original bytes").unwrap();
     let file = host
-        .ingest_project_attachment_for(&owner, &project, &external)
+        .ingest_project_attachment_for(&instance, &owner, &project, &external)
         .unwrap();
-    let reference = host.project_file_ref_for(&owner, file.id).unwrap().unwrap();
+    let reference = host
+        .project_file_ref_for(&instance, &owner, file.id)
+        .unwrap()
+        .unwrap();
     let materialized = project.join(&reference.path);
     fs::write(&materialized, b"mutated working bytes").unwrap();
 
     assert_eq!(
-        host.resolved_file_bytes_for(&owner, Some(&project), file.id)
+        host.resolved_file_bytes_for(&instance, &owner, Some(&project), file.id)
             .unwrap(),
         b"original bytes"
     );
@@ -226,24 +232,28 @@ fn git_attachment_snapshot_does_not_move_head_and_reads_exact_bytes() {
     let project = temp_dir("exact-git");
     let head = init_git(&project);
     let rel = rel_path("exact-git-rel");
-    let mut host = host();
+    let host = host();
     let cva = host
         .create_project_environment_rel(&rel, &project, ProjectRepositoryMode::Git)
         .unwrap();
     let owner = cva.owner_id().unwrap();
     host.mount_rel(crate::InteractionRuntime::new(cva)).unwrap();
+    let instance = project_instance(&host, &owner);
 
     let external = temp_dir("exact-git-source").join("evidence.txt");
     fs::write(&external, b"snapshot bytes").unwrap();
     let file = host
-        .ingest_project_attachment_for(&owner, &project, &external)
+        .ingest_project_attachment_for(&instance, &owner, &project, &external)
         .unwrap();
-    let reference = host.project_file_ref_for(&owner, file.id).unwrap().unwrap();
+    let reference = host
+        .project_file_ref_for(&instance, &owner, file.id)
+        .unwrap()
+        .unwrap();
 
     assert_eq!(git(&project, &["rev-parse", "HEAD"]), head);
     fs::write(project.join(&reference.path), b"later bytes").unwrap();
     assert_eq!(
-        host.resolved_file_bytes_for(&owner, Some(&project), file.id)
+        host.resolved_file_bytes_for(&instance, &owner, Some(&project), file.id)
             .unwrap(),
         b"snapshot bytes"
     );
@@ -254,12 +264,13 @@ fn repository_identity_mismatch_is_rejected() {
     let project = temp_dir("identity");
     init_git(&project);
     let rel = rel_path("identity-rel");
-    let mut host = host();
+    let host = host();
     let cva = host
         .create_project_environment_rel(&rel, &project, ProjectRepositoryMode::Git)
         .unwrap();
     let owner = cva.owner_id().unwrap();
     host.mount_rel(crate::InteractionRuntime::new(cva)).unwrap();
+    let instance = project_instance(&host, &owner);
 
     git(
         &project,
@@ -271,8 +282,27 @@ fn repository_identity_mismatch_is_rejected() {
         ],
     );
     let error = host
-        .validate_project_environment_for(&owner, &project)
+        .validate_project_environment_for(&instance, &owner, &project)
         .unwrap_err()
         .to_string();
     assert!(error.contains("Project repository identity mismatch"));
+}
+
+fn project_instance(
+    gateway: &GatewayRuntime,
+    owner: &str,
+) -> std::sync::Arc<crate::InstanceRuntime> {
+    gateway
+        .attach_instance(
+            "project-test".into(),
+            None,
+            std::collections::BTreeMap::from([(
+                owner.to_owned(),
+                std::collections::BTreeSet::from([
+                    crate::OwnerGrant::ViewRel,
+                    crate::OwnerGrant::ManageProject,
+                ]),
+            )]),
+        )
+        .unwrap()
 }

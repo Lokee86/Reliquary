@@ -1,11 +1,11 @@
-//! Gateway REL execution: project state only. Legacy single-user execution is separate.
+//! Gateway REL execution: one native worker set for each mounted REL owner.
 use super::super::{
     Control, DREAM_RETRY_POLL, IDLE_POLL, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes,
     VECTOR_RETRY_POLL, notify_work, operation, stopped, wait_for_work, wait_for_work_timeout,
 };
 use super::{LeaseGate, LeaseGuard};
 use crate::{CompatibilityProfileId, EpisodePolicy, InsomniaWorkerConfig, InteractionRuntime};
-use std::sync::atomic::{AtomicBool, AtomicI64};
+use std::sync::atomic::{AtomicBool, AtomicI64, Ordering};
 use std::sync::{Arc, Condvar, Mutex, RwLock};
 use std::thread::{self, JoinHandle};
 
@@ -138,6 +138,13 @@ impl RelRuntime {
         };
         execution.spawn_workers();
         execution
+    }
+
+    pub(super) fn routes_changed(&self) -> Result<(), ReliquaryRuntimeHostError> {
+        self.shared
+            .insomnia_backpressure_until_ns
+            .store(0, Ordering::SeqCst);
+        notify_work(&self.signal)
     }
 
     fn spawn_workers(&mut self) {

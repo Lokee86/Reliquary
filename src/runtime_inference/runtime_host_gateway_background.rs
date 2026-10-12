@@ -68,12 +68,9 @@ impl GatewayRuntime {
             .map(|phy| Arc::clone(&phy.runtime))
             .collect::<Vec<_>>();
         for rel in rels {
-            let signal = Arc::clone(
-                &rel.lock()
-                    .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
-                    .signal,
-            );
-            super::super::super::notify_work(&signal)?;
+            rel.lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .routes_changed()?;
         }
         for phy in phys {
             phy.lock()

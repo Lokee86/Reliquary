@@ -146,6 +146,14 @@
       "message": "Every authored Reliquary Rust source file must belong to exactly one architectural owner."
     },
     {
+      "id": "external-source-must-not-call-archive",
+      "type": "forbid_dependency",
+      "from_areas": ["external-source"],
+      "to_areas": ["archive"],
+      "relations": ["calls"],
+      "message": "External canonical source handling must not directly call Archive authority."
+    },
+    {
       "id": "native-import-adapters-no-std-fs",
       "type": "forbid_content",
       "include_paths": [
