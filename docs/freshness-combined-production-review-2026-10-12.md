@@ -29,6 +29,8 @@ The in-memory model also mutates its original checkpoint during post-event appli
 
 ## Required work before historical release
 
+The implementation-ready closure sequence is now defined by the [Historical Freshness completion execution plan](freshness-historical-completion-execution-plan-2026-10-12.md). The requirements below remain the audit basis; the completion plan decomposes them into ordered C1–C12 gates.
+
 1. Finish Step 24 through the existing Cva/Freshness owner: construct and verify canonical H1 identity/manifest, complete native generation barrier, original Archive chronology, full owner-authorized graph/Community/vector/body/cohort proofs, source/cohort exclusions and canonical event IDs. Feed verified contributions into the frozen native prepare/commit handle; no model checkpoint may substitute for acceptance.
 2. Close Step 22 with actual Container byte crash prefixes, passive reopen, due-index reconstruction, exact retries after live growth and multi-recipient real accepted-use receipts. Keep the native checkpoint/receipt owner as sole authority.
 3. Implement or explicitly defer the bounded embedding-only operation with true opt-in limits, worker/cancellation boundaries and coverage reporting. Add a real importer/embedding-to-native-checkpoint fixture; preserve already-enrolled owners and reject incompatible original acceptance order.

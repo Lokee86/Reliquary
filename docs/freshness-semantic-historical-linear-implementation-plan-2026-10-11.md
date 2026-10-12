@@ -15,7 +15,7 @@ Execute live F8 through its independent release gate before historical reconstru
 **Scope:** F8/S1–S6 live semantic Freshness reinforcement followed by H1–H8 historical import reconstruction.  
 **Source specs:** [Freshness completion execution plan](freshness-completion-execution-plan-2026-10-03.md), [historical import reconstruction spec](freshness-historical-import-reconstruction-spec-2026-10-03.md), [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md), [Memory Freshness policy](memory-staleness-plan.md).
 
-**Step 26 disposition — 2026-10-12:** [production review](freshness-combined-production-review-2026-10-12.md) completed with historical release blocked. Live F8 stays explicit opt-in; historical remains experimental primitives, and PHY is deferred. Steps 22/24/25 are corrected to partial evidence, so Step 26 audit completion does not mean the implementation sequence is release-complete.
+**Step 26 disposition — 2026-10-12:** [production review](freshness-combined-production-review-2026-10-12.md) completed with historical release blocked. Live F8 stays explicit opt-in; historical remains experimental primitives, and PHY is deferred. Steps 22/24/25 are corrected to partial evidence, so Step 26 audit completion does not mean the implementation sequence is release-complete. Remaining execution is now owned by the [Historical Freshness completion execution plan](freshness-historical-completion-execution-plan-2026-10-12.md); do not restart completed linear steps except as convergence regression.
 
 ## Related docs
 
