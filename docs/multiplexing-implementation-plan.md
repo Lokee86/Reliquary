@@ -352,7 +352,7 @@ The plan update is recorded on Reliquary `main` at `28a59c1`. Step 2.10 can clos
 | 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: converged-source scan rerun; reviewed baseline refresh required |
 | 3.2 | Identify all remaining old callers and live consumers | Audited: four Reliquary test callers and the root export remain; Warlock uses canonical shared support types |
 | 3.3 | Relocate retained types, domain queries and persisted readers | Complete in candidate `ba1ce9e`: shared contracts moved; canonical Gateway query/read paths retained; locked Reliquary and Warlock all-target checks pass |
-| 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Blocked |
+| 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Public export removed in candidate `1c127f2`; struct removal remains blocked by legacy implementation modules still defining live methods |
 | 3.5 | Delete old ambient REL/PHY/session selector authority | Blocked |
 | 3.6 | Remove duplicate worker, mount, router and execution authority | Blocked |
 | 3.7 | Migrate/delete tests that encode legacy-only behavior | Blocked |
@@ -410,6 +410,16 @@ new reader or writer was introduced.
 `cargo check --locked --lib -j2` passed on the candidate, and Warlock's locked offline all-target check passed against
 that exact local candidate through the repository-local verification override. Formatting and diff checks passed.
 The remaining concrete legacy-host callers and host removal belong to Steps 3.4–3.8.
+
+### Step 3.4 public host boundary — 2026-10-11
+
+Candidate `1c127f2` removes `ReliquaryRuntimeHost` from the public Reliquary API. The type remains crate-test-only
+through the existing characterization surface while its implementation modules are migrated. A locked compile attempt
+after the API cut reached the dependency build but failed in the mapped Windows target directory with Cargo metadata
+path errors; formatting and diff checks pass. The remaining source dependency is concrete: legacy implementation
+modules still attach live query, lifecycle, mount, worker, session, perception and reconciliation methods to the
+struct. Deleting the struct at this point would remove those behaviors rather than complete their Gateway/Instance
+migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8.
 
 ## Step 4 — Final release verification
 
