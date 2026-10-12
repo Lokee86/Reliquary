@@ -75,3 +75,4 @@
 
 - [Historical first-cycle Dream verification](freshness-historical-dream-verification-2026-10-12.md)
 - [Historical import checkpoint verification](freshness-historical-checkpoint-verification-2026-10-12.md) — Step 21 atomic native import replacement, retry/live continuation and remaining recovery/conversion scope.
+- [Historical checkpoint transformation verification](freshness-historical-transform-verification-2026-10-12.md) — Step 23 native physical-preservation matrix and explicit unverified conversion rejection.

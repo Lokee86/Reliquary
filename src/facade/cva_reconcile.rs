@@ -156,6 +156,7 @@ pub(crate) fn copy_and_validate(source: &Path, output: &Path) -> Result<(), CvaR
     let validated = (|| {
         let source = Cva::open(source)?;
         let reopened = Cva::open(output)?;
+        source.validate_historical_import_copy(&reopened)?;
         if !source.archive.activity_history_matches(&reopened.archive) {
             return Err(CvaReconcileError::Archive(
                 crate::ArchiveError::CorruptRecord("copied REL activity history changed"),

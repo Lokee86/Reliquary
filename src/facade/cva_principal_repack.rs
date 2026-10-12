@@ -30,6 +30,7 @@ impl Cva {
                 "principal backfill requires a canonical phy-UUID".into(),
             ));
         }
+        self.validate_historical_principal_repack(principal_id)?;
         let output_path = output_path.as_ref();
         self.container.sync()?;
         let source_file_bytes = fs::metadata(self.container.path())
@@ -71,6 +72,11 @@ impl Cva {
                 return Err(error);
             }
         };
+        if let Err(error) = self.validate_historical_import_copy(&reopened) {
+            drop(reopened);
+            let _ = fs::remove_file(output_path);
+            return Err(error);
+        }
         if reopened.owner_uuid() != self.owner_uuid()
             || reopened.latest_global_version() != self.latest_global_version()
             || reopened.archive_version() != self.archive_version()

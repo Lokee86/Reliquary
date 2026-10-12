@@ -204,8 +204,22 @@ pub(crate) fn replay_freshness(
 pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaReconcileError> {
     if left.freshness.import_checkpoint().is_some() || right.freshness.import_checkpoint().is_some()
     {
+        if left.freshness_policy() != right.freshness_policy() {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "historical checkpoint owner policy conflict",
+            ));
+        }
+        if let (Some(a), Some(b)) = (
+            left.freshness.import_checkpoint(),
+            right.freshness.import_checkpoint(),
+        ) && a != b
+        {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "ImportManifestConflict: historical checkpoint authority",
+            ));
+        }
         return Err(CvaReconcileError::UnsupportedSemanticOwner(
-            "historical import checkpoint divergent conversion is unsupported",
+            "historical checkpoint source rebasing without a verified reconstruction manifest",
         ));
     }
     merged_semantic_activation(left, right)?;

@@ -1,5 +1,8 @@
 use super::completion::decode_completion;
 
+#[path = "historical_import_transform_tests.rs"]
+mod historical_transform;
+
 #[test]
 fn freshness_grouped_birth_recovers_from_completion_without_appending() {
     let (path, mut cva, _) = setup("freshness-grouped-completion-gap.cva");
