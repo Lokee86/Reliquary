@@ -294,3 +294,7 @@ External reference search validates candidate descriptors against a fresh, indep
 ## Execution-only negotiation
 
 An explicitly negotiated execution-only host contract never transfers pending queue ownership, even when its queue guarantee flags are complete. Only PendingQueue mode with all five guarantees may perform a durable host handoff. Mode downgrade, withdrawal or reconnect cannot release locally unresolved operation IDs; durable local terminal recording and empty reconciliation remain required. Negotiated execution readiness is not remote provider outcome proof.
+
+## Historical reconstruction operation boundary
+
+Only the Cva owner coordinator accepts a reconstruction request, with operation options only. Native checkpoint construction/publication remains private to that owner module; a caller-authored manifest, score plan or authorization set is not an operation input. C2 deletes the duplicate in-memory store. During the C3–C5 integration window the operation returns an explicit unavailable error without changing the owner file or accepted projection. CVAFRS03 remains the sole replacement authority; supported publication must reach the existing native commit and sync. See [completion plan](freshness-historical-completion-execution-plan-2026-10-12.md).

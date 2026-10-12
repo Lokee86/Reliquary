@@ -26,7 +26,7 @@ Historical reconstruction already has:
 - copy/repack/reclamation/reconciliation preservation tests; and
 - partial model-level orchestration/recovery evidence.
 
-The remaining defect is architectural, not mathematical: `freshness::historical_import::execute_historical_import` and `HistoricalCheckpointStore` are an experimental in-memory composition path, while the real Cva/Freshness checkpoint is a separate native path. A released implementation must have **one native owner path** from verified imported owner state to the existing durable checkpoint.
+Following C2, the experimental in-memory coordinator and duplicate checkpoint store are deleted. Native checkpoint construction/publication is private to the Cva owner module, and the sole caller operation accepts only options. The owner-derived manifest, canonical event production and native pipeline remain C3–C5 work; until those stages are integrated the operation rejects explicitly without publication.
 
 At the time this plan was written, `feat/freshness-semantic-historical-linear` was **66 commits behind `main` and 28 commits ahead**. Current `main` contains later multiplexing/import/runtime ownership work. Convergence is therefore a prerequisite, not cleanup after implementation.
 
@@ -124,6 +124,38 @@ Architecture impact:
 - Pitlord enforcement impact: main policy retained; refreshed check passed with zero-relationship limitation above.
 - Other verification impact: authenticated mounted F8 fixture and exact-owner pending status migrated; runtime gates passed with recorded Windows adjustments.
 - Known architectural gaps: native coordinator, manifest authority, generation/embedding and recovery remain later steps.
+
+## C2 disposition and verification
+
+**C2 complete: one owner-only operation boundary.** C3 is next. The declared integration window continues through C3–C5; this is not a released reconstruction pipeline.
+
+- Deleted the experimental model executor, duplicate checkpoint store and their five model-only tests. No aliases, test-oracle store or second ledger remain.
+- Cva::reconstruct_historical_freshness takes only HistoricalReconstructionOptions and returns a structured report/error. The embedding-fill request is false by default and explicitly unavailable until C7–C8.
+- FrozenHistoricalImport, PreparedHistoricalImport and native freeze/prepare/commit are private to the Cva owner module. Existing native checkpoint and H7 fixtures moved beneath that module; shared Insomnia setup remains test-only.
+- Owner readiness uses the existing durable REL identity, pinned policy, Insomnia inventory and Dream state. A valid imported owner receives PipelineUnavailable until C3–C5 integrate verified manifest/events. Rejected options and unfinished generation leave bytes, versions and accepted scores unchanged.
+- The eventual accepted path is coordinator -> owner-derived manifest/events -> private native freeze/prepare/commit -> FreshnessStore / CVAFRS03. Publication cannot use caller-authored proof, graph, cohort, scoring or authorization arrays.
+
+Verification:
+- cargo check --locked -j 2 and cargo check --locked --tests -j 2 passed.
+- Historical filter: 58 passed; native import_checkpoint_storage: 2 passed; semantic: 72 passed, 1 measurement ignored.
+- Full library: 1,205 passed, 3 ignored. CLI format/check/tests passed, 19 tests.
+- Source audit searched all 806 source files: no model-store/executor references remain; native freeze calls occur only in owner-module tests.
+- Architecture refresh and Pitlord passed: 23 rules, 68,247 source nodes, 2,367 relationships; snapshot sha256:57bf46c455a377e1d9fe3828b382b2992d24f56bc92557415db166d839eb1179. P4 and external source guards passed.
+- Both documentation-policy modes, root formatting and patch hygiene passed. Native tests used short process-local TMP/TEMP under .t; generated fixtures were removed.
+
+Documentation impact:
+- Inspected: canonical owner/API/storage/invariants/limits/maintainer docs and this plan.
+- Updated: C2 API, ownership, limitations, fixture routing and verification.
+- Not affected: numerical policy, H1 digest policy and durable formats.
+- Compliance check: both required policy modes passed.
+- Known documentation gaps: operational reconstruction remains C3–C12 work.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: one Cva coordinator; native publication private; duplicate owner deleted.
+- Pitlord enforcement impact: policy unchanged; refreshed graph/check passed.
+- Other verification impact: byte-preserving rejection plus native checkpoint/transformation regressions and full library/CLI gates.
+- Known architectural gaps: manifest, events, native orchestration/recovery, bounded embedding and importer integration remain later steps.
 
 ## Native coordinator shape
 

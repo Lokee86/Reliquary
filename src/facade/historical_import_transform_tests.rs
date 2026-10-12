@@ -1,6 +1,7 @@
 //! H7 exercises the real native import/checkpoint owner, not a shadow store.
+use super::super::PreparedHistoricalImport;
 use super::*;
-use crate::{AcceptedMemoryUseReceipt, CvaRelation, MemoryId, PreparedHistoricalImport};
+use crate::{AcceptedMemoryUseReceipt, CvaRelation, MemoryId};
 use sha2::{Digest, Sha256};
 
 fn checkpoint(cva: &mut Cva) -> PreparedHistoricalImport {

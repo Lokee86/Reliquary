@@ -14,27 +14,27 @@ mod input;
 mod transform;
 
 #[derive(Clone, Debug)]
-pub struct FrozenHistoricalImport {
+struct FrozenHistoricalImport {
     checkpoint: ImportCheckpoint,
     initial: BTreeMap<MemoryId, FreshnessRecord>,
 }
 #[derive(Clone, Debug)]
-pub struct PreparedHistoricalImport {
+struct PreparedHistoricalImport {
     checkpoint: ImportCheckpoint,
 }
 impl FrozenHistoricalImport {
-    pub fn import_id(&self) -> [u8; 32] {
+    fn import_id(&self) -> [u8; 32] {
         self.checkpoint.import_id
     }
-    pub fn cut(&self) -> u64 {
+    fn cut(&self) -> u64 {
         self.checkpoint.cut
     }
-    pub fn initial_records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
+    fn initial_records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
         &self.initial
     }
     /// Scores only positive historical contributions for supported admitted recipients.
-    /// Caller event evidence must be covered by the frozen canonical manifest.
-    pub fn prepare(
+    /// Internal coordinator evidence must be covered by the frozen canonical manifest.
+    fn prepare(
         &self,
         events: &[HistoricalScoreEvent],
     ) -> Result<PreparedHistoricalImport, CvaError> {
@@ -73,7 +73,7 @@ impl FrozenHistoricalImport {
     }
 }
 impl PreparedHistoricalImport {
-    pub fn records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
+    fn records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
         &self.checkpoint.records
     }
 }
@@ -94,9 +94,9 @@ fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
     Ok(hash.finalize().into())
 }
 impl Cva {
-    /// Freeze a complete native import. The caller supplies its canonical H1 manifest
-    /// hash and must quiesce model/runtime workers before taking this owner cut.
-    pub fn freeze_historical_import(
+    /// Private checkpoint primitive. Only the owner coordinator may supply the
+    /// verified manifest and frozen owner cut; this is not a caller-facing API.
+    fn freeze_historical_import(
         &mut self,
         manifest_digest: [u8; 32],
     ) -> Result<FrozenHistoricalImport, CvaError> {
@@ -118,22 +118,9 @@ impl Cva {
                 initial,
             });
         }
-        let owner = self
-            .owner_uuid()
-            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
-        if manifest_digest == [0; 32]
-            || self.rel_turn_count() == 0
-            || self.freshness_policy() != FreshnessPolicy::default_v1()
-            || self.freshness.semantic_activation_seen()
-            || self.freshness_has_pending_dream_passes()
-        {
-            return Err(fail(
-                "unsupported import owner/policy or unfinished generation",
-            ));
-        }
-        let stats = self.insomnia_stats();
-        if stats.pending + stats.processing + stats.failed + stats.terminal != 0 {
-            return Err(fail("import Insomnia generation is not complete"));
+        let owner = self.historical_reconstruction_owner()?;
+        if manifest_digest == [0; 32] {
+            return Err(fail("historical manifest digest is empty"));
         }
         self.historical_freshness_timeline()
             .map_err(|e| fail(&e.to_string()))?;
@@ -183,7 +170,7 @@ impl Cva {
     }
     /// Atomically replace provisional scoring. Exact accepted retries resolve before
     /// input drift checks and never erase legitimate post-checkpoint live events.
-    pub fn commit_historical_import(
+    fn commit_historical_import(
         &mut self,
         prepared: &PreparedHistoricalImport,
     ) -> Result<bool, CvaError> {
@@ -244,5 +231,37 @@ impl Cva {
             input::validate_checkpoint(self, &cp)?;
         }
         Ok(())
+    }
+}
+
+#[path = "historical_reconstruction.rs"]
+mod reconstruction;
+pub use reconstruction::{
+    HistoricalReconstructionError, HistoricalReconstructionOptions, HistoricalReconstructionReport,
+};
+
+#[cfg(test)]
+#[path = "historical_import_tests.rs"]
+mod tests;
+
+impl Cva {
+    fn historical_reconstruction_owner(&self) -> Result<[u8; 16], CvaError> {
+        let owner = self
+            .owner_uuid()
+            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
+        if self.rel_turn_count() == 0
+            || self.freshness_policy() != FreshnessPolicy::default_v1()
+            || self.freshness.semantic_activation_seen()
+            || self.freshness_has_pending_dream_passes()
+        {
+            return Err(fail(
+                "unsupported import owner/policy or unfinished generation",
+            ));
+        }
+        let stats = self.insomnia_stats();
+        if stats.pending + stats.processing + stats.failed + stats.terminal != 0 {
+            return Err(fail("import Insomnia generation is not complete"));
+        }
+        Ok(owner)
     }
 }

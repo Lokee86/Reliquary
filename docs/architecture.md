@@ -562,7 +562,7 @@ The Dream journal supplies disposable completed-pass projections from retained b
 
 ## Freshness production review disposition
 
-Only the existing Cva/FreshnessStore journal owns accepted Freshness. The experimental in-memory HistoricalCheckpointStore and execute_historical_import model have no native owner/coordinator connection and must not become a second receipt/scoring authority. Step 26 retains live F8 opt-in, blocks historical production/default activation, and requires native proof/barrier/importer/recovery integration and measurement before release. Authorization remains with existing host/gateway owner admission; caller-supplied planning sets confer no access. PHY lacks an approved activity clock and remains deferred. [Combined production review](freshness-combined-production-review-2026-10-12.md).
+C2 hard-cuts historical reconstruction to Cva::reconstruct_historical_freshness in src/facade/historical_reconstruction.rs. It accepts operation options only; native checkpoint primitives are private to src/facade/cva_historical_import.rs. The in-memory model and duplicate checkpoint store are deleted. Owner readiness uses the existing Cva/Freshness policy, Insomnia and Dream state. The verified manifest/event pipeline remains C3–C5 work, so the entry point rejects without publication. The sole eventual accepted path ends in private native commit, FreshnessStore and CVAFRS03. Existing host/Gateway admission remains authorization authority. PHY remains deferred. See [completion plan](freshness-historical-completion-execution-plan-2026-10-12.md).
 
 ## P5-F-core isolated management composition
 

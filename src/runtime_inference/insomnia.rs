@@ -105,7 +105,7 @@ mod candidate_policy_tests;
 mod candidate_receipt_policy_tests;
 #[cfg(test)]
 #[path = "insomnia/completion_tests.rs"]
-mod completion_tests;
+pub(crate) mod completion_tests;
 #[cfg(test)]
 #[path = "insomnia/enrichment_tests.rs"]
 mod enrichment_tests;
