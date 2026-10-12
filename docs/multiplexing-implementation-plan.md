@@ -433,7 +433,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Complete: conversation and P6 topology matrices passed |
 | 4.5 | Verify conversation branch policy and Archive ancestry consistency | Complete: locked conversation matrix passed |
 | 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Complete: seven isolated crash/recovery pairs passed |
-| 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Blocked |
+| 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Complete: stream and snapshot matrices passed |
 | 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Blocked |
 | 4.9 | Run actual Warlock UI/Tauri integration tests | Blocked |
 | 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Partial: diagnostic tooling exists |
@@ -554,6 +554,10 @@ The locked offline conversation matrix passed **96 tests, zero failures and zero
 ### Step 4.6 crash, restart, receipt-loss, replay and recovery — 2026-10-11
 
 The complete P6-H runner passed with one harness repetition and the existing gateway matrix, followed by **seven isolated crash/recovery pairs**: admission, finalize intent, Archive-before-receipt, checkpoint, checkpoint source ahead, host acceptance with lost acknowledgement, and host cancellation before replay. Each crash child proved abrupt termination and each recovery process reopened the retained physical files successfully. The runner report records `passed: true` at `.verification-tmp/p6-step-4-6/report.json` in the candidate. This verifies controlled file-backed host recovery; actual provider/UI acceptance remains in the later gates. No runtime changes were required.
+
+### Step 4.7 event distribution, stream checkpoints, resync and reconnect — 2026-10-11
+
+Locked offline verification passed across the stream and snapshot families: **16 stream tests and 25 snapshot tests, zero failures or ignored tests**. Coverage includes exact stream scope and cursors, checkpoint prefix and late-join delivery, bounded overflow and resync, reconnect slot reuse, epoch and grant revalidation, revocation during snapshot/join, private PHY isolation, and mutation/join race consistency. No runtime changes were required.
 
 ### Step 4.3 verification evidence
 
