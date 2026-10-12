@@ -434,11 +434,11 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.5 | Verify conversation branch policy and Archive ancestry consistency | Complete: locked conversation matrix passed |
 | 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Complete: seven isolated crash/recovery pairs passed |
 | 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Complete: stream and snapshot matrices passed |
-| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Complete: host lifecycle matrix passed |
+| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Partial: controlled host lifecycle passed; real-provider acceptance outstanding |
 | 4.9 | Run actual Warlock UI/Tauri integration tests | Partial: UI build passed; backend integration blocked by Warlock pin |
 | 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Complete: P6-H diagnostic report captured |
-| 4.11 | Run all locked code, test, architecture and documentation checks | Complete: Reliquary locked and architecture checks passed |
-| 4.12 | Repair regressions and record final release acceptance with evidence | Blocked |
+| 4.11 | Run all locked code, test, architecture and documentation checks | Partial: candidate code/architecture passed; documentation policy and consumer checks outstanding |
+| 4.12 | Repair regressions and record final release acceptance with evidence | Open: acceptance audit recorded; release gates remain unresolved |
 
 **Exit gate:** actual post-deletion production consumer and runtime pass, with measured performance and no unresolved unacknowledged exceptions.
 
@@ -541,8 +541,6 @@ The post-deletion topology matrix passed all **4 tests**. It covers deterministi
 
 The load matrix passed all **4 tests**. It exercised fanout at **1, 8, and 32 instances**, bounded slow-recipient resynchronization, a 32-instance steady-state window with 2 physical workers and 4 RELs, checkpoint/late-join/restart delivery of an exact 65,536-byte UTF-8 prefix, and owner-lock contention sampling. All selected tests passed with zero failures under locked offline Cargo; no source or persistence changes were required.
 
-### Step 4.3 grant enforcement, revocation and principal privacy — 2026-10-11
-
 ### Step 4.4 durable scheduling, cancellation/finalization races and ties — 2026-10-11
 
 Locked offline verification passed: **96 conversation tests and 4 P6 topology tests; zero failures or ignored tests**. Coverage includes durable admission order independent of client timestamps, equal verified-timestamp ties preserved after restart, retry deduplication, atomic branch reservation, captured finalization ancestry, unknown host debt, and cancellation/finalization races with one winner and stable Archive replay. No runtime changes were required.
@@ -574,6 +572,14 @@ The P6-H report at `.verification-tmp/p6-step-4-6/report.json` captured the diag
 ### Step 4.11 locked code, test, architecture and documentation checks — 2026-10-11
 
 The candidate verification suite passed `cargo fmt --all -- --check`, locked `cargo check --tests --examples -j1`, **1,132 library/integration tests with 2 intentional crash-test ignores**, zero doctests, and **19 CLI tests**. Architecture validation passed Pitlord with 23 rules, 65,147 source nodes, 2,353 relationships, and zero violations; phase ownership and external-source guards passed their fixture and production checks. The candidate documentation diff is clean. The remaining release-wide blocker is the separate Warlock Tauri backend pin recorded under Step 4.9.
+
+### Step 4.3 grant enforcement, revocation and principal privacy — 2026-10-11
+
+### Step 4.12 release acceptance audit — 2026-10-11
+
+Final release acceptance is withheld. The controlled Reliquary runtime, seven crash/recovery pairs, candidate compilation/tests, and architecture guards have passing evidence, but the actual production consumer exit gate is not established. Step 4.8 exercised controlled adapters rather than real-provider lifecycle acceptance; Step 4.9 completed a frontend build rather than actual UI/Tauri integration tests; Step 4.11 performed a documentation diff check rather than the full documentation policy checks. Those statuses are corrected above. The latest library result is 1,132 passed plus 2 intentionally ignored crash tests; integration results were emitted separately and must not be conflated with that library count.
+
+Remaining acceptance work: complete real-provider lifecycle fixtures, finish the post-deletion Warlock consumer test/build and actual UI/Tauri integration, run the full documentation policies, and record their exact source revisions and evidence. No failing runtime regression was identified in the completed matrices. Passing controlled measurements do not waive these remaining gates.
 
 ### Step 4.3 verification evidence
 
