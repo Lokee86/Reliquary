@@ -435,7 +435,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Complete: seven isolated crash/recovery pairs passed |
 | 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Complete: stream and snapshot matrices passed |
 | 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Complete: host lifecycle matrix passed |
-| 4.9 | Run actual Warlock UI/Tauri integration tests | Blocked |
+| 4.9 | Run actual Warlock UI/Tauri integration tests | Partial: UI build passed; backend integration blocked by Warlock pin |
 | 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Partial: diagnostic tooling exists |
 | 4.11 | Run all locked code, test, architecture and documentation checks | Blocked |
 | 4.12 | Repair regressions and record final release acceptance with evidence | Blocked |
@@ -562,6 +562,10 @@ Locked offline verification passed across the stream and snapshot families: **16
 ### Step 4.8 provider lifecycle, Unknown hold and truthful cancellation — 2026-10-11
 
 Locked offline verification passed across host-operation, host negotiation, external adapter, and live-runtime families: **57 tests passed, zero failures or ignored tests** (15 + 17 + 7 + 18). Coverage includes durable handoff identity and digest, lost acknowledgements, Unknown status holding work without blind replay, cooperative running cancellation, pending cancellation before dequeue, adapter replacement without duplicate admission, startup reconciliation, execution-only negotiation, and provider I/O fencing. No runtime changes were required.
+
+### Step 4.9 Warlock UI/Tauri integration — 2026-10-11
+
+The Warlock frontend production build passed (`npm run build`; TypeScript and Vite completed successfully). The direct offline Tauri backend test build is blocked before compilation because `src-tauri/Cargo.toml` still pins Reliquary revision `dcf500e…`, which is not present in the local Cargo git cache; the local-override wrapper began a full build but did not finish within the verification window. Therefore Step 4.9 remains partial until the consumer is aligned to the accepted post-deletion Reliquary/Arcana pins and the locked Tauri test suite completes. No Warlock source changes were made.
 
 ### Step 4.3 verification evidence
 
