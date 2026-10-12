@@ -2,12 +2,14 @@
 pub mod historical_dream;
 pub mod historical_planner;
 pub mod historical_propagation;
+pub mod historical_scorer;
 pub mod historical_semantic;
 mod policy;
 mod propagation;
 mod score;
 pub mod semantic_policy;
 
+pub use historical_scorer::{HistoricalScoreError, HistoricalScoreEvent, score_historical_records};
 pub use policy::{
     FRESHNESS_POLICY_VERSION, FRESHNESS_SCORE_MAX, FRESHNESS_SCORE_MIN, FreshnessPolicy,
     FreshnessPolicyError,
