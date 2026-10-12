@@ -27,7 +27,7 @@ One Gateway authority owns each mounted REL/PHY; many independently authorized i
 | Foundation | Reliquary | Gateway/Instance, REL/PHY worker identity, durable conversation scheduler, P4 distribution | **Accepted on existing implementation lines** | Historical integration verification exists; must remain green during final integration |
 | 1 | Warlock | Actual provider execution-only adapter, remote outcome/reconnect, multi-context privacy, P4 public delivery, exact task-root attribution | **In progress / blocking** | Provider lifecycle works against exact staged Reliquary; tests demonstrate reconnect, cancellation, privacy and checkpoint-only visible text |
 | 2 | Reliquary + Warlock | Combine accepted runtime, management, import and external-reference source; pin one Reliquary and one Arcana revision in Warlock | **Partially staged / blocking** | One integrated source, one Arcana identity, locked Warlock checks/tests/frontend, downstream fixtures and exact commit-pinned acceptance |
-| 3 | Reliquary | Delete `ReliquaryRuntimeHost` and old-only mutable selection, duplicate workers and forwarding | **Inventory done; removal blocked on 1–2** | No legacy host imports/exports/callers; preserved readers, relocated useful types, full targeted matrix green |
+| 3 | Reliquary | Delete `ReliquaryRuntimeHost` and old-only mutable selection, duplicate workers and forwarding | **In progress; final acceptance gates open** | No legacy host imports/exports/callers; preserved readers, relocated useful types, full targeted matrix green |
 | 4 | Both | Release verification of post-deletion runtime and real Warlock | **Harness exists; final pass blocked on 3** | Crash/reopen, multi-instance identity/privacy, queue/cancel/replay, stream slow/reconnect/epoch, actual provider, locked builds and measured baseline pass |
 | 5 | Hermes + Reliquary | Implement Hermes feed/hydration and plugin session/runtime adapter | **Planned; not yet accepted** | Live authorized bridge maps Hermes identities, sessions, branches and lifecycle without copying canonical transcript bodies to REL |
 | 6 | Hermes + Reliquary | End-to-end Hermes multiplexing acceptance | **Not started** | Two concurrent sessions/principals, shared/isolated PHY behavior, restart/replay, revoke/delete/rewind, exact hydration and failure isolation pass |
@@ -345,20 +345,20 @@ The plan update is recorded on Reliquary `main` at `28a59c1`. Step 2.10 can clos
 
 ## Step 3 — Legacy deletion
 
-**Status: blocked on Steps 1–2.** D0 reverse-caller inventory accepted at `bfdd267`; no claim of completed deletion.
+**Status: candidate deletion complete.** D0 reverse-caller inventory accepted at `bfdd267`; Steps 3.3–3.10 are implemented and committed in N3. Final consumer/release acceptance remains open.
 
 | ID | Action | Status |
 |---|---|---|
 | 3.1 | Revalidate accepted legacy-host inventory on converged source | Partial: converged-source scan rerun; reviewed baseline refresh required |
 | 3.2 | Identify all remaining old callers and live consumers | Audited: four Reliquary test callers and the root export remain; Warlock uses canonical shared support types |
 | 3.3 | Relocate retained types, domain queries and persisted readers | Complete in candidate `ba1ce9e`: shared contracts moved; canonical Gateway query/read paths retained; locked Reliquary and Warlock all-target checks pass |
-| 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Public export removed in candidate `1c127f2`; struct removal remains blocked by legacy implementation modules still defining live methods |
-| 3.5 | Delete old ambient REL/PHY/session selector authority | Blocked |
-| 3.6 | Remove duplicate worker, mount, router and execution authority | Blocked |
-| 3.7 | Migrate/delete tests that encode legacy-only behavior | Blocked |
-| 3.8 | Enforce no-legacy-import/caller/build guards in Reliquary, CLI and Warlock | Blocked |
-| 3.9 | Verify storage compatibility, restart and crash recovery | Blocked |
-| 3.10 | Run complete post-deletion locked functional matrix and commit | Blocked |
+| 3.4 | Remove `ReliquaryRuntimeHost` and public exports | Struct and exports removed with 3.5 in the uncommitted N3 candidate; final commit remains 3.10 |
+| 3.5 | Delete old ambient REL/PHY/session selector authority | Complete in uncommitted N3 candidate: 1,122 unit, 138 integration and 19 CLI tests pass; refreshed architecture policy passes |
+| 3.6 | Remove duplicate worker, mount, router and execution authority | Complete in uncommitted N3 candidate; regression and ownership checks passed |
+| 3.7 | Migrate/delete tests that encode legacy-only behavior | Complete in uncommitted N3 candidate; canonical replacement coverage passes |
+| 3.8 | Enforce no-legacy-import/caller/build guards in Reliquary, CLI and Warlock | Complete in uncommitted N3 candidate; all source and build guards pass |
+| 3.9 | Verify storage compatibility, restart and crash recovery | Complete in uncommitted N3 candidate; focused compatibility and recovery matrix passes |
+| 3.10 | Run complete post-deletion locked functional matrix and commit | Complete in N3 candidate; final matrix passed and committed |
 
 **Exit gate:** one authoritative Gateway/Instance implementation with no legacy facade, duplicated state, callers or regressions. Use reverse dependencies, not filename-based deletion.
 
@@ -423,22 +423,22 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 
 ## Step 4 — Final release verification
 
-**Status: harness prepared, final acceptance blocked on Step 3.** Existing P6 harness `81a64b6` and H5 diagnostics `b2b4bf4` are baseline evidence, not the final release verdict.
+**Status: automated candidate verification passed; production release acceptance remains open.** Post-deletion runtime and actual Warlock consumer tests passed against the local candidate. Production dependency-pin reproducibility and interactive desktop acceptance remain unverified.
 
 | ID | Action | Status |
 |---|---|---|
-| 4.1 | Port accepted harness to post-deletion runtime | Blocked |
-| 4.2 | Verify concurrent instances and shared REL/PHY execution | Blocked |
-| 4.3 | Verify grant enforcement, revocation and principal privacy | Blocked |
-| 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Blocked |
-| 4.5 | Verify conversation branch policy and Archive ancestry consistency | Blocked |
-| 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Blocked |
-| 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Blocked |
-| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Blocked |
-| 4.9 | Run actual Warlock UI/Tauri integration tests | Blocked |
-| 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Partial: diagnostic tooling exists |
-| 4.11 | Run all locked code, test, architecture and documentation checks | Blocked |
-| 4.12 | Repair regressions and record final release acceptance with evidence | Blocked |
+| 4.1 | Port accepted harness to post-deletion runtime | Complete: P6-H port compiled and focused runtime matrix passed |
+| 4.2 | Verify concurrent instances and shared REL/PHY execution | Complete: topology and fanout/checkpoint matrices passed |
+| 4.3 | Verify grant enforcement, revocation and principal privacy | Complete: gateway authorization/privacy matrix passed |
+| 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Complete: conversation and P6 topology matrices passed |
+| 4.5 | Verify conversation branch policy and Archive ancestry consistency | Complete: locked conversation matrix passed |
+| 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Complete: seven isolated crash/recovery pairs passed |
+| 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Complete: stream and snapshot matrices passed |
+| 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Complete: actual Warlock HTTP executor lifecycle fixtures passed |
+| 4.9 | Run actual Warlock UI/Tauri integration tests | Complete: Tauri consumer suite and UI contract checks passed against local candidate |
+| 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Complete: P6-H diagnostic report captured |
+| 4.11 | Run all locked code, test, architecture and documentation checks | Complete for candidate: code, consumer, architecture and both documentation policies passed |
+| 4.12 | Repair regressions and record final release acceptance with evidence | Partial: candidate acceptance recorded; production release withheld |
 
 **Exit gate:** actual post-deletion production consumer and runtime pass, with measured performance and no unresolved unacknowledged exceptions.
 
@@ -465,3 +465,134 @@ See the Stable technical references section above.
 ## Notes
 
 This document is an execution roadmap, not proof that any unrun release test passed.
+
+### Step 3.5 ambient selector removal — 2026-10-11
+
+The N3 candidate removes `ReliquaryRuntimeHost`, `LegacyManagedSessionState`, the global active REL key, host-wide managed-session map and active-processing switch, and the dependent ambient session/query/lifecycle facade. Canonical Gateway/Instance selection, authorization, mounted executions, journals, Archive readers and non-native checkpoint decoding are retained. The existing project-environment and semantic-graph fixtures use attached authorized instances; persisted reconciliation fixtures use Gateway, which now preserves endpoint-assisted vector recovery under its unmounted file claim. Provider backpressure coverage is ported to the canonical REL worker. Old ambient-only characterization tests no longer keep a second selector alive. The routing source guard rejects reintroduced selector fields and host definitions across runtime sources.
+
+This necessary facade cut also completes the struct-removal portion of 3.4. It does not close 3.6–3.10: unused legacy mixed-owner worker and mount-claim helpers remain, replacement coverage still needs its full review, and storage/crash/full consumer acceptance remain separate gates. Verification against `Reliquary-n3-staging` on `feat/multiplexing-n3-staging` (base `1c127f2`, changes intentionally uncommitted pending 3.10), using the existing short `R:` workspace mapping and repository-local TEMP/TMP:
+
+- `cargo fmt --all -- --check` and CLI formatting: passed.
+- `cargo check --locked --tests --examples -j2`: passed; locked offline CLI check also passed.
+- `cargo test --locked --offline --lib --tests -j2`: **1,122 unit and 138 integration tests passed; 0 failed, 0 ignored**.
+- `cargo test --locked --offline --doc -j2`: passed (0 doctests).
+- `cargo test --manifest-path cli/Cargo.toml --locked --offline -j2`: **19 passed; 0 failed, 0 ignored**.
+- P2/P3 ownership, P4 coverage (75 fixtures, 161 API classifications), external ownership (11 fixtures), workspace-management guard and diff check: passed. The recursive selector guard passes in the integration suite.
+- Both documentation policy modes: passed in the candidate. The documentation checkout's checks still report four unrelated missing sections in `freshness-semantic-historical-linear-implementation-plan-2026-10-11.md`.
+- Pitlord policy validation: 22 rules valid. Refreshed architecture remains blocked: the installed Arcana executable rejects Lexicon's `dependency_index_id` snapshot field; no current Arcana snapshot is available for enforcement. No refreshed graph acceptance is claimed.
+
+Porting the backpressure fixture exposed one missing canonical behavior: route replacement woke REL workers but retained the previous provider's dispatch cooldown. `RelRuntime::routes_changed` now clears that existing ephemeral gate before waking the owner, preserving durable Episode retry deadlines. The initial library run had 1,121 passes and this one failure; the repaired complete library/integration and CLI reruns are the accepted evidence above. No second queue, worker owner or publication authority was introduced.
+
+The initial default test command was interrupted during verification; its partial output is not acceptance evidence. All library/integration tests and documentation tests were then completed explicitly, with examples covered by the passing compilation check. Final release acceptance and actual consumer verification remain 3.10 and Step 4.
+
+### Step 3.6 duplicate execution removal — 2026-10-11
+
+The N3 candidate removes the unused `OwnerExecution`/mixed `Shared` worker group, `RuntimeMemoryProfiles`, mixed Perception queue and REL/PHY routing flags. Reverse references form a closed group of 11 modules: dependency graph, execution, Insomnia, Dream/snapshot, vectors, and Perception worker/flow/owner/queue/reconciliation. Their root registrations are removed. No canonical caller or persisted decoder depends on this group.
+
+The legacy synthetic-container identity constructor and `MountClaim::acquire_legacy_rel/phy` are removed; MountClaim visibility is restricted to its Gateway owner. Canonical typed/physical mount admission, the one LIVE_MOUNTS exclusion registry and lease/fence handling remain. `RelRuntime/RelShared`, `PhyRuntime/WorkerShared`, the one CapabilityRouter and native publication/coordinator/journal owners are retained. Shared stop/wake/timing helpers and reusable endpoint routes are still directly consumed by canonical workers. The recursive selector guard now also rejects the retired worker/queue/profile types, mixed flag and legacy claim entry points.
+
+Documentation is updated for canonical worker ownership. Source review also found that mounted REL Dream does not invoke the first-pass Freshness orchestration present in the already-unused legacy wrapper. Bounded Dream/Freshness helpers and journals remain; this existing integration gap is recorded in current limitations instead of claiming mounted-runtime Freshness acceptance. This step changes no persisted format or canonical execution behavior.
+
+Verification in `Reliquary-n3-staging`, branch `feat/multiplexing-n3-staging` (base `1c127f2`), using the existing short `R:` mapping and repository-local TEMP/TMP:
+
+- Root and CLI formatting checks passed. `cargo check --locked --tests --examples -j2` and locked offline CLI check passed. Library warnings dropped from 82 to 16.
+- `cargo test --locked --offline --lib --tests -j1`: **1,122 unit and 138 integration tests passed; 0 failed, 0 ignored**.
+- `cargo test --manifest-path cli/Cargo.toml --locked --offline -j1`: **19 passed; 0 failed, 0 ignored**.
+- `cargo test --locked --offline --doc -j1`: passed (0 doctests).
+- P2/P3 ownership enforcement passed; P2 reports zero retired references and zero Gateway violations. P4 self-test passed (75 fixtures, 161 classifications), external ownership self-test passed (11 fixtures), and workspace-management guard and diff check passed.
+- Both candidate documentation-policy modes passed. The documentation checkout still has four unrelated missing sections in `freshness-semantic-historical-linear-implementation-plan-2026-10-11.md`.
+- Refreshed architecture check passed after the Pitlord policy correction: Lexicon snapshot `sha256:74d5579a08b443ccef355484718fe6ef9c299e7aa1ee1a686727681da223d60e`, Arcana rebuild with zero compatibility warnings, and Pitlord **23 rules / 65,147 source nodes / 2,353 relationships / zero violations**. This supersedes both the earlier Step 3.5 schema blocker and the initial Step 3.6 zero-relationship report. The earlier inference that the graph lacked relationship data was not established by that report. Compiler checks, reverse references and source guards provide complementary evidence. Recheck log: `.verification-tmp/step-3-6/architecture-policy-recheck.log`.
+
+The initial `-j2` library and CLI test builds failed before execution when rustc 1.97.1 panicked in Lore linking on missing dependency artifacts. Serial `-j1` retries restored those artifacts and completed the suites above; no dependency or source workaround was introduced. Logs are retained under `.verification-tmp/step-3-6/` in the candidate.
+
+Architecture, maintainer-map, behavioral-contracts, current-limitations and documentation-coverage pages were inspected and updated for canonical worker ownership. Invariants and storage-format were inspected and require no changes: persisted layouts, journals and publication authority are unaffected. Steps 3.7–3.10 and final release acceptance remain open; changes stay uncommitted pending 3.10.
+
+### Step 3.7 legacy-only test cleanup — 2026-10-11
+
+The remaining legacy-only characterization surfaces were removed or migrated to the canonical Gateway/Instance boundary. Eight obsolete test modules were deleted: the old host knowledge, legacy-isolation, perception, semantic-access, session, topology, vector, and aggregate runtime-host suites. The four retained external fixtures now construct `GatewayRuntime`, mount an owner, attach an authorized `InstanceRuntime`, and pass that instance explicitly through project-environment and semantic-graph operations. Backpressure coverage was moved under the canonical REL worker. The Gateway ambient test families were retained because they exercise instance-local selection and grant checks, rather than a process-wide host selector.
+
+The replacement matrix passes with 1,122 unit tests, 138 integration tests, and 19 CLI tests; the recursive runtime-source guard finds no retired host authority. No compatibility alias, second selector, or test-only legacy execution path remains. Steps 3.8–3.10 and final release acceptance remain open; changes stay uncommitted pending 3.10.
+
+### Step 3.8 no-legacy import, caller and build guards — 2026-10-11
+
+The Reliquary phase-2 ownership guard reports zero legacy references and zero Gateway violations. The recursive `multiplexing_gateway_routing_guard` passes all three tests, including the source-wide retired-authority scan. The CLI locked offline check passes against the N3 candidate. Warlock's C5-final consumer scanner reports 220 Rust files, 76 direct Reliquary-import files, zero explicit old-host files, and zero candidate receiver calls; its self-test passes 11 positive/negative cases. The Warlock candidate locked check, using the local N3 Reliquary override and repository-local TEMP/TMP, also passes.
+
+This closes the guard/build portion of the legacy deletion gate. The scanners intentionally allow canonical `ReliquaryRuntimeHostError`, `ReliquaryRuntimeRoutes`, and instance-qualified `active_rel_id(instance)` support; they reject the removed host owner, receiver accessors, mutable selector authority, duplicate worker types, and legacy mount claims. Steps 3.9–3.10 and final consumer/release acceptance remain open; changes stay uncommitted pending 3.10.
+
+### Step 3.9 storage compatibility, restart and crash recovery — 2026-10-11
+
+The focused post-deletion matrix passes without changing persisted formats or recovery authorities. Legacy typed REL/PHY and project CVA migration tests pass (6), storage-reclamation preservation tests pass (3), container truncated-tail recovery passes, and external-source reopen/corruption tests pass (11). Freshness crash-prefix and trailing-record recovery fixtures pass, including partial Dream settlement recovery. Gateway reconnect/remount and durable conversation recovery fixtures pass (19 selected cases), Insomnia restart/requeue/finalization recovery passes (5), REL activity-clock compatibility passes (10), and the live-runtime restart/no-duplicate-work tests pass (2). Exact focused logs are retained under `.verification-tmp/step-3-9-*.log` in the candidate.
+
+These checks cover legacy format admission, owner identity/state preservation, truncated or partial durable tails, restart-derived pending work, mount-epoch rotation, journal/Archive handoff recovery and idempotent replay. They do not claim the separate full release crash/stress harness or actual consumer acceptance; those remain Step 4 and 3.10. Changes stay uncommitted pending 3.10.
+
+### Step 3.10 post-deletion matrix and commit — 2026-10-11
+
+The final locked candidate matrix passed after the 3.9 recovery checks: `cargo fmt --all -- --check`; `cargo check --locked --tests --examples -j1`; `cargo test --locked --offline --lib --tests -j1` with **1,122 unit and 138 integration tests passed, 0 failed, 0 ignored**; `cargo test --locked --offline --doc -j1` with 0 doctests; and `cargo test --manifest-path cli/Cargo.toml --locked --offline -j1` with **19 passed, 0 failed, 0 ignored**. The no-legacy Reliquary guards, Warlock C5-final scanner/build, focused storage/restart/crash recovery matrix, architecture policy refresh, documentation policy checks and diff check also pass. The candidate change set is committed on `feat/multiplexing-n3-staging`; final consumer/release acceptance remains Step 4.
+
+### Step 4.1 P6-H harness port — 2026-10-11
+
+The accepted P6-H harness from `81a64b6` is now registered under the canonical post-deletion `runtime_host::gateway::tests::p6_harness` module. Its fixture, topology, load, host-adapter, crash and recovery tests, runner, and runner self-tests were ported into the candidate. One current contract field was added to the file-backed host fixture (`HostExecutionMode::PendingQueue`); runtime ownership and persistence behavior were unchanged. The runner manifest now records the Step 3.10 post-deletion base `d978b1b`.
+
+Verification passed with `cargo fmt --all -- --check`, the locked offline P6 harness compile, direct execution of the harness (**10 passed, 2 intentionally ignored crash subprocess tests**), and the Python runner self-test (**5 passed**). The full P6-H subprocess runner remains an execution harness for the later Step 4 concurrency, crash and performance gates; this step does not claim P6-R release acceptance or actual Warlock provider/UI acceptance.
+
+### Step 4.2 concurrent instances and shared REL/PHY execution — 2026-10-11
+
+The post-deletion topology matrix passed all **4 tests**. It covers deterministic instance selection with private physical identity, shared-principal physical-worker deduplication, independent REL/PHY ownership, unrelated-owner reads while another owner is held, stale-token rejection after reopen, pending-order recovery, and cancel/finalize race replay. The observed topology cases include 1–2 physical workers and 1–2 RELs while preserving the expected principal-sharing boundary.
+
+The load matrix passed all **4 tests**. It exercised fanout at **1, 8, and 32 instances**, bounded slow-recipient resynchronization, a 32-instance steady-state window with 2 physical workers and 4 RELs, checkpoint/late-join/restart delivery of an exact 65,536-byte UTF-8 prefix, and owner-lock contention sampling. All selected tests passed with zero failures under locked offline Cargo; no source or persistence changes were required.
+
+### Step 4.4 durable scheduling, cancellation/finalization races and ties — 2026-10-11
+
+Locked offline verification passed: **96 conversation tests and 4 P6 topology tests; zero failures or ignored tests**. Coverage includes durable admission order independent of client timestamps, equal verified-timestamp ties preserved after restart, retry deduplication, atomic branch reservation, captured finalization ancestry, unknown host debt, and cancellation/finalization races with one winner and stable Archive replay. No runtime changes were required.
+
+### Step 4.5 conversation branch policy and Archive ancestry consistency — 2026-10-11
+
+The locked offline conversation matrix passed **96 tests, zero failures and zero ignored tests**. Reviewed coverage includes exact-owner policy management, policy changes affecting pending capture while preserving frozen finalization ancestry, sequential branch serialization, visible auto-branch conflicts from two and three writers, submitter-local selection, invalid-parent rejection before publication, restart reuse of frozen branch identity, branch-local finalization fencing, and durable Archive parent consistency. No runtime changes were required.
+
+### Step 4.6 crash, restart, receipt-loss, replay and recovery — 2026-10-11
+
+The complete P6-H runner passed with one harness repetition and the existing gateway matrix, followed by **seven isolated crash/recovery pairs**: admission, finalize intent, Archive-before-receipt, checkpoint, checkpoint source ahead, host acceptance with lost acknowledgement, and host cancellation before replay. Each crash child proved abrupt termination and each recovery process reopened the retained physical files successfully. The runner report records `passed: true` at `.verification-tmp/p6-step-4-6/report.json` in the candidate. This verifies controlled file-backed host recovery; actual provider/UI acceptance remains in the later gates. No runtime changes were required.
+
+### Step 4.7 event distribution, stream checkpoints, resync and reconnect — 2026-10-11
+
+Locked offline verification passed across the stream and snapshot families: **16 stream tests and 25 snapshot tests, zero failures or ignored tests**. Coverage includes exact stream scope and cursors, checkpoint prefix and late-join delivery, bounded overflow and resync, reconnect slot reuse, epoch and grant revalidation, revocation during snapshot/join, private PHY isolation, and mutation/join race consistency. No runtime changes were required.
+
+### Step 4.8 provider lifecycle, Unknown hold and truthful cancellation — 2026-10-11
+
+Completion evidence: Warlock consumer `dee7ba02e48011ad9ed4fcd0cb1011ec3bbb10fe` passed **24 provider-selected tests, zero failures or ignores**, using its local Reliquary override against post-deletion candidate `43e2bc9` with offline Cargo and repository-local TEMP/TMP. The production async HTTP executor fixtures verify authorized Stop interrupting a stalled HTTP request, revoked/incorrect cancellation authority rejection, late-output fencing, restart rejection of generation replay, Unknown status when process execution records are absent, durable completion despite missing process records, immutable execution binding, negotiated readiness, and one credential-refresh retry. This supplies the actual consumer HTTP fixture evidence absent from the earlier controlled adapter run. Unknown remains truthful about remote effects; these fixtures do not claim remote cancellation acknowledgement or hosted-service end-to-end acceptance. The 4.12 audit's real-provider fixture gap is superseded by this result; UI/Tauri and documentation acceptance remain separate gates.
+
+Locked offline verification passed across host-operation, host negotiation, external adapter, and live-runtime families: **57 tests passed, zero failures or ignored tests** (15 + 17 + 7 + 18). Coverage includes durable handoff identity and digest, lost acknowledgements, Unknown status holding work without blind replay, cooperative running cancellation, pending cancellation before dequeue, adapter replacement without duplicate admission, startup reconciliation, execution-only negotiation, and provider I/O fencing. No runtime changes were required.
+
+### Step 4.9 Warlock UI/Tauri integration — 2026-10-11
+
+Completion evidence supersedes the initial interrupted build below: Warlock `dee7ba02` compiled its Tauri library tests against local post-deletion Reliquary `7331923`; the resulting binary passed **224 tests, zero failures, one ignored test**. UI durable checkpoint checks, graph-render client checks, and TypeScript/Vite production build passed. Consumer tests include production P4 Unicode/late-join/slow-consumer delivery, revoked or failed Tauri recipients, checkpoint acknowledgement gating, conversation/workspace lifecycle, and provider commands. Repository-local TEMP/TMP required `GIT_CEILING_DIRECTORIES` at the temporary directory so the missing-repository fixture did not discover the enclosing Warlock worktree; the rerun passed. This is automated consumer and UI-contract integration evidence, not an interactive desktop end-to-end run or proof of the unchanged production Git pin.
+
+The Warlock frontend production build passed (`npm run build`; TypeScript and Vite completed successfully). The direct offline Tauri backend test build is blocked before compilation because `src-tauri/Cargo.toml` still pins Reliquary revision `dcf500e…`, which is not present in the local Cargo git cache; the local-override wrapper began a full build but did not finish within the verification window. Therefore Step 4.9 remains partial until the consumer is aligned to the accepted post-deletion Reliquary/Arcana pins and the locked Tauri test suite completes. No Warlock source changes were made.
+
+### Step 4.10 lock contention, workers, queues, memory, fan-out and throughput — 2026-10-11
+
+The P6-H report at `.verification-tmp/p6-step-4-6/report.json` captured the diagnostic matrix with `passed: true`. It observed 3 PHY workers, 2 physical owners, 4 RELs, queue capacity 16, and 32 recipients in the steady-state topology. Fanout covered 1, 8, and 32 instances with 24 mutations and 48 fast events; slow-recipient resync counts were 0, 7, and 31. Checkpoint delivery transferred 65,536 bytes, with 80.4 ms checkpoint, 2.4 ms late-join replay, and 14.4 ms restart/reconcile measurements in this run. The 100-sample owner-lock probe reported hold/wait distributions, and the harness process peak was 26.8 MB RSS with 23 sampled threads. These are controlled harness measurements; the report explicitly scopes lock probing and does not claim all production critical sections or a cold-cache benchmark.
+
+### Step 4.11 locked code, test, architecture and documentation checks — 2026-10-11
+
+Completion evidence: both shared Reliquary documentation policy modes passed (`--repo .` and `--changed-from origin/main`, library-engine); Warlock's documentation checker also passed (umbrella-product). The prior test count is corrected to **1,132 library tests passed, 138 integration tests passed, 19 CLI tests passed**, with two intentional subprocess crash-test ignores in the library suite. Step 4.6 explicitly executed those crash/recovery cases. Step 4.9 supplies 224 passing consumer tests against the local candidate. Together with the recorded formatting, locked compilation/examples, and architecture/ownership passes, this closes candidate verification. Production Git-pin reproducibility and interactive desktop acceptance remain separate release limitations.
+
+The candidate verification suite passed `cargo fmt --all -- --check`, locked `cargo check --tests --examples -j1`, **1,132 library/integration tests with 2 intentional crash-test ignores**, zero doctests, and **19 CLI tests**. Architecture validation passed Pitlord with 23 rules, 65,147 source nodes, 2,353 relationships, and zero violations; phase ownership and external-source guards passed their fixture and production checks. The candidate documentation diff is clean. The remaining release-wide blocker is the separate Warlock Tauri backend pin recorded under Step 4.9.
+
+### Step 4.3 grant enforcement, revocation and principal privacy — 2026-10-11
+
+### Step 4.12 release acceptance audit — 2026-10-11
+
+Published-pin follow-up: the user authorized publication of Reliquary `437edada819c60111bb2e176e5f7270aae12f643` to `origin/feat/multiplexing-n3-staging`. Warlock commit `c960e42` pins that exact Git revision in its manifest and regenerated lockfile. Cargo resolved it from GitHub without a local override, and the full consumer library suite passed **224 tests, zero failures, one ignore**; locked offline metadata validation also passed. The existing Arcana revision `66b4e96e` agrees across both manifests. Production dependency resolution is now verified. Interactive desktop end-to-end verification remains unperformed; no such run is claimed.
+
+Updated decision after completion of Steps 4.8, 4.9 and 4.11: **automated local candidate accepted; production release not yet accepted**. Reliquary `6031562` includes the post-deletion runtime and P6-H harness; Warlock consumer `dee7ba02` passed its production HTTP executor fixtures and 224-test Tauri library suite against the local candidate. UI checkpoint/graph client checks and production frontend build passed. Reliquary's 1,132 library, 138 integration and 19 CLI tests, seven isolated crash/recovery pairs, architecture guards, and both documentation policy modes passed. No runtime regression requiring a source fix was identified; the Git fixture failure was resolved by bounding discovery at the repository-local temporary directory.
+
+The earlier audit below is superseded for provider fixtures, automated consumer verification, and documentation policies. Remaining production acceptance requirements are reproducible committed Reliquary/Arcana dependency pins and an interactive desktop end-to-end verification. The local override restores Warlock's lockfile and therefore does not establish the shipped dependency graph. These limitations are explicitly recorded rather than waived. Step 4.12 remains partial until that evidence exists.
+
+Final release acceptance is withheld. The controlled Reliquary runtime, seven crash/recovery pairs, candidate compilation/tests, and architecture guards have passing evidence, but the actual production consumer exit gate is not established. Step 4.8 exercised controlled adapters rather than real-provider lifecycle acceptance; Step 4.9 completed a frontend build rather than actual UI/Tauri integration tests; Step 4.11 performed a documentation diff check rather than the full documentation policy checks. Those statuses are corrected above. The latest library result is 1,132 passed plus 2 intentionally ignored crash tests; integration results were emitted separately and must not be conflated with that library count.
+
+Remaining acceptance work: complete real-provider lifecycle fixtures, finish the post-deletion Warlock consumer test/build and actual UI/Tauri integration, run the full documentation policies, and record their exact source revisions and evidence. No failing runtime regression was identified in the completed matrices. Passing controlled measurements do not waive these remaining gates.
+
+### Step 4.3 verification evidence
+
+The complete gateway authorization/privacy family passed under locked offline Cargo: **298 passed, 0 failed, 2 intentionally ignored crash subprocess tests**. This matrix covers exact-owner and grant checks, credential substitution rejection, instance and delivery-token fencing, grant replacement and revocation races, private REL/PHY and semantic reads, dependency-grant scoping, mixed-principal publication attribution, stream/snapshot reconnect revocation, and cross-principal isolation. No source or persistence changes were required.
