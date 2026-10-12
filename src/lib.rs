@@ -1164,11 +1164,11 @@ pub use runtime_host::{
     HostExecutionMode, HostOperation, HostOperationStatus, HostQueueGuarantees,
     HostReconcileStatus, InstanceAuthorization, InstanceId, InstanceRuntime, InstanceRuntimeError,
     ManagedConversationState, OwnerAccessToken, OwnerAdmission, OwnerGrant,
-    RelReconciliationCandidateReport, RelReconciliationReport, ReliquaryRuntimeHost,
-    ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, RuntimeCapability, RuntimeEchoSource,
-    RuntimeEchoTurn, RuntimeKnowledgeProvenanceResolution, RuntimeKnowledgeState,
-    RuntimeSemanticOwner, RuntimeSemanticOwnerKind, StageAuthority, VerifiedInstanceAdmission,
-    VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
+    RelReconciliationCandidateReport, RelReconciliationReport, ReliquaryRuntimeHostError,
+    ReliquaryRuntimeRoutes, RuntimeCapability, RuntimeEchoSource, RuntimeEchoTurn,
+    RuntimeKnowledgeProvenanceResolution, RuntimeKnowledgeState, RuntimeSemanticOwner,
+    RuntimeSemanticOwnerKind, StageAuthority, VerifiedInstanceAdmission, VisibleArchiveSearchOwner,
+    VisibleArchiveSearchResult,
 };
 pub use runtime_host::{
     CommunitySummary, ConversationInspection, MAX_MANAGEMENT_FILE_BYTES, MAX_MANAGEMENT_PAGE_BYTES,
@@ -1176,6 +1176,9 @@ pub use runtime_host::{
     MemorySummary, RelManagementHealth, SemanticOwnerStatistics, SourceFile,
     UnsupportedManagementOperation, WorkspaceManagement,
 };
+
+#[cfg(test)]
+pub(crate) use runtime_host::ReliquaryRuntimeHost;
 pub use runtime_host::{
     LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
     LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
