@@ -423,7 +423,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 
 ## Step 4 — Final release verification
 
-**Status: P6-H harness ported to the post-deletion runtime; final acceptance remains open.** Existing P6 harness `81a64b6` and H5 diagnostics `b2b4bf4` remain baseline evidence, not the final release verdict.
+**Status: automated candidate verification passed; production release acceptance remains open.** Post-deletion runtime and actual Warlock consumer tests passed against the local candidate. Production dependency-pin reproducibility and interactive desktop acceptance remain unverified.
 
 | ID | Action | Status |
 |---|---|---|
@@ -438,7 +438,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.9 | Run actual Warlock UI/Tauri integration tests | Complete: Tauri consumer suite and UI contract checks passed against local candidate |
 | 4.10 | Measure lock contention, workers, queues, memory, fan-out and throughput | Complete: P6-H diagnostic report captured |
 | 4.11 | Run all locked code, test, architecture and documentation checks | Complete for candidate: code, consumer, architecture and both documentation policies passed |
-| 4.12 | Repair regressions and record final release acceptance with evidence | Open: acceptance audit recorded; release gates remain unresolved |
+| 4.12 | Repair regressions and record final release acceptance with evidence | Partial: candidate acceptance recorded; production release withheld |
 
 **Exit gate:** actual post-deletion production consumer and runtime pass, with measured performance and no unresolved unacknowledged exceptions.
 
@@ -582,6 +582,10 @@ The candidate verification suite passed `cargo fmt --all -- --check`, locked `ca
 ### Step 4.3 grant enforcement, revocation and principal privacy — 2026-10-11
 
 ### Step 4.12 release acceptance audit — 2026-10-11
+
+Updated decision after completion of Steps 4.8, 4.9 and 4.11: **automated local candidate accepted; production release not yet accepted**. Reliquary `6031562` includes the post-deletion runtime and P6-H harness; Warlock consumer `dee7ba02` passed its production HTTP executor fixtures and 224-test Tauri library suite against the local candidate. UI checkpoint/graph client checks and production frontend build passed. Reliquary's 1,132 library, 138 integration and 19 CLI tests, seven isolated crash/recovery pairs, architecture guards, and both documentation policy modes passed. No runtime regression requiring a source fix was identified; the Git fixture failure was resolved by bounding discovery at the repository-local temporary directory.
+
+The earlier audit below is superseded for provider fixtures, automated consumer verification, and documentation policies. Remaining production acceptance requirements are reproducible committed Reliquary/Arcana dependency pins and an interactive desktop end-to-end verification. The local override restores Warlock's lockfile and therefore does not establish the shipped dependency graph. These limitations are explicitly recorded rather than waived. Step 4.12 remains partial until that evidence exists.
 
 Final release acceptance is withheld. The controlled Reliquary runtime, seven crash/recovery pairs, candidate compilation/tests, and architecture guards have passing evidence, but the actual production consumer exit gate is not established. Step 4.8 exercised controlled adapters rather than real-provider lifecycle acceptance; Step 4.9 completed a frontend build rather than actual UI/Tauri integration tests; Step 4.11 performed a documentation diff check rather than the full documentation policy checks. Those statuses are corrected above. The latest library result is 1,132 passed plus 2 intentionally ignored crash tests; integration results were emitted separately and must not be conflated with that library count.
 
