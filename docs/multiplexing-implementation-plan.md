@@ -423,11 +423,11 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 
 ## Step 4 — Final release verification
 
-**Status: harness prepared, final acceptance blocked on Step 3.** Existing P6 harness `81a64b6` and H5 diagnostics `b2b4bf4` are baseline evidence, not the final release verdict.
+**Status: P6-H harness ported to the post-deletion runtime; final acceptance remains open.** Existing P6 harness `81a64b6` and H5 diagnostics `b2b4bf4` remain baseline evidence, not the final release verdict.
 
 | ID | Action | Status |
 |---|---|---|
-| 4.1 | Port accepted harness to post-deletion runtime | Blocked |
+| 4.1 | Port accepted harness to post-deletion runtime | Complete: P6-H port compiled and focused runtime matrix passed |
 | 4.2 | Verify concurrent instances and shared REL/PHY execution | Blocked |
 | 4.3 | Verify grant enforcement, revocation and principal privacy | Blocked |
 | 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Blocked |
@@ -528,3 +528,9 @@ These checks cover legacy format admission, owner identity/state preservation, t
 ### Step 3.10 post-deletion matrix and commit — 2026-10-11
 
 The final locked candidate matrix passed after the 3.9 recovery checks: `cargo fmt --all -- --check`; `cargo check --locked --tests --examples -j1`; `cargo test --locked --offline --lib --tests -j1` with **1,122 unit and 138 integration tests passed, 0 failed, 0 ignored**; `cargo test --locked --offline --doc -j1` with 0 doctests; and `cargo test --manifest-path cli/Cargo.toml --locked --offline -j1` with **19 passed, 0 failed, 0 ignored**. The no-legacy Reliquary guards, Warlock C5-final scanner/build, focused storage/restart/crash recovery matrix, architecture policy refresh, documentation policy checks and diff check also pass. The candidate change set is committed on `feat/multiplexing-n3-staging`; final consumer/release acceptance remains Step 4.
+
+### Step 4.1 P6-H harness port — 2026-10-11
+
+The accepted P6-H harness from `81a64b6` is now registered under the canonical post-deletion `runtime_host::gateway::tests::p6_harness` module. Its fixture, topology, load, host-adapter, crash and recovery tests, runner, and runner self-tests were ported into the candidate. One current contract field was added to the file-backed host fixture (`HostExecutionMode::PendingQueue`); runtime ownership and persistence behavior were unchanged. The runner manifest now records the Step 3.10 post-deletion base `d978b1b`.
+
+Verification passed with `cargo fmt --all -- --check`, the locked offline P6 harness compile, direct execution of the harness (**10 passed, 2 intentionally ignored crash subprocess tests**), and the Python runner self-test (**5 passed**). The full P6-H subprocess runner remains an execution harness for the later Step 4 concurrency, crash and performance gates; this step does not claim P6-R release acceptance or actual Warlock provider/UI acceptance.
