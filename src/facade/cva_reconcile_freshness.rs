@@ -202,6 +202,12 @@ pub(crate) fn replay_freshness(
 
 /// Perform source-history checks before the destination file is created.
 pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaReconcileError> {
+    if left.freshness.import_checkpoint().is_some() || right.freshness.import_checkpoint().is_some()
+    {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "historical import checkpoint divergent conversion is unsupported",
+        ));
+    }
     merged_semantic_activation(left, right)?;
     if (left.freshness.has_any()
         || right.freshness.has_any()

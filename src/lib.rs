@@ -250,6 +250,9 @@ mod cva_global_validation;
 mod cva_graph;
 #[path = "facade/cva_historical_dream.rs"]
 mod cva_historical_dream;
+#[path = "facade/cva_historical_import.rs"]
+mod cva_historical_import;
+pub use cva_historical_import::{FrozenHistoricalImport, PreparedHistoricalImport};
 #[path = "facade/cva_historical_freshness.rs"]
 mod cva_historical_freshness;
 #[path = "facade/cva_lifecycle.rs"]

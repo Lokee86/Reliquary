@@ -539,6 +539,12 @@ The public conversation surface is unchanged. resume_conversation_submission and
 
 ## Historical import propagation planning
 
+### Atomic native historical import publication
+
+`Cva::freeze_historical_import(manifest_digest)` returns `FrozenHistoricalImport` with `import_id()`, `cut()` and `initial_records()`. `prepare(&[HistoricalScoreEvent])` returns an opaque `PreparedHistoricalImport` whose `records()` are inspectable before publication. `Cva::commit_historical_import(&prepared)` validates the unchanged complete owner input, durably publishes the final projection and returns true once; exact accepted retries return false before input-drift checks, retaining later live events. Different manifests or replacement maps reject. No Memory revision/global semantic version is allocated.
+
+This development API requires complete native V6 Import Episode publication and settled first Dream cycles, default base policy, exact Archive chronology, no prior semantic activation/use history and no unrelated Memories. Caller contributions must be proven by the supplied canonical manifest; the full graph/Community/vector/event validator and worker quiescence belong to the Step 24 coordinator. Unsupported structured provenance and mixed replacement/untouched provisional effect sets reject. Pre-checkpoint score reads reject explicitly. See [Step 21 verification](freshness-historical-checkpoint-verification-2026-10-12.md).
+
 `freshness::historical_propagation::propagate_historical_events` evaluates a batch of whole-source import events over a pinned graph, explicit authorized Memory set and availability map. `HistoricalPropagationEvent::from_semantic` consumes a Step 16 semantic event, checks its frozen F8 policy digest and deduplicates strongest root bonuses. Semantic roots accept 1..10 (at most 64 roots); first-cycle Dream roots accept +50 under base default-v1 only. Unauthorized roots reject and inaccessible graph nodes cannot bridge. Credit exclusions and unsupported/future availability are applied after traversal, preserving authorized bridges. Each recipient gets the maximum contribution from all paths/roots for that event, with fixed originating Community costs. Event outputs retain input order with bounded event concurrency. This pure API does not publish scores or enable live semantic propagation. Callers pin owner/provenance/graph/Community proofs and preserve one event per complete source turn. See [Step 17 verification](freshness-historical-propagation-verification-2026-10-12.md).
 
 ## Historical first-cycle Dream planning

@@ -220,6 +220,8 @@ Conversation snapshots acquire runtime -> coordinator -> journal and copy facts 
 
 ## Freshness diagnostic custody
 
+Historical import replacement publishes a complete validated Freshness snapshot in one existing-owner Container chunk. Freeze-to-commit owner drift rejects; exact accepted retries resolve first and cannot erase post-checkpoint live effects. Original publication/admission/Dream proofs remain authoritative while identified provisional scoring is superseded exactly once. An unsupported pre-checkpoint trajectory or conversion fails explicitly rather than returning provisional scores or invented anchors. [Step 21 evidence](freshness-historical-checkpoint-verification-2026-10-12.md).
+
 Performance diagnostics must preserve the accepted owner/policy/graph/Community cut and every independent consumption event. They may not replace a historical cut with current topology, enroll passive reads, suppress recipients, or treat a timing result as a correctness proof. Real fixture runs require source/copy SHA-256 verification and disposable writable copies. [The hardening plan](freshness-performance-hardening-plan-2026-10-03.md) defines promotion gates.
 
 ## Related docs

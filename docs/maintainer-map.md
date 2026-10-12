@@ -122,6 +122,8 @@ runtime_host_gateway_conversation_observation.rs owns the internal authoritative
 
 ## Freshness performance diagnostic routing
 
+Historical import checkpoint format and atomic replacement validation belong to `src/freshness/freshness_import_checkpoint.rs` under the existing Freshness store. Freeze/prepare/commit coordination lives in `src/facade/cva_historical_import.rs`; native publication and corpus identity checks live in `historical_import_input.rs`. Native acceptance fixtures are in `src/runtime_inference/insomnia/completion_tests.rs`; codec/corruption/supersession fixtures are beside the checkpoint codec. [Step 21 verification](freshness-historical-checkpoint-verification-2026-10-12.md) records current scope and remaining coordinator/conversion obligations.
+
 For workload definitions and matched comparisons, inspect `examples/freshness_performance_baseline.rs` and `scripts/freshness_performance_compare.py`. For complete operation stages, inspect `src/freshness/trace.rs`, the existing Freshness runtime/facade adapters and `examples/freshness_operation_baseline.rs`. [Development](development.md) owns commands and interpretation; [P0 evidence](freshness-performance-baseline-2026-10-03.md) owns verified measurements. Propagation optimization remains gated by the independent oracle and the [hardening plan](freshness-performance-hardening-plan-2026-10-03.md).
 
 ## Related docs

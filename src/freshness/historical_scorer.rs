@@ -58,7 +58,7 @@ pub fn score_historical_records(
     }
     let mut seen = BTreeSet::new();
     for event in events {
-        if !seen.insert(event.event_id) {
+        if !seen.insert((event.recipient, event.event_id)) {
             return Err(HistoricalScoreError::DuplicateEvent(event.event_id));
         }
         if !initial.contains_key(&event.recipient) {

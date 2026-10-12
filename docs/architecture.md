@@ -533,6 +533,8 @@ Pitlord also declares the existing Context Engine (src/context_engine.rs and dir
 
 ## Historical import frontier ownership
 
+Historical checkpoint acceptance remains inside `src/freshness_storage.rs`, with the concrete `CVAFRS03` codec/replacement validation in `src/freshness/freshness_import_checkpoint.rs`. `src/facade/cva_historical_import.rs` freezes input, prepares scores offside and publishes one complete owner payload; `historical_import_input.rs` verifies native import/publication and Archive source identity. The payload is a Freshness semantic publication, not a derived index. Original Dream/birth proof authority remains unchanged, and no second ledger, clock or Memory revision is introduced. Later live effects replay above the accepted baseline. The broader coordinator and conversion support remain separate steps. [Step 21 evidence](freshness-historical-checkpoint-verification-2026-10-12.md).
+
 The pure import-only adapter in `src/freshness/historical_propagation.rs` composes a pinned authorized graph, per-root semantic/Dream strengths and recipient eligibility. The crate-private numerical frontier remains in `src/freshness/propagation.rs`, shared with ordinary propagation; each public path validates its own principals. Authorization restricts expansion, while import credit exclusions and availability only restrict awarding credit. No runtime or durable owner changed. [Step 17 evidence](freshness-historical-propagation-verification-2026-10-12.md) records the current planning-only scope.
 
 ## Historical first-cycle Dream evidence

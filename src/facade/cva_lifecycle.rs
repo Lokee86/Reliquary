@@ -482,7 +482,7 @@ impl Cva {
         if repaired_entity_resolutions > 0 {
             container.sync()?;
         }
-        Ok(Self {
+        let mut result = Self {
             container,
             archive,
             memories,
@@ -512,6 +512,8 @@ impl Cva {
             dream_freshness,
             freshness_due,
             freshness_notifications: std::collections::BTreeMap::new(),
-        })
+        };
+        result.validate_historical_import_checkpoint()?;
+        Ok(result)
     }
 }

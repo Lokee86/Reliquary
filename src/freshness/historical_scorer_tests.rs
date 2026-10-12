@@ -111,3 +111,19 @@ fn dormancy_can_recover_and_parallel_projection_is_byte_identical() {
     .unwrap();
     assert_eq!(out, reordered);
 }
+
+#[test]
+fn one_origin_event_can_credit_multiple_recipients_once_each() {
+    let initial = [(id(1), admitted_zero()), (id(2), admitted_zero())]
+        .into_iter()
+        .collect();
+    let result = score_historical_records(
+        &initial,
+        &[event(1, 1, 7, 50), event(2, 1, 7, 40)],
+        1,
+        &FreshnessPolicy::default_v1(),
+    )
+    .unwrap();
+    assert_eq!(result[&id(1)].score, 50);
+    assert_eq!(result[&id(2)].score, 40);
+}

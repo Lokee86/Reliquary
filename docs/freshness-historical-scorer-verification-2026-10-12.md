@@ -6,7 +6,7 @@ Record Step 20 verification for chronological historical Freshness scoring over 
 
 ## Overview
 
-The import-only scorer groups events by recipient, orders each group by historical position and stable event identity, applies signed contributions with the existing Freshness record saturation rules, and settles lazy decay at the requested historical cut. Duplicate event identities are rejected before mutation. Reordering independent input events therefore produces byte-identical records.
+The import-only scorer groups events by recipient, orders each group by historical position and stable event identity, applies signed contributions with the existing Freshness record saturation rules, and settles lazy decay at the requested historical cut. Duplicate (recipient, event identity) pairs are rejected before mutation. A single origin event may credit multiple recipients once each, as verified by the Step 21 correction fixture. Reordering independent input events therefore produces byte-identical records.
 
 The H5 fixtures cover +100 saturation, -100 followed by +50, early-versus-late reinforcement divergence, Dormant recovery, ten-turn remainder preservation, same-position event-ID ordering, duplicate retry rejection, and deterministic reordered-input output.
 
