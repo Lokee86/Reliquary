@@ -35,19 +35,13 @@ impl Cva {
                     && (relation.source == root || relation.target == root)
             });
             let representative = if duplicate {
-                crate::dream_canonical::existing_duplicate_representative(
-                    self,
-                    root,
-                    u64::MAX,
-                    source_id,
-                    &relations,
-                )
-                .map_err(|error| CvaError::Freshness(error.to_string()))?
-                .ok_or_else(|| {
-                    CvaError::Freshness(
-                        "historical duplicate root has no verified representative".into(),
-                    )
-                })?
+                crate::dream_canonical::historical_duplicate_representative(self, root, &relations)
+                    .map_err(|error| CvaError::Freshness(error.to_string()))?
+                    .ok_or_else(|| {
+                        CvaError::Freshness(
+                            "historical duplicate root has no verified representative".into(),
+                        )
+                    })?
             } else {
                 root
             };

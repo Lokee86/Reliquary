@@ -8,8 +8,12 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
+#[path = "historical_manifest_encoding.rs"]
+mod encoding;
 #[path = "historical_import_input.rs"]
 mod input;
+#[path = "historical_manifest.rs"]
+mod manifest;
 #[path = "historical_import_transform.rs"]
 mod transform;
 
@@ -96,14 +100,8 @@ fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
 impl Cva {
     /// Private checkpoint primitive. Only the owner coordinator may supply the
     /// verified manifest and frozen owner cut; this is not a caller-facing API.
-    fn freeze_historical_import(
-        &mut self,
-        manifest_digest: [u8; 32],
-    ) -> Result<FrozenHistoricalImport, CvaError> {
+    fn freeze_historical_import(&mut self) -> Result<FrozenHistoricalImport, CvaError> {
         if let Some(checkpoint) = self.freshness.import_checkpoint() {
-            if checkpoint.manifest_digest != manifest_digest {
-                return Err(fail("ImportManifestConflict"));
-            }
             let checkpoint = checkpoint.clone();
             let mut initial = BTreeMap::new();
             for (id, record) in &checkpoint.records {
@@ -119,37 +117,14 @@ impl Cva {
             });
         }
         let owner = self.historical_reconstruction_owner()?;
-        if manifest_digest == [0; 32] {
-            return Err(fail("historical manifest digest is empty"));
-        }
-        self.historical_freshness_timeline()
-            .map_err(|e| fail(&e.to_string()))?;
-        let initial = input::initial_import_records(self)?;
-        if initial.is_empty() {
-            return Err(fail("import has no supported active cohort"));
-        }
+        let manifest = manifest::build(self)?;
         let cohort: BTreeSet<_> = self.memory_ids().into_iter().collect();
-        for &id in &cohort {
-            if !self.freshness_is_publication_birth(id)
-                || !self
-                    .initial_dream_pass_settled(&crate::dream_freshness::initial_pass_id(owner, id))
-            {
-                return Err(fail(
-                    "import cohort lacks settled first-cycle/publication evidence",
-                ));
-            }
-        }
-        let superseded = self
-            .freshness
-            .provisional_import_events(&initial.keys().copied().collect(), self.rel_turn_count())
-            .map_err(CvaError::Freshness)?;
-        let corpus_digest = input::corpus_digest(self, self.rel_turn_count())?;
         self.container.sync()?;
         let checkpoint = ImportCheckpoint {
             owner,
-            import_id: crate::freshness_storage::historical_import_id(owner, corpus_digest),
-            corpus_digest,
-            manifest_digest,
+            import_id: manifest.import_id,
+            corpus_digest: manifest.corpus_digest,
+            manifest_digest: manifest.digest,
             input_digest: file_digest(self.container.path())?,
             cohort,
             cut: self.rel_turn_count(),
@@ -161,11 +136,11 @@ impl Cva {
             graph_version: self.graph_version(),
             memory_graph_version: self.memory_graph_version(),
             records: BTreeMap::new(),
-            superseded,
+            superseded: manifest.superseded,
         };
         Ok(FrozenHistoricalImport {
             checkpoint,
-            initial,
+            initial: manifest.initial,
         })
     }
     /// Atomically replace provisional scoring. Exact accepted retries resolve before

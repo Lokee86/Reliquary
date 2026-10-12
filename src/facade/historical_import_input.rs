@@ -1,183 +1,314 @@
-//! Canonical source-corpus identity and native import admission proof.
+//! Canonical corpus and complete native grouped-publication/provenance evidence.
+use super::{encoding::Value, fail};
 use crate::{Cva, CvaError, EpisodeOrigin, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
-fn bytes(out: &mut Vec<u8>, tag: u8, data: &[u8]) {
-    out.push(tag);
-    out.extend((data.len() as u32).to_le_bytes());
-    out.extend(data);
+
+pub(super) fn source_key(conversation: &str, node: &str) -> Value {
+    Value::map([
+        ("conversation_id", Value::text(conversation)),
+        ("node_id", Value::text(node)),
+    ])
 }
-fn text(out: &mut Vec<u8>, s: &str) {
-    bytes(out, 5, s.as_bytes());
-}
-fn nullable(out: &mut Vec<u8>, s: Option<&str>) {
-    if let Some(s) = s {
-        text(out, s)
-    } else {
-        out.push(0)
-    }
-}
-fn required_nodes(cva: &Cva, through: u64) -> BTreeMap<(String, String), crate::Node> {
+pub(super) fn required_nodes(
+    cva: &Cva,
+    through: u64,
+) -> Result<BTreeMap<(String, String), crate::Node>, CvaError> {
     let mut required = BTreeMap::new();
-    for node in cva.archive.nodes.iter().filter(|node| {
-        cva.activity_position_for_turn(&node.conversation_id, &node.id)
-            .is_some_and(|position| position <= through)
+    for node in cva.archive.nodes.iter().filter(|n| {
+        cva.activity_position_for_turn(&n.conversation_id, &n.id)
+            .is_some_and(|p| p <= through)
     }) {
         let mut cursor = Some(node.clone());
+        let mut seen = BTreeSet::new();
         while let Some(node) = cursor {
-            if required
-                .insert(
-                    (node.conversation_id.clone(), node.id.clone()),
-                    node.clone(),
-                )
-                .is_some()
-            {
+            let key = (node.conversation_id.clone(), node.id.clone());
+            if !seen.insert(key.clone()) {
+                return Err(fail("historical source ancestry cycle"));
+            }
+            if required.contains_key(&key) {
                 break;
             }
-            cursor = node
-                .parent_id
-                .as_ref()
-                .and_then(|id| cva.archive.nodes.get(&node.conversation_id, id))
-                .cloned();
+            required.insert(key, node.clone());
+            cursor = match node.parent_id.as_deref() {
+                Some(parent) => Some(
+                    cva.archive
+                        .nodes
+                        .get(&node.conversation_id, parent)
+                        .cloned()
+                        .ok_or_else(|| fail("missing owner-local historical parent"))?,
+                ),
+                None => None,
+            };
         }
     }
-    required
+    Ok(required)
+}
+pub(super) fn node_binding(node: &crate::Node) -> Value {
+    Value::map([
+        ("conversation_id", Value::text(&node.conversation_id)),
+        ("node_id", Value::text(&node.id)),
+        (
+            "parent_id",
+            node.parent_id.as_ref().map_or(Value::Null, Value::text),
+        ),
+        ("role", Value::text(&node.role)),
+        (
+            "principal_id",
+            node.principal_id.as_ref().map_or(Value::Null, Value::text),
+        ),
+        ("timestamp_ns", Value::Signed(node.timestamp_ns)),
+        ("content_id", Value::bytes(node.content_id.0)),
+    ])
 }
 pub(super) fn corpus_digest(cva: &mut Cva, through: u64) -> Result<[u8; 32], CvaError> {
-    let required = required_nodes(cva, through);
-    let mut encoded = vec![6];
-    encoded.extend((required.len() as u32).to_le_bytes());
-    for node in required.values() {
-        let content = cva
+    let nodes = required_nodes(cva, through)?;
+    for node in nodes.values() {
+        let bytes = cva
             .archive
             .content_bytes(&mut cva.container, node.content_id)?;
-        if crate::archive_store::hash_content(&content) != node.content_id {
-            return Err(CvaError::Freshness(
-                "import source content proof mismatch".into(),
-            ));
+        if crate::archive_store::hash_content(&bytes) != node.content_id {
+            return Err(fail("import source content proof mismatch"));
         }
-        encoded.push(7);
-        encoded.extend(7u32.to_le_bytes());
-        text(&mut encoded, "content_id");
-        bytes(&mut encoded, 4, &node.content_id.0);
-        text(&mut encoded, "conversation_id");
-        text(&mut encoded, &node.conversation_id);
-        text(&mut encoded, "node_id");
-        text(&mut encoded, &node.id);
-        text(&mut encoded, "parent_id");
-        nullable(&mut encoded, node.parent_id.as_deref());
-        text(&mut encoded, "principal_id");
-        nullable(&mut encoded, node.principal_id.as_deref());
-        text(&mut encoded, "role");
-        text(&mut encoded, &node.role);
-        text(&mut encoded, "timestamp_ns");
-        encoded.push(2);
-        encoded.extend(node.timestamp_ns.to_le_bytes());
     }
-    let mut hash = Sha256::new();
-    hash.update(b"reliquary:historical-corpus:v1\0");
-    hash.update(encoded);
-    Ok(hash.finalize().into())
+    Value::Array(nodes.values().map(node_binding).collect())
+        .digest("reliquary:historical-corpus:v1")
 }
-pub(super) fn initial_import_records(
-    cva: &mut Cva,
-) -> Result<BTreeMap<MemoryId, FreshnessRecord>, CvaError> {
+pub(super) struct AdmissionProof {
+    pub initial: BTreeMap<MemoryId, FreshnessRecord>,
+    pub memories: Vec<Value>,
+    pub cohorts: Vec<Value>,
+}
+pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
+    let owner = cva
+        .owner_uuid()
+        .ok_or_else(|| fail("missing import owner"))?;
     let ids: BTreeSet<_> = cva.memory_ids().into_iter().collect();
     let mut birth_episodes = BTreeMap::new();
-    let mut born = BTreeSet::new();
     let mut completed = BTreeSet::new();
+    let mut publications = BTreeMap::<[u8; 32], BTreeSet<[u8; 32]>>::new();
     let mut scan = crate::Container::open_read_only_for_scan(cva.container.path())?;
     scan.visit_payloads::<CvaError>(|_, payload| {
-        if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-            .map_err(|e| CvaError::Freshness(e.into()))?
+        if let Some(completion) =
+            crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
         {
             let episode = cva
                 .episode(completion.episode_id)
-                .ok_or_else(|| CvaError::Freshness("import completion lacks Episode".into()))?;
+                .ok_or_else(|| fail("import completion lacks Episode"))?;
             if episode.origin != EpisodeOrigin::Import {
-                return Err(CvaError::Freshness(
-                    "history includes a non-import completion".into(),
-                ));
+                return Err(fail("history includes a non-import completion"));
             }
             completed.insert(episode.id.0);
+            publications
+                .entry(episode.id.0)
+                .or_default()
+                .insert(Sha256::digest(payload).into());
             for id in completion.freshness_birth_memory_ids {
                 let record = completion
                     .records
                     .iter()
                     .find(|r| r.id == id && r.revision == 1)
-                    .ok_or_else(|| {
-                        CvaError::Freshness("import birth lacks an accepted first revision".into())
-                    })?;
+                    .ok_or_else(|| fail("import birth lacks first revision"))?;
                 if cva.memories.first_mutation_id(id) != Some(record.mutation_id.as_str())
                     || record.source_episode_id != Some(episode.id)
                 {
-                    return Err(CvaError::Freshness(
-                        "import publication proof differs from its Memory birth".into(),
-                    ));
+                    return Err(fail("import publication conflicts with Memory birth"));
                 }
-                birth_episodes.insert(id, episode.id);
-                born.insert(id);
+                if birth_episodes
+                    .insert(id, episode.id)
+                    .is_some_and(|old| old != episode.id)
+                {
+                    return Err(fail("conflicting import birth cohort"));
+                }
             }
         }
         Ok(())
     })?;
-    if ids.is_empty() || ids != born {
-        return Err(CvaError::Freshness("checkpoint requires a complete native import birth cohort; ordinary enrollment is unsupported".into()));
+    if ids.is_empty() || birth_episodes.keys().any(|id| !ids.contains(id)) {
+        return Err(fail("incomplete native import birth cohort"));
     }
     let mut covered = BTreeSet::new();
-    let mut by_episode = BTreeMap::new();
+    let mut episode_keys = BTreeMap::new();
+    let mut episode_proofs = BTreeMap::new();
     for episode in cva.episodes() {
         if episode.origin != EpisodeOrigin::Import || !completed.contains(&episode.id.0) {
-            return Err(CvaError::Freshness(
-                "import corpus has incomplete or non-import Episodes".into(),
+            return Err(fail("import corpus has incomplete or non-import Episodes"));
+        }
+        let end = cva
+            .archive
+            .nodes
+            .get(&episode.conversation_id, &episode.end_node_id)
+            .ok_or_else(|| fail("missing Episode endpoint"))?;
+        if end.timestamp_ns != episode.source_through_ns {
+            return Err(fail(
+                "Episode source-through timestamp conflicts with endpoint",
             ));
         }
         let turns = cva.episode_turns(episode.id)?;
-        let mut latest = 0;
+        if turns
+            .first()
+            .is_none_or(|t| t.node_id != episode.start_node_id)
+            || turns
+                .last()
+                .is_none_or(|t| t.node_id != episode.end_node_id)
+        {
+            return Err(fail("Episode path endpoint mismatch"));
+        }
+        let mut keys = BTreeSet::new();
+        let mut path = Vec::new();
         for turn in turns {
+            let node = cva
+                .archive
+                .nodes
+                .get(&episode.conversation_id, &turn.node_id)
+                .ok_or_else(|| fail("missing Episode path Node"))?;
+            if node.content_id != crate::archive_store::hash_content(turn.content.as_bytes()) {
+                return Err(fail("Episode retained content binding conflict"));
+            }
+            path.push(node_binding(node));
             if let Some(position) =
                 cva.activity_position_for_turn(&episode.conversation_id, &turn.node_id)
             {
                 covered.insert(position);
-                latest = latest.max(position);
+                keys.insert((episode.conversation_id.clone(), turn.node_id));
             }
         }
-        by_episode.insert(episode.id.0, latest);
+        episode_keys.insert(episode.id.0, keys);
+        episode_proofs.insert(
+            episode.id.0,
+            Value::map([
+                ("episode_id", Value::bytes(episode.id.0)),
+                ("conversation_id", Value::text(&episode.conversation_id)),
+                ("start_node_id", Value::text(&episode.start_node_id)),
+                ("end_node_id", Value::text(&episode.end_node_id)),
+                (
+                    "source_through_ns",
+                    Value::Signed(episode.source_through_ns),
+                ),
+                ("path", Value::Array(path)),
+                (
+                    "publication_payload_digests",
+                    Value::Array(
+                        publications[&episode.id.0]
+                            .iter()
+                            .map(Value::bytes)
+                            .collect(),
+                    ),
+                ),
+            ]),
+        );
     }
-    if covered.len() as u64 != cva.rel_turn_count() {
-        return Err(CvaError::Freshness(
-            "import has an unprocessed Archive tail/branch".into(),
-        ));
+    if covered != (1..=cva.rel_turn_count()).collect() {
+        return Err(fail("import has unprocessed Archive tail/branch"));
     }
-    let mut members = Vec::new();
-    let mut cohorts = BTreeMap::<[u8; 32], u64>::new();
+    let mut members = BTreeMap::new();
+    let mut cohort_origins = BTreeMap::new();
+    let mut cohort_members = BTreeMap::<[u8; 32], Vec<MemoryId>>::new();
+    let mut cohort_positions = BTreeMap::<[u8; 32], Option<u64>>::new();
     for id in ids {
         let memory = cva.memory(id)?;
-        if memory.source_episode_id != Some(birth_episodes[&id]) {
-            return Err(CvaError::Freshness(
-                "import cohort origin was rewritten".into(),
-            ));
+        let first = cva.memory_revision(id, 1)?;
+        let grouped = birth_episodes.get(&id).copied();
+        if memory.source_episode_id != first.source_episode_id
+            || grouped.is_some_and(|episode| memory.source_episode_id != Some(episode))
+        {
+            return Err(fail("import cohort origin rewritten"));
         }
-        if memory.source_ref.is_some() {
-            return Err(CvaError::Freshness(
-                "structured/cross-owner import provenance conversion is unsupported".into(),
-            ));
-        }
-        let ep = memory
+        let episode = memory
             .source_episode_id
-            .and_then(|id| cva.episode(id))
-            .cloned()
-            .ok_or_else(|| CvaError::Freshness("import Memory lacks local Episode proof".into()))?;
-        let mut latest = *by_episode.get(&ep.id.0).ok_or_else(|| {
-            CvaError::Freshness("import Memory Episode is outside the corpus".into())
-        })?;
+            .map(|episode| {
+                cva.episode(episode)
+                    .cloned()
+                    .ok_or_else(|| fail("missing owner Episode"))
+            })
+            .transpose()?;
+        let (cohort_key, origin) = if let Some(episode) = grouped {
+            (
+                Value::map([
+                    ("owner_uuid", Value::bytes(owner)),
+                    ("episode_id", Value::bytes(episode.0)),
+                ])
+                .digest("reliquary:historical-episode-cohort:v1")?,
+                episode_proofs[&episode.0].clone(),
+            )
+        } else {
+            if !cva.freshness_is_publication_birth(id)
+                || cva.freshness_publication_cohort(id)? != BTreeSet::from([id])
+                || cva.memories.first_mutation_id(id) != Some(first.mutation_id.as_str())
+            {
+                return Err(fail("unverified direct singleton publication"));
+            }
+            let key = Value::map([
+                ("owner_uuid", Value::bytes(owner)),
+                ("memory_id", Value::bytes(id.0)),
+            ])
+            .digest("reliquary:historical-singleton-cohort:v1")?;
+            (
+                key,
+                Value::map([
+                    ("memory_id", Value::bytes(id.0)),
+                    ("first_mutation_id", Value::text(&first.mutation_id)),
+                    (
+                        "first_body_id",
+                        Value::bytes(
+                            crate::memory_model::memory_body_id(&first.title, &first.content).0,
+                        ),
+                    ),
+                    ("first_revision", Value::Unsigned(first.revision)),
+                    ("global_version", Value::Unsigned(first.global_version)),
+                    ("publication", Value::text("verified-native-singleton-v1")),
+                ]),
+            )
+        };
+        if cohort_origins
+            .insert(cohort_key, origin.clone())
+            .is_some_and(|old| old != origin)
+        {
+            return Err(fail("conflicting publication cohort proof"));
+        }
+        if let Some(source) = &memory.source_ref {
+            if Some(&source.owner_id) != cva.owner_id().as_ref()
+                || Some(source.source_episode_id) != memory.source_episode_id
+                || Some(&source.source_node_id) != memory.source_node_id.as_ref()
+                || source.content_source_conversation_id != memory.content_source_conversation_id
+                || source.content_source_node_id != memory.content_source_node_id
+                || source.grounding_source_conversation_id
+                    != memory.grounding_source_conversation_id
+                || source.grounding_source_node_id != memory.grounding_source_node_id
+            {
+                return Err(fail("foreign or conflicting structured import provenance"));
+            }
+            let node = cva
+                .archive
+                .nodes
+                .get(
+                    &episode
+                        .as_ref()
+                        .ok_or_else(|| fail("structured source lacks Episode"))?
+                        .conversation_id,
+                    &source.source_node_id,
+                )
+                .ok_or_else(|| fail("missing structured source"))?;
+            if source.principal_id != node.principal_id {
+                return Err(fail("structured source principal conflict"));
+            }
+        }
+        let mut necessary = match &episode {
+            Some(episode) => episode_keys
+                .get(&episode.id.0)
+                .cloned()
+                .ok_or_else(|| fail("direct publication Episode is outside completed corpus"))?,
+            None => BTreeSet::new(),
+        };
         if let Some(node) = &memory.source_node_id {
-            latest = latest.max(
-                cva.activity_position_for_turn(&ep.conversation_id, node)
-                    .ok_or_else(|| {
-                        CvaError::Freshness("import source lacks accepted activity".into())
-                    })?,
-            );
+            necessary.insert((
+                episode
+                    .as_ref()
+                    .ok_or_else(|| fail("declared source node lacks Episode namespace"))?
+                    .conversation_id
+                    .clone(),
+                node.clone(),
+            ));
         }
         for (conversation, node) in [
             (
@@ -191,42 +322,126 @@ pub(super) fn initial_import_records(
         ] {
             match (conversation, node) {
                 (Some(c), Some(n)) => {
-                    latest = latest.max(cva.activity_position_for_turn(c, n).ok_or_else(|| {
-                        CvaError::Freshness("import authority/grounding lacks activity".into())
-                    })?)
+                    necessary.insert((c.clone(), n.clone()));
                 }
                 (None, None) => {}
-                _ => return Err(CvaError::Freshness("partial import provenance pair".into())),
+                _ => return Err(fail("partial import provenance pair")),
             }
         }
-        if latest == 0 {
-            return Err(CvaError::Freshness(
-                "import birth has no verified historical position".into(),
-            ));
+        let mut latest = None;
+        for (conversation, node) in &necessary {
+            let position = cva
+                .activity_position_for_turn(conversation, node)
+                .ok_or_else(|| {
+                    fail("declared import source lacks owner-local accepted activity")
+                })?;
+            latest = Some(latest.unwrap_or(0).max(position));
         }
-        cohorts
-            .entry(ep.id.0)
-            .and_modify(|position| *position = (*position).max(latest))
-            .or_insert(latest);
+        let position = cohort_positions.entry(cohort_key).or_insert(Some(0));
+        *position = match (*position, latest) {
+            (Some(a), Some(b)) => Some(a.max(b)),
+            _ => None,
+        };
+        cohort_members.entry(cohort_key).or_default().push(id);
+        members.insert(id, (memory, necessary, cohort_key));
+    }
+    let mut cohorts = Vec::new();
+    for (key, ids) in &cohort_members {
+        cohorts.push((
+            *key,
+            Value::map([
+                ("cohort_key", Value::bytes(key)),
+                ("origin", cohort_origins[key].clone()),
+                (
+                    "members",
+                    Value::Array(ids.iter().map(|id| Value::bytes(id.0)).collect()),
+                ),
+                (
+                    "availability",
+                    cohort_positions[key].map_or(Value::Null, Value::Unsigned),
+                ),
+            ]),
+        ));
+    }
+    cohorts.sort_by_key(|(key, _)| *key);
+    let mut initial = BTreeMap::new();
+    let mut memories = Vec::new();
+    for (id, (memory, necessary, cohort_key)) in members {
+        let available = cohort_positions[&cohort_key];
         let eligible = !memory.archived
             && memory.superseded_by.is_none()
             && matches!(memory.lifecycle_state.as_str(), "knowledge" | "canonical");
-        members.push((id, ep.id.0, eligible));
-    }
-    let mut initial = BTreeMap::new();
-    for (id, ep, eligible) in members {
-        if !eligible {
-            continue;
+        let status = if available.is_none() {
+            "unsupported"
+        } else if eligible {
+            "supported"
+        } else {
+            "credit-excluded"
+        };
+        if eligible && let Some(at) = available {
+            let mut record = FreshnessRecord::created();
+            record.admit(at).map_err(|e| fail(&e.to_string()))?;
+            initial.insert(id, record);
         }
-        let mut record = FreshnessRecord::created();
-        if eligible {
-            record
-                .admit(cohorts[&ep])
-                .map_err(|e| CvaError::Freshness(e.to_string()))?;
+        let body = cva.memory_body_id(id)?;
+        if crate::memory_model::memory_body_id(&memory.title, &memory.content) != body {
+            return Err(fail("historical BodyId content conflict"));
         }
-        initial.insert(id, record);
+        let current = cva
+            .freshness_record(id)
+            .ok_or_else(|| fail("missing provisional scoring record"))?;
+        memories.push(Value::map([
+            ("memory_id", Value::bytes(id.0)),
+            ("body_id", Value::bytes(body.0)),
+            ("revision", Value::Unsigned(memory.revision)),
+            ("lifecycle", Value::text(&memory.lifecycle_state)),
+            ("archived", Value::Bool(memory.archived)),
+            (
+                "superseded_by",
+                memory
+                    .superseded_by
+                    .map_or(Value::Null, |id| Value::bytes(id.0)),
+            ),
+            (
+                "necessary_sources",
+                Value::Array(necessary.iter().map(|(c, n)| source_key(c, n)).collect()),
+            ),
+            (
+                "availability",
+                available.map_or(Value::Null, Value::Unsigned),
+            ),
+            ("cohort_key", Value::bytes(cohort_key)),
+            ("status", Value::text(status)),
+            (
+                "reason",
+                Value::text(if available.is_none() {
+                    "cohort-missing-usable-provenance"
+                } else if eligible {
+                    "verified-active-native-publication"
+                } else {
+                    "final-lifecycle-excluded"
+                }),
+            ),
+            ("mutation_id", Value::text(&memory.mutation_id)),
+            (
+                "source_episode_id",
+                memory
+                    .source_episode_id
+                    .map_or(Value::Null, |id| Value::bytes(id.0)),
+            ),
+            (
+                "scoring_proof_digest",
+                super::manifest::record_value(current)
+                    .digest("reliquary:historical-provisional-record:v1")
+                    .map(Value::bytes)?,
+            ),
+        ]));
     }
-    Ok(initial)
+    Ok(AdmissionProof {
+        initial,
+        memories,
+        cohorts: cohorts.into_iter().map(|(_, proof)| proof).collect(),
+    })
 }
 
 pub(super) fn validate_checkpoint(
@@ -287,12 +502,24 @@ pub(super) fn validate_checkpoint(
         }
         Ok(())
     })?;
-    if births != cp.cohort {
+    for id in cp.cohort.difference(&births) {
+        let first = cva.memory_revision(*id, 1)?;
+        if first.global_version > cp.global_version
+            || !cva.freshness_is_publication_birth(*id)
+            || cva.freshness_publication_cohort(*id)? != BTreeSet::from([*id])
+            || cva.memories.first_mutation_id(*id) != Some(first.mutation_id.as_str())
+        {
+            return Err(fail(
+                "checkpoint lacks verified native singleton publication",
+            ));
+        }
+    }
+    if !births.is_subset(&cp.cohort) {
         return Err(fail(
             "import checkpoint does not cover a proven native import",
         ));
     }
-    let nodes = required_nodes(cva, cp.cut);
+    let nodes = required_nodes(cva, cp.cut)?;
     use crate::freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
     let sources = nodes
         .values()

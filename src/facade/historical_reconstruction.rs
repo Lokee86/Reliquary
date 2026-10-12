@@ -73,6 +73,7 @@ impl Cva {
         if options.fill_missing_embeddings {
             return Err(HistoricalReconstructionError::EmbeddingFillUnavailable);
         }
+        let _frozen = self.freeze_historical_import()?;
         Err(HistoricalReconstructionError::PipelineUnavailable)
     }
 }

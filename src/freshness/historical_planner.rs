@@ -4,13 +4,12 @@
 //! wires its clock proof to Archive; later steps consume the plan to emit and
 //! score historical events.
 
-use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub const HISTORICAL_PLANNER_VERSION: u16 = 1;
 pub const HISTORICAL_POLICY_DIGEST: [u8; 32] = [
-    0x0c, 0xad, 0x2e, 0x7f, 0xd7, 0x63, 0xde, 0x37, 0x7f, 0x53, 0xa5, 0x4c, 0x28, 0xdf, 0x1c, 0x7b,
-    0x63, 0x03, 0xc6, 0xc8, 0x18, 0x14, 0x52, 0x49, 0x2c, 0x4a, 0x70, 0x90, 0x23, 0xc4, 0x20, 0x90,
+    0x0c, 0xad, 0x2e, 0x7f, 0xd7, 0x63, 0xde, 0x37, 0x75, 0x3a, 0x54, 0xc2, 0x8d, 0xf1, 0xc7, 0xb6,
+    0x30, 0x3c, 0x6c, 0x81, 0x81, 0x45, 0x49, 0x2c, 0xa4, 0xa7, 0x09, 0x02, 0x3c, 0x42, 0x09, 0x08,
 ];
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -156,6 +155,24 @@ impl HistoricalTimeline {
                     return Err(PlannerError::MissingParent(source.key.clone()));
                 }
             }
+        }
+        let mut validated = BTreeSet::new();
+        for key in all.keys() {
+            let mut chain = BTreeSet::new();
+            let mut cursor = Some(key.clone());
+            while let Some(key) = cursor {
+                if validated.contains(&key) {
+                    break;
+                }
+                if !chain.insert(key.clone()) {
+                    return Err(PlannerError::Cycle);
+                }
+                cursor = all[&key].parent_id.as_ref().map(|parent| SourceKey {
+                    conversation_id: key.conversation_id.clone(),
+                    node_id: parent.clone(),
+                });
+            }
+            validated.extend(chain);
         }
         let mut indegree = BTreeMap::<SourceKey, usize>::new();
         let mut children = BTreeMap::<SourceKey, Vec<SourceKey>>::new();
@@ -423,39 +440,6 @@ impl HistoricalProvenancePlan {
     }
 }
 
-pub fn canonical_manifest_id(
-    owner: &str,
-    corpus_digest: &[u8; 32],
-    timeline: &HistoricalTimeline,
-    provenance: &HistoricalProvenancePlan,
-) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    hasher.update(b"reliquary/historical-manifest/v1\0");
-    put_bytes(&mut hasher, owner.as_bytes());
-    hasher.update(corpus_digest);
-    for key in &timeline.activity_order {
-        put_bytes(&mut hasher, key.conversation_id.as_bytes());
-        put_bytes(&mut hasher, key.node_id.as_bytes());
-    }
-    for memory in &provenance.memories {
-        put_bytes(&mut hasher, memory.memory_id.as_bytes());
-        put_bytes(&mut hasher, memory.cohort_id.as_bytes());
-        match memory.availability {
-            MemoryAvailability::Supported { position } => {
-                hasher.update([1]);
-                hasher.update(position.to_le_bytes());
-            }
-            MemoryAvailability::Unsupported => hasher.update([2]),
-            MemoryAvailability::CreditExcluded => hasher.update([3]),
-        }
-    }
-    hasher.finalize().into()
-}
-fn put_bytes(hasher: &mut Sha256, bytes: &[u8]) {
-    hasher.update((bytes.len() as u64).to_le_bytes());
-    hasher.update(bytes);
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -468,6 +452,19 @@ mod tests {
             parent_id: p.map(str::to_owned),
             role: role.into(),
             timestamp_ns: t,
+        }
+    }
+    #[test]
+    fn historical_non_activity_ancestry_cycle_rejects_before_projection() {
+        for activity in [false, true] {
+            let mut sources = vec![
+                src("c", "s", Some("t"), "system", 0),
+                src("c", "t", Some("s"), "tool", 0),
+            ];
+            if activity {
+                sources.push(src("c", "u", Some("s"), "user", 1));
+            }
+            assert_eq!(HistoricalTimeline::plan(sources), Err(PlannerError::Cycle));
         }
     }
     #[test]

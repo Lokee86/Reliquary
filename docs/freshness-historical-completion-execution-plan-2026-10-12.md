@@ -257,3 +257,34 @@ Do not mark H1–H8 complete until C1–C12 are satisfied on the converged branc
 ## Notes
 
 This plan is intentionally narrower than the original 26-step sequence. It preserves accepted primitive behavior and treats current `main` as the source of truth for runtime/import ownership after C1 convergence. If convergence changes an internal file/module name without changing the accepted contract, update the implementation routing rather than reopening the policy.
+
+
+## C3 disposition and verification
+
+**C3 complete: canonical H1 manifest from exclusively borrowed authoritative Cva state.** C4 event production is next; the declared integration window continues through C5.
+
+- Private freeze accepts no supplied digest. The simplified planner manifest hash is deleted. Checked typed canonical encoding reproduces H1 policy digest 0cad2e7fd763de37753a54c28df1c7b6303c6c818145492ca4a709023c420908 and commits all fifteen required top-level fields.
+- Required retained Node content/ancestry, exact Archive prefix/order, complete native grouped publications and proven singleton births, local provenance, cohort maximum availability and body/revision/lifecycle/scoring bindings are verified. Missing undeclared singleton provenance is explicit unsupported/untouched; missing declared evidence rejects.
+- Full typed graph and authorized Memory adjacency, existing duplicate authority, actual retained Dream proof, validated-or-unknown Community, profile/generation/source/target vector commitments, disjoint provisional replacement identities and accepted payload-family prefixes are frozen. No second durable manifest store is introduced.
+- The previously transcribed planner/checkpoint H1 policy constant was wrong. It now matches the descriptor golden digest; unsupported wrong-digest unreleased checkpoints reject without a compatibility path.
+- Native byte-preserving/reopen/retry/H7, complete-field digest sensitivity, singleton/unsupported, malformed Community, legitimate-use isolation and non-activity cycle regressions pass. The coordinator verifies this proof then reports PipelineUnavailable until C4–C5 complete.
+
+Verification:
+- Full library: 1,213 passed, 3 ignored. Focused historical and canonical-owner regressions passed.
+- Root all-integration test compilation, root/CLI formatting, CLI tests (19), both documentation-policy modes and patch hygiene passed.
+- Architecture refresh passed: 23 rules, 68,772 source nodes, 2,367 relationships; snapshot sha256:989a3363ab788647fdf62688b30afc1b13e058347284f9de5a86a789986c41b0. P4/external ownership guards passed.
+- Short process-local TMP/TEMP fixtures were removed. An initial supplied-hash conflict fixture failed because identical native input now derives identical manifests; changing real retained owner input corrected the fixture. That failed attempt is not passing evidence.
+
+Documentation impact:
+- Inspected: canonical owner/API/storage/invariants/limits/maintainer docs, H1 policy and this plan.
+- Updated: H1 native routing, policy correction, source ownership and C3 evidence.
+- Not affected: shipped numerical policy, durable framing and opt-in release scope.
+- Compliance check: both required documentation-policy modes passed.
+- Known documentation gaps: C4–C12 remain pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: only Cva derives accepted manifest proof; graph/Dream representative authority and existing FreshnessStore remain owners.
+- Pitlord enforcement impact: policy unchanged; refreshed graph/check passed.
+- Other verification impact: native complete proof, unsupported preservation, input/isolation rejection and full library/CLI regression coverage.
+- Known architectural gaps: event integration, one-shot publication/recovery, bounded embedding and importer/release acceptance remain C4–C12.

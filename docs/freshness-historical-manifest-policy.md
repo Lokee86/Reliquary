@@ -188,3 +188,10 @@ Step 14 implements pure timeline/provenance/manifest types and deterministic fix
 ## Notes
 
 The historical approximation does not estimate unseen graph evolution, relationship creation time or old lifecycle changes. Missing evidence is visible coverage or an explicit rejection. The mathematical result remains exact for the selected admissions/events under the existing owner REL clock.
+
+
+## C3 native implementation routing
+
+The Cva coordinator now builds every H1 top-level field from retained owner evidence, using checked typed canonical encoding. The supplied-digest freeze seam and simplified planner manifest hash are removed. Native grouped Episode publications and verified direct singleton publications use their distinct frozen cohort domains. Unsupported undeclared singleton provenance stays untouched; declared missing/foreign/conflicting evidence rejects. Complete publication payload digests, exact Node/body bindings, retained Dream roots/authority, all active typed relationships and full Memory adjacency, validated-or-unknown Community, profiles/generation/source coverage/target rows, isolated provisional event identities and accepted payload-family prefixes are pinned.
+
+The canonical reconstruction-policy digest is reproduced from the typed descriptor and checked against the shared planner/checkpoint constant. C3 corrects the earlier incorrectly transcribed constant to the frozen H1 value; wrong-digest unreleased checkpoints reject. No compatibility path is introduced. Manifest construction publishes neither scores nor a checkpoint. Event production and native one-shot publication remain C4–C5 work.

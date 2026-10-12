@@ -3,6 +3,8 @@ use crate::insomnia::completion_tests::{process, setup, setup_origin};
 use crate::{EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
 use std::fs;
 
+#[path = "historical_manifest_tests.rs"]
+mod historical_manifest;
 #[path = "historical_import_transform_tests.rs"]
 mod historical_transform;
 
@@ -70,7 +72,7 @@ fn historical_import_checkpoint_reopens_and_retries_without_erasing_live_use() {
     let (path, mut cva, id) = historical_import_fixture("historical-checkpoint.cva");
     let original_revision = cva.memory(id).unwrap().revision;
     assert_eq!(cva.freshness_record(id).unwrap().score, 100);
-    let frozen = cva.freeze_historical_import([7; 32]).unwrap();
+    let frozen = cva.freeze_historical_import().unwrap();
     assert_eq!(frozen.cut(), 32);
     assert_eq!(frozen.initial_records()[&id].admitted_at_turn, Some(16));
     let prepared = frozen.prepare(&[]).unwrap();
@@ -107,9 +109,8 @@ fn historical_import_checkpoint_reopens_and_retries_without_erasing_live_use() {
     assert_eq!(live.score, 100);
     assert!(!cva.commit_historical_import(&prepared).unwrap());
     assert_eq!(cva.freshness_record(id), Some(live));
-    assert!(cva.freeze_historical_import([8; 32]).is_err());
     let retried = cva
-        .freeze_historical_import([7; 32])
+        .freeze_historical_import()
         .unwrap()
         .prepare(&[])
         .unwrap();
@@ -125,7 +126,7 @@ fn historical_import_checkpoint_reopens_and_retries_without_erasing_live_use() {
 fn historical_import_freeze_detects_input_drift_before_any_projection_switch() {
     let (path, mut cva, id) = historical_import_fixture("historical-checkpoint-drift.cva");
     let prepared = cva
-        .freeze_historical_import([7; 32])
+        .freeze_historical_import()
         .unwrap()
         .prepare(&[])
         .unwrap();
@@ -148,7 +149,7 @@ fn historical_import_freeze_detects_input_drift_before_any_projection_switch() {
     );
     assert_eq!(cva.freshness_record(id), original);
     assert_eq!(fs::read(&path).unwrap(), before);
-    assert!(cva.freeze_historical_import([7; 32]).is_err());
+    assert!(cva.freeze_historical_import().is_err());
     drop(cva);
     let reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.freshness_record(id), original);
@@ -158,10 +159,10 @@ fn historical_import_freeze_detects_input_drift_before_any_projection_switch() {
 fn historical_import_rejects_live_completion_and_unfinished_generation() {
     let (_, mut live, _) = setup("historical-checkpoint-live.cva");
     process(&mut live, 1, 110);
-    assert!(live.freeze_historical_import([7; 32]).is_err());
+    assert!(live.freeze_historical_import().is_err());
     let (_, mut unfinished, _) =
         setup_origin("historical-checkpoint-pending.cva", EpisodeOrigin::Import);
-    assert!(unfinished.freeze_historical_import([7; 32]).is_err());
+    assert!(unfinished.freeze_historical_import().is_err());
 }
 
 #[test]
@@ -218,4 +219,114 @@ fn historical_reconstruction_rejects_unfinished_owner_without_writes() {
     ));
     assert_eq!(fs::read(&path).unwrap(), before);
     assert!(cva.freshness.import_checkpoint().is_none());
+}
+
+#[test]
+fn historical_manifest_is_complete_owner_derived_and_reopen_stable() {
+    let (path, mut cva, _) = historical_import_fixture("h1-complete.rel");
+    cva.sync().unwrap();
+    let before = fs::read(&path).unwrap();
+    let a = manifest::build(&mut cva).unwrap();
+    let b = manifest::build(&mut cva).unwrap();
+    assert_eq!(a.digest, b.digest);
+    assert_eq!(a.value, b.value);
+    assert_eq!(
+        a.digest,
+        a.value.digest("reliquary:historical-manifest:v1").unwrap()
+    );
+    let encoding::Value::Map(fields) = &a.value else {
+        panic!()
+    };
+    let actual: BTreeSet<_> = fields.iter().map(|(key, _)| key.as_str()).collect();
+    assert_eq!(
+        actual,
+        BTreeSet::from([
+            "schema_version",
+            "policy_version",
+            "owner_uuid",
+            "import_id",
+            "corpus_digest",
+            "archive_cut",
+            "source_records",
+            "memory_records",
+            "cohort_records",
+            "graph_proof",
+            "community_proof",
+            "vector_proof",
+            "scoring_policy",
+            "replacement_proof",
+            "input_token"
+        ])
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
+    for (index, _) in fields.iter().enumerate() {
+        let mut changed = a.value.clone();
+        let encoding::Value::Map(fields) = &mut changed else {
+            panic!()
+        };
+        fields[index].1 = encoding::Value::Null;
+        assert_ne!(
+            a.digest,
+            changed.digest("reliquary:historical-manifest:v1").unwrap()
+        );
+    }
+    drop(cva);
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(a.digest, manifest::build(&mut reopened).unwrap().digest);
+    assert_eq!(fs::read(&path).unwrap(), before);
+}
+
+#[test]
+fn historical_manifest_pins_unknown_community_and_rejects_malformed_present_state() {
+    use crate::{Community, CommunityId, CommunitySnapshot};
+    let id = MemoryId([1; 32]);
+    let ids = BTreeSet::from([id]);
+    let snapshot = CommunitySnapshot {
+        generation: 1,
+        derived_graph_version: 9,
+        algorithm_version: 2,
+        seed: 1,
+        resolution: 1.0,
+        quality: 0.0,
+        communities: vec![Community {
+            id: CommunityId([2; 32]),
+            members: vec![id],
+        }],
+    };
+    let validated = manifest::community_proof(Some(snapshot.clone()), 9, &ids).unwrap();
+    let stale = manifest::community_proof(Some(snapshot.clone()), 10, &ids).unwrap();
+    assert_ne!(validated, stale);
+    let mut duplicate = snapshot.clone();
+    duplicate.communities[0].members.push(id);
+    assert!(manifest::community_proof(Some(duplicate), 10, &ids).is_err());
+    let mut foreign = snapshot.clone();
+    foreign.communities[0].members[0] = MemoryId([9; 32]);
+    assert!(manifest::community_proof(Some(foreign), 9, &ids).is_err());
+    let mut nonfinite = snapshot;
+    nonfinite.quality = f64::NAN;
+    assert!(manifest::community_proof(Some(nonfinite), 10, &ids).is_err());
+}
+
+#[test]
+fn historical_manifest_rejects_legitimate_use_without_writing() {
+    let (path, mut cva, id) = historical_import_fixture("h1-use-isolation.rel");
+    cva.record_accepted_memory_use(
+        crate::AcceptedMemoryUseReceipt {
+            owner_uuid: cva.owner_uuid().unwrap(),
+            accepted_turn: cva.rel_turn_count(),
+            use_id: "legitimate-use-before-reconstruction".into(),
+            memories: vec![id],
+        },
+        401,
+    )
+    .unwrap();
+    let before = fs::read(&path).unwrap();
+    assert!(
+        manifest::build(&mut cva)
+            .err()
+            .unwrap()
+            .to_string()
+            .contains("accepted use")
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
 }

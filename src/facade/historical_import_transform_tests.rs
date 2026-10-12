@@ -6,7 +6,7 @@ use sha2::{Digest, Sha256};
 
 fn checkpoint(cva: &mut Cva) -> PreparedHistoricalImport {
     let prepared = cva
-        .freeze_historical_import([7; 32])
+        .freeze_historical_import()
         .unwrap()
         .prepare(&[])
         .unwrap();
@@ -40,7 +40,7 @@ fn assert_preserved(
     assert!(copy.initial_dream_pass_settled(&pass));
     assert!(!copy.commit_historical_import(prepared).unwrap());
     let retried = copy
-        .freeze_historical_import([7; 32])
+        .freeze_historical_import()
         .unwrap()
         .prepare(&[])
         .unwrap();
@@ -237,8 +237,15 @@ fn historical_transform_conflicting_manifest_and_policy_never_overwrite_acceptan
     fs::copy(&path, &right_path).unwrap();
     let mut right = Cva::open(&right_path).unwrap();
     let prepared = checkpoint(&mut left);
+    right
+        .store_file(
+            "changed-input.bin".into(),
+            None,
+            b"changed retained owner input",
+        )
+        .unwrap();
     let other = right
-        .freeze_historical_import([8; 32])
+        .freeze_historical_import()
         .unwrap()
         .prepare(&[])
         .unwrap();
@@ -361,7 +368,7 @@ fn historical_transform_regenerated_archive_restores_accepted_state_without_reco
     );
     crate::dream_freshness::settle_initial_pass(&mut cva, id, true, 402).unwrap();
     let retried = cva
-        .freeze_historical_import([7; 32])
+        .freeze_historical_import()
         .unwrap()
         .prepare(&[])
         .unwrap();

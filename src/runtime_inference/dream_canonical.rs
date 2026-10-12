@@ -71,6 +71,32 @@ pub(crate) fn existing_duplicate_representative(
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
+    duplicate_representative(
+        cva,
+        root_id,
+        source_birth_version,
+        Some(source_id),
+        relations,
+    )
+}
+
+/// Historical owner proof pins final authority without using physical publication
+/// order or excluding the representative's own birth cohort.
+pub(crate) fn historical_duplicate_representative(
+    cva: &mut Cva,
+    root_id: MemoryId,
+    relations: &[GraphRelation],
+) -> Result<Option<MemoryId>, DreamLifecycleError> {
+    duplicate_representative(cva, root_id, u64::MAX, None, relations)
+}
+
+fn duplicate_representative(
+    cva: &mut Cva,
+    root_id: MemoryId,
+    source_birth_version: u64,
+    source_id: Option<MemoryId>,
+    relations: &[GraphRelation],
+) -> Result<Option<MemoryId>, DreamLifecycleError> {
     let mut active = Vec::new();
     for id in duplicate_component(root_id, relations) {
         // Only owner-local Memories with explicit durable birth enrollment can
@@ -83,9 +109,10 @@ pub(crate) fn existing_duplicate_representative(
         if first.global_version >= source_birth_version {
             continue;
         }
-        if cva
-            .freshness_same_publication_cohort(source_id, id)
-            .map_err(|error| DreamLifecycleError::Freshness(error.to_string()))?
+        if let Some(source_id) = source_id
+            && cva
+                .freshness_same_publication_cohort(source_id, id)
+                .map_err(|error| DreamLifecycleError::Freshness(error.to_string()))?
         {
             continue;
         }
