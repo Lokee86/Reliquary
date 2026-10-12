@@ -431,7 +431,7 @@ migration, so the remaining removal belongs with the ownership cuts in 3.5–3.8
 | 4.2 | Verify concurrent instances and shared REL/PHY execution | Complete: topology and fanout/checkpoint matrices passed |
 | 4.3 | Verify grant enforcement, revocation and principal privacy | Complete: gateway authorization/privacy matrix passed |
 | 4.4 | Verify durable scheduling, cancellation/finalization races and ties | Complete: conversation and P6 topology matrices passed |
-| 4.5 | Verify conversation branch policy and Archive ancestry consistency | Blocked |
+| 4.5 | Verify conversation branch policy and Archive ancestry consistency | Complete: locked conversation matrix passed |
 | 4.6 | Execute crash, restart, receipt-loss, replay and recovery matrix | Blocked |
 | 4.7 | Verify event distribution, stream checkpoints, resync and reconnect | Blocked |
 | 4.8 | Verify real provider lifecycle, Unknown hold and truthful cancellation | Blocked |
@@ -546,6 +546,10 @@ The load matrix passed all **4 tests**. It exercised fanout at **1, 8, and 32 in
 ### Step 4.4 durable scheduling, cancellation/finalization races and ties — 2026-10-11
 
 Locked offline verification passed: **96 conversation tests and 4 P6 topology tests; zero failures or ignored tests**. Coverage includes durable admission order independent of client timestamps, equal verified-timestamp ties preserved after restart, retry deduplication, atomic branch reservation, captured finalization ancestry, unknown host debt, and cancellation/finalization races with one winner and stable Archive replay. No runtime changes were required.
+
+### Step 4.5 conversation branch policy and Archive ancestry consistency — 2026-10-11
+
+The locked offline conversation matrix passed **96 tests, zero failures and zero ignored tests**. Reviewed coverage includes exact-owner policy management, policy changes affecting pending capture while preserving frozen finalization ancestry, sequential branch serialization, visible auto-branch conflicts from two and three writers, submitter-local selection, invalid-parent rejection before publication, restart reuse of frozen branch identity, branch-local finalization fencing, and durable Archive parent consistency. No runtime changes were required.
 
 ### Step 4.3 verification evidence
 
