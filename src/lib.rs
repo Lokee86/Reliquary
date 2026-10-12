@@ -1155,7 +1155,7 @@ pub use runtime_host::{
     HostOperationStatus, HostQueueGuarantees, HostReconcileStatus, InstanceAuthorization,
     InstanceId, InstanceRuntime, InstanceRuntimeError, ManagedConversationState, OwnerAccessToken,
     OwnerAdmission, OwnerGrant, RelReconciliationCandidateReport, RelReconciliationReport,
-    ReliquaryRuntimeHost, ReliquaryRuntimeHostError, ReliquaryRuntimeRoutes, RuntimeCapability,
+    ReliquaryRuntimeRoutes, RuntimeCapability,
     RuntimeEchoSource, RuntimeEchoTurn, RuntimeKnowledgeProvenanceResolution,
     RuntimeKnowledgeState, RuntimeSemanticOwner, RuntimeSemanticOwnerKind, StageAuthority,
     VerifiedInstanceAdmission, VisibleArchiveSearchOwner, VisibleArchiveSearchResult,
