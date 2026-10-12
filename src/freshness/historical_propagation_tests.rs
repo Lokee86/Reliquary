@@ -312,6 +312,61 @@ fn historical_semantic_budget_and_inclusive_recipient_position() {
 }
 
 #[test]
+fn historical_semantic_future_root_bridges_to_eligible_recipient_without_credit() {
+    let g = graph(&[(2, 3)]);
+    let a: BTreeMap<MemoryId, MemoryAvailability> = [
+        (id(2), MemoryAvailability::Supported { position: 11 }),
+        (id(3), MemoryAvailability::Supported { position: 10 }),
+    ]
+    .into_iter()
+    .collect();
+    let authorized = a.keys().copied().collect();
+    let m = [(id(2), community(1)), (id(3), community(1))]
+        .into_iter()
+        .collect();
+    let out = run(
+        &[event(HistoricalPropagationKind::Semantic, &[(2, 10)])],
+        &g,
+        &m,
+        &authorized,
+        &a,
+        1,
+    )
+    .remove(0);
+    assert_eq!(out.candidates, [(id(3), 5)].into_iter().collect());
+    assert!(!out.candidates.contains_key(&id(2)));
+}
+
+#[test]
+fn historical_dream_future_root_bridges_to_eligible_recipient_without_credit() {
+    let g = graph(&[(2, 3)]);
+    let a: BTreeMap<MemoryId, MemoryAvailability> = [
+        (id(2), MemoryAvailability::Supported { position: 11 }),
+        (id(3), MemoryAvailability::Supported { position: 10 }),
+    ]
+    .into_iter()
+    .collect();
+    let authorized = a.keys().copied().collect();
+    let m = [(id(2), community(1)), (id(3), community(1))]
+        .into_iter()
+        .collect();
+    let out = run(
+        &[event(
+            HistoricalPropagationKind::FirstCycleDream,
+            &[(2, 50)],
+        )],
+        &g,
+        &m,
+        &authorized,
+        &a,
+        1,
+    )
+    .remove(0);
+    assert_eq!(out.candidates, [(id(3), 45)].into_iter().collect());
+    assert!(!out.candidates.contains_key(&id(2)));
+}
+
+#[test]
 fn historical_semantic_credit_is_not_capped_to_the_direct_root_budget() {
     let e = event(HistoricalPropagationKind::Semantic, &[(1, 10)]);
     let edges: Vec<_> = (2..=100).map(|n| (1, n)).collect();
