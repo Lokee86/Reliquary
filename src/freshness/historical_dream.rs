@@ -165,14 +165,14 @@ pub fn plan_historical_dream_events(
                 duplicate_origin,
                 ..
             }) => {
-                if !source.credit_eligible && !duplicate_origin {
-                    plan.coverage
-                        .insert(id, HistoricalDreamCoverage::Unsupported);
-                    continue;
-                }
                 if roots.is_empty() {
                     plan.coverage
                         .insert(id, HistoricalDreamCoverage::VerifiedNoLink);
+                    continue;
+                }
+                if !source.credit_eligible && !duplicate_origin {
+                    plan.coverage
+                        .insert(id, HistoricalDreamCoverage::Unsupported);
                     continue;
                 }
                 (roots.clone(), HistoricalDreamCoverage::ActualFirstCycle)

@@ -288,3 +288,37 @@ Architecture impact:
 - Pitlord enforcement impact: policy unchanged; refreshed graph/check passed.
 - Other verification impact: native complete proof, unsupported preservation, input/isolation rejection and full library/CLI regression coverage.
 - Known architectural gaps: event integration, one-shot publication/recovery, bounded embedding and importer/release acceptance remain C4–C12.
+
+
+## C4 disposition and verification
+
+**C4 complete: canonical historical semantic/Dream identities and exclusions through the native owner path.** C5 native one-shot publication is next.
+
+- Private freeze derives and retains a canonical batch from the verified H1 projection; operation inputs contain no supplied roots, exclusions or event identities.
+- Semantic identity uses the frozen typed owner UUID/import/exact source map and raw 32 bytes. An independent golden verifies encoding; changed evidence/amounts keep the same identity. Strongest-fragment reduction and provenance/cohort/availability/lifecycle/profile exclusions precede top-64 selection.
+- Propagation inherits frozen recipient exclusions while retaining bridges. Mixed events sort by (position, raw event ID), without kind priority or recipient rehashing.
+- Actual Dream roots/duplicate origin are verified against accepted first-cycle graph transactions. Existing authority resolves representatives; roots must be strictly older. Verified no-link precedes later adjacency, including archived sources. Unusable markers are unsupported; the pure verified direct-link approximation contract remains.
+- Credit-excluded records are unadmitted; unsupported provenance and disjoint provisional history stay untouched. Checkpoint input digest/extent come from the manifest frozen prefix, with drift rejection.
+- Native Import/Insomnia/Dream/vector fixtures verify complete grouped self-exclusion, multi-root source identity, archived duplicate origin, no-link precedence, mixed ordering, unchanged bytes and reopen equality. Publication remains PipelineUnavailable until C5.
+
+Verification:
+- Historical: 71 passed. Full library: 1,218 passed, 3 ignored. CLI: 19 passed.
+- Final frozen-input correction passed the historical matrix again, root integration-target compilation, CLI check/format, both documentation-policy modes and patch hygiene.
+- Architecture refresh/Pitlord and P4/external ownership guards passed.
+- Temporary fixtures were removed. Missing-fragment, stale exclusion expectation and knowledge-versus-extracted duplicate fixture failures were corrected; failed attempts are not passing evidence.
+
+Documentation impact:
+- Inspected: canonical owner/API/storage/invariants/limits/maintainer docs, H1 policy and this plan.
+- Updated: C4 routing, identity/proof/exclusion rules, scope and verification.
+- Not affected: live F8 policy/identity, durable framing and opt-in REL-local release scope.
+- Compliance check: both required documentation-policy modes passed.
+- Known documentation gaps: C5–C12 remain pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: producers stay below private Cva freeze; Dream scan shares its existing owner; FreshnessStore/CVAFRS03 remain sole publication authority.
+- Pitlord enforcement impact: policy unchanged; refreshed graph/check passed.
+- Other verification impact: golden identity, native generation/vector/reopen/exclusion and library/CLI regression evidence.
+- Known architectural gaps: publication/recovery, bounded embedding, importer and retained-corpus/release closure remain C5–C12.
+
+Final architecture evidence: sha256:c9651678ffe85a0b23824b4244ba844f01536dbb584607f093d95cee8b6dcf63; 23 rules, 68906 source nodes, 2369 relationships.

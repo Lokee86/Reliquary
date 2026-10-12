@@ -28,7 +28,6 @@ impl HistoricalPropagationEvent {
     /// Preserve the entire Step 16 source turn as one propagation event.
     pub fn from_semantic(
         event: &super::historical_semantic::HistoricalSemanticEvent,
-        credit_excluded: BTreeSet<MemoryId>,
     ) -> Result<Self, HistoricalPropagationError> {
         let policy = super::semantic_policy::SemanticPolicy::default();
         if policy
@@ -55,7 +54,7 @@ impl HistoricalPropagationEvent {
             kind: HistoricalPropagationKind::Semantic,
             position: event.source_position,
             roots,
-            credit_excluded,
+            credit_excluded: event.credit_excluded.clone(),
         })
     }
 }

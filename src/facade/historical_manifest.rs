@@ -8,6 +8,10 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) struct Manifest {
+    pub input_digest: [u8; 32],
+    pub input_bytes: u64,
+    pub memory_inputs: BTreeMap<MemoryId, input::HistoricalMemoryInput>,
+    pub timeline: crate::freshness::historical_planner::HistoricalTimeline,
     pub digest: [u8; 32],
     pub corpus_digest: [u8; 32],
     pub import_id: [u8; 32],
@@ -240,11 +244,18 @@ fn graph_proof(cva: &mut Cva, ids: &BTreeSet<MemoryId>) -> Result<Value, CvaErro
         {
             return Err(fail("invalid owner-local historical Dream proof"));
         }
+        let (roots, duplicate_origin) = cva.initial_dream_committed_evidence(&pass)?;
+        if roots != pass.roots {
+            return Err(fail(
+                "retained first-cycle roots conflict with accepted graph proof",
+            ));
+        }
         let representatives = cva.historical_dream_representatives(id, &pass.roots)?;
         dream.push(Value::map([
             ("source_id", Value::bytes(id.0)),
             ("pass_id", Value::text(pass.pass_id)),
             ("first_revision", Value::Unsigned(pass.first_revision)),
+            ("duplicate_origin", Value::Bool(duplicate_origin)),
             ("turn", Value::Unsigned(pass.turn)),
             (
                 "settlement_turn",
@@ -622,6 +633,9 @@ pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
     base_hash.update(&base_bytes);
     let semantic = crate::freshness::semantic_policy::SemanticPolicy::default();
     cva.container.sync()?;
+    let input_bytes = std::fs::metadata(cva.container.path())
+        .map_err(|e| fail(&e.to_string()))?
+        .len();
     let prefix = file_digest(cva.container.path())?;
     // Each retained payload family has an ordered accepted-prefix commitment.
     let mut prefixes = BTreeMap::<Vec<u8>, Vec<Value>>::new();
@@ -644,6 +658,14 @@ pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
             })
             .collect(),
     );
+    if std::fs::metadata(cva.container.path())
+        .map_err(|e| fail(&e.to_string()))?
+        .len()
+        != input_bytes
+        || file_digest(cva.container.path())? != prefix
+    {
+        return Err(fail("ImportInputDrift: discard and refreeze the manifest"));
+    }
     let token = Value::map([
         (
             "global_version",
@@ -664,6 +686,7 @@ pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
                 .map_or(Value::Null, |s| Value::Unsigned(s.generation)),
         ),
         ("accepted_prefix_digest", Value::bytes(prefix)),
+        ("accepted_prefix_bytes", Value::Unsigned(input_bytes)),
         ("accepted_payload_families", families),
         (
             "dream_proof_digest",
@@ -736,6 +759,10 @@ pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
     ]);
     let digest = value.digest("reliquary:historical-manifest:v1")?;
     Ok(Manifest {
+        input_digest: prefix,
+        input_bytes,
+        memory_inputs: admission.memory_inputs,
+        timeline,
         digest,
         corpus_digest,
         import_id,

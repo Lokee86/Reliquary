@@ -3,14 +3,27 @@ use crate::insomnia::completion_tests::{process, setup, setup_origin};
 use crate::{EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
 use std::fs;
 
+#[path = "historical_events_tests.rs"]
+mod historical_events;
 #[path = "historical_manifest_tests.rs"]
 mod historical_manifest;
 #[path = "historical_import_transform_tests.rs"]
 mod historical_transform;
 
 fn historical_import_fixture(name: &str) -> (std::path::PathBuf, Cva, crate::MemoryId) {
+    let (path, cva, ids) = historical_import_fixture_count(name, 1);
+    (path, cva, ids[0])
+}
+fn historical_import_fixture_count(
+    name: &str,
+    count: usize,
+) -> (std::path::PathBuf, Cva, Vec<crate::MemoryId>) {
     let (path, mut cva, _) = setup_origin(name, EpisodeOrigin::Import);
-    let id = process(&mut cva, 1, 110).created[0].id;
+    let ids: Vec<_> = process(&mut cva, count, 110)
+        .created
+        .iter()
+        .map(|memory| memory.id)
+        .collect();
     // A completed omission-only Episode supplies a real historical decay tail.
     let mut parent = None;
     for index in 0..8 {
@@ -50,21 +63,23 @@ fn historical_import_fixture(name: &str) -> (std::path::PathBuf, Cva, crate::Mem
     cva.queue_insomnia_episode(episode.id, InsomniaPriority::Import, 201)
         .unwrap();
     assert!(process(&mut cva, 0, 210).created.is_empty());
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
-    cva.begin_initial_dream_pass(
-        pass.clone(),
-        id,
-        1,
-        cva.rel_turn_count(),
-        Default::default(),
-        cva.graph_version(),
-    )
-    .unwrap();
-    cva.reconcile_dream_lifecycle(id).unwrap();
-    cva.accept_initial_dream_settlement(&pass, cva.rel_turn_count())
+    for &id in &ids {
+        let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
+        cva.begin_initial_dream_pass(
+            pass.clone(),
+            id,
+            1,
+            cva.rel_turn_count(),
+            Default::default(),
+            cva.graph_version(),
+        )
         .unwrap();
-    crate::dream_freshness::settle_initial_pass(&mut cva, id, true, 300).unwrap();
-    (path, cva, id)
+        cva.reconcile_dream_lifecycle(id).unwrap();
+        cva.accept_initial_dream_settlement(&pass, cva.rel_turn_count())
+            .unwrap();
+        crate::dream_freshness::settle_initial_pass(&mut cva, id, true, 300).unwrap();
+    }
+    (path, cva, ids)
 }
 
 #[test]

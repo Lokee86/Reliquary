@@ -220,7 +220,8 @@ fn historical_semantic_handoff_keeps_one_turn_and_strongest_duplicate_root() {
         semantic_policy::{SemanticEffect, SemanticPolicy},
     };
     let mut source = HistoricalSemanticEvent {
-        event_id: "event".into(),
+        event_id: [1; 32],
+        credit_excluded: BTreeSet::from([id(3)]),
         source_key: SourceKey {
             conversation_id: "c".into(),
             node_id: "n".into(),
@@ -249,14 +250,13 @@ fn historical_semantic_handoff_keeps_one_turn_and_strongest_duplicate_root() {
             },
         ],
     };
-    let e =
-        HistoricalPropagationEvent::from_semantic(&source, [id(3)].into_iter().collect()).unwrap();
+    let e = HistoricalPropagationEvent::from_semantic(&source).unwrap();
     assert_eq!(e.roots, [(id(1), 10), (id(2), 6)].into_iter().collect());
     assert_eq!(e.position, 10);
     assert!(e.credit_excluded.contains(&id(3)));
     source.semantic_policy_digest = [0; 32];
     assert_eq!(
-        HistoricalPropagationEvent::from_semantic(&source, BTreeSet::new()),
+        HistoricalPropagationEvent::from_semantic(&source),
         Err(HistoricalPropagationError::InvalidEvent)
     );
 }

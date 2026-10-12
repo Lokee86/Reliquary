@@ -201,3 +201,20 @@ fn historical_dream_identity_matches_independent_h1_typed_encoding_golden() {
         "4934d474875b806cf6577542b76a697b616c4126f66e10e404e91e04556801bc"
     );
 }
+
+#[test]
+fn historical_dream_archived_verified_no_link_precedes_final_links() {
+    let mut source = member(1, 10);
+    source.credit_eligible = false;
+    let out = plan(
+        &[source, member(2, 1)],
+        &BTreeMap::from([(id(1), proof(&[], false))]),
+        &[link(1, 2)],
+        &BTreeMap::new(),
+    );
+    assert_eq!(
+        out.coverage[&id(1)],
+        HistoricalDreamCoverage::VerifiedNoLink
+    );
+    assert!(!out.events.iter().any(|event| event.source_id == id(1)));
+}

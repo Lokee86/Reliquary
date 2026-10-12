@@ -10,6 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
 #[path = "historical_manifest_encoding.rs"]
 mod encoding;
+#[path = "historical_events.rs"]
+mod events;
 #[path = "historical_import_input.rs"]
 mod input;
 #[path = "historical_manifest.rs"]
@@ -19,6 +21,7 @@ mod transform;
 
 #[derive(Clone, Debug)]
 struct FrozenHistoricalImport {
+    events: Option<events::NativeHistoricalEvents>,
     checkpoint: ImportCheckpoint,
     initial: BTreeMap<MemoryId, FreshnessRecord>,
 }
@@ -98,7 +101,7 @@ fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
     Ok(hash.finalize().into())
 }
 impl Cva {
-    /// Private checkpoint primitive. Only the owner coordinator may supply the
+    /// Private checkpoint primitive. The owner coordinator derives the
     /// verified manifest and frozen owner cut; this is not a caller-facing API.
     fn freeze_historical_import(&mut self) -> Result<FrozenHistoricalImport, CvaError> {
         if let Some(checkpoint) = self.freshness.import_checkpoint() {
@@ -112,12 +115,14 @@ impl Cva {
                 initial.insert(*id, birth);
             }
             return Ok(FrozenHistoricalImport {
+                events: None,
                 checkpoint,
                 initial,
             });
         }
         let owner = self.historical_reconstruction_owner()?;
         let manifest = manifest::build(self)?;
+        let events = events::build(self, &manifest)?;
         let cohort: BTreeSet<_> = self.memory_ids().into_iter().collect();
         self.container.sync()?;
         let checkpoint = ImportCheckpoint {
@@ -125,13 +130,11 @@ impl Cva {
             import_id: manifest.import_id,
             corpus_digest: manifest.corpus_digest,
             manifest_digest: manifest.digest,
-            input_digest: file_digest(self.container.path())?,
+            input_digest: manifest.input_digest,
             cohort,
             cut: self.rel_turn_count(),
             global_version: self.latest_global_version(),
-            input_bytes: std::fs::metadata(self.container.path())
-                .map_err(|e| fail(&e.to_string()))?
-                .len(),
+            input_bytes: manifest.input_bytes,
             archive_version: self.archive_version(),
             graph_version: self.graph_version(),
             memory_graph_version: self.memory_graph_version(),
@@ -139,6 +142,7 @@ impl Cva {
             superseded: manifest.superseded,
         };
         Ok(FrozenHistoricalImport {
+            events: Some(events),
             checkpoint,
             initial: manifest.initial,
         })

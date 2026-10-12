@@ -883,9 +883,18 @@ impl Cva {
         &self,
         pass: &crate::InitialDreamPass,
     ) -> Result<std::collections::BTreeSet<MemoryId>, CvaError> {
+        self.initial_dream_committed_evidence(pass)
+            .map(|(roots, _)| roots)
+    }
+
+    pub(crate) fn initial_dream_committed_evidence(
+        &self,
+        pass: &crate::InitialDreamPass,
+    ) -> Result<(std::collections::BTreeSet<MemoryId>, bool), CvaError> {
         let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
         let mut objects = crate::Container::open_read_only_for_scan(self.container.path())?;
         let mut roots = std::collections::BTreeSet::new();
+        let mut duplicate_origin = false;
         #[cfg(feature = "freshness-performance-trace")]
         let trace_started = std::time::Instant::now();
         #[cfg(feature = "freshness-performance-trace")]
@@ -952,6 +961,8 @@ impl Cva {
                     None
                 };
                 if let Some(neighbor) = neighbor.filter(|id| pass.preexisting_ids.contains(id)) {
+                    duplicate_origin |=
+                        mutation.kind.code() == crate::GraphRelationKind::DuplicateOf.code();
                     roots.insert(neighbor);
                 }
             }
@@ -972,7 +983,7 @@ impl Cva {
                 ..Default::default()
             },
         );
-        Ok(roots)
+        Ok((roots, duplicate_origin))
     }
 
     pub(crate) fn recover_committed_initial_dream_event(

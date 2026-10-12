@@ -74,7 +74,16 @@ pub(super) fn corpus_digest(cva: &mut Cva, through: u64) -> Result<[u8; 32], Cva
     Value::Array(nodes.values().map(node_binding).collect())
         .digest("reliquary:historical-corpus:v1")
 }
+#[derive(Clone, Debug)]
+pub(super) struct HistoricalMemoryInput {
+    pub body_id: crate::MemoryBodyId,
+    pub cohort_key: [u8; 32],
+    pub availability: Option<u64>,
+    pub credit_eligible: bool,
+    pub necessary_sources: BTreeSet<crate::freshness::historical_planner::SourceKey>,
+}
 pub(super) struct AdmissionProof {
+    pub memory_inputs: BTreeMap<MemoryId, HistoricalMemoryInput>,
     pub initial: BTreeMap<MemoryId, FreshnessRecord>,
     pub memories: Vec<Value>,
     pub cohorts: Vec<Value>,
@@ -366,6 +375,7 @@ pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError>
     cohorts.sort_by_key(|(key, _)| *key);
     let mut initial = BTreeMap::new();
     let mut memories = Vec::new();
+    let mut memory_inputs = BTreeMap::new();
     for (id, (memory, necessary, cohort_key)) in members {
         let available = cohort_positions[&cohort_key];
         let eligible = !memory.archived
@@ -378,15 +388,33 @@ pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError>
         } else {
             "credit-excluded"
         };
-        if eligible && let Some(at) = available {
+        if let Some(at) = available {
             let mut record = FreshnessRecord::created();
-            record.admit(at).map_err(|e| fail(&e.to_string()))?;
+            if eligible {
+                record.admit(at).map_err(|e| fail(&e.to_string()))?;
+            }
             initial.insert(id, record);
         }
         let body = cva.memory_body_id(id)?;
         if crate::memory_model::memory_body_id(&memory.title, &memory.content) != body {
             return Err(fail("historical BodyId content conflict"));
         }
+        memory_inputs.insert(
+            id,
+            HistoricalMemoryInput {
+                body_id: body,
+                cohort_key,
+                availability: available,
+                credit_eligible: eligible,
+                necessary_sources: necessary
+                    .iter()
+                    .map(|(c, n)| crate::freshness::historical_planner::SourceKey {
+                        conversation_id: c.clone(),
+                        node_id: n.clone(),
+                    })
+                    .collect(),
+            },
+        );
         let current = cva
             .freshness_record(id)
             .ok_or_else(|| fail("missing provisional scoring record"))?;
@@ -438,6 +466,7 @@ pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError>
         ]));
     }
     Ok(AdmissionProof {
+        memory_inputs,
         initial,
         memories,
         cohorts: cohorts.into_iter().map(|(_, proof)| proof).collect(),

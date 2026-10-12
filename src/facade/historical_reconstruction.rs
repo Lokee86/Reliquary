@@ -1,5 +1,5 @@
 //! Sole operation boundary for explicit REL-local historical reconstruction.
-//! The verified manifest/event pipeline is integrated in C3-C5; until then
+//! C3-C4 verify the native manifest/events; C5 integrates publication. Until then
 //! this entry point rejects without publishing any provisional result.
 use super::*;
 
