@@ -5,13 +5,31 @@ use crate::{AcceptedMemoryUseReceipt, CvaRelation, MemoryId};
 use sha2::{Digest, Sha256};
 
 fn checkpoint(cva: &mut Cva) -> PreparedHistoricalImport {
-    let prepared = cva
-        .freeze_historical_import()
+    checkpoint_with_fill(cva, false)
+}
+fn checkpoint_with_fill(cva: &mut Cva, fill: bool) -> PreparedHistoricalImport {
+    let report = if fill {
+        let cancel = std::sync::atomic::AtomicBool::new(false);
+        let endpoint = historical_embedding::Endpoint::new(&cancel);
+        cva.establish_compatibility_profile(&endpoint).unwrap();
+        cva.reconstruct_historical_freshness_with_endpoint(
+            HistoricalReconstructionOptions {
+                fill_missing_embeddings: true,
+            },
+            &endpoint,
+            Default::default(),
+            &cancel,
+        )
         .unwrap()
-        .prepare(&[])
-        .unwrap();
-    assert!(cva.commit_historical_import(&prepared).unwrap());
-    prepared
+    } else {
+        cva.reconstruct_historical_freshness(Default::default())
+            .unwrap()
+    };
+    assert!(report.committed);
+    cva.freeze_historical_import()
+        .unwrap()
+        .prepare_native()
+        .unwrap()
 }
 fn receipt(cva: &Cva, id: MemoryId, name: &str) -> AcceptedMemoryUseReceipt {
     AcceptedMemoryUseReceipt {
@@ -36,122 +54,154 @@ fn assert_preserved(
             .unwrap()
     );
     assert_eq!(copy.memory(id).unwrap(), source.memory(id).unwrap());
+    assert_eq!(
+        copy.vector_generations.generations(),
+        source.vector_generations.generations()
+    );
+    for generation in source.vector_generations.generations().to_vec() {
+        let original = source
+            .archive_vectors(generation.archive_vector_id)
+            .unwrap();
+        let retained = copy.archive_vectors(generation.archive_vector_id).unwrap();
+        assert_eq!(original, retained);
+        let original_rows = source.packed_vectors(original.packed_vector_id).unwrap();
+        let retained_rows = copy.packed_vectors(retained.packed_vector_id).unwrap();
+        for row in 0..original.fragment_ids.len() {
+            assert_eq!(
+                original_rows.row(row).unwrap(),
+                retained_rows.row(row).unwrap()
+            );
+        }
+    }
     let pass = crate::dream_freshness::initial_pass_id(source.owner_uuid().unwrap(), id);
     assert!(copy.initial_dream_pass_settled(&pass));
     assert!(!copy.commit_historical_import(prepared).unwrap());
     let retried = copy
         .freeze_historical_import()
         .unwrap()
-        .prepare(&[])
+        .prepare_native()
         .unwrap();
-    assert!(!copy.commit_historical_import(&retried).unwrap());
+    assert_eq!(
+        retried.checkpoint.manifest_digest,
+        prepared.checkpoint.manifest_digest
+    );
+    assert!(
+        !copy
+            .reconstruct_historical_freshness(Default::default())
+            .unwrap()
+            .committed
+    );
 }
 
 #[test]
 fn historical_transform_copy_prefix_extension_and_promotion_preserve_live_authority() {
-    let (path, mut cva, id) = historical_import_fixture("h7-copy.rel");
-    cva.sync().unwrap();
-    let provisional = path.with_file_name("provisional.rel");
-    fs::copy(&path, &provisional).unwrap();
-    let prepared = checkpoint(&mut cva);
-    let checkpoint_only = path.with_file_name("checkpoint-only.rel");
-    fs::copy(&path, &checkpoint_only).unwrap();
-    let exact = path.with_file_name("exact.rel");
-    fs::copy(&path, &exact).unwrap();
-    assert_preserved(&mut cva, &mut Cva::open(&exact).unwrap(), id, &prepared);
-    let merged = path.with_file_name("prefix.rel");
-    let result = Cva::reconcile(&provisional, &path, &merged).unwrap();
-    assert_eq!(result.comparison.relation, CvaRelation::RightExtendsLeft);
-    assert_preserved(&mut cva, &mut Cva::open(&merged).unwrap(), id, &prepared);
-    // A real later turn may have an earlier timestamp. It cannot reorder the
-    // checkpoint's already accepted source prefix or move its numerical anchors.
-    cva.append_node(
-        "later".into(),
-        "live".into(),
-        None,
-        "user".into(),
-        -100,
-        "Legitimate post-checkpoint activity.",
-    )
-    .unwrap();
-    let used = receipt(&cva, id, "h7-live-use");
-    assert_eq!(cva.record_accepted_memory_use(used.clone(), 1).unwrap(), 1);
-    let extension = path.with_file_name("extension.rel");
-    Cva::reconcile(&checkpoint_only, &path, &extension).unwrap();
-    let mut copy = Cva::open(&extension).unwrap();
-    assert_preserved(&mut cva, &mut copy, id, &prepared);
-    assert_eq!(copy.record_accepted_memory_use(used.clone(), 1).unwrap(), 0);
-    let again = path.with_file_name("twice.rel");
-    let result = Cva::reconcile(&extension, &path, &again).unwrap();
-    assert_eq!(result.comparison.relation, CvaRelation::Identical);
-    assert_preserved(&mut cva, &mut Cva::open(&again).unwrap(), id, &prepared);
-    drop(copy);
-    let result = Cva::reconcile_and_promote(&checkpoint_only, &path).unwrap();
-    assert!(result.canonical_change_required);
-    let mut promoted = Cva::open(&checkpoint_only).unwrap();
-    assert_preserved(&mut cva, &mut promoted, id, &prepared);
-    assert_eq!(promoted.record_accepted_memory_use(used, 1).unwrap(), 0);
+    for fill in [false, true] {
+        let (path, mut cva, id) = historical_import_fixture("h7-copy.rel");
+        cva.sync().unwrap();
+        let provisional = path.with_file_name("provisional.rel");
+        fs::copy(&path, &provisional).unwrap();
+        let prepared = checkpoint_with_fill(&mut cva, fill);
+        let checkpoint_only = path.with_file_name("checkpoint-only.rel");
+        fs::copy(&path, &checkpoint_only).unwrap();
+        let exact = path.with_file_name("exact.rel");
+        fs::copy(&path, &exact).unwrap();
+        assert_preserved(&mut cva, &mut Cva::open(&exact).unwrap(), id, &prepared);
+        let merged = path.with_file_name("prefix.rel");
+        let result = Cva::reconcile(&provisional, &path, &merged).unwrap();
+        assert_eq!(result.comparison.relation, CvaRelation::RightExtendsLeft);
+        assert_preserved(&mut cva, &mut Cva::open(&merged).unwrap(), id, &prepared);
+        // A real later turn may have an earlier timestamp. It cannot reorder the
+        // checkpoint's already accepted source prefix or move its numerical anchors.
+        cva.append_node(
+            "later".into(),
+            "live".into(),
+            None,
+            "user".into(),
+            -100,
+            "Legitimate post-checkpoint activity.",
+        )
+        .unwrap();
+        let used = receipt(&cva, id, "h7-live-use");
+        assert_eq!(cva.record_accepted_memory_use(used.clone(), 1).unwrap(), 1);
+        let extension = path.with_file_name("extension.rel");
+        Cva::reconcile(&checkpoint_only, &path, &extension).unwrap();
+        let mut copy = Cva::open(&extension).unwrap();
+        assert_preserved(&mut cva, &mut copy, id, &prepared);
+        assert_eq!(copy.record_accepted_memory_use(used.clone(), 1).unwrap(), 0);
+        let again = path.with_file_name("twice.rel");
+        let result = Cva::reconcile(&extension, &path, &again).unwrap();
+        assert_eq!(result.comparison.relation, CvaRelation::Identical);
+        assert_preserved(&mut cva, &mut Cva::open(&again).unwrap(), id, &prepared);
+        drop(copy);
+        let result = Cva::reconcile_and_promote(&checkpoint_only, &path).unwrap();
+        assert!(result.canonical_change_required);
+        let mut promoted = Cva::open(&checkpoint_only).unwrap();
+        assert_preserved(&mut cva, &mut promoted, id, &prepared);
+        assert_eq!(promoted.record_accepted_memory_use(used, 1).unwrap(), 0);
+    }
 }
 
 #[test]
 fn historical_transform_reclaim_and_attachment_repack_preserve_checkpoint_and_receipts() {
-    for repack in [false, true] {
-        let (path, mut cva, id) = historical_import_fixture("h7-physical.rel");
-        let bytes = vec![42; 64 * 1024];
-        if repack {
-            let file = cva.store_file("old.bin".into(), None, &bytes).unwrap();
-            cva.bind_legacy_project_file(
-                file.id,
-                crate::ProjectFileRef {
-                    revision: crate::ProjectRevisionRef {
-                        repository: crate::ProjectRepositoryRef {
-                            kind: crate::ProjectRepositoryKind::Lore,
-                            repository_id: "h7-repository".into(),
-                            project_path: ".".into(),
+    for fill in [false, true] {
+        for repack in [false, true] {
+            let (path, mut cva, id) = historical_import_fixture("h7-physical.rel");
+            let bytes = vec![42; 64 * 1024];
+            if repack {
+                let file = cva.store_file("old.bin".into(), None, &bytes).unwrap();
+                cva.bind_legacy_project_file(
+                    file.id,
+                    crate::ProjectFileRef {
+                        revision: crate::ProjectRevisionRef {
+                            repository: crate::ProjectRepositoryRef {
+                                kind: crate::ProjectRepositoryKind::Lore,
+                                repository_id: "h7-repository".into(),
+                                project_path: ".".into(),
+                            },
+                            revision: "verified-revision".into(),
                         },
-                        revision: "verified-revision".into(),
+                        path: "uploads/old.bin".into(),
+                        content_hash: Some(Sha256::digest(&bytes).into()),
                     },
-                    path: "uploads/old.bin".into(),
-                    content_hash: Some(Sha256::digest(&bytes).into()),
-                },
-            )
-            .unwrap();
-        } else {
-            cva.container
-                .append(
-                    &crate::archive_codec::encode_content(
-                        crate::archive_store::hash_content(&bytes),
-                        &bytes,
-                    )
-                    .unwrap(),
                 )
                 .unwrap();
+            } else {
+                cva.container
+                    .append(
+                        &crate::archive_codec::encode_content(
+                            crate::archive_store::hash_content(&bytes),
+                            &bytes,
+                        )
+                        .unwrap(),
+                    )
+                    .unwrap();
+            }
+            let prepared = checkpoint_with_fill(&mut cva, fill);
+            let used = receipt(&cva, id, "h7-physical-use");
+            cva.record_accepted_memory_use(used.clone(), 1).unwrap();
+            let original = fs::read(&path).unwrap();
+            let output = path.with_file_name("compact.rel");
+            if repack {
+                assert_eq!(
+                    cva.repack_project_backed_attachments(&output)
+                        .unwrap()
+                        .dropped_content_objects,
+                    1
+                );
+            } else {
+                assert_eq!(
+                    cva.reclaim_storage(&output).unwrap().orphan_content_chunks,
+                    1
+                );
+            }
+            assert!(fs::metadata(&output).unwrap().len() < original.len() as u64);
+            assert_eq!(fs::read(&path).unwrap(), original);
+            let mut copy = Cva::open(&output).unwrap();
+            assert_preserved(&mut cva, &mut copy, id, &prepared);
+            let before_retry = fs::read(&output).unwrap();
+            assert_eq!(copy.record_accepted_memory_use(used, 1).unwrap(), 0);
+            assert_eq!(fs::read(&output).unwrap(), before_retry);
         }
-        let prepared = checkpoint(&mut cva);
-        let used = receipt(&cva, id, "h7-physical-use");
-        cva.record_accepted_memory_use(used.clone(), 1).unwrap();
-        let original = fs::read(&path).unwrap();
-        let output = path.with_file_name("compact.rel");
-        if repack {
-            assert_eq!(
-                cva.repack_project_backed_attachments(&output)
-                    .unwrap()
-                    .dropped_content_objects,
-                1
-            );
-        } else {
-            assert_eq!(
-                cva.reclaim_storage(&output).unwrap().orphan_content_chunks,
-                1
-            );
-        }
-        assert!(fs::metadata(&output).unwrap().len() < original.len() as u64);
-        assert_eq!(fs::read(&path).unwrap(), original);
-        let mut copy = Cva::open(&output).unwrap();
-        assert_preserved(&mut cva, &mut copy, id, &prepared);
-        let before_retry = fs::read(&output).unwrap();
-        assert_eq!(copy.record_accepted_memory_use(used, 1).unwrap(), 0);
-        assert_eq!(fs::read(&output).unwrap(), before_retry);
     }
 }
 
@@ -244,12 +294,7 @@ fn historical_transform_conflicting_manifest_and_policy_never_overwrite_acceptan
             b"changed retained owner input",
         )
         .unwrap();
-    let other = right
-        .freeze_historical_import()
-        .unwrap()
-        .prepare(&[])
-        .unwrap();
-    right.commit_historical_import(&other).unwrap();
+    let other = checkpoint(&mut right);
     assert_eq!(
         left.freshness.import_checkpoint().unwrap().import_id,
         right.freshness.import_checkpoint().unwrap().import_id
@@ -370,9 +415,17 @@ fn historical_transform_regenerated_archive_restores_accepted_state_without_reco
     let retried = cva
         .freeze_historical_import()
         .unwrap()
-        .prepare(&[])
+        .prepare_native()
         .unwrap();
-    assert!(!cva.commit_historical_import(&retried).unwrap());
+    assert_eq!(
+        retried.checkpoint.manifest_digest,
+        prepared.checkpoint.manifest_digest
+    );
+    assert!(
+        !cva.reconstruct_historical_freshness(Default::default())
+            .unwrap()
+            .committed
+    );
     assert!(!cva.commit_historical_import(&prepared).unwrap());
     assert_eq!(cva.freshness_record(id), Some(record));
     assert_eq!(cva.rel_turn_count(), 32);

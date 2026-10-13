@@ -15,6 +15,10 @@ Parent index: [Documentation index](INDEX.md)
 
 C7's frozen bounded-fill contract lives in the [active historical completion plan](freshness-historical-completion-execution-plan-2026-10-12.md#c7-frozen-embedding-only-contract). C8 implements private Cva historical prepare/commit adapters using Archive, compatibility profiles and existing vector stores; the Gateway owns mounted quiescence and provider calls stay outside owner locks. The offline post-generation fill API is available; mounted Gateway historical management remains unavailable.
 
+## Integrated historical correctness routing
+
+C9 fixtures live in `src/facade/historical_matrix_{tests,semantic_tests,dream_tests,guard_tests}.rs`, with event identity/exclusion fixtures in historical_events_tests, native physical transforms in historical_import_transform_tests, crash/due/live-use recovery in historical_recovery_tests, and bounded configured import in historical_embedding_import_tests. [Behavioral contracts](behavioral-contracts.md#c9-integrated-historical-contracts) maps these checks; the [active C9 ledger](freshness-historical-completion-execution-plan-2026-10-12.md#c9-integrated-native-correctness-matrix) owns detailed evidence. No production owner or public API changes in C9.
+
 ## Purpose
 
 This map routes common change intents to canonical documentation, implementation boundaries, and verification surfaces.

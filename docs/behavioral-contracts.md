@@ -19,6 +19,10 @@ Parent index: [Documentation index](INDEX.md)
 
 historical_embedding_tests verifies native fill/refreeze/checkpoint/reopen, accepted retry, preflight no calls/writes, invalid output, drift, cancellation and partial vector retry. historical_embedding_evidence_tests verifies missing mixed evidence, byte-preserving retained/invalid rows, profile/endpoint/owner/clock rejection and cancelled partial progress. historical_embedding_import_tests exercises import_native through actual configured HTTP embedding and native checkpoint/reopen/prospective activation. OpenAI-ready transport tests verify redirect refusal, bounded response and one-request execution despite ordinary batching settings.
 
+## C9 integrated historical contracts
+
+`src/facade/historical_matrix_tests.rs` composes actual imported Archive/Episode/Insomnia/Dream owners and the public native reconstruction operation. Its semantic, Dream and guard modules cover prospective local versus historical graph reinforcement, current/stale/malformed Community evidence, future/unsupported transit, duplicate authority, provenance, input drift and rejected replacement isolation. `historical_events_tests.rs` verifies native acceptance/reopen of owner-derived event identities and source-cohort exclusions. `historical_import_transform_tests.rs` now accepts public native checkpoints and repeats copy/reconciliation/reclamation/repack with source embedding fill disabled and enabled. C6 Container byte-prefix/due/live-use recovery and C8 configured importer/provider fixtures are included in the library gate. The [C9 matrix](freshness-historical-completion-execution-plan-2026-10-12.md#c9-integrated-native-correctness-matrix) records outcomes and scope; retained-corpus/release acceptance remains C10–C12.
+
 ## Purpose
 
 This document maps critical current behavioral invariants to focused tests and smoke verification.

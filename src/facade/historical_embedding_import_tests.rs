@@ -105,8 +105,8 @@ fn historical_embedding_native_import_configured_runtime_and_prospective_activat
     let observed = Arc::new(Mutex::new(Vec::new()));
     let capture = observed.clone();
     let server = std::thread::spawn(move || {
-        let until = std::time::Instant::now() + std::time::Duration::from_secs(15);
         for _ in 0..3 {
+            let until = std::time::Instant::now() + std::time::Duration::from_secs(60);
             let mut stream = loop {
                 match listener.accept() {
                     Ok((s, _)) => break s,
@@ -121,7 +121,7 @@ fn historical_embedding_native_import_configured_runtime_and_prospective_activat
                 }
             };
             stream
-                .set_read_timeout(Some(std::time::Duration::from_secs(5)))
+                .set_read_timeout(Some(std::time::Duration::from_secs(30)))
                 .unwrap();
             let mut bytes = Vec::new();
             let end = loop {

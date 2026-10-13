@@ -12,7 +12,7 @@ Mounted F5 still needs exact-owner authorization, canonical P4 admission and coo
 
 Bounded source-only embedding fill and configured offline post-generation reconstruction are implemented. The frozen limits are conservative and include repeated matrix/proof work; some populations below individual ceilings can still exceed the combined work/buffer budget. Zero/ambiguous retained profiles without a generation, incompatible endpoints, unbounded custom endpoints, unfinished generation and noncanonical Archive clocks reject explicitly. Missing target vectors, mixed-fragment holes and invalid retained rows are coverage, not repaired by this operation.
 
-No automatic reconstruction/default activation or mounted Gateway historical management is provided. The exclusive offline API is not a mounted authorization escape. C9 integrated correctness, C10 hash-backed retained-corpus measurements, C11 full release verification and C12 production disposition remain open. Historical production release stays blocked until those gates pass.
+No automatic reconstruction/default activation or mounted Gateway historical management is provided. The exclusive offline API is not a mounted authorization escape. C9 integrated native correctness is verified in the active completion ledger. C10 hash-backed retained-corpus measurements, C11 full release verification and C12 production disposition remain open. Historical production release stays blocked until those gates pass.
 
 ## Purpose
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.

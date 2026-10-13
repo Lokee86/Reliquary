@@ -10,6 +10,10 @@ Parent index: [Documentation index](INDEX.md)
 
 HistoricalEmbeddingLimits/report/failure and the exclusive endpoint operation are documented in [Rust API](api.md); source-only ownership/lifecycle in [Architecture](architecture.md) and [Invariants](invariants.md); immutable vector retention in [Storage format](storage-format.md); configured post-generation sequencing in [Native import](native-import.md). Code lives under private cva_historical_import/historical_embedding modules and configured_runtime_historical. No mounted Gateway surface is added.
 
+## C9 native verification coverage
+
+The integrated historical matrix and upgraded event/transform tests map to [Behavioral contracts](behavioral-contracts.md#c9-integrated-historical-contracts), [Maintainer map](maintainer-map.md#integrated-historical-correctness-routing) and the [active completion ledger](freshness-historical-completion-execution-plan-2026-10-12.md#c9-integrated-native-correctness-matrix). Production API, checkpoint format, ownership and bounded provider contract are unchanged. [Current limitations](current-limitations.md) retains the C10–C12 acceptance/release gates and mounted-operation limitation.
+
 ## Purpose
 
 This document maps implemented code boundaries to their canonical documentation owners.

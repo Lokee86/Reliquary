@@ -17,6 +17,10 @@ Authoritative execution details: [Multiplexing implementation plan](multiplexing
 
 **Release A:** 1–4 completes Reliquary/Warlock multiplexing. **Release B:** 5–6 completes Hermes plugin integration. Optional F5, broad import formats and ACP adapters remain separate backlog. No new dated checkpoint or acceptance files: update the active plan, with test logs retained externally.
 
+## Historical Freshness remaining release gates
+
+After C9 integrated native correctness, the [active historical completion plan](freshness-historical-completion-execution-plan-2026-10-12.md) retains C10 hash-backed retained-corpus acceptance/performance/coverage, C11 full release verification and C12 final production review. Completion remains an explicit opt-in REL-local release decision; mounted historical management and default activation are unavailable.
+
 ## Purpose
 
 This document owns future implementation work for Reliquary. Completed behavior does not belong here; current behavior is documented in [Architecture](architecture.md), [Rust API](api.md), [Storage format](storage-format.md), [Repo-local CLI](cli.md), and [Current limitations](current-limitations.md).

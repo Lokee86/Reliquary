@@ -26,7 +26,7 @@ Historical reconstruction already has:
 - copy/repack/reclamation/reconciliation preservation tests; and
 - partial model-level orchestration/recovery evidence.
 
-C2–C6 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native checkpoint/receipt byte-prefix recovery, passive due-index rebuild and live-safe retries are verified in C6. C7 freezes the bounded embedding-only contract below, and C8 implements it through the explicit configured offline post-generation surface. Mounted historical management remains unavailable. Integrated correctness, retained-corpus measurements and release disposition remain C9–C12.
+C2–C6 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native checkpoint/receipt byte-prefix recovery, passive due-index rebuild and live-safe retries are verified in C6. C7 freezes the bounded embedding-only contract below, and C8 implements it through the explicit configured offline post-generation surface. Mounted historical management remains unavailable. C9 integrated native correctness is verified below; retained-corpus measurements and release disposition remain C10–C12.
 
 At the time this plan was written, `feat/freshness-semantic-historical-linear` was **66 commits behind `main` and 28 commits ahead**. Current `main` contains later multiplexing/import/runtime ownership work. Convergence is therefore a prerequisite, not cleanup after implementation.
 
@@ -522,3 +522,49 @@ Architecture impact:
 Final C6 gates:
 - Both documentation-policy modes and git diff --check passed; ownership guards passed (75 P4 fixtures, 161 classified public APIs, 11 external ownership fixtures).
 - Architecture refresh passed: sha256:343c7147f978746fb7cabb4d8a837532a1d25c572c2f3a8e9331dca8849aeb4b; 69,110 source nodes, 2,369 relationships, 23 rules, no violations.
+
+## C9 integrated native correctness matrix
+
+C9 verifies the public offline Cva reconstruction operation through FreshnessStore and the native CVAFRS03 checkpoint. The fixtures start from real Archive/Import Episodes, actual omission/extraction Insomnia completions, native Memory publications and first-cycle Dream settlement. Retained vectors and graph/Community evidence are generated through their existing owners. No supplied historical score plan or model checkpoint participates in acceptance. Private owner-derived freeze/prepare reads are assertions and stale-token rejection probes only.
+
+| Required case | Native evidence and expected behavior |
+| --- | --- |
+| Local live versus propagating historical semantic events | A genuine prospective live run credits one matching root locally; its sink stays at lazy score 70. Historical reconstruction credits the sink to 72 with current Community evidence, or 67 with a stale snapshot under unknown-outside-v1. The 300-turn omission tail avoids saturation hiding the difference. |
+| Future and unsupported transit bridges | An actual first-cycle Dream event at position 32 traverses the completed authorized graph through a bridge available at 331 or lacking provenance. The older sink receives 30 credit and ends at 70; the bridge receives no historical credit. Unsupported Freshness retains its original projection. |
+| Current/stale/malformed Community | Current membership gives the local hop cost; stale membership uses unknown-outside-v1. Duplicate/foreign retained membership rejects native reopen without rewriting either malformed evidence or the canonical accepted owner. |
+| Duplicate representative authority | Actual duplicate settlement creates one alias event through the existing canonical representative. The alias reopens unadmitted. A component with no active representative rejects without accepting a checkpoint. |
+| Actual first-cycle/no-link/fallback precedence | Retained actual first-cycle evidence supplies the event. Verified no-link remains no-link despite later final-graph Dream edges. A legacy settled marker without complete retained proof remains Unsupported and does not invent final-graph fallback. Native fallback evidence is unavailable, rather than promoted from unverified final edges. |
+| Missing/unsupported/foreign provenance | Isolated supported singleton admission reconstructs at its real source position; missing provenance retains its original projection. Actual retained Memory revisions with foreign structured authority or unresolved declared activity reject. Ordinary invalid provenance/foreign graph endpoints/body rewrites reject before writes. |
+| Archive clock mismatch and genuine use | Canonical order conflicting with accepted Archive ordinals rejects. A real consumed-use receipt is not superseded by reconstruction. |
+| Graph/vector/body/revision drift | Native prepared tokens reject graph/vector/Memory revision changes without changing the accepted projection; the public operation refreezes owner evidence. Semantic body replacement is forbidden by immutable Memory publication. |
+| Unsupported replacement isolation | A provisional live Dream event crossing supported replacement and untouched unsupported Memories rejects without file/projection change. |
+| Source cohorts and event identity | Existing semantic/Dream identity, complete grouped source exclusions, same-position event ordering and duplicate fixtures now also accept through the public operation and verify exact native projection after reopen. |
+| Repeated import/regenerated enrollment | Public native retry is a byte-stable no-op. Exact source replay, settled Dream retry and regenerated queues preserve accepted anchors and records. |
+| Crash/reopen/retry/due/post-checkpoint use | C6 actual Container byte-prefix tests rerun: 485/668 checkpoint-frame cuts plus 1,072 live-use frame cuts, complete corrupt-frame rejection, unsaturated post-checkpoint +25 and passive due-index recovery. |
+| Copy/repack/reclamation | Public checkpoint acceptance now backs physical-transform fixtures. Exact copy, prefix reconciliation/promotion, orphan reclamation and project-attachment repack run with optional embedding fill both false and true, preserving score/receipt/checkpoint authority and retained vector proof. |
+| Divergent reconciliation | Native checkpointed branches reject unsupported source rebasing, manifest/policy conflicts and owner/corpus transplants before output or promotion, preserving input bytes. |
+| Current importer/runtime and embedding bounds | C8 native import plus configured HTTP embedding fixture reruns, including explicit post-generation reconstruction, native reopen, subsequent prospective activation, partial-fill retry/cancellation and transport budgets. |
+
+Validation results are recorded below. C10 retained-corpus acceptance/measurements, C11 full release gate and C12 final production review remain open. C9 does not activate mounted management or default historical reconstruction.
+
+Verification on 2026-10-12:
+- `cargo test --locked --lib -j 2`: 1,251 passed, 3 ignored, no failures, including the integrated native matrix and all 2,225 native crash-prefix cases.
+- `cargo test --locked --lib historical_ -j 2`: initial unrestricted run had 102 passes and one local HTTP fixture read timeout under concurrent verification load. The full library run passed that fixture. Its test-only read deadline was increased from 5 to 30 seconds, with a separate 60-second accept deadline per request; the exact fixture rerun passed after this correction. Production transport limits are unchanged. Restricted-access failures are not acceptance evidence.
+- `cargo fmt --check` and `cargo check --locked --tests -j 2`: passed after the fixture correction; all integration targets compile. Full root integration execution remains C11.
+- CLI formatting, locked check and locked tests: passed; 19 tests passed.
+- Architecture refresh/enforcement passed: snapshot `sha256:9dc3510761a3596e675babdab5b75d451941cc72555dd841075f87754c0a5d2e`; 70,262 source nodes, 2,379 relationships, 23 rules, no violations. Ownership guards passed: 75 coverage fixtures, 161 public APIs and 11 external ownership fixtures.
+- Both documentation-policy modes and `git diff --check` passed. C9 is complete; C10–C12 remain open.
+
+Documentation impact:
+- Inspected: repository/shared standards, architecture, invariants, storage-format, maintainer-map, current-limitations, roadmap, version-history plan and branching decision, API, behavioral-contracts and documentation-coverage.
+- Updated: this execution ledger, behavioral-contracts, maintainer-map, current-limitations, roadmap and documentation-coverage for the integrated native verification scope.
+- Not affected: public API, storage format, scoring policy, production ownership and provider contract.
+- Compliance check: final structural/change-impact policy and diff checks recorded below.
+- Known documentation gaps: retained-corpus measurements and final release disposition remain C10–C12.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: test-only native owner composition; Cva/FreshnessStore remains sole acceptance authority.
+- Pitlord enforcement impact: fresh source graph/enforcement recorded below; no rules weakened.
+- Other verification impact: full library execution plus integration-target compilation; existing Windows all-target execution limitations remain explicit.
+- Known architectural gaps: mounted historical operation remains unavailable; C12 production review remains open.

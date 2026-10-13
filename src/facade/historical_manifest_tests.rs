@@ -60,9 +60,13 @@ fn historical_manifest_native_singletons_include_isolated_and_preserve_unsupport
     let prepared = cva
         .freeze_historical_import()
         .unwrap()
-        .prepare(&[])
+        .prepare_native()
         .unwrap();
-    cva.commit_historical_import(&prepared).unwrap();
+    assert!(
+        cva.reconstruct_historical_freshness(Default::default())
+            .unwrap()
+            .committed
+    );
     assert_eq!(cva.freshness_record(unsupported), untouched);
     drop(cva);
     let reopened = Cva::open(&path).unwrap();
@@ -100,10 +104,11 @@ fn historical_manifest_missing_declared_source_rejects_without_projection() {
         created_at_ns: memory.created_at_ns,
         updated_at_ns: 402,
     };
-    // Ordinary Memory publication may itself reject the unresolved reference.
-    if cva.publish_memory(Some(id), memory.revision, draft).is_ok() {
-        let before = fs::read(&path).unwrap();
-        assert!(manifest::build(&mut cva).is_err());
-        assert_eq!(fs::read(&path).unwrap(), before);
-    }
+    cva.sync().unwrap();
+    let before = fs::read(&path).unwrap();
+    assert!(
+        cva.publish_memory(Some(id), memory.revision, draft)
+            .is_err()
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
 }

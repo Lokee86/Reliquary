@@ -13,6 +13,8 @@ mod historical_embedding_import;
 mod historical_events;
 #[path = "historical_manifest_tests.rs"]
 mod historical_manifest;
+#[path = "historical_matrix_tests.rs"]
+mod historical_matrix;
 #[path = "historical_recovery_tests.rs"]
 mod historical_recovery;
 #[path = "historical_import_transform_tests.rs"]
