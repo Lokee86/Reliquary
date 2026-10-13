@@ -568,3 +568,71 @@ Architecture impact:
 - Pitlord enforcement impact: fresh source graph/enforcement recorded below; no rules weakened.
 - Other verification impact: full library execution plus integration-target compilation; existing Windows all-target execution limitations remain explicit.
 - Known architectural gaps: mounted historical operation remains unavailable; C12 production review remains open.
+
+## C10 retained-corpus failure diagnosis — 2026-10-12
+
+**C10 is not complete.** The requested local diagnosis reproduces rejection on verified writable copies of all three frozen authoritative RELs. The originals retain their pinned hashes. No model, embedding, Insomnia or Dream inference ran; no production gate, policy or persistent format changed. Regenerating a different corpus would not resolve these retained-REL compatibility failures and is not the requested disposition.
+
+Machine-readable evidence: [retained-corpus diagnosis](../benchmarks/freshness-historical-corpus-diagnosis-2026-10-12.json). It retains source and binary/harness hashes, exact failing source identities/timestamps, all eleven timestamp conflicts, queue/branch coverage, legacy publication counts and native rejection preservation assertions. The native operation alone attempts acceptance; independent read-only prerequisite probes expose failures hidden behind its first error.
+
+### First rejection and independent failures
+
+| Frozen REL | First production rejection | Independent diagnosis |
+| --- | --- | --- |
+| ChatGPT first 14 days | `ArchiveClockMismatch`: source `ad466a08-b249-43c4-8595-a7ac10bc6d51` is canonical position 116 but accepted Archive position 254. | 5,711 of 5,857 positions differ between timestamp-priority canonical order and existing accepted order. No timestamp regression or accepted-clock ancestry violation exists. All 374 Import Episodes are complete. Their receipts cover 5,578 positions; all 279 uncovered positions belong only to noncanonical branches. `admission_proof` independently rejects `import has unprocessed Archive tail/branch`. |
+| ChatGPT first 28 days | `TimestampRegression`: ancestor `b90e35b9-2276-4fcb-b3a0-f1877fbc1a39` is timestamped 1780639210724739000 ns; descendant `4c46af2d-a013-4628-afef-fceeea94c52f` is 1780639210281125000 ns, 443,614,000 ns earlier. | Eleven nearest-activity-ancestor regressions: one 0.443614 s, one 0.862295 s and nine 62.507896 s. Accepted Archive order respects every activity ancestry edge. All 1,211 Import Episodes are complete; their receipts cover 16,027 of 16,465 positions. All 438 uncovered positions belong only to noncanonical branches. `admission_proof` independently rejects `import has unprocessed Archive tail/branch`. Canonical clock comparison is not reached because timestamp validation fails. |
+| Ellis pre-relationship | `import Insomnia generation is not complete`. | 128 complete and 15 pending Import Episodes; no Processing, Failed or Terminal work. Existing chronology exactly matches all 2,972 accepted positions with no timestamp or ancestry-order conflict. Completion receipts cover 2,712 positions. The 260 uncovered positions are on canonical branches. None of the pending Episodes has current Memory outputs. `admission_proof` independently rejects `import corpus has incomplete or non-import Episodes`. |
+
+The chronology failures come from `HistoricalTimeline::plan` / `validate_archive_clock`, composed by `Cva::historical_freshness_timeline`. H1 v1 requires timestamp-priority topological order to equal original accepted order and rejects any ancestor timestamp regression. The files can have valid accepted ancestry while failing those stronger requirements. The whole-generation check is in `historical_reconstruction_owner`; the complete-all-Archive-positions requirement is in `input::admission_proof`. Completing every queued canonical Episode does not satisfy that latter check when unselected branches remain in Archive.
+
+### Legacy publication compatibility is an additional blocker
+
+| Evidence | 14-day | 28-day | Ellis |
+| --- | ---: | ---: | ---: |
+| Current Memories | 1,087 | 2,816 | 678 |
+| Decoded native completion payloads | 374 `CVAINSC3` | 1,211 `CVAINSC3` | 128 `CVAINSC5` |
+| Current Memories with retained first-revision record matching first mutation and source Episode | 1,087 | 2,816 | 678 |
+| Current Memories with source Episode binding | 1,087 | 2,816 | 678 |
+| Completion `freshness_birth_memory_ids` | 0 | 0 | 0 |
+| Current native Freshness publication-birth proofs | 0 | 0 | 0 |
+| Current Freshness records | 0 | 0 | 0 |
+| Settled native first-cycle markers / retained completed pass records | 0 / 0 | 0 / 0 | 0 / 0 |
+
+These files retain publication evidence; it is incorrect to describe them as lacking all provenance or all generation receipts. The decoder reads their legacy completion records successfully. However, `admission_proof` constructs grouped births only from `freshness_birth_memory_ids`, which these pre-v6 completions do not carry. With no grouped assignment, its direct-singleton path requires a newer native Freshness birth proof and would reject `unverified direct singleton publication`. The subsequent manifest gate also demands a settled native first-cycle marker for every Memory, and the provisional-record proof requires a Freshness record. All three requirements fail for these pre-Freshness files. Removing only the first chronology or queue rejection would therefore not make them reconstructible.
+
+### Dream and semantic coverage gaps
+
+The pure historical Dream planner supports `CompletedGraphApproximation`. The native adapter in `historical_events.rs` marks every Memory without a retained completed pass as `Unsupported` and supplies an empty link list to that planner. Its completed-direct-Dream fallback is therefore not wired for these retained files. Current decoded Memory relations are Dream-origin labeled (11,240 / 34,152 / 8,419), but those labels alone are not proof of original direct first-cycle publication: the legacy graph decoder can default origin to Dream, and duplicate rewrites must remain excluded. A provenance reader/accepted approximation policy is required; treating all final edges as first-cycle evidence would not be a valid fix.
+
+The 14-day and 28-day files have no Archive vector generation. Ellis has 498 retained Archive rows and 678 current target bindings in its latest generation, but zero usable exact-turn source evidence; its source vectors are mixed-turn evidence. All three therefore have zero usable exact-turn historical semantic source coverage. This is reported coverage, not their initial hard rejection. Existing Memory vectors cannot be substituted for genuine source vectors. Rejection timings and whole-audit process CPU/peak working set are recorded only as diagnostic costs, not accepted reconstruction performance; checkpoint/commit/reopen performance, reconstruction distributions, temporary allocation/spill peaks and semantic match quality remain unmeasured.
+
+### Diagnosis and required decisions
+
+The tested native implementation is restricted to a newly generated, complete cohort carrying recent Freshness publication/settlement evidence. It does not currently reconstruct these retained pre-Freshness RELs. This is a production scope/compatibility gap exposed by C10, not a successful acceptance result and not evidence that the frozen files are generally corrupt.
+
+Before implementation changes, decide how the native owner should support retained accepted clocks versus timestamp-priority chronology, timestamp/ancestry disagreement, canonical-complete snapshots with unprocessed alternate branches, and partial canonical generation such as Ellis. Add an owner-verified adapter for retained legacy first-publication/cohort evidence and initial Freshness enrollment, and connect only a justified Dream approximation path. Preserve explicit unavailable semantic coverage where source vectors are absent. Do not erase pending work, rewrite Archive clocks, fabricate new-format receipts or replace the Cva/FreshnessStore/CVAFRS03 authority merely to pass this fixture gate. Native Graph/provenance/replacement checks beyond the demonstrated barriers are not claimed green.
+
+Reproduction:
+
+```text
+cargo test --locked --lib historical_retained_corpus_native_acceptance --no-run -j 2
+python scripts/freshness_historical_corpus.py --binary <library-test-executable> --output target/historical-diagnosis/report.json
+```
+
+The runner invokes the explicitly ignored, environment-bound fixture once per frozen REL. Each diagnostic fixture passed its source/copy hash and rejected-operation byte/projection preservation assertions; the runner's native acceptance gate returned nonzero because all inputs rejected. End-of-run hashes of all three writable copies also equal their source hashes. The fixture's passing audit assertions must not be counted as C10 acceptance. Full release execution remains C11.
+
+Final diagnostic verification: `cargo fmt --check`, `cargo check --locked --tests -j 2`, Python compilation, both documentation-policy modes and `git diff --check` passed. Ownership guards passed: 75 fixtures, 161 classified public APIs and 11 external ownership fixtures. No production implementation or source-owner boundary changed; C11 retains full root/CLI execution and architecture refresh. Initial diagnostic-only compilation assumptions about ID ordering and legacy missing Freshness records were corrected before the final recorded run; failed attempts are not acceptance evidence.
+
+Documentation impact:
+- Inspected: H1 policy, active C1–C12 plan, architecture/invariants, storage/completion compatibility, native manifest/event/clock owners, retained-corpus calibration evidence and current limitation/verification routing.
+- Updated: this diagnosis, machine-readable evidence, limitations and diagnostic development/coverage/maintainer/behavioral routing.
+- Not affected: production APIs, scoring/activation policy, persistent formats, originals and existing native acceptance rules.
+- Compliance check: final structural/change-impact documentation, formatting/compilation, ownership guards and patch checks recorded before commit.
+- Known documentation gaps: retained-REL remediation/acceptance, complete C10 measurements and C11–C12 disposition remain open.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: diagnostic-only owner-local fixtures and runner; production owners unchanged.
+- Pitlord enforcement impact: ownership guards retained; no policy rule changes. Full refresh remains the C11 gate.
+- Other verification impact: actual frozen copies, independent read-only gates and rejection preservation.
+- Known architectural gaps: retained-REL clock/cohort/Dream compatibility requires explicit owner decisions; mounted management remains unavailable.

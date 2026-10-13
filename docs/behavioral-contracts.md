@@ -23,6 +23,10 @@ historical_embedding_tests verifies native fill/refreeze/checkpoint/reopen, acce
 
 `src/facade/historical_matrix_tests.rs` composes actual imported Archive/Episode/Insomnia/Dream owners and the public native reconstruction operation. Its semantic, Dream and guard modules cover prospective local versus historical graph reinforcement, current/stale/malformed Community evidence, future/unsupported transit, duplicate authority, provenance, input drift and rejected replacement isolation. `historical_events_tests.rs` verifies native acceptance/reopen of owner-derived event identities and source-cohort exclusions. `historical_import_transform_tests.rs` now accepts public native checkpoints and repeats copy/reconciliation/reclamation/repack with source embedding fill disabled and enabled. C6 Container byte-prefix/due/live-use recovery and C8 configured importer/provider fixtures are included in the library gate. The [C9 matrix](freshness-historical-completion-execution-plan-2026-10-12.md#c9-integrated-native-correctness-matrix) records outcomes and scope; retained-corpus/release acceptance remains C10–C12.
 
+## Retained historical diagnostic contracts
+
+The explicit ignored retained-corpus fixture verifies source/copy hashes, original preservation and unchanged native file/Freshness projection after rejection. `historical_retained_diagnostics.rs` separately reads chronology, Episode coverage, legacy completion/birth evidence, Dream markers and Community gates. The Python runner reports native acceptance failure independently of passing diagnostic assertions. Exact outcomes remain in the [C10 diagnosis](freshness-historical-completion-execution-plan-2026-10-12.md#c10-retained-corpus-failure-diagnosis--2026-10-12).
+
 ## Purpose
 
 This document maps critical current behavioral invariants to focused tests and smoke verification.

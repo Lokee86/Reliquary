@@ -14,6 +14,10 @@ HistoricalEmbeddingLimits/report/failure and the exclusive endpoint operation ar
 
 The integrated historical matrix and upgraded event/transform tests map to [Behavioral contracts](behavioral-contracts.md#c9-integrated-historical-contracts), [Maintainer map](maintainer-map.md#integrated-historical-correctness-routing) and the [active completion ledger](freshness-historical-completion-execution-plan-2026-10-12.md#c9-integrated-native-correctness-matrix). Production API, checkpoint format, ownership and bounded provider contract are unchanged. [Current limitations](current-limitations.md) retains the C10–C12 acceptance/release gates and mounted-operation limitation.
 
+## Retained historical diagnosis coverage
+
+Retained-corpus diagnostic fixtures and their Python runner map to the [C10 failure ledger](freshness-historical-completion-execution-plan-2026-10-12.md#c10-retained-corpus-failure-diagnosis--2026-10-12), [Development](development.md), [Maintainer map](maintainer-map.md) and [Current limitations](current-limitations.md). This is executed failure diagnosis, not shipped legacy reconstruction support or release acceptance.
+
 ## Purpose
 
 This document maps implemented code boundaries to their canonical documentation owners.

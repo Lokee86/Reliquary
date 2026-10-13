@@ -1,0 +1,822 @@
+{
+  "schema": 1,
+  "c10_complete": false,
+  "native_acceptance_satisfied": false,
+  "binary_sha256": "fa6f1c74783edebdf609d934f79484d048086bda1c274916cb172d522b8c3fbc",
+  "harness_sha256": {
+    "scripts/freshness_historical_corpus.py": "2ed63a9aff803a2b8435aabd24f39398e36902f2ed8e00109213e68d6467b20c",
+    "src/facade/historical_retained_corpus_tests.rs": "b230a45f6d01fb2f48bc1b8f9ff06d832d7464e151f87a7e8357987ba9468078",
+    "src/facade/historical_retained_diagnostics.rs": "e3da2282c3c666e7fd48c47de8246b242830c43fed72bc63101719edb8cba052",
+    "Cargo.lock": "45998db6c86f6c94ec343f96c4bce62158745f34a27ace57f30b9a49e014dd77"
+  },
+  "source_revision": "7fa07f751543b91d19e08338d6fa0782ac0a5ad7",
+  "source_dirty": true,
+  "reports": [
+    {
+      "acceptance": null,
+      "copy": "C:\\!bin\\workspace\\Reliquary-freshness-semantic\\target/historical-corpus\\64e940bd-3d65-4685-b354-8ea95335a25f\\input.rel",
+      "diagnostic_rejection": "Freshness error: archive clock mismatch for ad466a08-b249-43c4-8595-a7ac10bc6d51: expected 116, got Some(254)",
+      "embedding_fill": "not requested; retained evidence only",
+      "error": "historical reconstruction: Freshness error: archive clock mismatch for ad466a08-b249-43c4-8595-a7ac10bc6d51: expected 116, got Some(254)",
+      "insomnia_queue": {
+        "complete": 374,
+        "failed": 0,
+        "pending": 0,
+        "processing": 0,
+        "terminal": 0,
+        "total": 374
+      },
+      "inventory": {
+        "activity_turns": 5857,
+        "already_checkpointed": false,
+        "before_distribution": {
+          "NotEnrolled": 1087
+        },
+        "episodes": 374,
+        "exact_turn_source_evidence": 0,
+        "graph_relations": 11240,
+        "latest_generation_archive_rows": 0,
+        "latest_generation_target_bindings": 0,
+        "memories": 1087,
+        "pending_publications": 0,
+        "retained_first_cycle_passes": 0,
+        "structured_content_provenance_memories": 100,
+        "vector_generations": 0
+      },
+      "measurement_kind": "native retained-corpus gate",
+      "open_ns": 1273447700,
+      "operation_ns": 128029600,
+      "prerequisite_diagnosis": {
+        "accepted_clock_ancestry_violations": 0,
+        "admission_cohort_gate": "Freshness error: import has unprocessed Archive tail/branch",
+        "chronology": {
+          "clock_mismatch_count": 5711,
+          "first_mismatches": [
+            {
+              "actual": 254,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 116,
+              "node_id": "ad466a08-b249-43c4-8595-a7ac10bc6d51"
+            },
+            {
+              "actual": 255,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 117,
+              "node_id": "90d6916e-a425-41ab-9b95-09477ccf1d5f"
+            },
+            {
+              "actual": 256,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 118,
+              "node_id": "0ae03316-2642-442b-bae2-8c7d7932da83"
+            },
+            {
+              "actual": 257,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 119,
+              "node_id": "31927986-d517-4bb8-a975-3cc16d22196d"
+            },
+            {
+              "actual": 258,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 120,
+              "node_id": "194a7f8f-b5ee-413b-a13a-4c54ca47584a"
+            },
+            {
+              "actual": 259,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 121,
+              "node_id": "affa11b8-6c81-4856-a9ba-5786c70c918e"
+            },
+            {
+              "actual": 260,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 122,
+              "node_id": "633560ac-71c6-42c1-a718-4e4a75a26e29"
+            },
+            {
+              "actual": 261,
+              "conversation_id": "6a07b373-c5a0-83e8-92e9-846f0faa7a9c",
+              "expected": 123,
+              "node_id": "827346c7-f468-4469-82d1-d34e2e0af3f2"
+            }
+          ],
+          "positions": 5857,
+          "timeline_planned": true
+        },
+        "community_gate": "passed",
+        "completed_episode_activity_coverage": 5578,
+        "completion_birth_memory_ids": 0,
+        "completion_first_revision_memory_ids": 1087,
+        "completion_format_versions": {
+          "CVAINSC3": 374
+        },
+        "completion_payloads": 374,
+        "current_memories_with_completion_first_revision": 1087,
+        "current_memories_with_matching_legacy_first_revision_and_episode": 1087,
+        "current_memories_with_native_birth_proof": 0,
+        "current_memories_with_settled_native_first_cycle": 0,
+        "current_memories_with_source_episode": 1087,
+        "current_memories_with_structured_source_ref": 0,
+        "dream_origin_memory_relations": 11240,
+        "episode_origins": {
+          "Import": 374
+        },
+        "episodes_with_completion_payload": 374,
+        "owner_generation_gate": "passed",
+        "timestamp_regression_count": 0,
+        "timestamp_regressions": [],
+        "total_activity": 5857,
+        "uncovered_activity": 279,
+        "uncovered_activity_outside_current_branches": 0,
+        "uncovered_canonical_branch_activity": 0,
+        "uncovered_noncanonical_only_activity": 279,
+        "unfinished_episodes": []
+      },
+      "rejection_preserves_bytes_and_projection": true,
+      "schema": 1,
+      "source_bytes": 19692418,
+      "source_sha256": "49751a62dd8644800d19976a0696a69366dc1e4f8d7c39bb4b69fbd7a8a5d18b",
+      "source_unchanged": true,
+      "status": "rejected",
+      "timeline_gate": {
+        "error": "archive clock mismatch for ad466a08-b249-43c4-8595-a7ac10bc6d51: expected 116, got Some(254)",
+        "valid": false
+      },
+      "name": "chatgpt-first14d",
+      "elapsed_seconds": 5.349866100004874,
+      "process_metrics": {
+        "cpu_seconds": 4.796875,
+        "peak_working_set_bytes": 51535872,
+        "peak_pagefile_bytes": 185286656,
+        "scope": "whole audit process including open, inventory, hashing, diagnostics and native operation"
+      },
+      "report_sha256": "d537fada8d0e27af3cd92ff7f82cdebcac01c40d68c2f25b32aa33d60b59c2ea"
+    },
+    {
+      "acceptance": null,
+      "copy": "C:\\!bin\\workspace\\Reliquary-freshness-semantic\\target/historical-corpus\\ce04c64f-4f8c-4b90-9376-49b50f8a7dc1\\input.rel",
+      "diagnostic_rejection": "Freshness error: timestamp regression from b90e35b9-2276-4fcb-b3a0-f1877fbc1a39 to 4c46af2d-a013-4628-afef-fceeea94c52f",
+      "embedding_fill": "not requested; retained evidence only",
+      "error": "historical reconstruction: Freshness error: timestamp regression from b90e35b9-2276-4fcb-b3a0-f1877fbc1a39 to 4c46af2d-a013-4628-afef-fceeea94c52f",
+      "insomnia_queue": {
+        "complete": 1211,
+        "failed": 0,
+        "pending": 0,
+        "processing": 0,
+        "terminal": 0,
+        "total": 1211
+      },
+      "inventory": {
+        "activity_turns": 16465,
+        "already_checkpointed": false,
+        "before_distribution": {
+          "NotEnrolled": 2816
+        },
+        "episodes": 1211,
+        "exact_turn_source_evidence": 0,
+        "graph_relations": 34152,
+        "latest_generation_archive_rows": 0,
+        "latest_generation_target_bindings": 0,
+        "memories": 2816,
+        "pending_publications": 0,
+        "retained_first_cycle_passes": 0,
+        "structured_content_provenance_memories": 223,
+        "vector_generations": 0
+      },
+      "measurement_kind": "native retained-corpus gate",
+      "open_ns": 3604173500,
+      "operation_ns": 254465100,
+      "prerequisite_diagnosis": {
+        "accepted_clock_ancestry_violations": 0,
+        "admission_cohort_gate": "Freshness error: import has unprocessed Archive tail/branch",
+        "chronology": {
+          "error": "timestamp regression from b90e35b9-2276-4fcb-b3a0-f1877fbc1a39 to 4c46af2d-a013-4628-afef-fceeea94c52f",
+          "timeline_planned": false
+        },
+        "community_gate": "passed",
+        "completed_episode_activity_coverage": 16027,
+        "completion_birth_memory_ids": 0,
+        "completion_first_revision_memory_ids": 2816,
+        "completion_format_versions": {
+          "CVAINSC3": 1211
+        },
+        "completion_payloads": 1211,
+        "current_memories_with_completion_first_revision": 2816,
+        "current_memories_with_matching_legacy_first_revision_and_episode": 2816,
+        "current_memories_with_native_birth_proof": 0,
+        "current_memories_with_settled_native_first_cycle": 0,
+        "current_memories_with_source_episode": 2816,
+        "current_memories_with_structured_source_ref": 0,
+        "dream_origin_memory_relations": 34152,
+        "episode_origins": {
+          "Import": 1211
+        },
+        "episodes_with_completion_payload": 1211,
+        "owner_generation_gate": "passed",
+        "timestamp_regression_count": 11,
+        "timestamp_regressions": [
+          {
+            "ancestor_activity_position": 9807,
+            "ancestor_id": "b90e35b9-2276-4fcb-b3a0-f1877fbc1a39",
+            "ancestor_timestamp_ns": 1780639210724739000,
+            "conversation_id": "6a21c699-4160-83e8-928f-014618818f49",
+            "descendant_activity_position": 9808,
+            "descendant_id": "4c46af2d-a013-4628-afef-fceeea94c52f",
+            "descendant_timestamp_ns": 1780639210281125000,
+            "regression_ns": 443614000
+          },
+          {
+            "ancestor_activity_position": 9821,
+            "ancestor_id": "a960908a-b31f-40f6-9745-ce5b56457b2a",
+            "ancestor_timestamp_ns": 1780639386952112000,
+            "conversation_id": "6a21c699-4160-83e8-928f-014618818f49",
+            "descendant_activity_position": 9822,
+            "descendant_id": "87b785e9-339d-4cb6-92c2-3b28a52f04af",
+            "descendant_timestamp_ns": 1780639386089817000,
+            "regression_ns": 862295000
+          },
+          {
+            "ancestor_activity_position": 13415,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a27880e-a8ac-83e8-95df-aca25068716d",
+            "descendant_activity_position": 13416,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 13788,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a27d117-7ee4-83e8-94ed-77fb156a4497",
+            "descendant_activity_position": 13789,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 13953,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a284bf2-a0f8-83e8-83e9-d640762f6b15",
+            "descendant_activity_position": 13954,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 14143,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a2861f2-8788-83e8-9686-a22a11c1b046",
+            "descendant_activity_position": 14144,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 14398,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a289ef4-55c4-83e8-863a-5b0f0a36dd04",
+            "descendant_activity_position": 14399,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 15006,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a28e2fb-3d60-83e8-890e-2efb1ce78547",
+            "descendant_activity_position": 15007,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 15240,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a28f837-0d14-83e8-ae0f-053a736440aa",
+            "descendant_activity_position": 15241,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 15911,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a2b3bf1-7efc-83e8-8a17-40747f240eda",
+            "descendant_activity_position": 15912,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          },
+          {
+            "ancestor_activity_position": 16198,
+            "ancestor_id": "16ad6d0f-823f-4c28-a28c-8765deefeb6b",
+            "ancestor_timestamp_ns": 1780985512102000000,
+            "conversation_id": "6a2baa16-7568-83e8-a55d-ded652e05249",
+            "descendant_activity_position": 16199,
+            "descendant_id": "eb385022-8695-4d65-a8c8-b6dc903c5343",
+            "descendant_timestamp_ns": 1780985449594104000,
+            "regression_ns": 62507896000
+          }
+        ],
+        "total_activity": 16465,
+        "uncovered_activity": 438,
+        "uncovered_activity_outside_current_branches": 0,
+        "uncovered_canonical_branch_activity": 0,
+        "uncovered_noncanonical_only_activity": 438,
+        "unfinished_episodes": []
+      },
+      "rejection_preserves_bytes_and_projection": true,
+      "schema": 1,
+      "source_bytes": 49882422,
+      "source_sha256": "8f4a2bf871d7f5368edde93954a2260a29c86131b28475b323a7b6c70f8c51e4",
+      "source_unchanged": true,
+      "status": "rejected",
+      "timeline_gate": {
+        "ancestor_id": "b90e35b9-2276-4fcb-b3a0-f1877fbc1a39",
+        "ancestor_timestamp_ns": 1780639210724739000,
+        "descendant_id": "4c46af2d-a013-4628-afef-fceeea94c52f",
+        "descendant_timestamp_ns": 1780639210281125000,
+        "reason": "ancestor timestamp exceeds descendant timestamp",
+        "valid": false
+      },
+      "name": "chatgpt-first28d",
+      "elapsed_seconds": 13.09488849999616,
+      "process_metrics": {
+        "cpu_seconds": 13.03125,
+        "peak_working_set_bytes": 103071744,
+        "peak_pagefile_bytes": 276475904,
+        "scope": "whole audit process including open, inventory, hashing, diagnostics and native operation"
+      },
+      "report_sha256": "01c33dd65cfa7cd0c98084fbef28f4896d660bb33508dd97cd92923464732706"
+    },
+    {
+      "acceptance": null,
+      "copy": "C:\\!bin\\workspace\\Reliquary-freshness-semantic\\target/historical-corpus\\cbe8a384-f31b-464a-9868-d0e48b832a80\\input.rel",
+      "diagnostic_rejection": "Freshness error: import Insomnia generation is not complete",
+      "embedding_fill": "not requested; retained evidence only",
+      "error": "historical reconstruction: Freshness error: import Insomnia generation is not complete",
+      "insomnia_queue": {
+        "complete": 128,
+        "failed": 0,
+        "pending": 15,
+        "processing": 0,
+        "terminal": 0,
+        "total": 143
+      },
+      "inventory": {
+        "activity_turns": 2972,
+        "already_checkpointed": false,
+        "before_distribution": {
+          "NotEnrolled": 678
+        },
+        "episodes": 143,
+        "exact_turn_source_evidence": 0,
+        "graph_relations": 8419,
+        "latest_generation_archive_rows": 498,
+        "latest_generation_target_bindings": 678,
+        "memories": 678,
+        "pending_publications": 0,
+        "retained_first_cycle_passes": 0,
+        "structured_content_provenance_memories": 43,
+        "vector_generations": 1
+      },
+      "measurement_kind": "native retained-corpus gate",
+      "open_ns": 1003552600,
+      "operation_ns": 13300,
+      "prerequisite_diagnosis": {
+        "accepted_clock_ancestry_violations": 0,
+        "admission_cohort_gate": "Freshness error: import corpus has incomplete or non-import Episodes",
+        "chronology": {
+          "clock_mismatch_count": 0,
+          "first_mismatches": [],
+          "positions": 2972,
+          "timeline_planned": true
+        },
+        "community_gate": "passed",
+        "completed_episode_activity_coverage": 2712,
+        "completion_birth_memory_ids": 0,
+        "completion_first_revision_memory_ids": 678,
+        "completion_format_versions": {
+          "CVAINSC5": 128
+        },
+        "completion_payloads": 128,
+        "current_memories_with_completion_first_revision": 678,
+        "current_memories_with_matching_legacy_first_revision_and_episode": 678,
+        "current_memories_with_native_birth_proof": 0,
+        "current_memories_with_settled_native_first_cycle": 0,
+        "current_memories_with_source_episode": 678,
+        "current_memories_with_structured_source_ref": 0,
+        "dream_origin_memory_relations": 8419,
+        "episode_origins": {
+          "Import": 143
+        },
+        "episodes_with_completion_payload": 128,
+        "owner_generation_gate": "Freshness error: import Insomnia generation is not complete",
+        "timestamp_regression_count": 0,
+        "timestamp_regressions": [],
+        "total_activity": 2972,
+        "uncovered_activity": 260,
+        "uncovered_activity_outside_current_branches": 0,
+        "uncovered_canonical_branch_activity": 260,
+        "uncovered_noncanonical_only_activity": 0,
+        "unfinished_episodes": [
+          {
+            "activity_positions": [
+              2713,
+              2714,
+              2715,
+              2716,
+              2717,
+              2718,
+              2719,
+              2720,
+              2721,
+              2722,
+              2723,
+              2724,
+              2725,
+              2726,
+              2727,
+              2728,
+              2729,
+              2730,
+              2731,
+              2732,
+              2733,
+              2734,
+              2735,
+              2736
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "95ddca620e0c6c445f3d82575a5f3a0fa60f966387c97ec0cb67baa492d9e78b",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2737,
+              2738,
+              2739,
+              2740,
+              2741,
+              2742,
+              2743,
+              2744,
+              2745,
+              2746,
+              2747,
+              2748
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "9bde12523e823d872df07b564fd10ff68b3d05b88e24c32a7822b16e2ccb0255",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2749,
+              2750,
+              2751,
+              2752,
+              2753,
+              2754,
+              2755,
+              2756,
+              2757,
+              2758,
+              2759,
+              2760,
+              2761,
+              2762,
+              2763,
+              2764,
+              2765,
+              2766,
+              2767,
+              2768,
+              2769,
+              2770,
+              2771,
+              2772,
+              2773,
+              2774,
+              2775,
+              2776
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "00973c5df2568a6782b15bb2fbbb1d85c98946fdc250d4731682f100f50faef1",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2777,
+              2778,
+              2779,
+              2780,
+              2781,
+              2782,
+              2783,
+              2784
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "9258691131dc98dec0959e1612a79fc34da7afbbf126b8c5a425624362a34e2b",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2785,
+              2786,
+              2787,
+              2788,
+              2789,
+              2790,
+              2791,
+              2792,
+              2793,
+              2794,
+              2795,
+              2796,
+              2797,
+              2798,
+              2799,
+              2800,
+              2801,
+              2802,
+              2803,
+              2804,
+              2805,
+              2806,
+              2807,
+              2808,
+              2809,
+              2810,
+              2811,
+              2812,
+              2813,
+              2814,
+              2815,
+              2816
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "9aed3af3b2df7a68dbe0f1a517c2317829a26828c7cc4935a5390f42b48847d8",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2817,
+              2818,
+              2819,
+              2820
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "5afc42a729ea7473005c8260ba28d53300ada575e69eda8ae418854aea7b1c1c",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2821,
+              2822,
+              2823,
+              2824,
+              2825,
+              2826,
+              2827,
+              2828,
+              2829,
+              2830,
+              2831,
+              2832,
+              2833,
+              2834,
+              2835,
+              2836,
+              2837,
+              2838,
+              2839,
+              2840,
+              2841,
+              2842,
+              2843,
+              2844,
+              2845,
+              2846,
+              2847,
+              2848,
+              2849,
+              2850
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "172dc811049edcdf371bb67d921b8ecab0d43c7a70d83701e634d5f5290c2de5",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2851,
+              2852
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "22eed46f35ad370bf211e12fa0a813e375c73bbdca105f7a21925dd1adb61132",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2853,
+              2854,
+              2855,
+              2856,
+              2857,
+              2858,
+              2859,
+              2860,
+              2861,
+              2862,
+              2863,
+              2864,
+              2865,
+              2866,
+              2867,
+              2868,
+              2869,
+              2870,
+              2871,
+              2872,
+              2873,
+              2874,
+              2875,
+              2876,
+              2877,
+              2878,
+              2879,
+              2880,
+              2881,
+              2882
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "4f6a00241be432bfd90ab42d7175674cdf6b771a5f11d69a2304f98f67216eb5",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2883,
+              2884,
+              2885,
+              2886,
+              2887,
+              2888
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "282e1cb3e15fec43a337ef0b4152f20048dab4331d103631c10350d640d669ad",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2889,
+              2890,
+              2891,
+              2892,
+              2893,
+              2894,
+              2895,
+              2896,
+              2897,
+              2898,
+              2899,
+              2900,
+              2901,
+              2902,
+              2903,
+              2904,
+              2905,
+              2906,
+              2907,
+              2908,
+              2909,
+              2910,
+              2911,
+              2912,
+              2913,
+              2914,
+              2915,
+              2916
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "44ad4a39bcf2eb8f36af0bbf9adbdea017842d836af81090d1b2eb877d64ee8b",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2917,
+              2918,
+              2919,
+              2920
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "f82d6a56f45ebbda6e780638ef01e73d3d580abc3559e5be0cfe0bb8e8ee3566",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2921,
+              2922,
+              2923,
+              2924,
+              2925,
+              2926,
+              2927,
+              2928,
+              2929,
+              2930,
+              2931,
+              2932,
+              2933,
+              2934,
+              2935,
+              2936,
+              2937,
+              2938,
+              2939,
+              2940,
+              2941,
+              2942,
+              2943,
+              2944,
+              2945,
+              2946,
+              2947,
+              2948,
+              2949,
+              2950
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "05dccb496ff3ef2988457aa1227421062a1339a683987d6a1de551ce9f49711a",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2951,
+              2952,
+              2953,
+              2954,
+              2955,
+              2956,
+              2957,
+              2958,
+              2959,
+              2960,
+              2961,
+              2962,
+              2963,
+              2964,
+              2965,
+              2966,
+              2967,
+              2968,
+              2969,
+              2970
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "1985abc4f077f32a5792d5d2ac954de3441ddcefd09841c1009239b9e6b0893d",
+            "state": "Pending"
+          },
+          {
+            "activity_positions": [
+              2971,
+              2972
+            ],
+            "current_memory_outputs": 0,
+            "episode_id": "4f214f5713b3cb32f90358917de2019b3454ce0be6e1776ab8150273af03f817",
+            "state": "Pending"
+          }
+        ]
+      },
+      "rejection_preserves_bytes_and_projection": true,
+      "schema": 1,
+      "source_bytes": 11830382,
+      "source_sha256": "3efd9c666aa992686abd8aac9b77cfc7dc2a0e15d6fb26ec01f8666db175e476",
+      "source_unchanged": true,
+      "status": "rejected",
+      "timeline_gate": {
+        "valid": true
+      },
+      "name": "rhelm-david-r-ellis-pre-relationship",
+      "elapsed_seconds": 4.669353499994031,
+      "process_metrics": {
+        "cpu_seconds": 4.65625,
+        "peak_working_set_bytes": 39727104,
+        "peak_pagefile_bytes": 173580288,
+        "scope": "whole audit process including open, inventory, hashing, diagnostics and native operation"
+      },
+      "report_sha256": "fd291ae1a2f076eee253e8a717f1d5d250c22a698a02a8dc622dae6db53c60ff"
+    }
+  ],
+  "limits": "Rejected-input CPU/memory are gate diagnostics, never accepted reconstruction performance. Allocator temporary peak, spill high-water and inference costs require an accepted run.",
+  "diagnostic_scope": "Local-only retained REL diagnosis; no inference or production policy changes",
+  "acceptance_result": "All three rejected; C10 remains incomplete"
+}

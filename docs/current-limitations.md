@@ -14,6 +14,8 @@ Bounded source-only embedding fill and configured offline post-generation recons
 
 No automatic reconstruction/default activation or mounted Gateway historical management is provided. The exclusive offline API is not a mounted authorization escape. C9 integrated native correctness is verified in the active completion ledger. C10 hash-backed retained-corpus measurements, C11 full release verification and C12 production disposition remain open. Historical production release stays blocked until those gates pass.
 
+C10's [retained-REL diagnosis](freshness-historical-completion-execution-plan-2026-10-12.md#c10-retained-corpus-failure-diagnosis--2026-10-12) reproduces rejection of all three frozen authoritative corpora. Timestamp/accepted-order rules, complete-all-branches coverage and newer Freshness birth/settlement requirements exclude retained legacy data despite readable native first-publication receipts. The native Dream approximation adapter is absent; genuine exact-turn semantic source coverage is zero. These are unresolved compatibility/coverage gaps, not accepted retained-corpus performance evidence.
+
 ## Purpose
 This document owns known incomplete, transitional, or practically limiting behavior in the current rebuild.
 

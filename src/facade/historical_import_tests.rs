@@ -17,6 +17,8 @@ mod historical_manifest;
 mod historical_matrix;
 #[path = "historical_recovery_tests.rs"]
 mod historical_recovery;
+#[path = "historical_retained_corpus_tests.rs"]
+mod historical_retained_corpus;
 #[path = "historical_import_transform_tests.rs"]
 mod historical_transform;
 
