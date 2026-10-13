@@ -26,7 +26,7 @@ Historical reconstruction already has:
 - copy/repack/reclamation/reconciliation preservation tests; and
 - partial model-level orchestration/recovery evidence.
 
-C2–C6 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native checkpoint/receipt byte-prefix recovery, passive due-index rebuild and live-safe retries are verified in C6. Mounted/importer and embedding integration, retained-corpus measurements and release disposition remain C7–C12.
+C2–C6 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native checkpoint/receipt byte-prefix recovery, passive due-index rebuild and live-safe retries are verified in C6. C7 freezes the bounded embedding-only contract below; its implementation remains unavailable. Mounted/importer and embedding integration, retained-corpus measurements and release disposition remain C8–C12.
 
 At the time this plan was written, `feat/freshness-semantic-historical-linear` was **66 commits behind `main` and 28 commits ahead**. Current `main` contains later multiplexing/import/runtime ownership work. Convergence is therefore a prerequisite, not cleanup after implementation.
 
@@ -358,6 +358,95 @@ Architecture impact:
 Final C5 gates:
 - Both documentation-policy modes and git diff --check passed on the final implementation; required ownership guards passed (75 P4 fixtures, 161 classified public APIs, 11 external ownership fixtures).
 - Architecture refresh passed: sha256:6e9f1332083655835663b7480401c2262d17516e34869f660a194c3783bd5d66; 69,021 source nodes, 2,369 relationships, 23 rules, no violations.
+
+
+## C7 frozen embedding-only contract
+
+**C7 complete: implementation contract frozen; C8 implementation remains unavailable.** This section is the canonical C8 handoff. The existing public `fill_missing_embeddings=false` default is unchanged; requesting true still returns EmbeddingFillUnavailable until C8 passes its gate.
+
+### Entry, ownership and pinned input
+
+The post-generation import/management operation accepts reconstruction options, an existing configured EmbeddingEndpoint and a cooperative cancellation flag. Endpoint selection is capability configuration, never caller-supplied vector/profile/manifest authority. One optional bounded-fill settings object may lower the limits below; omitted settings use these v1 ceilings. Reject zero, overflow or values above a ceiling before provider I/O or writes. No source IDs, score plans, authorization sets or arbitrary generation IDs are accepted.
+
+Resolve an exact accepted historical retry first: return the stored report without embedding, probing, changing activation or rescoring, even when fill is requested. Otherwise require the same complete single-owner import/readiness and canonical Archive-clock gates as native reconstruction, before any provider work. REL only; live F8 remains disabled. Already-enrolled or regenerated owners reject through existing owner proof. No Insomnia, Dream, Community rebuild, target-Memory embedding or synthesized summaries are scheduled.
+
+Cva privately derives a fill plan under exclusive owner access. Pin UUID/import/corpus identity, canonical source order/activity cut, Archive version, complete owner input token/prefix, all relevant immutable source/content/fragment bindings and the selected profile/generation. Select the latest retained generation by vector_version, exactly as H1 currently does. Verify its retained profile against the configured endpoint using the existing compatibility probe. If no generation exists, require exactly one retained profile; zero or ambiguous profiles reject (profile creation is a separate operation). Never silently switch vector spaces. Pin endpoint/route identity for the operation; replacement invalidates the plan.
+
+Mounted integration uses the existing Gateway owner lifecycle/admission fence, closes new mutating admission and quiesces all owner workers/operations for this explicit operation. Do not merely pause vectors or keep an owner mutex across inference. Offline integration retains exclusive ownership. Provider probing and embedding run outside owner/runtime locks; reenter a short, revalidated owner mutation boundary for each durable publication. Owned snapshots passed to the provider carry no mutable Cva references. Release the fence on every exit. C8 must expose a concrete lifecycle path or reject mounted execution; it cannot approximate quiescence with a second coordinator.
+
+### Population and explicit resource ceilings
+
+All byte limits mean bytes, not tokens. Bounds include retained-row copying and validation, not only new provider rows. Check arithmetic before allocating; preflight itself consumes bounded inspection/allocation counters and rejects the whole attempt if population or work cannot fit. Validate declared content/matrix lengths before hydration; do not allocate an oversized input merely to discover its limit. Never reconstruct a silently truncated fill prefix.
+
+| Resource per invocation | Default and hard ceiling |
+| --- | --- |
+| Accepted sources inspected | 65,536 |
+| Retained fragments inspected / resulting generation rows | 131,072 each |
+| Sources requiring missing genuine rows / new rows | 4,096 each |
+| New exact-turn fragment records | 4,096 |
+| One source text / total source text sent | 256 KiB / 16 MiB |
+| Profile dimensions | 4,096 |
+| Retained plus new matrix bytes materialized for publication | 256 MiB |
+| Row-component validation/copy work | 67,108,864 f32 components |
+| Source/fragment binding inspections, including repeated visits | 67,108,864 |
+| Peak operation-owned temporary buffers, including plan/text/output/matrix | 512 MiB |
+| Inputs per source embedding call | 16 |
+| Concurrent endpoint calls | 1 |
+| Source embedding calls | 256 |
+| Compatibility probes | 2 calls, 4 fixed inputs total |
+| Total endpoint calls / inputs including probes | 258 / 4,100 |
+
+Probe texts are the existing fixed compatibility suite, not historical source text. Probe bytes count against the total text budget. The endpoint transport for this operation must have at most one in-flight request and no implicit retry, hedging or fan-out beyond these budgets. The current remote defaults (16 concurrent requests) are not authorization for this lane. C8 must configure/verify the existing provider boundary accordingly; if it cannot enforce that boundary, reject before starting. No automatic backoff or retry occurs inside the operation. Cancellation cannot interrupt an opaque synchronous endpoint call; transport retains its existing finite request timeout. No wall-time or monetary ceiling is claimed.
+
+Order sources by canonical activity position, then exact UTF-8 source key; order fragment rows by raw FragmentId bytes. Deduplicate source/fragment identities before budgeting. Batch deterministic contiguous missing rows, respecting both input-count and byte limits. Bounds apply even for a no-provider-work invocation; an accepted checkpoint retry bypasses planning altogether.
+
+### Genuine missing-row selection and native vector publication
+
+A source row is eligible only for an actually accepted user/assistant Node within the pinned cut and an exact single-turn fragment (start=end=that Node, exact conversation, one turn). Read the immutable retained content through Archive's existing fragment_text path, including its existing rendering; do not invoke a model to rewrite, summarize or expand it. If that exact fragment does not exist, Cva may ask Archive to materialize its existing deterministic exact-turn Fragment identity after full preflight. This appends a binding to genuine content, not a new accepted Node or activity tick. Include those records in mutation and resource accounting.
+
+Reuse all existing rows of the selected retained generation byte-for-byte, including mixed/unusable rows, and retain their immutable bindings. Request only absent eligible exact-turn rows. Existing invalid, zero, incompatible or mixed evidence is reported/excluded under H1; it is not missing and is never re-embedded by this operation. Do not fill missing mixed-fragment rows, unrelated fragments or target Memory bodies to satisfy a completeness heuristic. If the existing source-readiness check still reports a source unavailable (for example an unrepresented mixed fragment), report that coverage; never fabricate completed-empty evidence. Opt-in completion means bounded work completed, not universal semantic coverage.
+
+The existing live SemanticArchiveBatch and build_archive_vector_generation_verified paths are unsuitable directly: they embed the whole population, and the live path materializes only post-activation fragments and may accept live receipts. C8 adds narrow private historical prepare/commit adapters under Cva, reusing compatibility validation, Archive fragments, PackedVectors, ArchiveVectors and VectorGeneration publication. No new durable queue, receipt type, store or manifest ledger is introduced.
+
+Retain each successful batch through existing immutable packed matrix/binding/generation records. Publish the union of pinned retained rows plus validated new rows in canonical FragmentId order; map each copied row by identity, not its former index. Check vector count, dimensions, normalization, finite/nonzero values and checked byte width using existing validators. Revalidate all pinned non-fill inputs and the expected prior generation/prefix before appending. Any unrelated mutation, profile/route change or competing generation rejects InputDrift; never silently drop the prepared batch. Advance the private expected token only for this operation's own verified fragment/vector writes.
+
+Generation source_archive_version covers the pinned source cut and any materialized exact fragments. Generation publication validates references through existing vector authority; keep F8 disabled so its ordinary prospective callback accepts no live events. Synchronize published generations before reporting a batch durable. Copying a matrix for each batch is permitted only within cumulative component-work and per-publication memory ceilings; preflight includes that amplification. C8 may publish one final union instead if it keeps all temporary work bounded. Do not rewrite existing vectors or introduce a segmented format merely to satisfy this contract.
+
+### Cancellation, failure, recovery and retry
+
+Check cancellation before planning/probes, before each provider call, after each return, before fragment/vector writes and before final freeze/checkpoint commit. Once observed, dispatch no more requests and discard uncommitted output. Cancellation during an uninterruptible request waits for return/timeout; no checkpoint is accepted afterwards. A cancellation racing the existing atomic checkpoint append cannot undo it: if acceptance has begun, complete append/sync and return the accepted outcome. Do not report cancelled after a committed checkpoint.
+
+Invalid provider output, provider error, budget exhaustion, drift or cancellation stops the invocation without a historical checkpoint. Durable exact fragments and complete vector generations from earlier successful work may remain; incomplete physical appends use existing Container recovery. Reopen and retry recompute missing rows from retained authority and reuse completed compatible evidence. No cleanup deletes genuine accepted content or committed vectors. Rows without a published generation are not readiness evidence; C8 may reuse them only after proving their immutable source/profile binding, otherwise retry them within the new invocation's budget. No exactly-once provider-call claim is made across a crash.
+
+Before final manifest freeze, reread all authoritative inputs after fill and rerun native readiness/canonical-clock gates. Never commit the pre-fill manifest/token. Reconstruction continues only after successful fill disposition; failure never falls back silently to no-fill reconstruction. The no-fill operation remains independently available and records unavailable semantic sources as today.
+
+### Coverage report and H1 retained evidence
+
+Return a structured fill report on success and on stopped attempts: disposition (complete, cancelled, provider-error, invalid-output, budget-exceeded, input-drift or unsupported), owner/import/profile, initial and final generation IDs/cuts, source/fragment totals, missing/reused/new rows, unavailable sources and explicit exclusion reasons, attempted/completed calls/inputs/bytes and durable progress. Sort identity/reason entries canonically. Stop reports identify whether any fragment/vector writes survived; no stop report is acceptance evidence.
+
+H1 retains its existing top-level schema and frozen numerical policy digest. For no-fill keep vector_proof.embedding_pass="not-requested". For a successfully requested fill use a typed map with exactly contract_version (u64 1), disposition ("complete"), profile_id (raw32), selected_generation_id (raw32 or null), source_archive_version (u64 or null), and coverage_digest (raw32). The digest is H("reliquary:historical-embedding-coverage:v1", the final ordered source_records' node/position/mode/evidence objects), using H1 typed canonical encoding and the same retained evidence that supplies those records. An existing generation with zero missing rows still yields this requested-complete disposition.
+
+Final H1 proof derives selected generation, immutable binding/row hashes and coverage anew from retained owner state, not a caller report. Do not hash attempt number, provider completion order, initial generation, cost, batch/concurrency settings or reused-versus-new counts: interrupted retries reaching identical retained evidence must not acquire a different manifest because of transient progress. Those facts belong only in the operation report. No separate durable embedding-pass log is needed; accepted CVAFRS03 already retains the resulting manifest identity. Exact accepted retries return it before fresh planning.
+
+### C8 verification gate
+
+C8 must exercise the real post-generation importer/management entry and native checkpoint: default disabled/no provider calls; opt-in missing exact rows; zero-work reuse; profile ambiguity/incompatibility; mixed/invalid/source-unavailable distinctions; all resource ceilings and checked overflow; malformed provider output; cancellation at each boundary; owner/route/generation drift during provider work; partial durable fill then reopen/retry; no Insomnia/Dream/F8 receipt effects; provider calls outside locks; native manifest coverage digest; final refreeze; accepted retry with fill requested; prospective F8 activation only after acceptance. Include a test endpoint that detects lock-held callbacks and counts inputs/calls, plus real immutable row-byte comparisons and reopen assertions. Failure cases assert no CVAFRS03 and unchanged accepted Freshness, while reporting allowed vector progress.
+
+Documentation impact:
+- Inspected: canonical ownership/storage/limits/roadmap, H1 policy, native reconstruction/source/vector adapters, provider compatibility probes and current runtime prepare/embed/commit boundary.
+- Updated: this C7 contract, H1 handoff, index/maintainer routing and remaining-work status.
+- Not affected: Rust behavior/public API, existing persistent formats, Freshness numerical policy, default activation and PHY scope.
+- Compliance check: both documentation-policy modes and git diff --check passed; final confirmation is recorded below.
+- Known documentation gaps: C8 implementation and C9–C12 integrated/release evidence remain pending.
+
+Architecture impact:
+- Standards added or changed: none; frozen future operation limits and lifecycle contract.
+- Ownership or boundary impact: planned Cva historical adapters reuse existing Archive/vector/provider owners; sole checkpoint authority remains FreshnessStore/CVAFRS03.
+- Pitlord enforcement impact: no source or static policy changes; C6 refreshed enforcement remains the baseline.
+- Other verification impact: C8 executable gates specified; C7 is documentation-only and does not claim runtime coverage.
+- Known architectural gaps: actual mounted fence/provider budget enforcement and importer implementation remain C8; release acceptance remains C9–C12.
+
+Final C7 gates: documentation-only; both documentation-policy modes and git diff --check passed. No Rust/API/storage/static-policy change, so runtime tests and architecture refresh were not rerun. C6 is the last executed runtime/architecture baseline. C8 must implement and verify this contract before fill becomes available.
 
 ## C6 disposition and verification
 

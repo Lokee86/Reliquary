@@ -11,6 +11,10 @@ Parent index: [Documentation index](INDEX.md)
 | Import evidence publication/rebuild and branch coverage | `src/archive/archive_import.rs`, `episode_import.rs`, Archive rebuild/codec | [Storage format](storage-format.md), [Invariants](invariants.md) | receipt/branch/artifact recovery and preservation tests |
 | Source ownership and pure normalizers | `tools/pitlord/semantic.json` native-import area/rules | [Architecture](architecture.md) | fresh architecture check plus ordinary Rust suite |
 
+## Historical embedding-only contract routing
+
+C7's frozen bounded-fill contract lives in the [active historical completion plan](freshness-historical-completion-execution-plan-2026-10-12.md#c7-frozen-embedding-only-contract). C8 will implement private Cva historical prepare/commit adapters using Archive, compatibility profiles and existing vector stores; the Gateway owns mounted quiescence and provider calls stay outside owner locks. This is a future seam, not an available fill API.
+
 ## Purpose
 
 This map routes common change intents to canonical documentation, implementation boundaries, and verification surfaces.

@@ -8,7 +8,7 @@ Freeze Step 13 / H1 of the [linear implementation plan](freshness-semantic-histo
 
 ## Overview
 
-**Status:** accepted policy version 1, frozen 2026-10-12; historical reconstruction is not implemented. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
+**Status:** accepted policy version 1, frozen 2026-10-12; native exclusive reconstruction/publication and recovery are implemented through C6. Bounded embedding and importer integration remain C8, with the operation contract frozen in C7. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
 
 Reconstruction is an explicit one-shot operation on a newly generated, complete, single-owner REL import. It uses the final authorized graph, approximate provenance-based availability and exact existing Freshness mathematics. It creates no second clock, permanent event ledger or historical consumed-use receipts. Ordinary live semantic reinforcement remains local and non-propagating.
 
@@ -203,6 +203,10 @@ The private native freeze now carries one ordered batch of canonical semantic an
 
 Dream first-cycle roots and duplicate-origin proof are checked against the accepted source-pass graph transaction range. Verified no-link remains authoritative even for a final credit-excluded source. Existing representative authority resolves aliases; only strictly older eligible roots receive +50. A settled marker lacking direct retained proof is explicit unsupported and cannot manufacture a final-graph fallback. The pure producer retains its separately verified completed-direct-link approximation contract. Native mixed events are ordered by (position, raw event ID), without kind priority or recipient identity rehashing. Final credit-excluded records replace provisional admission with an unadmitted projection; unsupported records and disjoint provisional events remain untouched. Native score publication is integrated by C5 as described below.
 
+
+## C7 embedding-only handoff
+
+The [active completion plan, C7 frozen embedding-only contract](freshness-historical-completion-execution-plan-2026-10-12.md#c7-frozen-embedding-only-contract) defines bounded source-only fill, profile/generation selection, cancellation/retry, immutable vector reuse and the requested-complete typed embedding_pass proof. C8 implements it. The current API still rejects fill requests; no-fill uses not-requested. H1 top-level schema and numerical policy digest stay unchanged. Final retained coverage, not transient attempt cost/progress, supplies manifest evidence.
 
 ## C5 native publication integration
 
