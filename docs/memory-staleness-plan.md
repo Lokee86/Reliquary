@@ -60,7 +60,7 @@ The only ordinary Freshness effect of direct access is its specified local bonus
 
 ## Ego/context and owner boundaries
 
-Ego may use the score to rank/shape the routine working Memory Web. Freshness does **not** authorize removal of historical Memory records, global exclusion from search, elision of mandatory broad audit, bypass of explicit protected keep lanes, or a substitute for actual contradiction/supersession handling. When the whole Web fits economically in one batch, include it; don't impose artificial pruning merely because some scores are low. If scale requires selection, Freshness is a graded input alongside established coverage, graph routing and hard keeps, not an automatic deletion filter.
+Ego uses the score as contextual relevance for working-Web pruning when scale requires it. After objective lifecycle cleanup, the entire eligible Web receives mandatory audit coverage while it fits. On overflow, Ego removes the lowest-Freshness Memories from mandatory exposure until the population fits, with Fresh (+1..+100) as the final routine pruning floor. Pruned Stale/Dormant Memories remain reachable through authorized search. Freshness does **not** authorize removal of historical Memory records, global exclusion from search, or substitution for actual contradiction/supersession handling. No generic protected-keep-lane rule is currently accepted.
 
 REL and PHY are distinct owners. The REL accepted-turn clock cannot simply be shared with a PHY or transferred from one project's activity into another. This design initially covers REL-local Memories. PHY scoring requires an independently justified owner-local source and explicit separate policy, not assumed wall time or indiscriminate Memory-version ticks.
 

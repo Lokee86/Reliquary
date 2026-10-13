@@ -1,888 +1,290 @@
-# Ego Memory-Web summary plan
+# Ego Memory-Web Summary design
 
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-Record the future-only policy, rationale, measurements, and calibration work for Ego Memory-Web Summary construction without presenting unimplemented behavior as current architecture.
+Record only the currently decided design for Ego's project-facing Memory-Web Summary.
 
-The filename retains the earlier `ego-web-synthesis-plan.md` name for link stability. The target artifact is a **Memory-Web Summary**, and the broad audit that discovers candidate areas is not itself a summarization pass.
-
-## Overview
-
-The target pipeline is now explicitly staged:
-
-1. derive a bounded, user-relative **working Memory Web** from shared REL state;
-2. perform a broad reasoning **audit** over that working Web with mandatory coverage and full-Web `memory_search`;
-3. perform separate **candidate selection** over the areas/threads discovered by the audit;
-4. summarize only the selected candidates from their exact source Memories; and
-5. reconcile those candidate summaries into the cached Memory-Web Summary.
-
-The design remains Memory-first and Perception-optional. Entity/Observation state may later improve selection or organization when available, but Ego must remain semantically complete without Perception.
-
-The target project summary is user-relative. Shared evidence remains REL-owned, while the perspective used to choose and summarize currently relevant project state is keyed to PHY identity.
+This is a design record, not an implementation specification. Mechanics that have not been explicitly settled remain open and must not be promoted into architecture merely because they are convenient to specify.
 
 ## Status
 
-This document is the design rationale and calibration record. The authoritative implementation sequence, interfaces, inference boundaries, failure/retry semantics, acceptance gates, and completion definition are now owned by [Ego Memory-Web Summary implementation plan](ego-memory-web-summary-implementation-plan.md). The durable Ego substrate exists, but the working-Web selector, audit controller, candidate-selection pass, summary inference, reconciliation, activity accounting, and refresh scheduling described here are not yet implemented.
+Future behavior. The durable Ego substrate exists, but Memory-Web Summary generation is not implemented.
 
-## Pre-established Ego pieces
+The design below supersedes premature execution detail that had been treated as settled architecture before its semantics were actually designed.
 
-- Identity is PHY-owned and high-inertia.
-- Personality is PHY-owned and lower-inertia.
-- Anchors are durable PHY/REL Ego inputs.
-- Cached Memory-Web synthesis persistence already exists in the current substrate.
-- Cross-chat context is a separate Ego layer with its own deterministic selection/budget policy.
-- REL-local activity is preferred over wall-clock age for project recency.
-- Chronos owns deterministic temporal interpretation from Memory text plus authoritative source chronology.
-- Memory vectors, Community routing, and deterministic Community sub-centroids already exist.
-- Dream Graph/Community structure is derived routing/organization state, not semantic authority.
-- REL conversation records carry PHY identity, allowing user-specific recent conversation tails to be selected from shared REL state.
-- Ego must not require Perception; Entities/Observations are optional enrichment only.
+## Overview
 
-## Scope
+Ego audits the whole eligible Memory Web while it fits, uses Freshness to prune mandatory audit exposure only when scale requires it, separately selects candidates, summarizes each as provenance-linked bullets, reconciles those bullets, and materializes three fixed stored summary sizes. Freshness is used twice: first as the raw-Memory overflow-pruning signal with Fresh as the final floor, then as averaged source-Memory priority for pruning summary bullets. Cold Memories remain searchable, and unresolved downstream mechanics stay explicitly open.
 
-This plan primarily covers project-facing Memory-Web Summary construction and refresh, and records the owner-specific scheduling distinction where PHY-local Ego state cannot correctly inherit the REL activity policy.
+## Governing model
 
-It does not define:
+The full REL Memory Web remains the durable source of detail. The Memory-Web Summary is a lossy current-orientation layer used to make useful project state fit economically into routine context.
 
-- Identity synthesis: Identity is explicit, PHY-owned, and high-inertia rather than synthesized;
-- final multi-owner context assembly, hierarchy, prompt budgeting, or Warlock injection;
-- Observation synthesis or other Perception-owned inference;
-- a project-wide/team-wide shared summary artifact; or
-- the final persistence migration/schema needed to move the target user-relative project summary fully under PHY ownership.
+Absence from the current summary does not mean that a Memory is false, deleted, archived, or unreachable. Cold state remains available through authorized retrieval/search.
 
-Personality ownership and evidence boundaries are recorded here because they are part of Ego, but Personality synthesis mechanics remain a separate follow-up.
+The pipeline is deliberately multi-stage:
 
-## Governing principles
+1. build the routine working Web;
+2. broadly audit it for plausible subject areas;
+3. perform a separate candidate-selection pass;
+4. summarize each selected candidate as provenance-linked bullet points;
+5. reconcile candidate summaries into one grounded summary representation;
+6. materialize three fixed stored summary sizes.
 
-The full Memory Web remains the durable source of detail. The Memory-Web Summary is a compact current-orientation layer, not a replacement for retrieval.
+Audit is discovery. Candidate selection decides what is worth summarizing. Summary generation compresses source Memories. Reconciliation assembles the result. These are distinct responsibilities.
 
-A Memory may be absent from the current working Web or final summary without being false, obsolete, or unimportant. Cold state remains retrievable through `memory_search`.
+## Ownership
 
-Deterministic machinery may narrow and route the working set using explicit lifecycle state, temporal state, user-relative activity, embeddings, graph structure, and calibrated thresholds. These mechanics are **selection/routing**, not semantic authority.
+Project evidence remains REL-owned:
 
-The controller owns coverage. The model owns semantic judgement.
+- Memories and their lifecycle state;
+- Memory Freshness;
+- source chronology;
+- Dream relationships and derived Community structure; and
+- authorized retrieval/search over the REL.
 
-For audit population construction and candidate discovery, two starting invariants apply:
+The project summary is user-relative. The target persisted summary perspective belongs to the active PHY and is keyed by REL identity.
 
-1. **No scale-driven pruning or batching occurs until the complete Memory Web exceeds the calibrated maximum single audit-batch size.** While the whole Web fits, the whole Web is presented to the audit.
-2. **Give the model as much of the Web as economically practical, and only start taking information away when scale requires it.**
+Cross-chat selection, cross-REL inclusion, Personality synthesis, and final all-layer Ego context assembly remain separate designs.
 
-Once scale requires narrowing, pruning proceeds in an explicit deterministic priority order; batching is the final escalation after acceptable pruning can no longer bring the audit population within the single-batch maximum.
+## Objective lifecycle cleanup
 
-The strongest practical coverage guarantee is:
+Before Freshness is used, apply already-established objective cleanup:
 
-> Every Memory admitted to the working Web must be surfaced as mandatory core material in at least one audit batch before the audit can complete.
+- exclude Archived Memories from routine current-orientation input;
+- exclude explicitly Historical Memories from routine current-orientation input;
+- remove superseded copies when authoritative lifecycle state identifies a replacement;
+- collapse Dream-recognized duplicates to the appropriate active/canonical representation; and
+- do not discard Future Memories merely because their temporal status is Future.
 
-This does not guarantee internal model attention to every token. It does prevent retrieval choice or early completion from leaving selected Memories wholly unseen.
+This cleanup is semantic/lifecycle normalization, not relevance ranking.
 
-## Ownership: shared evidence, user-relative perspective
+## Routine working-Web Freshness pruning
 
-The relevant project evidence is REL-owned:
+After objective lifecycle cleanup, present the **entire eligible Memory Web** to the mandatory audit while it fits the configured audit budget. Do not prune merely because some Memories are Stale or Dormant.
 
-- conversation records/tails;
-- Memories;
-- Memory vectors;
-- Graph relationships;
-- Communities; and
-- authoritative source chronology plus Chronos-derived temporal interpretation.
-
-REL conversation records carry PHY identity. Ego can therefore derive recent activity for one user without moving conversation state into the PHY:
-
-```text
-shared REL conversation state
-        ↓ filter by active PHY identity
-that user's recent conversation tails
-        ↓
-recent-activity semantic centroids
-        ↓
-relevance over the shared REL Memory Web
-```
-
-Two users attached to the same large/team REL may legitimately activate different portions of the same Memory Web and therefore receive different Memory-Web Summaries.
-
-That makes the **target summary perspective PHY-owned**, even though its project evidence is REL-owned. Existing REL cached-synthesis persistence is current substrate, not the intended semantic ownership of this user-relative result. Exact PHY persistence/keying by REL remains implementation design work.
-
-A future shared project/team synopsis, if needed, should be a distinct artifact rather than an Ego summary.
-
-## What the measurements ruled out
-
-The deterministic baseline already established is:
-
-- exclude archived Memories;
-- exclude explicitly `historical` Memories;
-- collapse duplicate copies already identified by Dream; and
-- retain `future` Memories.
-
-This cleanup is useful but does not solve scale.
-
-### REL measurements
-
-The frozen 14-day REL reduces to 924 eligible Memories, 146,738 title/body characters, or roughly 36.7k tokens.
-
-An earlier cut of the 28-day REL reduced to 2,079 eligible Memories, 298,130 characters, or roughly 74.5k tokens. After later Insomnia draining, the same experiment fixture contains 2,398 eligible Memories, 342,921 characters, or roughly 85.7k tokens. The later figure is the current stress measurement.
-
-Category/type filtering is not a safe primary scaling mechanism:
-
-- in the earlier 28-day cut, `decision + fact + constraint` represented about 83% of filtered REL text;
-- `project` represented about 91% of filtered REL text; and
-- the dominant intersections were `decision × project`, `fact × project`, and `constraint × project`.
-
-Those categories are the project state the summary is supposed to preserve, so dropping them to meet a budget would be arbitrary.
-
-### PHY measurements
-
-The 28-day PHY reduces to 194 eligible Memories, 27,194 characters, or roughly 6.8k tokens.
-
-Its substance is similarly concentrated rather than safely discardable:
-
-- `instruction + preference` represented about 88% of filtered text; and
-- `process + communication` represented about 89%.
-
-This measurement remains relevant to PHY-local Ego/user-state scheduling and Personality calibration. The project-facing Memory-Web Summary remains user-relative over REL evidence; the PHY mutation clock described below is an owner-specific freshness policy, not a claim that PHY and REL summaries share one evidence model.
-
-## Rejected primary scaling approaches
-
-### Whole-Web one-shot summarization
-
-Rejected as the default strategy.
-
-The problem is not merely context capacity. Even a Web that fits comfortably in context can encourage a model to form an early global impression, focus on salient clusters, and move toward completion before the long tail has been deliberately processed.
-
-The Ellis audit reinforced that narrower inspect/explore cycles can discover coherent areas well, but an unconstrained exploratory run does not guarantee that every relevant Memory will be surfaced before completion.
-
-### Retrieval-only audit
-
-Rejected as the baseline coverage mechanism.
-
-`memory_search` is valuable for following a thread outside the current batch, but the model must not control which baseline Memories ever become visible. Mandatory coverage is controller-owned.
-
-### Full community-by-community summarization
-
-Rejected as a semantic boundary.
-
-Communities are useful derived routing/coverage structure, but a coherent summary area may cross Community boundaries. Measured Ellis examples showed this directly: the strict Eastwood core spanned four Communities while remaining one connected thread.
-
-Communities and graph neighbourhoods may help order batches, derive overlap, and expand promising threads; they do not define candidate summary areas.
-
-### Category/type exclusion
-
-Rejected. Categories and types may help structure reasoning but are not safe primary relevance filters.
-
-### Calendar recency
-
-Rejected. A dormant project must not lose current state merely because wall-clock time passed.
-
-### Global user activity recency
-
-Rejected for project state. Activity in another REL must not age this REL.
-
-## User-relative recent activity
-
-REL-local activity remains the recency boundary, but the recent semantic signal should originate from **recent REL conversation tails**, not from recently created Memories.
-
-Recent Memories are already a transformed/selected representation. Conversation tails more directly represent what the user is actually working on now.
-
-Let `W` be the recent REL-local activity window used to choose conversation tails. `W` is measured in **incoming logical turns**, not wall-clock time.
-
-REL activity has one durable monotonic clock: `rel_turn_count`. It advances exactly once when a previously unseen logical **user or agent turn** is successfully accepted into that REL. This clock is semantic ingest metadata, not a count reconstructed from physical storage:
-
-- a distinct incoming user turn advances it once;
-- a distinct incoming agent/assistant turn advances it once, including durable automated-task output;
-- an idempotent retry/replay of an already-seen logical turn identity advances it zero times;
-- two distinct turn identities with identical content still advance it twice;
-- tool calls, tool results, reasoning steps, internal workers, and provider retries do not independently advance it unless they arrive as first-class user/agent turns;
-- storage de-duplication, compaction, repacking, or record representation must not alter the count; and
-- activity in another REL does not advance this REL.
-
-This gives the REL a durable activity statistic as well as Ego's scheduling clock. A dormant REL cannot age because its turn count does not move.
-
-The recent-tail window `W` and summary refresh cadence are related to the same activity clock but are **not the same policy**. `W` bounds the recent conversation-tail signal used for recency centroids. REL summary refresh instead uses percentage growth in the durable turn count until an absolute maximum interval is reached.
-
-After a successful REL-backed summary generation, persist the represented `source_turn_count`. Steady-state refresh becomes due when:
-
-```text
-required_turn_delta =
-    min(
-        ceil(source_turn_count * rel_refresh_fraction),
-        rel_max_refresh_turn_delta
-    )
-
-refresh_due =
-    current_rel_turn_count - source_turn_count
-        >= required_turn_delta
-```
-
-A due refresh does **not** run Ego immediately. Crossing the threshold marks the current Episode and queues Ego work through that Episode. The processing coordinator must first finish all Insomnia work required through the marked Episode and all Dream work made necessary by that Insomnia output. Only after that prerequisite semantic work is terminal may the queued Ego generation begin. The marked Episode is a readiness boundary, not a requirement to chase a continuously moving activity head; later activity must not starve an already-due Ego refresh.
-
-The first REL-backed summary does not use turn-percentage growth from zero. It becomes eligible when the REL contains **25 eligible durable Memories**. Once that bootstrap threshold is reached, the current Episode is marked and the first Ego generation is queued through the same prerequisite-settlement path.
-
-The important separation is therefore:
-
-- **recent relevance:** `W` recent incoming turns;
-- **REL bootstrap:** 25 eligible durable Memories; and
-- **REL steady-state freshness:** percentage turn-count growth capped by a maximum turn delta.
-
-## Recency centroids and working-Web selection
-
-For the active PHY identity:
-
-1. select the most recent conversation tails inside the REL-local activity window;
-2. embed those tails using the compatible semantic profile;
-3. derive multiple recent-activity centroids rather than one global centroid;
-4. score current REL Memory vectors against those centroids;
-5. combine that semantic activity signal with hard eligibility and temporal/state keep lanes; and
-6. admit the resulting Memories to the working Web.
+Only when the eligible Web exceeds the audit budget does Freshness become the pruning control. Reduce mandatory audit exposure from the coldest Memories upward until the population fits. The Fresh band is the final pruning floor: if scale still requires narrowing, only Fresh Memories remain mandatory audit input.
 
 Conceptually:
 
 ```text
-REL conversation records
-        ↓ PHY identity
-recent conversation tails
-        ↓
-multiple recent-activity centroids
-        ↓
-semantic relevance over REL Memory vectors
-        +
-hard lifecycle/temporal rules
-        ↓
-working Memory Web
+eligible Web fits
+    -> audit all eligible Memories
+
+overflow
+    -> prune lowest-Freshness Memories first
+    -> continue until audit population fits
+    -> never prune below the Fresh band solely for routine scale control
 ```
 
-Multiple centroids are important for large projects/teams where several workstreams may be active simultaneously. Existing Community sub-centroid machinery demonstrates the value of representing multimodal semantic regions rather than compressing everything into one centroid, although the exact recency-centroid construction does not have to be identical.
-
-The relevance score/threshold is deterministic derived routing state. It must not be treated as proof that excluded Memories are irrelevant. Excluded state remains cold and searchable.
-
-Chronos should contribute temporal interpretation where useful, especially for explicit future/current/historical material. Source chronology and content-valid time remain distinct.
-
-Memory-owner Freshness is an additional deterministic, graded *contextual relevance* input for working-Web selection: each REL Memory has a signed -100..+100 counter, lazy REL-turn decay, access/new-linkage reinforcement and graph-distance/Community-local propagation. Freshness is not an assertion of factual truth and does not wait for a Perception/Chronos audit. When the entire Web fits economically, include it; at larger scale retain mandatory broad audit and protected keep lanes. Ego consumes the derived score and remains usable without Perception. See [Memory Freshness](memory-staleness-plan.md) and its [implementation contract](generic-staleness-implementation-plan.md).
-
-Exact centroid count, clustering method, activity weighting, similarity threshold, temporal weighting, and fallback behaviour when recent conversation evidence is sparse remain calibration work.
-
-## Mandatory broad Memory-Web audit
-
-The working Web is then processed by a reasoning audit in controlled batches.
-
-The audit is **not a summarization pass**.
-
-Its job is simpler:
-
-> Find bodies of Memories that are coherent enough to assemble a plausible single-subject summary of state and recent history.
-
-The audit discovers those bodies and their tentative boundaries. It does not rank generic importance, decide final summary prose, or infer new higher-order state.
-
-The controller, not the model, owns the mandatory traversal:
+Freshness bands remain:
 
 ```text
-working Web
-    ↓
-mandatory batch
-    ↓
-audit reasoning
-    ↙        ↘
-local Web    memory_search across full REL Memory Web
-    ↓
-candidate/thread state
-    ↓
-next mandatory batch
+Fresh:   +1 .. +100
+Stale:  -50 .. 0
+Dormant: -100 .. -51
 ```
 
-Required properties:
+Pruned Stale/Dormant Memories remain searchable through authorized full-Web `memory_search`. Freshness is contextual relevance, not factual truth or lifecycle authority.
 
-- every working-Web Memory appears as **core** material in at least one mandatory batch;
-- the model cannot finish the audit while mandatory core coverage remains incomplete;
-- `memory_search` can explore anywhere in the REL Memory Web, including cold state outside the default working set;
-- search results supplement the mandatory sweep but do not replace it;
-- candidate/thread state survives across batch boundaries; and
-- not every Memory must belong to a candidate area.
+The current design does **not** establish a generic "protected keep lane." In particular, there is no accepted blanket rule that "current/future/required" material bypasses Freshness. Future state survives lifecycle cleanup, but whether any temporal/lifecycle class should bypass Freshness pruning is still an open design question.
 
-### Batch sizing
+Every Memory retained in the working Web after any required pruning must receive mandatory audit exposure. If that retained population is still too large for one audit call, batch it rather than silently dropping additional admitted Memories.
 
-Batching is for **attention control and repeated engagement**, not primarily for fitting the context window.
+## Broad audit
 
-The current starting hypothesis is relatively large batches:
+The broad audit exists because the Ellis experiment showed that inspect/search/follow-thread reasoning could discover coherent subject areas, while an unconstrained run did not guarantee coverage.
 
-- roughly 100–200 core Memories for Ellis-like density;
-- adaptive sizing based on working-graph size, up to a calibrated hard maximum; and
-- overlap/context in addition to the core batch.
+The auditor's job is:
 
-For the Ellis working set of roughly 490 eligible Memories, a starting point around 125–150 new/core Memories per pass is more plausible than very small 40-Memory batches.
+> identify broad candidate areas that appear coherent enough to support a useful single-subject summary, and associate the relevant source Memories with those areas.
 
-Exact sizes must be calibrated. Memory count alone is not enough; token density and graph shape may eventually participate.
+The audit does **not** write the summary.
 
-Only the new/core Memories advance coverage. Repeated context does not.
+The controller owns coverage:
 
-### Overlap and graph context
+- every working-Web Memory must be shown as mandatory core material at least once;
+- larger working Webs may be processed in multiple controlled batches;
+- the auditor has bounded authorized `memory_search` over the full REL Memory Web, including Stale and Dormant state;
+- search supplements the mandatory sweep but does not make an unseen working-Web Memory count as covered; and
+- discovered candidate-area state may carry across batches.
 
-Overlap should likely become graph-informed rather than simple positional repetition.
+Community/graph structure may help routing or search, but Communities are not summary boundaries.
 
-A batch may contain:
+The settled audit output is intentionally simple: broad proposed subjects/areas plus the source Memory references that led to them. Earlier speculative contracts around explicit join/split/boundary-note records are not accepted design.
 
-- mandatory new/core Memories;
-- selected neighbours from the previous/current graph boundary;
-- compact state for already-discovered candidate threads; and
-- on-demand search results.
+## Candidate selection
 
-Community membership can help route or construct graph context, but does not constrain candidate membership.
+A separate candidate-selection stage is required after the broad audit.
 
-## Stage 1: broad audit
+Its decided responsibility is to take the audit's proposed areas and determine which coherent areas should actually be summarized, with an exact source-Memory set for each accepted candidate.
 
-For each controlled batch, the audit should:
+That stage is necessary because audit discovery and final summary membership are different judgments.
 
-- inspect the mandatory core material;
-- recognize possible coherent state/work/process threads;
-- use `memory_search` when the local batch suggests related state elsewhere;
-- record or extend discovered thread/area state;
-- leave sparse/incidental Memories unassigned when appropriate; and
-- advance only after the batch has been processed.
+The detailed mechanics are **not yet designed**. There is currently no accepted algorithm or schema for merge/split/reject policies, overlap policy, boundary repair, or a `CandidateResolver` interface. Those details must be designed and tested rather than inferred from the existence of the stage.
 
-The audit should not write summary prose. Its output is discovery state: potential subjects, evidence/member handles, boundary questions, and links to existing candidate threads.
+Candidate selection still produces no summary prose.
 
-A dedicated audit prompt plus purpose-built tools is the initial architecture. A `SKILL.md` is not required merely to make the procedure valid. It can be evaluated later as packaging/versioning or if measured adherence improves, but controller-enforced exposure is the actual hard mechanism.
+## Candidate summary shape
 
-## Stage 2: candidate selection
+Each accepted candidate is summarized from its closed source-Memory set.
 
-Candidate selection is separate from both broad audit and summarization.
-
-It decides which discovered areas are coherent and useful enough to pass forward and resolves their source membership/boundaries.
-
-A candidate area is conceptually:
-
-```text
-CandidateArea {
-    area_id
-    subject
-    memory_ids: [MemoryId, ...]
-}
-```
-
-Desired properties:
-
-- exactly one coherent summary subject;
-- explicit Memory membership;
-- incidental keyword/entity overlap is insufficient;
-- categories/types may vary inside one area;
-- state progression, constraints, decisions, history, and future actions may all participate when they concern the same durable subject;
-- the area should be independently summarizable;
-- sparse state may remain unassigned; and
-- overlap policy between candidate areas remains to be calibrated rather than assumed.
-
-Candidate selection should favour **coherent shared state that can support a plausible single-subject summary of state and recent history**, not generic importance. Compression value remains useful as a downstream reason to summarize a coherent body, but it is not the auditor's semantic objective.
-
-It still does **not** produce the summary.
-
-## Stage 3: summary generation
-
-Only selected candidates proceed to summary generation.
-
-Each summarization pass receives the candidate's exact source Memories plus required provenance/context and produces a faithful lossy compression of already-existing Memory state.
-
-A Summary may:
-
-- merge redundancy;
-- compact state progression;
-- preserve current constraints/decisions/future state; and
-- omit detail that remains retrievable from the source Web.
-
-A Summary must not invent a new higher-order proposition.
-
-If the output asserts something that is not already collectively stated by its sources, it has crossed into Observation territory and belongs to Perception rather than Ego summary.
-
-Provenance from the summary back to its source Memory set must remain available.
-
-## Stage 4: reconciliation, sizing, and persisted summary tiers
-
-Candidate summaries then undergo bounded reconciliation to:
-
-- remove redundant summary coverage;
-- reconcile ordering/priority for current orientation;
-- preserve distinct active threads; and
-- produce one grounded rich summary representation suitable for controlled further compression.
-
-Reconciliation must not become a hidden Observation pass. It composes already-source-grounded summaries.
-
-The refresh pipeline then produces **three persisted Memory-Web Summary sizes** from that grounded representation. Each tier has a configured **model target** and a larger **controller hard ceiling**. Both are fixed by configuration/policy and are not calculated ad hoc from the context window at conversation start. The model is always instructed to target below the controller's maximum, leaving deliberate headroom for tokenizer differences and imperfect model length control.
+The target summary shape is a compact bullet list rather than an opaque prose paragraph.
 
 Conceptually:
 
 ```text
-candidate summaries
-      ↓
-reconciled grounded representation
-      ↓
-large stored summary
-      ↓ controlled compression
-medium stored summary
-      ↓ controlled compression
-small stored summary
-```
-
-The exact tier names and token budgets remain calibration/configuration work, but all three are materialized and stored during the same summary refresh. Runtime context assembly only selects the largest already-stored tier that fits the available Ego allocation. It does **not** rerun audit, candidate selection, summarization, or compression when a conversation starts.
-
-Budget compliance is controller-owned. A model is not expected to reliably hit an arbitrary exact output size, and token counts may vary across tokenizers. The model therefore receives a target that is deliberately below the tier's controller ceiling. The controller measures the produced artifact and only requires that it remain at or below that ceiling; if it exceeds the ceiling, another bounded compression pass may run. Outputs below the model target are acceptable and are never padded merely to consume budget.
-
-Smaller tiers are derived from the richer grounded summary state rather than independently re-auditing or independently summarizing the Memory Web, so the stored projections remain semantically aligned and share provenance.
-
-## Refresh policy
-
-**Summary regeneration** uses owner-specific source-progress clock math and a separate Ego scheduling/completion policy: REL project summaries follow accepted REL turns, while PHY-local summaries follow the PHY Memory mutation version. The implemented typed source evaluator may be reused here, but a cross-target durable review store is not yet a requirement or a substitute for Ego's accepted-source-cut and Episode-readiness rules. Summary regeneration is independent of per-Memory deterministic Freshness and processing cooldown epochs. See [Unified Freshness and retained source-progress infrastructure](generic-staleness-implementation-plan.md) and [Memory Freshness](memory-staleness-plan.md).
-
-### REL-backed project summary
-
-The REL is usage-sensitive, so refresh cadence is based on the durable incoming-turn clock rather than semantic mutation density.
-
-Bootstrap:
-
-```text
-if no REL-backed summary
-and eligible_REL_memory_count >= 25:
-    queue first Ego generation
-```
-
-Steady state:
-
-```text
-required_turn_delta =
-    min(
-        ceil(source_turn_count * rel_refresh_fraction),
-        rel_max_refresh_turn_delta
-    )
-
-if current_rel_turn_count - source_turn_count >= required_turn_delta:
-    queue Ego refresh
-```
-
-This means young RELs refresh after proportionally small amounts of new activity, while mature RELs eventually settle at the configured maximum turn interval. There is deliberately no wall-clock age backstop.
-
-### PHY-local summary
-
-PHY freshness follows semantic mutation rather than REL activity. The PHY should become eligible immediately when it first has semantic state worth summarizing; there is no 25-Memory bootstrap gate.
-
-Use the **Memory version/mutation index** as the primary PHY refresh clock, not raw Graph version. Graph work is derived and may fan one meaningful Memory mutation into several Graph mutations, so Graph churn must not independently make the PHY summary stale.
-
-Conceptually:
-
-```text
-if no PHY summary
-and first eligible PHY Memory mutation exists:
-    queue first Ego generation
-
-required_memory_delta =
-    min(
-        ceil(source_memory_version * phy_refresh_fraction),
-        phy_max_refresh_memory_delta
-    )
-
-if current_phy_memory_version - source_memory_version >= required_memory_delta:
-    queue PHY Ego refresh
-```
-
-This intentionally permits several cheap summary cycles near the beginning of a new PHY, then widens the interval as the PHY matures until the absolute mutation cap takes over.
-
-### Queued execution
-
-For either owner, becoming due means **queueing**, not immediate execution. The queued generation runs only after the semantic processing required by its source boundary has settled. For REL-backed work the concrete readiness path is:
-
-```text
-REL bootstrap or turn-growth threshold crossed
-        |
-mark current Episode E
-        |
-queue Ego refresh through E
-        |
-Insomnia terminal through E
-        |
-Dream terminal for all work required by Insomnia through E
-        |
-run Ego once against the now-settled source state
-        |
-record actual source cuts + successful source turn count
-```
-
-The marked Episode is the minimum prerequisite boundary. Activity and processing after that Episode do not indefinitely postpone the queued run. Duplicate due signals while a refresh is already pending must not create parallel or repeated Ego generations; they coalesce into the pending work according to scheduler policy.
-
-Memory, Graph, Entity, and global/container versions remain useful source-state watermarks and diagnostics for REL-backed generations even though REL scheduling is activity-driven. PHY scheduling is the deliberate exception: its Memory version is itself the freshness clock.
-
-## Stress fixture
-
-The current 28-day experiment remains a harsh activity/scaling calibration case:
-
-`../reliquary-fixtures/local/authoritative/chatgpt-first28d/project.prj.rel`
-
-The current recovered 28-day Entity-v9 fixture is at Memory version **5,665**, Graph version **25,136**, Entity version **671**, and global/container version **52,407**. Its full-Dream pre-Perception baseline was Memory **5,665**, Graph **23,227**, and global/container **49,827**. Entity processing therefore advanced Graph by **1,909** and the global clock by **2,580** without changing the Memory version at all. The authoritative Ellis pre-Relationship fixture is at Memory version **1,358**, Graph version **6,007**, Entity version **199**, and global/container version **11,328**. These measurements remain useful for understanding source-state scale, but refresh cadence is now intentionally tied to REL-local user activity rather than any one semantic/storage mutation clock. Bulk import/backfill can still create large processing runs; queueing Ego behind the marked Episode's required Insomnia and Dream settlement prevents those runs from exposing a prematurely summarized Web.
-
-The REL spans 29 Pacific calendar dates from 2026-05-15 through 2026-06-12 and contains 16,465 unique ingested conversation turns. Those unique logical turns match the activity-clock semantics: idempotent replays are not additional activity, while distinct turn identities count independently even if content is duplicated. Using a 30-minute gap only as a diagnostic estimate of engaged conversation time, 23 of 29 dates exceed six engaged hours and 17 exceed eight hours; elapsed engaged-time estimates are not part of the scheduler clock.
-
-The newest three source dates currently have no extracted eligible REL Memories, reinforcing why the recent activity signal should originate from conversation state rather than Memory extraction density.
-
-Cumulative eligible Memory input ending on the latest Memory-bearing day, 2026-06-09, is:
-
-| Recent active dates | Memories | Rough tokens |
-| ---: | ---: | ---: |
-| 1 | 171 | 5.7k |
-| 3 | 487 | 16.3k |
-| 5 | 799 | 26.1k |
-| 7 | 1,080 | 35.7k |
-| 10 | 1,337 | 44.9k |
-| 14 | 1,627 | 54.0k |
-| 21 | 2,291 | 82.5k |
-| 26 | 2,398 | 85.7k |
-
-A fixed “last 30 active days” rule is still too coarse for a heavily used REL. Recent-tail centroids plus semantic routing should allow activity recency to activate old-but-currently-relevant durable state without rereading the entire REL on every refresh.
-
-## Ellis audit evidence
-
-The manual Ellis audit provides useful design evidence but was not an exhaustive controlled run.
-
-The audit operated over a 490-Memory eligible REL set through external search/filter/inspection rather than loading the entire Web into one prompt. It discovered coherent areas such as Eastwood financial-literacy work, publishing, garden state, Dell XPS reliability, household finance, meal planning, and recovery threads.
-
-That exploration pattern worked well; the failure was coverage. Nothing forced the run to continue until all 490 eligible Memories had been surfaced.
-
-Graph measurement on two strict lexical cores also showed:
-
-- Eastwood: 34 Memories, four Communities, 82.4% in one dominant Community, one induced connected component, pairwise full-graph median two hops and maximum four;
-- Dell XPS 13: three Memories, one Community, all pairwise one hop.
-
-This supports using graph/Community structure for routing and overlap while allowing candidate areas to cross Community boundaries.
-
-The target batched audit is intended to preserve the successful inspect/search/follow-thread behaviour while adding controller-enforced coverage.
-
-## Personality boundary
-
-Personality remains:
-
-- PHY-owned and persisted only in the PHY;
-- synthesized only from PHY-owned Memory state;
-- never derived from REL/project state;
-- lower inertia than Identity;
-- user-editable;
-- optionally self-adaptive; and
-- not semantic authority over factual Memory state.
-
-Personality should be a behavioural projection of the user, not a second generic user summary. Intended evidence lanes remain communication/process/relationship preferences and recurring behavioural patterns.
-
-Generic user facts are not Personality evidence merely because they live in PHY. Identity-like facts, education, employment history, possessions, location, and other factual biography remain ordinary PHY Memory state unless they directly encode behavioural preference.
-
-Still undecided:
-
-- exact behavioural evidence-selection rules and category/type mapping;
-- Personality activity/window and resynthesis policy;
-- treatment of user-authored Personality edits during later automatic synthesis; and
-- output shape and budget.
-
-Do not implement Personality inference by simply reusing the project Memory-Web Summary pipeline.
-
-## Implementation architecture and order
-
-Implement the planned architecture directly in dependency order. Do not build a temporary single-batch path, bypass final ownership, or preserve provisional seams that will later require a cutover. Unimplemented downstream behaviour should fail explicitly rather than being bypassed.
-
-The target owner is one deep orchestration module:
-
-```text
-EgoWebSummaryEngine
-    |
-    +-- AuditPopulationBuilder
-    |    +-- complete Memory Web
-    |    +-- controller-side size measurement
-    |    +-- ordered pruning escalation after overflow
-    |    +-- batching only as the final escalation
-    |
-    +-- AuditController
-    |    +-- mandatory coverage
-    |    +-- audit-batch progression
-    |    +-- full-Web memory_search
-    |    +-- persistent discovered-body state for the run
-    |
-    +-- CandidateResolver
-    |    +-- explicit CandidateArea membership
-    |
-    +-- CandidateSummarizer
-    |    +-- exact-source, provenance-carrying candidate digests
-    |
-    +-- SummaryReconciler
-    |    +-- one rich grounded project-summary representation
-    |
-    +-- SummaryTierBuilder
-    |    +-- large model target / controller ceiling
-    |    +-- medium model target / controller ceiling
-    |    +-- small model target / controller ceiling
-    |
-    +-- EgoSummaryStore
-         +-- PHY-owned summary bundle keyed by REL
-```
-
-### Phase 1 - final contracts and ownership
-
-Define the permanent types and interfaces first. The exact field spelling remains implementation work, but the architecture should expose equivalents of:
-
-```text
-EgoSummaryPolicy
-    max_single_audit_tokens
-    pruning_policy
-    audit_batch_limit
-    recent_activity_window_turns
-    rel_bootstrap_eligible_memories = 25
-    rel_refresh_fraction
-    rel_max_refresh_turn_delta
-    phy_refresh_fraction
-    phy_max_refresh_memory_delta
-    large: SummaryTierBudget
-    medium: SummaryTierBudget
-    small: SummaryTierBudget
-
-SummaryTierBudget
-    model_target_tokens
-    hard_ceiling_tokens
-
 CandidateArea
-    id
-    subject
-    memory_ids
-
-CandidateDigest
-    candidate_id
-    text
-    memory_ids
-
-EgoWebSummaryBundle
-    rel_owner_id
-    source_turn_count
-    source_memory_version
-    source_graph_version
-    generation
-    policy_version
-    large
-    medium
-    small
-
-EgoRefreshWatermark
-    RelTurnCount(u64)
-    PhyMemoryVersion(u64)
-
-QueuedEgoRefresh
-    rel_owner_id: optional for PHY-local work
-    phy_owner_id
-    through_episode_id: optional when no REL Episode boundary applies
-    due_watermark: EgoRefreshWatermark
+  subject
+  source Memory IDs
+      |
+      v
+CandidateSummary
+  - grounded summary point 1  -> source Memory IDs
+  - grounded summary point 2  -> source Memory IDs
+  - grounded summary point 3  -> source Memory IDs
 ```
 
-The existing single-string `EgoWebSynthesis` is not the target storage shape. Change the model before building inference machinery around it.
+Each bullet point must remain linked to the Memory IDs that support it while the generation is in progress.
 
-The target project Memory-Web Summary is PHY-owned and keyed by stable REL owner identity. Do not extend REL-owned synthesis persistence as a temporary architecture and migrate it later.
+The summarizer may compress redundant wording and state progression, but it must not invent a higher-order project fact that is not supported by the source Memories.
 
-Candidate and summary provenance remains mandatory while a generation is running: candidate membership and digest source Memory IDs must remain available through reconciliation so every produced summary is grounded in the selected evidence. Those intermediate provenance records are run-local and are discarded after the final bundle is successfully produced. The persisted REL-backed bundle retains its scheduling/source identity through the successful `source_turn_count` plus actual Memory/Graph source cuts; it does not persist candidate membership or per-summary Memory provenance. PHY-local summary persistence should analogously retain the successful PHY Memory-version watermark used by its mutation-driven scheduler.
+Candidate summarization uses the candidate's closed evidence set. It does not perform open-ended retrieval to silently change that evidence set.
 
-### Phase 2 - audit population construction
+## Summary-point Freshness
 
-Implement the two audit-stage invariants directly:
+Freshness is also used after summarization.
 
-1. no scale-driven pruning or batching while the complete Web fits the configured single-audit maximum; and
-2. give the model as much of the Web as economically practical, taking information away only when scale requires it.
-
-The population builder therefore behaves conceptually as:
+For each provenance-linked summary bullet, derive a bullet Freshness value from the average Freshness of the source Memories supporting that bullet at the generation's source state:
 
 ```text
-complete Web
-    |
-    +-- fits single-audit maximum? --> one untouched batch
-    |
-    +-- overflow
-          |
-          +-- ordered deterministic pruning
-                  |
-                  +-- fits? --> one batch
-                  |
-                  +-- continue acceptable pruning
-                          |
-                          +-- still too large? --> batching
+bullet_freshness = average(source Memory Freshness scores)
 ```
 
-Batching is the terminal scaling mechanism, not a competing early strategy.
+That score is a relevance/pruning signal for the summarized representation.
 
-The exact pruning order still requires calibration/design, but Archived, Historical, Superseded, and Duplicate state are the initial explicit lanes under consideration.
+This gives Freshness two distinct roles:
 
-The population builder should return an inspectable audit plan rather than only a vector of Memories. It should record at minimum the source Memory watermark, complete population size, admitted IDs, exclusions with reasons, and final batches.
+1. **raw Memory level:** determine the routine mandatory audit population using the Fresh threshold;
+2. **summary-point level:** prioritize provenance-linked bullets when a smaller stored summary must omit material.
 
-### Phase 3 - audit controller
+Freshness still does not establish truth, correctness, supersession, or lifecycle state.
 
-Implement the real audit controller against the audit plan rather than a special one-batch implementation.
+Exact rounding, tie-breaking, and handling of unusual provenance sets remain calibration/implementation details.
 
-The auditor's semantic job is:
+## Reconciliation
 
-> Find bodies of Memories that are coherent enough to assemble a plausible single-subject summary of state and recent history.
+Candidate summaries are reconciled into one richer project-summary representation before final size reduction.
 
-The controller, not the model, owns:
+The decided purpose is narrow:
 
-- mandatory core coverage;
-- batch progression;
-- run-local discovered-body/thread state;
-- access to full-Web `memory_search`; and
-- completion eligibility.
+- avoid obvious duplicate summary coverage;
+- preserve distinct subjects;
+- keep bullet provenance available through reconciliation; and
+- provide one grounded bullet-oriented source from which the stored summary sizes can be produced.
 
-A Web that fits in one batch naturally completes through one audit call. Larger Webs use the same controller and contracts across multiple batches.
+No `Essential/Core/Context/Detail` retention taxonomy is accepted design.
 
-Pruning removes material from mandatory/default exposure only. It does not make the full REL Web unavailable to `memory_search`.
+No general conflict-resolution algorithm has been decided. If reconciliation requires semantic conflict policy beyond existing authoritative lifecycle/chronology state, that policy must be designed explicitly rather than assumed.
 
-### Phase 4 - candidate resolution
+## Three fixed stored summary sizes
 
-Candidate resolution is a distinct stage between audit discovery and summarization.
+The system stores **three fixed summary sizes** so runtime can select an appropriate amount of Ego context without launching summary inference when a conversation starts.
 
-Input consists of discovered bodies plus their exact referenced Memories and any required audit boundary state. Output is zero or more explicit `CandidateArea` records.
+Exact names and token budgets remain configuration/calibration work.
 
-This stage may:
+For each size:
 
-- resolve exact membership;
-- merge duplicate candidate bodies;
-- split bodies that actually contain multiple subjects;
-- reject bodies that are not coherent enough to summarize as one subject; and
-- resolve overlap according to the eventual overlap policy.
+- the model target is below a controller hard ceiling;
+- output at or below the ceiling is accepted;
+- an over-ceiling result may be recompressed;
+- output is never hard-truncated to satisfy the budget; and
+- an undersized grounded result is not padded merely to consume tokens.
 
-It still produces no summary prose.
+All three sizes are produced from the same reconciled provenance-linked summary state during one refresh.
 
-### Phase 5 - candidate summaries
+When reducing the summary, provenance-linked bullets are prioritized using their averaged source-Memory Freshness. The exact secondary tie-breaks and compression behavior are not yet decided.
 
-Hydrate each accepted candidate from its exact Memory IDs and summarize that closed evidence set.
+Runtime selects the largest already-stored summary size that fits the available Ego allocation. Conversation startup does not rerun audit, candidate selection, summarization, or compression.
 
-The contract is to produce a plausible single-subject summary of state and recent history already represented by those Memories.
+## Provenance lifetime
 
-Each digest retains its source Memory IDs/provenance. Candidate summarization compresses existing propositions; it must not create a new higher-order proposition. New inference remains Perception/Observation territory.
+Source provenance is required during candidate summarization, reconciliation, and summary-size construction.
 
-### Phase 6 - reconciliation
+The current decision is **not** to persist per-bullet/per-candidate provenance indefinitely merely for Ego. Once the fixed summary bundle has been successfully produced, run-local candidate/bullet provenance may be discarded.
 
-Reconcile candidate digests into one rich grounded project-summary representation.
+The persisted bundle still needs the source/generation metadata required to identify what REL state it represents.
 
-This stage should:
+## Refresh scheduling
 
-- eliminate redundant candidate coverage;
-- preserve distinct active subjects;
-- reconcile current state with useful recent history;
-- retain source provenance; and
-- avoid imposing the final small/medium/large token budgets yet.
+REL-backed project-summary scheduling remains owner-activity based rather than wall-clock based.
 
-The result is the stable rich representation from which stored tiers are derived.
+Decided behavior:
 
-### Phase 7 - three persisted summary tiers
+- first REL summary becomes eligible at 25 eligible durable Memories;
+- steady-state REL refresh uses accepted incoming-turn growth from the last successful summary, using a percentage threshold capped by an absolute maximum turn delta;
+- becoming due queues work rather than synchronously invoking Ego;
+- the queued source boundary waits for required Insomnia and Dream settlement;
+- later activity must not indefinitely move that boundary and starve an already-due refresh; and
+- there is no wall-clock age backstop.
 
-Build all three summary tiers during the same refresh generation.
+PHY-local summary freshness is separate. It uses PHY Memory mutation/version progress rather than borrowing the REL activity clock; raw Graph churn is not itself the PHY refresh clock.
 
-Each tier has:
+Exact percentages and caps remain calibration.
 
-```text
-model_target_tokens < controller_hard_ceiling_tokens
-```
+## Evidence behind the audit design
 
-The model aims below the ceiling. The controller counts the actual result with the configured token counter.
+The manual Ellis exploration used a roughly 490-Memory eligible REL set and discovered coherent areas including Eastwood financial-literacy work, publishing, garden state, Dell XPS reliability, household finance, meal planning, and recovery.
 
-- if actual size is at or below the ceiling, accept it;
-- if it exceeds the ceiling, run another bounded semantic compression pass;
-- never truncate merely to satisfy the budget; and
-- never pad an undersized grounded summary merely to consume tokens.
+The useful result was that inspect/search/follow-thread reasoning could identify plausible summary subjects.
 
-Large, Medium, and Small belong to one coherent generation so runtime cannot mix tiers from different source states.
+The failure was coverage: nothing forced the exploratory run to continue until the intended population had been deliberately exposed.
 
-### Phase 8 - persistence
+That evidence supports mandatory audit coverage plus full-Web search. It does not by itself justify a complicated candidate-boundary schema.
 
-Persist the complete tier bundle in the PHY keyed by REL identity.
+Graph measurements also showed that coherent topics can cross Community boundaries, so Community membership remains routing/organization evidence rather than semantic summary ownership.
 
-The persisted generation should include at least:
+## Explicitly unresolved
 
-- REL owner identity;
-- successful source REL incoming-turn count;
-- actual source Memory and Graph version cuts used by the generation;
-- summary generation;
-- policy/contract version;
-- all three summary texts; and
-- measured token sizes.
+The following are not settled architecture and must remain open until designed or calibrated:
 
-Audit, candidate, and source-Memory provenance state remains run-local and is discarded after a successful bundle commit unless interrupted-build recovery later demonstrates a need to persist it.
+- whether any lifecycle/temporal class bypasses the Freshness gate;
+- exact audit batch sizes and overlap/context policy;
+- candidate-selection criteria and output schema beyond subject + exact source membership;
+- candidate overlap policy;
+- reconciliation behavior for unresolved contradictions;
+- secondary bullet-pruning signals/tie-breaks beyond averaged Freshness;
+- exact three-size token targets and ceilings;
+- exact REL refresh percentage/cap values;
+- exact PHY refresh percentage/cap values; and
+- final binary persistence encoding for the PHY-owned per-REL summary bundle.
 
-### Phase 9 - runtime tier selection
+## Explicit non-decisions
 
-Conversation startup performs no audit, candidate selection, summarization, or compression.
+Do not treat the following removed speculative machinery as accepted design:
 
-Runtime context assembly should only:
+- generic protected keep lanes;
+- a `CandidateResolver` merge/split/reject framework;
+- `SummaryUnit` / `ReconciledSummaryLedger` as required internal types;
+- mandatory evidence-accounting dispositions for every candidate Memory;
+- `Essential/Core/Context/Detail` retention classes;
+- nested semantic-unit tier plans;
+- an invented conflict-resolution policy; or
+- implementation-step sequencing presented as if the downstream semantics were already settled.
 
-```text
-available Ego allocation
-      |
-load current stored bundle
-      |
-large fits? ------> large
-      |
-      no
-      |
-medium fits? -----> medium
-      |
-      no
-      |
-small ------------> small
-```
-
-If no stored tier is valid/current enough for policy, handle that state explicitly rather than silently launching summary generation in the conversation-start path.
-
-### Phase 10 - refresh scheduling
-
-Only after the summary engine and persistence path work end-to-end should automatic refresh be attached.
-
-The scheduler owns:
-
-- reading the **Archive-owned** durable `rel_turn_count` and historical REL activity cuts, as provided by the separate [REL activity clock Phase 1 implementation plan](rel-activity-clock-implementation-plan.md);
-- REL first-summary eligibility at 25 eligible durable Memories;
-- REL steady-state due calculation by the generic source-progress staleness evaluator over percentage turn-count growth capped by `rel_max_refresh_turn_delta`;
-- PHY first-summary eligibility on the first eligible PHY Memory mutation;
-- PHY steady-state due calculation from percentage Memory-version growth capped by `phy_max_refresh_memory_delta`;
-- marking the current Episode/source boundary when Ego becomes due;
-- one pending Ego refresh per applicable owner/perspective; and
-- handing pending refresh work to the processing coordinator rather than invoking Ego immediately.
-
-A queued REL refresh is not runnable until Insomnia is terminal through its marked Episode and Dream is terminal for every piece of work required by that Insomnia output. The coordinator owns that readiness check. Once the marked boundary is settled, Ego may run even if newer Episodes exist; continuous activity must not starve a due summary. PHY-local queued work must likewise wait for the semantic processing required by its triggering mutation watermark rather than running against partially processed state.
-
-The scheduler's semantic responsibility is only to decide **when Ego becomes due** and establish the prerequisite source boundary. The processing coordinator decides when that queued work is safe to execute. `EgoWebSummaryEngine` continues to own summary semantics.
-
-### Implementation rule
-
-> Build every seam in its final ownership location. Unimplemented downstream behaviour fails explicitly; nothing is temporarily bypassed.
-
-This keeps incremental implementation testable without introducing architecture that is already known to be temporary.
-
-## Open calibration
-
-Still unresolved:
-
-- exact recent-turn window `W` used for conversation-tail selection;
-- REL steady-state `rel_refresh_fraction`;
-- REL absolute `rel_max_refresh_turn_delta`;
-- PHY steady-state `phy_refresh_fraction`;
-- PHY absolute `phy_max_refresh_memory_delta`;
-- exact pending-refresh coalescing policy while the marked Episode/source boundary is waiting for prerequisite settlement;
-- recent conversation-tail length/selection;
-- number/construction of recent-activity centroids;
-- semantic relevance threshold/weighting and any temporal weighting;
-- exact ordered pruning policy after single-batch overflow;
-- single-audit maximum and final batch-size function;
-- graph-derived overlap/context budget;
-- candidate-area overlap policy;
-- candidate-selection threshold for coherent summarizability;
-- the fixed model targets and controller hard ceilings for the three persisted summary tiers;
-- initial/bootstrap behaviour when recent user-specific conversation evidence is sparse; and
-- exact PHY persistence structure for REL-keyed project summary bundles.
+These ideas may be reconsidered later only if an actual design problem and evidence justify them.
 
 ## Related docs
 
-- [Ego Memory-Web Summary implementation plan](ego-memory-web-summary-implementation-plan.md)
-- [Roadmap](roadmap.md)
-- [Current limitations](current-limitations.md)
-- [Architecture](architecture.md)
+- [Memory Freshness policy](memory-staleness-plan.md)
+- [Unified Memory Freshness implementation plan](generic-staleness-implementation-plan.md)
+- [REL activity clock Phase 1 spec](rel-activity-clock-implementation-plan.md)
 - [Ego Cross-chat context plan](ego-cross-chat-context-plan.md)
 - [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md)
-- [Memory scope design record](reliquary-phylactery-memory-scope-plan.md)
-- [Dream design and validation record](dream-implementation-plan.md)
-- [Chronos subsystem plan](chronos-subsystem-plan.md)
-- [Perception subsystem plan](perception-subsystem-plan.md)
-- [Activity staleness and Memory revalidation](memory-staleness-plan.md)
+- [Roadmap](roadmap.md)
 
 ## Notes
 
-When this pipeline ships, move implemented behaviour into current-state architecture/API/storage owners and retain only unresolved calibration/follow-up work here.
+When implementation begins, write an execution plan from this decided design at that time. Do not pre-author implementation contracts for unresolved semantics.
