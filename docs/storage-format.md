@@ -1052,3 +1052,7 @@ H1 manifest schema remains 2; reconstruction policy version is 3, timeline `acce
 ## Completed retained normalization storage boundary
 
 The one-time normalization added no REL/PHY format, compatibility chain or checkpoint framing. Proved legacy completion births were reencoded with the existing current completion encoder and physical references relocated with the standard storage helper. Existing immutable Memory bodies/revisions and accepted Archive/Graph authority were preserved. Ordinary current-owner processing supplied genuinely missing generation/vector/Dream work. The accepted Freshness checkpoints use existing CVAFRS03 framing; historical approximation does not become actual Dream proof. Temporary normalizer sources, private hooks, credentials and audit scratch are deleted. The [verification record](freshness-retained-normalization-verification-2026-10-13.md) retains before/after hashes, derivation claims and measured acceptance. Fixture metadata retains original marker text separately from verified current hashes/versions.
+
+## Historical production scope
+
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit opt-in, offline/exclusive single-owner REL reconstruction. Default activation remains off; mounted historical management and PHY Freshness remain outside this release. Current native proof/identity/clock/scoring/storage contracts are unchanged by this disposition.

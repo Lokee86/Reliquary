@@ -17,9 +17,9 @@ Authoritative execution details: [Multiplexing implementation plan](multiplexing
 
 **Release A:** 1–4 completes Reliquary/Warlock multiplexing. **Release B:** 5–6 completes Hermes plugin integration. Optional F5, broad import formats and ACP adapters remain separate backlog. No new dated checkpoint or acceptance files: update the active plan, with test logs retained externally.
 
-## Historical Freshness remaining release gates
+## Historical Freshness follow-up policy
 
-After C10 retained-corpus acceptance and C11 final source verification, the [active historical completion plan](freshness-historical-completion-execution-plan-2026-10-12.md) retains C12 final production review. Completion remains an explicit opt-in REL-local release decision; mounted historical management and default activation are unavailable.
+H1–H8/C1–C12 are complete as supported explicit opt-in offline REL reconstruction; [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) records merge-ready scope. Remaining independent work is relevance-labelled/default-activation policy, mounted historical management, wider scale/SLO evidence and a separately approved PHY owner/activity clock. These do not reopen the completed explicit REL implementation.
 
 ## Purpose
 

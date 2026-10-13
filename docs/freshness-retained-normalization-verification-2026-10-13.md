@@ -72,6 +72,8 @@ Architecture impact:
 
 ## Notes
 
+C12 is now complete in the [production disposition](freshness-historical-production-disposition-2026-10-13.md). The verification above records the C11 source cut `cff0abd`; its earlier C12-open statements describe that pre-disposition stage rather than a current release block.
+
 The authoritative stored legacy-approximation checkpoint and native actual-proof prefix remeasurement are separate evidence scopes. Earlier rejected/superseded debug runs are not acceptance/performance evidence. Current ordinary imports retain actual proof and have no automatic legacy conversion fallback.
 
 ## Related docs

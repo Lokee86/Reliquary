@@ -8,7 +8,7 @@ Freeze Step 13 / H1 of the [linear implementation plan](freshness-semantic-histo
 
 ## Overview
 
-**Status:** N3/N4 fragment-source and accepted-Archive-clock runtime implemented, frozen 2026-10-12. The version-3 descriptor below implements accepted chronology; native exclusive reconstruction/publication and recovery are implemented through C6. C7 freezes the contract and C8 implements bounded offline embedding/importer integration; C9–C12 release gates remain. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
+**Status:** H1–H8 implemented and reviewed for explicit offline REL reconstruction in [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md). Manifest schema 2/policy 3 retain the frozen mixed-fragment and accepted-Archive-clock contract. Native C1–C11 evidence is recorded in the completion/verification ledgers; defaults and PHY remain outside this release.
 
 Reconstruction is an explicit one-shot operation on a newly generated, complete, single-owner REL import. It uses the final authorized graph, approximate provenance-based availability and exact existing Freshness mathematics. It creates no second clock, permanent event ledger or historical consumed-use receipts. Ordinary live semantic reinforcement remains local and non-propagating.
 
@@ -162,7 +162,7 @@ The checkpoint codec/transaction and transformed-history rebasing are Steps 21�
 | Actual accepted order differs from timestamp sort | Accepted Archive prefix remains the sole clock |
 | Same-turn independent events near +100 | Admission first, event-ID order, cap at each event; no carried excess |
 
-Step 14 implements pure timeline/provenance/manifest types and deterministic fixtures. Step 15 executes the Archive-clock gate. Steps 16–20 implement pinned event planning, import-only traversal and sparse scoring; Steps 21–25 supply atomic replacement/recovery/transforms/coordinator/release acceptance. This document freezes policy, not a checkpoint codec or shipped historical API.
+Step 14 implements pure timeline/provenance/manifest types and deterministic fixtures. Step 15 executes the Archive-clock gate. Steps 16–20 implement pinned event planning, import-only traversal and sparse scoring; Steps 21–25 supply atomic replacement/recovery/transforms/coordinator/release acceptance. This document owns the frozen policy; native APIs and release acceptance are described in the C12 disposition and current API reference.
 
 ## Documentation impact
 
@@ -170,7 +170,7 @@ Step 14 implements pure timeline/provenance/manifest types and deterministic fix
 - Updated: this contract, historical design cross-reference, linear completion marker, index, maintainer routing and roadmap handoff.
 - Not affected: shipped API/storage bytes, Step 12 live activation/locality, PHY and ordinary Dream/use principals.
 - Compliance check: both documentation-policy modes and git diff --check passed; the saved canonical descriptor reproduces the frozen policy digest. No Rust behavior changed.
-- Known documentation gaps: future checkpoint framing, implementation and release evidence remain owned by Steps 14–25.
+- Known documentation gaps: no historical implementation/release-status gap remains; current native framing and acceptance are recorded in C12, while default activation and wider-scale measurement remain separate policy work.
 
 ## Architecture impact
 
@@ -178,7 +178,7 @@ Step 14 implements pure timeline/provenance/manifest types and deterministic fix
 - Ownership or boundary impact: source/topology owners supply proofs; only Freshness accepts a superseding score checkpoint.
 - Pitlord enforcement impact: no source/ownership/static-policy change; Step 12's passing enforcement remains the source baseline.
 - Other verification impact: policy tables define required later executable fixtures; no Rust runtime change or new inference.
-- Known architectural gaps: historical planner/adapter/checkpoint are not implemented; transformed-history conversion remains unsupported until proven.
+- Known architectural gaps: arbitrary transformed/source-identity conversion, mounted historical management and PHY remain unsupported; the explicit offline REL planner/adapter/checkpoint and native recovery are implemented and reviewed in C12.
 
 ## Related docs
 

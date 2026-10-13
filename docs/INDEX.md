@@ -54,7 +54,7 @@
 - [Historical reconstruction partial verification — 2026-10-12](freshness-historical-reconstruction-verification-2026-10-12.md) — partial Step 25 primitive/model and selected regression evidence; integrated native acceptance and measurements remain open.
 - [Freshness historical import reconstruction specification — 2026-10-03](freshness-historical-import-reconstruction-spec-2026-10-03.md) — optional single-generation provenance-timed semantic/Dream replay, import-only propagation, chronological lazy scores and atomic owner checkpoint.
 - [Freshness semantic + historical linear implementation plan — 2026-10-11](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md) — original 26-step execution history for live F8 followed by H1–H8; Step 26 audit corrected Steps 22/24/25 to partial.
-- [Historical Freshness completion execution plan — 2026-10-12](freshness-historical-completion-execution-plan-2026-10-12.md) — current C1–C12 closure plan; C1–C9 native/integrated work complete, with C10 retained-corpus acceptance blocked on the pre-release normalization wave below.
+- [Historical Freshness completion execution plan — 2026-10-12](freshness-historical-completion-execution-plan-2026-10-12.md) — completed C1–C12 native closure and explicit offline REL release scope.
 - [Retained Freshness fixture normalization plan — 2026-10-12](freshness-retained-fixture-normalization-plan-2026-10-12.md) — disposable N1–N10 plan to correct mixed-fragment semantics/accepted-clock authority, normalize the 14-day/28-day/Ellis retained fixtures in place, rerun C10, then delete the conversion code without creating a maintained pre-release migration framework.
 - [Live semantic Freshness policy/API contract](freshness-live-semantic-policy-contract.md) — Step 2 frozen ownership, eligibility, deterministic selection and local event identity; numerical calibration and implementation remain gated.
 - [Live semantic Freshness v1 calibration and policy — 2026-10-11](freshness-semantic-calibration-2026-10-11.md) — selected constants, retained-vector comparison matrix, prospective opt-in activation and immutable policy transitions.
@@ -81,6 +81,7 @@
 - [Historical first-cycle Dream verification](freshness-historical-dream-verification-2026-10-12.md)
 - [Historical import checkpoint verification](freshness-historical-checkpoint-verification-2026-10-12.md) — Step 21 atomic native import replacement, retry/live continuation and remaining recovery/conversion scope.
 - [Historical checkpoint transformation verification](freshness-historical-transform-verification-2026-10-12.md) — Step 23 native physical-preservation matrix and explicit unverified conversion rejection.
-- [Combined Freshness production review](freshness-combined-production-review-2026-10-12.md) — Step 26 disposition: live opt-in retained, historical production blocked, PHY deferred, and Steps 22/24/25 evidence corrected.
+- [Combined Freshness production review](freshness-combined-production-review-2026-10-12.md) — dated Step 26 blocked audit and partial-evidence correction, superseded by the C12 disposition.
 
 - [retained normalization verification](freshness-retained-normalization-verification-2026-10-13.md) — authoritative normalization and C10 evidence.
+- [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) — H1–H8 complete/merge-ready as explicit offline REL opt-in; defaults off and PHY deferred.

@@ -615,3 +615,7 @@ Bounded fill requires already-materialized Archive fragments and a compatible se
 ## Historical canonical authority
 
 Historical representative resolution remains in Dream's canonical authority owner. It traverses accepted duplicate components and verified supersession chains together, using the existing representative ranking for current publications. An alias may resolve through a duplicate representative that was superseded later. Supersession pointers require agreeing unique active Graph edges and proved publication births; cycles and conflicting pointer/edge evidence reject. The resolver does not rewrite Memory or Graph authority. Native first-cycle evidence remains required by the ordinary historical event adapter; legacy approximation is restricted to the disposable retained-fixture normalization.
+
+## Historical production scope
+
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit opt-in, offline/exclusive single-owner REL reconstruction. Default activation remains off; mounted historical management and PHY Freshness remain outside this release. Current native proof/identity/clock/scoring/storage contracts are unchanged by this disposition.

@@ -6,6 +6,8 @@ Record Step 26's F8 + historical reconstruction audit against ADR 0039, the froz
 
 ## Overview
 
+**Historical record:** this 2026-10-12 blocked disposition is superseded by the [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md). The original source diagnosis and partial-evidence corrections below remain intact.
+
 **Disposition: retain live F8 as prospective explicit owner opt-in v1. Historical reconstruction remains experimental development primitives, with production activation blocked and no automatic/default importer activation. PHY Freshness remains deferred.** This decision does not enable a lane, change scoring constants or alter persisted records.
 
 The review at branch input `28923dc` found that the Step 22/24/25 completion claims exceeded their evidence. Native `CVAFRS03` acceptance and the H7 preservation matrix are implemented. The new `HistoricalCheckpointStore` is a separate in-memory model, and `execute_historical_import` composes supplied plans into that model. Neither is connected to the durable Cva checkpoint or an importer. Thus a final production review can close with a blocked disposition, but cannot claim Steps 1–25 achieved integrated historical reconstruction.

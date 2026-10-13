@@ -330,3 +330,7 @@ Existing-REL historical chronology equals first-accepted Archive activity positi
 ## Historical representative authority
 
 Accepted duplicate components and supersession chains compose without changing Memory/Graph history. A supersession pointer requires a unique agreeing accepted edge and proved owner-local birth; cycles/conflicting pointers reject. Verified no-link Dream proof retains precedence over later graph adjacency. Missing ordinary proof remains unsupported. The [retained normalization verification](freshness-retained-normalization-verification-2026-10-13.md) labels the one-time legacy approximation separately from actual first-cycle proof.
+
+## Historical production scope
+
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit opt-in, offline/exclusive single-owner REL reconstruction. Default activation remains off; mounted historical management and PHY Freshness remain outside this release. Current native proof/identity/clock/scoring/storage contracts are unchanged by this disposition.

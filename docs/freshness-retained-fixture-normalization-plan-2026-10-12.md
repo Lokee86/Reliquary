@@ -478,6 +478,8 @@ Architecture impact:
 
 ### Final N10/C11 verification
 
+Subsequent disposition: [C12 is complete](freshness-historical-production-disposition-2026-10-13.md) for supported explicit offline REL reconstruction. Earlier C12-open statements in the dated N1–N10/C11 history are superseded; default activation and PHY remain outside the release.
+
 Root formatting/locked build and the complete locked suite passed: 1,266 library tests, four ordinary ignored measurements/environment fixtures, 138 integration tests and doctests. CLI formatting/locked build and all 19 tests passed. Both exhaustive native checkpoint/live-use byte-prefix recovery fixtures passed. All 10 N1 design oracles and the two-Node/one-branch/one-mixed-fragment Archive roundtrip passed. Final structural/change-impact documentation checks and staged/unstaged patch hygiene passed.
 
 Fresh architecture enforcement passed: 75 P4 fixtures, 161 classified APIs, 11 external-ownership fixtures and 23 Pitlord rules; 70,932 source nodes / 2,379 relationships, snapshot `dd2d545418a3103ed844209427941ba294ff4fde8eee39c6a29267ff01993b99`. This is scoped static enforcement evidence. Repository-local test scratch is removed. No normalizer implementation, fixture-only hook, credential copy or promotion sibling remains. All N6–N10 gates are complete and resumed C11 source verification is green; C12 production disposition remains open. See the dated [verification record](freshness-retained-normalization-verification-2026-10-13.md) for exact commands and complete impact fields.

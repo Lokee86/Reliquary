@@ -86,3 +86,7 @@ ACP source is available in Hermes `acp_adapter/session.py`; it restores shared S
 ## Notes
 
 The supported native import contract does not imply mounted F5 integration, provider-private reconstruction, current-source synchronization, arbitrary Codex rollout support or external-derived indexing.
+
+## Historical production scope
+
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit opt-in, offline/exclusive single-owner REL reconstruction. Default activation remains off; mounted historical management and PHY Freshness remain outside this release. Current native proof/identity/clock/scoring/storage contracts are unchanged by this disposition.
