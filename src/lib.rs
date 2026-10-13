@@ -258,7 +258,9 @@ mod cva_historical_dream;
 #[path = "facade/cva_historical_import.rs"]
 mod cva_historical_import;
 pub use cva_historical_import::{
-    HistoricalReconstructionError, HistoricalReconstructionOptions, HistoricalReconstructionReport,
+    HistoricalEmbeddingCoverage, HistoricalEmbeddingDisposition, HistoricalEmbeddingFailure,
+    HistoricalEmbeddingLimits, HistoricalEmbeddingReport, HistoricalReconstructionError,
+    HistoricalReconstructionOptions, HistoricalReconstructionReport,
 };
 #[path = "facade/cva_historical_freshness.rs"]
 mod cva_historical_freshness;

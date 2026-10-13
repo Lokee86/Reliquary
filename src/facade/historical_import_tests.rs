@@ -3,6 +3,12 @@ use crate::insomnia::completion_tests::{process, setup, setup_origin};
 use crate::{EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
 use std::fs;
 
+#[path = "historical_embedding_tests.rs"]
+mod historical_embedding;
+#[path = "historical_embedding_evidence_tests.rs"]
+mod historical_embedding_evidence;
+#[path = "historical_embedding_import_tests.rs"]
+mod historical_embedding_import;
 #[path = "historical_events_tests.rs"]
 mod historical_events;
 #[path = "historical_manifest_tests.rs"]

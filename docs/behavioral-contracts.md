@@ -15,6 +15,10 @@ Parent index: [Documentation index](INDEX.md)
 | Native continuation, physical reclaim and divergent reconciliation preserve source receipts | Remaining `imports::tests` preservation cases |
 | Four public supported profiles reject unsupported shapes and never persist hidden reasoning bytes | `tests/native_import.rs`, versioned golden fixtures |
 
+## C8 embedding acceptance fixtures
+
+historical_embedding_tests verifies native fill/refreeze/checkpoint/reopen, accepted retry, preflight no calls/writes, invalid output, drift, cancellation and partial vector retry. historical_embedding_evidence_tests verifies missing mixed evidence, byte-preserving retained/invalid rows, profile/endpoint/owner/clock rejection and cancelled partial progress. historical_embedding_import_tests exercises import_native through actual configured HTTP embedding and native checkpoint/reopen/prospective activation. OpenAI-ready transport tests verify redirect refusal, bounded response and one-request execution despite ordinary batching settings.
+
 ## Purpose
 
 This document maps critical current behavioral invariants to focused tests and smoke verification.

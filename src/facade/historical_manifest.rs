@@ -359,6 +359,7 @@ fn graph_proof(
 fn vector_proof(
     cva: &mut Cva,
     order: &[crate::freshness::historical_planner::SourceKey],
+    requested_complete: bool,
 ) -> Result<(Value, Vec<Value>), CvaError> {
     use crate::cva_semantic_source::SemanticSourceReadiness;
     let generation = cva
@@ -520,6 +521,11 @@ fn vector_proof(
         ])]),
         None => Value::Array(vec![]),
     };
+    let embedding_pass = if requested_complete {
+        super::embedding::manifest_pass(cva, &sources)?
+    } else {
+        Value::text("not-requested")
+    };
     Ok((
         Value::map([
             ("profiles", Value::Array(profiles)),
@@ -534,12 +540,19 @@ fn vector_proof(
                     ("mixed_source_fragments", Value::Unsigned(mixed)),
                 ]),
             ),
-            ("embedding_pass", Value::text("not-requested")),
+            ("embedding_pass", embedding_pass),
         ]),
         sources,
     ))
 }
+#[cfg(test)]
 pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
+    build_with_fill(cva, false)
+}
+pub(super) fn build_with_fill(
+    cva: &mut Cva,
+    requested_complete: bool,
+) -> Result<Manifest, CvaError> {
     let owner = cva.historical_reconstruction_owner()?;
     // Validate ancestry before the timeline planner follows parent chains.
     input::required_nodes(cva, cva.rel_turn_count())?;
@@ -647,7 +660,7 @@ pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {
         authorized: ids.clone(),
         availability,
     };
-    let (vectors, sources) = vector_proof(cva, &timeline.activity_order)?;
+    let (vectors, sources) = vector_proof(cva, &timeline.activity_order, requested_complete)?;
     let order = Value::Array(
         timeline
             .activity_order

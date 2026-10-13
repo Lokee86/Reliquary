@@ -6,6 +6,10 @@ Parent index: [Documentation index](INDEX.md)
 
 `src/imports/` maps to [Native historical import](native-import.md) and [API](api.md); Archive receipt/branch-aware import Episodes map to [Architecture](architecture.md), [Invariants](invariants.md) and [Storage format](storage-format.md). [Maintainer map](maintainer-map.md) routes ownership and [Behavioral contracts](behavioral-contracts.md) maps recovery/profile fixtures. Current source/format limitations are explicit in [Current limitations](current-limitations.md). The G specification remains the owner of unimplemented ACP/external-derived/host-specific work.
 
+## C8 owner/provider coverage
+
+HistoricalEmbeddingLimits/report/failure and the exclusive endpoint operation are documented in [Rust API](api.md); source-only ownership/lifecycle in [Architecture](architecture.md) and [Invariants](invariants.md); immutable vector retention in [Storage format](storage-format.md); configured post-generation sequencing in [Native import](native-import.md). Code lives under private cva_historical_import/historical_embedding modules and configured_runtime_historical. No mounted Gateway surface is added.
+
 ## Purpose
 
 This document maps implemented code boundaries to their canonical documentation owners.

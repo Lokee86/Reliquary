@@ -63,6 +63,20 @@ impl fmt::Display for EmbeddingEndpointError {
 impl std::error::Error for EmbeddingEndpointError {}
 
 pub trait EmbeddingEndpoint {
+    /// One request, no redirects/retries/fan-out, bounded output and a finite timeout.
+    fn supports_bounded_embedding(&self) -> bool {
+        false
+    }
+    fn embed_bounded(
+        &self,
+        _mode: EmbeddingMode,
+        _inputs: &[String],
+        _max_response_bytes: usize,
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        Err(EmbeddingEndpointError::InvalidConfiguration(
+            "bounded embedding unsupported",
+        ))
+    }
     fn dimensions(&self) -> u32;
     fn normalization(&self) -> VectorNormalization;
     fn embed(
@@ -148,6 +162,26 @@ impl SimulatedEmbeddingEndpoint {
 }
 
 impl EmbeddingEndpoint for SimulatedEmbeddingEndpoint {
+    fn supports_bounded_embedding(&self) -> bool {
+        true
+    }
+    fn embed_bounded(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+        max_response_bytes: usize,
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        let bytes = inputs
+            .len()
+            .checked_mul(self.dimensions as usize)
+            .and_then(|n| n.checked_mul(4));
+        if bytes.is_none_or(|n| n > max_response_bytes) {
+            return Err(EmbeddingEndpointError::InvalidResponse(
+                "bounded output exceeded",
+            ));
+        }
+        self.embed(mode, inputs)
+    }
     fn dimensions(&self) -> u32 {
         self.dimensions
     }

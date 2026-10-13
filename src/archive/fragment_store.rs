@@ -146,6 +146,51 @@ impl Archive {
             .map(|turns| turns.join("\n"))
     }
 
+    /// Genuine one-turn rendering with a physical hydration guard.
+    pub(crate) fn exact_fragment_text_bounded(
+        &self,
+        container: &mut Container,
+        fragment: &Fragment,
+        max_bytes: usize,
+    ) -> Result<String, ArchiveError> {
+        if fragment.start_node_id != fragment.end_node_id {
+            return Err(ArchiveError::InvalidFragmentRange);
+        }
+        self.validate_fragment(fragment)?;
+        let node = self
+            .nodes
+            .get(&fragment.conversation_id, &fragment.start_node_id)
+            .ok_or(ArchiveError::MissingNode)?;
+        let overhead = node
+            .role
+            .len()
+            .checked_add(2)
+            .ok_or(ArchiveError::FieldTooLarge)?;
+        let cap = max_bytes
+            .checked_sub(overhead)
+            .and_then(|n| n.checked_add(44))
+            .ok_or(ArchiveError::FieldTooLarge)?;
+        let object = self
+            .contents
+            .get(node.content_id)
+            .ok_or(ArchiveError::MissingContent)?;
+        let payload = container.read_bounded(object, cap)?;
+        let crate::archive_codec::ArchiveRecord::Content(id, bytes) =
+            crate::archive_codec::decode_record(&payload)?
+        else {
+            return Err(ArchiveError::MissingContent);
+        };
+        if id != node.content_id || crate::archive_store::hash_content(&bytes) != id {
+            return Err(ArchiveError::HashCollision);
+        }
+        let content = String::from_utf8(bytes).map_err(|_| ArchiveError::InvalidUtf8)?;
+        let text = format!("{}: {}", node.role, content);
+        if text.len() > max_bytes {
+            return Err(ArchiveError::FieldTooLarge);
+        }
+        Ok(text)
+    }
+
     pub fn fragments(&self) -> Vec<Fragment> {
         let mut fragments: Vec<_> = self.fragments.iter().cloned().collect();
         fragments.sort_by_key(|fragment| fragment.id.0);

@@ -60,7 +60,7 @@ impl ConfiguredRuntime {
         })
     }
 
-    fn embedding_endpoint(
+    pub(super) fn embedding_endpoint(
         &self,
         batch_size: usize,
         concurrency: usize,

@@ -26,7 +26,7 @@ Historical reconstruction already has:
 - copy/repack/reclamation/reconciliation preservation tests; and
 - partial model-level orchestration/recovery evidence.
 
-C2–C6 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native checkpoint/receipt byte-prefix recovery, passive due-index rebuild and live-safe retries are verified in C6. C7 freezes the bounded embedding-only contract below; its implementation remains unavailable. Mounted/importer and embedding integration, retained-corpus measurements and release disposition remain C8–C12.
+C2–C6 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native checkpoint/receipt byte-prefix recovery, passive due-index rebuild and live-safe retries are verified in C6. C7 freezes the bounded embedding-only contract below, and C8 implements it through the explicit configured offline post-generation surface. Mounted historical management remains unavailable. Integrated correctness, retained-corpus measurements and release disposition remain C9–C12.
 
 At the time this plan was written, `feat/freshness-semantic-historical-linear` was **66 commits behind `main` and 28 commits ahead**. Current `main` contains later multiplexing/import/runtime ownership work. Convergence is therefore a prerequisite, not cleanup after implementation.
 
@@ -362,7 +362,7 @@ Final C5 gates:
 
 ## C7 frozen embedding-only contract
 
-**C7 complete: implementation contract frozen; C8 implementation remains unavailable.** This section is the canonical C8 handoff. The existing public `fill_missing_embeddings=false` default is unchanged; requesting true still returns EmbeddingFillUnavailable until C8 passes its gate.
+**C7 complete: implementation contract frozen; C8 implementation is recorded below.** This section is the canonical C8 handoff. The existing public `fill_missing_embeddings=false` default is unchanged; a new endpoint-free request returns EmbeddingFillUnavailable; C8's explicit bounded endpoint/configured-runtime operation supports requested fill.
 
 ### Entry, ownership and pinned input
 
@@ -447,6 +447,44 @@ Architecture impact:
 - Known architectural gaps: actual mounted fence/provider budget enforcement and importer implementation remain C8; release acceptance remains C9–C12.
 
 Final C7 gates: documentation-only; both documentation-policy modes and git diff --check passed. No Rust/API/storage/static-policy change, so runtime tests and architecture refresh were not rerun. C6 is the last executed runtime/architecture baseline. C8 must implement and verify this contract before fill becomes available.
+
+
+## C8 disposition and verification
+
+**C8 complete: bounded embedding-only operation and explicit configured offline post-generation entry.** Final library/CLI/documentation/architecture gates are recorded below. C9 integrated correctness is next; historical production release remains gated through C12.
+
+- ConfiguredRuntime::reconstruct_historical_freshness accepts only true reconstruction options, lowerable C7 limits and cooperative cancellation on an exclusively held offline Cva. It selects the existing configured embedding route only for a new requested fill. Cva's explicit endpoint operation uses the same private owner path. The endpoint-free operation still rejects new fill requests; exact accepted retries resolve before endpoint/route/limits/cancellation checks.
+- The owner derives exact accepted source rows in canonical activity order, pins profile/latest retained generation/full prefix and verifies native readiness/clock/provenance/replacement gates before inference. Genuine exact-turn Fragment bindings use Archive's existing identity and rendering. No accepted Node, activity tick, text synthesis, target-Memory embedding, Insomnia or Dream rerun is introduced.
+- Existing generation rows remain byte-identical, including mixed/invalid evidence. Missing mixed rows are not filled and remain explicit unavailable coverage. Every successful source batch publishes and syncs an immutable FragmentId-ordered union through existing PackedVectors/ArchiveVectors/VectorGeneration. Partial progress reopens and retry requests only remaining missing rows.
+- All C7 ceilings, checked arithmetic, hydration guards, cumulative full-matrix copies/inspection work and conservative temporary/proof reserves are preflighted. Combined budgets can reject populations below individual ceilings; no silently truncated prefix is reconstructed.
+- EmbeddingEndpoint's bounded capability defaults to unsupported. The simulator and OpenAI-ready implementation support it. Configured remote calls bypass ordinary batch fan-out, issue one request, refuse redirects, have no implicit retry, bound response hydration and retain the existing finite timeout. Offline execution acquires no runtime mutex. Mounted Gateway historical management remains unavailable; no unsafe mounted fallback is provided.
+- Cancellation is observed before/after provider work and before writes/freeze/acceptance. Failure returns structured coverage/cost/physical-write and generation-sync progress with no fill checkpoint. Exact final owner drift rejects. Once existing native checkpoint acceptance starts, it completes append/sync rather than reporting cancellation after acceptance.
+- H1 requested-complete embedding_pass commits the final retained profile/generation/cut and typed node/position/mode/evidence coverage digest. Transient attempt/call/batch costs stay outside the manifest. The final manifest refreezes after successful fill, then ordinary native preparation/commit ends in FreshnessStore/CVAFRS03. No durable embedding ledger or alternate coordinator is added.
+- A real schema-1 import fixture invokes import_native, actual Insomnia grouped publication and first-cycle Dream settlement, then configured local HTTP embedding and native reconstruction. It reopens/retries without provider work and enables prospective F8 only after acceptance. This is synthetic integration evidence; retained-corpus acceptance remains C10.
+
+Verification:
+- Final focused historical_embedding filter: 14 passed, including native importer/configured HTTP, immutable-row/mixed/invalid coverage, actual partial-vector reopen/retry, cancellation, shape/value errors, drift, all lowerable resource ceilings and physical-write-free preflight rejection.
+- Actual OpenAI-ready transport fixtures prove redirect refusal, bounded response and one request even with ordinary batch_size=1/concurrency=16.
+- Initial adapter compilation errors and a test attempting to rebuild a manifest after acceptance were corrected; a reused test endpoint's cumulative call assertion was also corrected. Failed attempts are not passing evidence.
+- Full library: 1,238 passed, 3 ignored. CLI: 19 passed. Root/CLI formatting and locked checks passed; cargo check --locked --tests compiles all integration targets. Full root integration execution remains C11.
+- Final review explicitly disables reqwest transport retries and rejects new zero-norm rows even for VectorNormalization::None; existing retained invalid rows stay excluded/unmodified. The final 14-test focused suite, integration-target compilation, root formatting and CLI compilation were rerun after those localized corrections. The full library/CLI execution above preceded these final corrections; no full-release claim is made.
+- Both documentation-policy modes and git diff --check passed. Temporary fixtures were removed. Required ownership guards passed (75 fixtures, 161 public APIs, 11 external ownership fixtures).
+- Architecture refresh/Pitlord passed: sha256:c8dc6f0493d830bfcde9e05c9b4e4a7f807fca4ee4e27870759a02217c318576; 70,035 source nodes, 2,379 relationships, 23 rules, no violations.
+
+Documentation impact:
+- Inspected: canonical API/architecture/invariants/storage/limits/roadmap/maintainer docs, native import, H1/C7 contracts, provider compatibility, vector publication and current runtime boundaries.
+- Updated: supported exclusive/configured entry, endpoint capability/budgets, immutable retention/coverage/retry, remaining C9–C12 gates, behavioral/coverage routing and this disposition.
+- Not affected: persistent record formats/versions, Freshness numerical policy, live F8 local/prospective semantics, default activation and PHY scope.
+- Compliance check: both structural and changed-from-origin/main documentation-policy modes and git diff --check passed; final confirmation after this evidence update is recorded in the commit.
+- Known documentation gaps: C9 correctness, C10 retained-corpus measurement and C11–C12 release evidence remain pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: private Cva adapters reuse Archive/vector/provider owners; Container gains only an internal physical allocation guard. ConfiguredRuntime composes the exclusive owner, with no mounted Gateway escape.
+- Pitlord enforcement impact: static policy unchanged; refreshed evidence/enforcement passed all 23 rules.
+- Other verification impact: actual importer/HTTP/native checkpoint, bounded transport, partial-vector reopen/retry, cancellation and retained evidence.
+- Known architectural gaps: mounted historical management is unavailable; no release/default activation claim before C9–C12.
+
 
 ## C6 disposition and verification
 

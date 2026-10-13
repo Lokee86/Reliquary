@@ -6,6 +6,7 @@ use crate::{
 use reqwest::blocking::Client;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};
 use serde_json::json;
+use std::io::Read;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc;
 use std::thread;
@@ -89,6 +90,15 @@ impl OpenAiReadyEmbeddingEndpoint {
         mode: EmbeddingMode,
         inputs: &[String],
     ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        self.request_batch_with_limit(mode, inputs, None)
+    }
+
+    fn request_batch_with_limit(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+        limit: Option<usize>,
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
         let body = json!({
             "model": self.model,
             "input": inputs,
@@ -98,8 +108,19 @@ impl OpenAiReadyEmbeddingEndpoint {
         });
         let payload = serde_json::to_vec(&body)
             .map_err(|error| EmbeddingEndpointError::Failure(error.to_string()))?;
-        let response = self
-            .client
+        let bounded_client;
+        let client = if limit.is_some() {
+            bounded_client = Client::builder()
+                .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
+                .redirect(reqwest::redirect::Policy::none())
+                .retry(reqwest::retry::never())
+                .build()
+                .map_err(|e| EmbeddingEndpointError::Failure(e.to_string()))?;
+            &bounded_client
+        } else {
+            &self.client
+        };
+        let response = client
             .post(&self.url)
             .header(AUTHORIZATION, self.auth.authorization_header())
             .header(CONTENT_TYPE, "application/json")
@@ -107,9 +128,30 @@ impl OpenAiReadyEmbeddingEndpoint {
             .send()
             .map_err(|error| EmbeddingEndpointError::Failure(error.to_string()))?;
         let status = response.status();
-        let bytes = response
-            .bytes()
-            .map_err(|error| EmbeddingEndpointError::Failure(error.to_string()))?;
+        let bytes = if let Some(limit) = limit {
+            let cap = u64::try_from(limit)
+                .ok()
+                .and_then(|n| n.checked_add(1))
+                .ok_or(EmbeddingEndpointError::InvalidConfiguration(
+                    "response bound overflow",
+                ))?;
+            let mut bytes = Vec::new();
+            response
+                .take(cap)
+                .read_to_end(&mut bytes)
+                .map_err(|e| EmbeddingEndpointError::Failure(e.to_string()))?;
+            if bytes.len() > limit {
+                return Err(EmbeddingEndpointError::InvalidResponse(
+                    "bounded response exceeded",
+                ));
+            }
+            bytes
+        } else {
+            response
+                .bytes()
+                .map_err(|e| EmbeddingEndpointError::Failure(e.to_string()))?
+                .to_vec()
+        };
         if !status.is_success() {
             let message = String::from_utf8_lossy(&bytes);
             return Err(EmbeddingEndpointError::Failure(format!(
@@ -122,6 +164,22 @@ impl OpenAiReadyEmbeddingEndpoint {
 }
 
 impl EmbeddingEndpoint for OpenAiReadyEmbeddingEndpoint {
+    fn supports_bounded_embedding(&self) -> bool {
+        true
+    }
+    fn embed_bounded(
+        &self,
+        mode: EmbeddingMode,
+        inputs: &[String],
+        max_response_bytes: usize,
+    ) -> Result<Vec<Vec<f32>>, EmbeddingEndpointError> {
+        if inputs.is_empty() || inputs.len() > 16 || max_response_bytes == 0 {
+            return Err(EmbeddingEndpointError::InvalidConfiguration(
+                "bounded request population",
+            ));
+        }
+        self.request_batch_with_limit(mode, inputs, Some(max_response_bytes))
+    }
     fn dimensions(&self) -> u32 {
         self.dimensions
     }

@@ -8,10 +8,20 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Read;
+#[path = "historical_embedding.rs"]
+mod embedding;
+#[path = "historical_embedding_model.rs"]
+mod embedding_model;
+#[path = "historical_embedding_plan.rs"]
+mod embedding_plan;
 #[path = "historical_manifest_encoding.rs"]
 mod encoding;
 #[path = "historical_events.rs"]
 mod events;
+pub use embedding_model::{
+    HistoricalEmbeddingCoverage, HistoricalEmbeddingDisposition, HistoricalEmbeddingFailure,
+    HistoricalEmbeddingLimits, HistoricalEmbeddingReport,
+};
 #[path = "historical_import_input.rs"]
 mod input;
 #[path = "historical_manifest.rs"]
@@ -158,6 +168,12 @@ impl Cva {
     /// Private checkpoint primitive. The owner coordinator derives the
     /// verified manifest and frozen owner cut; this is not a caller-facing API.
     fn freeze_historical_import(&mut self) -> Result<FrozenHistoricalImport, CvaError> {
+        self.freeze_historical_import_with_fill(false)
+    }
+    fn freeze_historical_import_with_fill(
+        &mut self,
+        requested_complete: bool,
+    ) -> Result<FrozenHistoricalImport, CvaError> {
         if let Some(checkpoint) = self.freshness.import_checkpoint() {
             let checkpoint = checkpoint.clone();
             let mut initial = BTreeMap::new();
@@ -176,7 +192,7 @@ impl Cva {
             });
         }
         let owner = self.historical_reconstruction_owner()?;
-        let manifest = manifest::build(self)?;
+        let manifest = manifest::build_with_fill(self, requested_complete)?;
         let events = events::build(self, &manifest)?;
         let cohort: BTreeSet<_> = self.memory_ids().into_iter().collect();
         self.container.sync()?;
