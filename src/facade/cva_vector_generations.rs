@@ -30,7 +30,6 @@ impl Cva {
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<VectorGeneration, VectorGenerationError> {
         let compatibility_profile_id = profile.id;
-        self.materialize_semantic_turn_fragments()?;
         let fragments = self.fragments();
         if fragments.is_empty() {
             return Err(VectorGenerationError::EmptyPopulation);

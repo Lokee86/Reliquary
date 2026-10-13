@@ -20,10 +20,26 @@ pub(crate) struct FreshnessEventProvenance {
 }
 
 pub(crate) const SEMANTIC_EVENT_PRODUCER_KIND: u8 = 3;
+pub(crate) const SEMANTIC_FRAGMENT_PRODUCER_KIND: u8 = 4;
+
+pub(crate) fn is_semantic_producer(kind: u8) -> bool {
+    matches!(
+        kind,
+        SEMANTIC_EVENT_PRODUCER_KIND | SEMANTIC_FRAGMENT_PRODUCER_KIND
+    )
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SemanticFragmentEvidence {
+    pub(crate) fragment_id: crate::FragmentId,
+    // Canonical source-key order; includes every represented Node, including non-activity context.
+    pub(crate) sources: Vec<(String, String)>,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct SemanticEventEvidence {
     pub(crate) owner_uuid: [u8; 16],
+    pub(crate) fragment: Option<SemanticFragmentEvidence>,
     pub(crate) conversation_id: String,
     pub(crate) node_id: String,
     pub(crate) accepted_turn: u64,
@@ -120,6 +136,7 @@ pub(crate) struct FreshnessStore {
     policy_persisted: bool,
     semantic_activation: Option<activation::SemanticActivation>,
     semantic_completed: bool,
+    previous_turn_semantic_completed: bool,
     semantic_activation_seen: bool,
     // Derived birth proofs can populate the in-memory projection on ordinary
     // reopen without having written a standalone owner policy chunk yet.
@@ -536,8 +553,16 @@ impl FreshnessStore {
                     || event_sort_key(&entry),
                     |old| old.max(event_sort_key(&entry)),
                 ));
+                let previous_turn_semantic = matches!(
+                    &entry,
+                    JournalEntry::Event {
+                        semantic: Some(SemanticEventEvidence { fragment: None, .. }),
+                        ..
+                    }
+                );
                 self.remember(entry)?;
                 self.semantic_completed |= is_semantic;
+                self.previous_turn_semantic_completed |= previous_turn_semantic;
             }
             JournalEntry::AcceptedUseBatch {
                 use_id,
@@ -671,27 +696,42 @@ impl FreshnessStore {
                 // a bound on the destination event turn: reordered reconciliations
                 // can move it in either direction. Local producers validate exact
                 // equality before committing a new source event.
-                || !(1..=SEMANTIC_EVENT_PRODUCER_KIND).contains(&provenance.producer_kind)
+                || !(1..=SEMANTIC_FRAGMENT_PRODUCER_KIND).contains(&provenance.producer_kind)
                 || provenance.policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
             {
                 return Err("invalid Freshness event source provenance".into());
             }
-            if provenance.producer_kind == SEMANTIC_EVENT_PRODUCER_KIND {
+            if is_semantic_producer(provenance.producer_kind) {
                 let evidence = semantic
                     .as_ref()
                     .ok_or("semantic event lacks typed evidence")?;
                 validate_semantic_evidence(owner, *turn, evidence)?;
-                if *event_id
-                    != semantic_live_event_id(owner, &evidence.conversation_id, &evidence.node_id)
+                if self.semantic_completed
+                    && evidence.fragment.is_none() != self.previous_turn_semantic_completed
+                {
+                    return Err(
+                        "cannot mix previous turn-semantic receipts with fragment-semantic history"
+                            .into(),
+                    );
+                }
+                if (provenance.producer_kind == SEMANTIC_FRAGMENT_PRODUCER_KIND)
+                    != evidence.fragment.is_some()
+                    || *event_id != evidence.event_id()
                     || provenance.source_id != *event_id
                     || provenance.accepted_turn != *turn
                     || effects.values().any(|amount| {
                         !(1..=crate::freshness::semantic_policy::SEMANTIC_BONUS_CAP)
                             .contains(amount)
                     })
-                    || effects
-                        .keys()
-                        .any(|id| !self.births.get(id).is_some_and(|(birth, _)| birth <= turn))
+                    || effects.keys().any(|id| {
+                        !self.births.get(id).is_some_and(|(birth, _)| {
+                            if evidence.fragment.is_some() {
+                                birth < turn
+                            } else {
+                                birth <= turn
+                            }
+                        })
+                    })
                 {
                     return Err("invalid semantic Freshness identity or local effect".into());
                 }
@@ -1336,9 +1376,13 @@ impl FreshnessStore {
         if evidence.owner_uuid != owner {
             return Err("semantic evidence owner mismatch".into());
         }
-        let event_id = semantic_live_event_id(owner, &evidence.conversation_id, &evidence.node_id);
+        let event_id = evidence.event_id();
         let provenance = FreshnessEventProvenance {
-            producer_kind: SEMANTIC_EVENT_PRODUCER_KIND,
+            producer_kind: if evidence.fragment.is_some() {
+                SEMANTIC_FRAGMENT_PRODUCER_KIND
+            } else {
+                SEMANTIC_EVENT_PRODUCER_KIND
+            },
             source_id: event_id.clone(),
             origin_owner: owner,
             accepted_turn: evidence.accepted_turn,
@@ -1619,7 +1663,7 @@ fn put_event(
     out.extend_from_slice(&provenance.origin_owner);
     out.extend_from_slice(&provenance.accepted_turn.to_le_bytes());
     out.extend_from_slice(&provenance.policy_version.to_le_bytes());
-    if provenance.producer_kind == SEMANTIC_EVENT_PRODUCER_KIND {
+    if is_semantic_producer(provenance.producer_kind) {
         put_semantic_evidence(
             out,
             semantic
@@ -1667,6 +1711,14 @@ fn put_bytes(out: &mut Vec<u8>, bytes: &[u8]) {
 
 fn put_semantic_evidence(out: &mut Vec<u8>, evidence: &SemanticEventEvidence) {
     out.extend_from_slice(&evidence.owner_uuid);
+    if let Some(fragment) = &evidence.fragment {
+        out.extend_from_slice(&fragment.fragment_id.0);
+        out.extend_from_slice(&(fragment.sources.len() as u32).to_le_bytes());
+        for (conversation, node) in &fragment.sources {
+            put_bytes(out, conversation.as_bytes());
+            put_bytes(out, node.as_bytes());
+        }
+    }
     put_bytes(out, evidence.conversation_id.as_bytes());
     put_bytes(out, evidence.node_id.as_bytes());
     out.extend_from_slice(&evidence.accepted_turn.to_le_bytes());
@@ -1846,7 +1898,7 @@ impl Reader<'_> {
         let origin_owner = self.array::<16>()?;
         let accepted_turn = self.u64()?;
         let policy_version = self.u64()?;
-        if !(1..=SEMANTIC_EVENT_PRODUCER_KIND).contains(&producer_kind)
+        if !(1..=SEMANTIC_FRAGMENT_PRODUCER_KIND).contains(&producer_kind)
             || source_id.is_empty()
             || policy_version != crate::freshness::FRESHNESS_POLICY_VERSION as u64
         {
@@ -1859,8 +1911,8 @@ impl Reader<'_> {
             accepted_turn,
             policy_version,
         };
-        let semantic = if producer_kind == SEMANTIC_EVENT_PRODUCER_KIND {
-            Some(self.semantic_evidence()?)
+        let semantic = if is_semantic_producer(producer_kind) {
+            Some(self.semantic_evidence(producer_kind)?)
         } else {
             None
         };
@@ -1902,9 +1954,32 @@ impl Reader<'_> {
             semantic,
         })
     }
-    fn semantic_evidence(&mut self) -> Result<SemanticEventEvidence, String> {
+    fn semantic_evidence(&mut self, producer_kind: u8) -> Result<SemanticEventEvidence, String> {
+        let owner_uuid = self.array()?;
+        let fragment = if producer_kind == SEMANTIC_FRAGMENT_PRODUCER_KIND {
+            let fragment_id = crate::FragmentId(self.array()?);
+            let count = self.u32()? as usize;
+            if count == 0 || count > self.bytes.len().saturating_sub(self.at) / 8 {
+                return Err("invalid semantic fragment source count".into());
+            }
+            let mut sources = Vec::with_capacity(count);
+            for _ in 0..count {
+                sources.push((
+                    String::from_utf8(self.bytes()?)
+                        .map_err(|_| "invalid fragment conversation")?,
+                    String::from_utf8(self.bytes()?).map_err(|_| "invalid fragment node")?,
+                ));
+            }
+            Some(SemanticFragmentEvidence {
+                fragment_id,
+                sources,
+            })
+        } else {
+            None
+        };
         Ok(SemanticEventEvidence {
-            owner_uuid: self.array()?,
+            owner_uuid,
+            fragment,
             conversation_id: String::from_utf8(self.bytes()?)
                 .map_err(|_| "invalid semantic conversation ID UTF-8")?,
             node_id: String::from_utf8(self.bytes()?)
@@ -1948,7 +2023,40 @@ fn validate_semantic_evidence(
     {
         return Err("invalid semantic event evidence".into());
     }
+    if let Some(fragment) = &evidence.fragment {
+        if evidence.accepted_turn == 0
+            || fragment.sources.is_empty()
+            || fragment
+                .sources
+                .iter()
+                .any(|(c, n)| c.is_empty() || n.is_empty())
+            || fragment.sources.windows(2).any(|w| w[0] >= w[1])
+            || !fragment
+                .sources
+                .contains(&(evidence.conversation_id.clone(), evidence.node_id.clone()))
+        {
+            return Err("invalid semantic fragment evidence".into());
+        }
+    }
     Ok(())
+}
+
+impl SemanticEventEvidence {
+    pub(crate) fn event_id(&self) -> String {
+        match &self.fragment {
+            Some(fragment) => semantic_fragment_event_id(self.owner_uuid, fragment.fragment_id),
+            None => semantic_live_event_id(self.owner_uuid, &self.conversation_id, &self.node_id),
+        }
+    }
+}
+
+pub(crate) fn semantic_fragment_event_id(owner: [u8; 16], fragment: crate::FragmentId) -> String {
+    let mut hash = Sha256::new();
+    // Fixed accepted policy domain; profile/configuration rotation is evidence only.
+    hash.update(b"reliquary:freshness:semantic-fragment:v1\0");
+    hash.update(owner);
+    hash.update(fragment.0);
+    format!("semantic-fragment-v1:{:x}", hash.finalize())
 }
 
 pub(crate) fn semantic_live_event_id(
@@ -2107,7 +2215,14 @@ fn receipt_bytes(entry: &JournalEntry) -> usize {
             256 + event_id.capacity()
                 + provenance.source_id.capacity()
                 + semantic.as_ref().map_or(0, |e| {
-                    400 + e.conversation_id.capacity() + e.node_id.capacity()
+                    400 + e.conversation_id.capacity()
+                        + e.node_id.capacity()
+                        + e.fragment.as_ref().map_or(0, |f| {
+                            f.sources
+                                .iter()
+                                .map(|(c, n)| 48 + c.capacity() + n.capacity())
+                                .sum::<usize>()
+                        })
                 })
                 + 128 * (effects.len() + records.len())
         }

@@ -1,4 +1,4 @@
-//! Accepted-turn source proof, bounded local search, and Freshness acceptance.
+//! Shared local semantic search/acceptance and the historical turn adapter pending N3.
 use crate::freshness::semantic_policy::{SemanticPolicy, cosine_similarity};
 use crate::{Cva, CvaError, FragmentId, Node, VectorGeneration, VectorGenerationId};
 use sha2::{Digest, Sha256};
@@ -13,6 +13,7 @@ pub(crate) struct SemanticSourceVector {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct AcceptedSemanticSource {
     pub owner_uuid: [u8; 16],
+    pub fragment: Option<crate::freshness_storage::SemanticFragmentEvidence>,
     pub node: Node,
     pub activity_position: u64,
     pub generation: VectorGeneration,
@@ -32,6 +33,7 @@ pub(crate) enum SemanticSourceReadiness {
 }
 
 impl Cva {
+    /// Historical turn-source adapter retained until N3; live F8 uses prepare_semantic_fragment.
     /// Select retained genuine-source evidence after Archive/vector publication.
     /// Exact Node equality prevents a caller from substituting another source.
     pub(crate) fn prepare_accepted_semantic_source(
@@ -157,6 +159,7 @@ impl Cva {
             .digest()
             .map_err(|error| CvaError::Freshness(error.to_string()))?;
         Ok(SemanticSourceReadiness::Ready(AcceptedSemanticSource {
+            fragment: None,
             owner_uuid,
             node: expected.clone(),
             activity_position,
@@ -183,14 +186,8 @@ impl Cva {
             "semantic replay requires owner",
         ))?;
         if evidence.owner_uuid != owner
-            || self.activity_position_for_turn(&evidence.conversation_id, &evidence.node_id)
-                != Some(evidence.accepted_turn)
-            || event_id
-                != crate::freshness_storage::semantic_live_event_id(
-                    owner,
-                    &evidence.conversation_id,
-                    &evidence.node_id,
-                )
+            || self.semantic_evidence_position(&evidence)? != evidence.accepted_turn
+            || event_id != evidence.event_id()
             || evidence.base_policy_digest != freshness_policy_digest(self.freshness.policy())
             || evidence.semantic_policy_version != SemanticPolicy::default().version
             || evidence.semantic_policy_digest
@@ -238,51 +235,53 @@ impl Cva {
         Ok(())
     }
 
-    /// Apply one accepted-turn semantic event using the newest retained vector
-    /// generation. Missing or incomplete vector evidence is a no-op; the
-    /// accepted Archive turn remains authoritative and can be retried later.
+    /// Rediscover retained fragments containing this accepted turn; each fragment
+    /// is independently accepted once at its availability. No new fragments are created.
     pub(crate) fn apply_accepted_semantic_reinforcement(
         &mut self,
         node: &crate::Node,
         source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
     ) -> Result<usize, CvaError> {
-        // Resolve accepted completion before consulting today's vectors/profile.
-        // The Archive source must still match its immutable accepted identity.
-        let owner = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
-            "semantic source requires REL UUID",
-        ))?;
-        let actual = self.archive.nodes.get(&node.conversation_id, &node.id);
-        if actual != Some(node) {
+        if self.archive.nodes.get(&node.conversation_id, &node.id) != Some(node) {
             return Err(CvaError::Freshness(
                 "conflicting accepted semantic source".into(),
             ));
-        }
-        let event_id = crate::freshness_storage::semantic_live_event_id(
-            owner,
-            &node.conversation_id,
-            &node.id,
-        );
-        if self
-            .freshness
-            .contains_event(&event_id)
-            .map_err(CvaError::Freshness)?
-        {
-            return Ok(0);
         }
         let Some(generation) = self
             .vector_generations
             .generations()
             .iter()
-            .max_by_key(|generation| generation.vector_version)
+            .max_by_key(|g| g.vector_version)
             .copied()
         else {
             return Ok(0);
         };
-        let source = match self.prepare_accepted_semantic_source(node, Some(generation.id))? {
-            SemanticSourceReadiness::Pending => return Ok(0),
-            SemanticSourceReadiness::Ready(source) => source,
-        };
-        self.apply_prepared_semantic_reinforcement(source, source_memory_cohort)
+        let mut applied = 0;
+        for fragment in self.fragments() {
+            let keys = self.semantic_fragment_sources(fragment.id)?;
+            if !keys.contains(&(node.conversation_id.clone(), node.id.clone())) {
+                continue;
+            }
+            let id = crate::freshness_storage::semantic_fragment_event_id(
+                self.owner_uuid()
+                    .ok_or(CvaError::InvalidContainerIdentity("semantic owner"))?,
+                fragment.id,
+            );
+            if self
+                .freshness
+                .contains_event(&id)
+                .map_err(CvaError::Freshness)?
+            {
+                continue;
+            }
+            if let SemanticSourceReadiness::Ready(source) =
+                self.prepare_semantic_fragment(fragment.id, generation.id)?
+            {
+                applied +=
+                    self.apply_prepared_semantic_reinforcement(source, source_memory_cohort)?;
+            }
+        }
+        Ok(applied)
     }
 
     pub(crate) fn apply_prepared_semantic_reinforcement(
@@ -290,6 +289,40 @@ impl Cva {
         source: AcceptedSemanticSource,
         source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
     ) -> Result<usize, CvaError> {
+        if source.owner_uuid
+            != self
+                .owner_uuid()
+                .ok_or(CvaError::InvalidContainerIdentity("semantic owner"))?
+        {
+            return Err(CvaError::Freshness(
+                "semantic fragment belongs to another owner".into(),
+            ));
+        }
+        let fragment = source
+            .fragment
+            .as_ref()
+            .ok_or_else(|| CvaError::Freshness("live semantic source must be a fragment".into()))?;
+        if self.semantic_fragment_sources(fragment.fragment_id)? != fragment.sources
+            || self.semantic_fragment_position(fragment.fragment_id)?
+                != Some(source.activity_position)
+        {
+            return Err(CvaError::Freshness(
+                "conflicting semantic fragment availability".into(),
+            ));
+        }
+        {
+            let id = crate::freshness_storage::semantic_fragment_event_id(
+                source.owner_uuid,
+                fragment.fragment_id,
+            );
+            if self
+                .freshness
+                .contains_event(&id)
+                .map_err(CvaError::Freshness)?
+            {
+                return Ok(0);
+            }
+        }
         let search = self.search_eligible_semantic_targets(&source, source_memory_cohort)?;
         let effects = search
             .effects
@@ -297,6 +330,7 @@ impl Cva {
             .map(|effect| (effect.memory_id, effect.bonus))
             .collect::<std::collections::BTreeMap<_, _>>();
         let evidence = crate::freshness_storage::SemanticEventEvidence {
+            fragment: source.fragment.clone(),
             owner_uuid: source.owner_uuid,
             conversation_id: source.node.conversation_id.clone(),
             node_id: source.node.id.clone(),
@@ -409,6 +443,7 @@ impl Cva {
             crate::PackedVectors,
         )> = None;
         let mut selected = Vec::new();
+        let mut source_memory_cohort = source_memory_cohort.clone();
         let mut eligible_memories = 0;
         let mut excluded_memories = 0;
         for id in &memory_ids {
@@ -416,6 +451,9 @@ impl Cva {
                 .memories
                 .memory(&mut self.container, *id)
                 .map_err(|e| CvaError::Freshness(e.to_string()))?;
+            if self.semantic_source_excludes_memory(source, &memory)? {
+                source_memory_cohort.insert(*id);
+            }
             let body_id = self
                 .memories
                 .current_body_id(*id)
@@ -467,7 +505,7 @@ impl Cva {
                 vector,
             };
             let (effects, eligible, excluded) =
-                plan_eligible_semantic_targets(source, source_memory_cohort, [target])?;
+                plan_eligible_semantic_targets(source, &source_memory_cohort, [target])?;
             eligible_memories += eligible;
             excluded_memories += excluded;
             if let Some(effect) = effects.into_iter().next() {
@@ -522,17 +560,28 @@ fn plan_eligible_semantic_targets(
                 .content_source_conversation_id
                 .as_deref()
                 .zip(target.memory.content_source_node_id.as_deref())
-                .is_some_and(|(conversation, node)| {
-                    conversation == source.node.conversation_id && node == source.node.id
-                })
+                .is_some_and(|(conversation, node)| source.represents(conversation, node))
             || target
                 .memory
                 .grounding_source_conversation_id
                 .as_deref()
                 .zip(target.memory.grounding_source_node_id.as_deref())
-                .is_some_and(|(conversation, node)| {
-                    conversation == source.node.conversation_id && node == source.node.id
-                });
+                .is_some_and(|(conversation, node)| source.represents(conversation, node));
+        let source_excluded = source_excluded
+            || target.memory.source_ref.as_ref().is_some_and(|r| {
+                [
+                    (
+                        r.content_source_conversation_id.as_deref(),
+                        r.content_source_node_id.as_deref(),
+                    ),
+                    (
+                        r.grounding_source_conversation_id.as_deref(),
+                        r.grounding_source_node_id.as_deref(),
+                    ),
+                ]
+                .into_iter()
+                .any(|(c, n)| c.zip(n).is_some_and(|(c, n)| source.represents(c, n)))
+            });
         let admitted_before_source = target
             .admitted_at_turn
             .is_some_and(|turn| turn <= source.activity_position)

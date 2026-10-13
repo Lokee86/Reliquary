@@ -866,7 +866,7 @@ impl GatewayRuntime {
                 phylactery_vectors: None,
                 reliquary_vector_pending: vector_pending,
                 reliquary_semantic_pending: cva
-                    .semantic_freshness_pending_turns()
+                    .semantic_freshness_pending_fragments()
                     .map_err(operation)?,
                 phylactery_vector_pending: 0,
                 reliquary_dream_pending: dream_pending,

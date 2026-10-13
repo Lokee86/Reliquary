@@ -8,13 +8,13 @@ Freeze Step 2 of the [linear implementation plan](freshness-semantic-historical-
 
 ## Overview
 
-**Date:** 2026-10-12. **Status:** N1 corrected design contract; fragment-source implementation is pending N2. The previous turn-source runtime remains prospective opt-in live v1; [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md) owns the standalone release disposition. Historical native primitives exist; retained-corpus acceptance remains blocked. This document refines [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md). Numerical calibration belongs to Steps 3–4; pure implementation, producer timing, storage encoding and transformation verification belong to Steps 5–11.
+**Date:** 2026-10-12. **Status:** N2 fragment-source implementation; prospective opt-in live matching remains local. [N2 disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md#n2-disposition--2026-10-12) owns corrected live verification; [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md) records the previous turn-source release. Historical native primitives exist; retained-corpus acceptance remains blocked. This document refines [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md). Numerical calibration belongs to Steps 3–4; pure implementation, producer timing, storage encoding and transformation verification belong to Steps 5–11.
 
 Live semantic reinforcement changes the existing owner-local Freshness score directly. It never invokes graph propagation, creates accepted-use receipts, launches Dream, or produces recursive activity. A genuine later accepted-use receipt still independently earns the existing +25 propagation; first-cycle Dream retains its +50 contract.
 
 ### Policy object and validation
 
-The planned graph-independent module owns a validated `SemanticFreshnessPolicy`. Its immutable identity consists of a semantic policy version and a canonical digest of the complete configuration. This is distinct from `FRESHNESS_POLICY_VERSION`, which currently versions decay, access/linkage principals and hop costs. Both identities are pinned in accepted semantic evidence; changing semantic configuration cannot reinterpret previously accepted effects.
+The graph-independent module owns a validated `SemanticFreshnessPolicy`. Its immutable identity consists of a semantic policy version and a canonical digest of the complete configuration. The Rust policy type is `SemanticPolicy`. This is distinct from `FRESHNESS_POLICY_VERSION`, which currently versions decay, access/linkage principals and hop costs. Both identities are pinned in accepted semantic evidence; changing semantic configuration cannot reinterpret previously accepted effects.
 
 | Field | Frozen meaning |
 | --- | --- |
@@ -25,11 +25,11 @@ The planned graph-independent module owns a validated `SemanticFreshnessPolicy`.
 | usable candidate limit | The calibrated limit is 64 distinct eligible targets across one source fragment. |
 | numerical evaluation revision | Fixes vector traversal, cosine accumulation, normalization and rounding order so worker count cannot alter ranking or effects. |
 
-Step 4 calibrated the numerical configuration; N1 preserves its constants while correcting the source unit. A production event pins exactly one configuration; profile rotation or policy rotation never grants a second credit for an old fragment. Unsupported versions or digest/configuration mismatch fail explicitly. N2 must pin corrected semantic evidence without reinterpreting previously accepted effects.
+Step 4 calibrated the numerical configuration; N1 preserves its constants while correcting the source unit. A production event pins exactly one configuration; profile rotation or policy rotation never grants a second credit for an old fragment. Unsupported versions or digest/configuration mismatch fail explicitly. N2 pins corrected semantic evidence without reinterpreting previously accepted effects.
 
-### Authority and planned seams
+### Authority and private seams
 
-Names below specify responsibilities and data contracts for subsequent implementation; they are not shipped Rust APIs.
+The private seams below specify owner responsibilities; public entry points are documented in the API reference.
 
 | Seam | Input/output and owner |
 | --- | --- |
@@ -74,9 +74,9 @@ The usable limit counts distinct eligible above-threshold Memories for this frag
 
 ## Event identity, durability and replay
 
-The corrected durable identity is based on owner UUID + semantic policy domain + immutable fragment identity. Positions, profile, generation, row digests, worker count and effects are excluded. Configuration rotation within the accepted domain cannot award the fragment again. N2 must freeze the typed encoding and duplicate lookup before accepting corrected events; this design does not prescribe a new public format or a maintained pre-release migration framework. The former `semantic-live-v1` owner/conversation/node identity describes the previous runtime only, as recorded in [Step 12 evidence](freshness-semantic-release-verification-2026-10-12.md).
+The corrected durable identity is based on owner UUID + semantic policy domain + immutable fragment identity. Positions, profile, generation, row digests, worker count and effects are excluded. Configuration rotation within the accepted domain cannot award the fragment again. N2 freezes kind-4 typed encoding and duplicate lookup in the existing Freshness journal; this design does not prescribe a new public format or a maintained pre-release migration framework. The former `semantic-live-v1` owner/conversation/node identity describes the previous runtime only, as recorded in [Step 12 evidence](freshness-semantic-release-verification-2026-10-12.md).
 
-Reserve distinct semantic producer kind 3 (existing Dream/use kinds are 1/2), subject to codec validation in Step 8. Semantic effects are validated by their own local bonus contract; do not weaken `FreshnessPolicy::is_valid_event_principal` or submit variable bonuses to the +25/+50 propagation validator.
+Use fragment-semantic producer kind 4; kind 3 remains the previous turn-semantic decoder, and Dream/use remain 1/2. Semantic effects are validated by their own local bonus contract; do not weaken `FreshnessPolicy::is_valid_event_principal` or submit variable bonuses to the +25/+50 propagation validator.
 
 Extend the existing Freshness event/compact-receipt representation with the minimum source and policy evidence: stable source identity, accepted REL position, base and semantic policy identities, selected profile, frozen source/target evidence digest, and sorted local effects/normal postimages. Empty completed events retain identity and completion evidence. Raw candidate lists, per-match cosine and embeddings are discarded after acceptance. The evidence digest commits to canonical source fragment/vector and selected target body/vector bindings; it is not a second event log.
 
@@ -100,4 +100,4 @@ On reconciliation, resolve every represented turn in the destination Archive and
 
 ## Notes
 
-N1 freezes intended behavior only. N2 must update runtime receipt identity, candidate evidence, self/cohort exclusions, readiness and transformation tests. Current API/storage documentation continues to describe shipped turn-source behavior until those gates pass. The numerical constants remain the calibrated inclusive 0.75 threshold, +1..+10 curve and top-64 eligible targets, now applied per fragment; live effects remain local. The design oracles in `scripts/test_freshness_normalization_contract.py` protect the intended rules without claiming runtime acceptance.
+N2 implements this live contract and updates API/storage references. Historical source/clock convergence remains N3/N4. The numerical constants remain the calibrated inclusive 0.75 threshold, +1..+10 curve and top-64 eligible targets, now applied per fragment; live effects remain local. The design oracles in `scripts/test_freshness_normalization_contract.py` protect the intended rules without claiming runtime acceptance.

@@ -120,6 +120,8 @@ fn historical_embedding_native_import_configured_runtime_and_prospective_activat
                     Err(e) => panic!("{e}"),
                 }
             };
+            // Accepted sockets can inherit nonblocking mode on Windows.
+            stream.set_nonblocking(false).unwrap();
             stream
                 .set_read_timeout(Some(std::time::Duration::from_secs(30)))
                 .unwrap();
@@ -210,5 +212,5 @@ fn historical_embedding_native_import_configured_runtime_and_prospective_activat
     );
     assert_eq!(fs::read(&path).unwrap(), bytes);
     assert!(cva.set_semantic_freshness_enabled(true).unwrap());
-    assert_eq!(cva.semantic_freshness_pending_turns().unwrap(), 0);
+    assert_eq!(cva.semantic_freshness_pending_fragments().unwrap(), 0);
 }

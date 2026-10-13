@@ -85,8 +85,7 @@ pub(crate) fn replay_freshness(
     for (source, turns) in [(left, &left_turns), (right, &right_turns)] {
         for entry in source.freshness_replay_entries()? {
             validate_semantic_source(source, &entry)?;
-            let source_turn = entry.source_turn();
-            let destination_turn = rebase_turn(source_turn, turns, &merged_turns)?;
+            let destination_turn = rebase_entry_turn(source, &entry, turns, &merged_turns)?;
             let kind = match &entry {
                 FreshnessReplayEntry::Initialize { memory_id, .. } => {
                     ReplayKind::Initialize(*memory_id)
@@ -245,7 +244,7 @@ pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaRecon
     for (source, turns) in [(left, &left_turns), (right, &right_turns)] {
         for entry in source.freshness_replay_entries()? {
             validate_semantic_source(source, &entry)?;
-            let destination_turn = rebase_turn(entry.source_turn(), turns, &merged)?;
+            let destination_turn = rebase_entry_turn(source, &entry, turns, &merged)?;
             let identity = match &entry {
                 FreshnessReplayEntry::Initialize { memory_id, .. } => {
                     format!("I:{}", hex_id(*memory_id))
@@ -401,27 +400,23 @@ fn validate_semantic_source(
                 .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
                     "semantic replay lacks owner",
                 ))?;
-            let expected = crate::freshness_storage::semantic_live_event_id(
-                owner,
-                &evidence.conversation_id,
-                &evidence.node_id,
-            );
+            let expected = evidence.event_id();
             if event_id != &expected
                 || evidence.owner_uuid != owner
                 || evidence.accepted_turn != *source_turn
-                || source.activity_position_for_turn(&evidence.conversation_id, &evidence.node_id)
-                    != Some(*source_turn)
+                || source.semantic_evidence_position(evidence).ok() != Some(*source_turn)
                 || provenance.as_ref().is_none_or(|p| {
-                    p.producer_kind != crate::freshness_storage::SEMANTIC_EVENT_PRODUCER_KIND
+                    !crate::freshness_storage::is_semantic_producer(p.producer_kind)
                 })
             {
                 return Err(CvaReconcileError::UnsupportedSemanticOwner(
                     "semantic Freshness source identity is unavailable or conflicting",
                 ));
             }
-        } else if provenance.as_ref().is_some_and(|p| {
-            p.producer_kind == crate::freshness_storage::SEMANTIC_EVENT_PRODUCER_KIND
-        }) {
+        } else if provenance
+            .as_ref()
+            .is_some_and(|p| crate::freshness_storage::is_semantic_producer(p.producer_kind))
+        {
             return Err(CvaReconcileError::UnsupportedSemanticOwner(
                 "semantic Freshness event lacks typed evidence",
             ));
@@ -566,4 +561,38 @@ fn merged_semantic_activation(
         }
     }
     Ok(a.or(b).cloned())
+}
+
+fn rebase_entry_turn(
+    source: &Cva,
+    entry: &FreshnessReplayEntry,
+    turns: &BTreeMap<u64, (String, String)>,
+    merged: &BTreeMap<(String, String), u64>,
+) -> Result<u64, CvaReconcileError> {
+    if let FreshnessReplayEntry::Event {
+        semantic: Some(e), ..
+    } = entry
+    {
+        if let Some(fragment) = &e.fragment {
+            return fragment
+                .sources
+                .iter()
+                .filter(|(c, n)| source.activity_position_for_turn(c, n).is_some())
+                .map(|key| {
+                    merged
+                        .get(key)
+                        .copied()
+                        .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                            "missing fragment source mapping",
+                        ))
+                })
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .max()
+                .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                    "empty fragment source mapping",
+                ));
+        }
+    }
+    rebase_turn(entry.source_turn(), turns, merged)
 }

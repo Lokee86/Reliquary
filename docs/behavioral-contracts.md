@@ -417,3 +417,7 @@ Legacy mixed-owner execution, dispatch queues and synthetic mount claims are abs
 ## N1 intended Freshness contract
 
 The design-only oracles in `scripts/test_freshness_normalization_contract.py` protect mixed-fragment availability, one award per fragment/target, all-represented-source/cohort exclusions and accepted Archive chronology. They do not test the shipped Rust runtime. N2–N4 must add native behavioral coverage before these corrected rules become current behavior; see the [normalization plan](freshness-retained-fixture-normalization-plan-2026-10-12.md#n1-disposition--2026-10-12).
+
+## N2 live fragment contracts
+
+`cva_semantic_fragment_tests.rs` proves mixed-fragment availability without backward reuse, earlier-source/content/Episode-cohort exclusion, profile-rotation idempotence, non-activity context, overlapping observations, and pending missing-row/cut evidence. The live worker and transform tests in `cva_semantic_source_tests.rs` prove mounted retry, prospective enrollment, mixed-fragment source-key validation, divergent rebase, repeated merge, reopen and reclamation. Kind-4 codec tests in `freshness_storage_tests.rs` prove canonical source framing, stable owner/fragment identity and conflict rejection without changing scores. N1 Python oracles remain design-only; historical convergence remains N3/N4.

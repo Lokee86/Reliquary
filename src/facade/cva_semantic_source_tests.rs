@@ -339,7 +339,7 @@ fn semantic_evidence_survives_divergent_rebase_twice_merge_and_reclamation() {
             "c",
             "right",
             FragmentConfig {
-                turns: 1,
+                turns: 8,
                 overlap: 0,
             },
             true,
@@ -352,13 +352,19 @@ fn semantic_evidence_survives_divergent_rebase_twice_merge_and_reclamation() {
         .unwrap();
     let prepared = ready(
         right
-            .prepare_accepted_semantic_source(&source, Some(generation.id))
+            .prepare_semantic_fragment(
+                crate::fragment_store::fragment_id("c", "base", "right"),
+                generation.id,
+            )
             .unwrap(),
     );
     let effects = std::collections::BTreeMap::from([(target.id, 3)]);
-    let event_id =
-        crate::freshness_storage::semantic_live_event_id(prepared.owner_uuid, "c", "right");
+    let event_id = crate::freshness_storage::semantic_fragment_event_id(
+        prepared.owner_uuid,
+        prepared.fragment.as_ref().unwrap().fragment_id,
+    );
     let evidence = crate::freshness_storage::SemanticEventEvidence {
+        fragment: prepared.fragment.clone(),
         owner_uuid: prepared.owner_uuid,
         conversation_id: "c".into(),
         node_id: "right".into(),
@@ -391,15 +397,26 @@ fn semantic_evidence_survives_divergent_rebase_twice_merge_and_reclamation() {
         })
         .unwrap();
     assert_eq!(original.accepted_turn, 102);
+    assert_eq!(original.fragment.as_ref().unwrap().sources.len(), 2);
     let durable_before = std::fs::read(&right_path).unwrap();
-    let event_id =
-        crate::freshness_storage::semantic_live_event_id(original.owner_uuid, "c", "right");
+    let event_id = original.event_id();
     let mut conflict = original.clone();
     let changed_effects = std::collections::BTreeMap::from([(target.id, 4)]);
     conflict.target_evidence_digest = semantic_target_digest(&changed_effects);
     assert!(
         right
             .freshness_replay_semantic_event(event_id.clone(), conflict, changed_effects)
+            .is_err()
+    );
+    let mut missing_source = original.clone();
+    missing_source.fragment.as_mut().unwrap().sources.remove(0);
+    assert!(
+        right
+            .freshness_replay_semantic_event(
+                event_id.clone(),
+                missing_source,
+                std::collections::BTreeMap::from([(target.id, 3)])
+            )
             .is_err()
     );
     let mut missing_cut = original.clone();
@@ -475,6 +492,7 @@ fn candidate_search_filters_before_limit_and_deduplicates_targets() {
         content_id: crate::ContentId([1; 32]),
     };
     let source = AcceptedSemanticSource {
+        fragment: None,
         owner_uuid: [9; 16],
         node: source_node,
         activity_position: 10,
@@ -588,7 +606,7 @@ fn semantic_live_activation_is_prospective_cancellable_until_completion() {
         f.cva()
             .process_semantic_freshness(generation.id, 64)
             .unwrap()
-            .completed_turns,
+            .completed_fragments,
         0
     );
     assert!(f.cva().set_semantic_freshness_enabled(true).unwrap());
@@ -600,39 +618,42 @@ fn semantic_live_activation_is_prospective_cancellable_until_completion() {
     f.cva = Some(Cva::open(&f.path).unwrap());
     assert!(f.cva().semantic_freshness_enabled());
     let pending = f.turn("new", Some("old"), "assistant");
+    f.fragments("new", 1);
     assert_eq!(
         f.cva()
             .process_semantic_freshness(generation.id, 64)
             .unwrap()
-            .pending_turns,
+            .pending_fragments,
         1
     );
-    let generation = f.generation(); // provider creates genuine turn fragments and completes
+    let generation = f.generation(); // ordinary retained fragments are embedded and completed
     assert_eq!(
         f.cva()
             .process_semantic_freshness(generation.id, 64)
             .unwrap()
-            .completed_turns,
+            .completed_fragments,
         0
     );
     let owner = f.cva().owner_uuid().unwrap();
     assert!(
         !f.cva()
             .freshness
-            .contains_event(&crate::freshness_storage::semantic_live_event_id(
+            .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
                 owner,
-                &old.conversation_id,
-                &old.id
+                crate::fragment_store::fragment_id(&old.conversation_id, &old.id, &old.id)
             ))
             .unwrap()
     );
     assert!(
         f.cva()
             .freshness
-            .contains_event(&crate::freshness_storage::semantic_live_event_id(
+            .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
                 owner,
-                &pending.conversation_id,
-                &pending.id
+                crate::fragment_store::fragment_id(
+                    &pending.conversation_id,
+                    &pending.id,
+                    &pending.id
+                )
             ))
             .unwrap()
     );
@@ -727,6 +748,7 @@ fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births()
         })
         .unwrap()
         .node;
+    f.fragments("live", 8);
     let cohort = f
         .cva()
         .publish_memory(None, 0, live_draft("source-cohort"))
@@ -775,7 +797,10 @@ fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births()
     );
     assert_eq!(f.cva().freshness_record(cohort.id).unwrap().score, 100);
     let owner = f.cva().owner_uuid().unwrap();
-    let id = crate::freshness_storage::semantic_live_event_id(owner, "c", &source.id);
+    let id = crate::freshness_storage::semantic_fragment_event_id(
+        owner,
+        crate::fragment_store::fragment_id("c", &source.id, &source.id),
+    );
     let receipt = f.cva().freshness.event_receipt(&id).unwrap().unwrap();
     assert_eq!(
         receipt.2,
@@ -787,7 +812,7 @@ fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births()
         f.cva()
             .process_semantic_freshness(generation.id, 64)
             .unwrap()
-            .completed_turns,
+            .completed_fragments,
         0
     );
     assert_eq!(f.cva().latest_global_version(), before);
@@ -819,6 +844,7 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
     }
     f.cva().set_semantic_freshness_enabled(true).unwrap();
     f.turn("worker-live", None, "user");
+    f.fragments("worker-live", 8);
     f.cva().sync().unwrap();
     drop(f.cva.take());
     let state = f.path.with_extension("gateway-state");
@@ -877,7 +903,10 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
     f.cva = Some(Cva::open(&f.path).unwrap());
     std::fs::remove_dir_all(state).unwrap();
     let owner = f.cva().owner_uuid().unwrap();
-    let id = crate::freshness_storage::semantic_live_event_id(owner, "c", "worker-live");
+    let id = crate::freshness_storage::semantic_fragment_event_id(
+        owner,
+        crate::fragment_store::fragment_id("c", "worker-live", "worker-live"),
+    );
     assert_eq!(
         f.cva().freshness.event_receipt(&id).unwrap().unwrap().2,
         std::collections::BTreeMap::from([(target.id, 10)])
@@ -951,6 +980,7 @@ fn semantic_release_measurement() {
     f.cva().set_semantic_freshness_enabled(true).unwrap();
     for n in 0..140 {
         f.turn(&format!("bench-source-{n}"), None, "user");
+        f.fragments(&format!("bench-source-{n}"), 8);
     }
     let endpoint = ConstantSemanticEndpoint;
     let profile = f.cva().establish_compatibility_profile(&endpoint).unwrap();
@@ -976,7 +1006,7 @@ fn semantic_release_measurement() {
             .cva()
             .process_semantic_freshness(generation.id, 64)
             .unwrap();
-        if report.completed_turns == 0 {
+        if report.completed_fragments == 0 {
             break;
         }
     }
@@ -1054,3 +1084,6 @@ fn semantic_live_cancelled_activation_branch_cannot_be_silently_reenrolled() {
     std::fs::remove_file(output).unwrap();
     std::fs::remove_file(right).unwrap();
 }
+
+#[path = "cva_semantic_fragment_tests.rs"]
+mod fragment_tests;

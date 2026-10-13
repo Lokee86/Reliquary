@@ -167,3 +167,7 @@ The existing host router, live diagnostics and management health map to [Archite
 ## Architecture adapter profile
 
 The refresh wrapper defaults the Lexicon child environment's `CARGO_PROFILE_DEV_OPT_LEVEL` to `3`, because the Rust adapter launches through `cargo run`. An explicit caller setting takes precedence. This optimizes the analysis tool, retains the complete Rust corpus and all policy rules, and leaves ordinary application build/test profiles unchanged. Python source guards run independently of the Rust graph.
+
+## N2 live semantic fragments
+
+`src/facade/cva_semantic_fragment.rs` resolves retained source/availability proof under Archive authority; `cva_semantic_live.rs` rediscoveries and worker batching use fragments. Kind-4 receipt encoding remains in the existing `freshness_storage.rs`, and `cva_reconcile_freshness.rs` rebases every represented activity identity. [Architecture](architecture.md), [API](api.md), [Storage format](storage-format.md), [Invariants](invariants.md) and [Maintainer map](maintainer-map.md) own current behavior; [Behavioral contracts](behavioral-contracts.md) routes native fixtures.

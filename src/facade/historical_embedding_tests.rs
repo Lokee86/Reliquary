@@ -170,7 +170,10 @@ fn historical_embedding_native_fill_manifest_reopen_and_accepted_retry() {
         "Prospective source.",
     )
     .unwrap();
-    assert_eq!(cva.semantic_freshness_pending_turns().unwrap(), 1);
+    assert_eq!(cva.semantic_freshness_pending_fragments().unwrap(), 0);
+    cva.materialize_path_fragments("live", "next", crate::FragmentConfig::default(), true)
+        .unwrap();
+    assert_eq!(cva.semantic_freshness_pending_fragments().unwrap(), 1);
 }
 #[test]
 fn historical_embedding_native_partial_provider_failure_reopen_reuses_rows() {

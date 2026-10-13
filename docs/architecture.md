@@ -10,6 +10,10 @@ The private Cva historical_embedding plan/provider adapters coordinate existing 
 
 Preflight bounds sources, fragments, text, dimensions, rows, repeated component/inspection work and conservative temporary/proof buffers before provider calls or writes. It includes full union-copy amplification and a conservative retained-prefix/proof reserve, so population ceilings do not guarantee that all combinations fit. Failed/cancelled fill accepts no historical checkpoint; completed vector batches may remain and retry reuses their exact row bytes. Final H1 freeze derives requested-complete embedding coverage from retained authority and then uses the sole FreshnessStore/CVAFRS03 acceptance path. Mounted Gateway execution remains unavailable; exclusive offline ownership is required.
 
+## Live F8 fragment ownership
+
+Archive owns genuine retained fragments and accepted source positions. The private `cva_semantic_fragment` adapter derives each fragment's availability from its latest represented activity and pins every represented Node plus selected row/generation/profile evidence. F8 creates no exact-turn fragments. Existing Archive producers retain window/materialization authority. The live facade rediscoveries are bounded by fragment count and publish through the existing Freshness journal only; no work queue is persisted. Freshness owns owner/domain/fragment event identity, local score effects and replay. Re-embedding cannot create another award. Current-body matching excludes all represented provenance and generating Episode cohorts before candidate ranking; Graph/Community never participates in live propagation. Reconciliation maps every represented activity identity and takes its destination maximum rather than rebasing only the former last-turn anchor. Historical turn-source preparation remains isolated pending N3.
+
 ## Purpose
 This document owns the current Reliquary Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
 ## Durable conversation policy

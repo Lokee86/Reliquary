@@ -4,8 +4,8 @@ use crate::{Cva, CvaError, VectorGenerationId};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct SemanticFreshnessReport {
-    pub completed_turns: usize,
-    pub pending_turns: usize,
+    pub completed_fragments: usize,
+    pub pending_fragments: usize,
     pub reinforced_memories: usize,
 }
 
@@ -52,33 +52,45 @@ impl Cva {
         self.freshness.semantic_activation().is_some()
     }
 
-    /// Number of eligible Archive turns without a durable semantic completion.
-    pub fn semantic_freshness_pending_turns(&self) -> Result<usize, CvaError> {
+    /// Number of retained eligible fragments without a durable completion.
+    pub fn semantic_freshness_pending_fragments(&self) -> Result<usize, CvaError> {
         let Some(a) = self.freshness.semantic_activation() else {
             return Ok(0);
         };
-        let mut pending = 0;
-        for node in self.archive.nodes.iter() {
-            if self
-                .activity_position_for_turn(&node.conversation_id, &node.id)
-                .is_some_and(|at| at > a.accepted_turn)
+        Ok(self.pending_semantic_fragments(a)?.len())
+    }
+
+    fn pending_semantic_fragments(
+        &self,
+        a: &SemanticActivation,
+    ) -> Result<Vec<(u64, crate::FragmentId)>, CvaError> {
+        let mut pending = Vec::new();
+        for f in self.fragments() {
+            let Some(at) = self.semantic_fragment_position(f.id)? else {
+                continue;
+            };
+            if at > a.accepted_turn
                 && !self
                     .freshness
-                    .contains_event(&crate::freshness_storage::semantic_live_event_id(
+                    .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
                         a.owner_uuid,
-                        &node.conversation_id,
-                        &node.id,
+                        f.id,
                     ))
                     .map_err(CvaError::Freshness)?
             {
-                pending += 1;
+                pending.push((at, f.id));
             }
         }
+        pending.sort_by_key(|(at, id)| {
+            (
+                *at,
+                crate::freshness_storage::semantic_fragment_event_id(a.owner_uuid, *id),
+            )
+        });
         Ok(pending)
     }
 
-    /// Process at most limit uncompleted eligible turns against one retained generation.
-    /// Pending work remains discoverable from Archive after restart; there is no queue.
+    /// Process at most limit uncompleted retained fragments against one generation.
     pub fn process_semantic_freshness(
         &mut self,
         generation: VectorGenerationId,
@@ -90,47 +102,21 @@ impl Cva {
         };
         self.validate_semantic_activation(&activation)?;
         self.vector_generation(generation)?;
-        let owner = activation.owner_uuid;
-        let mut turns: Vec<_> = self
-            .archive
-            .nodes
-            .iter()
-            .filter_map(|node| {
-                let at = self.activity_position_for_turn(&node.conversation_id, &node.id)?;
-                (at > activation.accepted_turn).then(|| (at, node.clone()))
-            })
-            .collect();
-        turns.sort_by_key(|(at, _)| *at);
-        let mut attempted = 0;
-        for (_, node) in turns {
-            let id = crate::freshness_storage::semantic_live_event_id(
-                owner,
-                &node.conversation_id,
-                &node.id,
-            );
-            if self
-                .freshness
-                .contains_event(&id)
-                .map_err(CvaError::Freshness)?
-            {
-                continue;
-            }
-            if attempted == limit {
-                break;
-            }
-            attempted += 1;
-            let source = match self.prepare_accepted_semantic_source(&node, Some(generation))? {
+        for (_, fragment) in self
+            .pending_semantic_fragments(&activation)?
+            .into_iter()
+            .take(limit)
+        {
+            let source = match self.prepare_semantic_fragment(fragment, generation)? {
                 crate::cva_semantic_source::SemanticSourceReadiness::Pending => {
-                    report.pending_turns += 1;
+                    report.pending_fragments += 1;
                     continue;
                 }
                 crate::cva_semantic_source::SemanticSourceReadiness::Ready(source) => source,
             };
-            // Births at or after the accepted cut are excluded independently of
-            // asynchronous cohort publication; provenance adds a second guard.
             report.reinforced_memories +=
                 self.apply_prepared_semantic_reinforcement(source, &Default::default())?;
-            report.completed_turns += 1;
+            report.completed_fragments += 1;
         }
         Ok(report)
     }
@@ -147,42 +133,6 @@ impl Cva {
             return Err(CvaError::Freshness(
                 "semantic activation boundary is unavailable or conflicting".into(),
             ));
-        }
-        Ok(())
-    }
-
-    pub(crate) fn materialize_semantic_turn_fragments(
-        &mut self,
-    ) -> Result<(), crate::ArchiveError> {
-        let Some(a) = self.freshness.semantic_activation() else {
-            return Ok(());
-        };
-        let nodes: Vec<_> = self
-            .archive
-            .nodes
-            .iter()
-            .filter(|node| {
-                self.activity_position_for_turn(&node.conversation_id, &node.id)
-                    .is_some_and(|at| at > a.accepted_turn)
-            })
-            .cloned()
-            .collect();
-        for node in nodes {
-            // Materialize this exact node, not every ancestor on its path.
-            // Archive validates and owns the immutable fragment publication.
-            self.archive.put_fragment(
-                &mut self.container,
-                crate::Fragment {
-                    id: crate::fragment_store::fragment_id(
-                        &node.conversation_id,
-                        &node.id,
-                        &node.id,
-                    ),
-                    conversation_id: node.conversation_id,
-                    start_node_id: node.id.clone(),
-                    end_node_id: node.id,
-                },
-            )?;
         }
         Ok(())
     }
@@ -206,39 +156,32 @@ impl Cva {
         if let Some(generation) = self.current_vector_generation(profile_id) {
             self.process_semantic_freshness(generation.id, 64)?;
         }
-        let a = self
-            .freshness
-            .semantic_activation()
-            .expect("enabled")
-            .clone();
-        let mut pending = false;
-        for node in self.archive.nodes.iter() {
-            if self
-                .activity_position_for_turn(&node.conversation_id, &node.id)
-                .is_some_and(|at| at > a.accepted_turn)
-                && !self
-                    .freshness
-                    .contains_event(&crate::freshness_storage::semantic_live_event_id(
-                        a.owner_uuid,
-                        &node.conversation_id,
-                        &node.id,
-                    ))
-                    .map_err(CvaError::Freshness)?
-            {
-                pending = true;
-                break;
-            }
-        }
-        if !pending {
+        if self.semantic_freshness_pending_fragments()? == 0 {
             return Ok(None);
         }
-        self.materialize_semantic_turn_fragments()?;
         let archive_version = self.archive_version();
-        if self
-            .current_vector_generation(profile_id)
-            .is_some_and(|g| g.source_archive_version >= archive_version)
-        {
-            return Ok(None);
+        if let Some(generation) = self.current_vector_generation(profile_id) {
+            let set = self.archive_vectors(generation.archive_vector_id)?;
+            let activation = self
+                .freshness
+                .semantic_activation()
+                .expect("enabled")
+                .clone();
+            // A low-level generation may cover the Archive cut but omit a row.
+            // Retry that missing evidence; a cut watermark alone is insufficient.
+            if self
+                .pending_semantic_fragments(&activation)?
+                .iter()
+                .all(|(_, id)| {
+                    self.archive
+                        .fragments
+                        .archive_version(*id)
+                        .is_some_and(|v| v <= generation.source_archive_version)
+                        && set.fragment_ids.contains(id)
+                })
+            {
+                return Ok(None);
+            }
         }
         let profile = self
             .compatibility_profiles
