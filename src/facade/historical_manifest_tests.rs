@@ -1,5 +1,113 @@
 use super::*;
 use crate::MemoryDraft;
+
+fn field<'a>(value: &'a encoding::Value, name: &str) -> &'a encoding::Value {
+    let encoding::Value::Map(fields) = value else {
+        panic!("not a map");
+    };
+    &fields.iter().find(|(key, _)| key == name).unwrap().1
+}
+
+#[test]
+fn historical_manifest_pins_mixed_fragment_bindings_availability_and_generation() {
+    use encoding::Value;
+    let (_, mut cva, _) = historical_import_fixture("n3-manifest.rel");
+    historical_events::vectors(&mut cva);
+    let generation = *cva
+        .vector_generations
+        .generations()
+        .iter()
+        .max_by_key(|g| g.vector_version)
+        .unwrap();
+    let manifest = manifest::build_with_fill(&mut cva, true).unwrap();
+    assert_eq!(
+        field(&manifest.value, "schema_version"),
+        &Value::Unsigned(2)
+    );
+    let proof = field(&manifest.value, "vector_proof");
+    let Value::Array(records) = field(proof, "fragment_sources") else {
+        panic!("not an array");
+    };
+    assert_eq!(records.len(), 16);
+    for fragment in cva.fragments() {
+        let record = records
+            .iter()
+            .find(|r| field(r, "fragment_id") == &Value::bytes(fragment.id.0))
+            .unwrap();
+        let position = cva
+            .semantic_fragment_position(fragment.id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(field(record, "availability"), &Value::Unsigned(position));
+        let Value::Array(nodes) = field(record, "represented_nodes") else {
+            panic!("not an array");
+        };
+        assert_eq!(nodes.len(), 2);
+        let evidence = field(record, "evidence");
+        assert_eq!(
+            field(evidence, "generation_id"),
+            &Value::bytes(generation.id.0)
+        );
+        assert_eq!(
+            field(evidence, "profile_id"),
+            &Value::bytes(generation.compatibility_profile_id.0)
+        );
+        let Value::Array(rows) = field(evidence, "usable_rows") else {
+            panic!("not an array");
+        };
+        assert_eq!(rows.len(), 1);
+        assert_eq!(field(&rows[0], "fragment_id"), &Value::bytes(fragment.id.0));
+    }
+    assert_eq!(
+        field(field(proof, "embedding_pass"), "contract_version"),
+        &Value::Unsigned(2)
+    );
+}
+
+#[test]
+fn historical_generation_refresh_changes_proof_but_never_fragment_event_identity() {
+    let (_, mut cva, _) = historical_import_fixture("n3-generation-proof.rel");
+    historical_events::vectors(&mut cva);
+    let first = cva.freeze_historical_import().unwrap();
+    let generation = *cva
+        .vector_generations
+        .generations()
+        .iter()
+        .max_by_key(|g| g.vector_version)
+        .unwrap();
+    let set = cva.archive_vectors(generation.archive_vector_id).unwrap();
+    let schema = crate::VectorSchema::new(2, crate::ScalarType::F32).unwrap();
+    let bytes = (0..set.fragment_ids.len())
+        .flat_map(|_| [0.8_f32, 0.6].into_iter().flat_map(f32::to_le_bytes))
+        .collect();
+    let packed = cva
+        .put_packed_vectors(crate::PackedVectors::from_bytes(schema, bytes).unwrap())
+        .unwrap();
+    let binding = cva.put_archive_vectors(packed, set.fragment_ids).unwrap();
+    cva.publish_vector_generation(
+        generation.compatibility_profile_id,
+        binding,
+        cva.archive_version(),
+    )
+    .unwrap();
+    let refreshed = cva.freeze_historical_import().unwrap();
+    assert_ne!(
+        first.checkpoint.manifest_digest,
+        refreshed.checkpoint.manifest_digest
+    );
+    let a = &first.events.as_ref().unwrap().semantic.events;
+    let b = &refreshed.events.as_ref().unwrap().semantic.events;
+    assert_eq!(a.len(), 8);
+    assert_eq!(
+        a.iter().map(|e| e.event_id).collect::<Vec<_>>(),
+        b.iter().map(|e| e.event_id).collect::<Vec<_>>()
+    );
+    assert!(
+        a.iter()
+            .zip(b)
+            .all(|(a, b)| a.source_position == b.source_position && a.effects != b.effects)
+    );
+}
 fn singleton(cva: &mut Cva, name: &str, source: bool) -> MemoryId {
     let id = cva
         .publish_memory(

@@ -98,6 +98,17 @@ fn historical_embedding_native_import_configured_runtime_and_prospective_activat
     let endpoint = super::historical_embedding::Endpoint::new(&cancel);
     cva.establish_compatibility_profile(&endpoint).unwrap();
 
+    cva.materialize_path_fragments(
+        &episode.conversation_id,
+        &episode.end_node_id,
+        crate::FragmentConfig {
+            turns: 2,
+            overlap: 0,
+        },
+        true,
+    )
+    .unwrap();
+
     // Real configured HTTP transport; no external provider/account is used.
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
     listener.set_nonblocking(true).unwrap();
@@ -190,8 +201,8 @@ fn historical_embedding_native_import_configured_runtime_and_prospective_activat
         )
         .unwrap();
     server.join().unwrap();
-    assert_eq!(*observed.lock().unwrap(), [2, 2, 16]);
-    assert_eq!(report.embedding.as_ref().unwrap().unavailable_sources, 0);
+    assert_eq!(*observed.lock().unwrap(), [2, 2, 8]);
+    assert_eq!(report.embedding.as_ref().unwrap().unavailable_fragments, 0);
     assert!(report.committed);
     assert_eq!(receipt, cva.import_native(&incoming, 400).unwrap());
     drop(cva);

@@ -213,7 +213,7 @@ fn historical_validation_does_not_relax_live_principals_or_bridge_exclusions() {
 }
 
 #[test]
-fn historical_semantic_handoff_keeps_one_turn_and_strongest_duplicate_root() {
+fn historical_semantic_handoff_keeps_one_fragment_and_strongest_duplicate_root() {
     use crate::freshness::{
         historical_planner::SourceKey,
         historical_semantic::HistoricalSemanticEvent,
@@ -221,6 +221,11 @@ fn historical_semantic_handoff_keeps_one_turn_and_strongest_duplicate_root() {
     };
     let mut source = HistoricalSemanticEvent {
         event_id: [1; 32],
+        fragment_id: [1; 32],
+        source_keys: BTreeSet::from([SourceKey {
+            conversation_id: "c".into(),
+            node_id: "n".into(),
+        }]),
         credit_excluded: BTreeSet::from([id(3)]),
         source_key: SourceKey {
             conversation_id: "c".into(),

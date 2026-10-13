@@ -6,7 +6,6 @@ pub struct HistoricalEmbeddingLimits {
     pub fragments: usize,
     pub generation_rows: usize,
     pub missing_rows: usize,
-    pub new_fragments: usize,
     pub source_bytes: usize,
     pub text_bytes: usize,
     pub dimensions: usize,
@@ -24,7 +23,6 @@ impl Default for HistoricalEmbeddingLimits {
             fragments: 131_072,
             generation_rows: 131_072,
             missing_rows: 4_096,
-            new_fragments: 4_096,
             source_bytes: 256 * 1024,
             text_bytes: 16 * 1024 * 1024,
             dimensions: 4_096,
@@ -45,7 +43,6 @@ impl HistoricalEmbeddingLimits {
             (self.fragments, cap.fragments),
             (self.generation_rows, cap.generation_rows),
             (self.missing_rows, cap.missing_rows),
-            (self.new_fragments, cap.new_fragments),
             (self.source_bytes, cap.source_bytes),
             (self.text_bytes, cap.text_bytes),
             (self.dimensions, cap.dimensions),
@@ -74,8 +71,8 @@ pub enum HistoricalEmbeddingDisposition {
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalEmbeddingCoverage {
-    pub conversation_id: String,
-    pub node_id: String,
+    pub fragment_id: crate::FragmentId,
+    pub source_keys: Vec<(String, String)>,
     pub position: u64,
     pub reason: String,
     pub usable_rows: usize,
@@ -97,6 +94,7 @@ pub struct HistoricalEmbeddingReport {
     pub missing_rows: usize,
     pub reused_rows: usize,
     pub new_rows: usize,
+    /// Always zero: fill never creates fragment records.
     pub new_fragments: usize,
     /// A physical write was attempted; interrupted staging may survive reopen.
     pub write_attempted: bool,
@@ -107,7 +105,7 @@ pub struct HistoricalEmbeddingReport {
     pub attempted_inputs: usize,
     pub completed_inputs: usize,
     pub text_bytes: usize,
-    pub unavailable_sources: usize,
+    pub unavailable_fragments: usize,
     /// Present only after a full retained-coverage scan. Empty on an early stop.
     pub coverage: Vec<HistoricalEmbeddingCoverage>,
 }
@@ -135,7 +133,7 @@ impl Default for HistoricalEmbeddingReport {
             attempted_inputs: 0,
             completed_inputs: 0,
             text_bytes: 0,
-            unavailable_sources: 0,
+            unavailable_fragments: 0,
             coverage: Vec::new(),
         }
     }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::{FragmentConfig, SimulatedEmbeddingEndpoint, VectorNormalization};
+use crate::{FragmentConfig, SimulatedEmbeddingEndpoint, VectorGenerationId, VectorNormalization};
 
 struct Fixture {
     path: std::path::PathBuf,
@@ -59,34 +59,9 @@ fn ready(outcome: SemanticSourceReadiness) -> AcceptedSemanticSource {
 }
 
 #[test]
-fn pending_is_not_empty_completion_and_non_turns_are_rejected() {
-    let mut f = Fixture::new();
-    let node = f.turn("n", None, "user");
-    assert_eq!(
-        f.cva()
-            .prepare_accepted_semantic_source(&node, None)
-            .unwrap(),
-        SemanticSourceReadiness::Pending
-    );
-    let system = f.turn("sys", Some("n"), "system");
-    assert!(
-        f.cva()
-            .prepare_accepted_semantic_source(&system, None)
-            .is_err()
-    );
-    let mut conflict = node.clone();
-    conflict.content_id.0[0] ^= 1;
-    assert!(
-        f.cva()
-            .prepare_accepted_semantic_source(&conflict, None)
-            .is_err()
-    );
-}
-
-#[test]
 fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
     let mut f = Fixture::new();
-    let node = f.turn("n", None, "assistant");
+    f.turn("n", None, "assistant");
     f.fragments("n", 1);
     let generation = f.generation();
     let before = (
@@ -96,7 +71,10 @@ fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
     );
     let first = ready(
         f.cva()
-            .prepare_accepted_semantic_source(&node, Some(generation.id))
+            .prepare_semantic_fragment(
+                crate::fragment_store::fragment_id("c", "n", "n"),
+                generation.id,
+            )
             .unwrap(),
     );
     assert_eq!(first.activity_position, 1);
@@ -119,7 +97,10 @@ fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
     f.cva = Some(Cva::open(&f.path).unwrap());
     let retry = ready(
         f.cva()
-            .prepare_accepted_semantic_source(&node, Some(generation.id))
+            .prepare_semantic_fragment(
+                crate::fragment_store::fragment_id("c", "n", "n"),
+                generation.id,
+            )
             .unwrap(),
     );
     assert_eq!(retry, first);
@@ -127,7 +108,10 @@ fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
     assert_eq!(
         ready(
             f.cva()
-                .prepare_accepted_semantic_source(&node, Some(generation.id))
+                .prepare_semantic_fragment(
+                    crate::fragment_store::fragment_id("c", "n", "n"),
+                    generation.id
+                )
                 .unwrap()
         ),
         first
@@ -135,36 +119,21 @@ fn exact_source_retries_and_reopen_preserve_selected_evidence_without_writes() {
 }
 
 #[test]
-fn mixed_turn_generation_is_explicit_empty_not_a_genuine_turn_vector() {
-    let mut f = Fixture::new();
-    let first = f.turn("a", None, "user");
-    f.turn("b", Some("a"), "assistant");
-    f.fragments("b", 2);
-    let generation = f.generation();
-    let source = ready(
-        f.cva()
-            .prepare_accepted_semantic_source(&first, Some(generation.id))
-            .unwrap(),
-    );
-    assert!(source.vectors.is_empty());
-    assert_eq!(source.excluded_mixed_fragments, 1);
-}
-
-#[test]
 fn stale_generation_cannot_claim_a_future_source_and_rotation_does_not_rebind() {
     let mut f = Fixture::new();
-    let first = f.turn("a", None, "user");
+    f.turn("a", None, "user");
     f.fragments("a", 1);
     let old = f.generation();
     let pinned = ready(
         f.cva()
-            .prepare_accepted_semantic_source(&first, Some(old.id))
+            .prepare_semantic_fragment(crate::fragment_store::fragment_id("c", "a", "a"), old.id)
             .unwrap(),
     );
-    let later = f.turn("b", Some("a"), "assistant");
+    f.turn("b", Some("a"), "assistant");
+    f.fragments("b", 1);
     assert_eq!(
         f.cva()
-            .prepare_accepted_semantic_source(&later, Some(old.id))
+            .prepare_semantic_fragment(crate::fragment_store::fragment_id("c", "b", "b"), old.id)
             .unwrap(),
         SemanticSourceReadiness::Pending
     );
@@ -173,7 +142,10 @@ fn stale_generation_cannot_claim_a_future_source_and_rotation_does_not_rebind() 
     assert_eq!(
         ready(
             f.cva()
-                .prepare_accepted_semantic_source(&first, Some(old.id))
+                .prepare_semantic_fragment(
+                    crate::fragment_store::fragment_id("c", "a", "a"),
+                    old.id
+                )
                 .unwrap()
         ),
         pinned
@@ -181,9 +153,9 @@ fn stale_generation_cannot_claim_a_future_source_and_rotation_does_not_rebind() 
 }
 
 #[test]
-fn incomplete_mapping_stays_pending_even_with_one_valid_source_vector() {
+fn missing_fragment_row_stays_pending_independently_of_a_valid_sibling() {
     let mut f = Fixture::new();
-    let node = f.turn("a", None, "user");
+    f.turn("a", None, "user");
     f.turn("b", Some("a"), "assistant");
     f.fragments("b", 1);
     let old = f.generation();
@@ -200,7 +172,7 @@ fn incomplete_mapping_stays_pending_even_with_one_valid_source_vector() {
         .unwrap();
     assert_eq!(
         f.cva()
-            .prepare_accepted_semantic_source(&node, Some(newer.id))
+            .prepare_semantic_fragment(crate::fragment_store::fragment_id("c", "a", "b"), newer.id)
             .unwrap(),
         SemanticSourceReadiness::Pending
     );
@@ -523,7 +495,6 @@ fn candidate_search_filters_before_limit_and_deduplicates_targets() {
                 components: vec![0.9, 0.1],
             },
         ],
-        excluded_mixed_fragments: 0,
         invalid_vectors: 0,
     };
     fn memory(id: u8, lifecycle: &str, source: Option<(&str, &str)>) -> crate::Memory {
@@ -1020,7 +991,10 @@ fn semantic_release_measurement() {
         .clone();
     let source = ready(
         f.cva()
-            .prepare_accepted_semantic_source(&node, Some(generation.id))
+            .prepare_semantic_fragment(
+                crate::fragment_store::fragment_id("c", &node.id, &node.id),
+                generation.id,
+            )
             .unwrap(),
     );
     let search_start = std::time::Instant::now();

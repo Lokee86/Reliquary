@@ -100,7 +100,7 @@ impl Value {
 }
 pub(super) fn policy() -> Value {
     Value::map([
-        ("version", Value::Unsigned(1)),
+        ("version", Value::Unsigned(2)),
         (
             "timeline",
             Value::text("ready-timestamp-utf8-topological-v1"),
@@ -113,7 +113,14 @@ pub(super) fn policy() -> Value {
         ),
         ("scope", Value::text("single-owner-rel-v1")),
         ("community", Value::text("validated-or-unknown-outside-v1")),
-        ("semantic", Value::text("f8-v1-eligible-top64-max-v1")),
+        (
+            "semantic_identity",
+            Value::text("owner-historical-fragment-domain-v1"),
+        ),
+        (
+            "semantic",
+            Value::text("f8-v1-fragment-availability-top64-max-v1"),
+        ),
         (
             "dream",
             Value::text("actual-no-link-before-final-fallback-v1"),
@@ -163,7 +170,7 @@ mod tests {
         );
         assert_eq!(
             actual,
-            "0cad2e7fd763de37753a54c28df1c7b6303c6c818145492ca4a709023c420908"
+            "e4a40d7711ba768119336577b6276de1aff396d2d9d289606e9d3674615e088b"
         );
     }
     #[test]

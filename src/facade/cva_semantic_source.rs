@@ -1,6 +1,6 @@
-//! Shared local semantic search/acceptance and the historical turn adapter pending N3.
+//! Shared fragment-local semantic search and Freshness acceptance.
 use crate::freshness::semantic_policy::{SemanticPolicy, cosine_similarity};
-use crate::{Cva, CvaError, FragmentId, Node, VectorGeneration, VectorGenerationId};
+use crate::{Cva, CvaError, FragmentId, Node, VectorGeneration};
 use sha2::{Digest, Sha256};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -22,7 +22,6 @@ pub(crate) struct AcceptedSemanticSource {
     pub policy_digest: [u8; 32],
     pub source_digest: [u8; 32],
     pub vectors: Vec<SemanticSourceVector>,
-    pub excluded_mixed_fragments: usize,
     pub invalid_vectors: usize,
 }
 
@@ -30,149 +29,6 @@ pub(crate) struct AcceptedSemanticSource {
 pub(crate) enum SemanticSourceReadiness {
     Pending,
     Ready(AcceptedSemanticSource),
-}
-
-impl Cva {
-    /// Historical turn-source adapter retained until N3; live F8 uses prepare_semantic_fragment.
-    /// Select retained genuine-source evidence after Archive/vector publication.
-    /// Exact Node equality prevents a caller from substituting another source.
-    pub(crate) fn prepare_accepted_semantic_source(
-        &mut self,
-        expected: &Node,
-        generation_id: Option<VectorGenerationId>,
-    ) -> Result<SemanticSourceReadiness, CvaError> {
-        let owner_uuid = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
-            "semantic source requires REL UUID",
-        ))?;
-        let actual = self
-            .archive
-            .nodes
-            .get(&expected.conversation_id, &expected.id)
-            .ok_or_else(|| CvaError::Freshness("missing accepted semantic source".into()))?;
-        if actual != expected {
-            return Err(CvaError::Freshness(
-                "conflicting accepted semantic source".into(),
-            ));
-        }
-        let activity_position = self
-            .activity_position_for_turn(&expected.conversation_id, &expected.id)
-            .ok_or_else(|| {
-                CvaError::Freshness("semantic source is not an activity-bearing turn".into())
-            })?;
-        let Some(generation_id) = generation_id else {
-            return Ok(SemanticSourceReadiness::Pending);
-        };
-        let generation = self.vector_generation(generation_id)?;
-        if self
-            .archive
-            .activity_cut_at_archive_version(generation.source_archive_version)?
-            < activity_position
-        {
-            return Ok(SemanticSourceReadiness::Pending);
-        }
-        let profile = self
-            .compatibility_profiles
-            .get(generation.compatibility_profile_id)
-            .ok_or_else(|| CvaError::Freshness("missing semantic source profile".into()))?
-            .clone();
-        let set = self.archive_vectors(generation.archive_vector_id)?;
-        let packed = self.packed_vectors(set.packed_vector_id)?;
-        if packed.schema().dimensions != profile.dimensions
-            || packed.schema().scalar != crate::ScalarType::F32
-        {
-            return Err(CvaError::Freshness(
-                "incompatible semantic source matrix".into(),
-            ));
-        }
-
-        // Completeness is proved over all source-containing fragments at this
-        // selected Archive cut, not inferred from the existence of one vector.
-        let fragments = self.fragments();
-        let mut relevant = Vec::new();
-        for fragment in fragments {
-            if fragment.conversation_id != expected.conversation_id
-                || self
-                    .archive
-                    .fragments
-                    .archive_version(fragment.id)
-                    .is_none_or(|version| version > generation.source_archive_version)
-            {
-                continue;
-            }
-            let turns = self.fragment_turns(fragment.id)?;
-            if turns.iter().any(|turn| turn.node_id == expected.id) {
-                relevant.push((fragment, turns.len()));
-            }
-        }
-        if relevant.is_empty() {
-            return Ok(SemanticSourceReadiness::Pending);
-        }
-        relevant.sort_by_key(|(fragment, _)| fragment.id.0);
-        let mut vectors = Vec::new();
-        let mut excluded_mixed_fragments = 0;
-        let mut invalid_vectors = 0;
-        let mut digest = Sha256::new();
-        digest.update(b"reliquary:semantic-source-evidence:v1\0");
-        digest.update(owner_uuid);
-        hash_text(&mut digest, &expected.conversation_id);
-        hash_text(&mut digest, &expected.id);
-        digest.update(expected.content_id.0);
-        digest.update(generation.id.0);
-        for (fragment, turn_count) in relevant {
-            let Some(row) = set.fragment_ids.iter().position(|id| *id == fragment.id) else {
-                return Ok(SemanticSourceReadiness::Pending);
-            };
-            digest.update(fragment.id.0);
-            digest.update((row as u64).to_le_bytes());
-            if turn_count != 1
-                || fragment.start_node_id != expected.id
-                || fragment.end_node_id != expected.id
-            {
-                excluded_mixed_fragments += 1;
-                digest.update([0]);
-                continue;
-            }
-            let bytes = packed
-                .row(row)
-                .ok_or_else(|| CvaError::Freshness("missing semantic source row".into()))?;
-            if bytes.len() != profile.dimensions as usize * 4 {
-                return Err(CvaError::Freshness("semantic source row width".into()));
-            }
-            let components: Vec<f32> = bytes
-                .chunks_exact(4)
-                .map(|chunk| f32::from_le_bytes(chunk.try_into().expect("four bytes")))
-                .collect();
-            digest.update(bytes);
-            if cosine_similarity(&components, &components).is_err() {
-                invalid_vectors += 1;
-                digest.update([1]);
-                continue;
-            }
-            digest.update([2]);
-            vectors.push(SemanticSourceVector {
-                fragment_id: fragment.id,
-                row: row as u64,
-                components,
-            });
-        }
-        let policy_digest = SemanticPolicy::default()
-            .digest()
-            .map_err(|error| CvaError::Freshness(error.to_string()))?;
-        Ok(SemanticSourceReadiness::Ready(AcceptedSemanticSource {
-            fragment: None,
-            owner_uuid,
-            node: expected.clone(),
-            activity_position,
-            generation,
-            base_policy: self.freshness.policy(),
-            semantic_policy: SemanticPolicy::default(),
-            policy_digest,
-            source_digest: digest.finalize().into(),
-            vectors,
-            excluded_mixed_fragments,
-            invalid_vectors,
-        }))
-    }
 }
 
 impl Cva {
@@ -437,13 +293,28 @@ impl Cva {
                 .map(|location| location.set_id.0)
                 .unwrap_or([255; 32])
         });
+        // A grounding/content source on one member excludes the whole generating
+        // Episode cohort, even when that source lies outside the Episode path.
+        let mut source_memory_cohort = source_memory_cohort.clone();
+        let mut source_episodes = std::collections::HashSet::new();
+        for id in &memory_ids {
+            let memory = self
+                .memories
+                .memory(&mut self.container, *id)
+                .map_err(|e| CvaError::Freshness(e.to_string()))?;
+            if source_memory_cohort.contains(id) || source_has_memory_provenance(source, &memory) {
+                source_memory_cohort.insert(*id);
+                if let Some(episode) = memory.source_episode_id {
+                    source_episodes.insert(episode);
+                }
+            }
+        }
         let mut cached: Option<(
             crate::MemoryVectorId,
             crate::MemoryVectorSet,
             crate::PackedVectors,
         )> = None;
         let mut selected = Vec::new();
-        let mut source_memory_cohort = source_memory_cohort.clone();
         let mut eligible_memories = 0;
         let mut excluded_memories = 0;
         for id in &memory_ids {
@@ -451,7 +322,11 @@ impl Cva {
                 .memories
                 .memory(&mut self.container, *id)
                 .map_err(|e| CvaError::Freshness(e.to_string()))?;
-            if self.semantic_source_excludes_memory(source, &memory)? {
+            if memory
+                .source_episode_id
+                .is_some_and(|id| source_episodes.contains(&id))
+                || self.semantic_source_excludes_memory(source, &memory)?
+            {
                 source_memory_cohort.insert(*id);
             }
             let body_id = self
@@ -534,6 +409,26 @@ impl Cva {
     }
 }
 
+fn source_has_memory_provenance(source: &AcceptedSemanticSource, memory: &crate::Memory) -> bool {
+    let matches =
+        |c: Option<&str>, n: Option<&str>| c.zip(n).is_some_and(|(c, n)| source.represents(c, n));
+    matches(
+        memory.content_source_conversation_id.as_deref(),
+        memory.content_source_node_id.as_deref(),
+    ) || matches(
+        memory.grounding_source_conversation_id.as_deref(),
+        memory.grounding_source_node_id.as_deref(),
+    ) || memory.source_ref.as_ref().is_some_and(|r| {
+        matches(
+            r.content_source_conversation_id.as_deref(),
+            r.content_source_node_id.as_deref(),
+        ) || matches(
+            r.grounding_source_conversation_id.as_deref(),
+            r.grounding_source_node_id.as_deref(),
+        )
+    })
+}
+
 fn plan_eligible_semantic_targets(
     source: &AcceptedSemanticSource,
     source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
@@ -555,33 +450,7 @@ fn plan_eligible_semantic_targets(
     for target in targets {
         let id = target.memory.id;
         let source_excluded = source_memory_cohort.contains(&id)
-            || target
-                .memory
-                .content_source_conversation_id
-                .as_deref()
-                .zip(target.memory.content_source_node_id.as_deref())
-                .is_some_and(|(conversation, node)| source.represents(conversation, node))
-            || target
-                .memory
-                .grounding_source_conversation_id
-                .as_deref()
-                .zip(target.memory.grounding_source_node_id.as_deref())
-                .is_some_and(|(conversation, node)| source.represents(conversation, node));
-        let source_excluded = source_excluded
-            || target.memory.source_ref.as_ref().is_some_and(|r| {
-                [
-                    (
-                        r.content_source_conversation_id.as_deref(),
-                        r.content_source_node_id.as_deref(),
-                    ),
-                    (
-                        r.grounding_source_conversation_id.as_deref(),
-                        r.grounding_source_node_id.as_deref(),
-                    ),
-                ]
-                .into_iter()
-                .any(|(c, n)| c.zip(n).is_some_and(|(c, n)| source.represents(c, n)))
-            });
+            || source_has_memory_provenance(source, &target.memory);
         let admitted_before_source = target
             .admitted_at_turn
             .is_some_and(|turn| turn <= source.activity_position)
@@ -626,11 +495,6 @@ fn plan_eligible_semantic_targets(
     let effects = plan_local_effects(source.semantic_policy, candidates)
         .map_err(|error| CvaError::Freshness(error.to_string()))?;
     Ok((effects, eligible_memories, filtered))
-}
-
-fn hash_text(digest: &mut Sha256, text: &str) {
-    digest.update((text.len() as u64).to_le_bytes());
-    digest.update(text.as_bytes());
 }
 
 #[cfg(test)]

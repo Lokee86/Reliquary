@@ -369,74 +369,101 @@ fn vector_proof(
         .max_by_key(|g| g.vector_version)
         .copied();
     let mut sources = Vec::new();
-    let mut unavailable = 0u64;
-    let mut invalid = 0u64;
-    let mut mixed = 0u64;
     for (index, key) in order.iter().enumerate() {
         let node = cva
             .archive
             .nodes
             .get(&key.conversation_id, &key.node_id)
-            .cloned()
             .ok_or_else(|| fail("missing historical source"))?;
-        let (mode, evidence) =
-            match cva.prepare_accepted_semantic_source(&node, generation.map(|g| g.id))? {
-                SemanticSourceReadiness::Pending => {
-                    unavailable += 1;
-                    (
-                        "unavailable",
-                        Value::map([(
-                            "reason",
-                            Value::text("missing-or-incomplete-retained-source-evidence"),
-                        )]),
-                    )
-                }
-                SemanticSourceReadiness::Ready(source) => {
-                    invalid += source.invalid_vectors as u64;
-                    mixed += source.excluded_mixed_fragments as u64;
-                    let vectors = source
-                        .vectors
-                        .into_iter()
-                        .map(|v| {
-                            let bytes: Vec<_> =
-                                v.components.iter().flat_map(|f| f.to_le_bytes()).collect();
-                            Value::map([
-                                ("fragment_id", Value::bytes(v.fragment_id.0)),
-                                ("row", Value::Unsigned(v.row)),
-                                ("row_digest", Value::bytes(Sha256::digest(bytes))),
-                            ])
-                        })
-                        .collect();
-                    (
-                        "complete",
-                        Value::map([
-                            ("source_digest", Value::bytes(source.source_digest)),
-                            ("generation_id", Value::bytes(source.generation.id.0)),
-                            (
-                                "profile_id",
-                                Value::bytes(source.generation.compatibility_profile_id.0),
-                            ),
-                            (
-                                "invalid_vectors",
-                                Value::Unsigned(source.invalid_vectors as u64),
-                            ),
-                            (
-                                "excluded_mixed_fragments",
-                                Value::Unsigned(source.excluded_mixed_fragments as u64),
-                            ),
-                            ("usable_rows", Value::Array(vectors)),
-                        ]),
-                    )
-                }
-            };
         sources.push(Value::map([
-            ("node", input::node_binding(&node)),
+            ("node", input::node_binding(node)),
             ("position", Value::Unsigned(index as u64 + 1)),
+        ]));
+    }
+    let mut fragments = Vec::new();
+    let mut unavailable = 0u64;
+    let mut invalid = 0u64;
+    let mut mixed = 0u64;
+    for fragment in cva.fragments() {
+        let nodes = cva.archive.fragment_nodes_for(&fragment)?;
+        let position = cva.semantic_fragment_position(fragment.id)?;
+        let activity_nodes = nodes
+            .iter()
+            .filter(|n| {
+                cva.activity_position_for_turn(&n.conversation_id, &n.id)
+                    .is_some()
+            })
+            .count();
+        mixed += u64::from(activity_nodes > 1);
+        let readiness = generation
+            .map(|g| cva.prepare_semantic_fragment(fragment.id, g.id))
+            .transpose()?;
+        let (mode, evidence) = match readiness {
+            Some(SemanticSourceReadiness::Ready(source)) => {
+                invalid += source.invalid_vectors as u64;
+                let rows = source
+                    .vectors
+                    .into_iter()
+                    .map(|v| {
+                        let bytes: Vec<_> =
+                            v.components.iter().flat_map(|f| f.to_le_bytes()).collect();
+                        Value::map([
+                            ("fragment_id", Value::bytes(v.fragment_id.0)),
+                            ("row", Value::Unsigned(v.row)),
+                            ("row_digest", Value::bytes(Sha256::digest(bytes))),
+                        ])
+                    })
+                    .collect();
+                (
+                    "complete",
+                    Value::map([
+                        ("source_digest", Value::bytes(source.source_digest)),
+                        ("generation_id", Value::bytes(source.generation.id.0)),
+                        (
+                            "profile_id",
+                            Value::bytes(source.generation.compatibility_profile_id.0),
+                        ),
+                        (
+                            "invalid_vectors",
+                            Value::Unsigned(source.invalid_vectors as u64),
+                        ),
+                        ("usable_rows", Value::Array(rows)),
+                    ]),
+                )
+            }
+            _ => {
+                unavailable += u64::from(position.is_some());
+                (
+                    if position.is_some() {
+                        "unavailable"
+                    } else {
+                        "non-activity-only"
+                    },
+                    Value::map([(
+                        "reason",
+                        Value::text("missing-or-incomplete-fragment-evidence"),
+                    )]),
+                )
+            }
+        };
+        fragments.push(Value::map([
+            ("fragment_id", Value::bytes(fragment.id.0)),
+            ("conversation_id", Value::text(&fragment.conversation_id)),
+            ("start_node_id", Value::text(&fragment.start_node_id)),
+            ("end_node_id", Value::text(&fragment.end_node_id)),
+            (
+                "represented_nodes",
+                Value::Array(nodes.iter().map(input::node_binding).collect()),
+            ),
+            (
+                "availability",
+                position.map_or(Value::Null, Value::Unsigned),
+            ),
             ("mode", Value::text(mode)),
             ("evidence", evidence.clone()),
             (
                 "coverage_digest",
-                Value::bytes(evidence.digest("reliquary:historical-source-coverage:v1")?),
+                Value::bytes(evidence.digest("reliquary:historical-fragment-coverage:v1")?),
             ),
         ]));
     }
@@ -522,7 +549,7 @@ fn vector_proof(
         None => Value::Array(vec![]),
     };
     let embedding_pass = if requested_complete {
-        super::embedding::manifest_pass(cva, &sources)?
+        super::embedding::manifest_pass(cva, &fragments)?
     } else {
         Value::text("not-requested")
     };
@@ -531,11 +558,16 @@ fn vector_proof(
             ("profiles", Value::Array(profiles)),
             ("selected_generations", generations),
             ("target_bindings", Value::Array(targets)),
+            ("fragment_sources", Value::Array(fragments)),
             (
                 "coverage",
                 Value::map([
-                    ("sources", Value::Unsigned(order.len() as u64)),
-                    ("unavailable_sources", Value::Unsigned(unavailable)),
+                    ("activity_sources", Value::Unsigned(order.len() as u64)),
+                    (
+                        "fragments",
+                        Value::Unsigned(cva.archive.fragments.len() as u64),
+                    ),
+                    ("unavailable_fragments", Value::Unsigned(unavailable)),
                     ("invalid_source_rows", Value::Unsigned(invalid)),
                     ("mixed_source_fragments", Value::Unsigned(mixed)),
                 ]),
@@ -754,8 +786,8 @@ pub(super) fn build_with_fill(
         ),
     ]);
     let value = Value::map([
-        ("schema_version", Value::Unsigned(1)),
-        ("policy_version", Value::Unsigned(1)),
+        ("schema_version", Value::Unsigned(2)),
+        ("policy_version", Value::Unsigned(2)),
         ("owner_uuid", Value::bytes(owner)),
         ("import_id", Value::bytes(import_id)),
         ("corpus_digest", Value::bytes(corpus_digest)),

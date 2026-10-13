@@ -8,7 +8,7 @@ Freeze Step 13 / H1 of the [linear implementation plan](freshness-semantic-histo
 
 ## Overview
 
-**Status:** N1 corrected intended contract, frozen 2026-10-12; N3/N4 runtime convergence is pending. The former version-1 descriptor below records the existing runtime only; native exclusive reconstruction/publication and recovery are implemented through C6. C7 freezes the contract and C8 implements bounded offline embedding/importer integration; C9–C12 release gates remain. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
+**Status:** N3 fragment-source runtime implemented, frozen 2026-10-12; N4 accepted-clock convergence remains pending. The version-2 descriptor below implements fragment semantics while retaining the previous timestamp-order clock gate; native exclusive reconstruction/publication and recovery are implemented through C6. C7 freezes the contract and C8 implements bounded offline embedding/importer integration; C9–C12 release gates remain. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
 
 Reconstruction is an explicit one-shot operation on a newly generated, complete, single-owner REL import. It uses the final authorized graph, approximate provenance-based availability and exact existing Freshness mathematics. It creates no second clock, permanent event ledger or historical consumed-use receipts. Ordinary live semantic reinforcement remains local and non-propagating.
 
@@ -62,7 +62,7 @@ Use one current Community snapshot only when its derived Graph version equals th
 
 Historical v1 requires the pinned base `FreshnessPolicy::default_v1()` descriptor/digest: ten turns per point, +25 accepted use, +50 linkage, -5 local/-10 outside hops and -100/+100 score bounds. A different base policy is unsupported for this reconstruction version; never change an enrolled owner's policy to make an import fit.
 
-Historical semantic matching preserves the calibrated F8 constants while N3 updates the source-policy descriptor/digest: inclusive cosine 0.75, bonus 1..10, strongest comparison per fragment/Memory, exact cosine/MemoryId ties and at most 64 eligible direct roots per fragment. Filter historical availability/lifecycle/profile/self/cohort before that limit; future vectors cannot consume it. Propagated recipients are not capped to 64.
+Historical semantic matching preserves the calibrated F8 constants under the N3 source-policy descriptor/digest: inclusive cosine 0.75, bonus 1..10, strongest comparison per fragment/Memory, exact cosine/MemoryId ties and at most 64 eligible direct roots per fragment. Filter historical availability/lifecycle/profile/self/cohort before that limit; future vectors cannot consume it. Propagated recipients are not capped to 64.
 
 Pin genuine retained Archive fragments, including mixed-turn fragments, their represented source identities, selected generation/cut, profile descriptor/digest and immutable row bytes. Each fragment's availability is the latest accepted activity-bearing position it contains at that cut. Evaluate eligibility there once; never reuse its later context at every contained turn. Missing/invalid/incompatible evidence has explicit coverage. A separately requested bounded fill populates missing rows for existing genuine fragments only; no exact-turn fragment creation or per-turn embedding requests. Finish fill before manifest freeze.
 
@@ -86,7 +86,7 @@ For either event, traverse the full authorized graph until remaining strength is
 
 ## Manifest identity and canonical hashing
 
-Use one logical versioned manifest, not a new durable subsystem. Temporary planning records may spill; only the eventual existing-Freshness checkpoint becomes authority. Schema version and reconstruction policy version are both 1.
+Use one logical versioned manifest, not a new durable subsystem. Temporary planning records may spill; only the eventual existing-Freshness checkpoint becomes authority. Schema version and reconstruction policy version are both 2.
 
 Canonical encoding C is defined here independently of JSON rendering:
 
@@ -103,28 +103,29 @@ The manifest has exactly these top-level fields:
 | --- | --- |
 | schema_version, policy_version, owner_uuid, import_id, corpus_digest | Version/owner/corpus identity above |
 | archive_cut | Archive version, activity count N, exact final source key and canonical activity-order digest |
-| source_records | Ordered Node bindings, position and retained source-evidence/coverage digest for every source |
+| source_records | Ordered immutable Node bindings and activity position; fragment proof is separate |
 | memory_records | MemoryId-sorted BodyId/revision/lifecycle bindings, sorted necessary source keys, availability or null, cohort key, status/reason, current/provisional scoring proof digest |
 | cohort_records | Cohort-key-sorted origin proof, sorted members, common availability or null, complete grouped-publication proof |
 | graph_proof | Graph version, full adjacency/relationship digest, duplicate-authority digest |
 | community_proof | Validated snapshot/membership digest and generation/parameters, or explicit unknown-outside mode |
-| vector_proof | Profile and selected retained generations/cuts, sorted immutable binding/row evidence digests, coverage and embedding-pass disposition |
+| vector_proof | Profile and selected retained generations/cuts, FragmentId-ordered fragment_sources with represented Node bindings, availability, mode, immutable row evidence and coverage digest; embedding-pass disposition |
 | scoring_policy | Complete base Freshness descriptor/digest, frozen F8 descriptor/digest, this reconstruction policy digest and event-order tag |
 | replacement_proof | Exact provisional scoring identities/subset to supersede, unsupported untouched subset and isolation proof |
 | input_token | Frozen Archive/Memory/Graph/Community/vector/Dream/Freshness owner versions and accepted-prefix digests |
 
-Array orders and sorted sets are canonical, with no duplicated identities. Nested proof objects must include their underlying immutable IDs/content commitments rather than a bare mutable version number. Runtime resources (worker count, spill paths, timing) are outside the manifest. Hash the complete manifest with `reliquary:historical-manifest:v1`. The previous runtime policy descriptor is shown below for existing golden tests; N3/N4 must update and freeze its typed encoding/digest before accepting corrected checkpoints. It does not define the corrected intended timeline/source contract. The previous descriptor is rendered here (JSON is a human-readable rendering; hash C of the typed map, with version as u64). Its `reliquary:historical-policy:v1` digest is `0cad2e7fd763de37753a54c28df1c7b6303c6c818145492ca4a709023c420908`. Step 14 must reproduce it with golden fixtures; unknown versions/digests fail explicitly.
+Array orders and sorted sets are canonical, with no duplicated identities. Nested proof objects must include their underlying immutable IDs/content commitments rather than a bare mutable version number. Runtime resources (worker count, spill paths, timing) are outside the manifest. Hash the complete manifest with `reliquary:historical-manifest:v1`. The current typed descriptor below has `reliquary:historical-policy:v1` digest `e4a40d7711ba768119336577b6276de1aff396d2d9d289606e9d3674615e088b`. JSON is a human-readable rendering; hash C of the typed map with version as u64. The timeline/clock fields retain the previous gate until N4; they do not yet implement accepted-order chronology for arbitrary retained RELs. Unknown digests reject; no maintained pre-release conversion framework is introduced.
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "timeline": "ready-timestamp-utf8-topological-v1",
   "clock": "exact-archive-prefix-v1",
   "availability": "latest-evidence-cohort-v1",
   "missing_provenance": "unsupported-preserve-or-reject-v1",
   "scope": "single-owner-rel-v1",
   "community": "validated-or-unknown-outside-v1",
-  "semantic": "f8-v1-eligible-top64-max-v1",
+  "semantic": "f8-v1-fragment-availability-top64-max-v1",
+  "semantic_identity": "owner-historical-fragment-domain-v1",
   "dream": "actual-no-link-before-final-fallback-v1",
   "credit": "availability-inclusive-self-cohort-excluded-v1",
   "traversal": "authorized-full-graph-credit-filter-only-v1",
@@ -137,7 +138,7 @@ Array orders and sorted sets are canonical, with no duplicated identities. Neste
 }
 ```
 
-Cohort tags are `reliquary:historical-episode-cohort:v1` and `reliquary:historical-singleton-cohort:v1`. Cohort input maps have exact fields `owner_uuid, episode_id` or `owner_uuid, memory_id`. Event tags are `reliquary:historical-semantic:v1` and `reliquary:historical-dream:v1`, over exact identity maps `owner_uuid, import_id, conversation_id, node_id` and `owner_uuid, import_id, originating_memory_id` respectively, using C. Event IDs are the resulting raw 32 digest bytes; lowercase hex is display only and must preserve their byte order. No hash includes itself. Exact import ID + manifest + policies retries are no-ops after acceptance; a conflicting manifest for that import ID rejects `ImportManifestConflict`. Input drift before acceptance permits a discarded/recomputed attempt; after acceptance requires a separately designed migration, never automatic replay.
+Cohort tags are `reliquary:historical-episode-cohort:v1` and `reliquary:historical-singleton-cohort:v1`. Cohort input maps have exact fields `owner_uuid, episode_id` or `owner_uuid, memory_id`. Historical semantic identity is SHA-256 of ASCII `reliquary:historical-semantic-fragment:v1`, one zero byte, raw owner UUID and raw FragmentId. It excludes import, generation, profile and row bytes. Dream identity remains H(`reliquary:historical-dream:v1`, exact map `owner_uuid, import_id, originating_memory_id`), using C. Event IDs are the resulting raw 32 digest bytes; lowercase hex is display only and must preserve their byte order. No hash includes itself. Exact import ID + manifest + policies retries are no-ops after acceptance; a conflicting manifest for that import ID rejects `ImportManifestConflict`. Input drift before acceptance permits a discarded/recomputed attempt; after acceptance requires a separately designed migration, never automatic replay.
 
 The checkpoint codec/transaction and transformed-history rebasing are Steps 21–23. They may choose physical framing, but cannot alter this identity/clock/scoring contract. In particular, unresolved foreign provenance or reordered accepted cuts cannot be hidden by copying numeric anchors.
 

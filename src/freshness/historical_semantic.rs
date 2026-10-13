@@ -16,7 +16,9 @@ pub struct HistoricalSemanticSourceVector {
 }
 #[derive(Clone, Debug, PartialEq)]
 pub struct HistoricalSemanticSource {
-    pub key: SourceKey,
+    pub fragment_id: [u8; 32],
+    pub source_keys: BTreeSet<SourceKey>,
+    pub evidence_available: bool,
     pub owner_id: String,
     pub profile: SemanticVectorProfile,
     /// Present evidence with no usable rows is completed-empty, not unavailable.
@@ -39,6 +41,9 @@ pub struct HistoricalSemanticTarget {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalSemanticEvent {
     pub event_id: [u8; 32],
+    pub fragment_id: [u8; 32],
+    pub source_keys: BTreeSet<SourceKey>,
+    /// Latest represented activity key; reporting only, not event identity.
     pub source_key: SourceKey,
     pub source_position: u64,
     pub owner_id: String,
@@ -52,17 +57,15 @@ pub struct HistoricalSemanticEvent {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct HistoricalSemanticPlan {
     pub events: Vec<HistoricalSemanticEvent>,
-    pub coverage: BTreeMap<SourceKey, String>,
+    pub coverage: BTreeMap<[u8; 32], String>,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum HistoricalSemanticError {
     TimelineSourceMissing(SourceKey),
-    DuplicateSource(SourceKey),
+    DuplicateSource([u8; 32]),
     DuplicateTarget(MemoryId),
-    DuplicateFragment(SourceKey),
+    DuplicateFragment([u8; 32]),
     InvalidOwner(String),
-    InvalidSourcePosition(SourceKey),
-    IdentityOverflow,
     UnsupportedPolicy,
     Policy(SemanticPolicyError),
 }
@@ -81,7 +84,6 @@ impl From<SemanticPolicyError> for HistoricalSemanticError {
 impl HistoricalSemanticPlan {
     pub fn plan(
         owner_uuid: [u8; 16],
-        import_id: [u8; 32],
         owner_id: &str,
         policy: SemanticPolicy,
         timeline: &HistoricalTimeline,
@@ -95,27 +97,34 @@ impl HistoricalSemanticPlan {
         if policy != SemanticPolicy::default() {
             return Err(HistoricalSemanticError::UnsupportedPolicy);
         }
+        let positions: BTreeMap<_, _> = timeline
+            .entries
+            .iter()
+            .map(|e| (e.key.clone(), e.position))
+            .collect();
         let mut source_map = BTreeMap::new();
-        for mut source in sources {
+        for source in sources {
             if source.owner_id != owner_id {
                 return Err(HistoricalSemanticError::InvalidOwner(source.owner_id));
             }
-            if timeline.position(&source.key).is_none() {
-                return Err(HistoricalSemanticError::TimelineSourceMissing(source.key));
+            for key in &source.source_keys {
+                if !positions.contains_key(key) {
+                    return Err(HistoricalSemanticError::TimelineSourceMissing(key.clone()));
+                }
             }
-            source
-                .vectors
-                .sort_by(|a, b| a.fragment_id.cmp(&b.fragment_id));
-            if source
-                .vectors
-                .windows(2)
-                .any(|v| v[0].fragment_id == v[1].fragment_id)
+            if source.vectors.len() > 1
+                || source
+                    .vectors
+                    .iter()
+                    .any(|v| v.fragment_id != source.fragment_id)
             {
-                return Err(HistoricalSemanticError::DuplicateFragment(source.key));
+                return Err(HistoricalSemanticError::DuplicateFragment(
+                    source.fragment_id,
+                ));
             }
-            let key = source.key.clone();
-            if source_map.insert(key.clone(), source).is_some() {
-                return Err(HistoricalSemanticError::DuplicateSource(key));
+            let id = source.fragment_id;
+            if source_map.insert(id, source).is_some() {
+                return Err(HistoricalSemanticError::DuplicateSource(id));
             }
         }
         let mut target_map = BTreeMap::new();
@@ -130,14 +139,20 @@ impl HistoricalSemanticPlan {
         }
         let mut events = Vec::new();
         let mut coverage = BTreeMap::new();
-        for key in &timeline.activity_order {
-            let Some(source) = source_map.get(key) else {
-                coverage.insert(key.clone(), "source-evidence-unavailable".into());
+        for (&fragment, source) in &source_map {
+            let Some((position, key)) = source
+                .source_keys
+                .iter()
+                .filter_map(|key| positions.get(key).copied().flatten().map(|at| (at, key)))
+                .max_by_key(|(at, _)| *at)
+            else {
+                coverage.insert(fragment, "non-activity-only-fragment".into());
                 continue;
             };
-            let position = timeline
-                .position(key)
-                .ok_or_else(|| HistoricalSemanticError::InvalidSourcePosition(key.clone()))?;
+            if !source.evidence_available {
+                coverage.insert(fragment, "fragment-evidence-unavailable".into());
+                continue;
+            }
             let usable: Vec<_> = source
                 .vectors
                 .iter()
@@ -147,7 +162,7 @@ impl HistoricalSemanticPlan {
                 })
                 .collect();
             if usable.is_empty() {
-                coverage.insert(key.clone(), "complete-no-usable-source-rows".into());
+                coverage.insert(fragment, "complete-no-usable-source-rows".into());
                 continue;
             }
             let mut candidates = Vec::new();
@@ -198,11 +213,13 @@ impl HistoricalSemanticPlan {
             }
             let effects = plan_local_effects(policy, candidates)?;
             if effects.is_empty() {
-                coverage.insert(key.clone(),format!("complete-no-eligible-match:considered={considered};future={future};ineligible={ineligible};profile={incompatible}"));
+                coverage.insert(fragment,format!("complete-no-eligible-match:considered={considered};future={future};ineligible={ineligible};profile={incompatible}"));
                 continue;
             }
             events.push(HistoricalSemanticEvent {
-                event_id: historical_semantic_event_id(owner_uuid, import_id, key)?,
+                event_id: historical_semantic_event_id(owner_uuid, fragment),
+                fragment_id: fragment,
+                source_keys: source.source_keys.clone(),
                 source_key: key.clone(),
                 source_position: position,
                 owner_id: owner_id.into(),
@@ -213,40 +230,19 @@ impl HistoricalSemanticPlan {
                 effects,
                 credit_excluded: source.credit_excluded.clone(),
             });
-            coverage.insert(key.clone(), "event-planned".into());
+            coverage.insert(fragment, "event-planned".into());
         }
         events.sort_by_key(|e| (e.source_position, e.event_id));
         Ok(Self { events, coverage })
     }
 }
-/// Exact H1 identity map. Positions, roots, amounts and manifest hash are absent.
-pub fn historical_semantic_event_id(
-    owner: [u8; 16],
-    import: [u8; 32],
-    source: &SourceKey,
-) -> Result<[u8; 32], HistoricalSemanticError> {
+/// Fixed import-semantic fragment domain; generation/profile/import are replay evidence.
+pub fn historical_semantic_event_id(owner: [u8; 16], fragment: [u8; 32]) -> [u8; 32] {
     let mut hash = Sha256::new();
-    hash.update(b"reliquary:historical-semantic:v1\0");
-    hash.update([7]);
-    hash.update(4u32.to_le_bytes());
-    for (key, tag, bytes) in [
-        ("conversation_id", 5, source.conversation_id.as_bytes()),
-        ("import_id", 4, import.as_slice()),
-        ("node_id", 5, source.node_id.as_bytes()),
-        ("owner_uuid", 4, owner.as_slice()),
-    ] {
-        hash.update([5]);
-        hash.update((key.len() as u32).to_le_bytes());
-        hash.update(key.as_bytes());
-        hash.update([tag]);
-        hash.update(
-            u32::try_from(bytes.len())
-                .map_err(|_| HistoricalSemanticError::IdentityOverflow)?
-                .to_le_bytes(),
-        );
-        hash.update(bytes);
-    }
-    Ok(hash.finalize().into())
+    hash.update(b"reliquary:historical-semantic-fragment:v1\0");
+    hash.update(owner);
+    hash.update(fragment);
+    hash.finalize().into()
 }
 #[cfg(test)]
 #[path = "historical_semantic_tests.rs"]

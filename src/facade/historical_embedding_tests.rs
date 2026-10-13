@@ -85,6 +85,12 @@ impl EmbeddingEndpoint for Endpoint<'_> {
         self.embed(mode, inputs)
     }
 }
+fn limits() -> HistoricalEmbeddingLimits {
+    HistoricalEmbeddingLimits {
+        batch_inputs: 8,
+        ..Default::default()
+    }
+}
 fn request() -> HistoricalReconstructionOptions {
     HistoricalReconstructionOptions {
         fill_missing_embeddings: true,
@@ -120,20 +126,19 @@ fn historical_embedding_native_fill_manifest_reopen_and_accepted_retry() {
     let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
     assert!(cva.initial_dream_pass_settled(&pass));
     let report = cva
-        .reconstruct_historical_freshness_with_endpoint(
-            request(),
-            &endpoint,
-            Default::default(),
-            &cancel,
-        )
+        .reconstruct_historical_freshness_with_endpoint(request(), &endpoint, limits(), &cancel)
         .unwrap();
     let fill = report.embedding.as_ref().unwrap();
     assert_eq!(fill.disposition, HistoricalEmbeddingDisposition::Complete);
     assert_eq!(
-        (fill.new_rows, fill.new_fragments, fill.unavailable_sources),
-        (32, 32, 0)
+        (
+            fill.new_rows,
+            fill.new_fragments,
+            fill.unavailable_fragments
+        ),
+        (16, 0, 0)
     );
-    assert_eq!((fill.attempted_calls, fill.attempted_inputs), (4, 36));
+    assert_eq!((fill.attempted_calls, fill.attempted_inputs), (4, 20));
     assert_eq!(endpoint.calls.get(), 4);
     assert_eq!(cva.rel_turn_count(), turns);
     assert_eq!(cva.graph_version(), graph);
@@ -184,19 +189,14 @@ fn historical_embedding_native_partial_provider_failure_reopen_reuses_rows() {
     endpoint.fail = 4;
     let before = cva.freshness_record(id).unwrap();
     let stopped = failure(
-        cva.reconstruct_historical_freshness_with_endpoint(
-            request(),
-            &endpoint,
-            Default::default(),
-            &cancel,
-        )
-        .unwrap_err(),
+        cva.reconstruct_historical_freshness_with_endpoint(request(), &endpoint, limits(), &cancel)
+            .unwrap_err(),
     );
     assert_eq!(
         stopped.report.disposition,
         HistoricalEmbeddingDisposition::ProviderError
     );
-    assert_eq!(stopped.report.new_rows, 16);
+    assert_eq!(stopped.report.new_rows, 8);
     assert_unaccepted(&cva, &path, id, before);
     let g = cva
         .current_vector_generation(stopped.report.profile_id.unwrap())
@@ -213,17 +213,12 @@ fn historical_embedding_native_partial_provider_failure_reopen_reuses_rows() {
     let mut cva = Cva::open(&path).unwrap();
     let endpoint = Endpoint::new(&cancel);
     let report = cva
-        .reconstruct_historical_freshness_with_endpoint(
-            request(),
-            &endpoint,
-            Default::default(),
-            &cancel,
-        )
+        .reconstruct_historical_freshness_with_endpoint(request(), &endpoint, limits(), &cancel)
         .unwrap();
     let fill = report.embedding.unwrap();
     assert_eq!(
         (fill.reused_rows, fill.new_rows, fill.attempted_calls),
-        (16, 16, 3)
+        (8, 8, 3)
     );
     let g = cva
         .current_vector_generation(fill.profile_id.unwrap())
@@ -255,7 +250,7 @@ fn historical_embedding_native_cancellation_invalid_output_and_input_drift_stop(
             cva.reconstruct_historical_freshness_with_endpoint(
                 request(),
                 &endpoint,
-                Default::default(),
+                limits(),
                 &cancel,
             )
             .unwrap_err(),
@@ -302,10 +297,6 @@ fn historical_embedding_native_budget_preflight_has_no_calls_or_writes() {
             ..Default::default()
         },
         HistoricalEmbeddingLimits {
-            new_fragments: 1,
-            ..Default::default()
-        },
-        HistoricalEmbeddingLimits {
             source_bytes: 1,
             ..Default::default()
         },
@@ -335,6 +326,7 @@ fn historical_embedding_native_budget_preflight_has_no_calls_or_writes() {
         },
         HistoricalEmbeddingLimits {
             source_calls: 1,
+            batch_inputs: 8,
             ..Default::default()
         },
         HistoricalEmbeddingLimits {
@@ -378,7 +370,7 @@ fn historical_embedding_native_default_no_provider_and_zero_work_reuse() {
         .reconstruct_historical_freshness_with_endpoint(
             Default::default(),
             &endpoint,
-            Default::default(),
+            limits(),
             &cancel,
         )
         .unwrap();
@@ -389,12 +381,12 @@ fn historical_embedding_native_default_no_provider_and_zero_work_reuse() {
     let (path, mut cva, _) = historical_import_fixture("h8-zero-work.rel");
     historical_events::vectors(&mut cva);
     let bytes = fs::read(&path).unwrap();
-    let filled = embedding::fill(&mut cva, &endpoint, Default::default(), &cancel).unwrap();
+    let filled = embedding::fill(&mut cva, &endpoint, limits(), &cancel).unwrap();
     assert_eq!(
         (
             filled.new_rows,
             filled.attempted_calls,
-            filled.unavailable_sources
+            filled.unavailable_fragments
         ),
         (0, 2, 0)
     );

@@ -91,6 +91,18 @@ fn historical_import_fixture_count(
             .unwrap();
         crate::dream_freshness::settle_initial_pass(&mut cva, id, true, 300).unwrap();
     }
+    for conversation in ["c1", "c2"] {
+        cva.materialize_path_fragments(
+            conversation,
+            "a7",
+            crate::FragmentConfig {
+                turns: 2,
+                overlap: 0,
+            },
+            true,
+        )
+        .unwrap();
+    }
     (path, cva, ids)
 }
 

@@ -35,7 +35,9 @@ fn timeline() -> HistoricalTimeline {
 }
 fn source() -> HistoricalSemanticSource {
     HistoricalSemanticSource {
-        key: key("c", "u"),
+        fragment_id: [1; 32],
+        source_keys: BTreeSet::from([key("c", "u"), key("c", "a")]),
+        evidence_available: true,
         owner_id: "owner".into(),
         profile: profile(),
         vectors: vec![HistoricalSemanticSourceVector {
@@ -64,7 +66,6 @@ fn plan(
 ) -> HistoricalSemanticPlan {
     HistoricalSemanticPlan::plan(
         [1; 16],
-        [2; 32],
         "owner",
         SemanticPolicy::default(),
         &timeline(),
@@ -74,67 +75,77 @@ fn plan(
     .unwrap()
 }
 #[test]
-fn historical_semantic_identity_matches_independent_h1_golden() {
-    let actual: String = historical_semantic_event_id([1; 16], [2; 32], &key("c", "u"))
-        .unwrap()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect();
+fn historical_semantic_identity_is_owner_domain_fragment_only() {
+    let event = historical_semantic_event_id([1; 16], [1; 32]);
     assert_eq!(
-        actual,
-        "113d383b96941b8b283477ef073a20eb6167e25c044b5221bba9607872cdf2de"
+        format!(
+            "{:x}",
+            sha2::Sha256::digest(
+                [
+                    b"reliquary:historical-semantic-fragment:v1\0".as_slice(),
+                    &[1; 16],
+                    &[1; 32]
+                ]
+                .concat()
+            )
+        ),
+        event.iter().map(|b| format!("{b:02x}")).collect::<String>()
     );
-    assert_ne!(
-        historical_semantic_event_id([1; 16], [2; 32], &key("c", "u")).unwrap(),
-        historical_semantic_event_id([1; 16], [2; 32], &key("c", "U")).unwrap()
+    assert_eq!(
+        event.iter().map(|b| format!("{b:02x}")).collect::<String>(),
+        "758faa5a61bdab3516a19b133b3be7af74c5e4786854abc1524a68455839e61f"
     );
-    assert_ne!(
-        historical_semantic_event_id([1; 16], [2; 32], &key("c\0", "u")).unwrap(),
-        historical_semantic_event_id([1; 16], [2; 32], &key("c", "\0u")).unwrap()
-    );
-}
-#[test]
-fn historical_semantic_changed_evidence_and_amount_keep_source_identity() {
+    assert_ne!(event, historical_semantic_event_id([2; 16], [1; 32]));
+    assert_ne!(event, historical_semantic_event_id([1; 16], [2; 32]));
     let a = plan(vec![source()], vec![target(1)]);
-    let mut s = source();
-    s.evidence_digest = [7; 32];
+    let mut changed = source();
+    changed.evidence_digest = [8; 32];
+    changed.profile.generation = 2;
     let mut t = target(1);
     t.vector = vec![0.8, 0.6];
-    t.evidence_digest = [8; 32];
-    let b = plan(vec![s], vec![t]);
+    let b = plan(vec![changed], vec![t]);
     assert_eq!(a.events[0].event_id, b.events[0].event_id);
     assert_ne!(a.events[0].effects, b.events[0].effects);
     assert_ne!(
         a.events[0].source_evidence_digest,
         b.events[0].source_evidence_digest
     );
-    assert_ne!(
-        a.events[0].event_id,
-        historical_semantic_event_id([1; 16], [3; 32], &key("c", "u")).unwrap()
-    );
-    assert_ne!(
-        a.events[0].event_id,
-        historical_semantic_event_id([3; 16], [2; 32], &key("c", "u")).unwrap()
-    );
 }
 #[test]
-fn historical_semantic_one_source_many_fragments_reduces_to_one_max_award() {
-    let mut s = source();
-    s.vectors.push(HistoricalSemanticSourceVector {
-        fragment_id: [2; 32],
-        components: vec![0.8, 0.6],
-    });
-    let result = plan(vec![s], vec![target(1)]);
+fn historical_semantic_mixed_fragment_is_one_latest_position_event() {
+    let result = plan(
+        vec![source()],
+        vec![
+            target(1),
+            HistoricalSemanticTarget {
+                availability: MemoryAvailability::Supported { position: 2 },
+                ..target(2)
+            },
+        ],
+    );
     assert_eq!(result.events.len(), 1);
-    assert_eq!(result.events[0].effects.len(), 1);
-    assert_eq!(result.events[0].effects[0].bonus, 10);
+    assert_eq!(result.events[0].source_position, 2);
+    assert_eq!(
+        result.events[0].source_keys,
+        BTreeSet::from([key("c", "u"), key("c", "a")])
+    );
+    assert_eq!(result.events[0].effects.len(), 2); // Later context is never replayed at position 1.
+    assert!(result.events[0].effects.iter().all(|e| e.bonus == 10));
+    let mut overlapping = source();
+    overlapping.fragment_id = [2; 32];
+    overlapping.vectors[0].fragment_id = [2; 32];
+    overlapping.source_keys = BTreeSet::from([key("c", "a")]);
+    let two = plan(vec![overlapping.clone(), source()], vec![target(1)]);
+    assert_eq!(two.events.len(), 2); // Distinct retained fragment observations.
+    assert_ne!(two.events[0].event_id, two.events[1].event_id);
+    assert_eq!(two, plan(vec![source(), overlapping], vec![target(1)]));
 }
 #[test]
 fn historical_semantic_exclusions_future_lifecycle_profile_precede_top64() {
     let mut s = source();
     s.credit_excluded = BTreeSet::from([id(1), id(2), id(3), id(7)]);
     let mut targets: Vec<_> = (1..=72).map(target).collect();
-    targets[3].availability = MemoryAvailability::Supported { position: 2 };
+    targets[3].availability = MemoryAvailability::Supported { position: 3 };
     targets[4].lifecycle_eligible = false;
     targets[5].profile.profile_id = [8; 32];
     let result = plan(vec![s], targets);
@@ -151,23 +162,23 @@ fn historical_semantic_exclusions_future_lifecycle_profile_precede_top64() {
 }
 #[test]
 fn historical_semantic_unavailable_is_distinct_from_completed_unusable() {
-    let absent = plan(vec![], vec![target(1)]);
+    let mut unavailable = source();
+    unavailable.evidence_available = false;
+    unavailable.vectors.clear();
+    let absent = plan(vec![unavailable], vec![target(1)]);
     let mut empty = source();
     empty.vectors.clear();
     let complete = plan(vec![empty], vec![target(1)]);
+    assert_eq!(absent.coverage[&[1; 32]], "fragment-evidence-unavailable");
     assert_eq!(
-        absent.coverage[&key("c", "u")],
-        "source-evidence-unavailable"
-    );
-    assert_eq!(
-        complete.coverage[&key("c", "u")],
+        complete.coverage[&[1; 32]],
         "complete-no-usable-source-rows"
     );
     assert!(absent.events.is_empty() && complete.events.is_empty());
     let mut bad = source();
     bad.vectors[0].components = vec![f32::NAN, 0.0];
     assert_eq!(
-        plan(vec![bad], vec![target(1)]).coverage[&key("c", "u")],
+        plan(vec![bad], vec![target(1)]).coverage[&[1; 32]],
         "complete-no-usable-source-rows"
     );
 }
@@ -178,7 +189,6 @@ fn historical_semantic_rejects_foreign_duplicate_and_changed_policy() {
     assert!(
         HistoricalSemanticPlan::plan(
             [1; 16],
-            [2; 32],
             "owner",
             SemanticPolicy::default(),
             &timeline(),
@@ -190,7 +200,6 @@ fn historical_semantic_rejects_foreign_duplicate_and_changed_policy() {
     assert!(
         HistoricalSemanticPlan::plan(
             [1; 16],
-            [2; 32],
             "owner",
             SemanticPolicy::default(),
             &timeline(),
@@ -204,7 +213,6 @@ fn historical_semantic_rejects_foreign_duplicate_and_changed_policy() {
     assert!(
         HistoricalSemanticPlan::plan(
             [1; 16],
-            [2; 32],
             "owner",
             SemanticPolicy::default(),
             &timeline(),
@@ -216,7 +224,6 @@ fn historical_semantic_rejects_foreign_duplicate_and_changed_policy() {
     assert!(matches!(
         HistoricalSemanticPlan::plan(
             [1; 16],
-            [2; 32],
             "owner",
             SemanticPolicy {
                 candidate_limit: 1,
@@ -227,5 +234,23 @@ fn historical_semantic_rejects_foreign_duplicate_and_changed_policy() {
             [target(1)]
         ),
         Err(HistoricalSemanticError::UnsupportedPolicy)
+    ));
+}
+
+#[test]
+fn historical_semantic_same_fragment_cannot_be_recredited_after_reembedding() {
+    let mut regenerated = source();
+    regenerated.evidence_digest = [8; 32];
+    regenerated.profile.generation = 2;
+    assert!(matches!(
+        HistoricalSemanticPlan::plan(
+            [1; 16],
+            "owner",
+            SemanticPolicy::default(),
+            &timeline(),
+            [source(), regenerated],
+            [target(1)]
+        ),
+        Err(HistoricalSemanticError::DuplicateSource(_))
     ));
 }

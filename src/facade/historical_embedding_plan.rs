@@ -9,7 +9,6 @@ use std::sync::atomic::AtomicBool;
 pub(super) struct MissingRow {
     pub fragment: Fragment,
     pub text: String,
-    pub materialize: bool,
 }
 pub(super) struct Plan {
     pub profile: CompatibilityProfile,
@@ -43,6 +42,11 @@ pub(super) fn prepare(
         "sources",
     )?;
     bounded(cva.archive.fragments.len(), limits.fragments, "fragments")?;
+    if cva.archive.fragments.len() == 0 {
+        return Err(unsupported(
+            "fill requires existing genuine Archive fragments",
+        ));
+    }
     bounded(
         cva.archive.nodes.len(),
         limits.inspections,
@@ -208,47 +212,32 @@ pub(super) fn prepare(
     }
     report.reused_rows = rows.len();
     let mut missing = Vec::new();
-    let mut new_fragments = 0usize;
     let mut planned_bytes = crate::compatibility_profile_probe::QUERY_PROBES
         .iter()
         .chain(crate::compatibility_profile_probe::DOCUMENT_PROBES.iter())
         .map(|s| s.len())
         .sum::<usize>();
     bounded(planned_bytes, limits.text_bytes, "probe text bytes")?;
-    for key in &timeline.activity_order {
+    for fragment in cva.fragments() {
         check_cancel(cancel)?;
-        let fragment = Fragment {
-            id: crate::fragment_store::fragment_id(
-                &key.conversation_id,
-                &key.node_id,
-                &key.node_id,
-            ),
-            conversation_id: key.conversation_id.clone(),
-            start_node_id: key.node_id.clone(),
-            end_node_id: key.node_id.clone(),
-        };
+        if cva
+            .semantic_fragment_position(fragment.id)
+            .map_err(unsupported)?
+            .is_none()
+        {
+            continue;
+        }
         if rows.contains_key(&fragment.id.0) {
             continue;
         }
         bounded(
             add(missing.len(), 1)?,
             limits.missing_rows,
-            "missing sources/rows",
+            "missing fragment rows",
         )?;
-        let materialize = match cva.archive.fragments.get(fragment.id) {
-            Some(existing) if existing != &fragment => {
-                return Err(unsupported("conflicting exact fragment"));
-            }
-            Some(_) => false,
-            None => true,
-        };
-        if materialize {
-            new_fragments += 1;
-            bounded(new_fragments, limits.new_fragments, "new fragments")?;
-        }
         let text = cva
             .archive
-            .exact_fragment_text_bounded(&mut cva.container, &fragment, limits.source_bytes)
+            .fragment_text_bounded(&mut cva.container, &fragment, limits.source_bytes)
             .map_err(|e| match e {
                 crate::ArchiveError::Container(crate::ContainerError::ChunkTooLarge)
                 | crate::ArchiveError::FieldTooLarge => budget("source text bytes"),
@@ -256,21 +245,13 @@ pub(super) fn prepare(
             })?;
         planned_bytes = add(planned_bytes, text.len())?;
         bounded(planned_bytes, limits.text_bytes, "total text bytes")?;
-        missing.push(MissingRow {
-            fragment,
-            text,
-            materialize,
-        });
+        missing.push(MissingRow { fragment, text });
     }
     // Keep planning separate from durable-progress accounting.
     report.missing_rows = missing.len();
     let final_rows = add(rows.len(), missing.len())?;
     bounded(final_rows, limits.generation_rows, "resulting rows")?;
-    bounded(
-        add(report.fragments, new_fragments)?,
-        limits.fragments,
-        "resulting fragments",
-    )?;
+    bounded(report.fragments, limits.fragments, "resulting fragments")?;
     let width = mul(profile.dimensions as usize, 4)?;
     let matrix = mul(final_rows, width)?;
     bounded(matrix, limits.matrix_bytes, "resulting matrix")?;

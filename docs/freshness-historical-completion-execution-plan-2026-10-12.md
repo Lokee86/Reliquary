@@ -642,3 +642,9 @@ Architecture impact:
 - Pitlord enforcement impact: ownership guards retained; no policy rule changes. Full refresh remains the C11 gate.
 - Other verification impact: actual frozen copies, independent read-only gates and rejection preservation.
 - Known architectural gaps: retained-REL clock/cohort/Dream compatibility requires explicit owner decisions; mounted management remains unavailable.
+
+## N3 historical fragment contract
+
+Historical planning consumes existing genuine Archive fragments, including mixed-turn fragments, once at the latest represented activity position. All represented Nodes remain source/provenance evidence. Each fragment has one immutable selected row; top-64 eligibility and strongest target bonus precede historical propagation. Any represented necessary evidence excludes the entire source cohort from credit while preserving authorized graph transit. Re-embedding changes manifest evidence, never owner/domain/FragmentId event identity. Non-activity-only and unavailable/invalid rows have explicit coverage. Accepted chronology correction remains N4.
+
+Bounded fill requires already-materialized Archive fragments and a compatible selected profile (or a sole retained profile without a generation). Ordinary Archive/profile/generation APIs supply those prerequisites. Fill creates no fragment and embeds no target Memory. Coverage reports `fragment_id`, canonical `source_keys`, availability `position`, reason and row counts; `unavailable_fragments` replaces turn coverage, and `new_fragments` is always zero. The creation budget is removed. Existing rows, including invalid rows, retain their bytes. Serial cancellation/retry and union/proof/temporary limits remain enforced.

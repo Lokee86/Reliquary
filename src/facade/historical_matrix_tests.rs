@@ -195,7 +195,7 @@ fn vectors(cva: &mut Cva, with_tail: bool) -> crate::VectorGeneration {
             conversation,
             leaf,
             crate::FragmentConfig {
-                turns: 1,
+                turns: 2,
                 overlap: 0,
             },
             true,

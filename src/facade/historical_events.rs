@@ -49,48 +49,83 @@ pub(super) fn build(
         .copied();
     let mut sources = Vec::new();
     let mut targets = Vec::new();
-    if let Some(generation) = generation {
-        let profile = cva
-            .compatibility_profile(generation.compatibility_profile_id)
-            .map_err(|e| fail(&e.to_string()))?;
-        let profile = SemanticVectorProfile {
-            profile_id: profile.id.0,
-            dimensions: profile.dimensions,
-            generation: generation.vector_version,
-        };
-        for key in &manifest.timeline.activity_order {
-            let node = cva
-                .archive
-                .nodes
-                .get(&key.conversation_id, &key.node_id)
-                .cloned()
-                .ok_or_else(|| fail("missing historical event source"))?;
-            if let SemanticSourceReadiness::Ready(source) =
-                cva.prepare_accepted_semantic_source(&node, Some(generation.id))?
-            {
-                let credit_excluded = manifest
-                    .memory_inputs
-                    .iter()
-                    .filter(|(_, input)| input.necessary_sources.contains(key))
-                    .map(|(&id, _)| id)
-                    .collect();
-                sources.push(HistoricalSemanticSource {
-                    key: key.clone(),
-                    owner_id: owner_id.clone(),
-                    profile,
-                    evidence_digest: source.source_digest,
-                    vectors: source
-                        .vectors
-                        .into_iter()
-                        .map(|v| HistoricalSemanticSourceVector {
-                            fragment_id: v.fragment_id.0,
-                            components: v.components,
-                        })
-                        .collect(),
-                    credit_excluded,
-                });
-            }
+    let profile = generation
+        .map(|g| {
+            cva.compatibility_profile(g.compatibility_profile_id)
+                .map(|p| SemanticVectorProfile {
+                    profile_id: p.id.0,
+                    dimensions: p.dimensions,
+                    generation: g.vector_version,
+                })
+                .map_err(|e| fail(&e.to_string()))
+        })
+        .transpose()?
+        .unwrap_or(SemanticVectorProfile {
+            profile_id: [0; 32],
+            dimensions: 0,
+            generation: 0,
+        });
+    for fragment in cva.fragments() {
+        if cva.semantic_fragment_position(fragment.id)?.is_none() {
+            continue;
         }
+        let source_keys: BTreeSet<_> = cva
+            .semantic_fragment_sources(fragment.id)?
+            .into_iter()
+            .map(
+                |(conversation_id, node_id)| crate::freshness::historical_planner::SourceKey {
+                    conversation_id,
+                    node_id,
+                },
+            )
+            .collect();
+        let source = generation
+            .map(|g| cva.prepare_semantic_fragment(fragment.id, g.id))
+            .transpose()?;
+        let source_cohorts: BTreeSet<_> = manifest
+            .memory_inputs
+            .values()
+            .filter(|input| {
+                input
+                    .necessary_sources
+                    .iter()
+                    .any(|key| source_keys.contains(key))
+            })
+            .map(|input| input.cohort_key)
+            .collect();
+        let credit_excluded = manifest
+            .memory_inputs
+            .iter()
+            .filter(|(_, input)| source_cohorts.contains(&input.cohort_key))
+            .map(|(&id, _)| id)
+            .collect();
+        let (evidence_available, evidence_digest, vectors) = match source {
+            Some(SemanticSourceReadiness::Ready(source)) => (
+                true,
+                source.source_digest,
+                source
+                    .vectors
+                    .into_iter()
+                    .map(|v| HistoricalSemanticSourceVector {
+                        fragment_id: v.fragment_id.0,
+                        components: v.components,
+                    })
+                    .collect(),
+            ),
+            _ => (false, [0; 32], Vec::new()),
+        };
+        sources.push(HistoricalSemanticSource {
+            fragment_id: fragment.id.0,
+            source_keys,
+            owner_id: owner_id.clone(),
+            profile,
+            evidence_available,
+            evidence_digest,
+            vectors,
+            credit_excluded,
+        });
+    }
+    if let Some(generation) = generation {
         for (&id, input) in &manifest.memory_inputs {
             let Some(location) =
                 cva.memory_vector_location(generation.compatibility_profile_id, input.body_id)
@@ -141,7 +176,6 @@ pub(super) fn build(
     }
     let semantic = HistoricalSemanticPlan::plan(
         owner,
-        manifest.import_id,
         &owner_id,
         SemanticPolicy::default(),
         &manifest.timeline,

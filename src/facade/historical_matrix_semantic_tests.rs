@@ -47,7 +47,7 @@ fn historical_matrix_semantic_live_local_vs_native_propagation_and_stale_communi
         let plan = frozen.events.as_ref().unwrap();
         assert!(plan.dream.events.is_empty());
         assert_eq!(plan.semantic.events.len(), 1);
-        assert_eq!(plan.semantic.events[0].source_position, 331);
+        assert_eq!(plan.semantic.events[0].source_position, 332);
         assert_eq!(plan.semantic.events[0].effects.len(), 1);
         assert_eq!(plan.semantic.events[0].effects[0].memory_id, root);
         let prepared = frozen.prepare_native().unwrap();

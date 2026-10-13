@@ -25,18 +25,6 @@ impl EmbeddingEndpoint for ConstantEndpoint {
     }
 }
 pub(super) fn vectors(cva: &mut Cva) {
-    for conversation in ["c1", "c2"] {
-        cva.materialize_path_fragments(
-            conversation,
-            "a7",
-            crate::FragmentConfig {
-                turns: 1,
-                overlap: 0,
-            },
-            true,
-        )
-        .unwrap();
-    }
     let profile = cva
         .establish_compatibility_profile(&ConstantEndpoint)
         .unwrap();
@@ -53,7 +41,7 @@ fn historical_native_semantic_source_cohort_is_excluded_before_roots_and_reopen(
     let before = fs::read(&path).unwrap();
     let frozen = cva.freeze_historical_import().unwrap();
     let plan = frozen.events.as_ref().unwrap();
-    assert_eq!(plan.semantic.events.len(), 16);
+    assert_eq!(plan.semantic.events.len(), 8);
     assert!(plan.dream.events.is_empty());
     let cohort: BTreeSet<_> = ids.iter().copied().collect();
     for event in &plan.semantic.events {
@@ -69,12 +57,7 @@ fn historical_native_semantic_source_cohort_is_excluded_before_roots_and_reopen(
         );
         assert_eq!(
             event.event_id,
-            historical_semantic_event_id(
-                cva.owner_uuid().unwrap(),
-                frozen.import_id(),
-                &event.source_key
-            )
-            .unwrap()
+            historical_semantic_event_id(cva.owner_uuid().unwrap(), event.fragment_id)
         );
         assert!(event.effects.iter().all(|e| e.bonus == 10));
     }

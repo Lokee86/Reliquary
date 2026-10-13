@@ -221,7 +221,7 @@ After all three fixtures pass C10, delete the normalizer source and any private 
 | ---: | :---: | --- | --- |
 | **N1 — complete** | **Sol** | Freeze the mixed-fragment semantic-source correction and accepted-Archive-clock correction above. Update H1/F8 design tests before touching retained fixtures. | No exact-turn-only semantic assumption remains in the intended contract; accepted Archive positions are the existing-REL numerical clock. |
 | **N2 — complete** | **Sol** | Refactor live F8 source identity from accepted-turn-only evidence to fragment-availability evidence. Update durable semantic event identity/evidence and self/cohort exclusions without enabling live propagation. | Mixed-fragment live fixtures pass; one fragment cannot be double-credited because it overlaps multiple turns or is re-embedded. |
-| **N3** | **Luna** | Refactor historical manifest/event planning and C7/C8 embedding fill to the same fragment-source model. Remove exact-turn fragment creation/fill requirements. | H1 manifest proves fragment/generation/profile/availability evidence; historical semantic fixtures use mixed fragments deterministically. |
+| **N3 — complete** | **Luna** | Refactor historical manifest/event planning and C7/C8 embedding fill to the same fragment-source model. Remove exact-turn fragment creation/fill requirements. | H1 manifest proves fragment/generation/profile/availability evidence; historical semantic fixtures use mixed fragments deterministically. |
 | **N4** | **Sol** | Change existing-REL H1 chronology validation to consume canonical Archive activity order. Keep timestamps as provenance evidence and preserve fresh-import deterministic order. | 14-day order mismatch and 28-day timestamp regressions no longer fail solely because timestamp sort differs from accepted Archive order. |
 | **N5** | **Sol** | Implement the disposable fixture normalizer with exact owner/hash allowlisting, current-standard output only, candidate verification and atomic same-path promotion. No public migration API changes. | Tool refuses non-allowlisted files and cannot leave a partially promoted authoritative fixture. |
 | **N6** | **Luna** | Normalize 14-day and 28-day in place: complete genuinely missing H1-required generation work, establish current fragment/target vector state, normalize provable pre-Freshness birth evidence, and materialize the accepted Dream legacy approximation where actual proof is absent. | Both authoritative fixtures reopen under ordinary current code, preserve owner/Archive/Memory identity invariants, have updated hashes, and pass historical preflight. |
@@ -337,3 +337,33 @@ Architecture impact:
 - Pitlord enforcement impact: refreshed repository policy and current P4/external ownership guards pass; no new area/rule is required.
 - Other verification impact: mixed-source/exclusion/rotation/reopen, missing-row retry, strict birth, incompatible source-model history and native rebase/reclamation fixtures pass.
 - Known architectural gaps: historical fragment/clock convergence remains N3/N4; no maintained pre-release conversion subsystem was introduced.
+
+## N3 disposition — 2026-10-12
+
+Historical event and manifest planning now use genuine retained Archive fragments, including mixed-turn fragments, at their latest represented activity position. All represented Nodes are pinned as immutable proof. Semantic event identity is SHA-256 of the fixed historical fragment domain, zero byte, owner UUID and FragmentId; import/generation/profile/row proof does not reopen credit. H1 schema/policy 2 and requested-fill contract 2 commit fragment bindings, availability, generation/profile and immutable row bytes. The policy digest is `e4a40d7711ba768119336577b6276de1aff396d2d9d289606e9d3674615e088b`. CVAFRS03 framing is unchanged; previous unreleased policy digests reject without conversion support.
+
+C7/C8 fill populates only missing rows of existing fragments using bounded ordinary Archive text rendering. No exact-turn Fragment records are created. Existing rows, including invalid evidence, remain unchanged. Coverage is per fragment (`unavailable_fragments`); the obsolete creation budget is removed and report `new_fragments` stays zero. Ordinary materialization and compatible profile/generation setup remain prerequisites. Cancellation, partial-batch retry, union amplification and preflight limits retain their existing behavior.
+
+Source-cohort exclusions now cover every necessary represented source, including external grounding evidence, for both live and historical selection. Authorized historical graph bridges remain traversable; excluded cohorts receive no credit. The old turn-only preparation adapter is removed. Native fixtures now materialize ordinary mixed fragments. Authoritative retained corpora were untouched; accepted-clock convergence remains N4 and disposable corpus normalization remains N5–N10.
+
+Documentation impact:
+- Inspected: repository/shared guidance, current architecture/invariant/storage/API owners, routing maps and Freshness policy/plans.
+- Updated: current historical fragment/fill contract, typed policy descriptor/digest, proof schema, public coverage units, regression routing and this disposition.
+- Not affected: authoritative fixture bytes, Dream proof/receipt authority and physical Archive/vector/checkpoint framing.
+- Compliance check: final structural/change-impact policy and patch hygiene results are recorded below.
+- Known documentation gaps: N4 clock convergence and N5–N10 retained calibration remain; current fragment behavior is documented.
+
+Architecture impact:
+- Standards added or changed: no shared standard; N1 fragment contract implemented in historical adapters.
+- Ownership or boundary impact: Archive retains immutable source/vector/activity authority; Freshness retains receipt/score/checkpoint authority. No store, coordinator, migration registry or queue added.
+- Pitlord enforcement impact: current refreshed policy evidence is recorded below; no new boundary/rule required.
+- Other verification impact: mixed-fragment identity/availability/proof drift, bounded rendering, cohort exclusions and native fill/retry/recovery fixtures.
+- Known architectural gaps: accepted chronology remains N4; retained-corpus acceptance remains later gates.
+
+N3 verification:
+- Root formatting and locked build passed. Full locked tests passed: 1,260 library tests, 4 ignored measurements/retained diagnostics, 138 integration tests and doctests (0 tests). Both exhaustive native checkpoint/live-use byte-prefix recovery tests passed.
+- CLI formatting, locked build and all 19 tests passed. Archive roundtrip passed with two Nodes, one branch and one mixed fragment. All 10 N1 design oracles passed.
+- Native regressions pin mixed availability, canonical row/provenance evidence and external-grounding whole-cohort exclusion. A generation refresh changes manifest evidence/bonuses while retaining all fragment event IDs and positions. Invalid retained rows remain untouched; bounded mixed rendering equals ordinary rendering and rejects a one-byte-short limit.
+- Verification used repository-local `.t` scratch and process-local debug-disabled build profiles; no committed build profile or retained corpus was changed.
+- Architecture refresh/enforcement passed: 75 P4 guard fixtures, 161 classified APIs, 11 external-ownership fixtures and 23 Pitlord rules on 70,802 source nodes / 2,379 relationships; snapshot `f4b35ead77f7860765d9e2d43a8001af12023fbe312b2105ff2ee7f7f3c2259b`. This is scoped static enforcement evidence, not proof of arbitrary dynamic calls.
+- Both required documentation-policy modes and patch hygiene passed on the final recorded tree.

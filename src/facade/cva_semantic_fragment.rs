@@ -208,7 +208,6 @@ impl Cva {
                     components,
                 }]
             },
-            excluded_mixed_fragments: 0,
             invalid_vectors: usize::from(invalid),
         }))
     }

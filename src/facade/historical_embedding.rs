@@ -127,42 +127,48 @@ pub(super) fn coverage(cva: &mut Cva, report: &mut HistoricalEmbeddingReport) ->
         .iter()
         .max_by_key(|g| g.vector_version)
         .copied();
-    let timeline = cva.historical_freshness_timeline().map_err(unsupported)?;
     report.coverage.clear();
-    report.unavailable_sources = 0;
-    for (index, key) in timeline.activity_order.iter().enumerate() {
-        let node = cva
-            .archive
-            .nodes
-            .get(&key.conversation_id, &key.node_id)
-            .cloned()
-            .ok_or_else(|| unsupported("missing source"))?;
-        let (reason, usable_rows, mixed_fragments, invalid_rows) = match cva
-            .prepare_accepted_semantic_source(&node, generation.map(|g| g.id))
+    report.unavailable_fragments = 0;
+    for fragment in cva.fragments() {
+        let Some(position) = cva
+            .semantic_fragment_position(fragment.id)
             .map_err(unsupported)?
-        {
-            crate::cva_semantic_source::SemanticSourceReadiness::Pending => {
-                report.unavailable_sources += 1;
-                ("missing-or-incomplete-retained-source-evidence", 0, 0, 0)
+        else {
+            continue;
+        };
+        let sources = cva
+            .semantic_fragment_sources(fragment.id)
+            .map_err(unsupported)?;
+        let activity_turns = sources
+            .iter()
+            .filter(|(c, n)| cva.activity_position_for_turn(c, n).is_some())
+            .count();
+        let result = generation
+            .map(|g| cva.prepare_semantic_fragment(fragment.id, g.id))
+            .transpose()
+            .map_err(unsupported)?;
+        let (reason, usable_rows, invalid_rows) = match result {
+            None | Some(crate::cva_semantic_source::SemanticSourceReadiness::Pending) => {
+                report.unavailable_fragments += 1;
+                ("missing-or-incomplete-fragment-evidence", 0, 0)
             }
-            crate::cva_semantic_source::SemanticSourceReadiness::Ready(source) => (
+            Some(crate::cva_semantic_source::SemanticSourceReadiness::Ready(source)) => (
                 if source.vectors.is_empty() {
                     "complete-unusable"
                 } else {
                     "complete-usable"
                 },
                 source.vectors.len(),
-                source.excluded_mixed_fragments,
                 source.invalid_vectors,
             ),
         };
         report.coverage.push(HistoricalEmbeddingCoverage {
-            conversation_id: key.conversation_id.clone(),
-            node_id: key.node_id.clone(),
-            position: index as u64 + 1,
+            fragment_id: fragment.id,
+            source_keys: sources,
+            position,
             reason: reason.into(),
             usable_rows,
-            mixed_fragments,
+            mixed_fragments: usize::from(activity_turns > 1),
             invalid_rows,
         });
     }
@@ -248,16 +254,6 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
             plan.expected.verify(cva)?;
             for (row, components) in batch.iter().zip(vectors) {
                 check_cancel(cancel)?;
-                if row.materialize {
-                    report.write_attempted = true;
-                    if cva
-                        .archive
-                        .put_fragment(&mut cva.container, row.fragment.clone())
-                        .map_err(unsupported)?
-                    {
-                        report.new_fragments += 1;
-                    }
-                }
                 plan.rows.insert(
                     row.fragment.id.0,
                     components.into_iter().flat_map(f32::to_le_bytes).collect(),
@@ -334,7 +330,7 @@ pub(super) fn manifest_pass(
         .copied()
         .ok_or_else(|| fail("completed fill lacks retained generation"))?;
     // Source entries include a derived coverage_digest; the fill digest commits
-    // exactly node/position/mode/evidence, without hashing that derivative twice.
+    // exactly fragment/bindings/availability/mode/evidence, without hashing it twice.
     let records = source_records
         .iter()
         .map(|record| match record {
@@ -349,7 +345,7 @@ pub(super) fn manifest_pass(
         })
         .collect::<Result<Vec<_>, _>>()?;
     Ok(Value::map([
-        ("contract_version", Value::Unsigned(1)),
+        ("contract_version", Value::Unsigned(2)),
         ("disposition", Value::text("complete")),
         (
             "profile_id",
@@ -363,7 +359,7 @@ pub(super) fn manifest_pass(
         (
             "coverage_digest",
             Value::bytes(
-                Value::Array(records).digest("reliquary:historical-embedding-coverage:v1")?,
+                Value::Array(records).digest("reliquary:historical-embedding-coverage:v2")?,
             ),
         ),
     ]))

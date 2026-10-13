@@ -2,8 +2,26 @@ use super::historical_embedding::Endpoint;
 use super::*;
 use crate::{EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, VectorNormalization};
 use std::sync::atomic::AtomicBool;
+
 #[test]
-fn historical_embedding_native_mixed_rows_are_reused_and_missing_mixed_stays_unavailable() {
+fn historical_mixed_fragment_rendering_has_a_total_byte_bound() {
+    let (_, mut cva, _) = historical_import_fixture("n3-render-bound.rel");
+    for fragment in cva.fragments() {
+        let ordinary = cva.fragment_text(fragment.id).unwrap();
+        let bounded = cva
+            .archive
+            .fragment_text_bounded(&mut cva.container, &fragment, ordinary.len())
+            .unwrap();
+        assert_eq!(bounded, ordinary);
+        assert!(
+            cva.archive
+                .fragment_text_bounded(&mut cva.container, &fragment, ordinary.len() - 1)
+                .is_err()
+        );
+    }
+}
+#[test]
+fn historical_embedding_native_mixed_rows_are_filled_or_reused_without_fragment_creation() {
     for retain_mixed in [false, true] {
         let (path, mut cva, _) = historical_import_fixture(&format!("h8-mixed-{retain_mixed}.rel"));
         for conversation in ["c1", "c2"] {
@@ -27,12 +45,11 @@ fn historical_embedding_native_mixed_rows_are_reused_and_missing_mixed_stays_una
                 .unwrap();
         }
         let report = embedding::fill(&mut cva, &endpoint, Default::default(), &cancel).unwrap();
-        assert_eq!(report.new_rows, 32);
+        assert_eq!(report.new_rows, if retain_mixed { 0 } else { mixed });
+        assert_eq!(report.new_fragments, 0);
+        assert_eq!(cva.fragments().len(), mixed);
         assert_eq!(report.reused_rows, if retain_mixed { mixed } else { 0 });
-        assert_eq!(
-            report.unavailable_sources,
-            if retain_mixed { 0 } else { 32 }
-        );
+        assert_eq!(report.unavailable_fragments, 0);
         if retain_mixed {
             assert!(report.coverage.iter().all(|s| s.mixed_fragments > 0));
         }
@@ -42,7 +59,7 @@ fn historical_embedding_native_mixed_rows_are_reused_and_missing_mixed_stays_una
                 .unwrap()
                 .fragment_ids
                 .len(),
-            32 + if retain_mixed { mixed } else { 0 }
+            mixed
         );
         assert!(cva.freshness.import_checkpoint().is_none());
         drop(cva);
@@ -83,7 +100,7 @@ fn historical_embedding_native_existing_invalid_rows_are_not_reembedded() {
     let report = embedding::fill(&mut cva, &endpoint, Default::default(), &cancel).unwrap();
     assert_eq!(report.new_rows, 0);
     assert_eq!(report.final_generation, Some(generation.id));
-    assert_eq!(report.unavailable_sources, 0);
+    assert_eq!(report.unavailable_fragments, 0);
     assert!(
         report
             .coverage
@@ -181,7 +198,10 @@ fn historical_embedding_native_cancel_after_probes_and_after_partial_fill_reopen
                     fill_missing_embeddings: true,
                 },
                 &endpoint,
-                Default::default(),
+                HistoricalEmbeddingLimits {
+                    batch_inputs: 8,
+                    ..Default::default()
+                },
                 &cancel,
             )
             .unwrap_err();
@@ -193,7 +213,7 @@ fn historical_embedding_native_cancel_after_probes_and_after_partial_fill_reopen
             HistoricalEmbeddingDisposition::Cancelled
         );
         assert_eq!(error.report.attempted_calls, call);
-        assert_eq!(error.report.new_rows, if call == 4 { 16 } else { 0 });
+        assert_eq!(error.report.new_rows, if call == 4 { 8 } else { 0 });
         assert!(cva.freshness.import_checkpoint().is_none());
         drop(cva);
         let mut cva = Cva::open(path).unwrap();
@@ -205,13 +225,16 @@ fn historical_embedding_native_cancel_after_probes_and_after_partial_fill_reopen
                     fill_missing_embeddings: true,
                 },
                 &endpoint,
-                Default::default(),
+                HistoricalEmbeddingLimits {
+                    batch_inputs: 8,
+                    ..Default::default()
+                },
                 &cancel,
             )
             .unwrap();
         assert_eq!(
             retry.embedding.unwrap().new_rows,
-            if call == 4 { 16 } else { 32 }
+            if call == 4 { 8 } else { 16 }
         );
     }
 }

@@ -2,6 +2,61 @@
 use super::*;
 
 #[test]
+fn semantic_fragment_excludes_a_whole_cohort_for_external_grounding_evidence() {
+    let mut f = Fixture::new();
+    f.turn("base", None, "user");
+    let episode = f
+        .cva()
+        .materialize_path_episodes(
+            "c",
+            "base",
+            crate::EpisodeConfig::default(),
+            crate::EpisodeOrigin::Live,
+            Some((crate::EpisodeBoundary::Explicit, 0)),
+        )
+        .unwrap()
+        .created
+        .remove(0);
+    for n in 0..100 {
+        f.turn(&format!("before-{n}"), None, "user");
+    }
+    f.cva().set_semantic_freshness_enabled(true).unwrap();
+    f.turn("grounding", None, "user");
+    let mut ids = Vec::new();
+    for n in 0..2 {
+        let mut draft = live_draft(&format!("grounded-cohort-{n}"));
+        draft.source_episode_id = Some(episode.id);
+        draft.source_node_id = Some("base".into());
+        if n == 0 {
+            draft.grounding_source_conversation_id = Some("c".into());
+            draft.grounding_source_node_id = Some("grounding".into());
+        }
+        ids.push(f.cva().publish_memory(None, 0, draft).unwrap().0.id);
+    }
+    for n in 0..20 {
+        f.turn(&format!("after-{n}"), None, "user");
+    }
+    f.turn("last", Some("grounding"), "assistant");
+    f.fragments("last", 2);
+    let profile = f
+        .cva()
+        .establish_compatibility_profile(&ConstantSemanticEndpoint)
+        .unwrap();
+    f.cva()
+        .build_missing_memory_vectors(profile.id, &ConstantSemanticEndpoint)
+        .unwrap();
+    f.cva()
+        .build_archive_vector_generation(profile.id, &ConstantSemanticEndpoint)
+        .unwrap();
+    for id in ids {
+        assert_eq!(
+            f.cva().freshness_record(id).unwrap().score_at(123).unwrap(),
+            98
+        );
+    }
+}
+
+#[test]
 fn semantic_mixed_fragment_availability_excludes_every_source_and_credits_once() {
     let mut f = Fixture::new();
     f.turn("base", None, "user");

@@ -83,7 +83,7 @@ fn historical_retained_corpus_native_acceptance() {
         }
         let passes = cva.historical_completed_initial_dream_passes().unwrap();
         let generations = cva.vector_generations.generations().to_vec();
-        let mut exact_sources = 0;
+        let mut usable_fragments = 0;
         let mut archive_rows = 0;
         let mut target_rows = 0;
         if let Some(generation) = generations.iter().max_by_key(|g| g.vector_version) {
@@ -115,22 +115,20 @@ fn historical_retained_corpus_native_acceptance() {
                 })
                 .map(|fragment| (fragment.conversation_id, fragment.start_node_id))
                 .collect();
-            let nodes: Vec<_> = cva
-                .archive
-                .nodes
-                .iter()
-                .filter(|node| {
-                    matches!(node.role.as_str(), "user" | "assistant")
-                        && candidates.contains(&(node.conversation_id.clone(), node.id.clone()))
-                })
-                .cloned()
-                .collect();
-            for node in nodes {
+            for fragment in cva.fragments() {
+                if !cva
+                    .semantic_fragment_sources(fragment.id)
+                    .unwrap()
+                    .iter()
+                    .any(|key| candidates.contains(key))
+                {
+                    continue;
+                }
                 if let crate::cva_semantic_source::SemanticSourceReadiness::Ready(source) = cva
-                    .prepare_accepted_semantic_source(&node, Some(generation.id))
+                    .prepare_semantic_fragment(fragment.id, generation.id)
                     .unwrap()
                 {
-                    exact_sources += usize::from(!source.vectors.is_empty());
+                    usable_fragments += usize::from(!source.vectors.is_empty());
                 }
             }
         }
@@ -138,7 +136,7 @@ fn historical_retained_corpus_native_acceptance() {
             "structured_content_provenance_memories":structured,"pending_publications":pending,
             "retained_first_cycle_passes":passes.len(),"vector_generations":generations.len(),
             "latest_generation_archive_rows":archive_rows,"latest_generation_target_bindings":target_rows,
-            "exact_turn_source_evidence":exact_sources,"graph_relations":cva.graph_relations().len(),
+            "usable_fragment_source_evidence":usable_fragments,"graph_relations":cva.graph_relations().len(),
             "before_distribution":population,"already_checkpointed":cva.freshness.import_checkpoint().is_some()});
         // Diagnostics read the same owner adapters; only the public operation accepts.
         let diagnostic = cva.freeze_historical_import();
