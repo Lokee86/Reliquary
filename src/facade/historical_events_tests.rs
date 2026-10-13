@@ -24,7 +24,7 @@ impl EmbeddingEndpoint for ConstantEndpoint {
         Ok(vec![vec![1.0, 0.0]; texts.len()])
     }
 }
-fn vectors(cva: &mut Cva) {
+pub(super) fn vectors(cva: &mut Cva) {
     for conversation in ["c1", "c2"] {
         cva.materialize_path_fragments(
             conversation,
@@ -94,7 +94,7 @@ fn historical_native_semantic_source_cohort_is_excluded_before_roots_and_reopen(
     assert_eq!(retried.events.as_ref(), frozen.events.as_ref());
     assert_eq!(fs::read(&path).unwrap(), before);
 }
-fn linked_source(cva: &mut Cva, target: MemoryId, duplicate: bool) -> MemoryId {
+pub(super) fn linked_source(cva: &mut Cva, target: MemoryId, duplicate: bool) -> MemoryId {
     let source = cva
         .publish_memory(
             None,

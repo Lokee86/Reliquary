@@ -7,6 +7,8 @@ use std::fs;
 mod historical_events;
 #[path = "historical_manifest_tests.rs"]
 mod historical_manifest;
+#[path = "historical_recovery_tests.rs"]
+mod historical_recovery;
 #[path = "historical_import_transform_tests.rs"]
 mod historical_transform;
 

@@ -26,7 +26,7 @@ Historical reconstruction already has:
 - copy/repack/reclamation/reconciliation preservation tests; and
 - partial model-level orchestration/recovery evidence.
 
-C2–C5 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native crash-prefix recovery, mounted/importer and embedding integration, retained-corpus measurements and release disposition remain C6–C12.
+C2–C6 delete the experimental in-memory coordinator and duplicate checkpoint store, derive the canonical manifest and events from authoritative owner state, and integrate native one-shot publication. Native checkpoint construction/publication is private to Cva; the sole caller operation accepts only options. Offline/exclusive reconstruction now ends in FreshnessStore/CVAFRS03. Native checkpoint/receipt byte-prefix recovery, passive due-index rebuild and live-safe retries are verified in C6. Mounted/importer and embedding integration, retained-corpus measurements and release disposition remain C7–C12.
 
 At the time this plan was written, `feat/freshness-semantic-historical-linear` was **66 commits behind `main` and 28 commits ahead**. Current `main` contains later multiplexing/import/runtime ownership work. Convergence is therefore a prerequisite, not cleanup after implementation.
 
@@ -358,3 +358,40 @@ Architecture impact:
 Final C5 gates:
 - Both documentation-policy modes and git diff --check passed on the final implementation; required ownership guards passed (75 P4 fixtures, 161 classified public APIs, 11 external ownership fixtures).
 - Architecture refresh passed: sha256:6e9f1332083655835663b7480401c2262d17516e34869f660a194c3783bd5d66; 69,021 source nodes, 2,369 relationships, 23 rules, no violations.
+
+## C6 disposition and verification
+
+**C6 complete: native checkpoint/live-use crash-prefix, reopen, due-index and retry closure.** Final documentation/architecture results are recorded below. C7 bounded embedding-only contract is next; H1–H8 release completion remains C12.
+
+- Native public reconstruction produces one CVAFRS03 frame. Every byte prefix, including zero bytes, all partial u64 frame headers and payload/checksum prefixes, reopens through normal Cva as exactly the old provisional or complete accepted projection. Clocks and complete file bytes are verified; retry and second reopen are byte-identical.
+- Checkpoint matrices: 485 prefixes without vectors; 668 with retained genuine source vectors, shared semantic recipients and an archived alias. A fully framed corrupt checkpoint checksum rejects without repairing or rewriting the file.
+- Native public accepted-use produces one CVAFRS02 multi-recipient frame after 998 real accepted Archive turns following the checkpoint. All 1,072 frame prefixes recover wholly absent or wholly accepted. Historical retry preserves live growth; receipt retry awards all three unique Memories exactly once across worker counts and reopen. Duplicated/reordered input IDs do not duplicate credit.
+- Each recipient visibly moves from -1 to +24 through the actual +25 receipt, avoiding score saturation as a false oracle. Stored checkpoint identity remains unchanged. Accepted retries perform no append or rescore.
+- Passive reopen reconstructs the due dispatcher and exact Fresh-to-Stale boundary at turn 1,016. Bounded drains recover all three notices without score/file mutation; notifications remain derived and at-least-once.
+- Total: 2,225 actual native frame-prefix cases. Existing production recovery passed without changes; only owner-local test fixtures and documentation change. No alternate ledger, codec or caller-authored score plan is introduced.
+
+Verification:
+- cargo test --locked --lib historical_native_ -j 2 -- --nocapture: 9 passed, including all new native recovery cases.
+- cargo test --locked --lib -j 2: 1,226 passed, 3 ignored.
+- cargo check --locked --tests -j 2: passed, including all integration-target compilation.
+- Root/CLI formatting, CLI locked check and tests passed (19 tests).
+- Full root integration execution remains C11 (C1 records the Windows link/PDB limit).
+- Corrected initial non-Debug unwrap_err test compilation and reran. Failed compilation is not passing evidence. Temporary fixtures were removed.
+
+Documentation impact:
+- Inspected: canonical owner/API/storage/limits/roadmap docs, active plan, Container/due code and shared engineering rules.
+- Updated: C6 native recovery evidence, actual file/receipt atomicity, live-safe retry and remaining C7–C12 work; removed completed recovery work from the future roadmap.
+- Not affected: H1 encoding, Freshness mathematics, checkpoint framing/version, live F8 activation, PHY scope and importer/provider boundaries.
+- Compliance check: both structural and changed-from-origin/main documentation-policy modes passed.
+- Known documentation gaps: C7–C12 acceptance/disposition remains pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: unchanged; tests remain under the private native Cva owner module and invoke public operations against actual files. Container/Freshness remain authorities; due state stays derived.
+- Pitlord enforcement impact: policy unchanged; refreshed enforcement passed all 23 rules without violations.
+- Other verification impact: exhaustive framing prefixes, complete corruption rejection, shared recipients/alias, real multi-recipient use and passive due recovery.
+- Known architectural gaps: bounded embedding, mounted/importer integration, retained-corpus measurement and release gates remain C7–C12.
+
+Final C6 gates:
+- Both documentation-policy modes and git diff --check passed; ownership guards passed (75 P4 fixtures, 161 classified public APIs, 11 external ownership fixtures).
+- Architecture refresh passed: sha256:343c7147f978746fb7cabb4d8a837532a1d25c572c2f3a8e9331dca8849aeb4b; 69,110 source nodes, 2,369 relationships, 23 rules, no violations.
