@@ -87,7 +87,56 @@ pub(crate) fn historical_duplicate_representative(
     root_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
-    duplicate_representative(cva, root_id, u64::MAX, None, relations)
+    let mut visited = HashSet::new();
+    let mut queue = VecDeque::from([root_id]);
+    let mut active = Vec::new();
+    while let Some(id) = queue.pop_front() {
+        if !visited.insert(id) {
+            continue;
+        }
+        let Some(current) = historical_supersession_terminal(cva, id, relations)? else {
+            return Ok(None);
+        };
+        queue.extend(duplicate_component(id, relations));
+        if current != id {
+            queue.push_back(current);
+            continue;
+        }
+        let memory = cva.memory(current)?;
+        if !memory.archived && cva.freshness_is_publication_birth(current) {
+            active.push(memory);
+        }
+    }
+    active.sort_by_key(|memory| representative_key(cva, memory));
+    Ok(active.first().map(|memory| memory.id))
+}
+
+fn historical_supersession_terminal(
+    cva: &mut Cva,
+    root_id: MemoryId,
+    relations: &[GraphRelation],
+) -> Result<Option<MemoryId>, DreamLifecycleError> {
+    let mut current = root_id;
+    let mut visited = HashSet::new();
+    loop {
+        if !visited.insert(current) {
+            return Ok(None);
+        }
+        let memory = cva.memory(current)?;
+        let Some(superseder) = memory.superseded_by else {
+            break;
+        };
+        // Both existing owners must agree. A bare pointer, conflicting active
+        // edge, cycle or unproved publication cannot confer representation.
+        if !memory.archived
+            || unique_superseder(relations, current) != Some(superseder)
+            || !cva.freshness_is_publication_birth(superseder)
+        {
+            return Ok(None);
+        }
+        current = superseder;
+    }
+    Ok(Some(current))
 }
 
 fn duplicate_representative(

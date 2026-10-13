@@ -12,6 +12,10 @@ HistoricalEmbeddingLimits can only lower the frozen C7 ceilings. HistoricalRecon
 
 Only missing rows of existing genuine Archive fragments are requested, including mixed-turn fragments. Ordinary Archive rendering preserves exact role/content text with separators under a total byte bound. Existing rows retain identical bytes; invalid retained rows remain explicit coverage. Fill creates no Fragment records. No target-Memory embedding, Insomnia/Dream rerun or synthesized text occurs. Requests run serially through EmbeddingEndpoint::embed_bounded; implementations default to unsupported, while the simulator and OpenAI-ready endpoint enforce bounded output. Remote bounded requests do not follow redirects, retry or fan out and keep the existing 120-second timeout. Provider work stays outside runtime locks. This is an offline/exclusive post-generation surface; Gateway mounted historical management is unavailable. See the [C7 contract and C8 verification](freshness-historical-completion-execution-plan-2026-10-12.md).
 
+Coverage identifies each `fragment_id`, its canonical `source_keys`, availability `position`, reason and row counts. Availability is the latest accepted Archive activity represented by the fragment; every represented Node remains provenance evidence. `unavailable_fragments` reports absent source evidence, and `new_fragments` is always zero. The operation has no exact-turn embedding or fragment-creation lane.
+
+Historical Dream authority resolves accepted duplicate components together with supersession chains, including an archived alias whose representative was later superseded. Each supersession pointer must agree with the unique accepted Supersedes edge and a proved owner-local publication; cycles or conflicting pointer/edge evidence reject. Resolution reads existing authority and does not revise Memory or Graph history. Ordinary imports retain genuine first-cycle proof. Missing proof is unsupported; the one-time retained-fixture legacy approximation is not an automatic import fallback.
+
 ## Purpose
 This document owns the current public Rust library surface exposed by `reliquary_memory`.
 ## P5-C exact admission and transcript continuation
@@ -640,6 +644,6 @@ Bounded fill requires already-materialized Archive fragments and a compatible se
 
 `HistoricalTimeline::from_accepted_archive(input, positions, count)` constructs a read-only validated timeline from first-accepted Archive positions. It retains timestamps and non-activity ancestry while rejecting incomplete identities/counts, invalid positions and ancestry. `Cva::historical_freshness_timeline` supplies owner evidence. The separate `HistoricalTimeline::plan` remains a pure unaccepted-source timestamp planner; native importer ordering is unchanged. Checkpoint reopen validates only its accepted source prefix, preserving legitimate later activity. See [H1 policy](freshness-historical-manifest-policy.md).
 
-## N5 developer-only scope
+## Completed retained-fixture normalization
 
-The disposable retained-fixture tool is not a Rust public API or detachable CLI feature. Its inspection seams compile only into library tests. `migrate_file`, production Cva/Phylactery operations and historical reconstruction signatures/encodings are unchanged. See [development workflow](development.md#disposable-retained-freshness-normalizer-n5).
+The disposable retained-fixture tool and its private test seams have been removed. `migrate_file`, production Cva/Phylactery operations and historical reconstruction signatures/encodings are unchanged. The [retained verification record](freshness-retained-normalization-verification-2026-10-13.md) retains before/after owner hashes, actual versus historical approximation proof and C10 native acceptance measurements.

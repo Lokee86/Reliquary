@@ -19,7 +19,7 @@ Authoritative execution details: [Multiplexing implementation plan](multiplexing
 
 ## Historical Freshness remaining release gates
 
-After C9 integrated native correctness, the [active historical completion plan](freshness-historical-completion-execution-plan-2026-10-12.md) retains C10 hash-backed retained-corpus acceptance/performance/coverage, C11 full release verification and C12 final production review. Completion remains an explicit opt-in REL-local release decision; mounted historical management and default activation are unavailable.
+After C10 retained-corpus acceptance and C11 final source verification, the [active historical completion plan](freshness-historical-completion-execution-plan-2026-10-12.md) retains C12 final production review. Completion remains an explicit opt-in REL-local release decision; mounted historical management and default activation are unavailable.
 
 ## Purpose
 

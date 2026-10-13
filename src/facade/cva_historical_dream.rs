@@ -34,7 +34,8 @@ impl Cva {
                 relation.kind == crate::GraphRelationKind::DuplicateOf
                     && (relation.source == root || relation.target == root)
             });
-            let representative = if duplicate {
+            let superseded = self.memory(root)?.superseded_by.is_some();
+            let representative = if duplicate || superseded {
                 crate::dream_canonical::historical_duplicate_representative(self, root, &relations)
                     .map_err(|error| CvaError::Freshness(error.to_string()))?
                     .ok_or_else(|| {

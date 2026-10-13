@@ -1,5 +1,170 @@
 use super::*;
 use crate::freshness::historical_dream::HistoricalDreamCoverage;
+
+#[test]
+fn historical_matrix_native_verified_supersession_resolves_without_rewriting_memory_or_graph() {
+    let (path, mut cva, _) = historical_import_fixture("c9-supersession-authority.rel");
+    let old = publish(
+        &mut cva,
+        "Earlier supported state",
+        Some(("c1", "u0")),
+        true,
+    );
+    let next = publish(
+        &mut cva,
+        "Accepted replacement state",
+        Some(("c2", "a7")),
+        true,
+    );
+    edge(
+        &mut cva,
+        next,
+        old,
+        GraphRelationKind::Supersedes,
+        GraphRelationOrigin::Dream,
+    );
+    let memory = cva.memory(old).unwrap();
+    let mut changed = draft(memory.clone(), "c9-accepted-supersession");
+    changed.archived = true;
+    changed.lifecycle_state = "archived".into();
+    changed.superseded_by = Some(next);
+    cva.publish_memory(Some(old), memory.revision, changed)
+        .unwrap();
+    assert_eq!(
+        cva.historical_dream_representatives(old, &BTreeSet::from([old]))
+            .unwrap(),
+        BTreeMap::from([(old, next)])
+    );
+    let graph = cva.semantic_graph_relations();
+    let history = cva.memory_revision(old, 1).unwrap();
+    tail(&mut cva);
+    let mut reopened = accept_and_reopen(&path, cva);
+    assert_eq!(reopened.semantic_graph_relations(), graph);
+    assert_eq!(reopened.memory_revision(old, 1).unwrap(), history);
+}
+
+#[test]
+fn historical_matrix_native_supersession_mismatch_and_cycle_remain_unresolved() {
+    for cycle in [false, true] {
+        let (path, mut cva, _) =
+            historical_import_fixture(&format!("c9-supersession-invalid-{cycle}.rel"));
+        let old = publish(&mut cva, "Unresolved old state", Some(("c1", "u0")), true);
+        let next = publish(
+            &mut cva,
+            "Unresolved replacement state",
+            Some(("c2", "a7")),
+            true,
+        );
+        if cycle {
+            edge(
+                &mut cva,
+                next,
+                old,
+                GraphRelationKind::Supersedes,
+                GraphRelationOrigin::Dream,
+            );
+            edge(
+                &mut cva,
+                old,
+                next,
+                GraphRelationKind::Supersedes,
+                GraphRelationOrigin::Dream,
+            );
+        }
+        for (id, target) in if cycle {
+            vec![(old, next), (next, old)]
+        } else {
+            vec![(old, next)]
+        } {
+            let memory = cva.memory(id).unwrap();
+            let mut changed = draft(memory.clone(), &format!("c9-invalid-supersession:{id:?}"));
+            changed.archived = true;
+            changed.lifecycle_state = "archived".into();
+            changed.superseded_by = Some(target);
+            cva.publish_memory(Some(id), memory.revision, changed)
+                .unwrap();
+        }
+        assert!(
+            cva.historical_dream_representatives(old, &BTreeSet::from([old]))
+                .is_err()
+        );
+        rejected(&mut cva, &path, "duplicate");
+    }
+}
+
+#[test]
+fn historical_matrix_native_duplicate_and_supersession_authority_compose_after_reopen() {
+    let (path, mut cva, _) = historical_import_fixture("c9-composed-authority.rel");
+    let alias = publish(&mut cva, "Retired alias", Some(("c1", "u0")), true);
+    let old = publish(&mut cva, "Retired representative", Some(("c2", "a7")), true);
+    let next = publish(&mut cva, "Retired replacement", Some(("c1", "u0")), true);
+    let peer = publish(&mut cva, "Replacement duplicate", Some(("c2", "a7")), true);
+    let terminal = publish(
+        &mut cva,
+        "Current accepted authority",
+        Some(("c1", "u0")),
+        true,
+    );
+    edge(
+        &mut cva,
+        alias,
+        old,
+        GraphRelationKind::DuplicateOf,
+        GraphRelationOrigin::Dream,
+    );
+    edge(
+        &mut cva,
+        next,
+        old,
+        GraphRelationKind::Supersedes,
+        GraphRelationOrigin::Dream,
+    );
+    edge(
+        &mut cva,
+        next,
+        peer,
+        GraphRelationKind::DuplicateOf,
+        GraphRelationOrigin::Dream,
+    );
+    edge(
+        &mut cva,
+        terminal,
+        peer,
+        GraphRelationKind::Supersedes,
+        GraphRelationOrigin::Dream,
+    );
+    for (id, successor) in [
+        (alias, None),
+        (old, Some(next)),
+        (next, None),
+        (peer, Some(terminal)),
+    ] {
+        let memory = cva.memory(id).unwrap();
+        let mut changed = draft(memory.clone(), &format!("c9-composed-authority:{id:?}"));
+        changed.archived = true;
+        changed.lifecycle_state = "archived".into();
+        changed.superseded_by = successor;
+        cva.publish_memory(Some(id), memory.revision, changed)
+            .unwrap();
+    }
+    let graph = cva.semantic_graph_relations();
+    let first = cva.memory_revision(alias, 1).unwrap();
+    assert_eq!(
+        cva.historical_dream_representatives(alias, &BTreeSet::from([alias]))
+            .unwrap(),
+        BTreeMap::from([(alias, terminal)])
+    );
+    tail(&mut cva);
+    let mut reopened = accept_and_reopen(&path, cva);
+    assert_eq!(
+        reopened
+            .historical_dream_representatives(alias, &BTreeSet::from([alias]))
+            .unwrap(),
+        BTreeMap::from([(alias, terminal)])
+    );
+    assert_eq!(reopened.semantic_graph_relations(), graph);
+    assert_eq!(reopened.memory_revision(alias, 1).unwrap(), first);
+}
 #[test]
 fn historical_matrix_native_no_link_and_missing_proof_never_invent_final_graph_fallback() {
     for legacy_marker in [false, true] {

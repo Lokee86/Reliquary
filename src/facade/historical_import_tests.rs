@@ -3,9 +3,6 @@ use crate::insomnia::completion_tests::{process, setup, setup_origin};
 use crate::{EpisodeBoundary, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
 use std::fs;
 
-#[path = "fixture_normalization_probe.rs"]
-mod fixture_normalization_probe;
-
 #[path = "historical_embedding_tests.rs"]
 mod historical_embedding;
 #[path = "historical_embedding_evidence_tests.rs"]

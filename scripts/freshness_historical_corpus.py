@@ -17,9 +17,9 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 FROZEN = [
-    ("chatgpt-first14d", "49751a62dd8644800d19976a0696a69366dc1e4f8d7c39bb4b69fbd7a8a5d18b"),
-    ("chatgpt-first28d", "8f4a2bf871d7f5368edde93954a2260a29c86131b28475b323a7b6c70f8c51e4"),
-    ("rhelm-david-r-ellis-pre-relationship", "3efd9c666aa992686abd8aac9b77cfc7dc2a0e15d6fb26ec01f8666db175e476"),
+    ("chatgpt-first14d", "800d98cc09081901ffdc8e37b6c4dab60579e6356ac710a810bd37508343c851"),
+    ("chatgpt-first28d", "3816e5a83c73a0c30465536402bab07a938c97cfaabf2b0be1a672ba2cc02c2b"),
+    ("rhelm-david-r-ellis-pre-relationship", "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8"),
 ]
 
 
@@ -63,6 +63,7 @@ def main() -> int:
     parser.add_argument("--binary", type=Path, required=True, help="compiled library test executable")
     parser.add_argument("--fixtures", type=Path, default=ROOT.parent / "reliquary-fixtures/local/authoritative")
     parser.add_argument("--manifest", type=Path, help="optional JSON list of name/path/sha256 records for newer retained inputs")
+    parser.add_argument("--replay-accepted-prefix", action="store_true", help="remeasure an accepted checkpoint's hash-verified input prefix on a disposable copy; preserve the source checkpoint")
     parser.add_argument("--output", type=Path, default=ROOT / "target/historical-corpus/report.json")
     args = parser.parse_args()
     args.output = args.output.resolve()
@@ -89,6 +90,8 @@ def main() -> int:
         output.unlink(missing_ok=True)
         env = dict(os.environ, RELIQUARY_HISTORICAL_CORPUS=str(source),
                    RELIQUARY_HISTORICAL_CORPUS_SHA256=expected, RELIQUARY_HISTORICAL_CORPUS_REPORT=str(output))
+        if args.replay_accepted_prefix:
+            env["RELIQUARY_HISTORICAL_REPLAY_ACCEPTED_PREFIX"] = "1"
         started = time.perf_counter()
         with (args.output.parent / f"{name}.log").open("w", encoding="utf-8") as log:
             process = subprocess.Popen([str(args.binary.resolve()), "historical_retained_corpus_native_acceptance",

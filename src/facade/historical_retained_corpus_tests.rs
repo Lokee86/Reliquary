@@ -36,6 +36,40 @@ fn historical_retained_corpus_native_acceptance() {
         "copy":copy,"open_ns":open_ns,"status":"rejected","acceptance":null,
         "embedding_fill": "not requested; retained evidence only", "measurement_kind":"native retained-corpus gate"});
     if let Ok(mut cva) = opened {
+        if std::env::var("RELIQUARY_HISTORICAL_REPLAY_ACCEPTED_PREFIX").as_deref() == Ok("1") {
+            if let Some(checkpoint) = cva.freshness.import_checkpoint().cloned() {
+                let mut stored = BTreeMap::<String, usize>::new();
+                for record in cva
+                    .freshness_records_at(cva.rel_turn_count())
+                    .unwrap()
+                    .values()
+                {
+                    *stored
+                        .entry(format!(
+                            "{:?}",
+                            record.state_at(cva.rel_turn_count()).unwrap()
+                        ))
+                        .or_default() += 1;
+                }
+                result["stored_checkpoint_distribution"] = json!(stored);
+                result["accepted_prefix_remeasurement"] = json!({"bytes":checkpoint.input_bytes,
+                    "sha256":hex(&checkpoint.input_digest),
+                    "scope":"native actual Dream proof and semantic events; stored legacy approximation is preserved in the untouched authoritative checkpoint"});
+                assert!(checkpoint.input_bytes < fs::metadata(&copy).unwrap().len());
+                drop(cva);
+                // Only the disposable copy is truncated, at the owner's exact
+                // accepted input boundary. Never remove arbitrary owner history.
+                fs::OpenOptions::new()
+                    .write(true)
+                    .open(&copy)
+                    .unwrap()
+                    .set_len(checkpoint.input_bytes)
+                    .unwrap();
+                assert_eq!(file_digest(&copy).unwrap(), checkpoint.input_digest);
+                cva = Cva::open(&copy).unwrap();
+                assert!(cva.freshness.import_checkpoint().is_none());
+            }
+        }
         let ids = cva.memory_ids();
         let cut = cva.rel_turn_count();
         result["prerequisite_diagnosis"] = diagnostics::diagnose(&mut cva);

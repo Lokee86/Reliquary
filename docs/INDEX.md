@@ -82,3 +82,5 @@
 - [Historical import checkpoint verification](freshness-historical-checkpoint-verification-2026-10-12.md) — Step 21 atomic native import replacement, retry/live continuation and remaining recovery/conversion scope.
 - [Historical checkpoint transformation verification](freshness-historical-transform-verification-2026-10-12.md) — Step 23 native physical-preservation matrix and explicit unverified conversion rejection.
 - [Combined Freshness production review](freshness-combined-production-review-2026-10-12.md) — Step 26 disposition: live opt-in retained, historical production blocked, PHY deferred, and Steps 22/24/25 evidence corrected.
+
+- [retained normalization verification](freshness-retained-normalization-verification-2026-10-13.md) — authoritative normalization and C10 evidence.
