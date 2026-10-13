@@ -1043,4 +1043,8 @@ Previous turn-semantic receipts remain readable as their frozen source model. Ne
 
 ## N3 historical proof encoding
 
-Physical CVAFRS03 framing is unchanged. The internal H1 manifest schema/policy is version 2; vector proof pins FragmentId, all immutable represented Node bindings, latest activity availability, selected generation/profile and row/content digests. Requested-fill contract version 2 hashes fragment coverage under `reliquary:historical-embedding-coverage:v2`. The current reconstruction policy digest is `e4a40d7711ba768119336577b6276de1aff396d2d9d289606e9d3674615e088b`; previous unreleased checkpoint policy digests reject without a compatibility registry. Archive Fragment/vector encodings and authoritative retained fixtures are unchanged.
+Physical CVAFRS03 framing is unchanged. N3 used H1 manifest schema/policy version 2; vector proof pins FragmentId, all immutable represented Node bindings, latest activity availability, selected generation/profile and row/content digests. Requested-fill contract version 2 hashes fragment coverage under `reliquary:historical-embedding-coverage:v2`. The N3 reconstruction policy digest was `e4a40d7711ba768119336577b6276de1aff396d2d9d289606e9d3674615e088b`; previous unreleased checkpoint policy digests reject without a compatibility registry. Archive Fragment/vector encodings and authoritative retained fixtures are unchanged.
+
+## N4 accepted Archive chronology
+
+H1 manifest schema remains 2; reconstruction policy version is 3, timeline `accepted-archive-activity-v1`, policy digest `f72f73b74a30a59de228c3a14a0e9344314c61724116efe3d822f22a25ca1fdb`. CVAFRS03 framing and semantic fragment/Dream identity are unchanged. Reopen verifies the accepted source prefix against Archive positions. Previous unreleased policy digests reject; no maintained conversion support is added. See [H1 policy](freshness-historical-manifest-policy.md).

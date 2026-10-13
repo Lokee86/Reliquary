@@ -1,8 +1,8 @@
 use crate::Cva;
 
 impl Cva {
-    /// Plans the complete retained historical corpus only when its canonical
-    /// chronology is identical to Archive's first-accepted REL activity clock.
+    /// Consumes the complete retained corpus in Archive's first-accepted clock.
+    /// Timestamps remain provenance and cannot reorder accepted positions.
     /// This read-only gate neither rebases existing cuts nor publishes scores.
     pub fn historical_freshness_timeline(
         &self,
@@ -27,18 +27,26 @@ impl Cva {
                 timestamp_ns: node.timestamp_ns,
             })
             .collect();
-        let timeline = HistoricalTimeline::plan(sources)?;
-        let positions = timeline
-            .activity_order
+        let positions = self
+            .archive
+            .nodes
             .iter()
+            .filter(|node| matches!(node.role.as_str(), "user" | "assistant"))
+            .map(|node| SourceKey {
+                conversation_id: node.conversation_id.clone(),
+                node_id: node.id.clone(),
+            })
             .filter_map(|key| {
                 self.archive
                     .activity_position_for_turn(&key.conversation_id, &key.node_id)
                     .map(|position| (key.clone(), position))
             })
             .collect();
-        timeline.validate_archive_clock(&positions, self.archive.rel_turn_count())?;
-        Ok(timeline)
+        HistoricalTimeline::from_accepted_archive(
+            sources,
+            &positions,
+            self.archive.rel_turn_count(),
+        )
     }
 }
 

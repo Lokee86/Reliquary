@@ -562,17 +562,22 @@ pub(super) fn validate_checkpoint(
             timestamp_ns: node.timestamp_ns,
         })
         .collect();
-    let timeline = HistoricalTimeline::plan(sources).map_err(|e| fail(&e.to_string()))?;
-    let positions = timeline
-        .activity_order
-        .iter()
-        .filter_map(|key| {
-            cva.activity_position_for_turn(&key.conversation_id, &key.node_id)
-                .map(|position| (key.clone(), position))
+    let positions = nodes
+        .values()
+        .filter_map(|node| {
+            cva.activity_position_for_turn(&node.conversation_id, &node.id)
+                .map(|position| {
+                    (
+                        SourceKey {
+                            conversation_id: node.conversation_id.clone(),
+                            node_id: node.id.clone(),
+                        },
+                        position,
+                    )
+                })
         })
         .collect();
-    timeline
-        .validate_archive_clock(&positions, cp.cut)
+    HistoricalTimeline::from_accepted_archive(sources, &positions, cp.cut)
         .map_err(|e| fail(&e.to_string()))?;
     if corpus_digest(cva, cp.cut)? != cp.corpus_digest {
         return Err(fail(

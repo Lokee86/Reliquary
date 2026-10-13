@@ -100,11 +100,8 @@ impl Value {
 }
 pub(super) fn policy() -> Value {
     Value::map([
-        ("version", Value::Unsigned(2)),
-        (
-            "timeline",
-            Value::text("ready-timestamp-utf8-topological-v1"),
-        ),
+        ("version", Value::Unsigned(3)),
+        ("timeline", Value::text("accepted-archive-activity-v1")),
         ("clock", Value::text("exact-archive-prefix-v1")),
         ("availability", Value::text("latest-evidence-cohort-v1")),
         (
@@ -170,7 +167,7 @@ mod tests {
         );
         assert_eq!(
             actual,
-            "e4a40d7711ba768119336577b6276de1aff396d2d9d289606e9d3674615e088b"
+            "f72f73b74a30a59de228c3a14a0e9344314c61724116efe3d822f22a25ca1fdb"
         );
     }
     #[test]

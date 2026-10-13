@@ -8,8 +8,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 pub const HISTORICAL_PLANNER_VERSION: u16 = 1;
 pub const HISTORICAL_POLICY_DIGEST: [u8; 32] = [
-    0xe4, 0xa4, 0x0d, 0x77, 0x11, 0xba, 0x76, 0x81, 0x19, 0x33, 0x65, 0x77, 0xb6, 0x27, 0x6d, 0xe1,
-    0xaf, 0xf3, 0x96, 0xd2, 0xd9, 0xd2, 0x89, 0x60, 0x6e, 0x9d, 0x36, 0x74, 0x61, 0x5e, 0x08, 0x8b,
+    0xf7, 0x2f, 0x73, 0xb7, 0x4a, 0x30, 0xa5, 0x9d, 0xe2, 0x28, 0xc3, 0xa1, 0x4a, 0x0e, 0x93, 0x44,
+    0x31, 0x4c, 0x61, 0x72, 0x41, 0x16, 0xef, 0xe3, 0xd8, 0x22, 0xf2, 0x2a, 0x25, 0xca, 0x1f, 0xdb,
 ];
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -53,6 +53,10 @@ pub enum PlannerError {
     MissingParent(SourceKey),
     CrossConversationParent(SourceKey),
     Cycle,
+    ArchiveAncestryMismatch {
+        ancestor: SourceKey,
+        descendant: SourceKey,
+    },
     TimestampRegression {
         ancestor: SourceKey,
         descendant: SourceKey,
@@ -92,6 +96,14 @@ impl std::fmt::Display for PlannerError {
                 f,
                 "cross-conversation parent for {}/{}",
                 k.conversation_id, k.node_id
+            ),
+            Self::ArchiveAncestryMismatch {
+                ancestor,
+                descendant,
+            } => write!(
+                f,
+                "accepted ancestry order mismatch from {} to {}",
+                ancestor.node_id, descendant.node_id
             ),
             Self::Cycle => f.write_str("source ancestry contains a cycle"),
             Self::TimestampRegression {
@@ -133,47 +145,54 @@ impl std::fmt::Display for PlannerError {
 }
 impl std::error::Error for PlannerError {}
 
+fn validated_sources(
+    input: Vec<HistoricalSource>,
+) -> Result<BTreeMap<SourceKey, HistoricalSource>, PlannerError> {
+    let mut all = BTreeMap::<SourceKey, HistoricalSource>::new();
+    for source in input {
+        if let Some(previous) = all.get(&source.key) {
+            if previous != &source {
+                return Err(PlannerError::ConflictingDuplicate(source.key));
+            }
+        } else {
+            all.insert(source.key.clone(), source);
+        }
+    }
+    for source in all.values() {
+        if let Some(parent) = &source.parent_id {
+            let parent_key = SourceKey {
+                conversation_id: source.key.conversation_id.clone(),
+                node_id: parent.clone(),
+            };
+            if !all.contains_key(&parent_key) {
+                return Err(PlannerError::MissingParent(source.key.clone()));
+            }
+        }
+    }
+    let mut validated = BTreeSet::new();
+    for key in all.keys() {
+        let mut chain = BTreeSet::new();
+        let mut cursor = Some(key.clone());
+        while let Some(key) = cursor {
+            if validated.contains(&key) {
+                break;
+            }
+            if !chain.insert(key.clone()) {
+                return Err(PlannerError::Cycle);
+            }
+            cursor = all[&key].parent_id.as_ref().map(|parent| SourceKey {
+                conversation_id: key.conversation_id.clone(),
+                node_id: parent.clone(),
+            });
+        }
+        validated.extend(chain);
+    }
+    Ok(all)
+}
+
 impl HistoricalTimeline {
     pub fn plan(input: Vec<HistoricalSource>) -> Result<Self, PlannerError> {
-        let mut all = BTreeMap::<SourceKey, HistoricalSource>::new();
-        for source in input {
-            if let Some(previous) = all.get(&source.key) {
-                if previous != &source {
-                    return Err(PlannerError::ConflictingDuplicate(source.key));
-                }
-            } else {
-                all.insert(source.key.clone(), source);
-            }
-        }
-        for source in all.values() {
-            if let Some(parent) = &source.parent_id {
-                let parent_key = SourceKey {
-                    conversation_id: source.key.conversation_id.clone(),
-                    node_id: parent.clone(),
-                };
-                if !all.contains_key(&parent_key) {
-                    return Err(PlannerError::MissingParent(source.key.clone()));
-                }
-            }
-        }
-        let mut validated = BTreeSet::new();
-        for key in all.keys() {
-            let mut chain = BTreeSet::new();
-            let mut cursor = Some(key.clone());
-            while let Some(key) = cursor {
-                if validated.contains(&key) {
-                    break;
-                }
-                if !chain.insert(key.clone()) {
-                    return Err(PlannerError::Cycle);
-                }
-                cursor = all[&key].parent_id.as_ref().map(|parent| SourceKey {
-                    conversation_id: key.conversation_id.clone(),
-                    node_id: parent.clone(),
-                });
-            }
-            validated.extend(chain);
-        }
+        let all = validated_sources(input)?;
         let mut indegree = BTreeMap::<SourceKey, usize>::new();
         let mut children = BTreeMap::<SourceKey, Vec<SourceKey>>::new();
         for source in all.values().filter(|s| s.activity()) {
@@ -242,6 +261,81 @@ impl HistoricalTimeline {
         Ok(Self {
             entries,
             activity_order: order,
+        })
+    }
+
+    /// Existing RELs use Archive positions, never a second timestamp order.
+    pub fn from_accepted_archive(
+        input: Vec<HistoricalSource>,
+        positions: &BTreeMap<SourceKey, u64>,
+        count: u64,
+    ) -> Result<Self, PlannerError> {
+        let all = validated_sources(input)?;
+        let activity_count = all.values().filter(|s| s.activity()).count() as u64;
+        if count != activity_count || positions.len() as u64 != activity_count {
+            return Err(PlannerError::ArchiveCountMismatch {
+                expected: activity_count,
+                actual: if count != activity_count {
+                    count
+                } else {
+                    positions.len() as u64
+                },
+            });
+        }
+        let mut order = Vec::new();
+        for source in all.values().filter(|s| s.activity()) {
+            let position = positions.get(&source.key).copied().ok_or_else(|| {
+                PlannerError::ArchiveClockMismatch {
+                    key: source.key.clone(),
+                    expected: 1,
+                    actual: None,
+                }
+            })?;
+            order.push((position, source.key.clone()));
+        }
+        order.sort();
+        for (index, (position, key)) in order.iter().enumerate() {
+            if *position != index as u64 + 1 {
+                return Err(PlannerError::ArchiveClockMismatch {
+                    key: key.clone(),
+                    expected: index as u64 + 1,
+                    actual: Some(*position),
+                });
+            }
+            let mut parent = all[key].parent_id.clone();
+            while let Some(id) = parent {
+                let ancestor = &all[&SourceKey {
+                    conversation_id: key.conversation_id.clone(),
+                    node_id: id,
+                }];
+                if ancestor.activity() {
+                    if positions[&ancestor.key] >= *position {
+                        return Err(PlannerError::ArchiveAncestryMismatch {
+                            ancestor: ancestor.key.clone(),
+                            descendant: key.clone(),
+                        });
+                    }
+                    break;
+                }
+                parent = ancestor.parent_id.clone();
+            }
+        }
+        Ok(Self {
+            entries: all
+                .values()
+                .map(|s| TimelineEntry {
+                    key: s.key.clone(),
+                    parent_id: s.parent_id.clone(),
+                    timestamp_ns: s.timestamp_ns,
+                    activity: s.activity(),
+                    position: if s.activity() {
+                        positions.get(&s.key).copied()
+                    } else {
+                        None
+                    },
+                })
+                .collect(),
+            activity_order: order.into_iter().map(|(_, key)| key).collect(),
         })
     }
 
@@ -453,6 +547,60 @@ mod tests {
             role: role.into(),
             timestamp_ns: t,
         }
+    }
+    #[test]
+    fn historical_accepted_clock_rejects_missing_duplicate_gap_foreign_and_reversed_ancestry() {
+        let input = vec![
+            src("c", "u", None, "user", 20),
+            src("c", "a", Some("u"), "assistant", 1),
+        ];
+        let u = input[0].key.clone();
+        let a = input[1].key.clone();
+        for (positions, count) in [
+            (BTreeMap::from([(u.clone(), 1)]), 2),
+            (BTreeMap::from([(u.clone(), 1), (a.clone(), 1)]), 2),
+            (BTreeMap::from([(u.clone(), 1), (a.clone(), 3)]), 2),
+            (BTreeMap::from([(u.clone(), 2), (a.clone(), 1)]), 2),
+            (BTreeMap::from([(u.clone(), 1), (a.clone(), 2)]), 3),
+            (
+                BTreeMap::from([
+                    (u.clone(), 1),
+                    (
+                        SourceKey {
+                            conversation_id: "foreign".into(),
+                            node_id: "a".into(),
+                        },
+                        2,
+                    ),
+                ]),
+                2,
+            ),
+        ] {
+            assert!(
+                HistoricalTimeline::from_accepted_archive(input.clone(), &positions, count)
+                    .is_err()
+            );
+        }
+        let valid = BTreeMap::from([(u, 1), (a, 2)]);
+        assert!(HistoricalTimeline::from_accepted_archive(input.clone(), &valid, 2).is_ok());
+        let mut broken = input.clone();
+        broken[1].parent_id = Some("missing".into());
+        assert!(matches!(
+            HistoricalTimeline::from_accepted_archive(broken, &valid, 2),
+            Err(PlannerError::MissingParent(_))
+        ));
+        let mut cycle = input.clone();
+        cycle[0].parent_id = Some("a".into());
+        assert!(matches!(
+            HistoricalTimeline::from_accepted_archive(cycle, &valid, 2),
+            Err(PlannerError::Cycle)
+        ));
+        let mut conflict = input.clone();
+        conflict.push(src("c", "u", None, "user", 99));
+        assert!(matches!(
+            HistoricalTimeline::from_accepted_archive(conflict, &valid, 2),
+            Err(PlannerError::ConflictingDuplicate(_))
+        ));
     }
     #[test]
     fn historical_non_activity_ancestry_cycle_rejects_before_projection() {

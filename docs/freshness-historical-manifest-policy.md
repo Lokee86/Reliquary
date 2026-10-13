@@ -8,7 +8,7 @@ Freeze Step 13 / H1 of the [linear implementation plan](freshness-semantic-histo
 
 ## Overview
 
-**Status:** N3 fragment-source runtime implemented, frozen 2026-10-12; N4 accepted-clock convergence remains pending. The version-2 descriptor below implements fragment semantics while retaining the previous timestamp-order clock gate; native exclusive reconstruction/publication and recovery are implemented through C6. C7 freezes the contract and C8 implements bounded offline embedding/importer integration; C9–C12 release gates remain. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
+**Status:** N3/N4 fragment-source and accepted-Archive-clock runtime implemented, frozen 2026-10-12. The version-3 descriptor below implements accepted chronology; native exclusive reconstruction/publication and recovery are implemented through C6. C7 freezes the contract and C8 implements bounded offline embedding/importer integration; C9–C12 release gates remain. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
 
 Reconstruction is an explicit one-shot operation on a newly generated, complete, single-owner REL import. It uses the final authorized graph, approximate provenance-based availability and exact existing Freshness mathematics. It creates no second clock, permanent event ledger or historical consumed-use receipts. Ordinary live semantic reinforcement remains local and non-propagating.
 
@@ -86,7 +86,7 @@ For either event, traverse the full authorized graph until remaining strength is
 
 ## Manifest identity and canonical hashing
 
-Use one logical versioned manifest, not a new durable subsystem. Temporary planning records may spill; only the eventual existing-Freshness checkpoint becomes authority. Schema version and reconstruction policy version are both 2.
+Use one logical versioned manifest, not a new durable subsystem. Temporary planning records may spill; only the eventual existing-Freshness checkpoint becomes authority. Manifest schema version remains 2; reconstruction policy version is 3.
 
 Canonical encoding C is defined here independently of JSON rendering:
 
@@ -113,12 +113,12 @@ The manifest has exactly these top-level fields:
 | replacement_proof | Exact provisional scoring identities/subset to supersede, unsupported untouched subset and isolation proof |
 | input_token | Frozen Archive/Memory/Graph/Community/vector/Dream/Freshness owner versions and accepted-prefix digests |
 
-Array orders and sorted sets are canonical, with no duplicated identities. Nested proof objects must include their underlying immutable IDs/content commitments rather than a bare mutable version number. Runtime resources (worker count, spill paths, timing) are outside the manifest. Hash the complete manifest with `reliquary:historical-manifest:v1`. The current typed descriptor below has `reliquary:historical-policy:v1` digest `e4a40d7711ba768119336577b6276de1aff396d2d9d289606e9d3674615e088b`. JSON is a human-readable rendering; hash C of the typed map with version as u64. The timeline/clock fields retain the previous gate until N4; they do not yet implement accepted-order chronology for arbitrary retained RELs. Unknown digests reject; no maintained pre-release conversion framework is introduced.
+Array orders and sorted sets are canonical, with no duplicated identities. Nested proof objects must include their underlying immutable IDs/content commitments rather than a bare mutable version number. Runtime resources (worker count, spill paths, timing) are outside the manifest. Hash the complete manifest with `reliquary:historical-manifest:v1`. The current typed descriptor below has `reliquary:historical-policy:v1` digest `f72f73b74a30a59de228c3a14a0e9344314c61724116efe3d822f22a25ca1fdb`. JSON is a human-readable rendering; hash C of the typed map with version as u64. The timeline consumes contiguous first-accepted Archive positions with complete identity/count/ancestry proof; source timestamps remain immutable provenance. Unknown digests reject; no maintained pre-release conversion framework is introduced.
 
 ```json
 {
-  "version": 2,
-  "timeline": "ready-timestamp-utf8-topological-v1",
+  "version": 3,
+  "timeline": "accepted-archive-activity-v1",
   "clock": "exact-archive-prefix-v1",
   "availability": "latest-evidence-cohort-v1",
   "missing_provenance": "unsupported-preserve-or-reject-v1",

@@ -4,21 +4,6 @@ use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn diagnose(cva: &mut Cva) -> Value {
-    use crate::freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
-    let sources: Vec<_> = cva
-        .archive
-        .nodes
-        .iter()
-        .map(|node| HistoricalSource {
-            key: SourceKey {
-                conversation_id: node.conversation_id.clone(),
-                node_id: node.id.clone(),
-            },
-            parent_id: node.parent_id.clone(),
-            role: node.role.clone(),
-            timestamp_ns: node.timestamp_ns,
-        })
-        .collect();
     let mut regressions = Vec::new();
     let mut ancestry_clock_violations = 0;
     for node in cva
@@ -55,7 +40,7 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
             parent = ancestor.parent_id.as_deref();
         }
     }
-    let chronology = match HistoricalTimeline::plan(sources) {
+    let chronology = match cva.historical_freshness_timeline() {
         Ok(timeline) => {
             let mismatches: Vec<_> = timeline
                 .activity_order

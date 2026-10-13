@@ -222,7 +222,7 @@ After all three fixtures pass C10, delete the normalizer source and any private 
 | **N1 — complete** | **Sol** | Freeze the mixed-fragment semantic-source correction and accepted-Archive-clock correction above. Update H1/F8 design tests before touching retained fixtures. | No exact-turn-only semantic assumption remains in the intended contract; accepted Archive positions are the existing-REL numerical clock. |
 | **N2 — complete** | **Sol** | Refactor live F8 source identity from accepted-turn-only evidence to fragment-availability evidence. Update durable semantic event identity/evidence and self/cohort exclusions without enabling live propagation. | Mixed-fragment live fixtures pass; one fragment cannot be double-credited because it overlaps multiple turns or is re-embedded. |
 | **N3 — complete** | **Luna** | Refactor historical manifest/event planning and C7/C8 embedding fill to the same fragment-source model. Remove exact-turn fragment creation/fill requirements. | H1 manifest proves fragment/generation/profile/availability evidence; historical semantic fixtures use mixed fragments deterministically. |
-| **N4** | **Sol** | Change existing-REL H1 chronology validation to consume canonical Archive activity order. Keep timestamps as provenance evidence and preserve fresh-import deterministic order. | 14-day order mismatch and 28-day timestamp regressions no longer fail solely because timestamp sort differs from accepted Archive order. |
+| **N4 — complete** | **Sol** | Change existing-REL H1 chronology validation to consume canonical Archive activity order. Keep timestamps as provenance evidence and preserve fresh-import deterministic order. | 14-day order mismatch and 28-day timestamp regressions no longer fail solely because timestamp sort differs from accepted Archive order. |
 | **N5** | **Sol** | Implement the disposable fixture normalizer with exact owner/hash allowlisting, current-standard output only, candidate verification and atomic same-path promotion. No public migration API changes. | Tool refuses non-allowlisted files and cannot leave a partially promoted authoritative fixture. |
 | **N6** | **Luna** | Normalize 14-day and 28-day in place: complete genuinely missing H1-required generation work, establish current fragment/target vector state, normalize provable pre-Freshness birth evidence, and materialize the accepted Dream legacy approximation where actual proof is absent. | Both authoritative fixtures reopen under ordinary current code, preserve owner/Archive/Memory identity invariants, have updated hashes, and pass historical preflight. |
 | **N7** | **Luna** | Normalize Ellis in place from the new 143/143 baseline: complete compatible current vector state, required Dream work for newly published Memories, and older pre-Freshness normalization. | Same authoritative REL/PHY paths reopen and pass H1 generation/vector/Dream preflight; hashes/marker are updated. |
@@ -366,4 +366,36 @@ N3 verification:
 - Native regressions pin mixed availability, canonical row/provenance evidence and external-grounding whole-cohort exclusion. A generation refresh changes manifest evidence/bonuses while retaining all fragment event IDs and positions. Invalid retained rows remain untouched; bounded mixed rendering equals ordinary rendering and rejects a one-byte-short limit.
 - Verification used repository-local `.t` scratch and process-local debug-disabled build profiles; no committed build profile or retained corpus was changed.
 - Architecture refresh/enforcement passed: 75 P4 guard fixtures, 161 classified APIs, 11 external-ownership fixtures and 23 Pitlord rules on 70,802 source nodes / 2,379 relationships; snapshot `f4b35ead77f7860765d9e2d43a8001af12023fbe312b2105ff2ee7f7f3c2259b`. This is scoped static enforcement evidence, not proof of arbitrary dynamic calls.
+- Both required documentation-policy modes and patch hygiene passed on the final recorded tree.
+
+## N4 disposition — 2026-10-12
+
+Existing-REL H1 chronology now consumes canonical Archive first-accepted activity positions. Timestamp ties, cross-conversation timestamp order and ancestor/descendant timestamp regressions remain provenance, not another clock or rejection trigger. The read-only projection validates complete identity/count/position evidence, ancestry existence/acyclicity and activity ancestry order. Missing, duplicated, gapped, foreign or reversed activity-position evidence rejects explicitly. Non-activity ancestry remains present without a Freshness tick. The pure unaccepted-source timestamp planner and fresh native importer are unchanged.
+
+Manifest schema remains 2; reconstruction policy version is 3. The `accepted-archive-activity-v1` timeline descriptor freezes policy digest `f72f73b74a30a59de228c3a14a0e9344314c61724116efe3d822f22a25ca1fdb`. Physical CVAFRS03 framing is unchanged. Previous unreleased digests reject without a maintained compatibility or migration framework. Semantic fragment identities and Dream/birth/use proof authority are preserved. Authoritative retained corpus bytes are untouched; normalization/calibration remains N5–N10.
+
+Native fixtures now accept timestamp-regressing chronology, preserve all numerical positions through reconstruction/reopen and resolve exact retry without writes. Pure regressions reject missing/conflicting source evidence, parents/cycles and invalid position maps. The former native timestamp-mismatch guard now verifies that an actually unprocessed Archive tail still rejects, independent of timestamp order.
+
+Documentation impact:
+- Inspected: repository/shared guidance and current architecture, invariants, storage, API, maps, limitations, roadmap and H1 plans.
+- Updated: accepted-clock API/contract, policy descriptor/digest, regression routing and this disposition.
+- Not affected: immutable retained corpus bytes, historical verification records, physical checkpoint/vector framing and fresh native importer ordering.
+- Compliance check: final structural/change-impact results are recorded below.
+- Known documentation gaps: retained normalization/calibration evidence remains N5–N10.
+
+Architecture impact:
+- Standards added or changed: no shared standard; the frozen N1 accepted-clock contract is implemented.
+- Ownership or boundary impact: Archive supplies the authoritative positions; Freshness consumes them without rewriting Archive or adding a clock/store/queue.
+- Pitlord enforcement impact: fresh static enforcement results are recorded below; no new rule or area required.
+- Other verification impact: native chronology/reconstruction/reopen/retry, invalid-map regressions and existing full recovery/transform gates.
+- Known architectural gaps: retained fixture birth/Dream/generation normalization and C10 calibration remain later gates.
+
+N4 verification:
+- Native accepted-clock fixtures preserve cross-conversation acceptance despite timestamp ordering/ties, retain ancestor timestamp regressions and non-activity context, and verify byte/position/reopen stability. A native grouped import reconstructs with descending source timestamps and resolves exact retry after reopen without writes.
+- Invalid evidence fixtures reject missing/conflicting source identities, missing parents/cycles, incomplete counts and missing/duplicate/gapped/foreign/reversed position maps. The unprocessed Archive tail and prior accepted-use rejection matrix passed.
+- CLI formatting, locked build and all 19 tests passed on the final source tree. Archive roundtrip passed with two Nodes, one branch and one mixed fragment whose timestamps regress. All 10 N1 design oracles passed.
+- An obsolete timestamp-mismatch assertion was corrected to test genuine unprocessed work. A superseded verification run held its Windows executable during rebuild; it was stopped and final verification restarted after both planning and checkpoint-prefix validation were updated. Superseded runs are not acceptance evidence.
+- Verification uses repository-local `.t` scratch and process-local debug-disabled build profiles. No authoritative corpus or committed build profile was edited.
+- Final root formatting and locked build passed. Full locked tests passed: 1,263 library tests, 4 ignored measurements/retained diagnostics, 138 integration tests and doctests (0 tests). Both exhaustive native checkpoint/live-use byte-prefix recovery tests passed.
+- Final architecture refresh/enforcement passed: 75 P4 guard fixtures, 161 classified APIs, 11 external-ownership fixtures and 23 Pitlord rules on 70,871 source nodes / 2,379 relationships; snapshot `f87a2e6bf399e7b694cffe4391856a264252101d1181fc568c13616327a2e6e8`. This is scoped static enforcement evidence, not proof of arbitrary dynamic calls.
 - Both required documentation-policy modes and patch hygiene passed on the final recorded tree.

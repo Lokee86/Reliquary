@@ -1,4 +1,4 @@
-use crate::{Cva, freshness::historical_planner::PlannerError};
+use crate::Cva;
 
 struct Fixture(std::path::PathBuf);
 impl Fixture {
@@ -66,29 +66,68 @@ fn historical_clock_matching_retry_non_activity_and_reopen() {
 }
 
 #[test]
-fn historical_clock_rejects_reordered_conversations_and_ties_without_mutation() {
+fn historical_clock_preserves_accepted_conversations_and_timestamp_ties() {
     for tied in [false, true] {
         let f = Fixture::new();
         let mut rel = Cva::create(f.path()).unwrap();
         append(&mut rel, "b", "u", None, "user", if tied { 1 } else { 2 });
         append(&mut rel, "a", "u", None, "user", 1);
         let before = rel.latest_global_version();
-        assert!(matches!(
-            rel.historical_freshness_timeline(),
-            Err(PlannerError::ArchiveClockMismatch {
-                expected: 1,
-                actual: Some(2),
-                ..
-            })
-        ));
+        let timeline = rel.historical_freshness_timeline().unwrap();
+        assert_eq!(timeline.activity_order[0].conversation_id, "b");
+        assert_eq!(timeline.activity_order[1].conversation_id, "a");
         assert_eq!(rel.latest_global_version(), before);
         assert_eq!(rel.activity_position_for_turn("b", "u"), Some(1));
         rel.sync().unwrap();
         drop(rel);
         let reopened = Cva::open(f.path()).unwrap();
-        assert!(matches!(
-            reopened.historical_freshness_timeline(),
-            Err(PlannerError::ArchiveClockMismatch { .. })
-        ));
+        assert_eq!(reopened.historical_freshness_timeline().unwrap(), timeline);
     }
+}
+
+#[test]
+fn historical_clock_retains_ancestor_timestamp_regression_and_nonactivity_context() {
+    let f = Fixture::new();
+    let mut rel = Cva::create(f.path()).unwrap();
+    append(&mut rel, "c", "u", None, "user", 20);
+    append(&mut rel, "c", "tool", Some("u"), "tool", 30);
+    append(&mut rel, "c", "a", Some("tool"), "assistant", -10);
+    rel.sync().unwrap();
+    let bytes = std::fs::read(f.path()).unwrap();
+    let timeline = rel.historical_freshness_timeline().unwrap();
+    assert_eq!(
+        timeline
+            .activity_order
+            .iter()
+            .map(|k| k.node_id.as_str())
+            .collect::<Vec<_>>(),
+        ["u", "a"]
+    );
+    assert_eq!(
+        timeline
+            .entries
+            .iter()
+            .find(|e| e.key.node_id == "a")
+            .unwrap()
+            .timestamp_ns,
+        -10
+    );
+    assert_eq!(
+        timeline
+            .entries
+            .iter()
+            .find(|e| e.key.node_id == "tool")
+            .unwrap()
+            .position,
+        None
+    );
+    assert_eq!(std::fs::read(f.path()).unwrap(), bytes);
+    drop(rel);
+    assert_eq!(
+        Cva::open(f.path())
+            .unwrap()
+            .historical_freshness_timeline()
+            .unwrap(),
+        timeline
+    );
 }

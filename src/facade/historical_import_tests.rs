@@ -30,6 +30,13 @@ fn historical_import_fixture_count(
     name: &str,
     count: usize,
 ) -> (std::path::PathBuf, Cva, Vec<crate::MemoryId>) {
+    historical_import_fixture_clock(name, count, false)
+}
+fn historical_import_fixture_clock(
+    name: &str,
+    count: usize,
+    regress: bool,
+) -> (std::path::PathBuf, Cva, Vec<crate::MemoryId>) {
     let (path, mut cva, _) = setup_origin(name, EpisodeOrigin::Import);
     let ids: Vec<_> = process(&mut cva, count, 110)
         .created
@@ -46,7 +53,11 @@ fn historical_import_fixture_count(
             "c2".into(),
             parent,
             "user".into(),
-            100 + index * 2,
+            if regress {
+                50 - index * 2
+            } else {
+                100 + index * 2
+            },
             "Omitted historical activity.",
         )
         .unwrap();
@@ -55,7 +66,11 @@ fn historical_import_fixture_count(
             "c2".into(),
             Some(user),
             "assistant".into(),
-            101 + index * 2,
+            if regress {
+                49 - index * 2
+            } else {
+                101 + index * 2
+            },
             "Acknowledged.",
         )
         .unwrap();
@@ -343,4 +358,33 @@ fn historical_manifest_rejects_legitimate_use_without_writing() {
             .contains("accepted use")
     );
     assert_eq!(fs::read(&path).unwrap(), before);
+}
+
+#[test]
+fn historical_native_reconstruction_uses_accepted_clock_despite_timestamp_regressions() {
+    let (path, mut cva, ids) = historical_import_fixture_clock("n4-accepted-clock.rel", 1, true);
+    historical_events::vectors(&mut cva);
+    let timeline = cva.historical_freshness_timeline().unwrap();
+    let positions = timeline.activity_order.clone();
+    let report = cva
+        .reconstruct_historical_freshness(Default::default())
+        .unwrap();
+    let scores = cva.freshness_record(ids[0]);
+    assert!(report.committed);
+    cva.sync().unwrap();
+    drop(cva);
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.historical_freshness_timeline().unwrap(), timeline);
+    for (i, key) in positions.iter().enumerate() {
+        assert_eq!(
+            reopened.activity_position_for_turn(&key.conversation_id, &key.node_id),
+            Some(i as u64 + 1)
+        );
+    }
+    assert_eq!(reopened.freshness_record(ids[0]), scores);
+    let bytes = std::fs::read(&path).unwrap();
+    reopened
+        .reconstruct_historical_freshness(Default::default())
+        .unwrap();
+    assert_eq!(std::fs::read(&path).unwrap(), bytes);
 }

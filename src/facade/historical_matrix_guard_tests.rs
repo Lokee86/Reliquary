@@ -141,7 +141,7 @@ fn historical_matrix_native_graph_vector_and_revision_drift_rejects_then_refreez
     }
 }
 #[test]
-fn historical_matrix_native_clock_mismatch_and_preexisting_use_are_not_superseded() {
+fn historical_matrix_native_uncovered_source_and_preexisting_use_are_not_superseded() {
     for clock in [false, true] {
         let (path, mut cva, id) =
             historical_import_fixture(&format!("c9-clock-or-use-{clock}.rel"));
@@ -171,7 +171,7 @@ fn historical_matrix_native_clock_mismatch_and_preexisting_use_are_not_supersede
             &mut cva,
             &path,
             if clock {
-                "archive clock mismatch"
+                "unprocessed Archive tail/branch"
             } else {
                 "accepted use"
             },

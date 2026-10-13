@@ -787,7 +787,7 @@ pub(super) fn build_with_fill(
     ]);
     let value = Value::map([
         ("schema_version", Value::Unsigned(2)),
-        ("policy_version", Value::Unsigned(2)),
+        ("policy_version", Value::Unsigned(3)),
         ("owner_uuid", Value::bytes(owner)),
         ("import_id", Value::bytes(import_id)),
         ("corpus_digest", Value::bytes(corpus_digest)),
