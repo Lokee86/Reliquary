@@ -223,7 +223,7 @@ After all three fixtures pass C10, delete the normalizer source and any private 
 | **N2 — complete** | **Sol** | Refactor live F8 source identity from accepted-turn-only evidence to fragment-availability evidence. Update durable semantic event identity/evidence and self/cohort exclusions without enabling live propagation. | Mixed-fragment live fixtures pass; one fragment cannot be double-credited because it overlaps multiple turns or is re-embedded. |
 | **N3 — complete** | **Luna** | Refactor historical manifest/event planning and C7/C8 embedding fill to the same fragment-source model. Remove exact-turn fragment creation/fill requirements. | H1 manifest proves fragment/generation/profile/availability evidence; historical semantic fixtures use mixed fragments deterministically. |
 | **N4 — complete** | **Sol** | Change existing-REL H1 chronology validation to consume canonical Archive activity order. Keep timestamps as provenance evidence and preserve fresh-import deterministic order. | 14-day order mismatch and 28-day timestamp regressions no longer fail solely because timestamp sort differs from accepted Archive order. |
-| **N5** | **Sol** | Implement the disposable fixture normalizer with exact owner/hash allowlisting, current-standard output only, candidate verification and atomic same-path promotion. No public migration API changes. | Tool refuses non-allowlisted files and cannot leave a partially promoted authoritative fixture. |
+| **N5 — complete** | **Sol** | Implement the disposable fixture normalizer with exact owner/hash allowlisting, current-standard output only, candidate verification and atomic same-path promotion. No public migration API changes. | Tool refuses non-allowlisted files and cannot leave a partially promoted authoritative fixture. |
 | **N6** | **Luna** | Normalize 14-day and 28-day in place: complete genuinely missing H1-required generation work, establish current fragment/target vector state, normalize provable pre-Freshness birth evidence, and materialize the accepted Dream legacy approximation where actual proof is absent. | Both authoritative fixtures reopen under ordinary current code, preserve owner/Archive/Memory identity invariants, have updated hashes, and pass historical preflight. |
 | **N7** | **Luna** | Normalize Ellis in place from the new 143/143 baseline: complete compatible current vector state, required Dream work for newly published Memories, and older pre-Freshness normalization. | Same authoritative REL/PHY paths reopen and pass H1 generation/vector/Dream preflight; hashes/marker are updated. |
 | **N8** | **Luna** | Rerun C10 retained-corpus acceptance/measurements on all normalized fixtures. Capture CPU/memory, semantic fragment coverage/matches, graph traversal, checkpoint cost/reopen and final Fresh/Stale/Dormant distribution. | At least one—and preferably all three—authoritative retained corpora complete the production historical path with nonempty justified events and reproducible hashes. |
@@ -399,3 +399,51 @@ N4 verification:
 - Final root formatting and locked build passed. Full locked tests passed: 1,263 library tests, 4 ignored measurements/retained diagnostics, 138 integration tests and doctests (0 tests). Both exhaustive native checkpoint/live-use byte-prefix recovery tests passed.
 - Final architecture refresh/enforcement passed: 75 P4 guard fixtures, 161 classified APIs, 11 external-ownership fixtures and 23 Pitlord rules on 70,871 source nodes / 2,379 relationships; snapshot `f87a2e6bf399e7b694cffe4391856a264252101d1181fc568c13616327a2e6e8`. This is scoped static enforcement evidence, not proof of arbitrary dynamic calls.
 - Both required documentation-policy modes and patch hygiene passed on the final recorded tree.
+
+## N5 disposition — 2026-10-13
+
+The disposable `scripts/freshness_fixture_normalizer.py` accepts only the three named authoritative directories, the pinned REL/PHY hashes above and exact typed owner UUIDs. It stages fixed candidates, derives deterministic proposed publication evidence from read-only ordinary-owner inspection, verifies candidates through native Cva/Phylactery and H1 freeze/prepare, and promotes at the same paths only after all gates. No arbitrary source path/hash, public migration API, maintained compatibility chain or fixture-only durable owner record is added. N6/N7 perform the actual candidate owner work; N5 changes no authoritative bytes.
+
+Native proposal derivation binds retained Import Episode/completion, immutable first Memory revision/mutation/body and accepted Episode activity. A conflicting/unproven publication cannot authorize a derived birth. Verification preserves original activity identities/positions, branches, every prior Memory revision/body/provenance, semantic graph authority, Episodes/fragments, actual Dream proof and accepted-use proof. It requires complete selected fragment/current-target vector coverage and native H1 readiness. Derived-birth audit entries name their exact retained proof digest. Legacy publications cannot gain newly fabricated actual-first-cycle records; previously current births and genuinely new publications need genuine completed Dream. Legacy Dream/no-event coverage remains explicitly labelled approximation in the N6/N7 audit, which is not itself scoring authority.
+
+Owner allowlist (REL / PHY):
+- 14-day and 28-day: `73eff05f-e65e-4fb4-b430-f9af2237b48b` / `ce8c8fc9-640d-4e76-abd8-dab60424763b`. Path and hash fences distinguish these same-owner snapshots.
+- Ellis: `41fd7fac-75d5-4d05-899c-0dce0823aa36` / `4ad56e4a-ecc4-468f-8742-eaa343efd9e7`.
+
+Read-only N5 inspection (ordinary owners on repo-local copies; original pair hashes unchanged):
+
+| Fixture | Archive positions | REL / PHY Memories | Unique proved publication proposals / conflicts | Fragment evidence | Current target bindings | H1 before normalization |
+| --- | ---: | ---: | ---: | --- | ---: | --- |
+| 14-day | 5,857 | 1,087 / 107 | 1,087 / 0 | 1,056 existing eligible fragments; no generation | 0 | Unprocessed Archive tail/branch |
+| 28-day | 16,465 | 2,816 / 244 | 2,816 / 0 | 2,882 existing eligible fragments; no generation | 0 | Unprocessed Archive tail/branch |
+| Ellis | 2,972 | 725 / 511 | 725 / 0 | 498/498 usable mixed fragments | 678 | Unverified direct singleton publication |
+
+Actual retained first-cycle proof count is zero for each fixture. Current native publication-birth counts are 0 / 0 / 47 respectively. This proves bounded derivation candidates, not normalized birth/Dream state or C10 acceptance. Ellis's selected retained generation is `ed5e73e0acc433d1f87e3c006ce3763ba929c956ce3aed11aa5d061a8480c629`, profile `2f404c70725ad1162653bf2762c0f5590d0c3f7a1b83c4b9bf87e39091138fa5`; endpoint compatibility is still a separate N7 gate.
+
+Each file replacement is atomic. The four-file pair/metadata operation uses flushed backups and one-wave repo-local transaction state for failure rollback and process-death recovery; it is not an instantaneous multi-file filesystem transaction. A killed process can leave a recorded `promoting` phase, and all other actions refuse it until `recover` restores the original pair/metadata/modes. Unknown target drift or damaged backup evidence rejects before rollback writes. Keep all other fixture users offline during processing/promotion/recovery. No arbitrary power-loss/storage failure guarantee is claimed. Metadata promotion restores read-only modes, publishes verified current hashes/versions separately from verbatim historical marker text, and deletes siblings after success/rollback.
+
+The lasting C10 diagnostic now counts all usable retained fragments rather than accidentally retaining an exact-turn candidate filter after N3. That filter had hidden the real 498-row Ellis coverage; no source model or runtime policy changed in N5.
+
+N10 deletion inventory: both normalizer Python files, both `fixture_normalization_*.rs` files, their test module entry and the cfg(test) Freshness use-proof inspector; remove their repo-local transaction/audit/scratch files only after reviewed normalization/C10 evidence is captured here. Keep the corrected C10 diagnostic and N2–N4 lasting product corrections.
+
+N5 verification:
+- Root formatting and locked build passed. Full locked tests passed: 1,264 library tests, 5 ignored environment/measurement fixtures (including the exact-fixture probe), 138 integration tests and doctests (0 tests). Both exhaustive native checkpoint/live-use recovery gates passed.
+- Eleven disposable Python transport/guard tests passed, including nine injected before/after/commit failure boundaries, a real process exit after REL/PHY replacement followed by full pair/metadata recovery, original read-only modes, stale candidate/evidence, hardlink refusal, metadata drift, unsafe rollback and forged legacy-birth/actual-Dream guards. Transport tests use mocked semantic snapshots; they do not claim native fixture normalization.
+- Native probe acceptance tests use real current owner records and verify unchanged bytes plus H1 rejection of an unprocessed tail. All three exact fixture pairs were inspected with ordinary owners; no candidate sibling was created and no authoritative file was opened for writing. Inspection copies are deleted.
+- Architecture refresh/enforcement passed: 75 P4 guard fixtures, 161 classified APIs, 11 external-ownership fixtures and 23 Pitlord rules on 71,068 source nodes / 2,379 relationships; snapshot `afa45f2c502cb6db8e934d1f75aadda6d1d9372a2d64414c8c96bac403605663`. This is scoped static evidence, not proof of arbitrary dynamic calls.
+- CLI public/library production behavior and Archive smoke path are unchanged, so no new CLI/smoke acceptance claim is made. All Rust additions are test-only; the C10 correction is in the existing ignored diagnostic. Verification uses repo-local `.t` scratch and process-local debug-disabled build profiles.
+
+Documentation impact:
+- Inspected: repository/shared guidance, current owner docs, fixture markers/hashes, H1/C10 plans and current normalization requirements.
+- Updated: developer staging/recovery workflow, temporary boundary/invariants, maps/coverage/contracts, limitations and N5 disposition.
+- Not affected: authoritative corpus bytes/metadata, public APIs, production migrations, storage framing and prior release evidence.
+- Compliance check: final structural/change-impact documentation and patch hygiene results are recorded below.
+- Known documentation gaps: actual normalization rules/results and C10 evidence remain N6–N10.
+
+Architecture impact:
+- Standards added or changed: no shared standard or repository rule.
+- Ownership or boundary impact: temporary Python orchestration and read-only cfg(test) owner probes only; current owners retain storage/publication/scoring authority.
+- Pitlord enforcement impact: fresh policy evidence passes; no new owner area/rule.
+- Other verification impact: native standard-owner probes plus bounded transport/fault/recovery tests and full native regressions.
+- Known architectural gaps: actual candidate processing/legacy approximation remain N6/N7; full retained-corpus acceptance remains N8.
+- All ten N1 design oracles passed. Final source-pair rehash confirms all six pinned hashes unchanged and zero candidate siblings. Both required documentation-policy modes and patch hygiene passed on the final recorded tree.

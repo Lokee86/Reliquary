@@ -326,3 +326,7 @@ Bounded fill requires already-materialized Archive fragments and a compatible se
 ## N4 accepted Archive chronology
 
 Existing-REL historical chronology equals first-accepted Archive activity positions. Identity coverage, total count, contiguous unique positions, complete acyclic ancestry and activity ancestry order must agree. Non-activity ancestry has no tick. Timestamp ties, cross-conversation ordering and valid ancestor regressions cannot change positions or reject by themselves. Checkpoint validation applies these rules at its original accepted cut, not a later owner cut. See [H1 policy](freshness-historical-manifest-policy.md).
+
+## N5 fixture-only promotion invariants
+
+The temporary tool accepts only pinned paths, typed owners and original pair hashes, or exact recorded committed after-hashes. Verification preserves all accepted Archive positions and original Memory revision/body/provenance, branch and semantic graph authority; no accepted-use proof is added. Unique legacy publication evidence is required for derived births; historical approximation cannot become a fake actual-first-cycle pass. Candidate drift after verification rejects. Every handled promotion failure restores both owner files and both metadata files; process-death recovery validates all evidence before restoring them. Partial multi-file crash state must be recovered before fixture access. These are temporary developer-tool invariants, not a public compatibility promise.

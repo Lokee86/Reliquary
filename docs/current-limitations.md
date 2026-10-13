@@ -248,3 +248,7 @@ Previous turn-semantic receipts remain readable as their frozen source model. Ne
 ## N4 accepted Archive chronology
 
 N4 removes timestamp-order rejection for existing RELs; missing/conflicting identity, count, position or ancestry evidence still rejects. Fresh-import deterministic ordering is unchanged. Retained fixture birth/Dream/generation normalization and C10 calibration remain N5–N10; this step makes no retained-corpus acceptance claim and changes no authoritative fixture bytes.
+
+## N5 fixture tooling limits
+
+The exact-fixture staging/verification/promotion tool is implemented; actual N6/N7 generation, provable legacy birth conversion and explicitly labelled Dream approximation remain. Read-only N5 inspection confirms all three fixtures still reject current H1 preflight and lack complete current vector coverage. No authoritative pair was modified or accepted for C10. The tool rejects retained graph removal/body/provenance rewrites; it provides failure rollback and process-death recovery, not an instantaneous four-file filesystem transaction or arbitrary power-loss guarantee. Fixtures must remain offline until any interrupted promotion is recovered. This developer-only tool and its hooks are deleted at N10.

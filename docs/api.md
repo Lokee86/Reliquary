@@ -639,3 +639,7 @@ Bounded fill requires already-materialized Archive fragments and a compatible se
 ## N4 accepted Archive chronology
 
 `HistoricalTimeline::from_accepted_archive(input, positions, count)` constructs a read-only validated timeline from first-accepted Archive positions. It retains timestamps and non-activity ancestry while rejecting incomplete identities/counts, invalid positions and ancestry. `Cva::historical_freshness_timeline` supplies owner evidence. The separate `HistoricalTimeline::plan` remains a pure unaccepted-source timestamp planner; native importer ordering is unchanged. Checkpoint reopen validates only its accepted source prefix, preserving legitimate later activity. See [H1 policy](freshness-historical-manifest-policy.md).
+
+## N5 developer-only scope
+
+The disposable retained-fixture tool is not a Rust public API or detachable CLI feature. Its inspection seams compile only into library tests. `migrate_file`, production Cva/Phylactery operations and historical reconstruction signatures/encodings are unchanged. See [development workflow](development.md#disposable-retained-freshness-normalizer-n5).

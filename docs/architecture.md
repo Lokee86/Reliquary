@@ -611,3 +611,7 @@ Bounded fill requires already-materialized Archive fragments and a compatible se
 ## N4 accepted Archive chronology
 
 `cva_historical_freshness.rs` projects Archive's accepted positions through `HistoricalTimeline::from_accepted_archive`; `historical_import_input.rs` uses the same validator for the checkpoint's source prefix during reopen. `historical_retained_diagnostics.rs` reports timestamp regressions without treating timestamp order as another clock. Archive retains position/provenance authority; Freshness changes no Archive record and owns checkpoint acceptance. No clock, store, queue or migration framework is added. See [H1 policy](freshness-historical-manifest-policy.md).
+
+## N5 disposable fixture boundary
+
+The developer-only Python normalizer owns exact-fixture staging, audit and failure-atomic file replacement/recovery. Test-only `fixture_normalization_probe.rs` reads ordinary Cva/Phylactery state and native H1 freeze/prepare; `fixture_normalization_publication.rs` derives proposed unique completion/first-revision/Episode bindings. The cfg(test) Freshness receipt inspector reads accepted-use proof without exposing mutation. No product owner, public API, format, migration registry or coordinator changes. N6/N7 own candidate processing through current APIs; N10 deletes every fixture-only seam. [Development workflow](development.md#disposable-retained-freshness-normalizer-n5) owns operational details.

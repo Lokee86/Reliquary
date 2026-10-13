@@ -652,3 +652,7 @@ Bounded fill requires already-materialized Archive fragments and a compatible se
 ## N4 accepted Archive chronology
 
 Initial historical planning and checkpoint reopen now consume Archive's accepted activity order. Timestamp anomalies remain provenance. Existing native importer ordering, semantic fragment identity, birth/Dream/use authority and physical checkpoint framing remain unchanged. Reconstruction policy version 3 is frozen in [H1 policy](freshness-historical-manifest-policy.md). Native regression/reopen/retry and invalid-map fixtures implement N4; retained normalization/calibration remains N5–N10. See the normalization disposition for final verification.
+
+## N5 normalizer handoff
+
+The disposable exact-fixture normalizer and private read-only owner probes are implemented. Stage and perform N6/N7 owner work on the fixed candidates, then run native verification before same-path promotion. N5 inspection is prerequisite evidence, not C10 accepted reconstruction. Legacy approximation computation remains N6/N7 and must stay distinct from actual first-cycle proof; no maintained pre-release conversion framework is introduced. [Development workflow](development.md#disposable-retained-freshness-normalizer-n5) describes failure rollback and process-death recovery; [normalization disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md#n5-disposition--2026-10-13) records results.

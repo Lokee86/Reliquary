@@ -320,6 +320,30 @@ impl FreshnessStore {
             Ok(())
         }
     }
+
+    /// Disposable N5 inspector; remove with the fixture-only probe at N10.
+    #[cfg(test)]
+    pub(crate) fn fixture_normalization_use_proofs(
+        &self,
+    ) -> Result<std::collections::BTreeSet<String>, String> {
+        let mut proofs = std::collections::BTreeSet::new();
+        self.scan_entries(|entry| {
+            if matches!(
+                entry,
+                JournalEntry::AcceptedUseReceipt { .. } | JournalEntry::AcceptedUseBatch { .. }
+            ) {
+                use sha2::{Digest, Sha256};
+                proofs.insert(
+                    Sha256::digest(format!("{entry:?}").as_bytes())
+                        .iter()
+                        .map(|b| format!("{b:02x}"))
+                        .collect(),
+                );
+            }
+            Ok(())
+        })?;
+        Ok(proofs)
+    }
     fn find_event(&self, id: &str) -> Result<Option<JournalEntry>, String> {
         crate::freshness_trace::measure("freshness.lookup.event", || {
             for (entry, _) in self.recent.iter().rev() {

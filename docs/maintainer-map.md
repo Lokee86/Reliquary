@@ -230,3 +230,7 @@ N3 historical fragment source ownership resides in `historical_semantic.rs`, `hi
 ## N4 accepted Archive chronology
 
 Clock projection: `cva_historical_freshness.rs` and `freshness/historical_planner.rs`. Checkpoint prefix validation: `historical_import_input.rs`. Read-only corpus anomaly reporting: `historical_retained_diagnostics.rs`. Native regressions: `historical_clock_tests.rs` and `historical_import_tests.rs`; invalid evidence: historical planner tests. [H1 policy](freshness-historical-manifest-policy.md) owns the contract; normalization disposition owns results.
+
+## N5 temporary verification route
+
+`scripts/freshness_fixture_normalizer.py` and its Python transaction tests own the one-wave stage/verify/promote/recover flow. `src/facade/fixture_normalization_probe.rs`, `fixture_normalization_publication.rs`, the module entry in `historical_import_tests.rs`, and cfg(test) `FreshnessStore::fixture_normalization_use_proofs` are disposable seams. Native current-owner inspection tests and exact-source-copy inspections complement mocked transport/fault tests; mocked reports are not native semantic acceptance evidence. Delete all of these at N10. The C10 mixed-fragment coverage correction in `historical_retained_corpus_tests.rs` is lasting diagnostic behavior. [Development](development.md#disposable-retained-freshness-normalizer-n5) owns usage; [normalization disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md#n5-disposition--2026-10-13) records evidence.

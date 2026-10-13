@@ -1048,3 +1048,7 @@ Physical CVAFRS03 framing is unchanged. N3 used H1 manifest schema/policy versio
 ## N4 accepted Archive chronology
 
 H1 manifest schema remains 2; reconstruction policy version is 3, timeline `accepted-archive-activity-v1`, policy digest `f72f73b74a30a59de228c3a14a0e9344314c61724116efe3d822f22a25ca1fdb`. CVAFRS03 framing and semantic fragment/Dream identity are unchanged. Reopen verifies the accepted source prefix against Archive positions. Previous unreleased policy digests reject; no maintained conversion support is added. See [H1 policy](freshness-historical-manifest-policy.md).
+
+## N5 normalization storage boundary
+
+N5 adds no REL/PHY record, public format/version, compatibility chain or checkpoint framing. The normalizer only copies/verifies/promotes ordinary current-owner files; candidate processing uses existing owner APIs in N6/N7. Its temporary repo-local JSON transaction/audit files do not become semantic authority and are deleted at N10. Ordinary Cva/Phylactery reopen and H1 prepare are promotion gates. Existing raw marker text is retained as labelled historical evidence; current verified hashes/versions are written separately.

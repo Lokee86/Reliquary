@@ -99,31 +99,7 @@ fn historical_retained_corpus_native_acceptance() {
                         .is_some(),
                 );
             }
-            let fragment_ids: std::collections::BTreeSet<_> = cva
-                .archive_vectors(generation.archive_vector_id)
-                .unwrap()
-                .fragment_ids
-                .into_iter()
-                .map(|id| id.0)
-                .collect();
-            let candidates: std::collections::BTreeSet<_> = cva
-                .fragments()
-                .into_iter()
-                .filter(|fragment| {
-                    fragment.start_node_id == fragment.end_node_id
-                        && fragment_ids.contains(&fragment.id.0)
-                })
-                .map(|fragment| (fragment.conversation_id, fragment.start_node_id))
-                .collect();
             for fragment in cva.fragments() {
-                if !cva
-                    .semantic_fragment_sources(fragment.id)
-                    .unwrap()
-                    .iter()
-                    .any(|key| candidates.contains(key))
-                {
-                    continue;
-                }
                 if let crate::cva_semantic_source::SemanticSourceReadiness::Ready(source) = cva
                     .prepare_semantic_fragment(fragment.id, generation.id)
                     .unwrap()

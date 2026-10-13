@@ -177,3 +177,7 @@ N3 historical fragment source ownership resides in `historical_semantic.rs`, `hi
 ## N4 accepted Archive chronology
 
 [H1 policy](freshness-historical-manifest-policy.md) owns accepted-Archive chronology and policy version 3; API/storage/invariant owners describe their specific seams. Native clock/reconstruction/reopen/retry and pure invalid-map regressions cover N4. Authoritative fixture normalization and C10 calibration remain N5–N10; earlier timestamp-planner rejection evidence remains historical.
+
+## N5 temporary verification route
+
+`scripts/freshness_fixture_normalizer.py` and its Python transaction tests own the one-wave stage/verify/promote/recover flow. `src/facade/fixture_normalization_probe.rs`, `fixture_normalization_publication.rs`, the module entry in `historical_import_tests.rs`, and cfg(test) `FreshnessStore::fixture_normalization_use_proofs` are disposable seams. Native current-owner inspection tests and exact-source-copy inspections complement mocked transport/fault tests; mocked reports are not native semantic acceptance evidence. Delete all of these at N10. The C10 mixed-fragment coverage correction in `historical_retained_corpus_tests.rs` is lasting diagnostic behavior. [Development](development.md#disposable-retained-freshness-normalizer-n5) owns usage; [normalization disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md#n5-disposition--2026-10-13) records evidence.
