@@ -219,7 +219,7 @@ After all three fixtures pass C10, delete the normalizer source and any private 
 
 | # | Model | Work | Completion gate |
 | ---: | :---: | --- | --- |
-| **N1** | **Sol** | Freeze the mixed-fragment semantic-source correction and accepted-Archive-clock correction above. Update H1/F8 design tests before touching retained fixtures. | No exact-turn-only semantic assumption remains in the intended contract; accepted Archive positions are the existing-REL numerical clock. |
+| **N1 — complete** | **Sol** | Freeze the mixed-fragment semantic-source correction and accepted-Archive-clock correction above. Update H1/F8 design tests before touching retained fixtures. | No exact-turn-only semantic assumption remains in the intended contract; accepted Archive positions are the existing-REL numerical clock. |
 | **N2** | **Sol** | Refactor live F8 source identity from accepted-turn-only evidence to fragment-availability evidence. Update durable semantic event identity/evidence and self/cohort exclusions without enabling live propagation. | Mixed-fragment live fixtures pass; one fragment cannot be double-credited because it overlaps multiple turns or is re-embedded. |
 | **N3** | **Luna** | Refactor historical manifest/event planning and C7/C8 embedding fill to the same fragment-source model. Remove exact-turn fragment creation/fill requirements. | H1 manifest proves fragment/generation/profile/availability evidence; historical semantic fixtures use mixed fragments deterministically. |
 | **N4** | **Sol** | Change existing-REL H1 chronology validation to consume canonical Archive activity order. Keep timestamps as provenance evidence and preserve fresh-import deterministic order. | 14-day order mismatch and 28-day timestamp regressions no longer fail solely because timestamp sort differs from accepted Archive order. |
@@ -284,3 +284,25 @@ When Reliquary reaches its first public release:
 ## Notes
 
 This plan intentionally prefers deleting pre-release conversion code over maintaining compatibility with unreleased formats. The lasting product changes are the semantic-source correction and accepted-Archive-clock correction; the fixture-forward conversion is a one-time development operation.
+
+## N1 disposition — 2026-10-12
+
+The intended live F8 contract, H1 manifest/timeline policy and historical design now use mixed-fragment availability and accepted Archive chronology. Previous runtime descriptor/implementation notes remain explicitly labelled; this design change does not silently change existing policy digests or storage bytes. N2 must freeze corrected live encoding and N3/N4 must freeze corrected historical descriptor/digest with their runtime tests.
+
+`scripts/test_freshness_normalization_contract.py` contains executable design oracles for mixed-fragment availability, no backward leakage, strongest comparison, all-source self/cohort exclusion, overlap identity, re-embedding identity, owner separation, accepted timestamp regressions and invalid clock evidence. These are design tests, not proof that the previous runtime already meets N2–N4. No retained fixture was opened for mutation.
+
+N1 verification: 10 design oracles passed via `python -m unittest discover -s scripts -p test_freshness_normalization_contract.py`; both structural and `--changed-from origin/main` documentation-policy checks and `git diff --check` passed. Rust runtime/source ownership is unchanged, so root/CLI runtime acceptance belongs to N2–N4 rather than this design gate.
+
+Documentation impact:
+- Inspected: repository guidance, shared documentation procedure, current owner documents, live F8 contract, H1 policy/design and completion/normalization plans.
+- Updated: F8/H1 intended contracts, C7/C8 handoff, behavioral-contract routing and N1 disposition.
+- Not affected: current public API/storage behavior, authoritative fixture bytes and historical verification records.
+- Compliance check: both required documentation-policy modes and patch hygiene passed.
+- Known documentation gaps: runtime encoding/digest and acceptance updates remain N2–N4.
+
+Architecture impact:
+- Standards added or changed: intended source unit and clock contract corrected; no shared standard changed.
+- Ownership or boundary impact: Archive retains source/activity authority; Freshness retains score/receipt authority.
+- Pitlord enforcement impact: no Rust ownership or static-policy change.
+- Other verification impact: 10 design oracles; native regression gates remain N2–N4.
+- Known architectural gaps: the existing runtime has not yet converged to the corrected contract.

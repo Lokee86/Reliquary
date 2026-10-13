@@ -8,7 +8,7 @@ Freeze Step 13 / H1 of the [linear implementation plan](freshness-semantic-histo
 
 ## Overview
 
-**Status:** accepted policy version 1, frozen 2026-10-12; native exclusive reconstruction/publication and recovery are implemented through C6. C7 freezes the contract and C8 implements bounded offline embedding/importer integration; C9–C12 release gates remain. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
+**Status:** N1 corrected intended contract, frozen 2026-10-12; N3/N4 runtime convergence is pending. The former version-1 descriptor below records the existing runtime only; native exclusive reconstruction/publication and recovery are implemented through C6. C7 freezes the contract and C8 implements bounded offline embedding/importer integration; C9–C12 release gates remain. Step 12 independently released prospective opt-in live F8. This contract resolves the choices left open in the [historical reconstruction design](freshness-historical-import-reconstruction-spec-2026-10-03.md); its precise rules govern Steps 14–25.
 
 Reconstruction is an explicit one-shot operation on a newly generated, complete, single-owner REL import. It uses the final authorized graph, approximate provenance-based availability and exact existing Freshness mathematics. It creates no second clock, permanent event ledger or historical consumed-use receipts. Ordinary live semantic reinforcement remains local and non-propagating.
 
@@ -30,11 +30,11 @@ PHY, dependency RELs and cross-owner provenance/traversal are unsupported even i
 
 A source key is the exact pair (conversation ID UTF-8 bytes, node ID UTF-8 bytes) within the owner UUID. Do not normalize Unicode, case, whitespace or IDs. Repeated appearances on branches are one source if the complete immutable Node binding agrees; conflicting duplicates reject. Include all first-accepted genuine user/assistant Nodes in the frozen activity prefix. System/tool nodes, retrieval inserts, summaries and Echo sidecars provide no extra activity or semantic source.
 
-Validate ancestry over retained Nodes, including non-turn ancestors. Project each activity-bearing Node onto its nearest activity-bearing ancestor. Parents belong to the same conversation; missing/cross-conversation parents and cycles reject. If an activity ancestor has a later timestamp than its descendant, reject `AncestryTimestampConflict`; version 1 never clamps or repairs timestamps.
+For an existing REL, consume the accepted Archive activity prefix 1..N directly. Require unique contiguous positions, exact owner/source bindings, valid ancestry and activity count N. Physical Archive versions are input proofs, not decay units. Missing/cross-conversation parents, cycles and conflicting identities still reject.
 
-Canonical order is Kahn topological order over these activity constraints. Among ready Nodes select the smallest tuple (signed timestamp_ns, conversation UTF-8 bytes, node UTF-8 bytes). Release a child only after its activity ancestor. Independent same-timestamp conversations use the byte tie break; tied parent/child pairs always keep ancestry. Negative and zero i64 timestamps are valid; missing/invalid source timestamps reject rather than substituting file or import wall time.
+Timestamps are provenance evidence. Missing/malformed timestamps required by provenance rules remain errors; valid negative and zero timestamps remain valid. Timestamp regressions, including ancestor/descendant regressions, are reported without reordering accepted positions or rejecting solely for timestamp order. No independently timestamp-sorted clock is compared against existing acceptance.
 
-Number the result 1..N. For every source require `Archive::activity_position_for_turn` to equal that number, and require Archive's current activity count to equal N. A canonical order differing from actual first acceptance is `ArchiveClockMismatch`, even when timestamps tie. The first release has no synthetic-to-real conversion. A fresh importer may insert this validated order once before model generation; reconstruction cannot rewrite an already accepted clock. Physical Archive versions are input proofs, not decay units.
+Fresh native imports continue to choose deterministic ancestry-respecting order through the importer. Once accepted, that order is authoritative. Reconstruction and fixture normalization cannot rewrite it.
 
 ## Availability, admission and cohorts
 
@@ -62,9 +62,9 @@ Use one current Community snapshot only when its derived Graph version equals th
 
 Historical v1 requires the pinned base `FreshnessPolicy::default_v1()` descriptor/digest: ten turns per point, +25 accepted use, +50 linkage, -5 local/-10 outside hops and -100/+100 score bounds. A different base policy is unsupported for this reconstruction version; never change an enrolled owner's policy to make an import fit.
 
-Historical semantic matching uses the shipped frozen F8 v1 digest: inclusive cosine 0.75, bonus 1..10, strongest fragment match per Memory, exact cosine/MemoryId ties and at most 64 eligible direct roots per turn. Filter historical availability/lifecycle/profile/self/cohort before that limit; future vectors cannot consume it. Propagated recipients are not capped to 64.
+Historical semantic matching preserves the calibrated F8 constants while N3 updates the source-policy descriptor/digest: inclusive cosine 0.75, bonus 1..10, strongest comparison per fragment/Memory, exact cosine/MemoryId ties and at most 64 eligible direct roots per fragment. Filter historical availability/lifecycle/profile/self/cohort before that limit; future vectors cannot consume it. Propagated recipients are not capped to 64.
 
-Pin source fragments containing only the exact accepted turn, retained source generation/cut, profile descriptor/digest, current target BodyId and immutable vector bindings/row bytes. Invalid/zero/nonfinite or incompatible rows are excluded with coverage. Missing source evidence is unavailable, not completed-empty; historical mode skips that source's semantic event with a pinned reason. Complete-but-unusable evidence records zero roots. A missing-embedding pass is separately requested and bounded; finish it before manifest freeze, then hash its actual retained evidence. No Insomnia/Dream rerun is part of reconstruction.
+Pin genuine retained Archive fragments, including mixed-turn fragments, their represented source identities, selected generation/cut, profile descriptor/digest and immutable row bytes. Each fragment's availability is the latest accepted activity-bearing position it contains at that cut. Evaluate eligibility there once; never reuse its later context at every contained turn. Missing/invalid/incompatible evidence has explicit coverage. A separately requested bounded fill populates missing rows for existing genuine fragments only; no exact-turn fragment creation or per-turn embedding requests. Finish fill before manifest freeze.
 
 ## Event identity, order and eligibility
 
@@ -72,13 +72,13 @@ Historical events have a separate namespace from live semantic/Dream receipts. S
 
 | Event | Stable identity input | Position / roots |
 | --- | --- | --- |
-| Historical semantic | owner UUID, import ID, exact conversation/node source key | Source position; at most 64 qualifying variable-bonus roots |
+| Historical semantic | owner UUID, semantic policy domain, fragment identity | Fragment availability; at most 64 qualifying variable-bonus roots |
 | Historical first-cycle Dream | owner UUID, import ID, originating MemoryId | Cohort availability; one +50 multi-root event |
 | Birth/admission | MemoryId and cohort proof in checkpoint input | Availability; +100, no propagation |
 
 At each position apply cohort birth/admission first, then independent semantic and Dream events in ascending stable event-ID bytes. Do not rely on worker completion order or introduce a kind-priority tie rule. Each recipient's sparse scorer sorts (position, event ID), applies existing settle/reinforce at each boundary with -100/+100 caps, and keeps tail decay lazy.
 
-Semantic self exclusions cover all Memories created from that exact source, its generating Episode/cohort, or its exact content/grounding provenance. Dream excludes its source and same-birth cohort from credit and requires strictly older eligible roots. A recipient otherwise qualifies when availability <= event position and all necessary evidence is present; equal timestamps alone do not suffice. The birth/admission phase makes other supported same-position recipients available.
+Semantic self exclusions cover all Memories created from any turn represented by the fragment, all corresponding generating Episodes/cohorts, and content/grounding provenance. Each fragment/target receives at most one strongest award. Overlapping fragment identities remain independent; re-embedding/profile rotation cannot create another award for the same fragment. Generation/profile/row digests are replay evidence, not event identity. Dream excludes its source and same-birth cohort from credit and requires strictly older eligible roots. A recipient otherwise qualifies when availability <= event position and all necessary evidence is present; equal timestamps alone do not suffice. The birth/admission phase makes other supported same-position recipients available.
 
 Dream proof precedence is fixed: use actual completed first-cycle proof from this generated cohort; verified no-link means no event and cannot fall back to final adjacency. Otherwise use only completed direct Dream-origin links to strictly older active/canonical representatives. Record `actual-first-cycle`, `verified-no-link`, `completed-graph-approximation` or `unsupported` per source. Existing duplicate authority resolves representatives; pure rewires/non-Dream edges never manufacture an event. A verified duplicate-origin first-cycle proof may originate one event even when the source is a final archived alias; it still receives no own/cohort credit. Without usable proof, a credit-excluded source does not acquire invented fallback Dream history.
 
@@ -113,7 +113,7 @@ The manifest has exactly these top-level fields:
 | replacement_proof | Exact provisional scoring identities/subset to supersede, unsupported untouched subset and isolation proof |
 | input_token | Frozen Archive/Memory/Graph/Community/vector/Dream/Freshness owner versions and accepted-prefix digests |
 
-Array orders and sorted sets are canonical, with no duplicated identities. Nested proof objects must include their underlying immutable IDs/content commitments rather than a bare mutable version number. Runtime resources (worker count, spill paths, timing) are outside the manifest. Hash the complete manifest with `reliquary:historical-manifest:v1`. The exact policy descriptor is shown below (JSON is a human-readable rendering; hash C of the typed map, with version as u64). Its `reliquary:historical-policy:v1` digest is `0cad2e7fd763de37753a54c28df1c7b6303c6c818145492ca4a709023c420908`. Step 14 must reproduce it with golden fixtures; unknown versions/digests fail explicitly.
+Array orders and sorted sets are canonical, with no duplicated identities. Nested proof objects must include their underlying immutable IDs/content commitments rather than a bare mutable version number. Runtime resources (worker count, spill paths, timing) are outside the manifest. Hash the complete manifest with `reliquary:historical-manifest:v1`. The previous runtime policy descriptor is shown below for existing golden tests; N3/N4 must update and freeze its typed encoding/digest before accepting corrected checkpoints. It does not define the corrected intended timeline/source contract. The previous descriptor is rendered here (JSON is a human-readable rendering; hash C of the typed map, with version as u64). Its `reliquary:historical-policy:v1` digest is `0cad2e7fd763de37753a54c28df1c7b6303c6c818145492ca4a709023c420908`. Step 14 must reproduce it with golden fixtures; unknown versions/digests fail explicitly.
 
 ```json
 {
@@ -145,10 +145,10 @@ The checkpoint codec/transaction and transformed-history rebasing are Steps 21�
 
 | Input | Required policy result |
 | --- | --- |
-| Independent conversations at timestamp T | Ready-node UTF-8 key tie order; require identical Archive positions |
-| Tied child whose key sorts before parent | Parent first; child joins the ready set afterward |
-| Child timestamp earlier than activity ancestor | Reject; no timestamp repair |
-| Shared ancestor on multiple branches | One source/activity tick and one semantic event identity |
+| Independent conversations at timestamp T | Preserve their accepted Archive positions |
+| Tied child whose key sorts before parent | Preserve accepted ancestry and positions; no timestamp re-sort |
+| Child timestamp earlier than activity ancestor | Report regression; preserve accepted positions and timestamps |
+| Shared ancestor on multiple branches | One source/activity tick; semantic events belong to fragment identities |
 | Grounding at later position but same timestamp | Availability moves to that later position; earlier event cannot credit |
 | Grouped Episode outputs with different necessary evidence | Shared latest cohort availability; no same-cohort own-event credit |
 | Isolated active Memory with complete provenance | Admit +100 and decay normally without requiring a Graph node |
@@ -158,7 +158,7 @@ The checkpoint codec/transaction and transformed-history rebasing are Steps 21�
 | Stale/absent Community | Explicit empty membership, every unknown hop costs 10 under default v1 |
 | Verified initial Dream no-link with later final edges | No historical Dream event |
 | Retry same corpus with changed generated bodies | Same import ID, conflicting manifest; no second accepted reconstruction |
-| Actual accepted order differs from canonical order | Reject ArchiveClockMismatch; no synthetic clock |
+| Actual accepted order differs from timestamp sort | Accepted Archive prefix remains the sole clock |
 | Same-turn independent events near +100 | Admission first, event-ID order, cap at each event; no carried excess |
 
 Step 14 implements pure timeline/provenance/manifest types and deterministic fixtures. Step 15 executes the Archive-clock gate. Steps 16–20 implement pinned event planning, import-only traversal and sparse scoring; Steps 21–25 supply atomic replacement/recovery/transforms/coordinator/release acceptance. This document freezes policy, not a checkpoint codec or shipped historical API.
@@ -190,7 +190,11 @@ Step 14 implements pure timeline/provenance/manifest types and deterministic fix
 The historical approximation does not estimate unseen graph evolution, relationship creation time or old lifecycle changes. Missing evidence is visible coverage or an explicit rejection. The mathematical result remains exact for the selected admissions/events under the existing owner REL clock.
 
 
-## C3 native implementation routing
+## Previous runtime implementation routing
+
+The C3–C8 notes below record the turn-source/timestamp-planner runtime before N2–N4. They are implementation history, not exceptions to the corrected intended contract.
+
+### C3 native implementation routing
 
 The Cva coordinator now builds every H1 top-level field from retained owner evidence, using checked typed canonical encoding. The supplied-digest freeze seam and simplified planner manifest hash are removed. Native grouped Episode publications and verified direct singleton publications use their distinct frozen cohort domains. Unsupported undeclared singleton provenance stays untouched; declared missing/foreign/conflicting evidence rejects. Complete publication payload digests, exact Node/body bindings, retained Dream roots/authority, all active typed relationships and full Memory adjacency, validated-or-unknown Community, profiles/generation/source coverage/target rows, isolated provisional event identities and accepted payload-family prefixes are pinned.
 

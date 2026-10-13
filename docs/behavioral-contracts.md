@@ -413,3 +413,7 @@ A tracked integer watermark is not by itself a historical materialization API; t
 Provider route replacement clears the canonical REL worker dispatch cooldown and wakes that owner, without changing persisted Episode retry deadlines. The migrated `runtime_host::runtime_host_backpressure_tests::gateway_gates_new_claims_during_provider_backpressure` fixture covers bounded 429 claims, route replacement, resumed pending work and absence of terminal queue loss.
 
 Legacy mixed-owner execution, dispatch queues and synthetic mount claims are absent. The recursive routing guard rejects their old types, flags and claim entry points. Canonical protection remains in `runtime_host::gateway::phy_tests` (same-principal worker sharing, detach, reopen and shutdown), `runtime_host::gateway::admission_tests` (physical aliases, owner identity and conflicting mounts), and `runtime_host::gateway::background::tests` (exact-owner dispatch and fenced provider results).
+
+## N1 intended Freshness contract
+
+The design-only oracles in `scripts/test_freshness_normalization_contract.py` protect mixed-fragment availability, one award per fragment/target, all-represented-source/cohort exclusions and accepted Archive chronology. They do not test the shipped Rust runtime. N2–N4 must add native behavioral coverage before these corrected rules become current behavior; see the [normalization plan](freshness-retained-fixture-normalization-plan-2026-10-12.md#n1-disposition--2026-10-12).
