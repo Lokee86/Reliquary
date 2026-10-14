@@ -122,6 +122,18 @@ mod tests {
         assert_eq!(store.records(), &cp.records);
     }
     #[test]
+    fn legacy_semantic_watermark_does_not_block_checkpoint_without_completed_live_history() {
+        let (mut store, cp, _) = fixture();
+        store.semantic_activation_seen = true;
+        store.ingest_import_checkpoint(&cp.encode()).unwrap();
+        assert_eq!(store.import_checkpoint(), Some(&cp));
+
+        let (mut completed, cp, _) = fixture();
+        completed.semantic_completed = true;
+        assert!(completed.ingest_import_checkpoint(&cp.encode()).is_err());
+    }
+
+    #[test]
     fn checkpoint_supersedes_scoring_but_retains_receipt_identity_and_negative_scores() {
         let (mut store, mut cp, old_event) = fixture();
         // Entity/Archive topology may advance the full Graph without advancing
@@ -408,8 +420,8 @@ impl FreshnessStore {
                 Err("ImportManifestConflict: owner already reconstructed".into())
             };
         }
-        if self.semantic_completed || self.semantic_activation_seen {
-            return Err("import cannot overwrite prospective semantic history".into());
+        if self.semantic_completed {
+            return Err("import cannot overwrite completed live semantic history".into());
         }
         if cp.cohort.iter().any(|id| {
             !self

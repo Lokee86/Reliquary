@@ -20,7 +20,6 @@ fn semantic_fragment_excludes_a_whole_cohort_for_external_grounding_evidence() {
     for n in 0..100 {
         f.turn(&format!("before-{n}"), None, "user");
     }
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
     f.turn("grounding", None, "user");
     let mut ids = Vec::new();
     for n in 0..2 {
@@ -82,7 +81,6 @@ fn semantic_mixed_fragment_availability_excludes_every_source_and_credits_once()
     for n in 0..100 {
         f.turn(&format!("age-{n}"), None, "user");
     }
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
     let first = f.turn("mixed-first", None, "user");
     let mut self_draft = live_draft("earlier-source-memory");
     self_draft.content_source_conversation_id = Some("c".into());
@@ -205,7 +203,6 @@ fn semantic_mixed_fragment_availability_excludes_every_source_and_credits_once()
 #[test]
 fn semantic_overlap_and_nonactivity_context_do_not_repeat_fragment_credit() {
     let mut f = Fixture::new();
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
     let first = f.turn("first", None, "user");
     f.turn("context", Some("first"), "system");
     f.turn("second", Some("context"), "assistant");
@@ -259,7 +256,6 @@ fn semantic_fragment_waits_for_its_own_row_and_selected_archive_cut() {
     f.turn("first", None, "user");
     f.fragments("first", 1);
     let old = f.generation();
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
     f.turn("later", Some("first"), "assistant");
     f.fragments("later", 8);
     let mixed = f

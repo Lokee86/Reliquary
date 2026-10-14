@@ -6,7 +6,7 @@ Parent index: [Documentation index](INDEX.md)
 
 Historical reconstruction is a separate explicit post-generation step, not an automatic import side effect. Complete queued Import Insomnia work and real first-cycle Dream settlement, retain a compatible embedding profile, then call ConfiguredRuntime::reconstruct_historical_freshness on the exclusive offline Cva. The default options do not fill embeddings. Requested bounded fill uses the configured embedding route for missing genuine source-fragment rows, then native reconstruction refreezes and commits CVAFRS03. Exact accepted retries use no provider and preserve live growth.
 
-C8 verifies a schema-1 import fixture through actual import_native, Insomnia publication, first-cycle settlement, configured local HTTP embedding, native checkpoint, reopen/retry and later prospective F8 activation. This is executable synthetic importer evidence, not retained production-corpus acceptance (C10). Noncanonical first acceptance rejects instead of rewriting the Archive clock. Gateway mounted historical management remains unavailable.
+C8 verifies a schema-1 import fixture through actual import_native, Insomnia publication, first-cycle settlement, configured local HTTP embedding, native checkpoint, reopen/retry and intrinsic post-checkpoint live F8. This is executable synthetic importer evidence, not retained production-corpus acceptance (C10). Noncanonical first acceptance rejects instead of rewriting the Archive clock. Gateway mounted historical management remains unavailable.
 
 ## Purpose
 
@@ -89,4 +89,4 @@ The supported native import contract does not imply mounted F5 integration, prov
 
 ## Historical production scope
 
-The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit opt-in, offline/exclusive single-owner REL reconstruction. Default activation remains off; mounted historical management and PHY Freshness remain outside this release. Current native proof/identity/clock/scoring/storage contracts are unchanged by this disposition.
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.

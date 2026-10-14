@@ -12,7 +12,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 
 #[test]
-fn historical_embedding_native_import_configured_runtime_and_prospective_activation() {
+fn historical_embedding_native_import_configured_runtime_and_intrinsic_live_f8() {
     let path = std::env::temp_dir().join(format!("h8-import-{}.rel", uuid::Uuid::new_v4()));
     let mut cva = Cva::create(&path).unwrap();
     let mut messages = Vec::new();
@@ -222,6 +222,5 @@ fn historical_embedding_native_import_configured_runtime_and_prospective_activat
             .committed
     );
     assert_eq!(fs::read(&path).unwrap(), bytes);
-    assert!(cva.set_semantic_freshness_enabled(true).unwrap());
     assert_eq!(cva.semantic_freshness_pending_fragments().unwrap(), 0);
 }

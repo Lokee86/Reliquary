@@ -277,7 +277,11 @@ pub(super) fn fill<E: EmbeddingEndpoint>(
                 .map_err(unsupported)?;
             check_cancel(cancel)?;
             let generation: VectorGeneration = cva
-                .publish_vector_generation(plan.profile.id, archive_id, cva.archive_version())
+                .publish_vector_generation_without_live_semantic(
+                    plan.profile.id,
+                    archive_id,
+                    cva.archive_version(),
+                )
                 .map_err(unsupported)?;
             report.generation_synced = false;
             report.final_generation = Some(generation.id);

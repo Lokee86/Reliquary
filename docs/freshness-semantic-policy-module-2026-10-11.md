@@ -8,7 +8,7 @@ Implement the graph-independent numerical and candidate-reduction core frozen by
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** Steps 5–11 and Step 12 activation/readiness implementation are complete; final standalone release checks are recorded in [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md). Live v1 is prospective opt-in and disabled by default. The dated earlier-step evidence below is historical; Step 11/12 repairs supersede earlier compile-only correctness claims.
+**Date:** 2026-10-11. **Status:** Steps 5–11 and the Step 12 mechanics/recovery evidence are complete; the former opt-in activation policy is superseded by intrinsic F8. Live v1 is always part of REL Freshness when eligible vector evidence exists and has no enable/disable API. The dated earlier-step evidence below is historical.
 
 ## Related docs
 
@@ -57,7 +57,7 @@ Verification on 2026-10-11: `cargo fmt --all -- --check`, `cargo check --locked 
 
 - Inspected: repository instructions, architecture, invariants, storage format, maintainer map, current limitations, roadmap, frozen semantic policy/calibration/plan and accepted-turn/vector seams.
 - Updated: this implementation record, architecture source-preparation boundary, maintainer routing and Step 6 plan marker.
-- Not affected: public API/CLI, storage format, current limitations and roadmap activation; live F8 remains disabled.
+- Historical note: this Step 5/6 record predates the intrinsic-F8 hard cut; current API/storage/roadmap status is owned by the later release/C12 records.
 - Compliance check: full and changed-from-origin/main documentation policy passed.
 - Known gaps: architecture enforcement refresh did not complete; later F8 gates remain unimplemented.
 
@@ -77,7 +77,7 @@ Readiness is proved against the selected generation's Archive cut. All source-co
 
 Only a fragment whose start and end are this exact node and whose resolved turn count is one can supply a genuine vector. Mixed-turn embeddings cannot attribute attention to this turn and are excluded with coverage. Providers may materialize turn-only fragments through the existing Archive fragment API and build compatible vectors through the existing generation API; this seam does neither inference nor storage mutation. Retrieval results, summaries, inserted context and Echo/tool streams are not provider inputs.
 
-The returned proof binds owner UUID, immutable Node/content, accepted REL position, full base and semantic policies, profile/generation, sorted fragment/row evidence, and a domain-separated source digest. Stable event identity remains owner + exact conversation/node strings; the codec/event-ID implementation is Step 8. No receipt or effect is applied here, and live activation remains disabled. Step 7 owns target eligibility and complete self-source provenance/cohort exclusion, including asynchronous Memory publication.
+The returned proof binds owner UUID, immutable Node/content, accepted REL position, full base and semantic policies, profile/generation, sorted fragment/row evidence, and a domain-separated source digest. Stable event identity remains owner + exact conversation/node strings; the codec/event-ID implementation is Step 8. No receipt or effect is applied by this preparation seam; live scheduling/application is owned by the intrinsic F8 coordinator. Step 7 owns target eligibility and complete self-source provenance/cohort exclusion, including asynchronous Memory publication.
 
 Tests exercise pending versus completed-empty, immutable-source conflict and role rejection, exact turn-only evidence, mixed-turn exclusion, generation-cut completeness, stable retained evidence after newer activity/generation, and retry/reopen without mutations.
 

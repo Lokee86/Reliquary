@@ -1,4 +1,8 @@
-//! Prospective opt-in and bounded rediscovery of accepted semantic work.
+//! Intrinsic live semantic Freshness and bounded rediscovery of accepted semantic work.
+//!
+//! F8 is part of normal REL Freshness semantics. It has no enable/disable control.
+//! Historical checkpoints and legacy pre-release activation records contribute only
+//! a lower-bound watermark so already-accounted fragments are never credited again.
 use crate::freshness_storage::SemanticActivation;
 use crate::{Cva, CvaError, VectorGenerationId};
 
@@ -10,103 +14,65 @@ pub struct SemanticFreshnessReport {
 }
 
 impl Cva {
-    /// Enable v1 prospectively at today's exact accepted Archive cut.
-    /// Repeated enabling is a no-op. Cancellation is permitted only before completion.
-    pub fn set_semantic_freshness_enabled(&mut self, enabled: bool) -> Result<bool, CvaError> {
-        if enabled == self.freshness.semantic_activation().is_some() {
-            return Ok(false);
-        }
+    fn semantic_freshness_floor(&self) -> Result<([u8; 16], u64), CvaError> {
         let owner = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
-            "semantic activation requires REL UUID",
+            "semantic Freshness requires REL UUID",
         ))?;
-        let activation = if enabled {
-            let turn = self.rel_turn_count();
-            let boundary = self
-                .archive
-                .nodes
-                .iter()
-                .find(|node| {
-                    self.activity_position_for_turn(&node.conversation_id, &node.id) == Some(turn)
-                })
-                .map(|node| (node.conversation_id.clone(), node.id.clone()));
-            let policy = crate::freshness::semantic_policy::SemanticPolicy::default();
-            Some(SemanticActivation {
-                owner_uuid: owner,
-                boundary,
-                accepted_turn: turn,
-                policy_version: policy.version,
-                policy_digest: policy
-                    .digest()
-                    .map_err(|e| CvaError::Freshness(e.to_string()))?,
-            })
-        } else {
-            None
-        };
-        self.freshness
-            .persist_semantic_activation(&mut self.container, owner, activation)
-            .map_err(CvaError::Freshness)?;
-        Ok(true)
+        let mut floor = self
+            .freshness
+            .import_checkpoint()
+            .map_or(0, |checkpoint| checkpoint.cut);
+        if let Some(activation) = self.freshness.semantic_activation() {
+            self.validate_semantic_activation(activation)?;
+            floor = floor.max(activation.accepted_turn);
+        }
+        Ok((owner, floor))
     }
 
-    pub fn semantic_freshness_enabled(&self) -> bool {
-        self.freshness.semantic_activation().is_some()
-    }
-
-    /// Number of retained eligible fragments without a durable completion.
+    /// Number of retained eligible fragments after the accepted semantic floor
+    /// without a durable completion.
     pub fn semantic_freshness_pending_fragments(&self) -> Result<usize, CvaError> {
-        let Some(a) = self.freshness.semantic_activation() else {
-            return Ok(0);
-        };
-        Ok(self.pending_semantic_fragments(a)?.len())
+        Ok(self.pending_semantic_fragments()?.len())
     }
 
-    fn pending_semantic_fragments(
-        &self,
-        a: &SemanticActivation,
-    ) -> Result<Vec<(u64, crate::FragmentId)>, CvaError> {
+    fn pending_semantic_fragments(&self) -> Result<Vec<(u64, crate::FragmentId)>, CvaError> {
+        let (owner, floor) = self.semantic_freshness_floor()?;
         let mut pending = Vec::new();
-        for f in self.fragments() {
-            let Some(at) = self.semantic_fragment_position(f.id)? else {
+        for fragment in self.fragments() {
+            let Some(at) = self.semantic_fragment_position(fragment.id)? else {
                 continue;
             };
-            if at > a.accepted_turn
+            if at > floor
                 && !self
                     .freshness
                     .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
-                        a.owner_uuid,
-                        f.id,
+                        owner,
+                        fragment.id,
                     ))
                     .map_err(CvaError::Freshness)?
             {
-                pending.push((at, f.id));
+                pending.push((at, fragment.id));
             }
         }
         pending.sort_by_key(|(at, id)| {
             (
                 *at,
-                crate::freshness_storage::semantic_fragment_event_id(a.owner_uuid, *id),
+                crate::freshness_storage::semantic_fragment_event_id(owner, *id),
             )
         });
         Ok(pending)
     }
 
-    /// Process at most limit uncompleted retained fragments against one generation.
+    /// Process at most `limit` uncompleted retained fragments against one generation.
+    /// F8 is intrinsic; this is a scheduling surface, not an activation control.
     pub fn process_semantic_freshness(
         &mut self,
         generation: VectorGenerationId,
         limit: usize,
     ) -> Result<SemanticFreshnessReport, CvaError> {
         let mut report = SemanticFreshnessReport::default();
-        let Some(activation) = self.freshness.semantic_activation().cloned() else {
-            return Ok(report);
-        };
-        self.validate_semantic_activation(&activation)?;
         self.vector_generation(generation)?;
-        for (_, fragment) in self
-            .pending_semantic_fragments(&activation)?
-            .into_iter()
-            .take(limit)
-        {
+        for (_, fragment) in self.pending_semantic_fragments()?.into_iter().take(limit) {
             let source = match self.prepare_semantic_fragment(fragment, generation)? {
                 crate::cva_semantic_source::SemanticSourceReadiness::Pending => {
                     report.pending_fragments += 1;
@@ -121,15 +87,19 @@ impl Cva {
         Ok(report)
     }
 
+    /// Validate a legacy pre-release semantic activation record. Current code no
+    /// longer creates or changes these records; they survive only as a prospective
+    /// watermark on old development files.
     pub(crate) fn validate_semantic_activation(
         &self,
-        a: &SemanticActivation,
+        activation: &SemanticActivation,
     ) -> Result<(), CvaError> {
-        let at = match &a.boundary {
+        let at = match &activation.boundary {
             None => Some(0),
             Some((conversation, node)) => self.activity_position_for_turn(conversation, node),
         };
-        if self.owner_uuid() != Some(a.owner_uuid) || at != Some(a.accepted_turn) {
+        if self.owner_uuid() != Some(activation.owner_uuid) || at != Some(activation.accepted_turn)
+        {
             return Err(CvaError::Freshness(
                 "semantic activation boundary is unavailable or conflicting".into(),
             ));
@@ -150,36 +120,25 @@ impl Cva {
         &mut self,
         profile_id: crate::CompatibilityProfileId,
     ) -> Result<Option<SemanticArchiveBatch>, CvaError> {
-        if !self.semantic_freshness_enabled() {
-            return Ok(None);
-        }
         if let Some(generation) = self.current_vector_generation(profile_id) {
             self.process_semantic_freshness(generation.id, 64)?;
         }
-        if self.semantic_freshness_pending_fragments()? == 0 {
+        let pending = self.pending_semantic_fragments()?;
+        if pending.is_empty() {
             return Ok(None);
         }
         let archive_version = self.archive_version();
         if let Some(generation) = self.current_vector_generation(profile_id) {
             let set = self.archive_vectors(generation.archive_vector_id)?;
-            let activation = self
-                .freshness
-                .semantic_activation()
-                .expect("enabled")
-                .clone();
             // A low-level generation may cover the Archive cut but omit a row.
             // Retry that missing evidence; a cut watermark alone is insufficient.
-            if self
-                .pending_semantic_fragments(&activation)?
-                .iter()
-                .all(|(_, id)| {
-                    self.archive
-                        .fragments
-                        .archive_version(*id)
-                        .is_some_and(|v| v <= generation.source_archive_version)
-                        && set.fragment_ids.contains(id)
-                })
-            {
+            if pending.iter().all(|(_, id)| {
+                self.archive
+                    .fragments
+                    .archive_version(*id)
+                    .is_some_and(|version| version <= generation.source_archive_version)
+                    && set.fragment_ids.contains(id)
+            }) {
                 return Ok(None);
             }
         }
@@ -188,7 +147,11 @@ impl Cva {
             .get(profile_id)
             .cloned()
             .ok_or_else(|| CvaError::Freshness("missing semantic embedding profile".into()))?;
-        let fragment_ids: Vec<_> = self.fragments().into_iter().map(|f| f.id).collect();
+        let fragment_ids: Vec<_> = self
+            .fragments()
+            .into_iter()
+            .map(|fragment| fragment.id)
+            .collect();
         let mut texts = Vec::with_capacity(fragment_ids.len());
         for id in &fragment_ids {
             texts.push(self.fragment_text(*id)?);
@@ -215,7 +178,7 @@ impl Cva {
         // A newer retained generation can win while provider I/O is in flight.
         if self
             .current_vector_generation(batch.profile.id)
-            .is_some_and(|g| g.source_archive_version > batch.archive_version)
+            .is_some_and(|generation| generation.source_archive_version > batch.archive_version)
         {
             return Ok(());
         }

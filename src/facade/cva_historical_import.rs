@@ -302,7 +302,6 @@ impl Cva {
             .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
         if self.rel_turn_count() == 0
             || self.freshness_policy() != FreshnessPolicy::default_v1()
-            || self.freshness.semantic_activation_seen()
             || self.freshness_has_pending_dream_passes()
         {
             return Err(fail(

@@ -8,7 +8,7 @@ Close C12 by auditing the converged implementation against ADR 0039 and the froz
 
 ## Overview
 
-**Disposition: H1–H8 are complete and merge-ready as supported explicit opt-in, offline/exclusive, single-owner REL reconstruction. Automatic/default activation remains off. Mounted historical management and PHY Freshness are not part of this release.** Live F8 remains prospective opt-in and local-only.
+**Disposition: H1–H8 are complete and merge-ready as supported explicit, offline/exclusive, single-owner REL reconstruction. Historical reconstruction deliberately remains explicit/offline and is not a mounted or automatic migration path. PHY Freshness is not part of this release.** Live F8 is intrinsic REL behavior and local-only; there is no enable/disable switch.
 
 This disposition supersedes the historical release block in the dated [Step 26 review](freshness-combined-production-review-2026-10-12.md). Its original diagnosis and the partial Step 22/24/25 records remain historical evidence. It does not merge a branch, enable a runtime lane, change policy constants, or write fixture scores.
 
@@ -49,7 +49,7 @@ The one-time normalizer and all fixture-only hooks are deleted. Its labelled leg
 - Existing accepted checkpoints resolve exact retry before new owner-input checks and preserve subsequent legitimate live activity/use. Regeneration cannot award historical events again.
 - Provider work stays outside mounted owner locks. The supported operation takes an exclusively held offline REL; it is not a Gateway authorization bypass or mounted management API.
 - PHY Freshness remains deferred until an independently approved owner/activity-clock design. No REL counter, wall clock or PHY Memory version is borrowed.
-- General relevance labels, automatic/default activation, policy upgrades, broader divergent conversions and arbitrary scale/SLO evidence remain separate work. Existing mounted Dream/Freshness integration limits remain documented independently.
+- General relevance labels, semantic-policy upgrades, broader divergent conversions and arbitrary scale/SLO evidence remain separate work. Automatic or mounted historical migration is intentionally not part of normal runtime operation. Existing mounted Dream/Freshness integration limits remain documented independently.
 
 ## Verification
 
@@ -71,7 +71,7 @@ C12 changes documentation and release disposition only. Both required documentat
 - Ownership or boundary impact: no source change; existing Archive/Memory/Insomnia/Dream/Graph/Community proofs remain inputs and Freshness remains the only score/checkpoint owner.
 - Pitlord enforcement impact: reuse the current passing source snapshot; no ownership rule/source changes require a refresh.
 - Other verification impact: reviewed committed C1–C11/native corpus evidence; C12 documentation checks are separate from previously executed source tests.
-- Known architectural gaps: mounted historical management, PHY activity semantics and default activation remain explicitly outside this release.
+- Known architectural gap relevant to Freshness scope: PHY activity semantics remain outside this release. Historical reconstruction intentionally stays offline/explicit rather than becoming mounted/default runtime migration.
 
 ## Notes
 

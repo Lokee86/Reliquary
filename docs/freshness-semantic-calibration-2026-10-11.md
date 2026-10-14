@@ -8,7 +8,7 @@ Freeze Step 4 numerical defaults and policy transitions from reproducible offlin
 
 ## Overview
 
-**Date:** 2026-10-11. **Status:** v1 constants and transitions are frozen and implemented as prospective owner opt-in. [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md) owns release evidence. Automatic activation remains disabled because labeled genuine-turn calibration is unavailable.
+**Date:** 2026-10-11. **Status:** v1 numerical constants are frozen; the former opt-in activation transition is superseded by intrinsic F8. [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md) retains the original mechanics evidence. Missing labelled relevance data affects policy tuning, not whether F8 runs.
 
 ### Selected constants
 
@@ -22,7 +22,7 @@ Freeze Step 4 numerical defaults and policy transitions from reproducible offlin
 | Usable candidate limit | 64 distinct eligible above-threshold Memories across the entire turn. |
 | Total effect bound | At most 64 local effects and at most 640 summed bonus points per turn; no redistribution or extra aggregate scaling. |
 | Selection | Highest cosine first; MemoryId byte order for ties. Invalid/ineligible targets are removed before the usable cap. |
-| Production activation | Explicit and prospective after F8 verification; disabled by default. |
+| Production activation | Intrinsic REL behavior; no enable/disable control. Policy constants remain versioned/tunable. |
 
 Reference points: 0.749999 -> 0, 0.75 -> 1, 0.80 -> 2, 0.90 -> 6, 1.00 -> 10. This is attention credit, independent of +25 accepted use and +50 first-cycle Dream. It remains local and non-propagating.
 
@@ -68,12 +68,12 @@ On the controlled labeled boundary fixture, 0.70 selected 22.22% false labeled m
 
 Measured Python rank-only times were 6.603 s / 14.767 s / 21.196 s for the three retained inputs, approximately 2,200 cosine evaluations per second on this workstation. They include repeated norm calculation in the reference oracle and are single diagnostic samples, not optimized Rust production latency or percentiles. The offline oracle intentionally examines every selected source/target pair. Step 7 must use bounded selection/search with complete eligible ranking; the cap bounds output and selection scratch, not total vector work. No lossy community-routing shortcut is approved by this calibration.
 
-### Activation, retry and transitions
+### Historical activation record, retry and policy transitions
 
-1. Enabling v1 records the owner-local activation cut A, resolved through the exact Archive source identity at that cut (or the empty-Archive sentinel). Only activity first accepted **after A** is eligible for new live semantic events. This does not backfill already-ingested history; historical reconstruction remains the later separate mode.
-2. Before the first semantic completion, an owner may replace or cancel its pending activation configuration. After the first accepted completion, including an empty completed event, v1 configuration and activation evidence are immutable. Existing base Freshness enrollment does not prevent adding this semantic extension, and its base policy must not be reset.
+1. Current RELs do not enable F8: it is intrinsic. Fresh RELs use activity floor 0; an accepted historical checkpoint supplies the lower bound for already-reconstructed history. Older development RELs may contain a `CVAFSA01` prospective watermark, which is read only as an additional lower bound and is no longer configurable.
+2. The legacy activation/cancellation transition existed only in the pre-release implementation. Current code exposes no activation mutation and does not create disabled intervals. Existing base Freshness enrollment is preserved and its base policy must not be reset.
 3. Profile rotation changes only evidence for newly accepted eligible turns. Accepted source identities retain their original receipt/profile/effects. A retry resolves that receipt before searching or consulting current profile defaults, and never creates another credit.
-4. v1 rejects disable/re-enable configuration changes after the first completion. Pausing an execution worker does not alter enrollment or activity eligibility: pending eligible turns remain retryable under the same activation cut. Supporting disabled intervals would require a separately versioned transition design; a current boolean must not silently erase eligible activity or backfill a gap.
+4. There is no disable/re-enable configuration. Pausing a worker affects scheduling only; it does not alter F8 eligibility, and pending eligible fragments remain retryable under the same activity/checkpoint floor.
 5. v1 implements no in-place upgrade of an enrolled semantic owner. A different version/descriptor after semantic completion fails explicitly. A future v2 needs its own transition design; it cannot replay old turns under new constants. Offline calibration configurations never enter production receipt identity.
 6. Reconciliation preserves/rebases the activation boundary by exact Archive identity and preserves pinned local deltas. Different enrolled semantic descriptors or incompatible activation authority are explicit conflicts. A branch without semantic enrollment may contribute ordinary history, but cannot fabricate missing semantic receipts; Step 11 must prove that supported case or reject it.
 7. Step 12 may release the implemented lane as opt-in after correctness/recovery/performance verification. Automatic activation or claims of calibrated real relevance additionally require labeled genuine single-turn fragment/Memory evidence for each intended embedding profile. Existing surrogate and mixed-turn samples do not satisfy that gate.

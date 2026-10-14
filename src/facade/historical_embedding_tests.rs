@@ -110,7 +110,6 @@ fn assert_unaccepted(
 ) {
     assert!(cva.freshness.import_checkpoint().is_none());
     assert_eq!(cva.freshness_record(id), Some(before));
-    assert!(!cva.semantic_freshness_enabled());
     assert!(!fs::read(path).unwrap().windows(8).any(|w| w == b"CVAFRS03"));
 }
 #[test]
@@ -143,7 +142,6 @@ fn historical_embedding_native_fill_manifest_reopen_and_accepted_retry() {
     assert_eq!(cva.rel_turn_count(), turns);
     assert_eq!(cva.graph_version(), graph);
     assert!(cva.initial_dream_pass_settled(&pass));
-    assert!(!cva.semantic_freshness_enabled());
     assert_eq!(cva.freshness_record(id).unwrap().score, 100);
     drop(cva);
     let mut cva = Cva::open(&path).unwrap();
@@ -165,7 +163,6 @@ fn historical_embedding_native_fill_manifest_reopen_and_accepted_retry() {
     assert_eq!(retry.manifest_digest, report.manifest_digest);
     assert_eq!(endpoint.calls.get(), 4);
     assert_eq!(fs::read(&path).unwrap(), bytes);
-    assert!(cva.set_semantic_freshness_enabled(true).unwrap());
     cva.append_node(
         "next".into(),
         "live".into(),

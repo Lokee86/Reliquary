@@ -319,9 +319,35 @@ fn semantic_evidence_survives_divergent_rebase_twice_merge_and_reclamation() {
         .unwrap();
     let endpoint = SimulatedEmbeddingEndpoint::new(12, VectorNormalization::L2, 123);
     let profile = right.establish_compatibility_profile(&endpoint).unwrap();
-    let generation = right
-        .build_archive_vector_generation(profile.id, &endpoint)
-        .unwrap();
+    let generation = {
+        use crate::EmbeddingEndpoint;
+        let fragments = right.fragments();
+        let fragment_ids: Vec<_> = fragments.iter().map(|fragment| fragment.id).collect();
+        let texts: Vec<_> = fragment_ids
+            .iter()
+            .map(|id| right.fragment_text(*id).unwrap())
+            .collect();
+        let vectors = endpoint
+            .embed(crate::EmbeddingMode::Document, &texts)
+            .unwrap();
+        let schema = crate::VectorSchema::new(12, crate::ScalarType::F32).unwrap();
+        let bytes = vectors
+            .into_iter()
+            .flatten()
+            .flat_map(f32::to_le_bytes)
+            .collect();
+        let packed = right
+            .put_packed_vectors(crate::PackedVectors::from_bytes(schema, bytes).unwrap())
+            .unwrap();
+        let archive = right.put_archive_vectors(packed, fragment_ids).unwrap();
+        right
+            .publish_vector_generation_without_live_semantic(
+                profile.id,
+                archive,
+                right.archive_version(),
+            )
+            .unwrap()
+    };
     let prepared = ready(
         right
             .prepare_semantic_fragment(
@@ -566,74 +592,6 @@ fn candidate_search_filters_before_limit_and_deduplicates_targets() {
     assert_eq!(effects[0].memory_id, crate::MemoryId([1; 32]));
 }
 
-#[test]
-fn semantic_live_activation_is_prospective_cancellable_until_completion() {
-    let mut f = Fixture::new();
-    let old = f.turn("old", None, "user");
-    f.fragments("old", 1);
-    let generation = f.generation();
-    assert!(!f.cva().semantic_freshness_enabled());
-    assert_eq!(
-        f.cva()
-            .process_semantic_freshness(generation.id, 64)
-            .unwrap()
-            .completed_fragments,
-        0
-    );
-    assert!(f.cva().set_semantic_freshness_enabled(true).unwrap());
-    assert!(!f.cva().set_semantic_freshness_enabled(true).unwrap());
-    assert!(f.cva().set_semantic_freshness_enabled(false).unwrap());
-    assert!(f.cva().set_semantic_freshness_enabled(true).unwrap());
-    f.cva().sync().unwrap();
-    drop(f.cva.take());
-    f.cva = Some(Cva::open(&f.path).unwrap());
-    assert!(f.cva().semantic_freshness_enabled());
-    let pending = f.turn("new", Some("old"), "assistant");
-    f.fragments("new", 1);
-    assert_eq!(
-        f.cva()
-            .process_semantic_freshness(generation.id, 64)
-            .unwrap()
-            .pending_fragments,
-        1
-    );
-    let generation = f.generation(); // ordinary retained fragments are embedded and completed
-    assert_eq!(
-        f.cva()
-            .process_semantic_freshness(generation.id, 64)
-            .unwrap()
-            .completed_fragments,
-        0
-    );
-    let owner = f.cva().owner_uuid().unwrap();
-    assert!(
-        !f.cva()
-            .freshness
-            .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
-                owner,
-                crate::fragment_store::fragment_id(&old.conversation_id, &old.id, &old.id)
-            ))
-            .unwrap()
-    );
-    assert!(
-        f.cva()
-            .freshness
-            .contains_event(&crate::freshness_storage::semantic_fragment_event_id(
-                owner,
-                crate::fragment_store::fragment_id(
-                    &pending.conversation_id,
-                    &pending.id,
-                    &pending.id
-                )
-            ))
-            .unwrap()
-    );
-    assert!(f.cva().set_semantic_freshness_enabled(false).is_err());
-    drop(f.cva.take());
-    f.cva = Some(Cva::open(&f.path).unwrap());
-    assert!(f.cva().set_semantic_freshness_enabled(false).is_err());
-}
-
 fn live_draft(key: &str) -> crate::MemoryDraft {
     crate::MemoryDraft {
         category: "fact".into(),
@@ -678,6 +636,40 @@ impl crate::EmbeddingEndpoint for ConstantSemanticEndpoint {
 }
 
 #[test]
+fn semantic_live_is_intrinsic_from_rel_origin() {
+    let mut f = Fixture::new();
+    f.turn("old", None, "user");
+    f.fragments("old", 1);
+    let generation = f.generation();
+    let owner = f.cva().owner_uuid().unwrap();
+    let old_fragment = crate::fragment_store::fragment_id("c", "old", "old");
+    let old_event = crate::freshness_storage::semantic_fragment_event_id(owner, old_fragment);
+    assert!(
+        f.cva().freshness.contains_event(&old_event).unwrap(),
+        "publishing a usable generation must run intrinsic F8"
+    );
+    assert_eq!(f.cva().semantic_freshness_pending_fragments().unwrap(), 0);
+
+    f.turn("new", Some("old"), "assistant");
+    f.fragments("new", 1);
+    assert_eq!(f.cva().semantic_freshness_pending_fragments().unwrap(), 1);
+    let report = f
+        .cva()
+        .process_semantic_freshness(generation.id, 64)
+        .unwrap();
+    assert_eq!(report.completed_fragments, 0);
+    assert_eq!(report.pending_fragments, 1);
+
+    let newer = f.generation();
+    assert_ne!(newer.id, generation.id);
+    assert_eq!(f.cva().semantic_freshness_pending_fragments().unwrap(), 0);
+    let new_fragment = crate::fragment_store::fragment_id("c", "new", "new");
+    let new_event = crate::freshness_storage::semantic_fragment_event_id(owner, new_fragment);
+    assert!(f.cva().freshness.contains_event(&new_event).unwrap());
+    assert!(!f.cva().freshness.semantic_activation_seen());
+}
+
+#[test]
 fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births() {
     let mut f = Fixture::new();
     f.turn("baseline", None, "user");
@@ -703,7 +695,6 @@ fn semantic_live_accepted_turn_is_local_exactly_once_and_excludes_async_births()
     for n in 0..100 {
         f.turn(&format!("age-{n}"), None, "user");
     }
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
     let source = f
         .cva()
         .ingest_turn(crate::IncomingTurn {
@@ -813,7 +804,6 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
     for n in 0..100 {
         f.turn(&format!("worker-age-{n}"), None, "user");
     }
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
     f.turn("worker-live", None, "user");
     f.fragments("worker-live", 8);
     f.cva().sync().unwrap();
@@ -885,57 +875,6 @@ fn semantic_live_runtime_worker_retries_ready_archive_without_ingest_shortcut() 
 }
 
 #[test]
-fn semantic_live_activation_preserved_by_reclaim_and_divergent_reconcile() {
-    let mut f = Fixture::new();
-    f.turn("boundary", None, "user");
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
-    let expected = f.cva().freshness.semantic_activation().cloned().unwrap();
-    let right = f.path.with_extension("right.rel");
-    let merged = f.path.with_extension("merged.rel");
-    let reclaimed = f.path.with_extension("reclaimed.rel");
-    f.cva().sync().unwrap();
-    std::fs::copy(&f.path, &right).unwrap();
-    f.turn("left-divergence", None, "assistant");
-    {
-        let mut other = Cva::open(&right).unwrap();
-        other
-            .append_node(
-                "right-divergence".into(),
-                "c".into(),
-                None,
-                "user".into(),
-                0,
-                "right",
-            )
-            .unwrap();
-        other.sync().unwrap();
-    }
-    f.cva().reclaim_storage(&reclaimed).unwrap();
-    let reclaimed_cva = Cva::open(&reclaimed).unwrap();
-    assert_eq!(
-        reclaimed_cva.freshness.semantic_activation(),
-        Some(&expected)
-    );
-    drop(reclaimed_cva);
-    drop(f.cva.take());
-    Cva::reconcile(&f.path, &right, &merged).unwrap();
-    {
-        let mut result = Cva::open(&merged).unwrap();
-        assert_eq!(result.freshness.semantic_activation(), Some(&expected));
-        result.set_semantic_freshness_enabled(false).unwrap();
-        result.set_semantic_freshness_enabled(true).unwrap();
-        result.sync().unwrap();
-        // Different prospective boundary is a conflict, never a silent enable.
-    }
-    let conflict = f.path.with_extension("conflict.rel");
-    assert!(Cva::reconcile(&f.path, &merged, &conflict).is_err());
-    f.cva = Some(Cva::open(&f.path).unwrap());
-    for path in [right, merged, reclaimed] {
-        std::fs::remove_file(path).unwrap();
-    }
-}
-
-#[test]
 #[ignore = "release measurement; run explicitly with --ignored --nocapture"]
 fn semantic_release_measurement() {
     let mut f = Fixture::new();
@@ -948,7 +887,6 @@ fn semantic_release_measurement() {
     for n in 0..100 {
         f.turn(&format!("bench-age-{n}"), None, "user");
     }
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
     for n in 0..140 {
         f.turn(&format!("bench-source-{n}"), None, "user");
         f.fragments(&format!("bench-source-{n}"), 8);
@@ -1025,38 +963,6 @@ fn semantic_release_measurement() {
     println!(
         "SEMANTIC_RELEASE targets=128 turns=140 search_iterations=32 search_ms={search_ms:.3} event_ms={event_ms:.3} reopen_ms={reopen_ms:.3} receipts={receipts} receipt_bytes={bytes}"
     );
-}
-
-#[test]
-fn semantic_live_cancelled_activation_branch_cannot_be_silently_reenrolled() {
-    let mut f = Fixture::new();
-    f.turn("cut", None, "user");
-    f.cva().set_semantic_freshness_enabled(true).unwrap();
-    f.cva().sync().unwrap();
-    let right = f.path.with_extension("cancelled.rel");
-    let output = f.path.with_extension("cancel-conflict.rel");
-    std::fs::copy(&f.path, &right).unwrap();
-    f.turn("left", None, "user");
-    {
-        let mut other = Cva::open(&right).unwrap();
-        other.set_semantic_freshness_enabled(false).unwrap();
-        other.sync().unwrap();
-    }
-    drop(f.cva.take());
-    assert!(Cva::reconcile(&f.path, &right, &output).is_err());
-    f.cva = Some(Cva::open(&f.path).unwrap());
-    f.cva().set_semantic_freshness_enabled(false).unwrap();
-    f.cva().sync().unwrap();
-    drop(f.cva.take());
-    Cva::reconcile(&f.path, &right, &output).unwrap();
-    {
-        let merged = Cva::open(&output).unwrap();
-        assert!(!merged.semantic_freshness_enabled());
-        assert!(merged.freshness.semantic_activation_seen());
-    }
-    f.cva = Some(Cva::open(&f.path).unwrap());
-    std::fs::remove_file(output).unwrap();
-    std::fs::remove_file(right).unwrap();
 }
 
 #[path = "cva_semantic_fragment_tests.rs"]

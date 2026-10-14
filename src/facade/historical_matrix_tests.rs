@@ -205,8 +205,7 @@ fn vectors(cva: &mut Cva, with_tail: bool) -> crate::VectorGeneration {
     let profile = cva.establish_compatibility_profile(&Endpoint).unwrap();
     cva.build_missing_memory_vectors(profile.id, &Endpoint)
         .unwrap();
-    cva.build_archive_vector_generation(profile.id, &Endpoint)
-        .unwrap()
+    historical_events::archive_generation_without_live(cva, profile.id, &Endpoint)
 }
 fn accept_and_reopen(path: &std::path::Path, mut cva: Cva) -> Cva {
     assert!(

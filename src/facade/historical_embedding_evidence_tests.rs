@@ -41,8 +41,7 @@ fn historical_embedding_native_mixed_rows_are_filled_or_reused_without_fragment_
         let profile = cva.establish_compatibility_profile(&endpoint).unwrap();
         let mixed = cva.fragments().len();
         if retain_mixed {
-            cva.build_archive_vector_generation(profile.id, &endpoint)
-                .unwrap();
+            historical_events::archive_generation_without_live(&mut cva, profile.id, &endpoint);
         }
         let report = embedding::fill(&mut cva, &endpoint, Default::default(), &cancel).unwrap();
         assert_eq!(report.new_rows, if retain_mixed { 0 } else { mixed });
@@ -91,7 +90,7 @@ fn historical_embedding_native_existing_invalid_rows_are_not_reembedded() {
         .put_archive_vectors(packed_id, set.fragment_ids)
         .unwrap();
     let generation = cva
-        .publish_vector_generation(profile.id, binding, cva.archive_version())
+        .publish_vector_generation_without_live_semantic(profile.id, binding, cva.archive_version())
         .unwrap();
     cva.sync().unwrap();
     let bytes = fs::read(&path).unwrap();
@@ -127,7 +126,7 @@ impl EmbeddingEndpoint for UnboundedEndpoint {
 }
 #[test]
 fn historical_embedding_native_unsupported_profile_endpoint_owner_and_clock_reject() {
-    for mode in 0..4 {
+    for mode in 0..3 {
         let (path, mut cva, _) = historical_import_fixture(&format!("h8-unsupported-{mode}.rel"));
         let cancel = AtomicBool::new(false);
         let endpoint = Endpoint::new(&cancel);
@@ -142,9 +141,6 @@ fn historical_embedding_native_unsupported_profile_endpoint_owner_and_clock_reje
                 .unwrap();
             }
             1 => {}
-            2 => {
-                cva.set_semantic_freshness_enabled(true).unwrap();
-            }
             _ => {
                 cva.append_node(
                     "too-early".into(),

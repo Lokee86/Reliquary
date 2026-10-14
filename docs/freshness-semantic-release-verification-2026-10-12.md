@@ -8,7 +8,7 @@ Record Step 12 implementation closure, standalone live F8 verification, syntheti
 
 ## Overview
 
-**Status:** Step 12 complete; standalone live F8 release gate passed for prospective opt-in v1. The earlier blocked disposition is superseded by the actual readiness/activation implementation and executed end-to-end tests. Live v1 is prospective, owner-local and opt-in; automatic activation remains disabled. Historical reconstruction is untouched.
+**Status:** Historical Step 12 evidence remains valid for F8 mechanics, but its opt-in activation policy is superseded by the intrinsic-F8 hard cut after C12. Live F8 is owner-local, local-only and always part of REL Freshness when eligible vector evidence exists; there is no enable/disable API. Historical reconstruction remains a separate explicit offline operation.
 
 ## Related docs
 
@@ -19,7 +19,7 @@ Record Step 12 implementation closure, standalone live F8 verification, syntheti
 
 ## Implemented closure
 
-- Freshness owns prospective activation in `CVAFSA01`, pinned to exact accepted Archive identity or the empty sentinel. Before completion it can be cancelled/replaced; after any completion its activation/configuration is immutable. Reopen and reconciliation retain activation/cancellation authority, rebase by source identity and reject conflicting enrolled boundaries or active/cancelled branches.
+- Historical Step 12 used `CVAFSA01` prospective activation. That switch is now removed. Current F8 is intrinsic; retained pre-release `CVAFSA01` records are compatibility watermarks only, while historical checkpoint cuts prevent pre-checkpoint double credit.
 - Archive remains the source/work authority. No queue or separate ledger is added. The bounded coordinator rediscovers uncompleted eligible accepted nodes, distinguishes pending from completed-empty evidence, and pins effects at their accepted cut. Both REL vector workers perform embedding outside owner locks, then commit through their existing owner admission/mutation boundary. No ingestion-time error is discarded.
 - Births must strictly precede the source, while admission may equal it. Asynchronous/new source births cannot qualify, independently of later lifecycle changes; exact provenance/cohort checks remain additional guards. Invalid vectors are excluded before the usable limit. The adapter streams target rows and retains only top-64 selection rather than a full candidate/vector population. Pinned target evidence commits current immutable body/vector bindings and row bytes, not just effect IDs.
 - Runtime background status includes pending semantic work and does not call the owner quiescent while it remains. Accepted receipts resolve before vector work; retry after cache eviction/reopen/profile rotation never recredits. Direct effects remain non-propagating and independent of +25 use/+50 Dream.
@@ -58,7 +58,7 @@ Synthetic fixture: 128 compatible target bodies, 140 accepted post-activation tu
 | Reopen | 222.248 ms |
 | Resident receipts | 29 entries / 261,783 bytes |
 
-The fixture asserts output cardinality 64, recent residency <=128 entries and <=262,144 bytes, exact evicted retry before/after reopen, and no extra file bytes on retry. These are reproducible correctness/measurement commands, not optimized production SLOs, percentile latency, provider/mutex tails, large-corpus throughput or semantic-quality evidence. Archive generation construction currently rebuilds its selected matrix; labeled genuine-turn relevance and default activation remain outside this release.
+The fixture asserts output cardinality 64, recent residency <=128 entries and <=262,144 bytes, exact evicted retry before/after reopen, and no extra file bytes on retry. These are reproducible correctness/measurement commands, not optimized production SLOs, percentile latency, provider/mutex tails, large-corpus throughput or semantic-quality evidence. Archive generation construction currently rebuilds its selected matrix; labelled relevance remains unavailable for policy calibration, but F8 activation is no longer conditional.
 
 ## Documentation impact
 
@@ -70,12 +70,12 @@ The fixture asserts output cardinality 64, recent residency <=128 entries and <=
 
 ## Architecture impact
 
-- Standards added or changed: additive Freshness activation record; frozen v1 policy/ownership unchanged.
-- Ownership or boundary impact: Freshness retains activation/receipt/scoring authority, Archive retains accepted identity, and existing vector workers coordinate provider I/O outside owner locks.
+- Historical note: Step 12 added the pre-release activation record; current code retains it only as a compatibility watermark. Frozen v1 policy/ownership is otherwise unchanged.
+- Ownership or boundary impact: Freshness retains receipt/scoring authority, Archive retains accepted identity, and existing vector workers coordinate provider I/O outside owner locks.
 - Pitlord enforcement impact: refreshed Lexicon/Arcana evidence, policy validation and Pitlord enforcement passed; the coverage guard passed 28 fixtures and classified 112 public APIs. Existing ownership/static policies are unchanged.
 - Other verification impact: executed runtime, durable transformation and bounded-residency fixtures plus full root/CLI gates.
 - Known architectural gaps: no historical importer, PHY clock, in-place policy upgrade or disabled interval semantics.
 
 ## Notes
 
-This release is only the explicitly activated live local lane. It grants no permission to backfill old turns, fabricate historical activity cuts, traverse other owners, propagate similarity over Graph/Community, or enable automatic semantic scoring by default.
+Current F8 is the intrinsic live local lane. It still grants no permission to backfill old turns, fabricate historical activity cuts, traverse other owners, or propagate live similarity over Graph/Community; historical reconstruction remains a separate explicit offline operation.

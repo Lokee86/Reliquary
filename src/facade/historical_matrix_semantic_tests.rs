@@ -30,7 +30,6 @@ fn historical_matrix_semantic_live_local_vs_native_propagation_and_stale_communi
         let live_path = path.with_file_name("live.rel");
         fs::copy(&path, &live_path).unwrap();
         let mut live = Cva::open(&live_path).unwrap();
-        live.set_semantic_freshness_enabled(true).unwrap();
         let untouched = live.freshness_record(sink);
         tail(&mut live);
         let generation = vectors(&mut live, true);

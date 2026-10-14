@@ -758,9 +758,9 @@ Reopen validates complete framing, owner/source identity, first revision, root m
 
 Strict copy/repack/reclamation preserve these chunks. Divergent reconciliation replays settled identities, original birth/admission flags and immutable effect/proof provenance at exact rebased Archive cuts. Pending first passes or publication intents remain explicitly unsupported and are rejected before output; a missing historical proof is not substituted by current topology.
 
-### Semantic Freshness activation (`CVAFSA01`)
+### Legacy semantic Freshness watermark (`CVAFSA01`)
 
-This Freshness-owned record begins with eight-byte `CVAFSA01`, followed by UTF-8 JSON with fields `owner_uuid` (16 byte values) and `activation` (null for pre-completion cancellation, otherwise an object). The activation object contains `owner_uuid`, `boundary` (null for the empty-Archive sentinel or the exact two-string conversation/node tuple), `accepted_turn` (u64), `policy_version` (u16) and `policy_digest` (32 byte values). Serialization uses the declared field order without whitespace; decoding rejects unknown/duplicate fields, malformed JSON, wrong owner, unsupported policy/digest and boundary/cut inconsistency. The base policy is persisted first. Append/sync precedes acknowledgement. Later activation records may replace/cancel a pending configuration only before the first semantic completion; afterward a different activation fails. Reopen validates the exact Archive boundary, and reconciliation rebases it by source identity or rejects conflicting boundaries. Repack/reclamation retain bytes unchanged. No source work queue is persisted.
+`CVAFSA01` is a retained pre-release compatibility record. It begins with eight-byte `CVAFSA01`, followed by UTF-8 JSON with fields `owner_uuid` and `activation`; the historical activation object contains owner, exact Archive boundary/cut and semantic policy identity. Current code does not expose an enable/disable API and does not create or change these records. When encountered on an older development REL, a valid non-null record contributes only a lower-bound watermark so already-accounted fragments are not credited again; a historical cancelled/null record does not disable intrinsic F8. Reopen still validates a retained non-null boundary, reconciliation preserves/rebases it by source identity, and repack/reclamation retain the bytes. New RELs require no activation record and use the ordinary activity/checkpoint floor.
 
 ### Memory Freshness journal (`CVAFRS02`)
 
@@ -1055,4 +1055,4 @@ The one-time normalization added no REL/PHY format, compatibility chain or check
 
 ## Historical production scope
 
-The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit opt-in, offline/exclusive single-owner REL reconstruction. Default activation remains off; mounted historical management and PHY Freshness remain outside this release. Current native proof/identity/clock/scoring/storage contracts are unchanged by this disposition.
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.

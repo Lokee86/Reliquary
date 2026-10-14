@@ -24,12 +24,39 @@ impl EmbeddingEndpoint for ConstantEndpoint {
         Ok(vec![vec![1.0, 0.0]; texts.len()])
     }
 }
+pub(super) fn archive_generation_without_live<E: EmbeddingEndpoint>(
+    cva: &mut Cva,
+    profile_id: crate::CompatibilityProfileId,
+    endpoint: &E,
+) -> crate::VectorGeneration {
+    let profile = cva.compatibility_profile(profile_id).unwrap();
+    let fragment_ids: Vec<_> = cva.fragments().iter().map(|fragment| fragment.id).collect();
+    let texts: Vec<_> = fragment_ids
+        .iter()
+        .map(|id| cva.fragment_text(*id).unwrap())
+        .collect();
+    let vectors = endpoint.embed(EmbeddingMode::Document, &texts).unwrap();
+    crate::compatibility_profile_probe::validate_embedding_batch(&profile, &vectors, texts.len())
+        .unwrap();
+    let schema = crate::VectorSchema::new(profile.dimensions, crate::ScalarType::F32).unwrap();
+    let bytes = vectors
+        .into_iter()
+        .flatten()
+        .flat_map(f32::to_le_bytes)
+        .collect();
+    let packed = cva
+        .put_packed_vectors(crate::PackedVectors::from_bytes(schema, bytes).unwrap())
+        .unwrap();
+    let archive = cva.put_archive_vectors(packed, fragment_ids).unwrap();
+    cva.publish_vector_generation_without_live_semantic(profile.id, archive, cva.archive_version())
+        .unwrap()
+}
+
 pub(super) fn vectors(cva: &mut Cva) {
     let profile = cva
         .establish_compatibility_profile(&ConstantEndpoint)
         .unwrap();
-    cva.build_archive_vector_generation(profile.id, &ConstantEndpoint)
-        .unwrap();
+    archive_generation_without_live(cva, profile.id, &ConstantEndpoint);
     cva.build_missing_memory_vectors(profile.id, &ConstantEndpoint)
         .unwrap();
 }

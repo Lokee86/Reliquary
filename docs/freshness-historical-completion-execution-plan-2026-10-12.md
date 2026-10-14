@@ -12,7 +12,7 @@ The remaining work is a native integration/recovery closure, not a redesign of F
 
 ## Current state
 
-**Live F8 is complete as prospective explicit owner opt-in v1.** Normal live semantic reinforcement remains local and non-propagating.
+**Live F8 is complete as intrinsic REL behavior.** It has no enable/disable control; normal live semantic reinforcement remains local and non-propagating.
 
 Historical reconstruction already has:
 
@@ -32,7 +32,7 @@ At the time this plan was written, `feat/freshness-semantic-historical-linear` w
 
 ## Release target
 
-Historical reconstruction is complete when a supported **explicit opt-in, REL-local** import path can:
+Historical reconstruction is complete when a supported **explicit, offline REL-local** import path can:
 
 1. finish one complete imported corpus generation;
 2. construct and verify the frozen H1 manifest from authoritative owner state;
@@ -43,7 +43,7 @@ Historical reconstruction is complete when a supported **explicit opt-in, REL-lo
 7. optionally fill missing source embeddings through a bounded explicit embedding-only operation;
 8. demonstrate the complete path with integrated fixtures and retained-corpus measurements.
 
-**Default activation is not required for H1–H8 completion.** The first supported release may remain explicit opt-in. PHY Freshness remains out of scope.
+**Historical reconstruction intentionally remains an explicit offline/backfill operation.** It is not a normal-runtime activation feature and should not become automatic migration machinery. PHY Freshness remains out of scope.
 
 ## Model assignment
 
@@ -62,7 +62,7 @@ Historical reconstruction is complete when a supported **explicit opt-in, REL-lo
 7. **No caller authority substitution.** A production coordinator must derive/verify manifest, graph, Community, vector, provenance, cohort and replacement proof from the frozen Cva owner state. Caller-supplied precomputed plans are not authorization or acceptance evidence.
 8. **No mutation during the frozen attempt.** Any owner-input drift between freeze and commit invalidates the attempt and requires refreeze/replanning.
 9. **Provider I/O stays outside owner locks.** Optional embedding work uses the existing remote-provider boundary and is complete before the final manifest freeze.
-10. **No automatic/default importer activation in this project.** Completion establishes a supported explicit path; default policy can be decided later.
+10. **No automatic/default historical migration in this project.** Completion establishes a supported explicit offline/backfill path; normal runtime does not invoke reconstruction automatically.
 
 ## Remaining sequential work
 
@@ -75,11 +75,11 @@ Historical reconstruction is complete when a supported **explicit opt-in, REL-lo
 | **C5 — complete** | **Sol** | **Replace model publication with the native one-shot pipeline.** Orchestrate: generation-complete barrier → optional embedding completion if requested → final manifest freeze → timeline/semantic/Dream planning → historical propagation → sparse chronological scoring → `FrozenHistoricalImport::prepare` → `Cva::commit_historical_import`. The final score events must be covered by the frozen manifest and checkpoint cut. No permanent event queue is retained. | A real REL can execute the whole operation through Cva and reopen with the accepted `CVAFRS03` projection. The model store is not involved in production acceptance. Exact pre-commit drift rejects and leaves the REL unchanged. |
 | **C6 — complete** | **Sol** | **Close native crash/reopen/idempotence semantics.** Test actual Container bytes, not an in-memory map. Enumerate crash prefixes around the checkpoint append including container framing; reopen each through the normal Cva open path and prove the state is either the old provisional projection or the complete checkpoint, never partial. Prove passive reopen rebuilds the due index, exact import retry remains a no-op after accepted checkpoint, and a retry after legitimate post-checkpoint live growth does not erase that growth. Include a real multi-recipient accepted-use receipt after the checkpoint. | Byte-prefix/reopen/retry suite passes against native files; no half checkpoint, duplicate award, global event-ID recipient suppression, or lost post-checkpoint live event is possible. |
 | **C7 — complete** | **Sol** | **Freeze the optional embedding-only operation contract.** It is explicit opt-in and runs before the final manifest freeze. Pin owner/profile/source generation, maximum sources/fragments/work, concurrency, cancellation semantics and coverage reporting. Reuse existing embedding/provider execution outside owner locks. Do not run Insomnia or Dream, and do not synthesize text. Failed/cancelled fill leaves no historical checkpoint and can be retried. | The operation has a small bounded interface, explicit resource limits and deterministic retained evidence suitable for inclusion in the H1 vector proof. |
-| **C8 — complete** | **Luna** | **Implement the bounded embedding-only operation and integrate the current importer/runtime entry point.** Fill only missing genuine accepted source-fragment vectors, retain them through the existing vector authority, then restart/finalize manifest freeze. Add an explicit historical-reconstruction option to the current native import workflow or its post-generation management surface; do not enable it by default. Preserve already-enrolled-owner protection and reject noncanonical original Archive acceptance order. | One real import fixture reaches generation completion, optionally fills missing vectors, reconstructs through the native Cva path, commits, reopens and can then enable prospective live F8 after the historical cut. |
+| **C8 — complete** | **Luna** | **Implement the bounded embedding-only operation and integrate the current importer/runtime entry point.** Fill only missing genuine accepted source-fragment vectors, retain them through the existing vector authority, then restart/finalize manifest freeze. Add an explicit historical-reconstruction option to the current native import workflow or its post-generation management surface; do not enable it by default. Preserve already-enrolled-owner protection and reject noncanonical original Archive acceptance order. | One real import fixture reaches generation completion, optionally fills missing vectors, reconstructs through the native Cva path, commits, reopens and then resumes intrinsic live F8 only for fragments after the historical cut. |
 | **C9 — complete** | **Luna** | **Run the integrated correctness matrix.** Cover local-live-vs-propagating-historical semantic divergence, future transit bridge, stale/malformed Community behavior, duplicate representative authority, actual first-cycle proof/no-link/fallback Dream precedence, missing/unsupported provenance, Archive clock mismatch, graph/vector/body drift, unauthorized/cross-owner evidence, repeated import, regenerated already-enrolled owner, crash/reopen, post-checkpoint +25 use, copy/repack/reclamation and divergent reconciliation. | The matrix passes through the production coordinator and native checkpoint, not through supplied-plan/model shortcuts. Unsupported cases reject explicitly without changing accepted Freshness. |
 | **C10 — complete** | **Luna** | **Normalize retained pre-release fixtures, then run retained-corpus acceptance and measurements.** Execute the [N1–N10 retained fixture normalization plan](freshness-retained-fixture-normalization-plan-2026-10-12.md): correct mixed-fragment semantic evidence and accepted-Archive clock authority, advance the 14-day/28-day/Ellis authoritative fixtures to current standard state with disposable fixture-only tooling, delete that tooling after verification, then measure the exact production reconstruction path. | At least one authoritative normalized retained corpus completes the exact production path with reproducible before/after hashes and reported coverage/performance; no general unreleased-format migration framework remains in the product tree. |
 | **C11 — complete** | **Luna** | **Run the full release gate.** Execute focused C2–C10 suites, all existing F8/Historical/Core Freshness regressions, full root tests, CLI tests, formatting, documentation policy, architecture checks and patch hygiene on the converged branch. Update API/storage/architecture/invariants/current-limitations only to describe actually supported behavior. | All required gates pass on the final source; a new dated historical release verification record contains exact commands/results and supersedes the partial Step 22/24/25 records without deleting their historical evidence. |
-| **C12 — complete** | **Sol** | **Final production disposition.** Audit the final implementation against ADR 0039 and H1. If C1–C11 are green, mark H1–H8 complete as a supported explicit opt-in REL-local feature and merge-ready. Default activation may remain off. Keep PHY explicitly deferred. If retained-corpus semantic quality argues against default enablement, record that as a product policy decision rather than mislabeling the implementation incomplete. | One truthful final disposition exists; roadmap/index/status docs distinguish “implemented explicit opt-in” from “enabled by default.” |
+| **C12 — complete** | **Sol** | **Final production disposition.** Audit the final implementation against ADR 0039 and H1. If C1–C11 are green, mark H1–H8 complete as a supported explicit offline REL-local feature and merge-ready. Historical reconstruction remains intentionally non-automatic. Keep PHY explicitly deferred. If retained-corpus semantic quality argues against default enablement, record that as a product policy decision rather than mislabeling the implementation incomplete. | One truthful final disposition exists; roadmap/index/status docs distinguish intrinsic live F8 from explicit offline historical reconstruction. |
 
 ## C1 post-convergence seams — 2026-10-12
 
@@ -212,7 +212,7 @@ source export
   -> native historical reconstruction
   -> CVAFRS03 accepted
   -> reopen
-  -> optional prospective live F8 activation
+  -> intrinsic live F8 for post-checkpoint fragments
   -> new accepted turn / legitimate live reinforcement
 ```
 
@@ -310,7 +310,7 @@ Verification:
 Documentation impact:
 - Inspected: canonical owner/API/storage/invariants/limits/maintainer docs, H1 policy and this plan.
 - Updated: C4 routing, identity/proof/exclusion rules, scope and verification.
-- Not affected: live F8 policy/identity, durable framing and opt-in REL-local release scope.
+- Not affected: live F8 policy/identity, durable framing and explicit offline REL-local historical scope.
 - Compliance check: both required documentation-policy modes passed.
 - Known documentation gaps: C5–C12 remain pending.
 
@@ -430,7 +430,7 @@ Final H1 proof derives selected generation, immutable binding/row hashes and cov
 
 ### C8 verification gate
 
-C8 must exercise the real post-generation importer/management entry and native checkpoint: default disabled/no provider calls; opt-in missing exact rows; zero-work reuse; profile ambiguity/incompatibility; mixed/invalid/source-unavailable distinctions; all resource ceilings and checked overflow; malformed provider output; cancellation at each boundary; owner/route/generation drift during provider work; partial durable fill then reopen/retry; no Insomnia/Dream/F8 receipt effects; provider calls outside locks; native manifest coverage digest; final refreeze; accepted retry with fill requested; prospective F8 activation only after acceptance. Include a test endpoint that detects lock-held callbacks and counts inputs/calls, plus real immutable row-byte comparisons and reopen assertions. Failure cases assert no CVAFRS03 and unchanged accepted Freshness, while reporting allowed vector progress.
+C8 must exercise the real post-generation importer/management entry and native checkpoint: default disabled/no provider calls; opt-in missing exact rows; zero-work reuse; profile ambiguity/incompatibility; mixed/invalid/source-unavailable distinctions; all resource ceilings and checked overflow; malformed provider output; cancellation at each boundary; owner/route/generation drift during provider work; partial durable fill then reopen/retry; no Insomnia/Dream/F8 receipt effects; provider calls outside locks; native manifest coverage digest; final refreeze; accepted retry with fill requested; intrinsic F8 processing only after accepted historical checkpoint publication. Include a test endpoint that detects lock-held callbacks and counts inputs/calls, plus real immutable row-byte comparisons and reopen assertions. Failure cases assert no CVAFRS03 and unchanged accepted Freshness, while reporting allowed vector progress.
 
 Documentation impact:
 - Inspected: canonical ownership/storage/limits/roadmap, H1 policy, native reconstruction/source/vector adapters, provider compatibility probes and current runtime prepare/embed/commit boundary.
@@ -460,7 +460,7 @@ Final C7 gates: documentation-only; both documentation-policy modes and git diff
 - EmbeddingEndpoint's bounded capability defaults to unsupported. The simulator and OpenAI-ready implementation support it. Configured remote calls bypass ordinary batch fan-out, issue one request, refuse redirects, have no implicit retry, bound response hydration and retain the existing finite timeout. Offline execution acquires no runtime mutex. Mounted Gateway historical management remains unavailable; no unsafe mounted fallback is provided.
 - Cancellation is observed before/after provider work and before writes/freeze/acceptance. Failure returns structured coverage/cost/physical-write and generation-sync progress with no fill checkpoint. Exact final owner drift rejects. Once existing native checkpoint acceptance starts, it completes append/sync rather than reporting cancellation after acceptance.
 - H1 requested-complete embedding_pass commits the final retained profile/generation/cut and typed node/position/mode/evidence coverage digest. Transient attempt/call/batch costs stay outside the manifest. The final manifest refreezes after successful fill, then ordinary native preparation/commit ends in FreshnessStore/CVAFRS03. No durable embedding ledger or alternate coordinator is added.
-- A real schema-1 import fixture invokes import_native, actual Insomnia grouped publication and first-cycle Dream settlement, then configured local HTTP embedding and native reconstruction. It reopens/retries without provider work and enables prospective F8 only after acceptance. This is synthetic integration evidence; retained-corpus acceptance remains C10.
+- A real schema-1 import fixture invokes import_native, actual Insomnia grouped publication and first-cycle Dream settlement, then configured local HTTP embedding and native reconstruction. It reopens/retries without provider work and intrinsic F8 then applies only to post-checkpoint fragments. This is synthetic integration evidence; retained-corpus acceptance remains C10.
 
 Verification:
 - Final focused historical_embedding filter: 14 passed, including native importer/configured HTTP, immutable-row/mixed/invalid coverage, actual partial-vector reopen/retry, cancellation, shape/value errors, drift, all lowerable resource ceilings and physical-write-free preflight rejection.
