@@ -323,7 +323,9 @@ Retain independently justified Archive progress/checkpoint materialization and E
 
 ## Ego
 
-The first Ego substrate is implemented in this branch. REL/PHY persist owner-local Anchors and cached web synthesis; PHY additionally persists Personality and multiple stable Identity documents with one explicit active selection. Identity records have stable IDs, independent revisions/tombstones, explicit no-op-safe activation, legacy single-Identity compatibility, and a compatibility accessor/mutator for the active Identity. These durable records deliberately do not yet perform inference, scheduling, cross-owner assembly, or prompt injection.
+Current implementation-versus-design status, open decisions, calibration and dependencies are indexed in [Ego status and decision inventory — 2026-10-14](ego-status-decision-inventory-2026-10-14.md). The three Ego plans remain the behavioral authorities.
+
+The first Ego substrate is implemented in `main`. The current-state storage contract is documented in [architecture](architecture.md); the authoritative future Memory-Web behavioral design is [Ego Memory-Web Summary design](ego-web-synthesis-plan.md). The following is an implementation-status summary, not a competing Ego specification. REL/PHY persist owner-local Anchors and cached web synthesis; PHY additionally persists Personality and multiple stable Identity documents with one explicit active selection. Identity records have stable IDs, independent revisions/tombstones, explicit no-op-safe activation, legacy single-Identity compatibility, and a compatibility accessor/mutator for the active Identity. These durable records deliberately do not yet perform inference, scheduling, cross-owner assembly, or prompt injection.
 
 The target project Memory-Web Summary is explicitly **user-relative**. Shared evidence remains REL-owned, including Memories, Freshness, source chronology, Graph/Communities, and authorized search. After objective lifecycle cleanup, the current routine working-Web design audits the whole eligible Web while it fits; only on overflow does it prune the lowest-Freshness Memories until the mandatory population fits, with Fresh (+1..+100) as the final routine floor. Pruned state remains searchable, and exclusion from the working Web is not a semantic invalidation claim.
 
@@ -343,7 +345,7 @@ Current Ego status:
 
 Next, Ego should:
 
-- complete the [Archive-owned REL activity clock Phase 1](rel-activity-clock-implementation-plan.md), then calibrate the REL percentage/cap refresh cadence;
+- use the already-implemented [Archive-owned REL activity clock Phase 1](rel-activity-clock-implementation-plan.md), then calibrate the REL percentage/cap refresh cadence;
 - implement objective lifecycle cleanup plus whole-Web-while-fit audit admission, then Freshness-ordered overflow pruning with Fresh (>0) as the final routine floor while keeping pruned Stale/Dormant state searchable;
 - implement the mandatory-coverage audit controller with bounded batches and full-Web `memory_search`;
 - design and then implement the still-open candidate-selection mechanics separately from audit and summary generation;

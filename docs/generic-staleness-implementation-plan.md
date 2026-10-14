@@ -18,7 +18,7 @@ The design has one bounded signed score per REL Memory, deterministic lazy decay
 
 Memory staleness is no longer a periodic model assessment, a per-Memory `next_review_at` schedule, a rolling Community density counter, or a Perception-certified support window. It is **one bounded signed Freshness counter per Memory**, driven by accepted activity and events on the *existing* Memory graph. Inputs can originate in probabilistic Insomnia/Dream decisions, but scoring, propagation, decay, lifecycle boundaries, scheduling and replay are deterministic.
 
-Freshness is a measure of **contextual relevance/attention**, not an assertion that a proposition is true, still valid in the world, or semantically verified. This machinery is intentionally also a context-control mechanism: even a factually correct, unaccessed Memory becomes lower priority. It neither archives, deletes, supersedes nor rewrites a Memory body. Dream continues to own relationships, duplicate canonicalization and their independently decided lifecycle; Chronos and Perception retain their own semantic responsibilities but are **not prerequisites for Freshness transitions**. Ego reads Freshness as a selection/ranking signal while retaining its independent coverage and hard-keep obligations.
+Freshness is a measure of **contextual relevance/attention**, not an assertion that a proposition is true, still valid in the world, or semantically verified. This machinery is intentionally also a context-control mechanism: even a factually correct, unaccessed Memory becomes lower priority. It neither archives, deletes, supersedes nor rewrites a Memory body. Dream continues to own relationships, duplicate canonicalization and their independently decided lifecycle; Chronos and Perception retain their own semantic responsibilities but are **not prerequisites for Freshness transitions**. Ego reads Freshness as a selection/ranking signal while retaining its independent mandatory-audit coverage. The current Ego design establishes no generic protected keep lane; see [Ego Memory-Web Summary design](ego-web-synthesis-plan.md).
 
 The following old obligations are **removed for Memories**:
 
@@ -183,7 +183,7 @@ Use **one first-cycle linkage event per newly created Memory's settled initial D
 
 ### F6 — Lifecycle deadline index and Ego query — partial; consumer selection remains future work
 
-- The derived Cva due dispatcher processes at most 64 exact transitions per accepted activity callback and rebuilds on reopen; delivery is at-least-once/coalescing. `select_ego_routine_context` implements full-Web-if-fits, hard-keeps, and graded score fill; connect a real Ego consumer without excluding coverage/mandatory audit lanes.
+- The derived Cva due dispatcher processes at most 64 exact transitions per accepted activity callback and rebuilds on reopen; delivery is at-least-once/coalescing. `select_ego_routine_context` is a pre-existing low-level selection helper, not an implemented Ego audit controller or authority for current Ego admission policy. Its hard-keep/graded-fill contract is superseded for Ego integration by [Ego Memory-Web Summary design](ego-web-synthesis-plan.md): whole eligible Web while it fits, then Freshness-ordered overflow pruning with mandatory coverage of every retained Memory.
 - Test Dormant retrieval, access reinvigoration over repeated events, direct positive-root event semantics, independently archived/superseded Memories, and behavior with Perception disabled.
 - Preserve summary regeneration clocks/queues as a **different** Ego concern.
 
@@ -226,7 +226,7 @@ Use **one first-cycle linkage event per newly created Memory's settled initial D
 | Community snapshot is stale or new root lacks membership | Documented conservative rule, no automatic full Leiden rebuild |
 | Large/dense active graph | Correct algorithm and measured traversal cost, no arbitrary extra hop cap |
 | Legacy reopen; full/partial physical history transformations | Explicit enrollment or correct replay/rebase; no invented score/activity history |
-| Ego with Perception absent, Web small/large | Graded priority while preserving full-Web-if-economical and hard-keep rules |
+| Ego with Perception absent, Web small/large | Whole eligible Web while it fits; Freshness-ordered overflow pruning and mandatory coverage as defined by the current Ego design |
 | PHY has no REL activity stream | No accidental use of unrelated REL, wall time or raw PHY Memory versions for this REL policy |
 
 ## Related docs

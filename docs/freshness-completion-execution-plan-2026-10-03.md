@@ -6,6 +6,8 @@ Parent: [Documentation index](INDEX.md). Governing decisions: [ADR 0039](decisio
 
 **Repository and starting branch:** `C:\!bin\workspace\Reliquary`, `feat/deterministic-memory-freshness`, HEAD observed `a6f580c` on 2026-10-03. At inspection this branch had 76 modified/untracked entries; another independent multiplexing worktree was compiling. Reinspect Git status at every execution handoff. Neither the existence nor the ownership of an uncommitted file is evidence of a currently active agent.
 
+Historical Ego-selection caveat: the R6.4 and R6.5 hard-keep instructions below record the original execution contract, **not current Ego design authority**. The [Ego Memory-Web Summary design](ego-web-synthesis-plan.md) supersedes them with whole-Web-while-fit mandatory exposure and Freshness-ordered overflow pruning; no generic protected lane is accepted.
+
 Execution update: the [core verification report](freshness-core-release-verification-2026-10-03.md) records passing R4–R7 library gates on the final source. The original prospective status and specification below are retained as the execution baseline; F8 was excluded by the user.
 
 ## Purpose
