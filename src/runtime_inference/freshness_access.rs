@@ -1,8 +1,11 @@
 use crate::{Cva, FreshnessState, MemoryId, PropagationEvent};
 use std::collections::{BTreeMap, BTreeSet};
 
-/// Explicit proof that Memory content was accepted into a real context/use.
-/// Search results and low-level reads never construct this receipt themselves.
+/// Trusted host attestation that exact Memory content entered an external context.
+/// The controller constructs this from its verified accepted-content manifest;
+/// untrusted client assertions, search results, internal processing, and low-level
+/// reads must never construct or authorize a receipt. This value is not itself
+/// cryptographic proof or an authenticated client API.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AcceptedMemoryUseReceipt {
     pub owner_uuid: [u8; 16],
@@ -28,8 +31,15 @@ pub struct EgoFreshnessCandidate {
 }
 
 impl Cva {
-    /// Apply one accepted-use event per distinct Memory in a delivery. The
-    /// caller invokes this only after content has actually been consumed.
+    /// Apply existing access reinforcement for confirmed external Memory consumption.
+    ///
+    /// This is the sole trusted embedding-host write boundary, not a client receipt
+    /// endpoint. The host must verify actual content acceptance, construct the exact
+    /// included IDs, and retain a stable use identity and accepted REL turn for retry.
+    /// Candidate delivery, metadata inspection, internal Ego/Dream/Insomnia work,
+    /// failed delivery, and cancellation never authorize this call. Owner/turn and
+    /// replay validation below cannot establish the host's consumption evidence.
+    /// Identical retries apply nothing; conflicting identity reuse fails.
     pub fn record_accepted_memory_use(
         &mut self,
         receipt: AcceptedMemoryUseReceipt,
@@ -194,8 +204,9 @@ impl Cva {
         Ok(applied)
     }
 
-    /// Return current signed Freshness grades for Ego without changing the
-    /// owner or excluding low-scoring, archived, or hard-kept Memories.
+    /// Return current/historical signed Freshness grades without access reinforcement,
+    /// activity advancement, or receipt creation. Lazy decay is a derived read.
+    /// Does not exclude low-scoring, archived, or hard-kept Memories.
     pub fn ego_memory_freshness(
         &self,
         memory_ids: &[MemoryId],

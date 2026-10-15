@@ -90,6 +90,8 @@ impl Phylactery {
             .publish(&mut self.container, id, expected_revision, draft)
     }
 
+    /// Read Memory content without access reinforcement. Inspection and candidate
+    /// delivery do not establish external consumption or invent a PHY activity clock.
     pub fn memory(&mut self, id: MemoryId) -> Result<Memory, MemoryError> {
         self.memories.memory(&mut self.container, id)
     }

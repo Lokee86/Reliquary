@@ -1,11 +1,15 @@
 # Freshness internal retrieval boundary — implementation specification
 
-Status: proposed for implementation
+Status: F1/F2/F4 complete; full Rust verification passed. F3 remains blocked on external host acceptance integration. F5 closeout records four unrelated Ego documentation findings and a timed-out architecture graph refresh. See the [execution record](freshness-retrieval-boundary-verification-2026-10-15.md).
 Date: 2026-10-15
 Repository: Reliquary
 Scope: retrieval/access-reinforcement boundary only; Ego synthesis selection is separate.
 
-## Goal
+## Overview
+
+Execute F1–F5 in order while preserving the engine. A missing external acceptance coordinator leaves F3 pending and permits independent regression verification to continue.
+
+## Purpose
 
 Internal Reliquary reads must never reinforce Memory Freshness simply because the system is inspecting its own data. Retrieval and accepted consumption remain distinct. Access-based reinforcement occurs only when an authoritative external consumption boundary records proven Memory use.
 
@@ -122,6 +126,15 @@ Replace or retire the outdated `select_ego_routine_context` `hard_keep`/score-ra
 8. Batch all remaining Memories; every Fresh Memory gets mandatory audit coverage, even if multiple batches are required.
 
 This sequence produces audit inputs, not `SummaryCandidates` directly. Do not mix Ego's candidate/summary machinery into this Freshness-boundary patch.
+
+## Notes
+
+Existing low-level reads already satisfy the passive implementation contract. Do not manufacture a runtime change or host acceptance event merely to close a step.
+
+## Related docs
+
+- [Current host consumption contract](freshness-external-consumption-contract.md)
+- [Execution and verification](freshness-retrieval-boundary-verification-2026-10-15.md)
 
 ## Non-goals
 

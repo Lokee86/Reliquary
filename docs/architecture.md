@@ -4,6 +4,10 @@ Parent index: [Documentation index](INDEX.md)
 
 The branch-local G-import implementation normalizes supplied provider/agent bytes in `src/imports/`; `Cva::import_native` composes existing turn/file/branch publication and Insomnia scheduling. Archive owns source mappings, revision/delete/artifact evidence and `CVAIMPT1` receipt publication/rebuild. Import Episode coverage is per immutable source Node across branches, using existing response-cycle packing. No second queue, runtime, store or semantic clock is introduced. Live scheduling is unchanged. Exact retry and partial progress recovery are specified in [Native historical import](native-import.md). Mounted F5 authorization/P4/coordinator integration remains unimplemented.
 
+## Freshness retrieval and consumption
+
+All internal Memory retrieval, including content, provenance, graph and Freshness metadata inspection, is non-reinforcing. `Cva::record_accepted_memory_use` remains the sole trusted-host access-reinforcement write boundary; authorized candidate delivery does not establish consumption. The [external consumption contract](freshness-external-consumption-contract.md) owns acceptance evidence, receipt ownership and retry requirements. Production accepted-context wiring remains external-host work.
+
 ## Purpose
 This document owns the current Reliquary Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
 ## Durable conversation policy

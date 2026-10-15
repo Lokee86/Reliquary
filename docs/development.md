@@ -47,6 +47,10 @@ scripts/check_architecture.py        Lexicon/Arcana refresh + Pitlord enforcemen
 
 Do not copy large portions of previous Reliquary implementations as a migration shortcut. Reuse must preserve current ownership boundaries.
 
+## Freshness retrieval boundary verification
+
+`cargo test --test freshness_retrieval_boundary` exercises passive REL/PHY retrieval, real provenance/Episode hydration, Dream reads, graph traversal, lazy score cuts, exact accepted IDs, propagation, rejected receipts and durable replay. Existing `freshness_owner_contract`, `freshness_r2_contract` and recovery suites remain required coverage for the underlying engine. The [execution record](freshness-retrieval-boundary-verification-2026-10-15.md) records current results and the absent external acceptance producer.
+
 ## Verification commands
 
 The `freshness_calibration` example’s 1/2/4/8 worker settings invoke single-event propagation and do not measure the P2 batch event pool. P2 scheduling thresholds, caps, counter behavior and verification status are described in the [P2 verification report](freshness-performance-p2-verification-2026-10-03.md); P2 acceptance and its propagation-stage scope are recorded there.

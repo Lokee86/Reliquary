@@ -405,6 +405,10 @@ impl Cva {
         Ok((memory, changed))
     }
 
+    /// Read Memory content without access reinforcement or REL activity advancement.
+    /// Internal processing and candidate delivery use this same passive primitive.
+    /// Only a trusted host's confirmed external consumption may separately call
+    /// `record_accepted_memory_use`; fetching content is never that confirmation.
     pub fn memory(&mut self, id: MemoryId) -> Result<Memory, MemoryError> {
         self.memories.memory(&mut self.container, id)
     }

@@ -11,6 +11,8 @@ pub struct MemoryLexicalSearchHit {
 }
 
 impl Cva {
+    /// Return lexical candidates without access reinforcement. Even hydrated hits
+    /// are not proof that their content was accepted into an external context.
     pub fn search_memories(
         &mut self,
         query: &str,
@@ -30,6 +32,7 @@ impl Cva {
 }
 
 impl Phylactery {
+    /// Return lexical candidates without access reinforcement.
     pub fn search_memories(
         &mut self,
         query: &str,

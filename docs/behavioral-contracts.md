@@ -15,6 +15,10 @@ Parent index: [Documentation index](INDEX.md)
 | Native continuation, physical reclaim and divergent reconciliation preserve source receipts | Remaining `imports::tests` preservation cases |
 | Four public supported profiles reject unsupported shapes and never persist hidden reasoning bytes | `tests/native_import.rs`, versioned golden fixtures |
 
+## Freshness retrieval and consumption boundary
+
+`tests/freshness_retrieval_boundary.rs` protects passive content/revision/lexical reads, actual source Episode hydration, graph traversal, Dream context/temporal reads and historical/current Freshness projections using byte and clock invariance through reopen. Accepted-use tests protect one durable batch for exact de-duplicated roots, unchanged omitted candidates, propagation, invalid/conflicting receipts and identical durable replay. PHY reads remain passive without inventing an activity clock. These tests validate the existing Cva receipt path; they do not certify a production external host acceptance/outbox or host delivery cancellation. The [host contract](freshness-external-consumption-contract.md) owns that pending integration.
+
 ## Purpose
 
 This document maps critical current behavioral invariants to focused tests and smoke verification.

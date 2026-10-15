@@ -31,7 +31,8 @@ struct AuthorizedLane {
 /// Uses the existing owner-local profiles only. This path never creates or mutates profiles.
 impl GatewayRuntime {
     /// Search the instance-selected REL's independently granted dependency closure
-    /// and, when authorized, only that instance's exact bound PHY.
+    /// and, when authorized, only that instance's exact bound PHY. Returned content
+    /// remains candidate delivery: this read never records accepted Memory use.
     pub fn search_visible_memories(
         &self,
         instance: &InstanceRuntime,

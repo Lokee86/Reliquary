@@ -44,7 +44,9 @@ impl GatewayRuntime {
 
     /// Revalidate a captured owner token under short attachment and owner
     /// admission leases at the final delivery boundary. No provider or
-    /// filesystem operation may run inside this closure.
+    /// filesystem operation may run inside this closure. Successful return proves
+    /// authorized delivery only, never external Memory consumption; do not submit
+    /// an accepted-use Freshness receipt here.
     fn deliver_rel<T>(
         &self,
         instance: &InstanceRuntime,

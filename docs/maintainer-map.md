@@ -146,6 +146,10 @@ For workload definitions and matched comparisons, inspect `examples/freshness_pe
 - [Behavioral contracts](behavioral-contracts.md)
 - [Roadmap](roadmap.md)
 
+## Freshness retrieval boundary
+
+`src/runtime_inference/freshness_access.rs` owns the existing accepted-use receipt/write API and passive score adapter. Memory facades and retrieval own passive content/candidate reads; gateway delivery proves authorization only. The trusted external host must own accepted-content evidence and durable receipt handoff under the [consumption contract](freshness-external-consumption-contract.md). The [execution record](freshness-retrieval-boundary-verification-2026-10-15.md) maps callers and verification; Ego selection remains separate.
+
 ## Notes
 
 Update this map when future runtime, management, UI, adapter, or semantic-store work gains concrete implementation roots.
