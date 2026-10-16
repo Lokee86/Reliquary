@@ -110,3 +110,7 @@ All three tests matching `refinement_` passed. The focused gateway case has no e
 ## Step 21 — refinement contract closure
 
 Luna supplied six contract tests and three authorization tests. `cargo test --lib refinement -j 2` passes all 12 matching tests: complete correction, empty declined set, no active query, all declined batches, selected/unsearched exclusion, malformed rewrite/selection, provider failure, revoke/detach, and atomic rollback. No embedding route is configured in the reconsideration fixtures. `cargo fmt --check` and `git diff --check` pass.
+
+## Step 22 — complete one-hop evidence
+
+The authorized anchor collector reads active Memory relations in both directions within its REL, preserves kind/direction, deduplicates identical evidence, skips archived neighbors, and never expands a neighbor. Invalid owners and missing anchors fail. `cargo test --lib agentic_graph_evidence -j 2` passes; all 12 refinement tests also pass. Formatting/diff checks pass. Both documentation checks still isolate the four known Ego inventory gaps.
