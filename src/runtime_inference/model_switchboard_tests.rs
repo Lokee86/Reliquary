@@ -308,6 +308,157 @@ fn missing_or_wrong_credential_kind_is_rejected() {
     assert!(ModelSwitchboard::new(models, wrong).is_err());
 }
 
+#[test]
+fn memory_retrieval_decision_is_unset_by_default_and_has_no_fallback() {
+    let switchboard = ModelSwitchboard::new(configured_models(), configured_credentials()).unwrap();
+    assert!(switchboard.memory_retrieval_decision().is_none());
+    assert!(switchboard.memory_retrieval_decision_auth().is_none());
+    assert!(
+        ConfiguredDecisionEndpoint::from_memory_retrieval_decision_switchboard(&switchboard)
+            .is_err()
+    );
+}
+
+#[test]
+fn memory_retrieval_decision_round_trips_and_clears() {
+    let path = test_path("memory-retrieval-decision.cfg");
+    let mut config = ReliquaryConfig::new(&path);
+    config.models = configured_models();
+    config.models.memory_retrieval_decision = Some(DecisionModelEndpoint {
+        model: "memory-router".into(),
+        url: "https://example.test/v1/decisions".into(),
+        credential_id: id("ready"),
+    });
+    config.credentials = configured_credentials();
+    config.save().unwrap();
+    let reopened = ReliquaryConfig::open(&path).unwrap();
+    assert_eq!(
+        reopened.models.memory_retrieval_decision,
+        config.models.memory_retrieval_decision
+    );
+    assert_eq!(reopened.credentials, config.credentials);
+    assert_eq!(
+        ModelSwitchboard::new(reopened.models, reopened.credentials)
+            .unwrap()
+            .memory_retrieval_decision()
+            .unwrap()
+            .model,
+        "memory-router"
+    );
+    let mut cleared = ReliquaryConfig::open(&path).unwrap();
+    cleared.models.memory_retrieval_decision = None;
+    cleared.save().unwrap();
+    assert!(
+        ReliquaryConfig::open(&path)
+            .unwrap()
+            .models
+            .memory_retrieval_decision
+            .is_none()
+    );
+}
+
+#[test]
+fn memory_retrieval_decision_uses_distinct_entity_and_general_credentials() {
+    let mut models = configured_models();
+    models.memory_retrieval_decision = Some(DecisionModelEndpoint {
+        model: "memory-router".into(),
+        url: "https://example.test/v1/decisions".into(),
+        credential_id: id("memory"),
+    });
+    let mut credentials = configured_credentials();
+    credentials
+        .insert_api_key(id("memory"), "memory-key")
+        .unwrap();
+    let switchboard = ModelSwitchboard::new(models, credentials).unwrap();
+    let mut headers = BTreeMap::new();
+    switchboard
+        .memory_retrieval_decision_auth()
+        .unwrap()
+        .apply_to(&mut headers);
+    assert_eq!(headers["Authorization"], "Bearer memory-key");
+    assert_ne!(headers["Authorization"], "Bearer ready-key");
+}
+
+#[test]
+fn memory_retrieval_decision_rejects_missing_wrong_kind_and_invalid_endpoint() {
+    let endpoint = |model: &str, url: &str, credential: &str| {
+        let mut models = configured_models();
+        models.memory_retrieval_decision = Some(DecisionModelEndpoint {
+            model: model.into(),
+            url: url.into(),
+            credential_id: id(credential),
+        });
+        models
+    };
+    assert!(
+        ModelSwitchboard::new(
+            endpoint("memory", "https://example.test", "missing"),
+            configured_credentials()
+        )
+        .is_err()
+    );
+    assert!(
+        ModelSwitchboard::new(
+            endpoint("memory", "https://example.test", "codex"),
+            configured_credentials()
+        )
+        .is_err()
+    );
+    assert!(
+        ModelSwitchboard::new(
+            endpoint("", "https://example.test", "ready"),
+            configured_credentials()
+        )
+        .is_err()
+    );
+    assert!(
+        ModelSwitchboard::new(
+            endpoint("memory", "not-a-url", "ready"),
+            configured_credentials()
+        )
+        .is_err()
+    );
+}
+
+#[test]
+fn memory_retrieval_decision_requires_a_parseable_http_endpoint() {
+    for url in ["http://", "https://", "ftp://example.test", "https://["] {
+        let mut models = configured_models();
+        models.memory_retrieval_decision = Some(DecisionModelEndpoint {
+            model: "memory-router".into(),
+            url: url.into(),
+            credential_id: id("ready"),
+        });
+        assert!(
+            ModelSwitchboard::new(models, configured_credentials()).is_err(),
+            "accepted invalid URL: {url}"
+        );
+    }
+}
+
+#[test]
+fn configured_runtime_exposes_only_the_exact_memory_retrieval_route() {
+    let path = test_path("configured-memory-retrieval.cfg");
+    let mut config = ReliquaryConfig::new(&path);
+    config.models.memory_retrieval_decision = Some(DecisionModelEndpoint {
+        model: "memory-router".into(),
+        url: "https://example.test/v1/decisions".into(),
+        credential_id: id("ready"),
+    });
+    config.credentials = configured_credentials();
+    config.save().unwrap();
+    let routes = crate::ConfiguredRuntime::open(&path)
+        .unwrap()
+        .runtime_routes()
+        .unwrap();
+    assert_eq!(
+        routes.memory_retrieval_decision().unwrap().model(),
+        "memory-router"
+    );
+    assert!(routes.entity_resolution_decision().is_none());
+    assert!(routes.insomnia().is_none());
+}
+
 fn configured_models() -> ModelSwitchboardConfig {
     ModelSwitchboardConfig {
         general: Some(GeneralModelEndpoint {

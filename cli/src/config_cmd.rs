@@ -7,6 +7,10 @@ use reliquary_memory::{
 };
 use std::path::Path;
 
+#[cfg(test)]
+#[path = "config_route_tests.rs"]
+mod route_tests;
+
 pub fn run(path: &Path, command: ConfigCommand) -> Result<()> {
     match command {
         ConfigCommand::Show => show(path),
@@ -189,13 +193,21 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
         ModelCommand::ClearEntityResolutionDecision => {
             config.models.entity_resolution_decision = None
         }
-        ModelCommand::SetMemoryRetrievalDecision { model, credential, url } => {
+        ModelCommand::SetMemoryRetrievalDecision {
+            model,
+            credential,
+            url,
+        } => {
             config.models.memory_retrieval_decision = Some(DecisionModelEndpoint {
-                model, url, credential_id: credential_id(credential)?,
+                model,
+                url,
+                credential_id: credential_id(credential)?,
             });
             validate_runtime(&config)?;
         }
-        ModelCommand::ClearMemoryRetrievalDecision => config.models.memory_retrieval_decision = None,
+        ModelCommand::ClearMemoryRetrievalDecision => {
+            config.models.memory_retrieval_decision = None
+        }
         ModelCommand::SetEntityResolution {
             provider: p,
             model,
@@ -350,7 +362,12 @@ fn show_entity_resolution_decision(value: Option<&DecisionModelEndpoint>) {
 
 fn show_memory_retrieval_decision(value: Option<&DecisionModelEndpoint>) {
     match value {
-        Some(endpoint) => println!("memory_retrieval_decision: model={} url={} credential={}", endpoint.model, endpoint.url, endpoint.credential_id.as_str()),
+        Some(endpoint) => println!(
+            "memory_retrieval_decision: model={} url={} credential={}",
+            endpoint.model,
+            endpoint.url,
+            endpoint.credential_id.as_str()
+        ),
         None => println!("memory_retrieval_decision: <unset>"),
     }
 }

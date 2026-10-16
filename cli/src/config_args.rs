@@ -100,9 +100,12 @@ pub enum ModelCommand {
     },
     ClearEntityResolutionDecision,
     SetMemoryRetrievalDecision {
-        #[arg(long)] model: String,
-        #[arg(long)] credential: String,
-        #[arg(long)] url: String,
+        #[arg(long)]
+        model: String,
+        #[arg(long)]
+        credential: String,
+        #[arg(long)]
+        url: String,
     },
     ClearMemoryRetrievalDecision,
     SetEntityResolution {

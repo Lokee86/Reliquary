@@ -161,6 +161,38 @@ fn dream_model_route_is_configurable() {
 }
 
 #[test]
+fn memory_retrieval_decision_model_set_show_unset_commands_parse() {
+    for args in [
+        [
+            "reliquary",
+            "config",
+            "model",
+            "set-memory-retrieval-decision",
+            "--model",
+            "memory-router",
+            "--credential",
+            "memory",
+            "--url",
+            "https://example.test/decisions",
+        ]
+        .as_slice(),
+        ["reliquary", "config", "show"].as_slice(),
+        [
+            "reliquary",
+            "config",
+            "model",
+            "clear-memory-retrieval-decision",
+        ]
+        .as_slice(),
+    ] {
+        assert!(
+            Cli::try_parse_from(args).is_ok(),
+            "failed to parse {args:?}"
+        );
+    }
+}
+
+#[test]
 fn codex_general_route_accepts_low_reasoning() {
     let cli = Cli::try_parse_from([
         "reliquary",

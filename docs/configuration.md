@@ -122,6 +122,10 @@ Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibili
 
 This route is optional. When configured, Dream pair classification and independent verification use it. When absent, `ModelSwitchboard::dream()` and `dream_auth()` fall back to the configured `models.general` route and credential. Dream and Insomnia routing are independent; configuring one does not affect the other.
 
+### `models.memory_retrieval_decision`
+
+This optional route uses decision-endpoint schema `1`, flags `0`, with the same payload encoding as `models.entity_resolution_decision`: model, explicit `http://` or `https://` URL, and credential ID. It is reserved for Memory-retrieval decision evaluation; the controller operations remain tracked separately by the agentic retrieval implementation plan. When unset, it is absent and does not fall back to `models.general` or another route. Its credential must be an API-key credential; missing or wrong-kind credentials, empty models, and invalid URLs are rejected during runtime validation. The CLI commands are `config model set-memory-retrieval-decision`, `clear-memory-retrieval-decision`, and `config show`.
+
 ### `models.embedding`
 
 Schema `2`, flags `0`:

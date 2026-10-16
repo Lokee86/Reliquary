@@ -351,7 +351,7 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
         }
     }
     if let Some(endpoint) = &config.memory_retrieval_decision {
-        if endpoint.model.trim().is_empty() || !valid_url(&endpoint.url) {
+        if endpoint.model.trim().is_empty() || !valid_http_endpoint_url(&endpoint.url) {
             return Err(ConfigError::InvalidModelSwitchboard);
         }
     }
@@ -393,6 +393,12 @@ fn validate_endpoint(
         },
         ModelProvider::OpenAiCodex => Ok(()),
     }
+}
+
+fn valid_http_endpoint_url(url: &str) -> bool {
+    reqwest::Url::parse(url.trim()).is_ok_and(|parsed| {
+        matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some()
+    })
 }
 
 fn valid_url(url: &str) -> bool {

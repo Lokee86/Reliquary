@@ -14,8 +14,7 @@ pub struct ConfiguredDecisionEndpoint {
 }
 
 impl ConfiguredDecisionEndpoint {
-    fn from_switchboard(
-        switchboard: &ModelSwitchboard,
+    fn from_route(
         endpoint: Option<&crate::DecisionModelEndpoint>,
         auth: Option<ModelRequestAuth>,
         route: &'static str,
@@ -26,7 +25,6 @@ impl ConfiguredDecisionEndpoint {
             .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
             .build()
             .map_err(|error| DecisionEndpointError::Failure(error.to_string()))?;
-        let _ = switchboard;
         Ok(Self {
             client,
             model: endpoint.model.clone(),
@@ -38,8 +36,7 @@ impl ConfiguredDecisionEndpoint {
     pub fn from_entity_resolution_decision_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, DecisionEndpointError> {
-        Self::from_switchboard(
-            switchboard,
+        Self::from_route(
             switchboard.entity_resolution_decision(),
             switchboard.entity_resolution_decision_auth(),
             "Entity resolution decision route is not configured",
@@ -49,8 +46,7 @@ impl ConfiguredDecisionEndpoint {
     pub fn from_memory_retrieval_decision_switchboard(
         switchboard: &ModelSwitchboard,
     ) -> Result<Self, DecisionEndpointError> {
-        Self::from_switchboard(
-            switchboard,
+        Self::from_route(
             switchboard.memory_retrieval_decision(),
             switchboard.memory_retrieval_decision_auth(),
             "Memory retrieval decision route is not configured",
