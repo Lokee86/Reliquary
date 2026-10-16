@@ -227,3 +227,10 @@ impl GatewayRuntime {
 #[cfg(test)]
 #[path = "runtime_host_gateway_agentic_memory_graph_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_graph_concurrency_tests.rs"]
+mod concurrency;
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_graph_contract_tests.rs"]
+mod contracts;

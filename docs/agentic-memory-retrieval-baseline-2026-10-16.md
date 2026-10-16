@@ -126,3 +126,7 @@ Independent scoped anchor workers use the same complete query and already prepar
 ## Step 25 — traversal consolidation
 
 `GatewayRuntime::traverse_graph` validates and canonicalizes anchors, prepares against one unchanged controller, gathers concurrent decisions, unions evaluated IDs, and prepares globally unique approved content in stable ref order. Independent reports retain relations/counts/approvals; one approval wins shared-neighbor delivery. Conflicting shared body snapshots fail closed. Only successful final authority validation permits the staged searched-set commit; SelectedIDs is unchanged. All four focused graph tests pass, including duplicate-anchor normalization, shared-content/report retention and repeat exclusion. Formatting/diff checks pass. Luna Step 26 supplies the full AR6 gate next.
+
+## Step 26 — Luna AR6 graph gate
+
+Two Luna agents supplied four core graph tests and seven concurrency/authorization tests. All 15 tests matching `agentic_memory::graph` pass: >10 neighbors and Freshness ranking, repeat exposure, both directions and kinds, one-hop exclusion, selected/declined anchors, snapshot counts, overlapping approval union and unique content, inverted worker completion order, provider/validation/panic rollback after peer success, revoke/detach rollback, and invalid/no-query anchors. Three test-only integration corrections added the controller import and used approved MemoryRef membership directly. Controller and passive owner state remain unchanged on errors. Formatting/diff checks pass; AR6 is complete.
