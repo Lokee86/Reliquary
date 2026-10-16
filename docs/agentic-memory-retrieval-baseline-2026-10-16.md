@@ -46,14 +46,21 @@ Delegated command windows first expired during analysis/building. A timed-out wr
 
 This is baseline evidence, not acceptance of the agentic feature. The independent Luna AR2 route branch is preparation only until integrated in linear order. Generated tool state is disposable and uncommitted.
 
-## Step 11 — shared exact scorer
+## Step 11 -- shared exact scorer
 
 Extracted exact Memory scoring and query validation into `memory_retrieval_vectors.rs`. Passive retrieval still applies its existing routing, seed, and traversal limits after calling the shared scorer; packed decoding and cosine interpretation remain canonical.
 
-Verification: `cargo test --lib memory_retrieval -j 2` passed all 20 matching tests; `cargo fmt --check` and `git diff --check` passed. The initial run exposed Windows access errors in two configuration tests using the system temporary directory; rerunning with `TEMP` and `TMP` set to the worktree-local `.test-tmp` passed. No product workaround was required. Steps 12–45 remain outstanding.
+Verification: `cargo test --lib memory_retrieval -j 2` passed all 20 matching tests; `cargo fmt --check` and `git diff --check` passed. The initial run exposed Windows access errors in two configuration tests using the system temporary directory; rerunning with `TEMP` and `TMP` set to the worktree-local `.test-tmp` passed. No product workaround was required. Steps 12-45 remain outstanding.
 
-## Step 12 — complete REL-local candidate pool
+## Step 12 -- complete REL-local candidate pool
 
 `Cva::collect_memory_candidate_pool` now unions complete lexical evidence and every searchable exact vector score by Memory ID in deterministic ID order. Missing vector bindings leave lexical eligibility intact. Query validation runs even for an empty vector population; known profile dimensions are enforced. The shared loader preserves existing searchable-population validation for passive retrieval. The pool performs no Freshness reads, graph traversal, inference, truncation, or reinforcement.
 
 Verification: all 20 tests matching `memory_retrieval` passed with worktree-local temporary files; `cargo fmt --check` and `git diff --check` passed. Step 13 supplies the focused completeness/invalid-data coverage before proceeding to Freshness ordering.
+
+
+## Step 13 -- candidate-pool verification
+
+Added focused candidate-pool tests for a 16-item complete union, independent lexical and semantic evidence, shared-lane overlap, archived exclusion, deterministic ID ordering under score ties, lexical-only results for missing vectors or profiles, invalid query vectors, zero-norm and non-finite stored vectors, wrong-width bindings, and parity with legacy GlobalExact semantic scores. The baseline search still exposes its established limited seed result; the complete internal pool retains every eligible candidate.
+
+Verification: `cargo test --lib memory_candidate_pool -j 2` passed all 6 focused tests; `cargo test --lib memory_retrieval -j 2` passed all 20 matching regression tests; `cargo check -j 2`, `cargo fmt --all -- --check`, and `git diff --check` passed. Tests and temporary paths were kept inside `target/test-tmp`. Steps 14-45 remain pending.

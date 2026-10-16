@@ -74,3 +74,6 @@ impl crate::Cva {
     }
 }
 
+#[cfg(test)]
+#[path = "memory_candidate_pool_tests.rs"]
+mod tests;
