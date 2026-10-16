@@ -16,6 +16,8 @@ pub(super) enum RelMutationFamily {
     Processing,
     Background,
     Retrieval,
+    // Trusted consumption feedback authorized by an exact ViewRel capability.
+    AcceptedMemoryUse,
 }
 
 #[derive(PartialEq)]
@@ -64,7 +66,7 @@ pub(super) fn commit<T>(
         Err(error) => {
             // A multi-step owner mutation may already have changed authority.
             // Never publish success or pretend continuity after an unknown cut.
-            if cut(runtime) != before {
+            if cut(runtime) != before || family == RelMutationFamily::AcceptedMemoryUse {
                 gate.invalidate();
             }
             return Err(error);
@@ -92,7 +94,10 @@ pub(super) fn commit<T>(
         || (family == RelMutationFamily::Semantic && auxiliary_changed);
     let retrieval = after.profiles != before.profiles
         || semantic
-        || (family == RelMutationFamily::Retrieval && auxiliary_changed)
+        || (matches!(
+            family,
+            RelMutationFamily::Retrieval | RelMutationFamily::AcceptedMemoryUse
+        ) && auxiliary_changed)
         || a.vector_version != b.vector_version
         || after.metadata.dependencies != before.metadata.dependencies;
     let project = a.project_correlation_sequence != b.project_correlation_sequence
@@ -177,6 +182,7 @@ impl GatewayRuntime {
             -> Result<(T, bool, Vec<RelInvalidation>), ReliquaryRuntimeHostError>,
     ) -> Result<T, ReliquaryRuntimeHostError> {
         let required = match family {
+            RelMutationFamily::AcceptedMemoryUse => OwnerGrant::ViewRel,
             RelMutationFamily::Project => OwnerGrant::ManageProject,
             RelMutationFamily::ConversationBranch => OwnerGrant::SubmitConversation,
             RelMutationFamily::Semantic if token.grant == OwnerGrant::SubmitConversation => {

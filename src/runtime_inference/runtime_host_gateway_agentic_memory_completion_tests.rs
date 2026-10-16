@@ -158,3 +158,68 @@ fn agentic_completion_rejects_changed_payload_and_inconsistent_manifest() {
     );
     assert_eq!(controller, before);
 }
+
+#[test]
+fn agentic_completion_records_existing_receipt_once_and_exact_retry_does_not_append() {
+    let (gateway, instance, mut controller, prepared) = fixture();
+    let envelope = gateway.capture_agentic_read(&instance).unwrap();
+    let owner = &envelope.owners[0];
+    let cut = prepared.owner_cuts[&owner.token.owner_id];
+    let ids = prepared
+        .delivered
+        .iter()
+        .map(|memory| memory.memory_id)
+        .collect::<Vec<_>>();
+    let use_id = accepted_use_id(prepared.delivery_id(), &owner.token.owner_id);
+    let snapshot = || {
+        gateway
+            .with_rel(&owner.token, |runtime| {
+                Ok((
+                    runtime
+                        .cva
+                        .freshness
+                        .resolve_accepted_use(&use_id, cut, &ids)
+                        .map_err(operation)?
+                        .is_some(),
+                    std::fs::metadata(runtime.cva.container.path())
+                        .map_err(operation)?
+                        .len(),
+                    runtime.cva.freshness.records().clone(),
+                    runtime.cva.rel_turn_count(),
+                ))
+            })
+            .unwrap()
+    };
+    let before = snapshot();
+    assert!(!before.0);
+    gateway
+        .complete_agentic_memory_delivery(
+            &instance,
+            &mut controller,
+            &prepared,
+            &success(&prepared),
+        )
+        .unwrap();
+    let after = snapshot();
+    assert!(after.0);
+    assert!(after.1 > before.1);
+    assert_eq!(after.3, before.3);
+    gateway
+        .complete_agentic_memory_delivery(
+            &instance,
+            &mut controller,
+            &prepared,
+            &success(&prepared),
+        )
+        .unwrap();
+    assert_eq!(snapshot(), after);
+    assert_eq!(controller.selected_ids(), prepared.delivered());
+    assert_eq!(
+        accepted_use_id("host-id", "a"),
+        accepted_use_id("host-id", "a")
+    );
+    assert_ne!(
+        accepted_use_id("host-id", "a"),
+        accepted_use_id("host-id", "b")
+    );
+}
