@@ -143,3 +143,48 @@ impl AgenticMemoryController {
 #[cfg(test)]
 #[path = "agentic_memory_retrieval_tests.rs"]
 mod agentic_memory_retrieval_tests;
+
+/// Operation-local grade; never retained in the turn controller.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct RankedAgenticMemory {
+    pub(crate) memory: MemoryRef,
+    pub(crate) freshness: i16,
+}
+
+pub(crate) fn grade_agentic_memories(
+    owner: &crate::Cva,
+    ids: &[crate::MemoryId],
+    as_of_turn: u64,
+) -> Result<Vec<RankedAgenticMemory>, AgenticMemoryError> {
+    let owner_id = owner
+        .owner_id()
+        .ok_or_else(|| AgenticMemoryError::Retrieval("REL lacks durable owner identity".into()))?;
+    let grades = owner
+        .ego_memory_freshness(ids, as_of_turn)
+        .map_err(|error| AgenticMemoryError::Retrieval(error.to_string()))?
+        .into_iter()
+        .map(|grade| (grade.memory_id, grade.score))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    Ok(ids
+        .iter()
+        .copied()
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .map(|memory_id| RankedAgenticMemory {
+            memory: MemoryRef {
+                owner_id: owner_id.clone(),
+                memory_id,
+            },
+            freshness: grades.get(&memory_id).copied().unwrap_or(0),
+        })
+        .collect())
+}
+
+pub(crate) fn order_agentic_memories(candidates: &mut [RankedAgenticMemory]) {
+    candidates.sort_by(|left, right| {
+        right
+            .freshness
+            .cmp(&left.freshness)
+            .then_with(|| left.memory.cmp(&right.memory))
+    });
+}

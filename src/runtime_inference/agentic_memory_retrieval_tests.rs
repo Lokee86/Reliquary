@@ -203,3 +203,75 @@ fn controller_state_has_exactly_the_three_explicit_fields() {
     assert!(searched_ids.is_empty());
     assert!(selected_ids.is_empty());
 }
+
+#[test]
+fn freshness_order_is_complete_passive_neutral_and_owner_qualified() {
+    use super::{grade_agentic_memories, order_agentic_memories};
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("target/test-tmp")
+        .join(format!("agentic-grade-{}", uuid::Uuid::new_v4()));
+    std::fs::create_dir_all(&root).unwrap();
+    let mut first = crate::Cva::create_project(root.join("first.rel")).unwrap();
+    let second = crate::Cva::create_project(root.join("second.rel")).unwrap();
+    let ids = (1..=16)
+        .map(|byte| crate::MemoryId([byte; 32]))
+        .collect::<Vec<_>>();
+    let owner_uuid = first.owner_uuid().unwrap();
+    first
+        .freshness
+        .persist_policy_if_needed(&mut first.container, owner_uuid)
+        .unwrap();
+    for n in 0..2000 {
+        first
+            .append_node(
+                format!("activity-{n}"),
+                "grade-test".into(),
+                None,
+                "user".into(),
+                n,
+                "activity",
+            )
+            .unwrap();
+    }
+    for (id, birth_turn) in [(ids[0], 0), (ids[1], 800), (ids[15], 2000)] {
+        let record = crate::FreshnessRecord {
+            score: 100,
+            admitted_at_turn: Some(birth_turn),
+            accounted_turn: Some(birth_turn),
+        };
+        let payload = first
+            .freshness
+            .encode_initialize(owner_uuid, id, birth_turn, record);
+        first.freshness.ingest(&payload).unwrap();
+    }
+    first.sync().unwrap();
+    let version = first.latest_global_version();
+    let turn = first.rel_turn_count();
+    let records = first.freshness.records().clone();
+    let bytes = std::fs::read(root.join("first.rel")).unwrap();
+    let mut ranked = grade_agentic_memories(&first, &ids, turn).unwrap();
+    ranked.extend(grade_agentic_memories(&second, &[ids[2]], 0).unwrap());
+    order_agentic_memories(&mut ranked);
+    assert_eq!(ranked.len(), 17);
+    assert_eq!(ranked[0].memory.memory_id, ids[15]);
+    assert_eq!(ranked.last().unwrap().freshness, -100);
+    assert_eq!(ranked[ranked.len() - 2].freshness, -20);
+    assert!(
+        ranked
+            .windows(2)
+            .all(|pair| pair[0].freshness > pair[1].freshness
+                || (pair[0].freshness == pair[1].freshness && pair[0].memory < pair[1].memory))
+    );
+    assert_eq!(
+        ranked
+            .iter()
+            .filter(|item| item.memory.memory_id == ids[2])
+            .count(),
+        2
+    );
+    assert_eq!(first.latest_global_version(), version);
+    assert_eq!(first.rel_turn_count(), turn);
+    assert_eq!(first.freshness.records(), &records);
+    assert_eq!(std::fs::read(root.join("first.rel")).unwrap(), bytes);
+    assert!(grade_agentic_memories(&first, &ids, turn + 1).is_err());
+}
