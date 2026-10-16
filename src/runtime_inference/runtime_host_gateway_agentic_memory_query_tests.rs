@@ -253,3 +253,11 @@ fn memory_query_empty_scope_returns_no_matches_without_a_decision_route() {
     assert_eq!(controller.current_query(), Some("new"));
     assert!(controller.searched_ids().is_empty());
 }
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_query_freshness_tests.rs"]
+mod freshness_tests;
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_query_authorization_tests.rs"]
+mod authorization_tests;
