@@ -1,7 +1,7 @@
-use crate::compatibility_vector::cosine;
 use crate::graph_store::GraphStore;
 use crate::memory_retrieval_index::route_communities;
 use crate::memory_retrieval_traversal::traverse;
+use crate::memory_retrieval_vectors::{exact_memory_scores, validate_query};
 use crate::{
     MemoryId, MemoryRetrievalConfig, MemoryRetrievalError, MemoryRetrievalHit,
     MemoryRetrievalIndex, MemoryRetrievalMode, MemoryRetrievalResult,
@@ -100,26 +100,7 @@ fn exact_search(
     candidates: &[MemoryId],
     limit: usize,
 ) -> Result<Vec<MemoryRetrievalHit>, MemoryRetrievalError> {
-    let mut ranked = Vec::with_capacity(candidates.len());
-    for id in candidates {
-        let vector = index
-            .vectors
-            .get(id)
-            .ok_or(MemoryRetrievalError::CorruptVector(
-                "missing candidate vector",
-            ))?;
-        let score = cosine(query, vector).ok_or(MemoryRetrievalError::InvalidQueryVector)?;
-        ranked.push(MemoryRetrievalHit {
-            memory_id: *id,
-            score,
-        });
-    }
-    ranked.sort_by(|left, right| {
-        right
-            .score
-            .total_cmp(&left.score)
-            .then_with(|| left.memory_id.0.cmp(&right.memory_id.0))
-    });
+    let mut ranked = exact_memory_scores(query, &index.vectors, candidates)?;
     ranked.truncate(limit.min(ranked.len()));
     Ok(ranked)
 }
@@ -157,20 +138,6 @@ fn validate_index(
             && index.subcentroids_per_community != config.subcentroids_per_community)
     {
         return Err(MemoryRetrievalError::StaleIndex);
-    }
-    Ok(())
-}
-
-fn validate_query(query: &[f32]) -> Result<(), MemoryRetrievalError> {
-    if query.is_empty() || query.iter().any(|value| !value.is_finite()) {
-        return Err(MemoryRetrievalError::InvalidQueryVector);
-    }
-    let norm = query
-        .iter()
-        .map(|value| f64::from(*value) * f64::from(*value))
-        .sum::<f64>();
-    if norm == 0.0 {
-        return Err(MemoryRetrievalError::InvalidQueryVector);
     }
     Ok(())
 }
