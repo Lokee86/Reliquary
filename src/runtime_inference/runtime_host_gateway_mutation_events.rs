@@ -61,12 +61,36 @@ pub(super) fn commit<T>(
     ) -> Result<(T, bool, Vec<RelInvalidation>), ReliquaryRuntimeHostError>,
 ) -> Result<T, ReliquaryRuntimeHostError> {
     let before = cut(runtime);
+    // Freshness does not have a source watermark in this distribution protocol.
+    // Distinguish validation failures (safe to retry) from unknown partial appends.
+    let receipt_extent = if family == RelMutationFamily::AcceptedMemoryUse {
+        Some(
+            runtime
+                .cva
+                .container
+                .backing_file()
+                .metadata()
+                .map_err(operation)?
+                .len(),
+        )
+    } else {
+        None
+    };
     let (value, auxiliary_changed, mut ids) = match mutate(runtime) {
         Ok(result) => result,
         Err(error) => {
             // A multi-step owner mutation may already have changed authority.
             // Never publish success or pretend continuity after an unknown cut.
-            if cut(runtime) != before || family == RelMutationFamily::AcceptedMemoryUse {
+            let receipt_may_have_written = receipt_extent.is_some_and(|before| {
+                runtime
+                    .cva
+                    .container
+                    .backing_file()
+                    .metadata()
+                    .map(|metadata| metadata.len() != before)
+                    .unwrap_or(true)
+            });
+            if cut(runtime) != before || receipt_may_have_written {
                 gate.invalidate();
             }
             return Err(error);

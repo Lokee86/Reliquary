@@ -154,3 +154,10 @@ fn accepted_use_id(delivery_id: &str, owner: &str) -> String {
 #[cfg(test)]
 #[path = "runtime_host_gateway_agentic_memory_completion_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_completion_authorization_tests.rs"]
+mod authorization_tests;
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_completion_contract_tests.rs"]
+mod contract_tests;

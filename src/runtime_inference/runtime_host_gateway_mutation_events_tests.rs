@@ -634,3 +634,42 @@ fn conversation_branch_permission_does_not_allow_general_metadata_mutation() {
         });
     assert!(denied.is_err());
 }
+
+#[test]
+fn trusted_receipt_validation_failure_is_retryable_but_partial_append_fences_distribution() {
+    let (gateway, owner, instance) = setup("agentic-receipt-failure-cut");
+    let token = gateway
+        .authorize(&instance, &owner, OwnerGrant::ViewRel)
+        .unwrap();
+    let rejected: Result<(), ReliquaryRuntimeHostError> =
+        gateway.with_rel_mutation(&token, RelMutationFamily::AcceptedMemoryUse, |_| {
+            Err(operation("receipt validation failed"))
+        });
+    assert!(rejected.is_err());
+    gateway
+        .with_rel_mutation(&token, RelMutationFamily::AcceptedMemoryUse, |_| {
+            Ok(((), false, vec![]))
+        })
+        .expect("no-write rejection must leave the owner retryable");
+    // Inject a physical append followed by failure, rather than another Freshness writer.
+    let partial: Result<(), ReliquaryRuntimeHostError> =
+        gateway.with_rel_mutation(&token, RelMutationFamily::AcceptedMemoryUse, |runtime| {
+            runtime
+                .cva
+                .container
+                .append(b"fault-injected-partial-receipt")
+                .map_err(operation)?;
+            Err(operation("failure after append"))
+        });
+    assert!(partial.is_err());
+    assert!(
+        gateway
+            .with_rel_mutation(&token, RelMutationFamily::AcceptedMemoryUse, |_| Ok((
+                (),
+                false,
+                vec![]
+            )))
+            .is_err(),
+        "uncertain partial append must fence distribution"
+    );
+}
