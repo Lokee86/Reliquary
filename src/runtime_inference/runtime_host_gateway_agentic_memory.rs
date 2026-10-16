@@ -131,3 +131,7 @@ mod refinement;
 
 #[path = "runtime_host_gateway_agentic_memory_graph.rs"]
 mod graph;
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_contract_abuse_tests.rs"]
+mod contract_abuse_tests;
