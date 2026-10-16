@@ -14,29 +14,47 @@ pub struct ConfiguredDecisionEndpoint {
 }
 
 impl ConfiguredDecisionEndpoint {
-    pub fn from_entity_resolution_decision_switchboard(
+    fn from_switchboard(
         switchboard: &ModelSwitchboard,
+        endpoint: Option<&crate::DecisionModelEndpoint>,
+        auth: Option<ModelRequestAuth>,
+        route: &'static str,
     ) -> Result<Self, DecisionEndpointError> {
-        let endpoint = switchboard.entity_resolution_decision().ok_or(
-            DecisionEndpointError::InvalidConfiguration(
-                "Entity resolution decision route is not configured",
-            ),
-        )?;
-        let auth = switchboard.entity_resolution_decision_auth().ok_or(
-            DecisionEndpointError::InvalidConfiguration(
-                "Entity resolution decision auth is not configured",
-            ),
-        )?;
+        let endpoint = endpoint.ok_or(DecisionEndpointError::InvalidConfiguration(route))?;
+        let auth = auth.ok_or(DecisionEndpointError::InvalidConfiguration(route))?;
         let client = Client::builder()
             .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
             .build()
             .map_err(|error| DecisionEndpointError::Failure(error.to_string()))?;
+        let _ = switchboard;
         Ok(Self {
             client,
             model: endpoint.model.clone(),
             url: endpoint.url.clone(),
             auth,
         })
+    }
+
+    pub fn from_entity_resolution_decision_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, DecisionEndpointError> {
+        Self::from_switchboard(
+            switchboard,
+            switchboard.entity_resolution_decision(),
+            switchboard.entity_resolution_decision_auth(),
+            "Entity resolution decision route is not configured",
+        )
+    }
+
+    pub fn from_memory_retrieval_decision_switchboard(
+        switchboard: &ModelSwitchboard,
+    ) -> Result<Self, DecisionEndpointError> {
+        Self::from_switchboard(
+            switchboard,
+            switchboard.memory_retrieval_decision(),
+            switchboard.memory_retrieval_decision_auth(),
+            "Memory retrieval decision route is not configured",
+        )
     }
 }
 
