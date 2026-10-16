@@ -102,3 +102,48 @@ pub(crate) fn validate_query(query: &[f32]) -> Result<(), MemoryRetrievalError> 
     }
     Ok(())
 }
+
+/// Load the current searchable population using the same validation for both consumers.
+pub(crate) fn load_searchable_memory_vectors(
+    container: &mut Container,
+    memories: &MemoryStore,
+    memory_vectors: &MemoryVectorStore,
+    packed_vectors: &PackedVectorStore,
+    profile_id: CompatibilityProfileId,
+) -> Result<
+    (
+        std::collections::HashSet<crate::MemoryId>,
+        HashMap<crate::MemoryId, Vec<f32>>,
+    ),
+    MemoryRetrievalError,
+> {
+    let by_body = load_memory_vectors(
+        container,
+        memories,
+        memory_vectors,
+        packed_vectors,
+        profile_id,
+    )?;
+    let mut searchable = std::collections::HashSet::new();
+    let mut vectors = HashMap::new();
+    for id in memories.current_ids() {
+        let memory = memories.memory(container, id)?;
+        if memory.archived {
+            continue;
+        }
+        searchable.insert(id);
+        let body_id = memories.current_body_id(id)?;
+        if let Some(vector) = by_body.get(&body_id) {
+            if crate::compatibility_vector::cosine(vector, vector).is_none() {
+                return Err(MemoryRetrievalError::CorruptVector("invalid stored vector"));
+            }
+            vectors.insert(id, vector.clone());
+        }
+    }
+    if let Some(dimensions) = vectors.values().next().map(Vec::len) {
+        if vectors.values().any(|vector| vector.len() != dimensions) {
+            return Err(MemoryRetrievalError::CorruptVector("vector dimensions"));
+        }
+    }
+    Ok((searchable, vectors))
+}

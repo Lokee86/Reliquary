@@ -51,3 +51,9 @@ This is baseline evidence, not acceptance of the agentic feature. The independen
 Extracted exact Memory scoring and query validation into `memory_retrieval_vectors.rs`. Passive retrieval still applies its existing routing, seed, and traversal limits after calling the shared scorer; packed decoding and cosine interpretation remain canonical.
 
 Verification: `cargo test --lib memory_retrieval -j 2` passed all 20 matching tests; `cargo fmt --check` and `git diff --check` passed. The initial run exposed Windows access errors in two configuration tests using the system temporary directory; rerunning with `TEMP` and `TMP` set to the worktree-local `.test-tmp` passed. No product workaround was required. Steps 12–45 remain outstanding.
+
+## Step 12 — complete REL-local candidate pool
+
+`Cva::collect_memory_candidate_pool` now unions complete lexical evidence and every searchable exact vector score by Memory ID in deterministic ID order. Missing vector bindings leave lexical eligibility intact. Query validation runs even for an empty vector population; known profile dimensions are enforced. The shared loader preserves existing searchable-population validation for passive retrieval. The pool performs no Freshness reads, graph traversal, inference, truncation, or reinforcement.
+
+Verification: all 20 tests matching `memory_retrieval` passed with worktree-local temporary files; `cargo fmt --check` and `git diff --check` passed. Step 13 supplies the focused completeness/invalid-data coverage before proceeding to Freshness ordering.

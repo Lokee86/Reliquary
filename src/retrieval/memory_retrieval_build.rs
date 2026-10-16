@@ -1,7 +1,6 @@
-use crate::compatibility_vector::cosine;
 use crate::graph_store::GraphStore;
 use crate::memory_retrieval_index::build_subcentroids;
-use crate::memory_retrieval_vectors::load_memory_vectors;
+use crate::memory_retrieval_vectors::load_searchable_memory_vectors;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
 use crate::packed_vector_store::PackedVectorStore;
@@ -24,37 +23,18 @@ pub(crate) fn build_memory_retrieval_index(
     if subcentroids_per_community == 0 {
         return Err(MemoryRetrievalError::InvalidConfig);
     }
-    let by_body = load_memory_vectors(
+    let (searchable, vectors) = load_searchable_memory_vectors(
         container,
         memories,
         memory_vectors,
         packed_vectors,
         profile_id,
     )?;
-    let mut searchable = std::collections::HashSet::new();
-    let mut vectors = HashMap::new();
-    for id in memories.current_ids() {
-        let memory = memories.memory(container, id)?;
-        if memory.archived {
-            continue;
-        }
-        searchable.insert(id);
-        let body_id = memories.current_body_id(id)?;
-        if let Some(vector) = by_body.get(&body_id) {
-            if cosine(vector, vector).is_none() {
-                return Err(MemoryRetrievalError::CorruptVector("invalid stored vector"));
-            }
-            vectors.insert(id, vector.clone());
-        }
-    }
     let dimensions = vectors
         .values()
         .next()
-        .map(|vector| vector.len())
+        .map(Vec::len)
         .ok_or(MemoryRetrievalError::EmptyPopulation)?;
-    if vectors.values().any(|vector| vector.len() != dimensions) {
-        return Err(MemoryRetrievalError::CorruptVector("vector dimensions"));
-    }
 
     let current_snapshot = snapshot.filter(|snapshot| {
         snapshot.derived_graph_version == graph.memory_graph_version()
