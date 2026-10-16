@@ -144,7 +144,8 @@ The current generic `ConversationExecution` handoff is not Memory-consumption pr
 - Steps 5–8 are prepared on the independent Luna route branch; they are not yet accepted on the convergence branch. Step 9 verification is in progress.
 - Step 2 accepted: canonical controller/modules and ordered owner-qualified state compile with `cargo check -j 2`; formatting and diff checks pass. The gateway owns no controller registry. API/maintainer references describe the staged scaffold.
 - Step 3 accepted: typed outcomes/reports/prepared values and discardable state transitions compile; `cargo check -j 2`, formatting, and diff checks pass. Preparation cannot change `SelectedIDs`; stale transitions fail without replacing current state.
-- Step 4 and Steps 10–45 remain pending on the convergence branch.
+- Step 4 accepted: 9 focused controller tests passed, including exhaustive three-field destructuring, owner-qualified collisions/order, reset/preservation, prepared-vs-selected state, invalid-batch atomicity, rollback and stale commits. Review tightened staged refinement/traversal evaluation eligibility without adding controller state.
+- Steps 10–45 remain pending on the convergence branch.
 
 ## Execution rule
 

@@ -76,6 +76,7 @@ pub enum AgenticMemoryError {
     InvalidQuery,
     NoActiveQuery,
     StaleOperation,
+    InvalidEvaluation,
     InvalidDeliveryIdentity,
     InvalidDecision(String),
     Authorization(String),
@@ -87,6 +88,10 @@ pub enum AgenticMemoryError {
 impl fmt::Display for AgenticMemoryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
+            Self::InvalidEvaluation => write!(
+                f,
+                "evaluated Memory identities violate operation eligibility"
+            ),
             Self::InvalidQuery => write!(f, "agentic Memory query is empty or too large"),
             Self::NoActiveQuery => write!(f, "agentic Memory operation requires an active query"),
             Self::StaleOperation => {

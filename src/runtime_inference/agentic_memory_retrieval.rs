@@ -1,6 +1,6 @@
 //! Turn-scoped agentic Memory retrieval state. The embedding host owns its lifetime.
 use crate::MemoryRef;
-use crate::agentic_memory_retrieval_model::AgenticMemoryError;
+use crate::agentic_memory_retrieval_model::{AgenticMemoryError, AgenticMemoryOperation};
 use std::collections::BTreeSet;
 
 /// One requesting-agent turn. Preparation never records delivery.
@@ -16,6 +16,7 @@ pub struct AgenticMemoryController {
 pub(crate) struct StagedAgenticMemoryOperation {
     expected: AgenticMemoryController,
     next: AgenticMemoryController,
+    operation: AgenticMemoryOperation,
 }
 
 impl AgenticMemoryController {
@@ -30,6 +31,7 @@ impl AgenticMemoryController {
         Ok(StagedAgenticMemoryOperation {
             expected: self.clone(),
             next,
+            operation: AgenticMemoryOperation::Query,
         })
     }
 
@@ -43,6 +45,7 @@ impl AgenticMemoryController {
         Ok(StagedAgenticMemoryOperation {
             expected: self.clone(),
             next,
+            operation: AgenticMemoryOperation::Refinement,
         })
     }
 
@@ -53,6 +56,7 @@ impl AgenticMemoryController {
         Ok(StagedAgenticMemoryOperation {
             expected: self.clone(),
             next: self.clone(),
+            operation: AgenticMemoryOperation::Traversal,
         })
     }
 
@@ -77,8 +81,23 @@ impl StagedAgenticMemoryOperation {
             .expect("staged operation has a query")
     }
 
-    pub(crate) fn record_evaluated(&mut self, ids: impl IntoIterator<Item = MemoryRef>) {
+    pub(crate) fn record_evaluated(
+        &mut self,
+        ids: impl IntoIterator<Item = MemoryRef>,
+    ) -> Result<(), AgenticMemoryError> {
+        let ids = ids.into_iter().collect::<Vec<_>>();
+        if ids.iter().any(|id| {
+            self.expected.selected_ids.contains(id)
+                || match self.operation {
+                    AgenticMemoryOperation::Query => false,
+                    AgenticMemoryOperation::Refinement => !self.expected.searched_ids.contains(id),
+                    AgenticMemoryOperation::Traversal => self.expected.searched_ids.contains(id),
+                }
+        }) {
+            return Err(AgenticMemoryError::InvalidEvaluation);
+        }
         self.next.searched_ids.extend(ids);
+        Ok(())
     }
 
     pub(crate) fn commit(
@@ -120,3 +139,7 @@ impl AgenticMemoryController {
         &self.selected_ids
     }
 }
+
+#[cfg(test)]
+#[path = "agentic_memory_retrieval_tests.rs"]
+mod agentic_memory_retrieval_tests;
