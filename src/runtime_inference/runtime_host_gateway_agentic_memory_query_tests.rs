@@ -148,3 +148,108 @@ fn memory_query_rejects_unknown_approvals_without_mutating_turn_state() {
     );
     assert_eq!(controller, before);
 }
+
+#[test]
+fn memory_query_selected_only_fallback_has_ids_no_content_or_decision_call() {
+    let (gateway, instance, calls) = fixture(false);
+    let envelope = gateway.capture_agentic_read(&instance).unwrap();
+    let selected = gateway
+        .with_rel(&envelope.owners[0].token, |runtime| {
+            Ok(runtime
+                .cva
+                .memory_ids()
+                .into_iter()
+                .map(|memory_id| MemoryRef {
+                    owner_id: envelope.owners[0].token.owner_id.clone(),
+                    memory_id,
+                })
+                .collect::<BTreeSet<_>>())
+        })
+        .unwrap();
+    let mut controller = AgenticMemoryController::new();
+    controller.current_query = Some("old".into());
+    controller.searched_ids = selected.clone();
+    controller.selected_ids = selected.clone();
+    let result = gateway
+        .memory_query(&instance, &mut controller, "needle", "provided")
+        .unwrap();
+    assert_eq!(
+        result.payload().outcome,
+        AgenticMemoryOutcome::AlreadyProvided(selected.clone())
+    );
+    assert!(result.delivered().is_empty());
+    assert!(calls.lock().unwrap().is_empty());
+    assert_eq!(controller.current_query(), Some("needle"));
+    assert!(controller.searched_ids().is_empty());
+    assert_eq!(controller.selected_ids(), &selected);
+}
+
+#[test]
+fn memory_query_mixed_new_results_suppress_previously_provided_report() {
+    let (gateway, instance, calls) = fixture(false);
+    let envelope = gateway.capture_agentic_read(&instance).unwrap();
+    let old = gateway
+        .with_rel(&envelope.owners[0].token, |runtime| {
+            Ok(runtime
+                .cva
+                .memory_ids()
+                .into_iter()
+                .take(4)
+                .map(|memory_id| MemoryRef {
+                    owner_id: envelope.owners[0].token.owner_id.clone(),
+                    memory_id,
+                })
+                .collect::<BTreeSet<_>>())
+        })
+        .unwrap();
+    let mut controller = AgenticMemoryController::new();
+    controller.selected_ids = old.clone();
+    let result = gateway
+        .memory_query(&instance, &mut controller, "needle", "mixed")
+        .unwrap();
+    let AgenticMemoryOutcome::Memories(content) = &result.payload().outcome else {
+        panic!("new content expected");
+    };
+    assert_eq!(content.len(), 10);
+    assert!(content.iter().all(|item| !old.contains(&item.memory)));
+    assert_eq!(calls.lock().unwrap().len(), 1);
+    assert_eq!(controller.selected_ids(), &old);
+}
+
+#[test]
+fn memory_query_empty_scope_returns_no_matches_without_a_decision_route() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("target/test-tmp")
+        .join(format!("agentic-empty-{}", Uuid::new_v4()));
+    std::fs::create_dir_all(&root).unwrap();
+    let embedding = Arc::new(SimulatedEmbeddingEndpoint::new(
+        8,
+        VectorNormalization::L2,
+        421,
+    ));
+    let gateway = GatewayRuntime::new(
+        root,
+        ReliquaryRuntimeRoutes::new(None, None, None, None, Some(embedding)),
+        InsomniaWorkerConfig {
+            workers: 0,
+            ..Default::default()
+        },
+        EpisodePolicy::default(),
+    );
+    let instance = gateway
+        .attach_instance("empty-reader".into(), None, BTreeMap::new())
+        .unwrap();
+    let mut controller = AgenticMemoryController::new();
+    controller.current_query = Some("old".into());
+    controller.searched_ids.insert(MemoryRef {
+        owner_id: "old-owner".into(),
+        memory_id: crate::MemoryId([3; 32]),
+    });
+    let result = gateway
+        .memory_query(&instance, &mut controller, "new", "empty")
+        .unwrap();
+    assert_eq!(result.payload().outcome, AgenticMemoryOutcome::NoMatches);
+    assert!(result.delivered().is_empty());
+    assert_eq!(controller.current_query(), Some("new"));
+    assert!(controller.searched_ids().is_empty());
+}

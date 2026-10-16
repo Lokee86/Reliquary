@@ -82,3 +82,9 @@ All three `agentic_read_envelope` tests passed, covering authorized dependencies
 `GatewayRuntime::memory_query` validates a staged query and stable host identity, obtains exactly one query embedding, collects every authorized REL pool, grades the complete union, excludes turn-selected refs, and presents at most ten candidates to the dedicated route. One strict versioned parser accepts only unique owner-qualified approvals from that exact batch. Content is prepared without access reinforcement; the new query/evaluated IDs commit only after final read-envelope validation succeeds.
 
 Both focused `memory_query_` tests passed: all ten presented candidates can be approved from a 14-Memory population while SelectedIDs, activity and Freshness stay unchanged; an invented approval fails with the prior controller intact. Formatting and diff checks passed. Step 17 adds raw-match fallback semantics; Steps 18-45 remain outstanding.
+
+## Step 17 -- raw-match fallback and result semantics
+
+The query path retains its complete raw owner-qualified match set before selected exclusion. With zero newly approved content, its intersection with turn-selected refs yields `already_provided` IDs without content; an empty intersection yields `no_matches`. Newly prepared content suppresses old-match reporting. An all-selected batch never invokes the decision endpoint. Successful fallback still commits the new query/reset; preparation does not change SelectedIDs.
+
+All five focused `memory_query_` tests passed, including selected-only fallback without a decision call, mixed old/new suppression, and empty-scope no-matches without a decision route. Formatting and diff checks passed. Step 18 remains the Luna AR4 coverage gate before refinement implementation.

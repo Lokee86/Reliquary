@@ -48,6 +48,10 @@ impl GatewayRuntime {
                 .map_err(read_error)?;
             ranked.append(&mut candidates);
         }
+        let raw_matches = ranked
+            .iter()
+            .map(|candidate| candidate.memory.clone())
+            .collect::<BTreeSet<_>>();
         ranked.retain(|candidate| !controller.selected_ids().contains(&candidate.memory));
         order_agentic_memories(&mut ranked);
         ranked.truncate(10);
@@ -74,7 +78,15 @@ impl GatewayRuntime {
             .filter(|candidate| approved.contains(&candidate.memory))
             .collect::<Vec<_>>();
         let outcome = if content.is_empty() {
-            AgenticMemoryOutcome::NoMatches
+            let previous = raw_matches
+                .intersection(controller.selected_ids())
+                .cloned()
+                .collect::<BTreeSet<_>>();
+            if previous.is_empty() {
+                AgenticMemoryOutcome::NoMatches
+            } else {
+                AgenticMemoryOutcome::AlreadyProvided(previous)
+            }
         } else {
             AgenticMemoryOutcome::Memories(content)
         };
