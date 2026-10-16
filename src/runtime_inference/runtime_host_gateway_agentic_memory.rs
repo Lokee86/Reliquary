@@ -135,3 +135,6 @@ mod graph;
 #[cfg(test)]
 #[path = "runtime_host_gateway_agentic_memory_contract_abuse_tests.rs"]
 mod contract_abuse_tests;
+
+#[path = "runtime_host_gateway_agentic_memory_completion.rs"]
+mod completion;

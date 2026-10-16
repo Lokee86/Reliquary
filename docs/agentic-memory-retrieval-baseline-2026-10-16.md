@@ -146,3 +146,7 @@ The simulator matrix rejects 12 selection response/error cases across query/refi
 ## Step 30 — canonical ephemeral delivery manifest
 
 Payload JSON and the host manifest are canonicalized recursively with stable object keys and observable array order. SHA-256 binds the exact model-visible payload, exact delivered refs, per-owner accepted-turn cuts, and host delivery identity. Shared owner-qualified identity encoding now lives with the manifest rather than the decision parser. A distinct trusted handoff-confirmation enum represents success/failure/cancellation/unknown; preparation cannot manufacture successful evidence. No delivery store or journal was added. Both focused manifest tests pass, proving deterministic digest and changes for each bound input plus content-free fallback. The resulting executable passes all 62 agentic tests. Formatting/diff checks pass.
+
+## Step 31 — post-handoff SelectedIDs boundary
+
+The trusted completion API accepts only the exact success identity/digest, verifies included-content/ref/cut consistency, and revalidates the current instance/REL closure before extending SelectedIDs. Other handoff statuses, mismatches and malformed manifests fail without state changes. CurrentQuery/SearchedIDs are preserved; successful retry deduplicates SelectedIDs. Three focused completion tests pass, covering all statuses, identity/digest/content mismatch, inconsistent refs, exact selection and retry. Formatting/diff checks pass. Receipt recording remains Step 32; this API is not registered as a model tool.
