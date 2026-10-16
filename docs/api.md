@@ -4,6 +4,10 @@ Parent index: [Documentation index](INDEX.md)
 
 The public `reliquary_memory::imports` module exports schema-1 DTOs and `normalize_chatgpt`, `normalize_claude`, `normalize_hermes_jsonl`, `normalize_agent`. Normalizers accept supplied bytes only. `Cva::import_native(&NativeImport, now_ns) -> Result<ImportReceipt, ImportError>` is exclusive/offline and syncs before acknowledgement. `native_import_receipts()` returns Archive-owned source evidence. Native import names are available under the public imports namespace; the E/F root cut preserves that namespace. [Native historical import](native-import.md) owns the exact profiles, bounds, fields, ancestry/revision/delete/artifact identity and partial-failure recovery. No mounted gateway import operation is exposed in this cut.
 
+## Agentic Memory controller scaffold
+
+`AgenticMemoryController::new()` creates empty host-owned, in-memory state for one requesting-agent turn. `current_query()`, `searched_ids()`, and `selected_ids()` expose read-only views. Both sets contain `MemoryRef` values, ordered by owner ID then Memory ID. There is no gateway registry or durable controller storage. This staged scaffold does not yet expose query, refinement, traversal, or delivery-completion operations; the [linear execution plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md) tracks their implementation.
+
 ## Freshness retrieval boundary
 
 Memory fetch/search, graph/provenance inspection and `ego_memory_freshness` are non-reinforcing reads. Only trusted host verification of external content acceptance authorizes `record_accepted_memory_use`; API owner/turn checks cannot prove consumption. See the [host contract](freshness-external-consumption-contract.md) for receipt ownership, access control, durable retries and the pending external integration.

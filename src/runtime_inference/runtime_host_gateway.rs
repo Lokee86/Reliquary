@@ -58,6 +58,8 @@ mod project_lifecycle;
 #[path = "runtime_host_gateway_semantic.rs"]
 mod semantic;
 pub use semantic::RuntimeKnowledgeProvenanceResolution;
+#[path = "runtime_host_gateway_agentic_memory.rs"]
+mod agentic_memory;
 #[path = "runtime_host_gateway_semantic_search.rs"]
 mod semantic_search;
 pub use admission::{GatewayAdmissionAdapter, VerifiedInstanceAdmission};

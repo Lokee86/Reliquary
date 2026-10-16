@@ -142,7 +142,8 @@ The current generic `ConversationExecution` handoff is not Memory-consumption pr
 
 - Step 1 accepted: refreshed snapshot and 5 retrieval, 15 route, and 3 Freshness boundary tests passed; see [baseline evidence](agentic-memory-retrieval-baseline-2026-10-16.md).
 - Steps 5–8 are prepared on the independent Luna route branch; they are not yet accepted on the convergence branch. Step 9 verification is in progress.
-- No other numbered step is complete.
+- Step 2 accepted: canonical controller/modules and ordered owner-qualified state compile with `cargo check -j 2`; formatting and diff checks pass. The gateway owns no controller registry. API/maintainer references describe the staged scaffold.
+- Steps 3–4 and 10–45 remain pending on the convergence branch.
 
 ## Execution rule
 

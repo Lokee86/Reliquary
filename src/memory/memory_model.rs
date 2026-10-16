@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct MemoryId(pub [u8; 32]);
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct MemoryRef {
     pub owner_id: String,
     pub memory_id: MemoryId,

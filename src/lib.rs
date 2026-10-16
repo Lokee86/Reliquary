@@ -1,3 +1,10 @@
+#[path = "runtime_inference/agentic_memory_retrieval.rs"]
+mod agentic_memory_retrieval;
+#[path = "runtime_inference/agentic_memory_retrieval_decision.rs"]
+mod agentic_memory_retrieval_decision;
+#[path = "runtime_inference/agentic_memory_retrieval_model.rs"]
+mod agentic_memory_retrieval_model;
+pub use agentic_memory_retrieval::AgenticMemoryController;
 #[path = "archive/archive.rs"]
 pub mod archive;
 #[path = "archive/archive_import.rs"]
