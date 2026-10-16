@@ -104,7 +104,7 @@ impl GatewayRuntime {
         Ok(prepared)
     }
 
-    fn hydrate_agentic_memory(
+    pub(super) fn hydrate_agentic_memory(
         &self,
         envelope: &AgenticReadEnvelope,
         memory: &MemoryRef,

@@ -25,6 +25,68 @@ impl GatewayRuntime {
     }
 }
 
+impl GatewayRuntime {
+    /// Reconsider exactly the previously evaluated, not-yet-delivered set.
+    /// No ordinary retrieval or embedding is performed by this operation.
+    pub fn refine_query(
+        &self,
+        instance: &InstanceRuntime,
+        controller: &mut AgenticMemoryController,
+        refinement: &str,
+        delivery_id: &str,
+    ) -> Result<crate::PreparedAgenticMemoryResult, AgenticMemoryError> {
+        use crate::agentic_memory_retrieval_decision::select_memories;
+        use crate::{AgenticMemoryOperation, AgenticMemoryOutcome};
+        if delivery_id.trim().is_empty() {
+            return Err(AgenticMemoryError::InvalidDeliveryIdentity);
+        }
+        let (envelope, mut staged) =
+            self.stage_agentic_refinement(instance, controller, refinement)?;
+        let declined = controller.declined_ids().into_iter().collect::<Vec<_>>();
+        let mut content = Vec::new();
+        if !declined.is_empty() {
+            let decision = self.agentic_decision_route().map_err(read_error)?;
+            for batch in declined.chunks(10) {
+                let candidates = batch
+                    .iter()
+                    .map(|memory| self.hydrate_agentic_memory(&envelope, memory))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let approved = select_memories(
+                    decision.as_ref(),
+                    AgenticMemoryOperation::Refinement,
+                    staged.query(),
+                    &candidates,
+                    None,
+                    &[],
+                )?;
+                staged.record_evaluated(batch.iter().cloned())?;
+                content.extend(
+                    candidates
+                        .into_iter()
+                        .filter(|candidate| approved.contains(&candidate.memory)),
+                );
+            }
+        }
+        let outcome = if content.is_empty() {
+            AgenticMemoryOutcome::NoMatches
+        } else {
+            AgenticMemoryOutcome::Memories(content)
+        };
+        let prepared = super::query::prepare_result(
+            delivery_id,
+            AgenticMemoryOperation::Refinement,
+            outcome,
+            Vec::new(),
+            &envelope,
+        );
+        let prepared = self
+            .with_agentic_read_delivery(instance, &envelope, || Ok(prepared))
+            .map_err(auth_error)?;
+        staged.commit(controller)?;
+        Ok(prepared)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -79,3 +141,7 @@ mod tests {
         assert_eq!(controller, before);
     }
 }
+
+#[cfg(test)]
+#[path = "runtime_host_gateway_agentic_memory_refinement_tests.rs"]
+mod reconsideration_tests;

@@ -100,3 +100,9 @@ Verification: 14 query tests, three envelope tests and all 21 tests matching `me
 The dedicated route receives the complete old query and refinement instruction and must return exactly one versioned non-empty complete replacement. Unknown fields/alternatives, lists, free-form text, version mismatch and oversized results fail closed. Gateway rewrite preparation requires an active query, captures/revalidates the read envelope, and returns a staged transition without changing CurrentQuery before reconsideration succeeds.
 
 Both new parser tests and the gateway `refinement_rewrite` test passed (the broad rewrite filter also passed an existing Chronos regression). Correction changes baseball to basketball rather than mechanically appending. No-active-query, malformed rewrite and valid-but-uncommitted rewrite preserve controller state. Formatting and diff checks passed. Steps 20-45 remain outstanding.
+
+## Step 20 -- full declined-set reconsideration
+
+`GatewayRuntime::refine_query` rewrites once, computes `SearchedIDs - SelectedIDs`, hydrates exactly those refs, and reconsiders the entire set in deterministic batches of at most ten. Approved content across all batches is prepared together without a total ten-result cap. The revised query commits only after every batch and final authority validation succeed. Search and selected sets retain their existing meaning; no ordinary lexical/semantic retrieval or embedding route is used.
+
+All three tests matching `refinement_` passed. The focused gateway case has no embedding route or active Memory profile, reconsiders 13 declined Memories in batches of ten and three, returns all 13 approvals, excludes the one already-selected Memory, retains both ID sets, and leaves activity/Freshness unchanged. Formatting and diff checks passed. Step 21 is the Luna AR5 failure/authorization coverage gate.
