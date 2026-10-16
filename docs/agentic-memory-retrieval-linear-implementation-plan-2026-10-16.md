@@ -138,6 +138,12 @@ Successful external handoff is the first event that can update `SelectedIDs`. Be
 
 The current generic `ConversationExecution` handoff is not Memory-consumption proof and must not be reused as such.
 
+## Execution status
+
+- Step 1 accepted: refreshed snapshot and 5 retrieval, 15 route, and 3 Freshness boundary tests passed; see [baseline evidence](agentic-memory-retrieval-baseline-2026-10-16.md).
+- Steps 5–8 are prepared on the independent Luna route branch; they are not yet accepted on the convergence branch. Step 9 verification is in progress.
+- No other numbered step is complete.
+
 ## Execution rule
 
 Execute Steps 1–45 in order on the convergence branch unless a step explicitly says it can be prepared independently. Do not start host integration before the Reliquary completion seam is green. Do not mark F3 complete before the real embedding host passes Step 36.
