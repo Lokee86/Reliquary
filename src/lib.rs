@@ -5,6 +5,11 @@ mod agentic_memory_retrieval_decision;
 #[path = "runtime_inference/agentic_memory_retrieval_model.rs"]
 mod agentic_memory_retrieval_model;
 pub use agentic_memory_retrieval::AgenticMemoryController;
+pub use agentic_memory_retrieval_model::{
+    AgenticMemoryAnchorReport, AgenticMemoryContent, AgenticMemoryError, AgenticMemoryOperation,
+    AgenticMemoryOutcome, AgenticMemoryPayload, AgenticMemoryRelationEvidence,
+    PreparedAgenticMemoryResult,
+};
 #[path = "archive/archive.rs"]
 pub mod archive;
 #[path = "archive/archive_import.rs"]
