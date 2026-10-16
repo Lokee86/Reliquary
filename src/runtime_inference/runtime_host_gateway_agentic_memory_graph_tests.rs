@@ -88,3 +88,31 @@ fn agentic_graph_evidence_is_complete_bidirectional_one_hop_and_owner_qualified(
             .is_err()
     );
 }
+
+#[test]
+fn agentic_graph_counts_use_snapshot_and_selected_or_declined_anchors_are_legal() {
+    let (gateway, instance, ids) = fixture();
+    let envelope = gateway.capture_agentic_read(&instance).unwrap();
+    let mut controller = crate::AgenticMemoryController::new();
+    controller
+        .stage_query("complete query")
+        .unwrap()
+        .commit(&mut controller)
+        .unwrap();
+    controller.selected_ids.insert(ids[0].clone());
+    controller.searched_ids.insert(ids[1].clone());
+    let before = controller.clone();
+    let anchor = gateway
+        .prepare_agentic_anchor(&envelope, &controller, &ids[0])
+        .unwrap();
+    assert_eq!(anchor.report.unseen_neighbors, 0);
+    assert_eq!(anchor.report.declined_neighbors, 1);
+    assert!(anchor.candidates.is_empty());
+    let bridge = gateway
+        .prepare_agentic_anchor(&envelope, &controller, &ids[1])
+        .unwrap();
+    assert_eq!(bridge.report.unseen_neighbors, 1);
+    assert_eq!(bridge.report.declined_neighbors, 0);
+    assert_eq!(bridge.candidates[0].memory, ids[2]);
+    assert_eq!(controller, before);
+}

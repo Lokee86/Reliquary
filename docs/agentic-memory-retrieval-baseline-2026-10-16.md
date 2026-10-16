@@ -114,3 +114,7 @@ Luna supplied six contract tests and three authorization tests. `cargo test --li
 ## Step 22 — complete one-hop evidence
 
 The authorized anchor collector reads active Memory relations in both directions within its REL, preserves kind/direction, deduplicates identical evidence, skips archived neighbors, and never expands a neighbor. Invalid owners and missing anchors fail. `cargo test --lib agentic_graph_evidence -j 2` passes; all 12 refinement tests also pass. Formatting/diff checks pass. Both documentation checks still isolate the four known Ego inventory gaps.
+
+## Step 23 — per-anchor preparation
+
+Unique neighbor counts use the pre-call controller snapshot. Both ID sets are excluded from new presentation; declined neighbors are counted separately. The complete remaining owner-local pool uses the canonical passive Freshness grader/order before truncation to ten. Selected and declined Memories remain legal anchors. Both `agentic_graph_` tests pass, including unchanged controller and counts around selected/declined bridges. Larger-neighborhood acceptance is delegated to Luna Step 26. Formatting/diff checks pass.

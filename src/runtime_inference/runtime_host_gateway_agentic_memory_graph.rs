@@ -3,7 +3,66 @@ use super::query::{auth_error, read_error};
 use super::*;
 use crate::{AgenticMemoryError, AgenticMemoryRelationEvidence, GraphDirection, MemoryRef};
 
+struct PreparedAnchor {
+    report: crate::AgenticMemoryAnchorReport,
+    candidates: Vec<crate::AgenticMemoryContent>,
+}
+
 impl GatewayRuntime {
+    fn prepare_agentic_anchor(
+        &self,
+        envelope: &AgenticReadEnvelope,
+        controller: &crate::AgenticMemoryController,
+        anchor: &MemoryRef,
+    ) -> Result<PreparedAnchor, AgenticMemoryError> {
+        use crate::agentic_memory_retrieval::{grade_agentic_memories, order_agentic_memories};
+        let relations = self.agentic_anchor_evidence(envelope, anchor)?;
+        let neighbors = relations
+            .iter()
+            .map(|edge| edge.neighbor.clone())
+            .collect::<BTreeSet<_>>();
+        let declined_neighbors = neighbors
+            .iter()
+            .filter(|id| {
+                controller.searched_ids().contains(*id) && !controller.selected_ids().contains(*id)
+            })
+            .count();
+        let unseen = neighbors
+            .into_iter()
+            .filter(|id| {
+                !controller.searched_ids().contains(id) && !controller.selected_ids().contains(id)
+            })
+            .collect::<Vec<_>>();
+        let unseen_neighbors = unseen.len();
+        let owner = envelope
+            .owners
+            .iter()
+            .find(|owner| owner.token.owner_id == anchor.owner_id)
+            .ok_or_else(|| auth_error("graph anchor is outside the authorized REL closure"))?;
+        let ids = unseen.iter().map(|id| id.memory_id).collect::<Vec<_>>();
+        let mut ranked = self
+            .with_rel(&owner.token, |runtime| {
+                grade_agentic_memories(&runtime.cva, &ids, owner.cut).map_err(operation)
+            })
+            .map_err(read_error)?;
+        order_agentic_memories(&mut ranked);
+        ranked.truncate(10);
+        let candidates = ranked
+            .iter()
+            .map(|candidate| self.hydrate_agentic_memory(envelope, &candidate.memory))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(PreparedAnchor {
+            report: crate::AgenticMemoryAnchorReport {
+                anchor: anchor.clone(),
+                unseen_neighbors,
+                declined_neighbors,
+                relations,
+                approved: BTreeSet::new(),
+            },
+            candidates,
+        })
+    }
+
     fn agentic_anchor_evidence(
         &self,
         envelope: &AgenticReadEnvelope,
