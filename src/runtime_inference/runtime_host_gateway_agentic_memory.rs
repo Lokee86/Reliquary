@@ -122,3 +122,6 @@ impl GatewayRuntime {
 #[cfg(test)]
 #[path = "runtime_host_gateway_agentic_memory_tests.rs"]
 mod tests;
+
+#[path = "runtime_host_gateway_agentic_memory_query.rs"]
+mod query;

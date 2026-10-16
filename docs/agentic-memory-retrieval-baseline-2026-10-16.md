@@ -76,3 +76,9 @@ The focused `freshness_order_is_complete` test passed: 17 cross-owner candidates
 The gateway captures the requesting attachment, selected REL, independently granted dependency closure, owner tokens, active profiles, and activity cuts. Bound PHY and unrelated granted RELs are excluded. Route acquisition remains separate from owner reads; final read delivery revalidates selection, closure, grants, attachment and mount tokens. The existing attachment-delivery guard is reused with parent-module visibility rather than duplicated.
 
 All three `agentic_read_envelope` tests passed, covering authorized dependencies, unauthorized dependency/unrelated REL/PHY exclusion, selection changes, detach, revoke/regrant, topology changes, and missing dedicated routes. Formatting and diff checks passed. Additional missing generated direct-dependency artifacts required Cargo to rebuild the test dependency graph; no dependency or runtime source workaround was introduced. Steps 16-45 remain outstanding.
+
+## Step 16 -- normal Memory query preparation
+
+`GatewayRuntime::memory_query` validates a staged query and stable host identity, obtains exactly one query embedding, collects every authorized REL pool, grades the complete union, excludes turn-selected refs, and presents at most ten candidates to the dedicated route. One strict versioned parser accepts only unique owner-qualified approvals from that exact batch. Content is prepared without access reinforcement; the new query/evaluated IDs commit only after final read-envelope validation succeeds.
+
+Both focused `memory_query_` tests passed: all ten presented candidates can be approved from a 14-Memory population while SelectedIDs, activity and Freshness stay unchanged; an invented approval fails with the prior controller intact. Formatting and diff checks passed. Step 17 adds raw-match fallback semantics; Steps 18-45 remain outstanding.
