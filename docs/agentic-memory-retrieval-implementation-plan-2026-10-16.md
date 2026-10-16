@@ -2,7 +2,9 @@
 
 Parent design: [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md)
 
-Status: **implementation-ready specification; runtime implementation pending**
+Linear execution plan: [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
+
+Status: **implementation-ready architecture specification; runtime implementation pending**
 
 ## Purpose
 
