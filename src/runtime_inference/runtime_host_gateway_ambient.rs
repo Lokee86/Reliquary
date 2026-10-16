@@ -24,7 +24,7 @@ impl GatewayRuntime {
     /// Hold only the attachment's short delivery lease while the result is
     /// handed back. Callers must finish provider/filesystem work before this
     /// boundary and must reuse the authorization captured before that work.
-    fn with_instance_delivery<T>(
+    pub(super) fn with_instance_delivery<T>(
         &self,
         instance: &InstanceRuntime,
         authorization: super::InstanceAuthorization,
