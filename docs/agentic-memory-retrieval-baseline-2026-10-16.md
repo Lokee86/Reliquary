@@ -134,3 +134,7 @@ Two Luna agents supplied four core graph tests and seven concurrency/authorizati
 ## Step 27 — Luna versioned selection contract
 
 Named V1 operation/instruction/schema constants now freeze complete-query selection requests for all three operations. The existing single evaluator/parser remains authoritative: strict object shapes, exact version, supplied owner-qualified subset, and no duplicate approvals. Three new tests assert complete request/prompt/schema and invalid responses. `cargo test --lib agentic -j 2` passes all 58 tests, including these contracts and the complete query/refinement/graph regressions. Formatting/diff checks pass.
+
+## Step 28 — Luna versioned rewrite contract
+
+The dedicated rewrite request/instruction/schema are frozen with V1 constants. One strict response contains exactly version and complete revised query; no free-form fallback or alternative list exists. Parser validation retains the existing nonempty UTF-8 byte bound. `cargo test --lib rewrite -j 2` passed all 10 matching tests, including exact complete-old-query/refinement/prompt/schema assertions and malformed/version/alternative/commentary/oversized rejection. A subsequent assertion ties the schema length to the shared query limit; its focused rerun is pending in the current dependency rebuild and will be included before AR7 closure. Formatting/diff checks pass.

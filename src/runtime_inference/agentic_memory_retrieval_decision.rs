@@ -134,6 +134,17 @@ pub(crate) fn select_memories(
 mod selection_tests;
 
 pub(crate) const MEMORY_REWRITE_VERSION: u32 = 1;
+pub(crate) const MEMORY_REWRITE_OPERATION_V1: &str = "refine_query_rewrite";
+pub(crate) const MEMORY_REWRITE_INSTRUCTION_V1: &str = "Return one complete revised query that applies the refinement to the entire current information need. Correct or reinterpret when instructed; do not merely concatenate. Return exactly version and query, with no alternatives or commentary.";
+pub(crate) const MEMORY_REWRITE_SCHEMA_V1: &str = r#"{
+  "type": "object",
+  "required": ["version", "query"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {"const": 1},
+    "query": {"type": "string", "minLength": 1, "maxLength": 512}
+  }
+}"#;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -149,11 +160,13 @@ pub(crate) fn rewrite_query(
 ) -> Result<String, AgenticMemoryError> {
     let refinement = crate::agentic_memory_retrieval::validate_query(refinement)?;
     let state = json!({"version": MEMORY_REWRITE_VERSION,
-        "operation": "refine_query_rewrite", "current_query": current_query,
+        "operation": MEMORY_REWRITE_OPERATION_V1, "current_query": current_query,
         "refinement": refinement});
     let questions = json!({
-        "instruction": "Return one complete revised query that applies the refinement to the entire current information need. Correct or reinterpret when instructed; do not merely concatenate. Return exactly version and query, with no alternatives or commentary.",
+        "instruction": MEMORY_REWRITE_INSTRUCTION_V1,
         "response_shape": {"version": MEMORY_REWRITE_VERSION, "query": "one complete revised query"},
+        "schema": serde_json::from_str::<Value>(MEMORY_REWRITE_SCHEMA_V1)
+            .expect("rewrite schema constant is valid JSON"),
     });
     let response = endpoint
         .evaluate(&state, &questions)
