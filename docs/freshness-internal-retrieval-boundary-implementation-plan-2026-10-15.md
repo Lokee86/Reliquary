@@ -5,6 +5,10 @@ Date: 2026-10-15
 Repository: Reliquary
 Scope: retrieval/access-reinforcement boundary only; Ego synthesis selection is separate.
 
+## Later accepted agent-facing retrieval design
+
+See [Agentic Memory retrieval architecture](agentic-memory-retrieval-design-2026-10-15.md). The later approved F3 consumption boundary is **successful host handoff of newly selected Memory content**, rather than a separate model/context-admission acknowledgment. `SelectedIDs` is the sole turn-scoped delivered-ID set; retrieval candidate evaluation remains non-reinforcing. The F3 steps and consumption wording below record the **original 2026-10-15 implementation plan**, not an additional live design requirement where they conflict with the newer architecture. F1/F2/F4/F5 verification history is unchanged; F3 production integration is still pending.
+
 ## Overview
 
 Execute F1–F5 in order while preserving the engine. A missing external acceptance coordinator leaves F3 pending and permits independent regression verification to continue.

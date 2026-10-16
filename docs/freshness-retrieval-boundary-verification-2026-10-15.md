@@ -8,6 +8,10 @@ Status: F1 and F2 complete. F3 contract documented; production wiring blocked on
 
 Existing primitives already satisfy the implementation boundary; no duplicate reader, scoring engine, flag or propagation was needed. Rust API documentation now explicitly marks REL/PHY Memory reads, lexical search and Freshness scores as passive, and distinguishes authorized gateway delivery from consumption. Receipt/API documentation assigns attestation to the trusted embedding host and disclaims authentication of arbitrary client claims. Existing return values, errors and numeric/persistence behavior are unchanged.
 
+## Subsequent retrieval design (status clarification)
+
+The later accepted [agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) uses successful host tool-result handoff as the future F3 reinforcement event and a single turn-wide `SelectedIDs` set. This document remains the historical F1/F2/F4/F5 **execution evidence**; its original stricter accepted-context/outbox assumptions are superseded as design requirements where inconsistent. F3 remains unimplemented.
+
 ## F3 — external integration disposition
 
 No production wiring was added because F1 found no authoritative accepted-context event. The [host consumption contract](freshness-external-consumption-contract.md) specifies exact IDs, owner/cut/identity, durable acceptance-to-receipt handoff, authority, cancellation and retry requirements. F3 remains pending externally and must not be reported as implemented.

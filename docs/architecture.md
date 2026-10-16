@@ -6,7 +6,7 @@ The branch-local G-import implementation normalizes supplied provider/agent byte
 
 ## Freshness retrieval and consumption
 
-All internal Memory retrieval, including content, provenance, graph and Freshness metadata inspection, is non-reinforcing. `Cva::record_accepted_memory_use` remains the sole trusted-host access-reinforcement write boundary; authorized candidate delivery does not establish consumption. The [external consumption contract](freshness-external-consumption-contract.md) owns acceptance evidence, receipt ownership and retry requirements. Production accepted-context wiring remains external-host work.
+All internal Memory retrieval, including content, provenance, graph and Freshness metadata inspection, is non-reinforcing. The **planned, not implemented** [agentic retrieval controller](agentic-memory-retrieval-design-2026-10-15.md) adds query/refinement/batched one-hop traversal and successful-host-handoff `SelectedIDs` reinforcement without changing existing passive primitives. `Cva::record_accepted_memory_use` remains the sole trusted-host access-reinforcement write boundary; authorized candidate delivery does not establish consumption. The [external consumption contract](freshness-external-consumption-contract.md) owns acceptance evidence, receipt ownership and retry requirements. Production accepted-context wiring remains external-host work.
 
 ## Purpose
 This document owns the current Reliquary Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
