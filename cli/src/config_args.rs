@@ -99,6 +99,12 @@ pub enum ModelCommand {
         url: String,
     },
     ClearEntityResolutionDecision,
+    SetMemoryRetrievalDecision {
+        #[arg(long)] model: String,
+        #[arg(long)] credential: String,
+        #[arg(long)] url: String,
+    },
+    ClearMemoryRetrievalDecision,
     SetEntityResolution {
         #[arg(long, value_enum)]
         provider: ProviderArg,

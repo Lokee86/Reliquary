@@ -35,6 +35,7 @@ fn show(path: &Path) -> Result<()> {
     show_insomnia_metadata(config.models.insomnia_metadata.as_ref());
     show_entity_extraction(config.models.entity_extraction.as_ref());
     show_entity_resolution_decision(config.models.entity_resolution_decision.as_ref());
+    show_memory_retrieval_decision(config.models.memory_retrieval_decision.as_ref());
     show_entity_resolution(config.models.entity_resolution.as_ref());
     show_dream(config.models.dream.as_ref());
     show_embedding(config.models.embedding.as_ref());
@@ -188,6 +189,13 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
         ModelCommand::ClearEntityResolutionDecision => {
             config.models.entity_resolution_decision = None
         }
+        ModelCommand::SetMemoryRetrievalDecision { model, credential, url } => {
+            config.models.memory_retrieval_decision = Some(DecisionModelEndpoint {
+                model, url, credential_id: credential_id(credential)?,
+            });
+            validate_runtime(&config)?;
+        }
+        ModelCommand::ClearMemoryRetrievalDecision => config.models.memory_retrieval_decision = None,
         ModelCommand::SetEntityResolution {
             provider: p,
             model,
@@ -337,6 +345,13 @@ fn show_entity_resolution_decision(value: Option<&DecisionModelEndpoint>) {
             endpoint.credential_id.as_str()
         ),
         None => println!("entity_resolution_decision: <unset>"),
+    }
+}
+
+fn show_memory_retrieval_decision(value: Option<&DecisionModelEndpoint>) {
+    match value {
+        Some(endpoint) => println!("memory_retrieval_decision: model={} url={} credential={}", endpoint.model, endpoint.url, endpoint.credential_id.as_str()),
+        None => println!("memory_retrieval_decision: <unset>"),
     }
 }
 
