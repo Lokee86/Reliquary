@@ -106,3 +106,7 @@ Both new parser tests and the gateway `refinement_rewrite` test passed (the broa
 `GatewayRuntime::refine_query` rewrites once, computes `SearchedIDs - SelectedIDs`, hydrates exactly those refs, and reconsiders the entire set in deterministic batches of at most ten. Approved content across all batches is prepared together without a total ten-result cap. The revised query commits only after every batch and final authority validation succeed. Search and selected sets retain their existing meaning; no ordinary lexical/semantic retrieval or embedding route is used.
 
 All three tests matching `refinement_` passed. The focused gateway case has no embedding route or active Memory profile, reconsiders 13 declined Memories in batches of ten and three, returns all 13 approvals, excludes the one already-selected Memory, retains both ID sets, and leaves activity/Freshness unchanged. Formatting and diff checks passed. Step 21 is the Luna AR5 failure/authorization coverage gate.
+
+## Step 21 — refinement contract closure
+
+Luna supplied six contract tests and three authorization tests. `cargo test --lib refinement -j 2` passes all 12 matching tests: complete correction, empty declined set, no active query, all declined batches, selected/unsearched exclusion, malformed rewrite/selection, provider failure, revoke/detach, and atomic rollback. No embedding route is configured in the reconsideration fixtures. `cargo fmt --check` and `git diff --check` pass.

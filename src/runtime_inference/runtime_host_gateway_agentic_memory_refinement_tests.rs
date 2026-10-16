@@ -113,3 +113,8 @@ fn refinement_reconsiders_more_than_ten_declined_without_an_embedding_route() {
         .unwrap();
     assert_eq!(before, after);
 }
+
+#[path = "runtime_host_gateway_agentic_memory_refinement_authorization_tests.rs"]
+mod authorization;
+#[path = "runtime_host_gateway_agentic_memory_refinement_contract_tests.rs"]
+mod contracts;
