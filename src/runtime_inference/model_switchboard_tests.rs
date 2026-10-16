@@ -145,6 +145,7 @@ fn invalid_provider_routes_are_rejected() {
         insomnia_metadata: None,
         entity_extraction: None,
         entity_resolution_decision: None,
+        memory_retrieval_decision: None,
         entity_resolution: None,
         chronos: None,
         dream: None,
@@ -171,6 +172,7 @@ fn invalid_provider_routes_are_rejected() {
         insomnia_metadata: None,
         entity_extraction: None,
         entity_resolution_decision: None,
+        memory_retrieval_decision: None,
         entity_resolution: None,
         chronos: None,
         dream: None,
@@ -341,6 +343,7 @@ fn configured_models() -> ModelSwitchboardConfig {
             url: "https://openrouter.ai/api/alpha/decisions".into(),
             credential_id: id("ready"),
         }),
+        memory_retrieval_decision: None,
         entity_resolution: Some(GeneralModelEndpoint {
             provider: ModelProvider::OpenAiReady,
             model: "entity-resolution-model".into(),

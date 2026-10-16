@@ -86,6 +86,16 @@ pub(crate) fn validate_credentials(
             ));
         }
     }
+    if let Some(endpoint) = &config.memory_retrieval_decision {
+        let credential = credentials.get(&endpoint.credential_id).ok_or_else(|| {
+            CredentialError::MissingCredential(endpoint.credential_id.as_str().into())
+        })?;
+        if credential.auth_kind() != crate::ModelAuthKind::ApiKey {
+            return Err(CredentialError::WrongAuthKind(
+                endpoint.credential_id.as_str().into(),
+            ));
+        }
+    }
 
     for (provider, id) in config
         .general

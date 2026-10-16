@@ -11,8 +11,9 @@ use crate::model_switchboard_codec::{
     CHRONOS_MODEL_KEY, DECISION_MODEL_SCHEMA_V1, DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY,
     EMBEDDING_MODEL_SCHEMA_V2, ENTITY_EXTRACTION_MODEL_KEY, ENTITY_RESOLUTION_DECISION_MODEL_KEY,
     ENTITY_RESOLUTION_MODEL_KEY, GENERAL_MODEL_KEY, GENERAL_MODEL_SCHEMA_V3,
-    INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY, decode_decision, decode_embedding,
-    decode_general_v2, decode_general_v3, encode_decision, encode_embedding, encode_general,
+    INSOMNIA_METADATA_MODEL_KEY, INSOMNIA_MODEL_KEY, MEMORY_RETRIEVAL_DECISION_MODEL_KEY,
+    decode_decision, decode_embedding, decode_general_v2, decode_general_v3, encode_decision,
+    encode_embedding, encode_general,
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
@@ -82,6 +83,10 @@ impl ReliquaryConfig {
             Some(object) => Some(decode_known_decision(object)?),
             None => None,
         };
+        let memory_retrieval_decision = match objects.remove(MEMORY_RETRIEVAL_DECISION_MODEL_KEY) {
+            Some(object) => Some(decode_known_decision(object)?),
+            None => None,
+        };
         let entity_resolution = match objects.remove(ENTITY_RESOLUTION_MODEL_KEY) {
             Some(object) => Some(decode_known_general(object)?),
             None => None,
@@ -104,6 +109,7 @@ impl ReliquaryConfig {
             insomnia_metadata,
             entity_extraction,
             entity_resolution_decision,
+            memory_retrieval_decision,
             entity_resolution,
             chronos,
             dream,
@@ -192,6 +198,12 @@ impl ReliquaryConfig {
         if let Some(endpoint) = &self.models.entity_resolution_decision {
             objects.insert(
                 ENTITY_RESOLUTION_DECISION_MODEL_KEY.to_owned(),
+                decision_model_object(encode_decision(endpoint)?),
+            );
+        }
+        if let Some(endpoint) = &self.models.memory_retrieval_decision {
+            objects.insert(
+                MEMORY_RETRIEVAL_DECISION_MODEL_KEY.to_owned(),
                 decision_model_object(encode_decision(endpoint)?),
             );
         }
