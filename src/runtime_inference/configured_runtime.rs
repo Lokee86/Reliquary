@@ -86,6 +86,17 @@ impl ConfiguredRuntime {
             .transpose()
             .map_err(operation)?
             .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::DecisionEndpoint>);
+        let memory_retrieval_decision = config
+            .memory_retrieval_decision
+            .as_ref()
+            .map(|_| {
+                ConfiguredDecisionEndpoint::from_memory_retrieval_decision_switchboard(
+                    &self.switchboard,
+                )
+            })
+            .transpose()
+            .map_err(operation)?
+            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::DecisionEndpoint>);
         let entity_resolution = config
             .entity_resolution
             .as_ref()
@@ -120,6 +131,7 @@ impl ConfiguredRuntime {
             ReliquaryRuntimeRoutes::new(general, insomnia, insomnia_metadata, dream, embedding)
                 .with_entity_routes(entity_extraction, entity_resolution)
                 .with_entity_resolution_decision(entity_resolution_decision)
+                .with_memory_retrieval_decision(memory_retrieval_decision)
                 .with_chronos(chronos),
         )
     }

@@ -8,6 +8,7 @@ pub struct ReliquaryRuntimeRoutes {
     insomnia_metadata: Option<Arc<dyn GeneralEndpoint>>,
     entity_extraction: Option<Arc<dyn GeneralEndpoint>>,
     entity_resolution_decision: Option<Arc<dyn DecisionEndpoint>>,
+    memory_retrieval_decision: Option<Arc<dyn DecisionEndpoint>>,
     entity_resolution: Option<Arc<dyn GeneralEndpoint>>,
     chronos: Option<Arc<dyn GeneralEndpoint>>,
     dream: Option<Arc<dyn GeneralEndpoint>>,
@@ -28,6 +29,7 @@ impl ReliquaryRuntimeRoutes {
             insomnia_metadata,
             entity_extraction: None,
             entity_resolution_decision: None,
+            memory_retrieval_decision: None,
             entity_resolution: None,
             chronos: None,
             dream,
@@ -71,6 +73,18 @@ impl ReliquaryRuntimeRoutes {
 
     pub(crate) fn entity_resolution_decision(&self) -> Option<Arc<dyn DecisionEndpoint>> {
         self.entity_resolution_decision.clone()
+    }
+
+    pub fn with_memory_retrieval_decision(
+        mut self,
+        endpoint: Option<Arc<dyn DecisionEndpoint>>,
+    ) -> Self {
+        self.memory_retrieval_decision = endpoint;
+        self
+    }
+
+    pub(crate) fn memory_retrieval_decision(&self) -> Option<Arc<dyn DecisionEndpoint>> {
+        self.memory_retrieval_decision.clone()
     }
 
     pub(crate) fn entity_resolution(&self) -> Option<Arc<dyn GeneralEndpoint>> {
