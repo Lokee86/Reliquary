@@ -40,6 +40,21 @@ impl EchoStore {
             .unwrap_or_default()
     }
 
+    pub(crate) fn for_conversation(&self, conversation_id: &str) -> Vec<EchoEvent> {
+        let mut records = self
+            .records
+            .iter()
+            .filter(|((conversation, _), _)| conversation == conversation_id)
+            .flat_map(|(_, events)| events.values().cloned())
+            .collect::<Vec<_>>();
+        records.sort_by(|left, right| {
+            left.message_id
+                .cmp(&right.message_id)
+                .then(left.sequence.cmp(&right.sequence))
+        });
+        records
+    }
+
     pub(crate) fn all_records(&self) -> Vec<EchoEvent> {
         let mut records = self
             .records

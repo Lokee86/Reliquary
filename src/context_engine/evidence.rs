@@ -4,6 +4,7 @@ use crate::{EchoEvent, EchoEventKind};
 pub fn render_assistant_content_from_echo(final_text: &str, events: &[EchoEvent]) -> String {
     let evidence = events
         .iter()
+        .filter(|event| event.kind != EchoEventKind::ToolContextAccepted)
         .map(context_evidence_from_echo)
         .collect::<Vec<_>>();
     render_assistant_content(final_text, &evidence)
@@ -17,7 +18,8 @@ fn context_evidence_from_echo(event: &EchoEvent) -> ContextEvidence {
             EchoEventKind::ReasoningTrace => EvidenceKind::ReasoningTrace,
             EchoEventKind::ToolCall => EvidenceKind::ToolCall,
             EchoEventKind::ToolResult => EvidenceKind::ToolResult,
-            EchoEventKind::ActivityStarted
+            EchoEventKind::ToolContextAccepted
+            | EchoEventKind::ActivityStarted
             | EchoEventKind::ActivityCompleted
             | EchoEventKind::ActivityFailed => EvidenceKind::Activity,
         },

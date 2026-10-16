@@ -77,6 +77,9 @@ impl PreparedAgenticMemoryResult {
     }
 }
 
+#[path = "agentic_memory_retrieval_manifest_restore.rs"]
+mod restore;
+
 #[cfg(test)]
 #[path = "agentic_memory_retrieval_manifest_tests.rs"]
 mod tests;

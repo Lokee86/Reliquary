@@ -205,7 +205,9 @@ optional  string name
 string    content
 ```
 
-Event kinds are `ReasoningSummary`, `Commentary`, `ReasoningTrace`, `ToolCall`, `ToolResult`, `ActivityStarted`, `ActivityCompleted`, and `ActivityFailed`. Records use typed binary fields and length-prefixed UTF-8 strings; they do not embed a JSON envelope. Sequence is authoritative for execution order. Identical replay is idempotent; conflicting events at the same turn sequence fail closed.
+Event kinds are `ReasoningSummary`, `Commentary`, `ReasoningTrace`, `ToolCall`, `ToolResult`, `ActivityStarted`, `ActivityCompleted`, and `ActivityFailed`, plus `ToolContextAccepted` (binary tag `8`). Records use typed binary fields and length-prefixed UTF-8 strings; they do not embed a JSON envelope. Sequence is authoritative for execution order. Identical replay is idempotent; conflicting events at the same turn sequence fail closed.
+
+`ToolContextAccepted` retains a trusted embedding host's explicit requesting-context acknowledgment in this existing adjunct. Warlock's `warlock.memory_context_accepted.v1` content is a V1 JSON envelope containing the exact canonical prepared manifest and its SHA-256 digest. It is private receiver evidence, excluded from model/UI execution rendering; an ordinary ToolResult containing identical JSON is not proof. Strict manifest restoration and current owner authorization precede accepted-use replay. The existing Freshness receipt store remains the sole reinforcement idempotence authority; this adds no second delivery journal or persisted controller. Older readers that do not recognize tag 8 fail closed rather than silently interpreting it as a ToolResult.
 
 Echo consumes no global, Archive, Memory, Graph, or Vector Generation version. Existing current REL files require no physical rewrite: absence of `CVAECHO1` means the Echo store is empty, and new records may be appended normally. Explicit legacy REL migration republishes Echo records into the new REL, and divergent REL reconciliation preserves Echo from both copies. Provider continuation state is not Echo semantic evidence and is not represented by this record family.
 

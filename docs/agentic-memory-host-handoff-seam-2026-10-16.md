@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Freeze the actual embedding-host source trace and the missing acceptance/replay primitive before wiring agentic Memory completion. This is Step 34 evidence, not F3 completion.
+Freeze the actual embedding-host source trace and the missing acceptance/replay primitive before wiring agentic Memory completion. The original Step 34 trace is retained below, followed by the implemented Step 36 receiver and gate.
 
 ## Overview
 
 The integration target is Warlock's existing Rust chat/tool loop. Its planned recursive native-agent framework is not a prerequisite. `Warlock-p5c-final-cut` at `c960e42` is the integration base: it descends from Warlock main `4da92b3`, uses authenticated `ChatTaskContext` and the multiplexed `GatewayRuntime`, and pins the post-deletion Reliquary candidate `437edada819c60111bb2e176e5f7270aae12f643`. An isolated child worktree will preserve the dirty graph/UI main checkout and the existing migration worktree's untracked verification files. The migration candidate is not represented as a deployed release.
 
-Reliquary AR8 is green at `12296de`. No current Warlock producer calls its new completion API. F3 remains incomplete.
+At the Step 34 snapshot, Reliquary AR8 was green at `12296de` and Warlock had no completion producer. Warlock `9633ab8` implements Step 35; `cf41c66` implements the real receiver/completion/recovery path and passes Step 36/F3. This is an isolated integration candidate, not a deployed release.
 
 ## Observed registration and execution path
 
@@ -49,6 +49,18 @@ The source trace is read-only. Warlock main retains its graph/UI edits, and the 
 
 Warlock development documentation identifies an automated target cleanup service that can delete active dependency archives. Reliquary verification encountered this exact failure. Its cache was moved inside the active worktree to ignored `bin/agentic-cargo-cache`, with `target` retained as a local junction. Logical build paths and worktree-local TEMP/TMP remain unchanged; machine cleanup policy was not modified.
 
+## Implemented receiver seam (Step 36)
+
+Warlock's `chat_memory_handoff::accept` now owns the exact requesting-context transfer. It validates cancellation and exact canonical payload bytes before transfer, pushes the exchange into the actual ProviderRequest, then synchronously publishes an explicit receiver acknowledgment through the existing Echo adjunct. Only successful publication returns the identity/digest confirmation used by completion. There is no fourth model tool or new delivery journal.
+
+Echo has an additive `ToolContextAccepted` binary kind (tag 8). Ordinary ToolResult records remain insufficient, even if their text imitates an acknowledgment. The host reserves `warlock.memory_context_accepted.v1` for the acknowledgment envelope containing the original canonical manifest and digest. Library context rendering and host Echo/model/UI adapters exclude these private records.
+
+Publication errors after transfer are explicitly uncertain, not rolled back: a failed sync/return may leave an acknowledgment recoverable, and the requesting context must retain the actual transfer that acknowledgment describes. Such errors return no positive confirmation and submit no immediate accepted-use receipt. Cancellation and validation failure before transfer leave the context untouched. No observer/provider execution is needed as an alternative consumption boundary.
+
+Before constructing the next request in that conversation, authenticated ChatTaskContext reads explicit acknowledgments through `conversation_echo_events_for`, including interrupted generations with no assistant text. Strict `PreparedAgenticMemoryResult::restore_manifest` restores the exact original payload, identity, refs and cuts, checks canonical V1 shape and original digest, and completion revalidates current authority. Recovery uses disposable old-turn controller state and never alters the new turn's controller. Existing accepted-use receipts remain the sole reinforcement idempotence authority. Recovery does not rerun retrieval or append another Echo record.
+
+The restart test must reuse the host's existing configured journal directory, as production startup does; replacing it with a new default directory loses native submission identity and is not a valid restart simulation. Focused host tests cover actual transfer, unsuccessful/uncertain acknowledgment, exact retry, full host/gateway replacement and recovery before the first receipt. All eight host Memory tests pass, including both full host/gateway restart cases and uncertain acknowledgment recovery. Five registry/live transcript and five task-context regressions pass. Library gates pass 79 agentic and four Echo tests. F3 is complete for the integration candidate; see execution evidence.
+
 ## Related docs
 
 - [Linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
@@ -58,4 +70,4 @@ Warlock development documentation identifies an automated target cleanup service
 
 ## Notes
 
-This document distinguishes observed source from the missing primitive's requirements. Neither source presence nor library simulator coverage proves real host handoff. Steps 35–36 remain outstanding.
+This document distinguishes observed source from the missing primitive's requirements. Neither source presence nor library simulator coverage proves real host handoff. Step 35 is committed in Warlock `9633ab8`. Step 36/F3 is complete in Warlock `cf41c66`; frozen-fixture and final production-disposition gates remain Steps 37–45.

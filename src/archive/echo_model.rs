@@ -8,6 +8,8 @@ pub enum EchoEventKind {
     ReasoningTrace,
     ToolCall,
     ToolResult,
+    /// Receiver-owned acknowledgment; never model-visible execution evidence.
+    ToolContextAccepted,
     ActivityStarted,
     ActivityCompleted,
     ActivityFailed,

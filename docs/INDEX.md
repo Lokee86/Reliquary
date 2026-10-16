@@ -8,6 +8,7 @@
 - [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) — accepted three-tool decision-model retrieval, concurrent graph exploration, query refinement, fallback reporting and delivery-triggered reinforcement (planned).
 - [Agentic Memory retrieval implementation specification — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md) — AR1–AR12 architecture specification for candidate collection, controller state, decision routing, one-hop traversal, host handoff reinforcement and frozen-fixture verification.
 - [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md) — 45-step Sol/Luna execution sequence derived from the accepted specification, including per-step completion gates and final integration criteria.
+- [Agentic Memory host handoff seam — 2026-10-16](agentic-memory-host-handoff-seam-2026-10-16.md) — real host source trace, receiver acknowledgment and exact-manifest recovery boundary.
 - [Agentic Memory retrieval Luna baseline — 2026-10-16](agentic-memory-retrieval-baseline-2026-10-16.md) — Step 1 snapshot, ownership inspection, commands, and truthful blockers.
 - [Freshness retrieval boundary implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md) — ordered F1–F5 scope and gates.
 - [Freshness retrieval boundary execution record](freshness-retrieval-boundary-verification-2026-10-15.md) — caller map, regression evidence and external-host wiring disposition.

@@ -178,6 +178,20 @@ impl GatewayRuntime {
         })
     }
 
+    /// Read existing Echo acknowledgments, including interrupted generations with no text.
+    /// Explicit owner ViewRel authority is checked by the normal read boundary.
+    pub fn conversation_echo_events_for(
+        &self,
+        instance: &InstanceRuntime,
+        owner_id: &str,
+        conversation_id: &str,
+    ) -> Result<Vec<EchoEvent>, ReliquaryRuntimeHostError> {
+        let token = self.explicit_rel_token(instance, owner_id)?;
+        self.with_rel(&token, |runtime| {
+            Ok(runtime.cva().conversation_echo_events(conversation_id))
+        })
+    }
+
     pub fn read_echo_source_for(
         &self,
         instance: &InstanceRuntime,

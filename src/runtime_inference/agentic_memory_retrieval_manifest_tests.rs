@@ -67,3 +67,73 @@ fn agentic_manifest_fallback_contains_no_newly_delivered_content() {
         json!({"status":"no_matches"})
     );
 }
+
+#[test]
+fn agentic_manifest_restore_is_exact_and_rejects_mutation_and_extra_fields() {
+    let original = prepared();
+    let manifest = original.canonical_manifest();
+    let digest = original.manifest_digest();
+    assert_eq!(
+        PreparedAgenticMemoryResult::restore_manifest(&manifest, &digest).unwrap(),
+        original
+    );
+    let mut changed = manifest.clone();
+    changed["payload"]["outcome"]["memories"][0]["content"] = json!("changed");
+    assert!(PreparedAgenticMemoryResult::restore_manifest(&changed, &digest).is_err());
+    let mut changed = manifest.clone();
+    changed["unexpected"] = json!(true);
+    assert!(PreparedAgenticMemoryResult::restore_manifest(&changed, &digest).is_err());
+    let mut changed = manifest.clone();
+    changed["delivered"][0]["memory_id"] = json!("é".repeat(32));
+    assert!(PreparedAgenticMemoryResult::restore_manifest(&changed, &digest).is_err());
+    let mut changed = manifest;
+    changed["version"] = json!(2);
+    assert!(PreparedAgenticMemoryResult::restore_manifest(&changed, &digest).is_err());
+}
+
+#[test]
+fn agentic_manifest_restore_roundtrips_graph_reports_and_empty_outcomes() {
+    let mut original = prepared();
+    let anchor = original.delivered.iter().next().unwrap().clone();
+    original.payload.operation = AgenticMemoryOperation::Traversal;
+    original.payload.anchors.push(AgenticMemoryAnchorReport {
+        anchor: anchor.clone(),
+        unseen_neighbors: 12,
+        declined_neighbors: 3,
+        relations: vec![AgenticMemoryRelationEvidence {
+            neighbor: anchor.clone(),
+            kind: crate::GraphRelationKind::References,
+            direction: crate::GraphDirection::Incoming,
+        }],
+        approved: original.delivered.clone(),
+    });
+    assert_eq!(
+        PreparedAgenticMemoryResult::restore_manifest(
+            &original.canonical_manifest(),
+            &original.manifest_digest()
+        )
+        .unwrap(),
+        original
+    );
+    original.payload.operation = AgenticMemoryOperation::Refinement;
+    original.payload.outcome = AgenticMemoryOutcome::AlreadyProvided(original.delivered.clone());
+    original.delivered.clear();
+    original.owner_cuts.clear();
+    assert_eq!(
+        PreparedAgenticMemoryResult::restore_manifest(
+            &original.canonical_manifest(),
+            &original.manifest_digest()
+        )
+        .unwrap(),
+        original
+    );
+    original.payload.outcome = AgenticMemoryOutcome::NoMatches;
+    assert_eq!(
+        PreparedAgenticMemoryResult::restore_manifest(
+            &original.canonical_manifest(),
+            &original.manifest_digest()
+        )
+        .unwrap(),
+        original
+    );
+}

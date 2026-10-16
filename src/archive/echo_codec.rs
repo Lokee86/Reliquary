@@ -54,6 +54,7 @@ fn validate(event: &EchoEvent) -> Result<(), EchoError> {
             require_text(event.name.as_deref(), "tool name is required")?;
         }
         EchoEventKind::ToolResult
+        | EchoEventKind::ToolContextAccepted
         | EchoEventKind::ActivityStarted
         | EchoEventKind::ActivityCompleted
         | EchoEventKind::ActivityFailed => {
@@ -87,6 +88,7 @@ fn kind_tag(kind: EchoEventKind) -> u8 {
         EchoEventKind::ActivityStarted => 5,
         EchoEventKind::ActivityCompleted => 6,
         EchoEventKind::ActivityFailed => 7,
+        EchoEventKind::ToolContextAccepted => 8,
     }
 }
 
@@ -100,6 +102,7 @@ fn tag_kind(tag: u8) -> Result<EchoEventKind, EchoError> {
         5 => Ok(EchoEventKind::ActivityStarted),
         6 => Ok(EchoEventKind::ActivityCompleted),
         7 => Ok(EchoEventKind::ActivityFailed),
+        8 => Ok(EchoEventKind::ToolContextAccepted),
         _ => Err(EchoError::InvalidRecord("unknown event kind")),
     }
 }

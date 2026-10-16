@@ -89,3 +89,22 @@ fn tool_and_activity_echo_records_use_typed_binary_fields() {
     assert_eq!(record.name.as_deref(), Some("memory_search"));
     assert_eq!(record.content, "query=routing");
 }
+
+#[test]
+fn receiver_acceptance_echo_persists_and_is_never_rendered_as_context() {
+    let path = test_path();
+    let mut rel = Cva::create_project(&path).unwrap();
+    let mut ack = event(0, EchoEventKind::ToolContextAccepted, "private manifest");
+    ack.correlation_id = Some("delivery".into());
+    ack.name = Some("receiver.v1".into());
+    rel.put_echo_event(ack.clone()).unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+    let reopened = Cva::open(&path).unwrap();
+    let events = reopened.echo_events("conversation-1", "assistant-1");
+    assert_eq!(events, vec![ack]);
+    assert_eq!(
+        crate::render_assistant_content_from_echo("answer", &events),
+        "answer"
+    );
+}

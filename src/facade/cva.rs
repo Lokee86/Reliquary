@@ -601,6 +601,10 @@ impl Cva {
         self.echo.for_turn(conversation_id, message_id)
     }
 
+    pub(crate) fn conversation_echo_events(&self, conversation_id: &str) -> Vec<crate::EchoEvent> {
+        self.echo.for_conversation(conversation_id)
+    }
+
     pub(crate) fn echo_records(&self) -> Vec<crate::EchoEvent> {
         self.echo.all_records()
     }
