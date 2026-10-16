@@ -149,7 +149,7 @@ fn agentic_graph_decisions_run_concurrently_and_gather_all_before_error() {
     let route = Arc::new(ConcurrentApproval {
         arrived: std::sync::Barrier::new(2),
         completed: std::sync::atomic::AtomicUsize::new(0),
-        invalid_anchor: crate::agentic_memory_retrieval_decision::memory_ref_value(&ids[2]),
+        invalid_anchor: crate::agentic_memory_retrieval_manifest::memory_ref_value(&ids[2]),
     });
     *gateway.routes.write().unwrap() =
         ReliquaryRuntimeRoutes::default().with_memory_retrieval_decision(Some(route.clone()));

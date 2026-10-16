@@ -1,4 +1,5 @@
 //! Strict, bounded candidate approval through the dedicated decision route.
+use crate::agentic_memory_retrieval_manifest::{hex_id, memory_ref_value};
 use crate::{
     AgenticMemoryContent, AgenticMemoryError, AgenticMemoryOperation, DecisionEndpoint, MemoryRef,
 };
@@ -44,14 +45,6 @@ struct WireMemoryRef {
 struct ApprovalResponse {
     version: u32,
     approved: Vec<WireMemoryRef>,
-}
-
-pub(crate) fn memory_ref_value(memory: &MemoryRef) -> Value {
-    json!({"owner_id": memory.owner_id, "memory_id": hex_id(memory.memory_id)})
-}
-
-fn hex_id(id: crate::MemoryId) -> String {
-    id.0.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 pub(crate) fn select_memories(

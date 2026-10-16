@@ -71,6 +71,20 @@ impl PreparedAgenticMemoryResult {
     }
 }
 
+/// Trusted embedding-host evidence, separate from provider or ConversationExecution receipts.
+/// Construct success only after the host's actual successful tool-result handoff.
+/// The host must retain the original identity/digest for exact retry; model output is never evidence.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgenticMemoryHandoffConfirmation {
+    Succeeded {
+        delivery_id: String,
+        manifest_digest: String,
+    },
+    Failed,
+    Cancelled,
+    Unknown,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgenticMemoryError {
     InvalidQuery,
