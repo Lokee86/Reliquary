@@ -125,3 +125,6 @@ mod tests;
 
 #[path = "runtime_host_gateway_agentic_memory_query.rs"]
 mod query;
+
+#[path = "runtime_host_gateway_agentic_memory_refinement.rs"]
+mod refinement;

@@ -102,3 +102,43 @@ pub(crate) fn select_memories(
     }
     Ok(approved)
 }
+
+pub(crate) const MEMORY_REWRITE_VERSION: u32 = 1;
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RewriteResponse {
+    version: u32,
+    query: String,
+}
+
+pub(crate) fn rewrite_query(
+    endpoint: &dyn DecisionEndpoint,
+    current_query: &str,
+    refinement: &str,
+) -> Result<String, AgenticMemoryError> {
+    let refinement = crate::agentic_memory_retrieval::validate_query(refinement)?;
+    let state = json!({"version": MEMORY_REWRITE_VERSION,
+        "operation": "refine_query_rewrite", "current_query": current_query,
+        "refinement": refinement});
+    let questions = json!({
+        "instruction": "Return one complete revised query that applies the refinement to the entire current information need. Correct or reinterpret when instructed; do not merely concatenate. Return exactly version and query, with no alternatives or commentary.",
+        "response_shape": {"version": MEMORY_REWRITE_VERSION, "query": "one complete revised query"},
+    });
+    let response = endpoint
+        .evaluate(&state, &questions)
+        .map_err(|error| AgenticMemoryError::Decision(error.to_string()))?;
+    let response: RewriteResponse = serde_json::from_value(response)
+        .map_err(|error| AgenticMemoryError::InvalidDecision(error.to_string()))?;
+    if response.version != MEMORY_REWRITE_VERSION {
+        return Err(AgenticMemoryError::InvalidDecision(
+            "rewrite version mismatch".into(),
+        ));
+    }
+    crate::agentic_memory_retrieval::validate_query(&response.query)
+        .map_err(|error| AgenticMemoryError::InvalidDecision(error.to_string()))
+}
+
+#[cfg(test)]
+#[path = "agentic_memory_retrieval_rewrite_tests.rs"]
+mod rewrite_tests;
