@@ -2,7 +2,12 @@
 
 Date: 2026-10-15
 Status: **Design accepted; implementation pending**. This is the current authority for the planned agent-facing retrieval workflow, not a description of shipped APIs.
+Implementation sequence: [Agentic Memory retrieval implementation plan — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md).
 Parent index: [Documentation index](INDEX.md)
+
+## Overview
+
+This document is the accepted behavioral authority for the planned agent-facing Memory retrieval workflow. It defines the three-tool protocol, turn-scoped bookkeeping, Freshness ordering, graph exploration, fallback behavior, and successful-host-handoff reinforcement boundary. The linked implementation plan owns execution order and verification.
 
 ## Purpose
 

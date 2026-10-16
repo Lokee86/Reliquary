@@ -6,6 +6,7 @@
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
 - [Local configuration](configuration.md) — replaceable local config format, durability, and security boundary.
 - [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) — accepted three-tool decision-model retrieval, concurrent graph exploration, query refinement, fallback reporting and delivery-triggered reinforcement (planned).
+- [Agentic Memory retrieval implementation plan — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md) — implementation-ready AR1–AR12 hard-cut plan for candidate collection, controller state, decision routing, one-hop traversal, host handoff reinforcement and frozen-fixture verification.
 - [Freshness retrieval boundary implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md) — ordered F1–F5 scope and gates.
 - [Freshness retrieval boundary execution record](freshness-retrieval-boundary-verification-2026-10-15.md) — caller map, regression evidence and external-host wiring disposition.
 - [External Memory consumption and Freshness](freshness-external-consumption-contract.md) — passive internal retrieval, existing receipts and planned successful-host-handoff integration.
