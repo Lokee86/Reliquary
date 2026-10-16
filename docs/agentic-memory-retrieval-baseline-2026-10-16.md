@@ -118,3 +118,7 @@ The authorized anchor collector reads active Memory relations in both directions
 ## Step 23 — per-anchor preparation
 
 Unique neighbor counts use the pre-call controller snapshot. Both ID sets are excluded from new presentation; declined neighbors are counted separately. The complete remaining owner-local pool uses the canonical passive Freshness grader/order before truncation to ten. Selected and declined Memories remain legal anchors. Both `agentic_graph_` tests pass, including unchanged controller and counts around selected/declined bridges. Larger-neighborhood acceptance is delegated to Luna Step 26. Formatting/diff checks pass.
+
+## Step 24 — concurrent gather
+
+Independent scoped anchor workers use the same complete query and already prepared snapshot. Every worker is joined into an ordered result vector before failure propagation; provider/validation failures and worker panics return errors without controller mutation. Three focused graph tests pass, including a two-party rendezvous proving concurrent entry and both completions before a validation error returns. Formatting/diff checks pass.

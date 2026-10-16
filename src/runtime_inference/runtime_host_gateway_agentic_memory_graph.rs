@@ -9,6 +9,49 @@ struct PreparedAnchor {
 }
 
 impl GatewayRuntime {
+    fn decide_agentic_anchors(
+        &self,
+        query: &str,
+        prepared: Vec<PreparedAnchor>,
+    ) -> Result<Vec<PreparedAnchor>, AgenticMemoryError> {
+        if prepared.iter().all(|anchor| anchor.candidates.is_empty()) {
+            return Ok(prepared);
+        }
+        let endpoint = self.agentic_decision_route().map_err(read_error)?;
+        let results = std::thread::scope(|scope| {
+            let workers = prepared
+                .into_iter()
+                .map(|mut anchor| {
+                    let endpoint = &endpoint;
+                    scope.spawn(move || {
+                        anchor.report.approved =
+                            crate::agentic_memory_retrieval_decision::select_memories(
+                                endpoint.as_ref(),
+                                crate::AgenticMemoryOperation::Traversal,
+                                query,
+                                &anchor.candidates,
+                                Some(&anchor.report.anchor),
+                                &anchor.report.relations,
+                            )?;
+                        Ok(anchor)
+                    })
+                })
+                .collect::<Vec<_>>();
+            // Join every worker before interpreting failures, preserving input order.
+            workers
+                .into_iter()
+                .map(|worker| {
+                    worker.join().unwrap_or_else(|_| {
+                        Err(AgenticMemoryError::Decision(
+                            "graph anchor worker panicked".into(),
+                        ))
+                    })
+                })
+                .collect::<Vec<Result<PreparedAnchor, AgenticMemoryError>>>()
+        });
+        results.into_iter().collect()
+    }
+
     fn prepare_agentic_anchor(
         &self,
         envelope: &AgenticReadEnvelope,
