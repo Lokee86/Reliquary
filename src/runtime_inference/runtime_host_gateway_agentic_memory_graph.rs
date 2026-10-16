@@ -9,6 +9,68 @@ struct PreparedAnchor {
 }
 
 impl GatewayRuntime {
+    /// Independently evaluate one hop per anchor, then commit the gathered union.
+    pub fn traverse_graph(
+        &self,
+        instance: &InstanceRuntime,
+        controller: &mut crate::AgenticMemoryController,
+        anchors: &[MemoryRef],
+        delivery_id: &str,
+    ) -> Result<crate::PreparedAgenticMemoryResult, AgenticMemoryError> {
+        if delivery_id.trim().is_empty() {
+            return Err(AgenticMemoryError::InvalidDeliveryIdentity);
+        }
+        let mut staged = controller.stage_traversal()?;
+        let envelope = self.capture_agentic_read(instance).map_err(auth_error)?;
+        let anchors = anchors.iter().cloned().collect::<BTreeSet<_>>();
+        let prepared = anchors
+            .iter()
+            .map(|anchor| self.prepare_agentic_anchor(&envelope, controller, anchor))
+            .collect::<Result<Vec<_>, _>>()?;
+        let decided = self.decide_agentic_anchors(staged.query(), prepared)?;
+        let mut evaluated = BTreeSet::new();
+        let mut approved = BTreeSet::new();
+        let mut bodies = BTreeMap::new();
+        let mut reports = Vec::new();
+        for anchor in decided {
+            approved.extend(anchor.report.approved.iter().cloned());
+            for candidate in anchor.candidates {
+                evaluated.insert(candidate.memory.clone());
+                if let Some(previous) = bodies.insert(candidate.memory.clone(), candidate.clone()) {
+                    if previous != candidate {
+                        return Err(read_error(
+                            "shared graph neighbor changed during preparation",
+                        ));
+                    }
+                }
+            }
+            reports.push(anchor.report);
+        }
+        staged.record_evaluated(evaluated)?;
+        let content = bodies
+            .into_iter()
+            .filter(|(memory, _)| approved.contains(memory))
+            .map(|(_, body)| body)
+            .collect::<Vec<_>>();
+        let outcome = if content.is_empty() {
+            crate::AgenticMemoryOutcome::NoMatches
+        } else {
+            crate::AgenticMemoryOutcome::Memories(content)
+        };
+        let result = super::query::prepare_result(
+            delivery_id,
+            crate::AgenticMemoryOperation::Traversal,
+            outcome,
+            reports,
+            &envelope,
+        );
+        let result = self
+            .with_agentic_read_delivery(instance, &envelope, || Ok(result))
+            .map_err(auth_error)?;
+        staged.commit(controller)?;
+        Ok(result)
+    }
+
     fn decide_agentic_anchors(
         &self,
         query: &str,

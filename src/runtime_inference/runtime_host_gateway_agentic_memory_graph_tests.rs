@@ -173,3 +173,57 @@ fn agentic_graph_decisions_run_concurrently_and_gather_all_before_error() {
     assert_eq!(route.completed.load(std::sync::atomic::Ordering::SeqCst), 2);
     assert_eq!(controller, before);
 }
+
+#[test]
+fn agentic_graph_traversal_collapses_content_retains_reports_and_excludes_evaluated_on_repeat() {
+    let (gateway, instance, ids) = fixture();
+    let route = Arc::new(ConcurrentApproval {
+        arrived: std::sync::Barrier::new(2),
+        completed: std::sync::atomic::AtomicUsize::new(0),
+        invalid_anchor: serde_json::Value::Null,
+    });
+    *gateway.routes.write().unwrap() =
+        ReliquaryRuntimeRoutes::default().with_memory_retrieval_decision(Some(route.clone()));
+    let mut controller = crate::AgenticMemoryController::new();
+    controller
+        .stage_query("query")
+        .unwrap()
+        .commit(&mut controller)
+        .unwrap();
+    let result = gateway
+        .traverse_graph(
+            &instance,
+            &mut controller,
+            &[ids[2].clone(), ids[0].clone(), ids[0].clone()],
+            "graph-one",
+        )
+        .unwrap();
+    assert_eq!(result.delivered(), &BTreeSet::from([ids[1].clone()]));
+    assert_eq!(result.payload().anchors.len(), 2);
+    assert!(
+        result
+            .payload()
+            .anchors
+            .iter()
+            .all(|report| report.approved.contains(&ids[1]))
+    );
+    assert!(controller.selected_ids().is_empty());
+    assert_eq!(controller.searched_ids(), &BTreeSet::from([ids[1].clone()]));
+    let again = gateway
+        .traverse_graph(
+            &instance,
+            &mut controller,
+            &[ids[0].clone(), ids[2].clone()],
+            "graph-two",
+        )
+        .unwrap();
+    assert!(again.delivered().is_empty());
+    assert!(
+        again
+            .payload()
+            .anchors
+            .iter()
+            .all(|report| report.unseen_neighbors == 0 && report.declined_neighbors == 1)
+    );
+    assert_eq!(route.completed.load(std::sync::atomic::Ordering::SeqCst), 2);
+}

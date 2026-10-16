@@ -122,3 +122,7 @@ Unique neighbor counts use the pre-call controller snapshot. Both ID sets are ex
 ## Step 24 — concurrent gather
 
 Independent scoped anchor workers use the same complete query and already prepared snapshot. Every worker is joined into an ordered result vector before failure propagation; provider/validation failures and worker panics return errors without controller mutation. Three focused graph tests pass, including a two-party rendezvous proving concurrent entry and both completions before a validation error returns. Formatting/diff checks pass.
+
+## Step 25 — traversal consolidation
+
+`GatewayRuntime::traverse_graph` validates and canonicalizes anchors, prepares against one unchanged controller, gathers concurrent decisions, unions evaluated IDs, and prepares globally unique approved content in stable ref order. Independent reports retain relations/counts/approvals; one approval wins shared-neighbor delivery. Conflicting shared body snapshots fail closed. Only successful final authority validation permits the staged searched-set commit; SelectedIDs is unchanged. All four focused graph tests pass, including duplicate-anchor normalization, shared-content/report retention and repeat exclusion. Formatting/diff checks pass. Luna Step 26 supplies the full AR6 gate next.
