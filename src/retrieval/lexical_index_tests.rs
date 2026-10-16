@@ -84,6 +84,58 @@ fn add_phy_memory(
 }
 
 #[test]
+fn complete_memory_lexical_lane_keeps_matches_beyond_public_limit() {
+    let mut rel = Cva::create(test_path("memory-complete.rel")).unwrap();
+    let mut expected = Vec::new();
+    for index in 0..32 {
+        expected.push(add_rel_memory(
+            &mut rel,
+            &format!("complete-{index}"),
+            &format!("Shared needle {index}"),
+            "complete lane evidence",
+            false,
+        ));
+    }
+    let archived = add_rel_memory(
+        &mut rel,
+        "archived-complete",
+        "Shared needle",
+        "complete lane evidence",
+        true,
+    );
+    let before = (
+        rel.rel_turn_count(),
+        rel.memory_version(),
+        rel.graph_version(),
+    );
+    let complete = rel.complete_memory_lexical_matches("needle").unwrap();
+    assert_eq!(complete.len(), 32);
+    assert!(!complete.iter().any(|hit| hit.memory_id == archived));
+    let public = rel.search_memories("needle", 10).unwrap();
+    assert_eq!(public.len(), 10);
+    assert_eq!(
+        public.iter().map(|hit| hit.memory.id).collect::<Vec<_>>(),
+        complete
+            .iter()
+            .take(10)
+            .map(|hit| hit.memory_id)
+            .collect::<Vec<_>>(),
+    );
+    let mut actual = complete.iter().map(|hit| hit.memory_id).collect::<Vec<_>>();
+    actual.sort();
+    expected.sort();
+    assert_eq!(actual, expected);
+    assert_eq!(
+        before,
+        (
+            rel.rel_turn_count(),
+            rel.memory_version(),
+            rel.graph_version()
+        )
+    );
+}
+
+#[test]
 fn indexed_lexical_results_match_full_scan_exactly() {
     let path = test_path("equivalence.cva");
     let mut cva = Cva::create(path).unwrap();

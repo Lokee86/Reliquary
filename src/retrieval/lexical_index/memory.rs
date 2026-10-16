@@ -76,7 +76,16 @@ impl LexicalIndex {
     }
 
     pub(crate) fn search_memories(&self, terms: &[String], limit: usize) -> Vec<MemoryLexicalHit> {
-        if terms.is_empty() || limit == 0 {
+        if limit == 0 {
+            return Vec::new();
+        }
+        let mut hits = self.complete_memory_matches(terms);
+        hits.truncate(limit);
+        hits
+    }
+
+    pub(crate) fn complete_memory_matches(&self, terms: &[String]) -> Vec<MemoryLexicalHit> {
+        if terms.is_empty() {
             return Vec::new();
         }
         let mut scores: HashMap<usize, ScoreParts> = HashMap::new();
@@ -104,7 +113,6 @@ impl LexicalIndex {
                 .total_cmp(&left.score)
                 .then_with(|| left.memory_id.0.cmp(&right.memory_id.0))
         });
-        hits.truncate(limit);
         hits
     }
 }

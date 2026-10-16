@@ -10,6 +10,16 @@ pub(crate) struct LexicalHit {
 }
 
 impl Cva {
+    pub(crate) fn complete_memory_lexical_matches(
+        &mut self,
+        query: &str,
+    ) -> Result<Vec<MemoryLexicalHit>, MemoryError> {
+        let terms = lexical_terms(query);
+        self.lexical_index
+            .ensure_memories_current(&self.memories, &mut self.container)?;
+        Ok(self.lexical_index.complete_memory_matches(&terms))
+    }
+
     pub(crate) fn memory_lexical_candidates(
         &mut self,
         query: &str,

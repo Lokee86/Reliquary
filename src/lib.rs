@@ -640,6 +640,8 @@ mod lexical_search;
 mod master_key;
 #[path = "config_security/master_key_entropy.rs"]
 mod master_key_entropy;
+#[path = "retrieval/memory_candidate_pool.rs"]
+mod memory_candidate_pool;
 #[path = "memory/memory_codec.rs"]
 mod memory_codec;
 #[path = "memory/memory_codec_scalar.rs"]

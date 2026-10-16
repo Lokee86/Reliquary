@@ -51,11 +51,16 @@ impl Phylactery {
     }
 }
 
-fn validate(query: &str, limit: usize) -> Result<(), SearchError> {
+pub(crate) fn validate_memory_lexical_query(query: &str) -> Result<&str, SearchError> {
     let query = query.trim();
     if query.is_empty() || query.len() > MAX_MEMORY_LEXICAL_SEARCH_QUERY_BYTES {
         return Err(SearchError::EmptyQuery);
     }
+    Ok(query)
+}
+
+fn validate(query: &str, limit: usize) -> Result<(), SearchError> {
+    validate_memory_lexical_query(query)?;
     if !(1..=MAX_MEMORY_LEXICAL_SEARCH_RESULTS).contains(&limit) {
         return Err(SearchError::InvalidConfig);
     }
