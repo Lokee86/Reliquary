@@ -130,3 +130,7 @@ Independent scoped anchor workers use the same complete query and already prepar
 ## Step 26 — Luna AR6 graph gate
 
 Two Luna agents supplied four core graph tests and seven concurrency/authorization tests. All 15 tests matching `agentic_memory::graph` pass: >10 neighbors and Freshness ranking, repeat exposure, both directions and kinds, one-hop exclusion, selected/declined anchors, snapshot counts, overlapping approval union and unique content, inverted worker completion order, provider/validation/panic rollback after peer success, revoke/detach rollback, and invalid/no-query anchors. Three test-only integration corrections added the controller import and used approved MemoryRef membership directly. Controller and passive owner state remain unchanged on errors. Formatting/diff checks pass; AR6 is complete.
+
+## Step 27 — Luna versioned selection contract
+
+Named V1 operation/instruction/schema constants now freeze complete-query selection requests for all three operations. The existing single evaluator/parser remains authoritative: strict object shapes, exact version, supplied owner-qualified subset, and no duplicate approvals. Three new tests assert complete request/prompt/schema and invalid responses. `cargo test --lib agentic -j 2` passes all 58 tests, including these contracts and the complete query/refinement/graph regressions. Formatting/diff checks pass.
