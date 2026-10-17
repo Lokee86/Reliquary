@@ -1,4 +1,4 @@
-use crate::compatibility_profile_codec::{decode_format, decode_profile};
+use crate::compatibility_profile_codec::{decode_format, decode_profile, decode_retirement};
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::{CompatibilityProfileError, ObjectRef};
 
@@ -29,6 +29,10 @@ impl CompatibilityProfileOpenState {
         }
         if let Some(profile) = decode_profile(payload)? {
             self.store.insert_rebuilt(profile)?;
+            return Ok(());
+        }
+        if let Some(id) = decode_retirement(payload)? {
+            self.store.retire_rebuilt(id)?;
         }
         Ok(())
     }

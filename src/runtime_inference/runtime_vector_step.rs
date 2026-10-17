@@ -114,7 +114,7 @@ fn prepare_batch(
     profile_id: CompatibilityProfileId,
 ) -> Result<Option<RuntimeMemoryVectorBatch>, MemoryVectorError> {
     let profile = profiles
-        .get(profile_id)
+        .get_active(profile_id)
         .cloned()
         .ok_or(MemoryVectorError::MissingProfile)?;
     let current = memories.current_body_ids();
@@ -145,6 +145,9 @@ fn commit_batch(
     batch: RuntimeMemoryVectorBatch,
     vectors: Vec<Vec<f32>>,
 ) -> Result<usize, MemoryVectorError> {
+    if profiles.get_active(batch.profile.id).is_none() {
+        return Err(MemoryVectorError::MissingProfile);
+    }
     validate_embedding_batch(&batch.profile, &vectors, batch.body_ids.len())?;
     let mut body_ids = Vec::with_capacity(batch.body_ids.len());
     let mut pending_vectors = Vec::with_capacity(vectors.len());

@@ -187,6 +187,16 @@ impl MemoryVectorStore {
             .unwrap_or(0)
     }
 
+    pub(crate) fn has_complete_coverage(
+        &self,
+        profile_id: CompatibilityProfileId,
+        body_ids: &[MemoryBodyId],
+    ) -> bool {
+        body_ids
+            .iter()
+            .all(|body_id| self.bindings.contains_key(&(profile_id, *body_id)))
+    }
+
     pub(crate) fn infos(&self) -> Vec<MemoryVectorInfo> {
         let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();
         infos.sort_by_key(|info| info.id.0);

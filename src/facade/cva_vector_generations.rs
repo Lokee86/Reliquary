@@ -1,5 +1,7 @@
 use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
-use crate::vector_generation_validation::{validate_generation_reference, vector_generation_id};
+use crate::vector_generation_validation::{
+    has_complete_current_coverage, validate_generation_reference, vector_generation_id,
+};
 use crate::{
     CompatibilityProfile, CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode,
     PackedVectors, ScalarType, VectorGeneration, VectorGenerationError, VectorGenerationId,
@@ -14,7 +16,7 @@ impl Cva {
     ) -> Result<VectorGeneration, VectorGenerationError> {
         let profile = self
             .compatibility_profiles
-            .get(compatibility_profile_id)
+            .get_active(compatibility_profile_id)
             .cloned()
             .ok_or(VectorGenerationError::MissingProfile)?;
         let compatibility = verify_endpoint(&profile, endpoint)?;
@@ -123,6 +125,9 @@ impl Cva {
             &self.compatibility_profiles,
             &candidate,
         )?;
+        if !has_complete_current_coverage(&self.archive, &self.archive_vectors, &candidate) {
+            return Err(VectorGenerationError::IncompleteCoverage);
+        }
         let generation = self.vector_generations.publish(
             &mut self.container,
             compatibility_profile_id,
@@ -149,8 +154,13 @@ impl Cva {
         &self,
         compatibility_profile_id: CompatibilityProfileId,
     ) -> Option<VectorGeneration> {
-        self.vector_generations
-            .current_generation(compatibility_profile_id)
+        self.compatibility_profiles
+            .get_active(compatibility_profile_id)?;
+        let generation = self
+            .vector_generations
+            .current_generation(compatibility_profile_id)?;
+        has_complete_current_coverage(&self.archive, &self.archive_vectors, &generation)
+            .then_some(generation)
     }
 
     pub fn vector_generation_at(
@@ -162,11 +172,21 @@ impl Cva {
             .generation_at(compatibility_profile_id, vector_version)
     }
 
+    pub fn historical_vector_generation(
+        &self,
+        compatibility_profile_id: CompatibilityProfileId,
+    ) -> Option<VectorGeneration> {
+        self.vector_generations
+            .current_generation(compatibility_profile_id)
+    }
+
     pub fn vector_version(&self) -> u64 {
         self.vector_generations.vector_version()
     }
 
     pub fn vector_generation_stats(&self) -> VectorGenerationStats {
-        self.vector_generations.stats()
+        let mut stats = self.vector_generations.stats();
+        stats.active_profiles = self.active_archive_compatibility_profiles().len();
+        stats
     }
 }

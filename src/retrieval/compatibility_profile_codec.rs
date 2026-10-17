@@ -6,6 +6,7 @@ use crate::{
 const FORMAT_MAGIC: &[u8; 8] = b"CVACPFM1";
 const FORMAT_SCHEMA: u32 = 1;
 const PROFILE_MAGIC: &[u8; 8] = b"CVACPRO1";
+const RETIREMENT_MAGIC: &[u8; 8] = b"CVACPRT1";
 const FIXED_LEN: usize = 60;
 const REFERENCE_HEADER_LEN: usize = 8;
 
@@ -14,6 +15,29 @@ pub(crate) fn encode_format() -> [u8; 12] {
     out[..8].copy_from_slice(FORMAT_MAGIC);
     out[8..].copy_from_slice(&FORMAT_SCHEMA.to_le_bytes());
     out
+}
+
+pub(crate) fn encode_retirement(id: CompatibilityProfileId) -> [u8; 40] {
+    let mut out = [0_u8; 40];
+    out[..8].copy_from_slice(RETIREMENT_MAGIC);
+    out[8..].copy_from_slice(&id.0);
+    out
+}
+
+pub(crate) fn decode_retirement(
+    bytes: &[u8],
+) -> Result<Option<CompatibilityProfileId>, CompatibilityProfileError> {
+    if !bytes.starts_with(RETIREMENT_MAGIC) {
+        return Ok(None);
+    }
+    if bytes.len() != 40 {
+        return Err(CompatibilityProfileError::CorruptRecord(
+            "profile retirement",
+        ));
+    }
+    Ok(Some(CompatibilityProfileId(
+        bytes[8..40].try_into().expect("profile id"),
+    )))
 }
 
 pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, CompatibilityProfileError> {

@@ -1,8 +1,9 @@
 use crate::compatibility_vector::{cosine, validate_vectors};
 use crate::{
-    COMPATIBILITY_MIN_COSINE, COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION,
-    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileError,
-    CompatibilityProfileId, CompatibilityReport, EmbeddingEndpoint, EmbeddingMode,
+    COMPATIBILITY_MIN_COSINE, COMPATIBILITY_MIN_STORED_POLICY_VERSION,
+    COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION, CompatibilityProbeReference,
+    CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId, CompatibilityReport,
+    EmbeddingEndpoint, EmbeddingMode,
 };
 use sha2::{Digest, Sha256};
 
@@ -67,7 +68,6 @@ pub(crate) fn compare_profiles(
     if expected.dimensions != observed.dimensions
         || expected.normalization != observed.normalization
         || expected.probe_suite_version != observed.probe_suite_version
-        || expected.compatibility_policy_version != observed.compatibility_policy_version
         || expected.references.len() != observed.references.len()
     {
         return CompatibilityReport {
@@ -110,7 +110,8 @@ pub(crate) fn validate_profile(
 ) -> Result<(), CompatibilityProfileError> {
     if profile.dimensions == 0
         || profile.probe_suite_version != COMPATIBILITY_PROBE_SUITE_VERSION
-        || profile.compatibility_policy_version != COMPATIBILITY_POLICY_VERSION
+        || !(COMPATIBILITY_MIN_STORED_POLICY_VERSION..=COMPATIBILITY_POLICY_VERSION)
+            .contains(&profile.compatibility_policy_version)
         || profile.references.len() != QUERY_PROBES.len() + DOCUMENT_PROBES.len()
     {
         return Err(CompatibilityProfileError::InvalidProfile(

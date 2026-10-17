@@ -28,7 +28,14 @@ pub(super) fn migrate(
     let relationships = op(read_relationship_tail(&mut source, 0))?;
     let graph = op(read_graph_tail(&mut source, 0))?;
     let streams = source.interaction_stream_records();
-    let profiles = source.compatibility_profiles();
+    let profiles = source
+        .compatibility_profiles()
+        .into_iter()
+        .map(|profile| {
+            let retired = source.compatibility_profile_is_retired(profile.id);
+            (profile, retired)
+        })
+        .collect::<Vec<_>>();
     let packed_infos = source.packed_vector_infos();
     let memory_vector_infos = source.memory_vector_infos();
     let archive_vector_infos = source.archive_vector_infos();
@@ -72,10 +79,16 @@ pub(super) fn migrate(
         }),
         metadata.dependencies,
     ))?;
-    for profile in profiles {
+    for (profile, retired) in profiles {
+        let id = profile.id;
         op(output
             .compatibility_profiles
             .put(&mut output.container, profile))?;
+        if retired {
+            op(output
+                .compatibility_profiles
+                .retire(&mut output.container, id))?;
+        }
     }
     op(replay_interaction_streams(&mut output, streams))?;
     for compaction in compactions {

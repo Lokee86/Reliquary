@@ -61,8 +61,22 @@ pub(crate) fn reconcile_diverged(
     let left_graph = read_graph_tail(&mut left, 0)?;
     let left_graph_divergent = read_graph_tail(&mut left, comparison.common_chunk_count)?;
     let right_graph_divergent = read_graph_tail(&mut right, comparison.common_chunk_count)?;
-    let left_profiles = left.compatibility_profiles();
-    let right_profiles = right.compatibility_profiles();
+    let left_profiles = left
+        .compatibility_profiles()
+        .into_iter()
+        .map(|profile| {
+            let retired = left.compatibility_profile_is_retired(profile.id);
+            (profile, retired)
+        })
+        .collect();
+    let right_profiles = right
+        .compatibility_profiles()
+        .into_iter()
+        .map(|profile| {
+            let retired = right.compatibility_profile_is_retired(profile.id);
+            (profile, retired)
+        })
+        .collect();
     let left_echo = left.echo_records();
     let right_echo = right.echo_records();
     let left_project_history = left.project_revision_correlations();
@@ -302,12 +316,18 @@ fn compatible_project_revision(
 
 fn replay_profiles(
     output: &mut Cva,
-    profiles: Vec<CompatibilityProfile>,
+    profiles: Vec<(CompatibilityProfile, bool)>,
 ) -> Result<(), CvaReconcileError> {
-    for profile in profiles {
+    for (profile, retired) in profiles {
+        let id = profile.id;
         output
             .compatibility_profiles
             .put(&mut output.container, profile)?;
+        if retired {
+            output
+                .compatibility_profiles
+                .retire(&mut output.container, id)?;
+        }
     }
     Ok(())
 }

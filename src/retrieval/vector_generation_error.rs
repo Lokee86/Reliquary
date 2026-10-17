@@ -26,6 +26,7 @@ pub enum VectorGenerationError {
     SourceVersionRegression,
     EmptyPopulation,
     InvalidEmbeddingMatrix,
+    IncompleteCoverage,
     InvalidGenerationVersion,
     VectorVersionExhausted,
     HashCollision,

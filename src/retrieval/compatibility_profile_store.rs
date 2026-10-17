@@ -1,4 +1,4 @@
-use crate::compatibility_profile_codec::{encode_format, encode_profile};
+use crate::compatibility_profile_codec::{encode_format, encode_profile, encode_retirement};
 use crate::compatibility_profile_probe::{
     compare_profiles, compatibility_profile_id, validate_profile,
 };
@@ -6,11 +6,12 @@ use crate::{
     CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId,
     CompatibilityProfileStats, Container,
 };
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub(crate) struct CompatibilityProfileStore {
     profiles: HashMap<CompatibilityProfileId, CompatibilityProfile>,
+    retired: HashSet<CompatibilityProfileId>,
 }
 
 impl CompatibilityProfileStore {
@@ -71,12 +72,50 @@ impl CompatibilityProfileStore {
     ) -> Option<&CompatibilityProfile> {
         self.profiles
             .values()
+            .filter(|profile| !self.retired.contains(&profile.id))
             .filter(|profile| compare_profiles(profile, candidate).compatible)
             .min_by_key(|profile| profile.id.0)
     }
 
     pub(crate) fn get(&self, id: CompatibilityProfileId) -> Option<&CompatibilityProfile> {
         self.profiles.get(&id)
+    }
+
+    pub(crate) fn get_active(&self, id: CompatibilityProfileId) -> Option<&CompatibilityProfile> {
+        (!self.retired.contains(&id))
+            .then(|| self.profiles.get(&id))
+            .flatten()
+    }
+
+    pub(crate) fn retire(
+        &mut self,
+        container: &mut Container,
+        id: CompatibilityProfileId,
+    ) -> Result<bool, CompatibilityProfileError> {
+        if !self.profiles.contains_key(&id) {
+            return Err(CompatibilityProfileError::MissingProfile);
+        }
+        if self.retired.contains(&id) {
+            return Ok(false);
+        }
+        container.append(&encode_retirement(id))?;
+        self.retired.insert(id);
+        Ok(true)
+    }
+
+    pub(crate) fn retire_rebuilt(
+        &mut self,
+        id: CompatibilityProfileId,
+    ) -> Result<(), CompatibilityProfileError> {
+        if !self.profiles.contains_key(&id) {
+            return Err(CompatibilityProfileError::MissingProfile);
+        }
+        self.retired.insert(id);
+        Ok(())
+    }
+
+    pub(crate) fn is_retired(&self, id: CompatibilityProfileId) -> bool {
+        self.retired.contains(&id)
     }
 
     pub(crate) fn profiles(&self) -> Vec<CompatibilityProfile> {
@@ -88,6 +127,8 @@ impl CompatibilityProfileStore {
     pub(crate) fn stats(&self) -> CompatibilityProfileStats {
         CompatibilityProfileStats {
             profiles: self.profiles.len(),
+            active_profiles: self.profiles.len() - self.retired.len(),
+            retired_profiles: self.retired.len(),
         }
     }
 }

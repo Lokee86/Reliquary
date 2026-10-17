@@ -42,6 +42,17 @@ pub(crate) fn validate_generation_reference(
     Ok(())
 }
 
+pub(crate) fn has_complete_current_coverage(
+    archive: &Archive,
+    archive_vectors: &ArchiveVectorStore,
+    generation: &VectorGeneration,
+) -> bool {
+    generation.source_archive_version == archive.archive_version()
+        && archive_vectors
+            .info(generation.archive_vector_id)
+            .is_some_and(|vectors| vectors.rows == archive.fragments().len() as u64)
+}
+
 pub(crate) fn vector_generation_id(
     compatibility_profile_id: CompatibilityProfileId,
     archive_vector_id: ArchiveVectorId,

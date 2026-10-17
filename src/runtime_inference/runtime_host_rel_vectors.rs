@@ -103,11 +103,6 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                 },
             )?);
             active_endpoint = Some(Arc::clone(&endpoint));
-            *shared
-                .memory_profile
-                .lock()
-                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? =
-                active_profile.as_ref().map(|profile| profile.id);
             drop(_lease);
             notify_work(&shared.signal)?;
         }
@@ -154,9 +149,31 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
                     ))
                 },
             )?;
+            let active = shared
+                .runtime
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .cva
+                .active_memory_compatibility_profile(profile.id)
+                .map(|profile| profile.id);
+            *shared
+                .memory_profile
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = active;
             drop(_lease);
             notify_work(&shared.signal)?;
         } else {
+            let active = shared
+                .runtime
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
+                .cva
+                .active_memory_compatibility_profile(profile.id)
+                .map(|profile| profile.id);
+            *shared
+                .memory_profile
+                .lock()
+                .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)? = active;
             let Some(lease) = current_lease(&shared)? else {
                 return Ok(());
             };

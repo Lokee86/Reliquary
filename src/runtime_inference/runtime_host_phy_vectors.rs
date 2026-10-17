@@ -96,18 +96,6 @@ pub(super) fn worker_loop(
                 .clone();
         }
         if let Some(p) = profile.as_ref() {
-            let mut published = shared
-                .profile
-                .lock()
-                .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-            let changed = published.as_ref().map(|v| v.id) != Some(p.id);
-            if changed {
-                *published = Some(p.clone());
-            }
-            drop(published);
-            if changed {
-                shared.wake()?;
-            }
             let batch = shared
                 .owner
                 .lock()
@@ -141,8 +129,33 @@ pub(super) fn worker_loop(
                         .map_err(operation)?;
                     owner.sync().map_err(operation)?;
                 }
+                let active = shared
+                    .owner
+                    .lock()
+                    .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?
+                    .active_memory_compatibility_profile(p.id);
+                *shared
+                    .profile
+                    .lock()
+                    .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)? = active;
                 shared.wake()?;
                 continue;
+            }
+            let active = shared
+                .owner
+                .lock()
+                .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?
+                .active_memory_compatibility_profile(p.id);
+            let mut published = shared
+                .profile
+                .lock()
+                .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
+            let changed =
+                published.as_ref().map(|value| value.id) != active.as_ref().map(|value| value.id);
+            *published = active;
+            drop(published);
+            if changed {
+                shared.wake()?;
             }
         }
         shared.wait(&mut seen, super::IDLE_POLL)?;

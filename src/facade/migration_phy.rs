@@ -21,7 +21,15 @@ pub(super) fn migrate(
     let graph = graph_transactions(&mut source.container)?;
     let entities = source.entities.records().to_vec();
     let relationships = source.relationships.records().to_vec();
-    let profiles = source.compatibility_profiles.profiles();
+    let profiles = source
+        .compatibility_profiles
+        .profiles()
+        .into_iter()
+        .map(|profile| {
+            let retired = source.compatibility_profile_is_retired(profile.id);
+            (profile, retired)
+        })
+        .collect::<Vec<_>>();
     let packed_infos = source.packed_vectors.infos();
     let memory_vector_infos = source.memory_vectors.infos();
     let processing_epochs = source.processing_epochs.records();
@@ -34,10 +42,16 @@ pub(super) fn migrate(
     let entity_resolutions = source.entity_resolution_records();
 
     let mut output = op(Phylactery::create_with_uuid(output_path, owner_uuid))?;
-    for profile in profiles {
+    for (profile, retired) in profiles {
+        let id = profile.id;
         op(output
             .compatibility_profiles
             .put(&mut output.container, profile))?;
+        if retired {
+            op(output
+                .compatibility_profiles
+                .retire(&mut output.container, id))?;
+        }
     }
     for (id, revision) in revisions {
         let memory = op(source.memory_revision(id, revision))?;
