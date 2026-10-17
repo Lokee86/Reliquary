@@ -87,12 +87,12 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             active_profile = Some(shared.mutate(
                 super::super::mutation_events::RelMutationFamily::Retrieval,
                 |runtime| {
-                    let count = runtime.cva.compatibility_profiles().len();
+                    let count = runtime.cva.active_memory_compatibility_profiles().len();
                     let value = runtime
                         .cva
                         .accept_runtime_compatibility_profile(candidate.clone())
                         .map_err(operation)?;
-                    let changed = runtime.cva.compatibility_profiles().len() != count;
+                    let changed = runtime.cva.active_memory_compatibility_profiles().len() != count;
                     Ok((
                         value,
                         changed,

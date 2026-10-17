@@ -247,7 +247,7 @@ impl RelRuntime {
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .cva
-            .compatibility_profiles()
+            .active_memory_compatibility_profiles()
             .into_iter()
             .map(|profile| profile.id)
             .collect::<std::collections::HashSet<_>>();

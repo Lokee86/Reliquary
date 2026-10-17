@@ -221,7 +221,7 @@ pub(crate) fn validate_mapping(
     memory_body_ids: &[MemoryBodyId],
 ) -> Result<(), MemoryVectorError> {
     let profile = profiles
-        .get(compatibility_profile_id)
+        .get_active(compatibility_profile_id)
         .ok_or(MemoryVectorError::MissingProfile)?;
     let packed = packed_vectors
         .info(packed_vector_id)

@@ -162,3 +162,47 @@ fn incompatible_endpoint_cannot_build_under_profile() {
     ));
     assert_eq!(cva.vector_version(), 0);
 }
+
+#[test]
+fn retired_generation_is_excluded_but_historical_numeric_evidence_remains_readable() {
+    let path = test_path("retired.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    append_turns(&mut cva, 0, 8);
+    materialize(&mut cva, 7);
+    let profile = cva.establish_compatibility_profile(&endpoint(8)).unwrap();
+    let generation = cva
+        .build_archive_vector_generation(profile.id, &endpoint(8))
+        .unwrap();
+    let archive_vectors = cva.archive_vectors(generation.archive_vector_id).unwrap();
+    let packed = cva
+        .packed_vectors(archive_vectors.packed_vector_id)
+        .unwrap();
+    assert!(cva.retire_compatibility_profile(profile.id).unwrap());
+    assert!(!cva.retire_compatibility_profile(profile.id).unwrap());
+    assert!(cva.current_vector_generation(profile.id).is_none());
+    assert_eq!(
+        cva.historical_vector_generation(profile.id),
+        Some(generation)
+    );
+    assert_eq!(archive_vectors.rows, packed.count());
+    cva.sync().unwrap();
+    drop(cva);
+
+    let reopened = Cva::open(path).unwrap();
+    assert!(reopened.compatibility_profile_is_retired(profile.id));
+    assert!(reopened.current_vector_generation(profile.id).is_none());
+    assert_eq!(
+        reopened.historical_vector_generation(profile.id),
+        Some(generation)
+    );
+    assert!(
+        reopened
+            .archive_vectors(generation.archive_vector_id)
+            .is_ok()
+    );
+    assert!(
+        reopened
+            .packed_vectors(archive_vectors.packed_vector_id)
+            .is_ok()
+    );
+}

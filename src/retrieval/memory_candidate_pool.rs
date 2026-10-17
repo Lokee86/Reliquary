@@ -38,7 +38,7 @@ impl crate::Cva {
         use std::collections::BTreeMap;
         validate_query(query_vector)?;
         // An absent profile has no semantic population, but lexical eligibility is independent.
-        if let Ok(profile) = self.compatibility_profile(profile_id) {
+        if let Some(profile) = self.compatibility_profiles.get_active(profile_id) {
             if query_vector.len() != profile.dimensions as usize {
                 return Err(crate::MemoryRetrievalError::InvalidQueryVector);
             }

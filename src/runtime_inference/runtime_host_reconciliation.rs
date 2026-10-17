@@ -203,7 +203,7 @@ fn recover_reconciliation_vectors(
 }
 
 fn has_retired_vector_state(cva: &Cva) -> bool {
-    !cva.compatibility_profiles().is_empty()
+    !cva.active_memory_compatibility_profiles().is_empty()
         && (cva.memory_stats().memories > 0 || !cva.fragments().is_empty())
         && cva.packed_vector_stats().objects == 0
         && cva.memory_vector_stats().objects == 0

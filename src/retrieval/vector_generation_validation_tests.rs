@@ -150,3 +150,35 @@ fn publication_rejects_profile_matrix_dimension_mismatch() {
         Err(VectorGenerationError::DimensionMismatch)
     ));
 }
+
+#[test]
+fn incomplete_current_archive_coverage_cannot_be_published_or_activated() {
+    let path = test_path("incomplete-coverage.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    populate(&mut cva);
+    cva.append_node(
+        "n8".into(),
+        "c1".into(),
+        Some("n7".into()),
+        "user".into(),
+        8,
+        "additional turn",
+    )
+    .unwrap();
+    cva.materialize_path_fragments("c1", "n8", FragmentConfig::default(), false)
+        .unwrap();
+    let profile = cva.establish_compatibility_profile(&endpoint()).unwrap();
+    let fragment_id = cva.fragments()[0].id;
+    let schema = VectorSchema::new(profile.dimensions, ScalarType::F32).unwrap();
+    let packed =
+        PackedVectors::from_bytes(schema, vec![0; profile.dimensions as usize * 4]).unwrap();
+    let packed_id = cva.put_packed_vectors(packed).unwrap();
+    let archive_vector_id = cva
+        .put_archive_vectors(packed_id, vec![fragment_id])
+        .unwrap();
+    assert!(matches!(
+        cva.publish_vector_generation(profile.id, archive_vector_id, cva.archive_version()),
+        Err(VectorGenerationError::IncompleteCoverage)
+    ));
+    assert!(cva.current_vector_generation(profile.id).is_none());
+}

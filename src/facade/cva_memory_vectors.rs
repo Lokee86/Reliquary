@@ -55,7 +55,7 @@ impl Cva {
     ) -> Result<MemoryVectorBuildResult, MemoryVectorError> {
         let profile = self
             .compatibility_profiles
-            .get(compatibility_profile_id)
+            .get_active(compatibility_profile_id)
             .cloned()
             .ok_or(MemoryVectorError::MissingProfile)?;
         let compatibility = verify_endpoint(&profile, endpoint)?;
