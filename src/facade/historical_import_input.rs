@@ -473,13 +473,13 @@ pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError>
     })
 }
 
-pub(super) fn validate_checkpoint(
+pub(super) fn validate_settlement(
     cva: &mut Cva,
-    cp: &crate::freshness_storage::ImportCheckpoint,
+    cp: &crate::freshness_storage::HistoricalImportFreshnessSettlement,
 ) -> Result<(), CvaError> {
     let fail = |s: &str| CvaError::Freshness(s.into());
     if cva.owner_uuid() != Some(cp.owner)
-        || cp.cut > cva.rel_turn_count()
+        || cp.settlement_cut > cva.rel_turn_count()
         || cp.global_version > cva.latest_global_version()
         || cp.graph_version > cva.graph_version()
         || cp.memory_graph_version > cva.memory_graph_version()
@@ -548,7 +548,7 @@ pub(super) fn validate_checkpoint(
             "import checkpoint does not cover a proven native import",
         ));
     }
-    let nodes = required_nodes(cva, cp.cut)?;
+    let nodes = required_nodes(cva, cp.settlement_cut)?;
     use crate::freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
     let sources = nodes
         .values()
@@ -577,11 +577,11 @@ pub(super) fn validate_checkpoint(
                 })
         })
         .collect();
-    HistoricalTimeline::from_accepted_archive(sources, &positions, cp.cut)
+    HistoricalTimeline::from_accepted_archive(sources, &positions, cp.settlement_cut)
         .map_err(|e| fail(&e.to_string()))?;
-    if corpus_digest(cva, cp.cut)? != cp.corpus_digest {
+    if corpus_digest(cva, cp.settlement_cut)? != cp.corpus_digest {
         return Err(fail(
-            "import checkpoint corpus identity differs from its source prefix",
+            "import settlement corpus identity differs from its source prefix",
         ));
     }
     Ok(())

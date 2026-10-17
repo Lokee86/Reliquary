@@ -1,5 +1,5 @@
 //! Sole operation boundary for explicit REL-local historical reconstruction.
-//! The exclusively borrowed Cva owns freeze, planning, scoring and CVAFRS03 publication.
+//! The exclusively borrowed Cva owns freeze, planning, scoring and settlement publication.
 use super::*;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -61,7 +61,7 @@ impl Cva {
     /// Accepts operation options only. Manifest, authorization, graph, vector,
     /// cohort and scoring evidence must be derived from this owner. Publication
     /// can only use this module's private freeze/prepare/commit primitives and
-    /// the existing FreshnessStore CVAFRS03 checkpoint.
+    /// the FreshnessStore import-scoped settlement boundary.
     ///
     /// Generation must be complete. Fill requires an explicit bounded endpoint;
     /// accepted retries resolve before new owner-input checks and preserve live growth.
@@ -69,17 +69,17 @@ impl Cva {
         &mut self,
         options: HistoricalReconstructionOptions,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        if options.fill_missing_embeddings && self.freshness.import_checkpoint().is_none() {
+        if options.fill_missing_embeddings && self.freshness.import_settlements().is_empty() {
             return Err(HistoricalReconstructionError::EmbeddingFillUnavailable);
         }
         let frozen = self.freeze_historical_import()?;
         let prepared = frozen.prepare_native()?;
         let committed = self.commit_historical_import(&prepared)?;
         Ok(HistoricalReconstructionReport {
-            import_id: prepared.checkpoint.import_id,
-            manifest_digest: prepared.checkpoint.manifest_digest,
-            activity_cut: prepared.checkpoint.cut,
-            reconstructed_memories: prepared.checkpoint.records.len(),
+            import_id: prepared.settlement.import_id,
+            manifest_digest: prepared.settlement.manifest_digest,
+            activity_cut: prepared.settlement.settlement_cut,
+            reconstructed_memories: prepared.settlement.records.len(),
             committed,
             embedding: None,
         })
@@ -97,7 +97,7 @@ impl Cva {
         limits: HistoricalEmbeddingLimits,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        if self.freshness.import_checkpoint().is_some() || !options.fill_missing_embeddings {
+        if !self.freshness.import_settlements().is_empty() || !options.fill_missing_embeddings {
             return self.reconstruct_historical_freshness(options);
         }
         let report = embedding::fill(self, endpoint, limits, cancel)
@@ -120,10 +120,10 @@ impl Cva {
             .commit_historical_import(&prepared)
             .map_err(|e| embedding::owner_error(e, report.clone()))?;
         Ok(HistoricalReconstructionReport {
-            import_id: prepared.checkpoint.import_id,
-            manifest_digest: prepared.checkpoint.manifest_digest,
-            activity_cut: prepared.checkpoint.cut,
-            reconstructed_memories: prepared.checkpoint.records.len(),
+            import_id: prepared.settlement.import_id,
+            manifest_digest: prepared.settlement.manifest_digest,
+            activity_cut: prepared.settlement.settlement_cut,
+            reconstructed_memories: prepared.settlement.records.len(),
             committed,
             embedding: Some(report),
         })

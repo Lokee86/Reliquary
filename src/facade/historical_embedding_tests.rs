@@ -108,9 +108,9 @@ fn assert_unaccepted(
     id: crate::MemoryId,
     before: FreshnessRecord,
 ) {
-    assert!(cva.freshness.import_checkpoint().is_none());
+    assert!(cva.freshness.import_settlements().is_empty());
     assert_eq!(cva.freshness_record(id), Some(before));
-    assert!(!fs::read(path).unwrap().windows(8).any(|w| w == b"CVAFRS03"));
+    assert!(!fs::read(path).unwrap().windows(8).any(|w| w == b"CVAFRS04"));
 }
 #[test]
 fn historical_embedding_native_fill_manifest_reopen_and_accepted_retry() {

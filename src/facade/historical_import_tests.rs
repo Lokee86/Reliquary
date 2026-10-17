@@ -122,7 +122,7 @@ fn historical_import_fixture_clock(
 }
 
 #[test]
-fn historical_import_checkpoint_reopens_and_retries_without_erasing_live_use() {
+fn historical_import_settlement_reopens_and_retries_without_erasing_live_use() {
     let (path, mut cva, id) = historical_import_fixture("historical-checkpoint.cva");
     let original_revision = cva.memory(id).unwrap().revision;
     assert_eq!(cva.freshness_record(id).unwrap().score, 100);
@@ -233,7 +233,7 @@ fn historical_embedding_fill_unavailable_preserves_import_owner_and_file() {
     ));
     assert_eq!(fs::read(&path).unwrap(), before);
     assert_eq!(cva.freshness_record(id), record);
-    assert!(cva.freshness.import_checkpoint().is_none());
+    assert!(cva.freshness.import_settlements().is_empty());
 }
 
 #[test]
@@ -247,7 +247,7 @@ fn historical_reconstruction_rejects_unfinished_owner_without_writes() {
         Err(HistoricalReconstructionError::Owner(_))
     ));
     assert_eq!(fs::read(&path).unwrap(), before);
-    assert!(cva.freshness.import_checkpoint().is_none());
+    assert!(cva.freshness.import_settlements().is_empty());
 }
 
 #[test]

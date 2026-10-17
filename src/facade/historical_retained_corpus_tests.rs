@@ -37,7 +37,7 @@ fn historical_retained_corpus_native_acceptance() {
         "embedding_fill": "not requested; retained evidence only", "measurement_kind":"native retained-corpus gate"});
     if let Ok(mut cva) = opened {
         if std::env::var("RELIQUARY_HISTORICAL_REPLAY_ACCEPTED_PREFIX").as_deref() == Ok("1") {
-            if let Some(checkpoint) = cva.freshness.import_checkpoint().cloned() {
+            if let Some(checkpoint) = cva.freshness.latest_import_settlement().cloned() {
                 let mut stored = BTreeMap::<String, usize>::new();
                 for record in cva
                     .freshness_records_at(cva.rel_turn_count())
@@ -67,7 +67,7 @@ fn historical_retained_corpus_native_acceptance() {
                     .unwrap();
                 assert_eq!(file_digest(&copy).unwrap(), checkpoint.input_digest);
                 cva = Cva::open(&copy).unwrap();
-                assert!(cva.freshness.import_checkpoint().is_none());
+                assert!(cva.freshness.import_settlements().is_empty());
             }
         }
         let ids = cva.memory_ids();
@@ -147,7 +147,7 @@ fn historical_retained_corpus_native_acceptance() {
             "retained_first_cycle_passes":passes.len(),"vector_generations":generations.len(),
             "latest_generation_archive_rows":archive_rows,"latest_generation_target_bindings":target_rows,
             "usable_fragment_source_evidence":usable_fragments,"graph_relations":cva.graph_relations().len(),
-            "before_distribution":population,"already_checkpointed":cva.freshness.import_checkpoint().is_some()});
+            "before_distribution":population,"already_checkpointed":!cva.freshness.import_settlements().is_empty()});
         // Diagnostics read the same owner adapters; only the public operation accepts.
         let diagnostic = cva.freeze_historical_import();
         match &diagnostic {

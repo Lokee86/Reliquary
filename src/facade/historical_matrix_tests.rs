@@ -235,7 +235,7 @@ fn rejected(cva: &mut Cva, path: &std::path::Path, expected: &str) {
         .unwrap_err()
         .to_string();
     assert!(error.contains(expected), "{error}");
-    assert!(cva.freshness.import_checkpoint().is_none());
+    assert!(cva.freshness.import_settlements().is_empty());
     assert_eq!(fs::read(path).unwrap(), bytes);
     assert_eq!(
         cva.freshness_records_at(cva.rel_turn_count()).unwrap(),

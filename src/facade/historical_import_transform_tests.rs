@@ -82,8 +82,8 @@ fn assert_preserved(
         .prepare_native()
         .unwrap();
     assert_eq!(
-        retried.checkpoint.manifest_digest,
-        prepared.checkpoint.manifest_digest
+        retried.settlement.manifest_digest,
+        prepared.settlement.manifest_digest
     );
     assert!(
         !copy
@@ -222,8 +222,8 @@ fn historical_transform_detects_receipt_loss_hidden_by_score_saturation() {
         copy.freshness_records_at(32).unwrap()
     );
     assert_eq!(
-        cva.freshness.import_checkpoint(),
-        copy.freshness.import_checkpoint()
+        cva.freshness.import_settlements(),
+        copy.freshness.import_settlements()
     );
     assert!(
         cva.validate_historical_import_copy(&copy)
@@ -296,8 +296,12 @@ fn historical_transform_conflicting_manifest_and_policy_never_overwrite_acceptan
         .unwrap();
     let other = checkpoint(&mut right);
     assert_eq!(
-        left.freshness.import_checkpoint().unwrap().import_id,
-        right.freshness.import_checkpoint().unwrap().import_id
+        left.freshness.latest_import_settlement().unwrap().import_id,
+        right
+            .freshness
+            .latest_import_settlement()
+            .unwrap()
+            .import_id
     );
     let original = fs::read(&path).unwrap();
     let output = path.with_file_name("conflict.rel");
@@ -344,7 +348,7 @@ fn historical_transform_unverified_corpus_owner_or_policy_cannot_transplant_nume
     cva.sync().unwrap();
     let prefix = fs::read(&path).unwrap();
     checkpoint(&mut cva);
-    let cp = cva.freshness.import_checkpoint().unwrap().clone();
+    let cp = cva.freshness.latest_import_settlement().unwrap().clone();
     for case in 0..3 {
         let candidate_path = path.with_file_name(format!("transplant-{case}.rel"));
         fs::write(&candidate_path, &prefix).unwrap();
@@ -357,7 +361,7 @@ fn historical_transform_unverified_corpus_owner_or_policy_cannot_transplant_nume
             altered.owner = [9; 16];
         }
         altered.import_id =
-            crate::freshness_storage::historical_import_id(altered.owner, altered.corpus_digest);
+            super::manifest::historical_import_id(altered.owner, altered.corpus_digest);
         let mut payload = altered.encode();
         if case == 2 {
             // Keep valid framing/checksum while selecting an unsupported H policy.
@@ -418,8 +422,8 @@ fn historical_transform_regenerated_archive_restores_accepted_state_without_reco
         .prepare_native()
         .unwrap();
     assert_eq!(
-        retried.checkpoint.manifest_digest,
-        prepared.checkpoint.manifest_digest
+        retried.settlement.manifest_digest,
+        prepared.settlement.manifest_digest
     );
     assert!(
         !cva.reconstruct_historical_freshness(Default::default())

@@ -1,6 +1,8 @@
 //! A frozen one-shot native REL import and its atomic Freshness publication.
 use crate::freshness::historical_scorer::{HistoricalScoreEvent, score_historical_records};
-use crate::freshness_storage::ImportCheckpoint;
+use crate::freshness_storage::{
+    HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
+};
 use crate::{
     Cva, CvaError, MemoryId,
     freshness::{FreshnessPolicy, FreshnessRecord},
@@ -33,19 +35,19 @@ mod transform;
 struct FrozenHistoricalImport {
     events: Option<events::NativeHistoricalEvents>,
     propagation: Option<manifest::PropagationInputs>,
-    checkpoint: ImportCheckpoint,
+    settlement: HistoricalImportFreshnessSettlement,
     initial: BTreeMap<MemoryId, FreshnessRecord>,
 }
 #[derive(Clone, Debug)]
 struct PreparedHistoricalImport {
-    checkpoint: ImportCheckpoint,
+    settlement: HistoricalImportFreshnessSettlement,
 }
 impl FrozenHistoricalImport {
     /// Only the owner-derived batch can enter production scoring.
     fn prepare_native(&self) -> Result<PreparedHistoricalImport, CvaError> {
         let Some(batch) = &self.events else {
             return Ok(PreparedHistoricalImport {
-                checkpoint: self.checkpoint.clone(),
+                settlement: self.settlement.clone(),
             });
         };
         let inputs = self
@@ -55,7 +57,7 @@ impl FrozenHistoricalImport {
         if batch
             .ordered
             .iter()
-            .any(|(_, event)| event.position > self.checkpoint.cut)
+            .any(|(_, event)| event.position > self.settlement.settlement_cut)
         {
             return Err(fail(
                 "historical source event exceeds frozen checkpoint cut",
@@ -95,10 +97,10 @@ impl FrozenHistoricalImport {
         self.prepare(&scores)
     }
     fn import_id(&self) -> [u8; 32] {
-        self.checkpoint.import_id
+        self.settlement.import_id
     }
     fn cut(&self) -> u64 {
-        self.checkpoint.cut
+        self.settlement.settlement_cut
     }
     fn initial_records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
         &self.initial
@@ -131,21 +133,21 @@ impl FrozenHistoricalImport {
                 ));
             }
         }
-        let mut checkpoint = self.checkpoint.clone();
-        checkpoint.records = score_historical_records(
+        let mut settlement = self.settlement.clone();
+        settlement.records = score_historical_records(
             &self.initial,
             events,
-            checkpoint.cut,
+            settlement.settlement_cut,
             &FreshnessPolicy::default_v1(),
         )
         .map_err(|e| CvaError::Freshness(e.to_string()))?;
-        checkpoint.validate().map_err(CvaError::Freshness)?;
-        Ok(PreparedHistoricalImport { checkpoint })
+        settlement.validate().map_err(CvaError::Freshness)?;
+        Ok(PreparedHistoricalImport { settlement })
     }
 }
 impl PreparedHistoricalImport {
     fn records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
-        &self.checkpoint.records
+        &self.settlement.records
     }
 }
 fn fail(message: &str) -> CvaError {
@@ -174,10 +176,10 @@ impl Cva {
         &mut self,
         requested_complete: bool,
     ) -> Result<FrozenHistoricalImport, CvaError> {
-        if let Some(checkpoint) = self.freshness.import_checkpoint() {
-            let checkpoint = checkpoint.clone();
+        if let Some(settlement) = self.freshness.latest_import_settlement() {
+            let settlement = settlement.clone();
             let mut initial = BTreeMap::new();
-            for (id, record) in &checkpoint.records {
+            for (id, record) in &settlement.records {
                 let mut birth = FreshnessRecord::created();
                 if let Some(at) = record.admitted_at_turn {
                     birth.admit(at).map_err(|e| fail(&e.to_string()))?;
@@ -187,7 +189,7 @@ impl Cva {
             return Ok(FrozenHistoricalImport {
                 events: None,
                 propagation: None,
-                checkpoint,
+                settlement,
                 initial,
             });
         }
@@ -196,26 +198,30 @@ impl Cva {
         let events = events::build(self, &manifest)?;
         let cohort: BTreeSet<_> = self.memory_ids().into_iter().collect();
         self.container.sync()?;
-        let checkpoint = ImportCheckpoint {
-            owner,
-            import_id: manifest.import_id,
-            corpus_digest: manifest.corpus_digest,
-            manifest_digest: manifest.digest,
-            input_digest: manifest.input_digest,
+        let settlement = HistoricalImportFreshnessSettlement::from_import_scope(
+            HistoricalImportFreshnessScope {
+                owner,
+                import_id: manifest.import_id,
+                start_evidence_digest: manifest.input_digest,
+                base_cut: 0,
+                settlement_cut: self.rel_turn_count(),
+            },
+            manifest.corpus_digest,
+            manifest.digest,
+            manifest.input_digest,
             cohort,
-            cut: self.rel_turn_count(),
-            global_version: self.latest_global_version(),
-            input_bytes: manifest.input_bytes,
-            archive_version: self.archive_version(),
-            graph_version: self.graph_version(),
-            memory_graph_version: self.memory_graph_version(),
-            records: BTreeMap::new(),
-            superseded: manifest.superseded,
-        };
+            self.latest_global_version(),
+            manifest.input_bytes,
+            self.archive_version(),
+            self.graph_version(),
+            self.memory_graph_version(),
+            BTreeMap::new(),
+            manifest.superseded,
+        );
         Ok(FrozenHistoricalImport {
             events: Some(events),
             propagation: Some(manifest.propagation),
-            checkpoint,
+            settlement,
             initial: manifest.initial,
         })
     }
@@ -225,44 +231,44 @@ impl Cva {
         &mut self,
         prepared: &PreparedHistoricalImport,
     ) -> Result<bool, CvaError> {
-        let checkpoint = &prepared.checkpoint;
-        if self.owner_uuid() != Some(checkpoint.owner) {
-            return Err(fail("import checkpoint owner mismatch"));
+        let settlement = &prepared.settlement;
+        if self.owner_uuid() != Some(settlement.owner) {
+            return Err(fail("import settlement owner mismatch"));
         }
-        if let Some(old) = self.freshness.import_checkpoint() {
-            return if old == checkpoint {
+        if let Some(old) = self.freshness.import_settlement(settlement.import_id) {
+            return if old == settlement {
                 Ok(false)
             } else {
                 Err(fail("ImportManifestConflict"))
             };
         }
-        if self.latest_global_version() != checkpoint.global_version
-            || self.archive_version() != checkpoint.archive_version
-            || self.rel_turn_count() != checkpoint.cut
-            || self.graph_version() != checkpoint.graph_version
-            || self.memory_graph_version() != checkpoint.memory_graph_version
+        if self.latest_global_version() != settlement.global_version
+            || self.archive_version() != settlement.archive_version
+            || self.rel_turn_count() != settlement.settlement_cut
+            || self.graph_version() != settlement.graph_version
+            || self.memory_graph_version() != settlement.memory_graph_version
             || std::fs::metadata(self.container.path())
                 .map_err(|e| fail(&e.to_string()))?
                 .len()
-                != checkpoint.input_bytes
-            || file_digest(self.container.path())? != checkpoint.input_digest
+                != settlement.input_bytes
+            || file_digest(self.container.path())? != settlement.input_digest
         {
             return Err(fail("ImportInputDrift: discard and refreeze the attempt"));
         }
-        let payload = checkpoint.encode();
+        let payload = settlement.encode();
         let mut staged = self.freshness.clone();
         staged
-            .ingest_import_checkpoint(&payload)
+            .ingest_import_settlement(&payload)
             .map_err(CvaError::Freshness)?;
         let mut due = crate::FreshnessDueDispatcher::default();
         due.rebuild(
             staged.records().iter().map(|(&id, &r)| (id, r)),
-            checkpoint.cut,
+            settlement.settlement_cut,
             &self.freshness_policy(),
         )
         .map_err(|e| fail(&e.to_string()))?;
         staged
-            .persist_policy_if_needed(&mut self.container, checkpoint.owner)
+            .persist_policy_if_needed(&mut self.container, settlement.owner)
             .map_err(CvaError::Freshness)?;
         self.container.append(&payload)?;
         self.container.sync()?;
@@ -277,9 +283,9 @@ impl Cva {
 }
 
 impl Cva {
-    pub(crate) fn validate_historical_import_checkpoint(&mut self) -> Result<(), CvaError> {
-        if let Some(cp) = self.freshness.import_checkpoint().cloned() {
-            input::validate_checkpoint(self, &cp)?;
+    pub(crate) fn validate_historical_import_settlements(&mut self) -> Result<(), CvaError> {
+        for settlement in self.freshness.import_settlements().to_vec() {
+            input::validate_settlement(self, &settlement)?;
         }
         Ok(())
     }

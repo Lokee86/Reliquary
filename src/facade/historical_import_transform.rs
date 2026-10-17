@@ -6,12 +6,12 @@ impl Cva {
     /// Physical maintenance may relocate objects, but must retain the accepted
     /// import and every later receipt/proof, even if score saturation hides a loss.
     pub(crate) fn validate_historical_import_copy(&self, copy: &Self) -> Result<(), CvaError> {
-        if self.freshness.import_checkpoint().is_none()
-            && copy.freshness.import_checkpoint().is_none()
+        if self.freshness.import_settlements().is_empty()
+            && copy.freshness.import_settlements().is_empty()
         {
             return Ok(());
         }
-        if self.freshness.import_checkpoint() != copy.freshness.import_checkpoint()
+        if self.freshness.import_settlements() != copy.freshness.import_settlements()
             || self.freshness_policy() != copy.freshness_policy()
             || self.rel_turn_count() != copy.rel_turn_count()
             || self.latest_global_version() != copy.latest_global_version()
@@ -39,7 +39,7 @@ impl Cva {
         &self,
         principal: &str,
     ) -> Result<(), CvaError> {
-        if self.freshness.import_checkpoint().is_some()
+        if !self.freshness.import_settlements().is_empty()
             && self
                 .archive
                 .nodes

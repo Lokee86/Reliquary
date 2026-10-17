@@ -270,12 +270,12 @@ fn historical_native_operation_publishes_multi_recipient_projection_and_reopens(
     assert!(report.committed);
     assert_eq!(report.activity_cut, 32);
     assert_eq!(report.reconstructed_memories, 2);
-    assert_eq!(report.manifest_digest, prepared.checkpoint.manifest_digest);
+    assert_eq!(report.manifest_digest, prepared.settlement.manifest_digest);
     assert!(
         fs::read(&path)
             .unwrap()
             .windows(8)
-            .any(|w| w == b"CVAFRS03")
+            .any(|w| w == b"CVAFRS04")
     );
     assert_ne!(fs::read(&path).unwrap(), before);
     for id in &ids {
@@ -389,5 +389,5 @@ fn historical_native_prepared_batch_rejects_exact_file_drift_without_publication
     );
     assert_eq!(cva.freshness_record(id), original);
     assert_eq!(fs::read(&path).unwrap(), before);
-    assert!(cva.freshness.import_checkpoint().is_none());
+    assert!(cva.freshness.import_settlements().is_empty());
 }

@@ -130,7 +130,7 @@ impl FreshnessReplayEntry {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct FreshnessStore {
-    import_checkpoint: Option<ImportCheckpoint>,
+    import_settlements: Vec<HistoricalImportFreshnessSettlement>,
     owner_uuid: Option<[u8; 16]>,
     policy: FreshnessPolicy,
     policy_persisted: bool,
@@ -157,9 +157,11 @@ const RECENT_LIMIT: usize = 128;
 const RECENT_BYTES: usize = 256 * 1024;
 #[path = "freshness/freshness_semantic_activation.rs"]
 mod activation;
-#[path = "freshness/freshness_import_checkpoint.rs"]
-mod import_checkpoint_storage;
-pub(crate) use import_checkpoint_storage::{ImportCheckpoint, import_id as historical_import_id};
+#[path = "freshness/freshness_import_settlement.rs"]
+mod import_settlement_storage;
+pub(crate) use import_settlement_storage::{
+    HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
+};
 #[path = "freshness/freshness_storage_membership.rs"]
 mod membership;
 #[path = "freshness/freshness_storage_ordering.rs"]
@@ -416,8 +418,10 @@ impl FreshnessStore {
     }
 
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), String> {
-        if payload.starts_with(import_checkpoint_storage::IMPORT_MAGIC) {
-            return self.ingest_import_checkpoint(payload);
+        if payload.starts_with(import_settlement_storage::SETTLEMENT_MAGIC)
+            || payload.starts_with(import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
+        {
+            return self.ingest_import_settlement(payload);
         }
         if payload.starts_with(activation::ACTIVATION_MAGIC) {
             return self.ingest_semantic_activation(payload);
@@ -684,10 +688,11 @@ impl FreshnessStore {
             else {
                 return Err("expected Freshness event".into());
             };
-            if self.import_checkpoint.as_ref().is_some_and(|cp| {
-                *turn < cp.cut && effects.keys().any(|id| cp.records.contains_key(id))
+            if self.import_settlements.iter().any(|settlement| {
+                *turn <= settlement.settlement_cut
+                    && effects.keys().any(|id| settlement.records.contains_key(id))
             }) {
-                return Err("new event precedes the accepted import checkpoint".into());
+                return Err("new event precedes an accepted import settlement".into());
             }
             if event_id.is_empty()
                 || (effects.is_empty() && semantic.is_none())
@@ -851,14 +856,14 @@ impl FreshnessStore {
         extra: &[JournalEntry],
     ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
         crate::freshness_trace::measure("freshness.projection.canonical", || {
-            if self.import_checkpoint.as_ref().is_some_and(|cp| {
-                through < cp.cut
-                    || graph < cp.memory_graph_version
-                    || (through == cp.cut
-                        && before.is_some_and(|(id, _)| cp.superseded.contains(id)))
+            if self.import_settlements.iter().any(|settlement| {
+                through >= settlement.settlement_cut
+                    && (graph < settlement.memory_graph_version
+                        || (through == settlement.settlement_cut
+                            && before.is_some_and(|(id, _)| settlement.superseded.contains(id))))
             }) {
                 return Err(
-                    "import checkpoint does not retain pre-checkpoint score trajectories".into(),
+                    "import settlement cut does not retain an intra-settlement trajectory".into(),
                 );
             }
             let mut projected = self
@@ -867,17 +872,25 @@ impl FreshnessStore {
                 .filter(|(_, (turn, _))| *turn <= through)
                 .map(|(id, (_, record))| (*id, *record))
                 .collect::<BTreeMap<_, _>>();
-            if let Some(cp) = &self.import_checkpoint {
-                projected.extend(cp.records.clone());
+            let applicable: Vec<_> = self
+                .import_settlements
+                .iter()
+                .filter(|settlement| settlement.settlement_cut <= through)
+                .collect();
+            let mut settled_at = BTreeMap::new();
+            for settlement in &applicable {
+                projected.extend(settlement.records.clone());
+                settled_at.extend(
+                    settlement
+                        .records
+                        .keys()
+                        .map(|id| (*id, settlement.settlement_cut)),
+                );
             }
             let mut admissions = self
                 .admissions
                 .iter()
-                .filter(|(id, _)| {
-                    self.import_checkpoint
-                        .as_ref()
-                        .is_none_or(|cp| !cp.records.contains_key(id))
-                })
+                .filter(|(id, _)| !settled_at.contains_key(id))
                 .filter_map(|(id, r)| {
                     r.admitted_at_turn
                         .filter(|at| *at <= through)
@@ -896,10 +909,9 @@ impl FreshnessStore {
                 else {
                     unreachable!()
                 };
-                if self
-                    .import_checkpoint
-                    .as_ref()
-                    .is_some_and(|cp| cp.superseded.contains(event_id))
+                if applicable
+                    .iter()
+                    .any(|settlement| settlement.superseded.contains(event_id))
                 {
                     return Ok(());
                 }
@@ -913,6 +925,9 @@ impl FreshnessStore {
                     admit_index += 1;
                 }
                 for (id, amount) in effects {
+                    if settled_at.get(id).is_some_and(|cut| turn <= cut) {
+                        continue;
+                    }
                     if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {
                         return Err("Freshness event precedes accepted Memory birth".into());
                     }
@@ -1188,9 +1203,9 @@ impl FreshnessStore {
         Ok(out)
     }
     pub(crate) fn replay_entries(&self) -> Result<Vec<FreshnessReplayEntry>, String> {
-        if self.import_checkpoint.is_some() {
+        if !self.import_settlements.is_empty() {
             return Err(
-                "historical import checkpoint conversion/reconciliation is unsupported".into(),
+                "historical import settlement conversion/reconciliation is unsupported".into(),
             );
         }
         let mut out = Vec::new();

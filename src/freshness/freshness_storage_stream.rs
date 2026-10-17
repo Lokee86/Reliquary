@@ -32,7 +32,9 @@ pub(crate) fn scan_entries(
                 return Ok(());
             }
 
-            if payload.starts_with(super::import_checkpoint_storage::IMPORT_MAGIC) {
+            if payload.starts_with(super::import_settlement_storage::SETTLEMENT_MAGIC)
+                || payload.starts_with(super::import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
+            {
                 return Ok(());
             }
             if payload.starts_with(b"CVAFRS") && payload.get(..8) != Some(MAGIC.as_slice()) {

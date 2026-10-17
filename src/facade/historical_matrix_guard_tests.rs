@@ -134,7 +134,7 @@ fn historical_matrix_native_graph_vector_and_revision_drift_rejects_then_refreez
                 .to_string()
                 .contains("ImportInputDrift")
         );
-        assert!(cva.freshness.import_checkpoint().is_none());
+        assert!(cva.freshness.import_settlements().is_empty());
         assert_eq!(fs::read(&path).unwrap(), bytes);
         assert_eq!(cva.freshness_records_at(32).unwrap(), records);
         accept_and_reopen(&path, cva);

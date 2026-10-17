@@ -92,8 +92,8 @@ fn historical_generation_refresh_changes_proof_but_never_fragment_event_identity
     .unwrap();
     let refreshed = cva.freeze_historical_import().unwrap();
     assert_ne!(
-        first.checkpoint.manifest_digest,
-        refreshed.checkpoint.manifest_digest
+        first.settlement.manifest_digest,
+        refreshed.settlement.manifest_digest
     );
     let a = &first.events.as_ref().unwrap().semantic.events;
     let b = &refreshed.events.as_ref().unwrap().semantic.events;

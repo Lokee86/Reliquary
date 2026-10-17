@@ -20,8 +20,8 @@ impl Cva {
         ))?;
         let mut floor = self
             .freshness
-            .import_checkpoint()
-            .map_or(0, |checkpoint| checkpoint.cut);
+            .latest_import_settlement()
+            .map_or(0, |settlement| settlement.settlement_cut);
         if let Some(activation) = self.freshness.semantic_activation() {
             self.validate_semantic_activation(activation)?;
             floor = floor.max(activation.accepted_turn);

@@ -17,7 +17,7 @@ pub(super) fn migrate(
     owner_uuid: [u8; 16],
 ) -> Result<String, MigrationError> {
     let mut source = op(Cva::open(source_path))?;
-    if source.freshness.import_checkpoint().is_some() {
+    if !source.freshness.import_settlements().is_empty() {
         return Err(MigrationError::Operation(
             "historical import checkpoint migration is unsupported".into(),
         ));

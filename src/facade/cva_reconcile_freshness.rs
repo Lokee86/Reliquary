@@ -201,17 +201,17 @@ pub(crate) fn replay_freshness(
 
 /// Perform source-history checks before the destination file is created.
 pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaReconcileError> {
-    if left.freshness.import_checkpoint().is_some() || right.freshness.import_checkpoint().is_some()
+    if !left.freshness.import_settlements().is_empty()
+        || !right.freshness.import_settlements().is_empty()
     {
         if left.freshness_policy() != right.freshness_policy() {
             return Err(CvaReconcileError::UnsupportedSemanticOwner(
                 "historical checkpoint owner policy conflict",
             ));
         }
-        if let (Some(a), Some(b)) = (
-            left.freshness.import_checkpoint(),
-            right.freshness.import_checkpoint(),
-        ) && a != b
+        if !left.freshness.import_settlements().is_empty()
+            && !right.freshness.import_settlements().is_empty()
+            && left.freshness.import_settlements() != right.freshness.import_settlements()
         {
             return Err(CvaReconcileError::UnsupportedSemanticOwner(
                 "ImportManifestConflict: historical checkpoint authority",

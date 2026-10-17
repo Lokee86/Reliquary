@@ -553,7 +553,7 @@ impl Cva {
             freshness_due,
             freshness_notifications: std::collections::BTreeMap::new(),
         };
-        result.validate_historical_import_checkpoint()?;
+        result.validate_historical_import_settlements()?;
         Ok(result)
     }
 }

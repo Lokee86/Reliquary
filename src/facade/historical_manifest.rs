@@ -592,7 +592,7 @@ pub(super) fn build_with_fill(
         .historical_freshness_timeline()
         .map_err(|e| fail(&e.to_string()))?;
     let corpus_digest = input::corpus_digest(cva, cva.rel_turn_count())?;
-    let import_id = crate::freshness_storage::historical_import_id(owner, corpus_digest);
+    let import_id = historical_import_id(owner, corpus_digest);
     let admission = input::admission_proof(cva)?;
     let ids: BTreeSet<_> = cva.memory_ids().into_iter().collect();
     for &id in &ids {
@@ -610,7 +610,7 @@ pub(super) fn build_with_fill(
     let replacement_ids = admission.initial.keys().copied().collect();
     let superseded = cva
         .freshness
-        .provisional_import_events(&replacement_ids, cva.rel_turn_count())
+        .provisional_import_events(&replacement_ids, 0, cva.rel_turn_count())
         .map_err(CvaError::Freshness)?;
     let mut untouched = Vec::new();
     for entry in cva
@@ -860,4 +860,23 @@ pub(super) fn build_with_fill(
         #[cfg(test)]
         value,
     })
+}
+
+pub(super) fn historical_import_id(owner: [u8; 16], corpus: [u8; 32]) -> [u8; 32] {
+    let mut hash = Sha256::new();
+    hash.update(b"reliquary:historical-import:v1\0");
+    hash.update([7]);
+    hash.update(2u32.to_le_bytes());
+    for (key, value) in [
+        ("corpus_digest", corpus.as_slice()),
+        ("owner_uuid", owner.as_slice()),
+    ] {
+        hash.update([5]);
+        hash.update((key.len() as u32).to_le_bytes());
+        hash.update(key.as_bytes());
+        hash.update([4]);
+        hash.update((value.len() as u32).to_le_bytes());
+        hash.update(value);
+    }
+    hash.finalize().into()
 }

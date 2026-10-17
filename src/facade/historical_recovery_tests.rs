@@ -48,7 +48,7 @@ fn historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries(
         assert_ne!(old, accepted);
         let accepted_due = cva.freshness_due.clone();
         let complete = fs::read(&path).unwrap();
-        let append_len = assert_one_frame(&before, &complete, b"CVAFRS03");
+        let append_len = assert_one_frame(&before, &complete, b"CVAFRS04");
         drop(cva);
         let crashed_path = path.with_file_name("checkpoint-prefix.rel");
 
@@ -64,7 +64,7 @@ fn historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries(
                 if full { accepted.clone() } else { old.clone() },
                 "vectors={with_vectors}, prefix={prefix}"
             );
-            assert_eq!(reopened.freshness.import_checkpoint().is_some(), full);
+            assert_eq!(!reopened.freshness.import_settlements().is_empty(), full);
             assert_eq!(clocks(&reopened), original_clocks);
             assert_eq!(
                 fs::read(&crashed_path).unwrap(),
@@ -118,7 +118,7 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
     let (path, mut cva, mut ids) = historical_import_fixture_count("h6-live-use.rel", 3);
     ids.sort();
     let report = reconstruct(&mut cva);
-    let checkpoint = cva.freshness.import_checkpoint().unwrap().clone();
+    let settlement = cva.freshness.latest_import_settlement().unwrap().clone();
     let accepted_due = cva.freshness_due.clone();
     assert!(
         ids.iter()
@@ -204,7 +204,7 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
     let live_projection = projection(&cva);
     let live_visible = cva.freshness_records_at(1030).unwrap();
     assert!(ids.iter().all(|id| live_visible[id].score == 24));
-    assert_eq!(cva.freshness.import_checkpoint(), Some(&checkpoint));
+    assert_eq!(cva.freshness.latest_import_settlement(), Some(&settlement));
     let complete = fs::read(&path).unwrap();
     let append_len = assert_one_frame(&grown, &complete, b"CVAFRS02");
     assert!(!reconstruct(&mut cva).committed);
@@ -235,7 +235,10 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
             reopened.freshness_records_at(1030).unwrap(),
             if full { &live_visible } else { &old_visible }.clone()
         );
-        assert_eq!(reopened.freshness.import_checkpoint(), Some(&checkpoint));
+        assert_eq!(
+            reopened.freshness.latest_import_settlement(),
+            Some(&settlement)
+        );
         let recovered = fs::read(&crashed_path).unwrap();
         assert_eq!(recovered, if full { &complete } else { &grown }.clone());
         let retry = reconstruct(&mut reopened);

@@ -60,7 +60,7 @@ fn historical_embedding_native_mixed_rows_are_filled_or_reused_without_fragment_
                 .len(),
             mixed
         );
-        assert!(cva.freshness.import_checkpoint().is_none());
+        assert!(cva.freshness.import_settlements().is_empty());
         drop(cva);
         let mut cva = Cva::open(&path).unwrap();
         let endpoint = Endpoint::new(&cancel);
@@ -175,7 +175,7 @@ fn historical_embedding_native_unsupported_profile_endpoint_owner_and_clock_reje
             )
         };
         assert!(result.is_err());
-        assert!(cva.freshness.import_checkpoint().is_none());
+        assert!(cva.freshness.import_settlements().is_empty());
         assert_eq!(fs::read(&path).unwrap(), bytes);
     }
 }
@@ -210,7 +210,7 @@ fn historical_embedding_native_cancel_after_probes_and_after_partial_fill_reopen
         );
         assert_eq!(error.report.attempted_calls, call);
         assert_eq!(error.report.new_rows, if call == 4 { 8 } else { 0 });
-        assert!(cva.freshness.import_checkpoint().is_none());
+        assert!(cva.freshness.import_settlements().is_empty());
         drop(cva);
         let mut cva = Cva::open(path).unwrap();
         cancel.store(false, std::sync::atomic::Ordering::Release);
@@ -300,7 +300,7 @@ fn historical_embedding_native_unnormalized_zero_output_rejects_without_writes()
     );
     assert_eq!(endpoint.calls.get(), 3);
     assert!(!error.report.write_attempted);
-    assert!(cva.freshness.import_checkpoint().is_none());
+    assert!(cva.freshness.import_settlements().is_empty());
     assert_eq!(cva.freshness_record(id), record);
     assert_eq!(fs::read(path).unwrap(), bytes);
 }
