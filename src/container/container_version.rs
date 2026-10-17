@@ -9,6 +9,7 @@ const VERSION_RECORD_V2_LEN: usize = 24;
 
 impl Container {
     pub(crate) fn allocate_version(&mut self) -> Result<u64, ContainerError> {
+        self.require_write_admission()?;
         let transaction_time_ns = match self.next_transaction_time_override.take() {
             Some(value) => value,
             None => Some(Self::transaction_time_now_ns()?),
@@ -24,6 +25,7 @@ impl Container {
         &mut self,
         transaction_time_ns: Option<i64>,
     ) -> Result<u64, ContainerError> {
+        self.require_write_admission()?;
         let version = self.next_version;
         let next = version
             .checked_add(1)
@@ -37,10 +39,16 @@ impl Container {
     }
 
     pub(crate) fn set_next_transaction_time_override(&mut self, transaction_time_ns: Option<i64>) {
+        if self.require_write_admission().is_err() {
+            return;
+        }
         self.next_transaction_time_override = Some(transaction_time_ns);
     }
 
     pub(crate) fn clear_next_transaction_time_override(&mut self) {
+        if self.require_write_admission().is_err() {
+            return;
+        }
         self.next_transaction_time_override = None;
     }
 
@@ -54,6 +62,7 @@ impl Container {
         count: usize,
         transaction_time_ns: Option<i64>,
     ) -> Result<(), ContainerError> {
+        self.require_write_admission()?;
         let count = u64::try_from(count).map_err(|_| ContainerError::VersionExhausted)?;
         self.observe_version_range(start, count)?;
         if let Some(transaction_time_ns) = transaction_time_ns {

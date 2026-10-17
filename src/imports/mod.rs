@@ -1,6 +1,8 @@
 //! Versioned native historical import. Adapters normalize; Archive remains authoritative.
 mod commit;
 mod contract;
+mod epoch_codec;
+mod epoch_store;
 mod hermes;
 mod prepare;
 mod providers;
@@ -8,6 +10,7 @@ pub use contract::*;
 pub use hermes::normalize_hermes_jsonl;
 #[cfg(test)]
 mod tests;
+pub(crate) use epoch_store::ImportEpochStore;
 pub(crate) use prepare::prepare;
 mod chatgpt;
 mod claude;

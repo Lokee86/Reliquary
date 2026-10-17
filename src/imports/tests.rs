@@ -107,6 +107,69 @@ fn deterministic_reimport_survives_reopen_and_order_changes() {
     assert_eq!(text(&mut cva, &receipt, 0), ["question", "answer"]);
     assert_eq!(cva.native_import_receipts(), vec![receipt]);
 }
+
+#[test]
+fn import_epoch_start_is_durable_and_fences_unrelated_writes() {
+    let f = Fixture::new();
+    let path = f.rel("epoch-fence.rel");
+    let mut cva = Cva::create(&path).unwrap();
+    let receipt = cva.import_native(&input(), 100).unwrap();
+    let start = cva.open_import_epoch().expect("import start");
+    assert_eq!(start.import_key, receipt.import_key);
+    assert!(cva.import_epoch_status(&start.import_id).is_some());
+    let before = (
+        cva.latest_global_version(),
+        cva.archive_version(),
+        fs::metadata(&path).unwrap().len(),
+    );
+    assert!(
+        cva.append_node(
+            "unrelated".into(),
+            "live".into(),
+            None,
+            "user".into(),
+            101,
+            "must be fenced",
+        )
+        .is_err()
+    );
+    assert_eq!(
+        before,
+        (
+            cva.latest_global_version(),
+            cva.archive_version(),
+            fs::metadata(&path).unwrap().len(),
+        )
+    );
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        cva.with_import_write_scope(|_| panic!("scope cleanup probe"));
+    }));
+    assert!(panic.is_err());
+    assert!(
+        cva.set_rel_metadata(Some("still-fenced".into()), Vec::new())
+            .is_err()
+    );
+    drop(cva);
+
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.open_import_epoch(), Some(start));
+    assert_eq!(reopened.import_native(&input(), 200).unwrap(), receipt);
+    assert!(
+        reopened
+            .set_rel_metadata(Some("fenced".into()), Vec::new())
+            .is_err()
+    );
+}
+
+#[test]
+fn open_epoch_rejects_conflicting_import_input() {
+    let f = Fixture::new();
+    let mut cva = Cva::create(f.rel("epoch-conflict.rel")).unwrap();
+    cva.import_native(&input(), 100).unwrap();
+    let mut conflicting = input();
+    conflicting.source_namespace = "agent/account-2".into();
+    assert!(cva.import_native(&conflicting, 200).is_err());
+}
 #[test]
 fn branches_queue_each_source_node_once() {
     let f = Fixture::new();

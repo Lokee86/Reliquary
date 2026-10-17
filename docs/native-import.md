@@ -14,7 +14,7 @@ This document owns the current versioned native import contract, supported norma
 
 ## Overview
 
-The public `imports` module supplies `NativeImport`, conversation/message/branch/artifact DTOs, `ImportReceipt`, and four byte-only normalizers. `Cva::import_native(input, now_ns)` is the single exclusive/offline commit path. It uses existing Archive turn/file/branch publication and Import-priority Insomnia scheduling. It never mounts another runtime, follows an artifact URL/path, reads credentials, selects an instance conversation, or writes PHY state.
+The public `imports` module supplies `NativeImport`, conversation/message/branch/artifact DTOs, `ImportReceipt`, epoch status DTOs, and four byte-only normalizers. `Cva::import_native(input, now_ns)` is the single exclusive/offline construction path. It opens or resumes one deterministic durable epoch before using existing Archive turn/file/branch publication and Import-priority Insomnia scheduling. It never mounts another runtime, follows an artifact URL/path, reads credentials, selects an instance conversation, or writes PHY state.
 
 Mounted F5 management must add exact REL authorization, canonical P4 mutation admission and coordinator inventory refresh around this same owner operation. No mounted import primitive is claimed by this branch.
 
@@ -46,7 +46,9 @@ Artifacts use Archive's existing native File identity. Receipts retain source ar
 
 ## Publication and recovery
 
-Preparation validates the complete batch before writes. The commit path validates known source revision immutability, ingests deterministic Nodes/attachments, publishes branch heads/title metadata, materializes imported Episodes, repairs Import-priority queue admission, publishes an Archive receipt, then synchronizes before returning it.
+Preparation validates the complete batch before writes. The commit path synchronizes `ImportStart`, enters the private import-attributed physical-write scope, validates known source revision immutability, ingests deterministic Nodes/attachments, publishes branch heads/title metadata, materializes imported Episodes, repairs Import-priority queue admission, publishes an Archive receipt, then synchronizes before returning it. Returning the receipt does not imply epoch completion. Exact receipt retry is idempotent. Any unrelated ordinary write while the epoch is open fails at generic physical admission before version or file mutation.
+
+No public or caller-supplied completion-proof API exists. Completion remains fail closed until Insomnia/vector/semantic/Dream/Perception/Ego work is attributable to the import and Historical Freshness publishes an accepted settlement keyed by the same import ID. Only vectors may eventually use an explicit supported-unavailable disposition. The frozen integration contract requires the coordinator to derive every other readiness fact from authoritative stores, validate exact start/receipt/settlement identity and monotone post cuts, append/synchronize one `ImportComplete`, and then reopen ordinary write admission.
 
 Import Episode coverage belongs to Archive and is per immutable source Node across branches. Already covered shared prefixes are skipped; contiguous uncovered ranges use the existing response-cycle and byte packing policy. Native continuation of an imported conversation reuses that branch-aware coverage with Live origin/priority; imported alternative paths cannot block its finalization. Conversations without import history retain their sequential scheduling policy. Queue identity and completed/leased work remain Insomnia-owned.
 

@@ -26,6 +26,8 @@ impl Container {
             next_version: 1,
             transaction_times: BTreeMap::new(),
             next_transaction_time_override: None,
+            write_admission_closed: false,
+            owner_write_scope: false,
         })
     }
 
@@ -58,6 +60,8 @@ impl Container {
             next_version: 1,
             transaction_times: BTreeMap::new(),
             next_transaction_time_override: None,
+            write_admission_closed: false,
+            owner_write_scope: false,
         };
         container.scan_payloads(&mut visitor)?;
         Ok(container)

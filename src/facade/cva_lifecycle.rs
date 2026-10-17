@@ -150,6 +150,7 @@ impl Cva {
         let processing_epochs = ProcessingEpochStore::default();
         let dream_pairs = DreamPairStore::default();
         let insomnia = InsomniaStore::empty();
+        let import_epochs = crate::imports::ImportEpochStore::default();
         let lexical_index = LexicalIndex::default();
         let packed_vectors = PackedVectorStore::default();
         let memory_vectors = MemoryVectorStore::default();
@@ -193,6 +194,7 @@ impl Cva {
             graph,
             communities,
             insomnia,
+            import_epochs,
             lexical_index,
             packed_vectors,
             memory_vectors,
@@ -222,6 +224,7 @@ impl Cva {
         let mut graph_state = GraphOpenState::new();
         let mut community_state = CommunityOpenState::new();
         let mut insomnia_state = InsomniaOpenState::new();
+        let mut import_epochs = crate::imports::ImportEpochStore::default();
         let mut packed_state = PackedVectorOpenState::new();
         let mut memory_vector_state = MemoryVectorOpenState::new();
         let mut archive_vector_state = ArchiveVectorOpenState::new();
@@ -256,6 +259,7 @@ impl Cva {
                 }
                 OpenRecordRoute::ContainerVersion => {}
                 OpenRecordRoute::Fallback => {
+                    import_epochs.ingest(payload)?;
                     external_index.ingest(payload);
                     archive_state.ingest(chunk, payload, latest_global)?;
                     memory_state.ingest(chunk, payload, latest_global)?;
@@ -312,6 +316,8 @@ impl Cva {
                 "file is not a Reliquary",
             ));
         }
+        let import_open = import_epochs.open().is_some();
+        container.set_write_admission_closed(import_open);
         freshness
             .bind_owner(container.owner_uuid())
             .map_err(CvaError::Freshness)?;
@@ -521,6 +527,8 @@ impl Cva {
         if repaired_entity_resolutions > 0 {
             container.sync()?;
         }
+        import_epochs.validate_owner(container.owner_uuid())?;
+        import_epochs.validate_receipts(&archive.import_receipts)?;
         let mut result = Self {
             external_index,
             container,
@@ -532,6 +540,7 @@ impl Cva {
             graph,
             communities,
             insomnia,
+            import_epochs,
             lexical_index,
             packed_vectors,
             memory_vectors,

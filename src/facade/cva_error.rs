@@ -15,6 +15,7 @@ pub enum CvaError {
     Graph(GraphError),
     Communities(CommunityError),
     Insomnia(InsomniaError),
+    Import(crate::imports::ImportError),
     PackedVectors(PackedVectorError),
     MemoryVectors(MemoryVectorError),
     ArchiveVectors(ArchiveVectorError),
@@ -44,6 +45,7 @@ impl fmt::Display for CvaError {
             Self::Graph(error) => write!(f, "{error}"),
             Self::Communities(error) => write!(f, "{error}"),
             Self::Insomnia(error) => write!(f, "{error}"),
+            Self::Import(error) => write!(f, "{error}"),
             Self::PackedVectors(error) => write!(f, "{error}"),
             Self::MemoryVectors(error) => write!(f, "{error}"),
             Self::ArchiveVectors(error) => write!(f, "{error}"),
@@ -91,6 +93,7 @@ from_error!(RelationshipError, Relationships);
 from_error!(GraphError, Graph);
 from_error!(CommunityError, Communities);
 from_error!(InsomniaError, Insomnia);
+from_error!(crate::imports::ImportError, Import);
 from_error!(PackedVectorError, PackedVectors);
 from_error!(MemoryVectorError, MemoryVectors);
 from_error!(ArchiveVectorError, ArchiveVectors);

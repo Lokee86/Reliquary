@@ -60,6 +60,9 @@ pub(super) fn commit<T>(
         &mut crate::InteractionRuntime,
     ) -> Result<(T, bool, Vec<RelInvalidation>), ReliquaryRuntimeHostError>,
 ) -> Result<T, ReliquaryRuntimeHostError> {
+    if runtime.cva().open_import_epoch().is_some() {
+        return Err(operation("REL mutation is fenced by an open import epoch"));
+    }
     let before = cut(runtime);
     // Freshness does not have a source watermark in this distribution protocol.
     // Distinguish validation failures (safe to retry) from unknown partial appends.

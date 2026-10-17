@@ -14,6 +14,12 @@ The existing Ego Identity/Anchor deleted-record encoding is unchanged. Replay re
 
 Rebuild applies only Archive-versioned receipt records. Reconciliation republishes identical source evidence through Archive; reclamation retains published receipt backing. Older readers that do not recognize this new semantic family cannot safely open versioned receipt-bearing files. Existing files without receipts retain their format and open behavior. [Native import contract](native-import.md) owns identity/retry and snapshot semantics.
 
+## Import epoch boundary records
+
+`CVAIEPS1` and `CVAIEPC1` are owner-level import metadata, not semantic global-version records. Each is eight magic bytes, a little-endian u32 JSON byte length, and exact Serde JSON for `ImportStart` or `ImportComplete`; trailing or truncated bytes fail closed. Start records bind owner UUID, deterministic import ID, canonical import key, source namespace/format, time and pre-import global/Archive/Memory/Entity/Relationship/full-Graph/Memory-Graph/vector cuts. Completion additionally binds the exact start digest, Archive receipt digest, post-import cuts and Historical Freshness settlement digest.
+
+Rebuild permits at most one open epoch, requires start-before-completion ordering, validates owner and deterministic identity before store mutation, validates start and receipt digests, and requires monotone cuts and times. A normal REL has no epoch records. Current code writes starts but intentionally exposes no completion mutation path until attributed derived-work and Freshness settlement authority exists.
+
 ## C8 embedding retention
 
 C8 uses the existing exact Archive Fragment, PackedVectors, ArchiveVectors and VectorGeneration records without a format/version change. Each successful batch publishes a canonical FragmentId-ordered union, preserving prior rows byte-for-byte, and synchronizes its generation. Intermediate backing records without a published generation are not source-readiness evidence. Container's internal bounded-read guard limits hydration allocation without gaining semantic authority.

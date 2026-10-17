@@ -12,6 +12,10 @@ impl Cva {
         now_ns: i64,
     ) -> Result<ImportReceipt, ImportError> {
         let prepared = prepare(input)?;
+        let owner_uuid = self.owner_uuid().ok_or(ImportError::Epoch(
+            "native import requires a durable owner UUID",
+        ))?;
+        let import_id = super::epoch_store::import_id(owner_uuid, &prepared.receipt.import_key);
         if let Some(existing) = self
             .archive
             .import_receipts
@@ -24,6 +28,38 @@ impl Cva {
             self.container.sync()?;
             return Ok(receipt);
         }
+        if let Some(open) = self.import_epochs.open() {
+            if open.import_id != import_id
+                || open.import_key != prepared.receipt.import_key
+                || open.source_namespace != prepared.receipt.source_namespace
+                || open.source_format != prepared.receipt.source_format
+            {
+                return Err(ImportError::Epoch(
+                    "conflicting import while an epoch is open",
+                ));
+            }
+        } else {
+            let start = ImportStart {
+                owner_uuid,
+                import_id: import_id.clone(),
+                import_key: prepared.receipt.import_key.clone(),
+                source_namespace: prepared.receipt.source_namespace.clone(),
+                source_format: prepared.receipt.source_format.clone(),
+                started_at_ns: now_ns,
+                pre: self.import_watermarks(),
+            };
+            self.import_epochs
+                .append_start(&mut self.container, start)?;
+            self.container.sync()?;
+        }
+        self.with_import_write_scope(|cva| cva.commit_prepared_import(prepared, now_ns))
+    }
+
+    fn commit_prepared_import(
+        &mut self,
+        prepared: super::prepare::PreparedImport,
+        now_ns: i64,
+    ) -> Result<ImportReceipt, ImportError> {
         // Archive owns revision consistency for import, reopen and reconciliation.
         self.archive.validate_import_revisions(&prepared.receipt)?;
         for turn in prepared.turns {
@@ -75,7 +111,45 @@ impl Cva {
         Ok(prepared.receipt)
     }
 
+    pub(super) fn with_import_write_scope<T>(
+        &mut self,
+        operation: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        self.container.set_owner_write_scope(true);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| operation(self)));
+        self.container.set_owner_write_scope(false);
+        match result {
+            Ok(value) => value,
+            Err(payload) => std::panic::resume_unwind(payload),
+        }
+    }
+
     pub fn native_import_receipts(&self) -> Vec<ImportReceipt> {
         self.archive.import_receipts.values().cloned().collect()
+    }
+
+    pub fn open_import_epoch(&self) -> Option<ImportStart> {
+        self.import_epochs.open().cloned()
+    }
+
+    pub fn import_epoch_status(&self, import_id: &str) -> Option<ImportEpochStatus> {
+        self.import_epochs.status(import_id)
+    }
+
+    pub fn import_epoch_statuses(&self) -> Vec<ImportEpochStatus> {
+        self.import_epochs.statuses()
+    }
+
+    fn import_watermarks(&self) -> ImportWatermarks {
+        ImportWatermarks {
+            global_version: self.latest_global_version(),
+            archive_version: self.archive_version(),
+            memory_version: self.memory_version(),
+            entity_version: self.entities.entity_version(),
+            relationship_version: self.relationships.relationship_version(),
+            graph_version: self.graph.graph_version(),
+            memory_graph_version: self.graph.memory_graph_version(),
+            vector_version: self.vector_generations.vector_version(),
+        }
     }
 }

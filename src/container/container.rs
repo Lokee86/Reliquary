@@ -113,6 +113,8 @@ pub struct Container {
     pub(crate) next_version: u64,
     pub(crate) transaction_times: BTreeMap<u64, i64>,
     pub(crate) next_transaction_time_override: Option<Option<i64>>,
+    write_admission_closed: bool,
+    owner_write_scope: bool,
 }
 
 impl Container {
@@ -136,6 +138,8 @@ impl Container {
             next_version: 1,
             transaction_times: BTreeMap::new(),
             next_transaction_time_override: None,
+            write_admission_closed: false,
+            owner_write_scope: false,
         })
     }
 
@@ -169,6 +173,8 @@ impl Container {
             next_version: 1,
             transaction_times: BTreeMap::new(),
             next_transaction_time_override: None,
+            write_admission_closed: false,
+            owner_write_scope: false,
         })
     }
 
@@ -196,15 +202,37 @@ impl Container {
             next_version: 1,
             transaction_times: BTreeMap::new(),
             next_transaction_time_override: None,
+            write_admission_closed: false,
+            owner_write_scope: false,
         })
     }
 
     pub fn append(&mut self, payload: &[u8]) -> Result<ObjectRef, ContainerError> {
+        self.require_write_admission()?;
         let len = u64::try_from(payload.len()).map_err(|_| ContainerError::ChunkTooLarge)?;
         let offset = self.file.seek(SeekFrom::End(0))?;
         self.file.write_all(&len.to_le_bytes())?;
         self.file.write_all(payload)?;
         Ok(ObjectRef::from_chunk(ChunkRef { offset, len }))
+    }
+
+    pub(crate) fn set_write_admission_closed(&mut self, closed: bool) {
+        self.write_admission_closed = closed;
+        if !closed {
+            self.owner_write_scope = false;
+        }
+    }
+
+    pub(crate) fn set_owner_write_scope(&mut self, active: bool) {
+        self.owner_write_scope = active;
+    }
+
+    pub(crate) fn require_write_admission(&self) -> Result<(), ContainerError> {
+        if self.write_admission_closed && !self.owner_write_scope {
+            Err(ContainerError::WriteAdmissionClosed)
+        } else {
+            Ok(())
+        }
     }
 
     /// Physical allocation guard; semantic owners choose the byte budget.
@@ -239,6 +267,7 @@ impl Container {
         object: ObjectRef,
         payload: &[u8],
     ) -> Result<(), ContainerError> {
+        self.require_write_admission()?;
         let chunk = object.into_chunk();
         let payload_len =
             u64::try_from(payload.len()).map_err(|_| ContainerError::ChunkTooLarge)?;
@@ -259,6 +288,7 @@ impl Container {
         first_len: u64,
         second_prefix: &[u8],
     ) -> Result<(ObjectRef, ObjectRef), ContainerError> {
+        self.require_write_admission()?;
         let chunk = object.into_chunk();
         let second_len = chunk
             .len
@@ -303,6 +333,7 @@ impl Container {
         first_object: ObjectRef,
         second_object: ObjectRef,
     ) -> Result<ObjectRef, ContainerError> {
+        self.require_write_admission()?;
         let first = first_object.into_chunk();
         let second = second_object.into_chunk();
         let expected_second = first
@@ -503,6 +534,7 @@ impl Container {
         &mut self,
         object: ObjectRef,
     ) -> Result<bool, ContainerError> {
+        self.require_write_admission()?;
         let chunk = object.into_chunk();
         let end = chunk
             .offset
@@ -536,6 +568,7 @@ pub enum ContainerError {
     InvalidTransactionTime,
     VersionExhausted,
     ChunkTooLarge,
+    WriteAdmissionClosed,
 }
 
 impl From<io::Error> for ContainerError {

@@ -16,7 +16,7 @@ EgoStore remains the sole owner of Identity and Anchor lifecycle. Existing delet
 
 ## Native historical import ownership
 
-The branch-local G-import implementation normalizes supplied provider/agent bytes in `src/imports/`; `Cva::import_native` composes existing turn/file/branch publication and Insomnia scheduling. Archive owns source mappings, revision/delete/artifact evidence and `CVAIMPT1` receipt publication/rebuild. Import Episode coverage is per immutable source Node across branches, using existing response-cycle packing. No second queue, runtime, store or semantic clock is introduced. Live scheduling is unchanged. Exact retry and partial progress recovery are specified in [Native historical import](native-import.md). Mounted F5 authorization/P4/coordinator integration remains unimplemented.
+The import/CVA boundary owns durable `ImportStart` / `ImportComplete` metadata in `ImportEpochStore`; Archive continues to own source mappings, revision/delete/artifact evidence and `CVAIMPT1` receipts. `Cva::import_native` durably opens or resumes the deterministic owner-plus-import-key epoch before import mutation and uses a private scoped physical-write capability. An open epoch closes generic Container write admission for every ordinary facade/store append, including after reopen. Completion remains unavailable until import-attributed derived-work status and import-scoped Historical Freshness settlement are integrated, so current epochs remain open and fail closed rather than publishing unsupported completion evidence. Mounted native-import admission and attributed background execution remain unimplemented.
 
 ## Freshness retrieval and consumption
 

@@ -40,6 +40,7 @@ pub struct Cva {
     pub(crate) processing_epochs: ProcessingEpochStore,
     pub(crate) dream_pairs: DreamPairStore,
     pub(crate) insomnia: InsomniaStore,
+    pub(crate) import_epochs: crate::imports::ImportEpochStore,
     pub(crate) lexical_index: LexicalIndex,
     pub(crate) packed_vectors: PackedVectorStore,
     pub(crate) memory_vectors: MemoryVectorStore,
