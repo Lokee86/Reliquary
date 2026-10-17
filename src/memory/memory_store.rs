@@ -154,7 +154,9 @@ impl MemoryStore {
             return Err(MemoryError::TerminalTombstone);
         }
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
-            if self.records[index].id != target_id {
+            if self.records[index].id != target_id
+                && self.tombstones.contains_key(&self.records[index].id)
+            {
                 return Err(MemoryError::MutationConflict);
             }
             let existing = self.resolve_record(container, &self.records[index])?;
