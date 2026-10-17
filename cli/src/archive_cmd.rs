@@ -14,6 +14,8 @@ pub fn run(command: ArchiveCommand) -> Result<()> {
         } => show(&cva, &conversation, &branch),
         ArchiveCommand::Fragments { cva, conversation } => fragments(&cva, conversation.as_deref()),
         ArchiveCommand::Fragment { cva, id } => fragment(&cva, &id),
+        ArchiveCommand::Tombstone { cva, conversation } => tombstone(&cva, &conversation),
+        ArchiveCommand::Lifecycle { cva, conversation } => lifecycle(&cva, &conversation),
     }
 }
 
@@ -66,6 +68,38 @@ fn fragments(path: &std::path::Path, conversation: Option<&str>) -> Result<()> {
             fragment.start_node_id,
             fragment.end_node_id
         );
+    }
+    Ok(())
+}
+
+fn tombstone(path: &std::path::Path, conversation: &str) -> Result<()> {
+    let mut cva = Cva::open(path)?;
+    let published = cva.tombstone_conversation(conversation)?;
+    cva.sync()?;
+    let status = if published {
+        "published"
+    } else {
+        "already-tombstoned"
+    };
+    println!("conversation={conversation} lifecycle=tombstoned result={status}");
+    Ok(())
+}
+
+fn lifecycle(path: &std::path::Path, conversation: &str) -> Result<()> {
+    let cva = Cva::open(path)?;
+    let state = cva
+        .conversation_lifecycle_state(conversation)
+        .map_err(|error| anyhow!("{error:?}"))?;
+    match state {
+        reliquary_memory::owner_lifecycle::LifecycleState::Active => {
+            println!("conversation={conversation} lifecycle=active");
+        }
+        reliquary_memory::owner_lifecycle::LifecycleState::Tombstoned(at) => {
+            println!(
+                "conversation={conversation} lifecycle=tombstoned global_version={:?} archive_version={:?}",
+                at.global_version, at.domain_version
+            );
+        }
     }
     Ok(())
 }

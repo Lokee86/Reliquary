@@ -140,6 +140,18 @@ pub enum ArchiveCommand {
         cva: PathBuf,
         id: String,
     },
+    Tombstone {
+        #[arg(value_name = "REL")]
+        cva: PathBuf,
+        #[arg(long)]
+        conversation: String,
+    },
+    Lifecycle {
+        #[arg(value_name = "REL")]
+        cva: PathBuf,
+        #[arg(long)]
+        conversation: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]

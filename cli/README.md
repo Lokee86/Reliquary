@@ -16,7 +16,7 @@ The package can be removed or moved without changing the core library. If detach
 
 - `cva`: create, inspect, and verify CVAs.
 - `import graph-jsonl`: ingest the current graph JSONL development corpus format.
-- `archive`: list conversations/branches, show branch turns, and inspect fragments.
+- `archive`: list conversations/branches, show branch turns, inspect fragments, inspect typed conversation lifecycle, and tombstone a conversation directly. Tombstoning is terminal, idempotent, and does not cascade to downstream Memory or Entity state.
 - `config`: inspect/verify config, manage encrypted credentials, and select General/Insomnia/Insomnia-metadata/Dream/Embedding routes. Route validation is library-owned.
 - `vectors`: inspect profiles/generations and dispatch configured live probe/build operations through the library runtime surface.
 - `insomnia run`: dispatch the configured finite Insomnia workflow with operator concurrency/routing options; queueing, model composition, owner routing, persistence, and Memory-vector completion are library-owned.

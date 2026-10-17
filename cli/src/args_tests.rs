@@ -58,6 +58,41 @@ fn rel_create_accepts_arbitrary_type_label() {
 }
 
 #[test]
+fn archive_tombstone_and_lifecycle_management_commands_parse() {
+    let tombstone = Cli::try_parse_from([
+        "reliquary",
+        "archive",
+        "tombstone",
+        "sample.rel",
+        "--conversation",
+        "conversation-1",
+    ])
+    .unwrap();
+    assert!(matches!(
+        tombstone.command,
+        Command::Archive {
+            command: crate::args::ArchiveCommand::Tombstone { conversation, .. }
+        } if conversation == "conversation-1"
+    ));
+
+    let lifecycle = Cli::try_parse_from([
+        "reliquary",
+        "archive",
+        "lifecycle",
+        "sample.rel",
+        "--conversation",
+        "conversation-1",
+    ])
+    .unwrap();
+    assert!(matches!(
+        lifecycle.command,
+        Command::Archive {
+            command: crate::args::ArchiveCommand::Lifecycle { conversation, .. }
+        } if conversation == "conversation-1"
+    ));
+}
+
+#[test]
 fn api_key_command_accepts_stdin_mode_without_secret_argument() {
     let cli = Cli::try_parse_from([
         "reliquary",

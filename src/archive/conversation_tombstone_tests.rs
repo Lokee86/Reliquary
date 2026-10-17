@@ -100,11 +100,9 @@ fn terminal_conversation_tombstone_reopens_with_historical_closure_only() {
     assert!(reopened.conversation_summaries().is_empty());
     assert!(reopened.branches().is_empty());
     assert_eq!(reopened.historical_branches().len(), 1);
-    assert!(
-        reopened
-            .historical_conversation_metadata("conversation")
-            .is_some()
-    );
+    assert!(reopened
+        .historical_conversation_metadata("conversation")
+        .is_some());
     assert_eq!(
         reopened
             .historical_conversation_turns("conversation", "root")
@@ -182,4 +180,241 @@ fn reconcile_reports_update_delete_conflict_in_both_directions() {
         ));
         assert!(!output.exists());
     }
+}
+
+#[test]
+fn tombstone_crash_prefix_reclaim_and_reconcile_preserve_archive_history() {
+    use crate::owner_lifecycle::{
+        LifecycleError, LifecycleState, LifecycleTarget, TombstoneCoordinates,
+    };
+
+    let dir = test_dir();
+    let source = dir.join("source.rel");
+    let divergent = dir.join("divergent.rel");
+    let reclaimed = dir.join("reclaimed.rel");
+    let merged = dir.join("merged.rel");
+
+    create_base(&source);
+    let (memory, entity, attachment_id, original_closure, activity_positions) = {
+        let mut cva = Cva::open(&source).unwrap();
+        cva.set_conversation_title("conversation", "Revised".into())
+            .unwrap();
+        let ingested = cva
+            .ingest_turn(IncomingTurn {
+                id: "child".into(),
+                conversation_id: "conversation".into(),
+                parent_id: Some("root".into()),
+                role: "assistant".into(),
+                principal_id: None,
+                timestamp_ns: 2,
+                content: "second turn".into(),
+                attachments: vec![crate::IncomingAttachment {
+                    filename: "notes.txt".into(),
+                    mime_type: Some("text/plain".into()),
+                    bytes: b"conversation attachment".to_vec(),
+                }],
+                project_attachments: Vec::new(),
+            })
+            .unwrap();
+        let attachment_id = ingested.attachments[0].id;
+        cva.append_branch(Branch {
+            id: "main".into(),
+            conversation_id: "conversation".into(),
+            leaf_node_id: "child".into(),
+            canonical: true,
+        })
+        .unwrap();
+        cva.append_branch(Branch {
+            id: "alternate".into(),
+            conversation_id: "conversation".into(),
+            leaf_node_id: "root".into(),
+            canonical: false,
+        })
+        .unwrap();
+        let (memory, _) = cva.publish_memory(None, 0, memory_draft()).unwrap();
+        let entity = cva
+            .publish_entity(
+                None,
+                0,
+                crate::EntityDraft {
+                    canonical_name: "Independent downstream entity".into(),
+                    aliases: Vec::new(),
+                    kind: "test".into(),
+                    summary: "Survives direct-only Archive deletion".into(),
+                    mutation_id: "conversation-tombstone-survivor".into(),
+                    created_at_ns: 1,
+                    updated_at_ns: 1,
+                },
+            )
+            .unwrap()
+            .0;
+        cva.link_file_to_memory(attachment_id, memory.id).unwrap();
+        assert_eq!(
+            cva.conversation_lifecycle_state("conversation").unwrap(),
+            LifecycleState::Active
+        );
+        let activity_positions = ["root", "child"].map(|node| {
+            cva.activity_position_for_turn("conversation", node)
+                .unwrap()
+        });
+        let downstream_versions = (cva.memory_version(), cva.entity_version());
+        cva.sync().unwrap();
+        fs::copy(&source, &divergent).unwrap();
+        let tombstone = {
+            cva.tombstone_conversation("conversation").unwrap();
+            cva.conversation_tombstone("conversation").unwrap().clone()
+        };
+        assert_eq!(
+            cva.conversation_lifecycle_state("conversation").unwrap(),
+            LifecycleState::Tombstoned(TombstoneCoordinates {
+                global_version: Some(tombstone.global_version),
+                domain_version: Some(tombstone.archive_version),
+            })
+        );
+        let versions = (cva.archive_version(), cva.latest_global_version());
+        assert!(!cva.tombstone_conversation("conversation").unwrap());
+        assert_eq!(
+            versions,
+            (cva.archive_version(), cva.latest_global_version())
+        );
+        assert_eq!(
+            downstream_versions,
+            (cva.memory_version(), cva.entity_version())
+        );
+        assert_eq!(tombstone.closure.node_ids, vec!["child", "root"]);
+        assert_eq!(tombstone.closure.branch_ids, vec!["alternate", "main"]);
+        assert_eq!(tombstone.closure.metadata_archive_versions.len(), 2);
+        assert_eq!(tombstone.closure.file_ids, vec![attachment_id]);
+        (
+            memory,
+            entity,
+            attachment_id,
+            tombstone.closure,
+            activity_positions,
+        )
+    };
+
+    {
+        let mut branch = Cva::open(&divergent).unwrap();
+        branch
+            .ingest_turn(turn("unrelated", "unrelated-root", None))
+            .unwrap();
+        branch.sync().unwrap();
+    }
+
+    let mut reopened = Cva::open(&source).unwrap();
+    let tombstone = reopened
+        .conversation_tombstone("conversation")
+        .unwrap()
+        .clone();
+    assert_eq!(tombstone.closure, original_closure);
+    assert!(reopened.branches().is_empty());
+    assert!(reopened.conversation_summaries().is_empty());
+    assert_eq!(reopened.historical_branches().len(), 2);
+    assert_eq!(
+        reopened
+            .historical_conversation_turns("conversation", "child")
+            .unwrap()
+            .iter()
+            .map(|turn| turn.node_id.as_str())
+            .collect::<Vec<_>>(),
+        vec!["root", "child"]
+    );
+    assert_eq!(
+        ["root", "child"].map(|node| reopened
+            .activity_position_for_turn("conversation", node)
+            .unwrap()),
+        activity_positions
+    );
+    assert_eq!(
+        reopened
+            .conversation_lifecycle_state("conversation")
+            .unwrap(),
+        LifecycleState::Tombstoned(TombstoneCoordinates {
+            global_version: Some(tombstone.global_version),
+            domain_version: Some(tombstone.archive_version),
+        })
+    );
+    assert_eq!(reopened.memory(memory.id).unwrap().id, memory.id);
+    assert_eq!(reopened.entity(entity.id).unwrap().id, entity.id);
+    assert_eq!(reopened.file_memory_links(attachment_id).len(), 1);
+    assert_eq!(
+        reopened.file_bytes(attachment_id).unwrap(),
+        b"conversation attachment"
+    );
+
+    let pre_reclaim = (
+        reopened.latest_global_version(),
+        reopened.archive_version(),
+        reopened.memory_version(),
+        reopened
+            .activity_cut_at_archive_version(reopened.archive_version())
+            .unwrap(),
+    );
+    let report = reopened.reclaim_storage(&reclaimed).unwrap();
+    assert!(report.output_file_bytes > 0);
+    drop(reopened);
+
+    let mut reclaimed_rel = Cva::open(&reclaimed).unwrap();
+    assert_eq!(
+        (
+            reclaimed_rel.latest_global_version(),
+            reclaimed_rel.archive_version(),
+            reclaimed_rel.memory_version(),
+            reclaimed_rel
+                .activity_cut_at_archive_version(reclaimed_rel.archive_version())
+                .unwrap(),
+        ),
+        pre_reclaim
+    );
+    assert_eq!(
+        reclaimed_rel
+            .conversation_tombstone("conversation")
+            .unwrap()
+            .closure,
+        original_closure
+    );
+    assert_eq!(
+        reclaimed_rel
+            .historical_conversation_turns("conversation", "child")
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(reclaimed_rel.memory(memory.id).unwrap().id, memory.id);
+    assert_eq!(reclaimed_rel.entity(entity.id).unwrap().id, entity.id);
+    assert_eq!(
+        reclaimed_rel.file_bytes(attachment_id).unwrap(),
+        b"conversation attachment"
+    );
+    assert!(matches!(
+        reclaimed_rel.conversation_lifecycle_state("missing"),
+        Err(LifecycleError::UnknownTarget(LifecycleTarget::Conversation(id))) if id == "missing"
+    ));
+    drop(reclaimed_rel);
+
+    Cva::reconcile(&source, &divergent, &merged).unwrap();
+    let mut reconciled = Cva::open(&merged).unwrap();
+    assert_eq!(
+        reconciled
+            .conversation_tombstone("conversation")
+            .unwrap()
+            .closure,
+        original_closure
+    );
+    assert_eq!(reconciled.historical_branches().len(), 2);
+    assert_eq!(
+        reconciled
+            .historical_conversation_turns("conversation", "child")
+            .unwrap()
+            .len(),
+        2
+    );
+    assert_eq!(reconciled.memory(memory.id).unwrap().id, memory.id);
+    assert_eq!(reconciled.entity(entity.id).unwrap().id, entity.id);
+    assert_eq!(reconciled.file_memory_links(attachment_id).len(), 1);
+    assert!(reconciled
+        .conversation_summaries()
+        .iter()
+        .any(|summary| summary.conversation_id == "unrelated"));
 }
