@@ -90,6 +90,7 @@ impl Cva {
         &mut self,
         policy: crate::freshness::FreshnessPolicy,
     ) -> Result<(), CvaError> {
+        self.container.require_write_admission()?;
         if self.dream_freshness.has_any() || !self.freshness.records().is_empty() {
             return Err(CvaError::Freshness(
                 "Freshness policy is immutable after first enrollment".into(),

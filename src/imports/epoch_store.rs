@@ -49,6 +49,10 @@ impl ImportEpochStore {
         if self.starts.contains_key(&start.import_id) {
             return Err(ImportError::Epoch("import start already exists"));
         }
+        self.validate_start(&start)?;
+        if container.owner_uuid() != Some(start.owner_uuid) {
+            return Err(ImportError::Epoch("import epoch owner mismatch"));
+        }
         container.append(&encode_start(&start)?)?;
         container.set_write_admission_closed(true);
         self.open = Some(start.import_id.clone());
@@ -128,9 +132,9 @@ impl ImportEpochStore {
         if start.import_id != import_id(start.owner_uuid, &start.import_key) {
             return Err(ImportError::Epoch("invalid deterministic import ID"));
         }
-        if start.import_key.is_empty()
-            || start.source_namespace.is_empty()
-            || start.source_format.is_empty()
+        if !is_canonical_import_key(&start.import_key)
+            || !valid_source_text(&start.source_namespace)
+            || !valid_source_text(&start.source_format)
         {
             return Err(ImportError::Epoch("incomplete import start identity"));
         }
@@ -175,6 +179,21 @@ pub(crate) fn import_id(owner_uuid: [u8; 16], import_key: &str) -> String {
         Sha256::digest([owner_uuid.as_slice(), import_key.as_bytes()].concat())
     )
 }
+
+fn is_canonical_import_key(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+}
+
+fn valid_source_text(value: &str) -> bool {
+    !value.is_empty() && value.len() <= 4096 && !value.contains('\0')
+}
+
+#[cfg(test)]
+#[path = "epoch_store_tests.rs"]
+mod tests;
 
 fn watermarks_monotone(pre: super::ImportWatermarks, post: super::ImportWatermarks) -> bool {
     post.global_version >= pre.global_version

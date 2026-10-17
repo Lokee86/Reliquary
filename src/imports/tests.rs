@@ -162,6 +162,45 @@ fn import_epoch_start_is_durable_and_fences_unrelated_writes() {
 }
 
 #[test]
+fn open_epoch_rejects_freshness_policy_change_without_mutating_projection() {
+    let f = Fixture::new();
+    let path = f.rel("freshness-fence.rel");
+    let mut cva = Cva::create(&path).unwrap();
+    cva.import_native(&input(), 100).unwrap();
+    let original_policy = cva.freshness_policy();
+    let before = (
+        cva.latest_global_version(),
+        cva.archive_version(),
+        fs::metadata(&path).unwrap().len(),
+    );
+    let changed_policy = crate::freshness::FreshnessPolicy {
+        decay_turns_per_point: 5,
+        access_principal: 30,
+        linkage_principal: 60,
+        local_hop_cost: 6,
+        outside_hop_cost: 12,
+    };
+    assert!(
+        cva.set_freshness_policy_before_enrollment(changed_policy)
+            .is_err()
+    );
+    assert_eq!(cva.freshness_policy(), original_policy);
+    assert_eq!(
+        before,
+        (
+            cva.latest_global_version(),
+            cva.archive_version(),
+            fs::metadata(&path).unwrap().len(),
+        )
+    );
+    drop(cva);
+
+    let reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.freshness_policy(), original_policy);
+    assert!(reopened.open_import_epoch().is_some());
+}
+
+#[test]
 fn open_epoch_rejects_conflicting_import_input() {
     let f = Fixture::new();
     let mut cva = Cva::create(f.rel("epoch-conflict.rel")).unwrap();
