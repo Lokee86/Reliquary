@@ -278,6 +278,9 @@ mod cva_graph;
 mod cva_historical_dream;
 #[path = "facade/cva_historical_import.rs"]
 mod cva_historical_import;
+#[cfg(test)]
+#[path = "tombstone_import_history_characterization_tests.rs"]
+mod tombstone_import_history_characterization_tests;
 pub use cva_historical_import::{
     HistoricalEmbeddingCoverage, HistoricalEmbeddingDisposition, HistoricalEmbeddingFailure,
     HistoricalEmbeddingLimits, HistoricalEmbeddingReport, HistoricalReconstructionError,
