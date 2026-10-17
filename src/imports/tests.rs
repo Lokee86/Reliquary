@@ -600,3 +600,128 @@ fn import_receipt_survives_reclaim_and_divergent_reconciliation() {
     let merged = Cva::open(f.rel("merged.rel")).unwrap();
     assert_eq!(merged.native_import_receipts().len(), 3);
 }
+
+fn current_watermarks(cva: &Cva) -> ImportWatermarks {
+    ImportWatermarks {
+        global_version: cva.latest_global_version(),
+        archive_version: cva.archive_version(),
+        memory_version: cva.memory_version(),
+        entity_version: cva.entities.entity_version(),
+        relationship_version: cva.relationships.relationship_version(),
+        graph_version: cva.graph.graph_version(),
+        memory_graph_version: cva.graph.memory_graph_version(),
+        vector_version: cva.vector_generations.vector_version(),
+    }
+}
+
+fn completion_for(
+    cva: &Cva,
+    start: &ImportStart,
+    receipt: &ImportReceipt,
+    completed_at_ns: i64,
+) -> ImportComplete {
+    ImportComplete {
+        owner_uuid: start.owner_uuid,
+        import_id: start.import_id.clone(),
+        start_digest: super::prepare::digest(start).unwrap(),
+        receipt_digest: super::prepare::digest(receipt).unwrap(),
+        completed_at_ns,
+        post: current_watermarks(cva),
+        historical_freshness_settlement_digest: "test-settlement-digest".into(),
+    }
+}
+
+#[test]
+fn native_only_rel_rebuilds_with_no_import_epoch_markers() {
+    let f = Fixture::new();
+    let path = f.rel("native-only.rel");
+    let mut cva = Cva::create(&path).unwrap();
+    assert!(cva.open_import_epoch().is_none());
+    assert!(cva.import_epoch_statuses().is_empty());
+
+    cva.append_node(
+        "native".into(),
+        "conversation".into(),
+        None,
+        "user".into(),
+        10,
+        "ordinary native write",
+    )
+    .unwrap();
+    assert!(cva.import_epoch_statuses().is_empty());
+    drop(cva);
+
+    let reopened = Cva::open(&path).unwrap();
+    assert!(reopened.open_import_epoch().is_none());
+    assert!(reopened.import_epoch_statuses().is_empty());
+}
+
+#[test]
+fn exact_import_retry_adds_no_marker_or_semantic_clock_change() {
+    let f = Fixture::new();
+    let path = f.rel("retry-no-extra-marker.rel");
+    let mut cva = Cva::create(&path).unwrap();
+    let receipt = cva.import_native(&input(), 100).unwrap();
+    let start = cva.open_import_epoch().unwrap().clone();
+    let before_len = fs::metadata(&path).unwrap().len();
+    let before_clocks = current_watermarks(&cva);
+
+    assert_eq!(cva.import_native(&input(), 200).unwrap(), receipt);
+    assert_eq!(fs::metadata(&path).unwrap().len(), before_len);
+    assert_eq!(current_watermarks(&cva), before_clocks);
+    assert_eq!(
+        cva.import_epoch_statuses(),
+        vec![ImportEpochStatus::Open(start.clone())]
+    );
+
+    drop(cva);
+    let mut reopened = Cva::open(&path).unwrap();
+    let before_retry_len = fs::metadata(&path).unwrap().len();
+    let before_retry_clocks = current_watermarks(&reopened);
+    assert_eq!(reopened.import_native(&input(), 300).unwrap(), receipt);
+    assert_eq!(fs::metadata(&path).unwrap().len(), before_retry_len);
+    assert_eq!(current_watermarks(&reopened), before_retry_clocks);
+    assert_eq!(reopened.open_import_epoch(), Some(start));
+    assert_eq!(reopened.import_epoch_statuses().len(), 1);
+}
+
+#[test]
+fn completed_epoch_rebuilds_and_completion_retry_is_exact() {
+    let f = Fixture::new();
+    let path = f.rel("completed-epoch-rebuild.rel");
+    let mut cva = Cva::create(&path).unwrap();
+    let receipt = cva.import_native(&input(), 100).unwrap();
+    let start = cva.open_import_epoch().unwrap().clone();
+    let complete = completion_for(&cva, &start, &receipt, 200);
+
+    cva.container.set_owner_write_scope(true);
+    cva.import_epochs
+        .append_complete(&mut cva.container, complete.clone())
+        .unwrap();
+    cva.container.sync().unwrap();
+    assert!(cva.open_import_epoch().is_none());
+
+    let completed_len = fs::metadata(&path).unwrap().len();
+    let completed_clocks = current_watermarks(&cva);
+    cva.import_epochs
+        .append_complete(&mut cva.container, complete.clone())
+        .unwrap();
+    let mut conflicting = complete.clone();
+    conflicting.receipt_digest.push('x');
+    assert!(
+        cva.import_epochs
+            .append_complete(&mut cva.container, conflicting)
+            .is_err()
+    );
+    assert_eq!(fs::metadata(&path).unwrap().len(), completed_len);
+    assert_eq!(current_watermarks(&cva), completed_clocks);
+
+    drop(cva);
+    let reopened = Cva::open(&path).unwrap();
+    assert!(reopened.open_import_epoch().is_none());
+    assert_eq!(
+        reopened.import_epoch_statuses(),
+        vec![ImportEpochStatus::Completed { start, complete }]
+    );
+    assert_eq!(reopened.native_import_receipts(), vec![receipt]);
+}

@@ -45,3 +45,69 @@ pub(crate) fn decode(payload: &[u8]) -> Result<Option<ImportEpochRecord>, Import
         ImportEpochRecord::Complete(serde_json::from_slice(body)?)
     }))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::imports::epoch_store::import_id;
+    use crate::imports::{ImportComplete, ImportStart, ImportWatermarks};
+
+    fn start() -> ImportStart {
+        let owner_uuid = [7; 16];
+        let import_key = "source/import-1".to_owned();
+        ImportStart {
+            owner_uuid,
+            import_id: import_id(owner_uuid, &import_key),
+            import_key,
+            source_namespace: "provider/account".into(),
+            source_format: "json-v1".into(),
+            started_at_ns: 100,
+            pre: ImportWatermarks::default(),
+        }
+    }
+
+    fn complete(start: &ImportStart) -> ImportComplete {
+        ImportComplete {
+            owner_uuid: start.owner_uuid,
+            import_id: start.import_id.clone(),
+            start_digest: crate::imports::prepare::digest(start).unwrap(),
+            receipt_digest: "receipt-digest".into(),
+            completed_at_ns: start.started_at_ns,
+            post: start.pre,
+            historical_freshness_settlement_digest: "settlement-digest".into(),
+        }
+    }
+
+    #[test]
+    fn start_and_complete_records_roundtrip_and_reject_bad_framing() {
+        let start = start();
+        let start_bytes = encode_start(&start).unwrap();
+        assert!(matches!(
+            decode(&start_bytes).unwrap(),
+            Some(ImportEpochRecord::Start(decoded)) if decoded == start
+        ));
+
+        let complete = complete(&start);
+        let complete_bytes = encode_complete(&complete).unwrap();
+        assert!(matches!(
+            decode(&complete_bytes).unwrap(),
+            Some(ImportEpochRecord::Complete(decoded)) if decoded == complete
+        ));
+
+        for bytes in [&start_bytes, &complete_bytes] {
+            for end in 8..bytes.len() {
+                assert!(
+                    decode(&bytes[..end]).is_err(),
+                    "accepted truncation at {end}"
+                );
+            }
+            let mut trailing = bytes.to_vec();
+            trailing.push(0);
+            assert!(decode(&trailing).is_err());
+
+            let mut bad_length = bytes.to_vec();
+            bad_length[8] ^= 1;
+            assert!(decode(&bad_length).is_err());
+        }
+    }
+}
