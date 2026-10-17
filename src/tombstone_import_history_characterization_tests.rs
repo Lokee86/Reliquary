@@ -1,5 +1,6 @@
 use crate::imports::{ImportBranch, ImportConversation, ImportMessage, NativeImport};
 use crate::{Cva, EntityDraft, SimulatedEmbeddingEndpoint, VectorNormalization};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 
 fn path(name: &str) -> std::path::PathBuf {
@@ -153,6 +154,50 @@ fn repeated_native_import_is_idempotent_after_reopen() {
             .windows(8)
             .any(|w| w == b"CVAFRS03")
     );
+    let mut later = native_input();
+    later.conversations[0].id = "later-conversation".into();
+    later.conversations[0].messages[0].content = "later question".into();
+    assert_ne!(reopened.import_native(&later, 300).unwrap(), receipt);
+    assert_eq!(reopened.native_import_receipts().len(), 2);
+}
+
+#[test]
+fn valid_legacy_cvafrs03_checkpoint_decodes_and_reopens_with_exact_fields() {
+    let file = path("legacy-checkpoint.rel");
+    let mut rel = Cva::create(&file).unwrap();
+    let owner = rel.owner_uuid().unwrap();
+    let memory = crate::MemoryId([7; 32]);
+    let record = crate::FreshnessRecord::created();
+    let checkpoint = crate::freshness_import_checkpoint::ImportCheckpoint {
+        owner,
+        import_id: [1; 32],
+        corpus_digest: [2; 32],
+        manifest_digest: [3; 32],
+        input_digest: [4; 32],
+        cohort: BTreeSet::from([memory]),
+        cut: 11,
+        global_version: 12,
+        input_bytes: 13,
+        archive_version: 14,
+        graph_version: 15,
+        memory_graph_version: 16,
+        records: BTreeMap::from([(memory, record)]),
+        superseded: BTreeSet::from(["legacy-event".into()]),
+    };
+    let bytes = checkpoint.encode();
+    assert_eq!(
+        crate::freshness_import_checkpoint::ImportCheckpoint::decode(&bytes).unwrap(),
+        checkpoint
+    );
+    rel.container.append(&bytes).unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+    let reopened = Cva::open(&file).unwrap();
+    assert_eq!(reopened.freshness.import_checkpoint(), Some(&checkpoint));
+    assert_eq!(
+        reopened.freshness.import_checkpoint().unwrap().records[&memory],
+        record
+    );
 }
 
 #[test]
@@ -169,8 +214,9 @@ fn reclaim_and_profile_generation_reopen_preserve_current_high_level_state() {
         "profile source",
     )
     .unwrap();
-    rel.materialize_path_fragments("c", "u", crate::FragmentConfig::default(), false)
+    rel.materialize_path_fragments("c", "u", crate::FragmentConfig::default(), true)
         .unwrap();
+    assert!(!rel.fragments().is_empty());
     let endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
     let profile = rel.establish_compatibility_profile(&endpoint).unwrap();
     rel.build_archive_vector_generation(profile.id, &endpoint)
