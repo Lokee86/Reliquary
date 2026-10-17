@@ -207,6 +207,18 @@ impl Container {
         Ok(ObjectRef::from_chunk(ChunkRef { offset, len }))
     }
 
+    /// Physical allocation guard; semantic owners choose the byte budget.
+    pub(crate) fn read_bounded(
+        &mut self,
+        object: ObjectRef,
+        max_bytes: usize,
+    ) -> Result<Vec<u8>, ContainerError> {
+        if object.into_chunk().len > max_bytes as u64 {
+            return Err(ContainerError::ChunkTooLarge);
+        }
+        self.read(object)
+    }
+
     pub fn read(&mut self, object: ObjectRef) -> Result<Vec<u8>, ContainerError> {
         let chunk = object.into_chunk();
         self.file.seek(SeekFrom::Start(chunk.offset))?;

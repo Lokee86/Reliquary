@@ -13,7 +13,10 @@ impl Cva {
         let accepted = self
             .archive
             .ingest_turn(&mut self.container, &self.project_files, turn)?;
-        self.freshness_on_accepted_activity(self.archive.rel_turn_count());
+        let accepted_turn = self.archive.rel_turn_count();
+        self.freshness_on_accepted_activity(accepted_turn);
+        // Semantic work is rediscovered after vector publication, not attempted
+        // prematurely or silently discarded during accepted source publication.
         Ok(accepted)
     }
 

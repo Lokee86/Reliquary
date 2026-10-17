@@ -10,6 +10,18 @@ The controller/decision modules, REL-local candidate pool and runtime agentic pr
 
 `src/imports/` maps to [Native historical import](native-import.md) and [API](api.md); Archive receipt/branch-aware import Episodes map to [Architecture](architecture.md), [Invariants](invariants.md) and [Storage format](storage-format.md). [Maintainer map](maintainer-map.md) routes ownership and [Behavioral contracts](behavioral-contracts.md) maps recovery/profile fixtures. Current source/format limitations are explicit in [Current limitations](current-limitations.md). The G specification remains the owner of unimplemented ACP/external-derived/host-specific work.
 
+## C8 owner/provider coverage
+
+HistoricalEmbeddingLimits/report/failure and the exclusive endpoint operation are documented in [Rust API](api.md); source-only ownership/lifecycle in [Architecture](architecture.md) and [Invariants](invariants.md); immutable vector retention in [Storage format](storage-format.md); configured post-generation sequencing in [Native import](native-import.md). Code lives under private cva_historical_import/historical_embedding modules and configured_runtime_historical. No mounted Gateway surface is added.
+
+## C9 native verification coverage
+
+The integrated historical matrix and upgraded event/transform tests map to [Behavioral contracts](behavioral-contracts.md#c9-integrated-historical-contracts), [Maintainer map](maintainer-map.md#integrated-historical-correctness-routing) and the [active completion ledger](freshness-historical-completion-execution-plan-2026-10-12.md#c9-integrated-native-correctness-matrix). Production API, checkpoint format, ownership and bounded provider contract are unchanged. [Current limitations](current-limitations.md) retains the C10–C12 acceptance/release gates and mounted-operation limitation.
+
+## Retained historical diagnosis coverage
+
+Retained-corpus diagnostic fixtures and their Python runner map to the [C10 failure ledger](freshness-historical-completion-execution-plan-2026-10-12.md#c10-retained-corpus-failure-diagnosis--2026-10-12), [Development](development.md), [Maintainer map](maintainer-map.md) and [Current limitations](current-limitations.md). This is executed failure diagnosis, not shipped legacy reconstruction support or release acceptance.
+
 ## Purpose
 
 This document maps implemented code boundaries to their canonical documentation owners.
@@ -159,3 +171,17 @@ The existing host router, live diagnostics and management health map to [Archite
 ## Architecture adapter profile
 
 The refresh wrapper defaults the Lexicon child environment's `CARGO_PROFILE_DEV_OPT_LEVEL` to `3`, because the Rust adapter launches through `cargo run`. An explicit caller setting takes precedence. This optimizes the analysis tool, retains the complete Rust corpus and all policy rules, and leaves ordinary application build/test profiles unchanged. Python source guards run independently of the Rust graph.
+
+## N2 live semantic fragments
+
+`src/facade/cva_semantic_fragment.rs` resolves retained source/availability proof under Archive authority; `cva_semantic_live.rs` rediscoveries and worker batching use fragments. Kind-4 receipt encoding remains in the existing `freshness_storage.rs`, and `cva_reconcile_freshness.rs` rebases every represented activity identity. [Architecture](architecture.md), [API](api.md), [Storage format](storage-format.md), [Invariants](invariants.md) and [Maintainer map](maintainer-map.md) own current behavior; [Behavioral contracts](behavioral-contracts.md) routes native fixtures.
+
+N3 historical fragment source ownership resides in `historical_semantic.rs`, `historical_events.rs`, `historical_manifest.rs` and the shared `cva_semantic_fragment.rs` adapter. `historical_embedding_plan.rs` fills existing fragments using Archive bounded ordinary rendering. `historical_semantic_tests.rs`, `historical_manifest_tests.rs`, `historical_embedding_evidence_tests.rs` and `cva_semantic_fragment_tests.rs` protect mixed availability, owner/fragment identity, generation-proof drift, total text bounds and external-grounding cohort exclusion. [Normalization disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md) records completed N1–N10 verification and retained C10 evidence.
+
+## N4 accepted Archive chronology
+
+[H1 policy](freshness-historical-manifest-policy.md) owns accepted-Archive chronology and policy version 3; API/storage/invariant owners describe their specific seams. Native clock/reconstruction/reopen/retry and pure invalid-map regressions cover N4. Authoritative fixture normalization and C10 calibration remain N5–N10; earlier timestamp-planner rejection evidence remains historical.
+
+## Retained historical verification route
+
+`dream_canonical.rs` owns historical duplicate/supersession authority; `historical_matrix_dream_tests.rs` protects composed chains, reopen/history preservation and invalid authority rejection. `historical_retained_corpus_tests.rs` and `scripts/freshness_historical_corpus.py` retain the native hash-backed C10 gate, mixed-fragment diagnostics and explicit accepted-input-prefix remeasurement. Temporary normalizer files and fixture-only hooks are deleted. The [retained normalization verification](freshness-retained-normalization-verification-2026-10-13.md) and its benchmark JSON artifacts retain exact owner/source evidence and measurement scopes.

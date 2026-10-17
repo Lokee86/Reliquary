@@ -20,7 +20,7 @@ pub fn default_worker_count() -> usize {
 const PARALLEL_BATCH_EVENTS: usize = 16;
 
 /// Fixed event-level resource budget; graph topology never affects scheduling.
-fn planned_event_workers(event_count: usize, requested_workers: usize) -> usize {
+pub(crate) fn planned_event_workers(event_count: usize, requested_workers: usize) -> usize {
     if event_count < PARALLEL_BATCH_EVENTS {
         return usize::from(event_count != 0);
     }
@@ -282,7 +282,7 @@ fn propagate_events_impl<const TRACK_STATS: bool>(
 
 /// Join every scoped worker even after a panic so no implicit scope join can
 /// turn a second worker failure into an escaping panic.
-fn join_event_workers<'scope, T>(
+pub(crate) fn join_event_workers<'scope, T>(
     handles: Vec<thread::ScopedJoinHandle<'scope, T>>,
 ) -> Result<Vec<T>, PropagationError> {
     let mut batches = Vec::with_capacity(handles.len());
@@ -309,19 +309,39 @@ fn propagate_serial_validated<const TRACK_STATS: bool>(
     memberships: &CommunityMembership,
     policy: &FreshnessPolicy,
 ) -> Result<PropagationOutcome, PropagationError> {
-    let mut origin_roots = BTreeMap::<Option<CommunityId>, BTreeSet<MemoryId>>::new();
-    for root in event
+    let roots = event
         .roots
         .iter()
         .copied()
-        .filter(|root| !event.excluded.contains(root))
-    {
-        origin_roots
-            .entry(memberships.get(&root).copied())
-            .or_default()
-            .insert(root);
-    }
+        .map(|id| (id, event.principal))
+        .collect();
+    Ok(propagate_frontier::<TRACK_STATS>(
+        &roots,
+        &event.excluded,
+        adjacency,
+        memberships,
+        policy,
+    ))
+}
 
+/// Shared numerical frontier. Callers validate their distinct event principals.
+/// Only traversal exclusions remove bridges; credit eligibility is a caller concern.
+pub(crate) fn propagate_frontier<const TRACK_STATS: bool>(
+    roots: &BTreeMap<MemoryId, i16>,
+    traversal_excluded: &BTreeSet<MemoryId>,
+    adjacency: &MemoryAdjacency,
+    memberships: &CommunityMembership,
+    policy: &FreshnessPolicy,
+) -> PropagationOutcome {
+    let mut origin_roots = BTreeMap::<Option<CommunityId>, BTreeMap<MemoryId, i16>>::new();
+    for (&root, &strength) in roots {
+        if !traversal_excluded.contains(&root) {
+            origin_roots
+                .entry(memberships.get(&root).copied())
+                .or_default()
+                .insert(root, strength);
+        }
+    }
     let mut candidates = BTreeMap::<MemoryId, i16>::new();
     let mut examined_edges = 0u64;
     let mut candidate_expansions = 0u64;
@@ -331,9 +351,9 @@ fn propagate_serial_validated<const TRACK_STATS: bool>(
     for (origin, roots) in origin_roots {
         let mut frontier = BTreeMap::<i16, BTreeSet<MemoryId>>::new();
         let mut best = BTreeMap::<MemoryId, i16>::new();
-        for root in roots {
-            frontier.entry(event.principal).or_default().insert(root);
-            best.insert(root, event.principal);
+        for (root, strength) in roots {
+            frontier.entry(strength).or_default().insert(root);
+            best.insert(root, strength);
         }
 
         while let Some((&strength, _)) = frontier.last_key_value() {
@@ -354,7 +374,7 @@ fn propagate_serial_validated<const TRACK_STATS: bool>(
                     if TRACK_STATS {
                         examined_edges = examined_edges.saturating_add(1);
                     }
-                    if event.excluded.contains(neighbor) {
+                    if traversal_excluded.contains(neighbor) {
                         continue;
                     }
                     let stays_in_origin =
@@ -400,7 +420,7 @@ fn propagate_serial_validated<const TRACK_STATS: bool>(
     } else {
         PropagationStats::default()
     };
-    Ok(PropagationOutcome { stats, candidates })
+    PropagationOutcome { stats, candidates }
 }
 
 #[cfg(test)]

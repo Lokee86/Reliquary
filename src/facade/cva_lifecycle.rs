@@ -468,6 +468,17 @@ impl Cva {
             })?;
         }
         freshness.finish_rebuild().map_err(CvaError::Freshness)?;
+        if let Some(a) = freshness.semantic_activation() {
+            let at = a
+                .boundary
+                .as_ref()
+                .map_or(Some(0), |(c, n)| archive.activity_position_for_turn(c, n));
+            if at != Some(a.accepted_turn) {
+                return Err(CvaError::Freshness(
+                    "semantic activation boundary is unavailable".into(),
+                ));
+            }
+        }
         let mut freshness_due = crate::FreshnessDueDispatcher::default();
         freshness_due
             .rebuild(
@@ -510,7 +521,7 @@ impl Cva {
         if repaired_entity_resolutions > 0 {
             container.sync()?;
         }
-        Ok(Self {
+        let mut result = Self {
             external_index,
             container,
             archive,
@@ -541,6 +552,8 @@ impl Cva {
             dream_freshness,
             freshness_due,
             freshness_notifications: std::collections::BTreeMap::new(),
-        })
+        };
+        result.validate_historical_import_checkpoint()?;
+        Ok(result)
     }
 }

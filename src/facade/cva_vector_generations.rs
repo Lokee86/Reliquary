@@ -75,6 +75,35 @@ impl Cva {
         archive_vector_id: crate::ArchiveVectorId,
         source_archive_version: u64,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.publish_vector_generation_inner(
+            compatibility_profile_id,
+            archive_vector_id,
+            source_archive_version,
+            true,
+        )
+    }
+
+    pub(crate) fn publish_vector_generation_without_live_semantic(
+        &mut self,
+        compatibility_profile_id: CompatibilityProfileId,
+        archive_vector_id: crate::ArchiveVectorId,
+        source_archive_version: u64,
+    ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.publish_vector_generation_inner(
+            compatibility_profile_id,
+            archive_vector_id,
+            source_archive_version,
+            false,
+        )
+    }
+
+    fn publish_vector_generation_inner(
+        &mut self,
+        compatibility_profile_id: CompatibilityProfileId,
+        archive_vector_id: crate::ArchiveVectorId,
+        source_archive_version: u64,
+        process_live_semantic: bool,
+    ) -> Result<VectorGeneration, VectorGenerationError> {
         let candidate = VectorGeneration {
             id: vector_generation_id(
                 compatibility_profile_id,
@@ -94,12 +123,17 @@ impl Cva {
             &self.compatibility_profiles,
             &candidate,
         )?;
-        self.vector_generations.publish(
+        let generation = self.vector_generations.publish(
             &mut self.container,
             compatibility_profile_id,
             archive_vector_id,
             source_archive_version,
-        )
+        )?;
+        if process_live_semantic {
+            self.process_semantic_freshness(generation.id, 64)
+                .map_err(|error| VectorGenerationError::Freshness(error.to_string()))?;
+        }
+        Ok(generation)
     }
 
     pub fn vector_generation(

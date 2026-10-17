@@ -19,6 +19,18 @@ Parent index: [Documentation index](INDEX.md)
 
 `tests/freshness_retrieval_boundary.rs` protects passive content/revision/lexical reads, actual source Episode hydration, graph traversal, Dream context/temporal reads and historical/current Freshness projections using byte and clock invariance through reopen. Accepted-use tests protect one durable batch for exact de-duplicated roots, unchanged omitted candidates, propagation, invalid/conflicting receipts and identical durable replay. PHY reads remain passive without inventing an activity clock. These tests validate the existing Cva receipt path; they do not certify a production external host acceptance/outbox or host delivery cancellation. The [host contract](freshness-external-consumption-contract.md) and [verification record](agentic-memory-retrieval-verification-2026-10-16.md) record the real Warlock receiver/restart integration candidate, not deployment. Agentic preparation remains read-only; the coordination coverage guard separately requires authorized completion before SelectedIDs and coordinated accepted-use publication. Its 92 positive/negative fixtures classify all 166 public Gateway APIs.
 
+## C8 embedding acceptance fixtures
+
+historical_embedding_tests verifies native fill/refreeze/checkpoint/reopen, accepted retry, preflight no calls/writes, invalid output, drift, cancellation and partial vector retry. historical_embedding_evidence_tests verifies missing mixed evidence, byte-preserving retained/invalid rows, profile/endpoint/owner/clock rejection and cancelled partial progress. historical_embedding_import_tests exercises import_native through actual configured HTTP embedding and native checkpoint/reopen/prospective activation. OpenAI-ready transport tests verify redirect refusal, bounded response and one-request execution despite ordinary batching settings.
+
+## C9 integrated historical contracts
+
+`src/facade/historical_matrix_tests.rs` composes actual imported Archive/Episode/Insomnia/Dream owners and the public native reconstruction operation. Its semantic, Dream and guard modules cover prospective local versus historical graph reinforcement, current/stale/malformed Community evidence, future/unsupported transit, duplicate authority, provenance, input drift and rejected replacement isolation. `historical_events_tests.rs` verifies native acceptance/reopen of owner-derived event identities and source-cohort exclusions. `historical_import_transform_tests.rs` now accepts public native checkpoints and repeats copy/reconciliation/reclamation/repack with source embedding fill disabled and enabled. C6 Container byte-prefix/due/live-use recovery and C8 configured importer/provider fixtures are included in the library gate. The [C9 matrix](freshness-historical-completion-execution-plan-2026-10-12.md#c9-integrated-native-correctness-matrix) records outcomes and scope; retained-corpus/release acceptance remains C10–C12.
+
+## Retained historical diagnostic contracts
+
+The explicit ignored retained-corpus fixture verifies source/copy hashes, original preservation and unchanged native file/Freshness projection after rejection. `historical_retained_diagnostics.rs` separately reads chronology, Episode coverage, legacy completion/birth evidence, Dream markers and Community gates. The Python runner reports native acceptance failure independently of passing diagnostic assertions. Exact outcomes remain in the [C10 diagnosis](freshness-historical-completion-execution-plan-2026-10-12.md#c10-retained-corpus-failure-diagnosis--2026-10-12).
+
 ## Purpose
 
 This document maps critical current behavioral invariants to focused tests and smoke verification.
@@ -406,3 +418,21 @@ A tracked integer watermark is not by itself a historical materialization API; t
 Provider route replacement clears the canonical REL worker dispatch cooldown and wakes that owner, without changing persisted Episode retry deadlines. The migrated `runtime_host::runtime_host_backpressure_tests::gateway_gates_new_claims_during_provider_backpressure` fixture covers bounded 429 claims, route replacement, resumed pending work and absence of terminal queue loss.
 
 Legacy mixed-owner execution, dispatch queues and synthetic mount claims are absent. The recursive routing guard rejects their old types, flags and claim entry points. Canonical protection remains in `runtime_host::gateway::phy_tests` (same-principal worker sharing, detach, reopen and shutdown), `runtime_host::gateway::admission_tests` (physical aliases, owner identity and conflicting mounts), and `runtime_host::gateway::background::tests` (exact-owner dispatch and fenced provider results).
+
+## N1 intended Freshness contract
+
+The design-only oracles in `scripts/test_freshness_normalization_contract.py` protect mixed-fragment availability, one award per fragment/target, all-represented-source/cohort exclusions and accepted Archive chronology. They do not test the shipped Rust runtime. N2–N4 must add native behavioral coverage before these corrected rules become current behavior; see the [normalization plan](freshness-retained-fixture-normalization-plan-2026-10-12.md#n1-disposition--2026-10-12).
+
+## N2 live fragment contracts
+
+`cva_semantic_fragment_tests.rs` proves mixed-fragment availability without backward reuse, earlier-source/content/Episode-cohort exclusion, profile-rotation idempotence, non-activity context, overlapping observations, and pending missing-row/cut evidence. The live worker and transform tests in `cva_semantic_source_tests.rs` prove mounted retry, prospective enrollment, mixed-fragment source-key validation, divergent rebase, repeated merge, reopen and reclamation. Kind-4 codec tests in `freshness_storage_tests.rs` prove canonical source framing, stable owner/fragment identity and conflict rejection without changing scores. N1 Python oracles remain design-only; historical fragment convergence is implemented in N3; clock convergence is implemented in N4.
+
+N3 historical fragment source ownership resides in `historical_semantic.rs`, `historical_events.rs`, `historical_manifest.rs` and the shared `cva_semantic_fragment.rs` adapter. `historical_embedding_plan.rs` fills existing fragments using Archive bounded ordinary rendering. `historical_semantic_tests.rs`, `historical_manifest_tests.rs`, `historical_embedding_evidence_tests.rs` and `cva_semantic_fragment_tests.rs` protect mixed availability, owner/fragment identity, generation-proof drift, total text bounds and external-grounding cohort exclusion. [Normalization disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md) records completed N1–N10 verification and retained C10 evidence.
+
+## N4 accepted Archive chronology
+
+`historical_clock_preserves_accepted_conversations_and_timestamp_ties` and `historical_clock_retains_ancestor_timestamp_regression_and_nonactivity_context` protect immutable accepted order. `historical_native_reconstruction_uses_accepted_clock_despite_timestamp_regressions` verifies native acceptance/reopen/retry. `historical_accepted_clock_rejects_missing_duplicate_gap_foreign_and_reversed_ancestry` covers invalid source/position evidence. Unprocessed source and prior-use rejection remain protected by the matrix guard. See [H1 policy](freshness-historical-manifest-policy.md).
+
+## Historical composed authority and retained verification
+
+`historical_matrix_native_duplicate_and_supersession_authority_compose_after_reopen` proves that retired aliases resolve through accepted duplicate/supersession chains without rewriting Memory/Graph history. The mismatch/cycle and unresolved-authority cases remain rejected; actual verified no-link remains authoritative. The maintained C10 corpus fixture measures new native acceptance on hash-verified copies of accepted input prefixes. Temporary normalizer hooks are deleted. The [retained verification record](freshness-retained-normalization-verification-2026-10-13.md) retains actual versus legacy approximation scopes and the preservation/measurement evidence.

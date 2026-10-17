@@ -2,6 +2,12 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Historical Freshness post-generation operation
+
+Historical reconstruction is a separate explicit post-generation step, not an automatic import side effect. Complete queued Import Insomnia work and real first-cycle Dream settlement, retain a compatible embedding profile, then call ConfiguredRuntime::reconstruct_historical_freshness on the exclusive offline Cva. The default options do not fill embeddings. Requested bounded fill uses the configured embedding route for missing genuine source-fragment rows, then native reconstruction refreezes and commits CVAFRS03. Exact accepted retries use no provider and preserve live growth.
+
+C8 verifies a schema-1 import fixture through actual import_native, Insomnia publication, first-cycle settlement, configured local HTTP embedding, native checkpoint, reopen/retry and intrinsic post-checkpoint live F8. This is executable synthetic importer evidence, not retained production-corpus acceptance (C10). Noncanonical first acceptance rejects instead of rewriting the Archive clock. Gateway mounted historical management remains unavailable.
+
 ## Purpose
 
 This document owns the current versioned native import contract, supported normalization profiles, source identity, durability and recovery. Archive owns imported evidence. This is distinct from the future reference-only external-derived index.
@@ -80,3 +86,7 @@ ACP source is available in Hermes `acp_adapter/session.py`; it restores shared S
 ## Notes
 
 The supported native import contract does not imply mounted F5 integration, provider-private reconstruction, current-source synchronization, arbitrary Codex rollout support or external-derived indexing.
+
+## Historical production scope
+
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.

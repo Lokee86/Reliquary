@@ -157,7 +157,62 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             drop(_lease);
             notify_work(&shared.signal)?;
         } else {
-            seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
+            let Some(lease) = current_lease(&shared)? else {
+                return Ok(());
+            };
+            let (archive_batch, progressed) = shared.mutate(
+                super::super::mutation_events::RelMutationFamily::Semantic,
+                |runtime| {
+                    let before = std::fs::metadata(runtime.cva.container.path())
+                        .map_err(operation)?
+                        .len();
+                    let batch = runtime
+                        .cva
+                        .prepare_semantic_archive_batch(profile.id)
+                        .map_err(operation)?;
+                    let changed = std::fs::metadata(runtime.cva.container.path())
+                        .map_err(operation)?
+                        .len()
+                        != before;
+                    Ok(((batch, changed), changed, Vec::new()))
+                },
+            )?;
+            drop(lease);
+            if let Some(batch) = archive_batch {
+                let vectors = match endpoint.embed(EmbeddingMode::Document, &batch.texts) {
+                    Ok(vectors) => vectors,
+                    Err(_) => {
+                        seen_epoch =
+                            wait_for_work_timeout(&shared.signal, seen_epoch, VECTOR_RETRY_POLL)?;
+                        continue;
+                    }
+                };
+                let Some(lease) = current_lease(&shared)? else {
+                    return Ok(());
+                };
+                shared.mutate(
+                    super::super::mutation_events::RelMutationFamily::Semantic,
+                    |runtime| {
+                        runtime
+                            .cva
+                            .commit_semantic_archive_batch(batch, vectors)
+                            .map_err(operation)?;
+                        Ok((
+                            (),
+                            true,
+                            vec![super::super::events::RelInvalidation::RetrievalProfile(
+                                profile.id,
+                            )],
+                        ))
+                    },
+                )?;
+                drop(lease);
+                notify_work(&shared.signal)?;
+            } else if progressed {
+                notify_work(&shared.signal)?;
+            } else {
+                seen_epoch = wait_for_work(&shared.signal, seen_epoch)?;
+            }
         }
     }
 }

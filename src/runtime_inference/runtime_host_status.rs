@@ -8,6 +8,7 @@ pub struct RuntimeBackgroundStatus {
     pub phylactery_memories: Option<MemoryStats>,
     pub phylactery_vectors: Option<MemoryVectorStats>,
     pub reliquary_vector_pending: usize,
+    pub reliquary_semantic_pending: usize,
     pub phylactery_vector_pending: usize,
     pub reliquary_dream_pending: usize,
     pub phylactery_dream_pending: usize,
@@ -22,6 +23,7 @@ impl RuntimeBackgroundStatus {
             && self.insomnia.failed == 0
             && self.insomnia.terminal == 0
             && self.reliquary_vector_pending == 0
+            && self.reliquary_semantic_pending == 0
             && self.phylactery_vector_pending == 0
             && self.reliquary_dream_pending == 0
             && self.phylactery_dream_pending == 0

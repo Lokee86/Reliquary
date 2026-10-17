@@ -53,7 +53,14 @@ use std::fs;
 
 use super::test_support::test_path;
 
-fn setup(name: &str) -> (std::path::PathBuf, Cva, crate::Episode) {
+pub(crate) fn setup(name: &str) -> (std::path::PathBuf, Cva, crate::Episode) {
+    setup_origin(name, EpisodeOrigin::Live)
+}
+
+pub(crate) fn setup_origin(
+    name: &str,
+    origin: EpisodeOrigin,
+) -> (std::path::PathBuf, Cva, crate::Episode) {
     let path = test_path(name);
     let mut cva = Cva::create(&path).unwrap();
     let mut parent = None;
@@ -85,7 +92,7 @@ fn setup(name: &str) -> (std::path::PathBuf, Cva, crate::Episode) {
             "c1",
             parent.as_deref().unwrap(),
             EpisodeConfig::default(),
-            EpisodeOrigin::Live,
+            origin,
             Some((EpisodeBoundary::Inactivity, 100)),
         )
         .unwrap()
@@ -143,7 +150,7 @@ fn responses(count: usize) -> Vec<Value> {
     responses
 }
 
-fn process(cva: &mut Cva, count: usize, now: i64) -> crate::InsomniaProcessResult {
+pub(crate) fn process(cva: &mut Cva, count: usize, now: i64) -> crate::InsomniaProcessResult {
     let claim = cva
         .claim_insomnia_episode("worker", now, 1_000)
         .unwrap()

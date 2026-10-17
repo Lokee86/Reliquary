@@ -5,6 +5,8 @@ use crate::{
 use std::path::Path;
 use std::sync::Arc;
 
+#[path = "configured_runtime_historical.rs"]
+mod historical;
 #[path = "configured_runtime_insomnia.rs"]
 mod insomnia;
 #[path = "configured_runtime_vectors.rs"]

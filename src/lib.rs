@@ -14,6 +14,13 @@ pub use agentic_memory_retrieval_model::{
 };
 #[path = "archive/archive.rs"]
 pub mod archive;
+#[path = "facade/cva_semantic_fragment.rs"]
+mod cva_semantic_fragment;
+#[path = "facade/cva_semantic_live.rs"]
+mod cva_semantic_live;
+#[path = "facade/cva_semantic_source.rs"]
+mod cva_semantic_source;
+pub use cva_semantic_live::SemanticFreshnessReport;
 #[path = "archive/archive_import.rs"]
 mod archive_import;
 #[path = "archive/episode_import.rs"]
@@ -262,6 +269,17 @@ mod cva_freshness;
 mod cva_global_validation;
 #[path = "facade/cva_graph.rs"]
 mod cva_graph;
+#[path = "facade/cva_historical_dream.rs"]
+mod cva_historical_dream;
+#[path = "facade/cva_historical_import.rs"]
+mod cva_historical_import;
+pub use cva_historical_import::{
+    HistoricalEmbeddingCoverage, HistoricalEmbeddingDisposition, HistoricalEmbeddingFailure,
+    HistoricalEmbeddingLimits, HistoricalEmbeddingReport, HistoricalReconstructionError,
+    HistoricalReconstructionOptions, HistoricalReconstructionReport,
+};
+#[path = "facade/cva_historical_freshness.rs"]
+mod cva_historical_freshness;
 #[path = "facade/cva_lifecycle.rs"]
 mod cva_lifecycle;
 #[path = "external_source/mod.rs"]

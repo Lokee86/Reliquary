@@ -6,6 +6,12 @@ Parent index: [Documentation index](INDEX.md)
 
 Schema-1 source identity is namespace-qualified and deterministic. Imports preserve immutable historical revisions; omission never implies deletion. Explicit tombstones carry no body, and source artifact references accompany supplied-byte hashes/native File identity. Provider normalizers perform no filesystem/network/credential or semantic writes. Archive owns receipt records and per-Node imported Episode coverage; Insomnia owns the only work queue. A receipt is returned only after synchronization. Interrupted unacknowledged batches resume through identical normalized input, not a second journal. Mounted management must retain exact owner admission; the offline API is not an authorization escape. [Exact contract](native-import.md).
 
+## Historical embedding-only boundaries
+
+C8 fill is explicit and disabled by default. Pin the complete owner/import/source/profile/generation inputs; reject noncanonical Archive acceptance and unfinished/already-enrolled generation before provider work. Reuse immutable row bytes, embed only absent exact accepted source fragments, retain existing mixed/invalid evidence and never claim missing evidence completed-empty. Provider calls require the bounded endpoint capability and run outside owner/runtime mutexes.
+
+Each mutation revalidates the expected retained prefix; only the operation's own fragment/vector publications advance it. Cancellation/failure never silently falls back to no-fill reconstruction. Partial vector progress is reported and can be reused after reopen. Refreeze H1 after successful fill; FreshnessStore/CVAFRS03 remains the sole historical acceptance authority. Accepted retries bypass all provider/planning work. Mounted historical management remains unsupported.
+
 ## Purpose
 
 This document defines the governing architectural constraints for the Reliquary Memory v2 rebuild.
@@ -230,6 +236,10 @@ Conversation snapshots acquire runtime -> coordinator -> journal and copy facts 
 
 ## Freshness diagnostic custody
 
+Checkpoint-preserving physical transformations retain original numerical anchors and every ordered accepted receipt, Dream proof and grouped publication payload. Equal scores, including +100 saturation, do not prove retained retry authority. Actual principal/source-identity rewrites and divergent checkpoint conversions require separately verified source/manifest evidence and currently reject before output publication. [Step 23 evidence](freshness-historical-transform-verification-2026-10-12.md).
+
+Historical import replacement publishes a complete validated Freshness snapshot in one existing-owner Container chunk. Freeze-to-commit owner drift rejects; exact accepted retries resolve first and cannot erase post-checkpoint live effects. Original publication/admission/Dream proofs remain authoritative while identified provisional scoring is superseded exactly once. An unsupported pre-checkpoint trajectory or conversion fails explicitly rather than returning provisional scores or invented anchors. [Step 21 evidence](freshness-historical-checkpoint-verification-2026-10-12.md).
+
 Performance diagnostics must preserve the accepted owner/policy/graph/Community cut and every independent consumption event. They may not replace a historical cut with current topology, enroll passive reads, suppress recipients, or treat a timing result as a correctness proof. Real fixture runs require source/copy SHA-256 verification and disposable writable copies. [The hardening plan](freshness-performance-hardening-plan-2026-10-03.md) defines promotion gates.
 
 ## P5-C exact admission and transcript continuation
@@ -265,6 +275,9 @@ Cross-database restore activation, actual concurrent writers, checkpointing, and
 
 Mount and quiesced recovery use the same admitted-turn and Archive validation before post-commit acknowledgement. A checkpoint stream must contain the exact previously acknowledged UTF-8 prefix; missing, truncated or changed content fails mount without inventing terminal status. A synchronized extension is recorded before Interrupted or Completed. Coordinator exact acquisition verifies the durable branch and independently rejects fresh Pending work. Durable active metadata cannot create viewers, instance selection or per-viewer writers. Unknown host work and cancellation intent remain reserved until authoritative terminal proof. [P3.8 evidence](multiplexing-implementation-plan.md).
 
+## Historical production activation boundary
+
+In-memory historical planning/model results cannot substitute for accepted native REL authority or owner authorization. Production reconstruction requires verified canonical manifest/source/graph/Community/vector/cohort evidence and the existing owner's frozen commit boundary, with source/cohort credit exclusions and canonical event identities. Neither an empty-plan model test nor a supplied authorized-ID set proves those requirements. Preserve local-only live F8, real use/Dream principals and PHY deferral. [Step 26 disposition](freshness-combined-production-review-2026-10-12.md).
 
 ## P5-F-core isolated management composition
 
@@ -289,3 +302,37 @@ External reference search validates candidate descriptors against a fresh, indep
 ## Execution-only negotiation
 
 An explicitly negotiated execution-only host contract never transfers pending queue ownership, even when its queue guarantee flags are complete. Only PendingQueue mode with all five guarantees may perform a durable host handoff. Mode downgrade, withdrawal or reconnect cannot release locally unresolved operation IDs; durable local terminal recording and empty reconciliation remain required. Negotiated execution readiness is not remote provider outcome proof.
+
+## Historical reconstruction operation boundary
+
+Only the Cva owner coordinator accepts a reconstruction request, with operation options only. Native checkpoint construction/publication remains private to that owner module; a caller-authored manifest, score plan or authorization set is not an operation input. C2 deletes the duplicate in-memory store. Only frozen owner-derived events and propagation inputs enter production scoring; source positions and contributions are bounded by the frozen checkpoint cut. Before native append, exact owner versions, file extent and file digest must still match. Accepted retries resolve before new-input readiness checks and preserve subsequent live effects. CVAFRS03 remains the sole replacement authority; supported publication must reach the existing native commit and sync. See [completion plan](freshness-historical-completion-execution-plan-2026-10-12.md).
+
+
+C3–C4 now derive the full H1 manifest and canonical semantic/Dream event batch from exclusively borrowed native Cva owner state. No supplied digest, roots or exclusion arrays enter the operation. Retained source vectors, grouped/singleton provenance, availability, lifecycle and profile proof determine eligible semantic roots before the 64-root limit. Actual first-cycle Dream/duplicate-origin evidence is pinned to accepted graph transactions; verified no-link takes precedence over later adjacency. The private frozen batch carries raw source identities and recipient-only exclusions. Unsupported provenance stays untouched, while final credit-excluded replacement records are unadmitted. The options-only operation now propagates the frozen batch, scores canonical per-recipient contributions through the frozen cut and publishes through native FreshnessStore/CVAFRS03. Exact accepted retries return without rescoring or rewriting; new owner-input drift rejects before publication. C8 implements bounded embedding through the exclusive offline/configured operation.
+
+
+## Native historical crash and retry invariants
+
+For every byte prefix of the native checkpoint append, normal Cva reopen exposes either the complete provisional projection or the complete accepted CVAFRS03 projection. An incomplete final Container frame is removed before replay; a fully framed invalid checkpoint rejects. Passive reopen and due-notification draining change no accepted score or file bytes. The due index rebuilds from durable records with exact boundary turns and at-least-once notices. A post-checkpoint multi-recipient accepted-use receipt is atomic, awards each unique recipient once, and survives historical retry/reopen without loss or duplicate awards. [C6 verification](freshness-historical-completion-execution-plan-2026-10-12.md) enumerates both checkpoint and actual accepted-use frame prefixes.
+
+## Live semantic fragment invariants
+
+One genuine Archive fragment is one semantic observation, including mixed-turn fragments. Availability is the maximum represented accepted activity position at the selected cut; non-activity context adds no tick. Every represented provenance source and its generating publication cohort is excluded before ranking. The existing Freshness journal accepts at most one local effect per fragment/target in the fixed owner/domain/fragment identity. Re-embedding and profile rotation are evidence changes, never new observations. Live semantic effects do not propagate. Copy/repack/reclamation preserve receipts; divergent reconciliation recomputes maximum availability from exact source identities. F8 may embed ordinary retained fragments but cannot create per-turn fragment records.
+
+## N3 historical fragment contract
+
+Historical planning consumes existing genuine Archive fragments, including mixed-turn fragments, once at the latest represented activity position. All represented Nodes remain source/provenance evidence. Each fragment has one immutable selected row; top-64 eligibility and strongest target bonus precede historical propagation. Any represented necessary evidence excludes the entire source cohort from credit while preserving authorized graph transit. Re-embedding changes manifest evidence, never owner/domain/FragmentId event identity. Non-activity-only and unavailable/invalid rows have explicit coverage. Accepted chronology is implemented in N4.
+
+Bounded fill requires already-materialized Archive fragments and a compatible selected profile (or a sole retained profile without a generation). Ordinary Archive/profile/generation APIs supply those prerequisites. Fill creates no fragment and embeds no target Memory. Coverage reports `fragment_id`, canonical `source_keys`, availability `position`, reason and row counts; `unavailable_fragments` replaces turn coverage, and `new_fragments` is always zero. The creation budget is removed. Existing rows, including invalid rows, retain their bytes. Serial cancellation/retry and union/proof/temporary limits remain enforced.
+
+## N4 accepted Archive chronology
+
+Existing-REL historical chronology equals first-accepted Archive activity positions. Identity coverage, total count, contiguous unique positions, complete acyclic ancestry and activity ancestry order must agree. Non-activity ancestry has no tick. Timestamp ties, cross-conversation ordering and valid ancestor regressions cannot change positions or reject by themselves. Checkpoint validation applies these rules at its original accepted cut, not a later owner cut. See [H1 policy](freshness-historical-manifest-policy.md).
+
+## Historical representative authority
+
+Accepted duplicate components and supersession chains compose without changing Memory/Graph history. A supersession pointer requires a unique agreeing accepted edge and proved owner-local birth; cycles/conflicting pointers reject. Verified no-link Dream proof retains precedence over later graph adjacency. Missing ordinary proof remains unsupported. The [retained normalization verification](freshness-retained-normalization-verification-2026-10-13.md) labels the one-time legacy approximation separately from actual first-cycle proof.
+
+## Historical production scope
+
+The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.

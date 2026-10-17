@@ -146,6 +146,57 @@ impl Archive {
             .map(|turns| turns.join("\n"))
     }
 
+    /// Ordinary genuine-fragment rendering with a total physical hydration guard.
+    pub(crate) fn fragment_text_bounded(
+        &self,
+        container: &mut Container,
+        fragment: &Fragment,
+        max_bytes: usize,
+    ) -> Result<String, ArchiveError> {
+        self.validate_fragment(fragment)?;
+        let mut text = String::new();
+        for node in self.fragment_nodes_for(fragment)? {
+            let separator = usize::from(!text.is_empty());
+            let overhead = node
+                .role
+                .len()
+                .checked_add(2)
+                .and_then(|n| n.checked_add(separator))
+                .ok_or(ArchiveError::FieldTooLarge)?;
+            let remaining = max_bytes
+                .checked_sub(text.len())
+                .and_then(|n| n.checked_sub(overhead))
+                .ok_or(ArchiveError::FieldTooLarge)?;
+            let cap = remaining
+                .checked_add(44)
+                .ok_or(ArchiveError::FieldTooLarge)?;
+            let object = self
+                .contents
+                .get(node.content_id)
+                .ok_or(ArchiveError::MissingContent)?;
+            let payload = container.read_bounded(object, cap)?;
+            let crate::archive_codec::ArchiveRecord::Content(id, bytes) =
+                crate::archive_codec::decode_record(&payload)?
+            else {
+                return Err(ArchiveError::MissingContent);
+            };
+            if id != node.content_id || crate::archive_store::hash_content(&bytes) != id {
+                return Err(ArchiveError::HashCollision);
+            }
+            let content = String::from_utf8(bytes).map_err(|_| ArchiveError::InvalidUtf8)?;
+            if content.len() > remaining {
+                return Err(ArchiveError::FieldTooLarge);
+            }
+            if separator != 0 {
+                text.push('\n');
+            }
+            text.push_str(&node.role);
+            text.push_str(": ");
+            text.push_str(&content);
+        }
+        Ok(text)
+    }
+
     pub fn fragments(&self) -> Vec<Fragment> {
         let mut fragments: Vec<_> = self.fragments.iter().cloned().collect();
         fragments.sort_by_key(|fragment| fragment.id.0);

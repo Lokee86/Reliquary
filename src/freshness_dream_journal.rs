@@ -26,6 +26,48 @@ pub(crate) struct DreamFreshnessJournal {
 }
 
 impl DreamFreshnessJournal {
+    /// Read-only import evidence projection. Completed roots are retained in the
+    /// journal bytes even though the normal resident projection drops settled passes.
+    pub(crate) fn retained_completed_passes(
+        container: &crate::Container,
+        owner: Option<[u8; 16]>,
+    ) -> Result<BTreeMap<MemoryId, InitialDreamPass>, crate::CvaError> {
+        let mut journal = Self::new(owner);
+        let mut completed = BTreeMap::new();
+        let mut scan = crate::Container::open_read_only_for_scan(container.path())?;
+        scan.visit_payloads::<crate::CvaError>(|_, payload| {
+            if payload.get(..8) != Some(MAGIC.as_slice()) {
+                return Ok(());
+            }
+            let mut reader = Reader {
+                bytes: payload,
+                at: 24,
+            };
+            let entry = decode_entry(&mut reader).map_err(crate::CvaError::Freshness)?;
+            let pass = match entry {
+                DreamEntry::Settled(ref id) => journal.pending(id),
+                _ => None,
+            };
+            journal
+                .ingest(payload)
+                .map_err(crate::CvaError::Freshness)?;
+            if let Some(pass) = pass {
+                // Legacy/replayed settled markers alone cannot prove empty roots.
+                if journal.accepted_graph_cut(&pass.pass_id).is_some() {
+                    if let Some(old) = completed.insert(pass.source_id, pass.clone()) {
+                        if old != pass {
+                            return Err(crate::CvaError::Freshness(
+                                "conflicting retained first-cycle proof".into(),
+                            ));
+                        }
+                    }
+                }
+            }
+            Ok(())
+        })?;
+        Ok(completed)
+    }
+
     pub(crate) fn new(owner_uuid: Option<[u8; 16]>) -> Self {
         Self {
             owner_uuid,

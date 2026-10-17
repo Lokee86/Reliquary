@@ -17,6 +17,10 @@ Authoritative execution details: [Multiplexing implementation plan](multiplexing
 
 **Release A:** 1–4 completes Reliquary/Warlock multiplexing. **Release B:** 5–6 completes Hermes plugin integration. Optional F5, broad import formats and ACP adapters remain separate backlog. No new dated checkpoint or acceptance files: update the active plan, with test logs retained externally.
 
+## Historical Freshness follow-up policy
+
+H1–H8/C1–C12 are complete as supported explicit opt-in offline REL reconstruction; [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) records merge-ready scope. Remaining independent work is relevance-labelled/default-activation policy, mounted historical management, wider scale/SLO evidence and a separately approved PHY owner/activity clock. These do not reopen the completed explicit REL implementation.
+
 ## Purpose
 
 This document owns future implementation work for Reliquary. Completed behavior does not belong here; current behavior is documented in [Architecture](architecture.md), [Rust API](api.md), [Storage format](storage-format.md), [Repo-local CLI](cli.md), and [Current limitations](current-limitations.md).
@@ -35,7 +39,7 @@ The immediate semantic sequence remains cross-scope Entity identity, Observation
 
 ## Memory Freshness remaining integration and calibration
 
-The agentic retrieval design is implemented through Reliquary Steps 1–36, including the host-side receiver/replay seam in Warlock candidate `cf41c66`; this is not a deployed release. Close the 14-day, 28-day, and Ellis frozen-corpus fidelity gates and final production disposition using the [retrieval verification](agentic-memory-retrieval-verification-2026-10-16.md). Preserve passive ordinary reads and the existing Freshness receipt boundary. Obtain time-positioned admission/link/use evidence before historical score-trajectory calibration: current fixtures supply prospective graph topology only, and unsupported legacy Freshness-prototype data may block native-fidelity runs. Complete any unresolved repository/calibration gate recorded in [core verification](freshness-core-release-verification-2026-10-03.md). Semantic relevance and import bootstrap (F8/S1–S6) remain separate deferred work.
+The agentic retrieval design is implemented through Reliquary Steps 1–36, including the host-side receiver/replay seam in Warlock candidate `cf41c66`; this is not a deployed release. Close the 14-day, 28-day, and Ellis frozen-corpus fidelity gates and final production disposition using the [retrieval verification](agentic-memory-retrieval-verification-2026-10-16.md), then connect only genuine accepted-context and live Ego consumers under their host contracts. Preserve passive ordinary reads and the existing Freshness receipt boundary. Historical reconstruction is implemented as an explicit offline/backfill operation and live F8 is intrinsic when eligible vector evidence exists; do not add mounted or automatic migration merely to invoke H1. Obtain time-positioned admission/link/use evidence before historical score-trajectory calibration, and require retained verified reconstruction evidence plus source-ID rebasing for any future divergent checkpoint/source-identity conversion. Complete any unresolved repository/calibration gate recorded in [core verification](freshness-core-release-verification-2026-10-03.md).
 
 ## Additional backlog
 
@@ -317,7 +321,7 @@ Future integration work:
 
 ## Freshness integration and retained source-progress work
 
-Complete deployment and frozen-corpus acceptance of the agentic Memory receiver/replay candidate before treating host reinforcement as production behavior. Connect the separate live Ego consumer only under its own host contract. Preserve owner-specific authorization, searchable Stale/Dormant Memories and independent factual truth. The current Ego design audits the whole eligible Web while it fits, then uses Freshness to prune the coldest Memories from mandatory exposure only on overflow, with Fresh (>0) as the final routine floor; pruned state remains reachable through authorized search. Complete historical score-trajectory calibration only after genuine activity/admission/link/use evidence is available. F8 semantic relevance/import bootstrap is deferred separately; PHY Freshness still needs an authorized activity clock.
+Complete deployment and consolidated frozen-corpus acceptance of the agentic Memory receiver/replay candidate before treating host reinforcement as production behavior. Connect the live Ego consumer only under its own host contract. Preserve owner-specific authorization, whole-Web-while-fit selection, searchable Stale/Dormant Memories and independent factual truth; on overflow, the current Ego design uses Freshness to prune the coldest mandatory Memories with Fresh (>0) as the final routine floor while pruned state remains reachable through authorized search. Complete historical score-trajectory calibration only after genuine activity/admission/link/use evidence is available. Live F8 and explicit offline historical reconstruction are implemented; remaining Freshness work here is production host acceptance/calibration and any separately justified PHY activity clock.
 
 Retain independently justified Archive progress/checkpoint materialization and Ego REL/PHY summary refresh rules. Do not reintroduce a per-Memory review scheduler or mandatory Perception stale-Memory audit. The [core verification](freshness-core-release-verification-2026-10-03.md) records the accepted library gates and remaining external integration/measurement limits.
 

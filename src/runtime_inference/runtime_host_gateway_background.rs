@@ -27,6 +27,7 @@ fn empty_status() -> RuntimeBackgroundStatus {
         phylactery_memories: None,
         phylactery_vectors: None,
         reliquary_vector_pending: 0,
+        reliquary_semantic_pending: 0,
         phylactery_vector_pending: 0,
         reliquary_dream_pending: 0,
         phylactery_dream_pending: 0,
@@ -113,6 +114,9 @@ impl GatewayRuntime {
             let cva = &mut runtime.cva;
             let mut status = empty_status();
             status.insomnia = cva.insomnia_stats();
+            status.reliquary_semantic_pending = cva
+                .semantic_freshness_pending_fragments()
+                .map_err(operation)?;
             status.reliquary_memories = cva.memory_stats();
             status.reliquary_vectors = cva.memory_vector_stats();
             status.reliquary_perception_pending = pending;

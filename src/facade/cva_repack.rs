@@ -16,7 +16,7 @@ impl Cva {
     /// Copy this REL into a compact container while omitting embedded content
     /// blobs that are now fully backed by ProjectFileRef bindings.
     ///
-    /// All retained durable payloads are copied unchanged except the four
+    /// All retained durable payloads are copied unchanged except the
     /// version-record families that encode physical ObjectRef locations. Those
     /// references are relocated to their corresponding copied chunks.
     pub fn repack_project_backed_attachments(
@@ -89,6 +89,11 @@ impl Cva {
                 return Err(error);
             }
         };
+        if let Err(error) = self.validate_historical_import_copy(&reopened) {
+            drop(reopened);
+            let _ = fs::remove_file(output_path);
+            return Err(error);
+        }
         if reopened.owner_uuid() != self.owner_uuid()
             || reopened.latest_global_version() != self.latest_global_version()
             || reopened.archive_version() != self.archive_version()

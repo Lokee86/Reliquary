@@ -26,6 +26,31 @@ pub(crate) fn replay_freshness(
     right: &Cva,
     output: &mut Cva,
 ) -> Result<(), CvaReconcileError> {
+    let mut activation = merged_semantic_activation(left, right)?;
+    if left.freshness.semantic_activation_seen() || right.freshness.semantic_activation_seen() {
+        output.set_freshness_policy_before_enrollment(left.freshness_policy())?;
+        if let Some(a) = activation.as_mut() {
+            a.accepted_turn = match &a.boundary {
+                None => 0,
+                Some((c, n)) => output.activity_position_for_turn(c, n).ok_or(
+                    CvaReconcileError::UnsupportedSemanticOwner(
+                        "missing semantic activation boundary",
+                    ),
+                )?,
+            };
+        }
+        let owner = output
+            .owner_uuid()
+            .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                "semantic activation lacks owner",
+            ))?;
+        output
+            .freshness
+            .persist_semantic_activation(&mut output.container, owner, activation)
+            .map_err(|_| {
+                CvaReconcileError::UnsupportedSemanticOwner("conflicting semantic activation")
+            })?;
+    }
     let any = left.freshness.has_any()
         || right.freshness.has_any()
         || left.dream_freshness.has_any()
@@ -59,8 +84,8 @@ pub(crate) fn replay_freshness(
     let mut by_identity = BTreeMap::<String, RebasedEntry>::new();
     for (source, turns) in [(left, &left_turns), (right, &right_turns)] {
         for entry in source.freshness_replay_entries()? {
-            let source_turn = entry.source_turn();
-            let destination_turn = rebase_turn(source_turn, turns, &merged_turns)?;
+            validate_semantic_source(source, &entry)?;
+            let destination_turn = rebase_entry_turn(source, &entry, turns, &merged_turns)?;
             let kind = match &entry {
                 FreshnessReplayEntry::Initialize { memory_id, .. } => {
                     ReplayKind::Initialize(*memory_id)
@@ -124,9 +149,21 @@ pub(crate) fn replay_freshness(
                 effects,
                 proof,
                 provenance,
+                semantic,
                 ..
             } => {
-                output.freshness_replay_event(event_id, rebased.turn, proof, effects, provenance)?
+                if let Some(mut evidence) = semantic {
+                    evidence.accepted_turn = rebased.turn;
+                    output.freshness_replay_semantic_event(event_id, evidence, effects)?;
+                } else {
+                    output.freshness_replay_event(
+                        event_id,
+                        rebased.turn,
+                        proof,
+                        effects,
+                        provenance,
+                    )?;
+                }
             }
             FreshnessReplayEntry::AcceptedUseReceipt {
                 use_id,
@@ -164,6 +201,27 @@ pub(crate) fn replay_freshness(
 
 /// Perform source-history checks before the destination file is created.
 pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaReconcileError> {
+    if left.freshness.import_checkpoint().is_some() || right.freshness.import_checkpoint().is_some()
+    {
+        if left.freshness_policy() != right.freshness_policy() {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "historical checkpoint owner policy conflict",
+            ));
+        }
+        if let (Some(a), Some(b)) = (
+            left.freshness.import_checkpoint(),
+            right.freshness.import_checkpoint(),
+        ) && a != b
+        {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "ImportManifestConflict: historical checkpoint authority",
+            ));
+        }
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "historical checkpoint source rebasing without a verified reconstruction manifest",
+        ));
+    }
+    merged_semantic_activation(left, right)?;
     if (left.freshness.has_any()
         || right.freshness.has_any()
         || left.dream_freshness.has_any()
@@ -185,7 +243,8 @@ pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaRecon
     let mut identities = BTreeMap::<String, (u64, FreshnessReplayEntry)>::new();
     for (source, turns) in [(left, &left_turns), (right, &right_turns)] {
         for entry in source.freshness_replay_entries()? {
-            let destination_turn = rebase_turn(entry.source_turn(), turns, &merged)?;
+            validate_semantic_source(source, &entry)?;
+            let destination_turn = rebase_entry_turn(source, &entry, turns, &merged)?;
             let identity = match &entry {
                 FreshnessReplayEntry::Initialize { memory_id, .. } => {
                     format!("I:{}", hex_id(*memory_id))
@@ -281,6 +340,7 @@ fn same_rebased_identity(a: &FreshnessReplayEntry, b: &FreshnessReplayEntry) -> 
                 effects: ae,
                 proof: ap,
                 provenance: av,
+                semantic: ase,
                 ..
             },
             FreshnessReplayEntry::Event {
@@ -288,9 +348,22 @@ fn same_rebased_identity(a: &FreshnessReplayEntry, b: &FreshnessReplayEntry) -> 
                 effects: be,
                 proof: bp,
                 provenance: bv,
+                semantic: bse,
                 ..
             },
-        ) => ai == bi && ae == be && ap == bp && same_rebased_provenance(av, bv),
+        ) => {
+            let normalize = |e: &Option<crate::freshness_storage::SemanticEventEvidence>| {
+                e.clone().map(|mut evidence| {
+                    evidence.accepted_turn = 0;
+                    evidence
+                })
+            };
+            ai == bi
+                && ae == be
+                && ap == bp
+                && same_rebased_provenance(av, bv)
+                && normalize(ase) == normalize(bse)
+        }
         (
             FreshnessReplayEntry::AcceptedUseReceipt {
                 use_id: a,
@@ -307,6 +380,49 @@ fn same_rebased_identity(a: &FreshnessReplayEntry, b: &FreshnessReplayEntry) -> 
         ) => a == b && sa == sb && pa == pb,
         _ => false,
     }
+}
+
+fn validate_semantic_source(
+    source: &Cva,
+    entry: &FreshnessReplayEntry,
+) -> Result<(), CvaReconcileError> {
+    if let FreshnessReplayEntry::Event {
+        event_id,
+        source_turn,
+        provenance,
+        semantic,
+        ..
+    } = entry
+    {
+        if let Some(evidence) = semantic {
+            let owner = source
+                .owner_uuid()
+                .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                    "semantic replay lacks owner",
+                ))?;
+            let expected = evidence.event_id();
+            if event_id != &expected
+                || evidence.owner_uuid != owner
+                || evidence.accepted_turn != *source_turn
+                || source.semantic_evidence_position(evidence).ok() != Some(*source_turn)
+                || provenance.as_ref().is_none_or(|p| {
+                    !crate::freshness_storage::is_semantic_producer(p.producer_kind)
+                })
+            {
+                return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                    "semantic Freshness source identity is unavailable or conflicting",
+                ));
+            }
+        } else if provenance
+            .as_ref()
+            .is_some_and(|p| crate::freshness_storage::is_semantic_producer(p.producer_kind))
+        {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "semantic Freshness event lacks typed evidence",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn activity_turns(cva: &Cva) -> BTreeMap<u64, (String, String)> {
@@ -369,6 +485,9 @@ fn hex_id(id: crate::MemoryId) -> String {
 /// Whether the right input contributes new accepted Freshness authority.
 /// Re-emitting the shared left projection into a temporary output is not a change.
 pub(crate) fn right_changes_freshness(left: &Cva, right: &Cva) -> Result<bool, CvaReconcileError> {
+    if right.freshness.semantic_activation_seen() && !left.freshness.semantic_activation_seen() {
+        return Ok(true);
+    }
     if right.freshness.has_any() && !left.freshness.has_any() {
         return Ok(true);
     }
@@ -403,4 +522,77 @@ pub(crate) fn right_changes_freshness(left: &Cva, right: &Cva) -> Result<bool, C
             .freshness_settled_dream_pass_ids()
             .iter()
             .any(|id| !settled.contains(id)))
+}
+
+fn merged_semantic_activation(
+    left: &Cva,
+    right: &Cva,
+) -> Result<Option<crate::freshness_storage::SemanticActivation>, CvaReconcileError> {
+    let a = left.freshness.semantic_activation();
+    let b = right.freshness.semantic_activation();
+    if left.freshness.semantic_activation_seen()
+        && right.freshness.semantic_activation_seen()
+        && a.is_some() != b.is_some()
+    {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "divergent semantic activation/cancellation authority",
+        ));
+    }
+    for (source, activation) in [(left, a), (right, b)] {
+        if let Some(activation) = activation {
+            source
+                .validate_semantic_activation(activation)
+                .map_err(|_| {
+                    CvaReconcileError::UnsupportedSemanticOwner(
+                        "unavailable semantic activation authority",
+                    )
+                })?;
+        }
+    }
+    if let (Some(a), Some(b)) = (a, b) {
+        if a.owner_uuid != b.owner_uuid
+            || a.boundary != b.boundary
+            || a.policy_version != b.policy_version
+            || a.policy_digest != b.policy_digest
+        {
+            return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                "divergent semantic activation boundaries or policies",
+            ));
+        }
+    }
+    Ok(a.or(b).cloned())
+}
+
+fn rebase_entry_turn(
+    source: &Cva,
+    entry: &FreshnessReplayEntry,
+    turns: &BTreeMap<u64, (String, String)>,
+    merged: &BTreeMap<(String, String), u64>,
+) -> Result<u64, CvaReconcileError> {
+    if let FreshnessReplayEntry::Event {
+        semantic: Some(e), ..
+    } = entry
+    {
+        if let Some(fragment) = &e.fragment {
+            return fragment
+                .sources
+                .iter()
+                .filter(|(c, n)| source.activity_position_for_turn(c, n).is_some())
+                .map(|key| {
+                    merged
+                        .get(key)
+                        .copied()
+                        .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                            "missing fragment source mapping",
+                        ))
+                })
+                .collect::<Result<Vec<_>, _>>()?
+                .into_iter()
+                .max()
+                .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                    "empty fragment source mapping",
+                ));
+        }
+    }
+    rebase_turn(entry.source_turn(), turns, merged)
 }

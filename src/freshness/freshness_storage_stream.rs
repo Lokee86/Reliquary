@@ -32,6 +32,9 @@ pub(crate) fn scan_entries(
                 return Ok(());
             }
 
+            if payload.starts_with(super::import_checkpoint_storage::IMPORT_MAGIC) {
+                return Ok(());
+            }
             if payload.starts_with(b"CVAFRS") && payload.get(..8) != Some(MAGIC.as_slice()) {
                 callback_error = Some("unsupported legacy CVAFRS01 Freshness receipt".into());
                 return Ok(());

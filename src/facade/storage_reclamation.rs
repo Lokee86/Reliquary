@@ -40,6 +40,11 @@ impl Cva {
             let _ = fs::remove_file(output_path.as_ref());
             error
         })?;
+        if let Err(error) = self.validate_historical_import_copy(&reopened) {
+            drop(reopened);
+            let _ = fs::remove_file(output_path.as_ref());
+            return Err(error);
+        }
         let actual = SemanticState {
             owner_uuid: reopened.owner_uuid(),
             global_version: reopened.latest_global_version(),

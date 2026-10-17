@@ -87,6 +87,7 @@ fn mixed_event_permutations_match_independent_saturating_history() {
             proof,
             effects: BTreeMap::from([(target, 25)]),
             records: BTreeMap::new(),
+            semantic: None,
         });
     }
     let dream_id = format!("dream-initial:{}:{}", hex_bytes(&owner), hex_id(&source));
@@ -103,6 +104,7 @@ fn mixed_event_permutations_match_independent_saturating_history() {
         proof,
         effects: BTreeMap::from([(target, 50)]),
         records: BTreeMap::new(),
+        semantic: None,
     });
     let mut logical = events.clone();
     logical.sort_by_key(event_sort_key);
@@ -257,6 +259,250 @@ fn canonical_history_scaling_measurement() {
     }
 }
 
+fn semantic_evidence(
+    owner: [u8; 16],
+    conversation_id: &str,
+    node_id: &str,
+    turn: u64,
+) -> SemanticEventEvidence {
+    SemanticEventEvidence {
+        fragment: None,
+        owner_uuid: owner,
+        conversation_id: conversation_id.into(),
+        node_id: node_id.into(),
+        accepted_turn: turn,
+        base_policy_digest: [1; 32],
+        semantic_policy_version: 1,
+        semantic_policy_digest: [2; 32],
+        compatibility_profile_id: [3; 32],
+        source_evidence_digest: [4; 32],
+        target_evidence_digest: [5; 32],
+    }
+}
+
+#[test]
+fn semantic_event_identity_is_exact_and_stable() {
+    let owner = [7; 16];
+    let id = semantic_live_event_id(owner, "conversation", "node");
+    assert!(id.starts_with("semantic-live-v1:"));
+    assert_eq!(id.len(), "semantic-live-v1:".len() + 64);
+    assert_ne!(id, semantic_live_event_id(owner, "conversation", "other"));
+    assert_ne!(id, semantic_live_event_id(owner, "other", "node"));
+    assert_ne!(id, semantic_live_event_id([8; 16], "conversation", "node"));
+}
+
+#[test]
+fn semantic_fragment_codec_pins_all_sources_and_reembedding_cannot_award_again() {
+    let owner = [7; 16];
+    let fragment_id = crate::FragmentId([8; 32]);
+    let mut evidence = semantic_evidence(owner, "c", "later", 12);
+    evidence.fragment = Some(SemanticFragmentEvidence {
+        fragment_id,
+        sources: vec![("c".into(), "earlier".into()), ("c".into(), "later".into())],
+    });
+    let id = evidence.event_id();
+    assert_eq!(
+        id,
+        "semantic-fragment-v1:cb3b0f872924d3a840ac8d7bcf42a4a2d4b099d7e689105c8bc57d7340bff35e"
+    );
+    assert_eq!(id, semantic_fragment_event_id(owner, fragment_id));
+    assert_ne!(id, semantic_fragment_event_id([9; 16], fragment_id));
+    assert_ne!(
+        id,
+        semantic_fragment_event_id(owner, crate::FragmentId([9; 32]))
+    );
+    let store = enrolled();
+    let effects = BTreeMap::from([(MemoryId([1; 32]), 4)]);
+    let payload = store
+        .encode_semantic_event(owner, evidence.clone(), effects.clone())
+        .unwrap();
+    let (_, decoded) = decode(&payload).unwrap();
+    let JournalEntry::Event {
+        semantic,
+        provenance,
+        ..
+    } = decoded
+    else {
+        panic!("not an event");
+    };
+    assert_eq!(semantic, Some(evidence.clone()));
+    assert_eq!(provenance.producer_kind, SEMANTIC_FRAGMENT_PRODUCER_KIND);
+    assert_eq!(
+        crate::storage_reclamation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
+        payload
+    );
+    let mut replay = enrolled();
+    replay.ingest(&payload).unwrap();
+    replay.ingest(&payload).unwrap();
+    let original = replay.records.clone();
+    evidence.compatibility_profile_id = [10; 32];
+    evidence.source_evidence_digest = [11; 32];
+    assert_eq!(evidence.event_id(), id);
+    let changed = store
+        .encode_semantic_event(owner, evidence, effects)
+        .unwrap();
+    assert!(
+        replay
+            .ingest(&changed)
+            .unwrap_err()
+            .contains("identity collides")
+    );
+    assert_eq!(replay.records, original);
+}
+
+#[test]
+fn semantic_fragment_codec_rejects_noncanonical_or_missing_sources() {
+    let owner = [7; 16];
+    let mut evidence = semantic_evidence(owner, "c", "later", 12);
+    for sources in [
+        vec![],
+        vec![("c".into(), "earlier".into())],
+        vec![("c".into(), "later".into()), ("c".into(), "earlier".into())],
+        vec![("c".into(), "later".into()), ("c".into(), "later".into())],
+    ] {
+        evidence.fragment = Some(SemanticFragmentEvidence {
+            fragment_id: crate::FragmentId([8; 32]),
+            sources,
+        });
+        assert!(
+            enrolled()
+                .encode_semantic_event(owner, evidence.clone(), BTreeMap::new())
+                .is_err()
+        );
+    }
+}
+
+#[test]
+fn semantic_event_round_trips_retries_and_rejects_identity_conflicts() {
+    let owner = [7; 16];
+    let store = enrolled();
+    let evidence = semantic_evidence(owner, "conversation-1", "node-1", 12);
+    let effects = BTreeMap::new();
+    let payload = store
+        .encode_semantic_event(owner, evidence.clone(), effects.clone())
+        .unwrap();
+    // Physical copy/repack/reclamation must retain semantic evidence verbatim.
+    assert_eq!(
+        crate::storage_reclamation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
+        payload
+    );
+    let (_, decoded) = decode(&payload).unwrap();
+    let JournalEntry::Event {
+        provenance,
+        semantic,
+        effects: decoded_effects,
+        ..
+    } = decoded
+    else {
+        panic!("semantic payload did not decode as an event");
+    };
+    assert_eq!(provenance.producer_kind, SEMANTIC_EVENT_PRODUCER_KIND);
+    assert_eq!(semantic, Some(evidence.clone()));
+    assert!(decoded_effects.is_empty());
+
+    let mut replay = enrolled();
+    replay.ingest(&payload).unwrap();
+    let id = semantic_live_event_id(owner, "conversation-1", "node-1");
+    assert!(
+        replay
+            .semantic_event_matches(&id, &evidence, &effects)
+            .unwrap()
+    );
+    replay.ingest(&payload).unwrap();
+
+    let mut conflicting = evidence.clone();
+    conflicting.semantic_policy_digest = [9; 32];
+    let conflict_payload = store
+        .encode_semantic_event(owner, conflicting, effects)
+        .unwrap();
+    let error = replay.ingest(&conflict_payload).unwrap_err();
+    assert!(error.contains("identity collides"));
+}
+
+#[test]
+fn semantic_events_preserve_canonical_order_and_empty_completion() {
+    let owner = [7; 16];
+    let store = enrolled();
+    let first = semantic_evidence(owner, "conversation", "first", 10);
+    let second = semantic_evidence(owner, "conversation", "second", 10);
+    let first_payload = store
+        .encode_semantic_event(owner, first.clone(), BTreeMap::new())
+        .unwrap();
+    let second_payload = store
+        .encode_semantic_event(owner, second.clone(), BTreeMap::new())
+        .unwrap();
+
+    let mut replay = enrolled();
+    replay.ingest(&second_payload).unwrap();
+    replay.ingest(&first_payload).unwrap();
+    let events = replay.canonical_projection(10, None, 0, &[]).unwrap();
+    assert_eq!(events, replay.records);
+    assert!(
+        replay
+            .semantic_event_matches(
+                &semantic_live_event_id(owner, "conversation", "first"),
+                &first,
+                &BTreeMap::new(),
+            )
+            .unwrap()
+    );
+    assert!(
+        replay
+            .semantic_event_matches(
+                &semantic_live_event_id(owner, "conversation", "second"),
+                &second,
+                &BTreeMap::new(),
+            )
+            .unwrap()
+    );
+}
+
+#[test]
+fn semantic_effects_cover_saturation_negative_and_partial_decay() {
+    let owner = [7; 16];
+    let target = MemoryId([1; 32]);
+    let mut store = enrolled();
+    let saturation = store
+        .encode_semantic_event(
+            owner,
+            semantic_evidence(owner, "live", "saturation", 0),
+            BTreeMap::from([(target, 10)]),
+        )
+        .unwrap();
+    store.ingest(&saturation).unwrap();
+    assert_eq!(store.records[&target].score, 100);
+
+    let mut dormant = enrolled();
+    assert_eq!(dormant.records_at(1600).unwrap()[&target].score, -60);
+    let payload = dormant
+        .encode_semantic_event(
+            owner,
+            semantic_evidence(owner, "live", "reactivation", 1600),
+            BTreeMap::from([(target, 10)]),
+        )
+        .unwrap();
+    dormant.ingest(&payload).unwrap();
+    assert_eq!(dormant.records[&target].score, -50);
+    assert_eq!(
+        dormant.records[&target].state_at(1600).unwrap(),
+        crate::FreshnessState::Stale
+    );
+
+    let mut remainder = enrolled();
+    for (node, turn) in [("remainder-a", 509), ("remainder-b", 510)] {
+        let payload = remainder
+            .encode_semantic_event(
+                owner,
+                semantic_evidence(owner, "live", node, turn),
+                BTreeMap::from([(target, 1)]),
+            )
+            .unwrap();
+        remainder.ingest(&payload).unwrap();
+        assert_eq!(remainder.records[&target].score, 51);
+    }
+    assert_eq!(remainder.records[&target].accounted_turn, Some(510));
+}
+
 fn enrolled() -> FreshnessStore {
     let owner = [7; 16];
     let mut store = FreshnessStore::new(Some(owner));
@@ -304,6 +550,7 @@ fn source_provenance_and_postimages_are_validated_before_projection() {
         proof,
         effects,
         records,
+        semantic: None,
     };
 
     let rejected = |entry: JournalEntry| {
@@ -349,6 +596,7 @@ fn source_provenance_and_postimages_are_validated_before_projection() {
         proof,
         effects,
         records,
+        semantic: _,
     } = bad
     else {
         unreachable!()
@@ -445,6 +693,7 @@ fn accepted_use_source_identity_must_match_principal_event() {
         },
         effects: BTreeMap::from([(source, 25), (target, 20)]),
         records: BTreeMap::new(),
+        semantic: None,
     };
     store.validate_event_entry(owner, &valid).unwrap();
     let mut bad = valid;
@@ -803,4 +1052,50 @@ fn rejected_preparation_and_ingest_do_not_change_membership_or_records() {
     assert_eq!(format!("{:?}", store), before);
     assert!(store.ingest(&payload[..payload.len() - 1]).is_err());
     assert_eq!(format!("{:?}", store), before);
+}
+
+#[test]
+fn semantic_source_models_cannot_mix_or_recredit_previous_turn_history() {
+    let owner = [7; 16];
+    let previous = semantic_evidence(owner, "c", "later", 12);
+    let mut fragment = previous.clone();
+    fragment.fragment = Some(SemanticFragmentEvidence {
+        fragment_id: crate::FragmentId([8; 32]),
+        sources: vec![("c".into(), "later".into())],
+    });
+    for (first, second) in [(previous.clone(), fragment.clone()), (fragment, previous)] {
+        let mut store = enrolled();
+        let payload = store
+            .encode_semantic_event(owner, first, BTreeMap::new())
+            .unwrap();
+        store.ingest(&payload).unwrap();
+        assert!(
+            store
+                .encode_semantic_event(owner, second, BTreeMap::new())
+                .unwrap_err()
+                .contains("cannot mix")
+        );
+    }
+}
+
+#[test]
+fn semantic_fragment_codec_requires_strictly_earlier_birth() {
+    let owner = [7; 16];
+    let id = MemoryId([9; 32]);
+    let mut store = enrolled();
+    let mut record = FreshnessRecord::created();
+    record.admit(12).unwrap();
+    store
+        .ingest(&store.encode_initialize(owner, id, 12, record))
+        .unwrap();
+    let mut evidence = semantic_evidence(owner, "c", "later", 12);
+    evidence.fragment = Some(SemanticFragmentEvidence {
+        fragment_id: crate::FragmentId([8; 32]),
+        sources: vec![("c".into(), "later".into())],
+    });
+    assert!(
+        store
+            .encode_semantic_event(owner, evidence, BTreeMap::from([(id, 10)]))
+            .is_err()
+    );
 }
