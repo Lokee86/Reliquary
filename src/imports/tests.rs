@@ -485,6 +485,149 @@ fn interrupted_import_recovers_source_episode_and_queue_cuts() {
         );
     }
 }
+
+#[test]
+fn interrupted_import_epoch_resumes_each_durable_phase_without_duplicates() {
+    // 0: before start; 1: after start; 2: Archive; 3: Episode; 4: queue; 5: receipt.
+    for cut in 0..=5 {
+        let f = Fixture::new();
+        let path = f.rel("epoch-phase-cut.rel");
+        let incoming = input();
+        let prepared = prepare(&incoming).unwrap();
+        let mut cva = Cva::create(&path).unwrap();
+        let owner_uuid = cva.owner_uuid().unwrap();
+        let import_id = super::epoch_store::import_id(owner_uuid, &prepared.receipt.import_key);
+        let start = ImportStart {
+            owner_uuid,
+            import_id: import_id.clone(),
+            import_key: prepared.receipt.import_key.clone(),
+            source_namespace: prepared.receipt.source_namespace.clone(),
+            source_format: prepared.receipt.source_format.clone(),
+            started_at_ns: if cut == 0 { 200 } else { 100 },
+            pre: current_watermarks(&cva),
+        };
+
+        if cut >= 1 {
+            cva.import_epochs
+                .append_start(&mut cva.container, start.clone())
+                .unwrap();
+            cva.container.sync().unwrap();
+        }
+        if cut >= 2 {
+            cva.with_import_write_scope(|cva| {
+                for turn in &prepared.turns {
+                    cva.ingest_turn(turn.clone()).unwrap();
+                }
+                for conversation in &prepared.receipt.conversations {
+                    let has_turns = conversation.messages.iter().any(|m| m.node_id.is_some());
+                    if has_turns && let Some(title) = &conversation.title {
+                        cva.set_conversation_title(&conversation.conversation_id, title.clone())
+                            .unwrap();
+                    }
+                    for branch in &conversation.branches {
+                        if let Some(leaf) = &branch.leaf_node_id {
+                            cva.append_branch(crate::Branch {
+                                id: branch.branch_id.clone(),
+                                conversation_id: conversation.conversation_id.clone(),
+                                leaf_node_id: leaf.clone(),
+                                canonical: branch.canonical,
+                            })
+                            .unwrap();
+                        }
+                    }
+                }
+            });
+        }
+        if cut >= 3 {
+            cva.with_import_write_scope(|cva| {
+                for conversation in &prepared.receipt.conversations {
+                    for branch in &conversation.branches {
+                        if let Some(leaf) = &branch.leaf_node_id {
+                            cva.materialize_path_episodes(
+                                &conversation.conversation_id,
+                                leaf,
+                                EpisodeConfig::default(),
+                                EpisodeOrigin::Import,
+                                Some((crate::EpisodeBoundary::ImportEnd, 100)),
+                            )
+                            .unwrap();
+                        }
+                    }
+                }
+            });
+        }
+        if cut >= 4 {
+            cva.with_import_write_scope(|cva| {
+                for episode in cva.episodes() {
+                    cva.queue_insomnia_episode(episode.id, InsomniaPriority::Import, 100)
+                        .unwrap();
+                }
+            });
+        }
+        if cut >= 5 {
+            cva.with_import_write_scope(|cva| {
+                cva.archive
+                    .put_import_receipt(&mut cva.container, prepared.receipt.clone())
+                    .unwrap();
+            });
+        }
+        cva.sync().unwrap();
+        drop(cva);
+
+        let mut reopened = Cva::open(&path).unwrap();
+        if cut == 0 {
+            assert!(reopened.open_import_epoch().is_none());
+            assert!(reopened.import_epoch_statuses().is_empty());
+        } else {
+            assert_eq!(reopened.open_import_epoch(), Some(start.clone()));
+            assert_eq!(
+                reopened.import_epoch_statuses(),
+                vec![ImportEpochStatus::Open(start.clone())]
+            );
+            let mut conflicting = incoming.clone();
+            conflicting.source_namespace = "agent/conflicting-account".into();
+            let before_conflict = fs::read(&path).unwrap();
+            assert!(reopened.import_native(&conflicting, 150).is_err());
+            assert_eq!(fs::read(&path).unwrap(), before_conflict);
+            assert_eq!(
+                reopened.import_epoch_statuses(),
+                vec![ImportEpochStatus::Open(start.clone())]
+            );
+        }
+
+        let receipt = reopened.import_native(&incoming, 200).unwrap();
+        assert_eq!(receipt, prepared.receipt);
+        assert_eq!(reopened.open_import_epoch(), Some(start.clone()));
+        assert_eq!(
+            reopened.import_epoch_statuses(),
+            vec![ImportEpochStatus::Open(start)]
+        );
+        assert_eq!(reopened.native_import_receipts(), vec![receipt.clone()]);
+        assert_eq!(reopened.stats().nodes, 2);
+        assert_eq!(reopened.episodes().len(), 1);
+        for episode in reopened.episodes() {
+            assert_eq!(episode.origin, EpisodeOrigin::Import);
+            assert_eq!(
+                reopened.insomnia_work(episode.id).unwrap().priority,
+                InsomniaPriority::Import
+            );
+        }
+
+        let stable_bytes = fs::read(&path).unwrap();
+        let stable_clocks = current_watermarks(&reopened);
+        drop(reopened);
+        let mut reopened = Cva::open(&path).unwrap();
+        assert_eq!(reopened.import_native(&incoming, 300).unwrap(), receipt);
+        assert_eq!(reopened.open_import_epoch().unwrap().import_id, import_id);
+        assert_eq!(reopened.import_epoch_statuses().len(), 1);
+        assert_eq!(reopened.native_import_receipts(), vec![receipt]);
+        assert_eq!(reopened.stats().nodes, 2);
+        assert_eq!(reopened.episodes().len(), 1);
+        assert_eq!(current_watermarks(&reopened), stable_clocks);
+        assert_eq!(fs::read(&path).unwrap(), stable_bytes);
+    }
+}
+
 #[test]
 fn imported_branch_can_continue_natively_without_invalidating_receipt() {
     let f = Fixture::new();
