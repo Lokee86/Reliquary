@@ -4,7 +4,7 @@ Parent design: [Agentic Memory retrieval design](agentic-memory-retrieval-design
 
 Linear execution plan: [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
 
-Status: **Architecture specification; Reliquary Steps 1–36 implemented; frozen-corpus and final disposition gates pending**
+Status: **Architecture specification; Reliquary Steps 1–36 implemented; frozen-corpus qualification blocked by CVAFRS03; final integration checks running**
 
 ## Purpose
 
@@ -20,7 +20,7 @@ Reliquary's passive Memory search, owner-local vector retrieval, graph reads, no
 
 The existing `GatewayRuntime::search_visible_memories()` is not the target implementation. It uses `MemoryRetrievalConfig` seed/community/traversal bounds and then truncates results. Reusing it underneath `memory_query()` would Freshness-rank an already bounded set and would import depth-based graph traversal into a design that explicitly requires an independent one-hop `traverse_graph()`.
 
-The missing production pieces are:
+The architecture originally required the following pieces, now implemented in the isolated integration candidates:
 
 - one turn-scoped controller with `CurrentQuery`, `SearchedIDs`, and `SelectedIDs`;
 - a lower-domain lexical + semantic Memory candidate collector that exposes the eligible pool before the ten-candidate presentation cut;
@@ -428,7 +428,7 @@ The feature is complete only when:
 - [ ] Rust, CLI, docs, and architecture checks pass;
 - [ ] superseded F3 assumptions are no longer presented as current implementation requirements.
 
-AR9 receiver/replay behavior is evidenced by Warlock candidate `cf41c66` and eight passing host Memory tests. The truthful current status is: **Reliquary Steps 1–36 and host receiver/replay implementation are complete in their respective worktrees; frozen-corpus and final production-disposition gates remain pending, and the host candidate is not deployed**.
+AR9 receiver/replay behavior is evidenced by Warlock candidate `cf41c66` and eight passing host Memory tests. The truthful current status is: **Reliquary Steps 1–36 and host receiver/replay implementation are complete in their respective worktrees; frozen-corpus qualification is blocked by CVAFRS03 and final production disposition remains pending, and the host candidate is not deployed**.
 
 ## Notes
 

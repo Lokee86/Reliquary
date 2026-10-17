@@ -5,9 +5,10 @@
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
 - [Local configuration](configuration.md) — replaceable local config format, durability, and security boundary.
-- [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) — accepted REL-only three-operation decision-model retrieval, concurrent graph exploration, query refinement, fallback reporting and confirmed-handoff reinforcement (implemented; frozen-corpus verification pending).
+- [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) — accepted REL-only three-operation decision-model retrieval, concurrent graph exploration, query refinement, fallback reporting and confirmed-handoff reinforcement (implemented; frozen-corpus verification blocked by CVAFRS03).
 - [Agentic Memory retrieval implementation specification — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md) — architecture specification and implementation status for full-pool candidate collection, controller state, decision routing, one-hop traversal, host handoff reinforcement and remaining frozen-fixture gates.
 - [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md) — 45-step Sol/Luna execution sequence derived from the accepted specification, including per-step completion gates and final integration criteria.
+- [Agentic Memory retrieval verification — 2026-10-16](agentic-memory-retrieval-verification-2026-10-16.md) — final gates, real host candidate proof and explicit frozen-corpus format/fidelity qualification.
 - [Agentic Memory host handoff seam — 2026-10-16](agentic-memory-host-handoff-seam-2026-10-16.md) — real host source trace, receiver acknowledgment and exact-manifest recovery boundary.
 - [Agentic Memory retrieval Luna baseline — 2026-10-16](agentic-memory-retrieval-baseline-2026-10-16.md) — Step 1 snapshot, ownership inspection, commands, and truthful blockers.
 - [Freshness retrieval boundary implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md) — ordered F1–F5 scope and gates.

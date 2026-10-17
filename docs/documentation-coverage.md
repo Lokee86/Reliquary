@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Agentic Memory retrieval coverage
+
+The controller/decision modules, REL-local candidate pool and runtime agentic preparation/completion modules map to [Architecture](architecture.md), [API](api.md) and [Maintainer map](maintainer-map.md). [Behavioral contracts](behavioral-contracts.md) owns passive preparation and exact-confirmed coordinated receipt coverage. The [verification record](agentic-memory-retrieval-verification-2026-10-16.md) owns frozen fixture hashes, native-reader format limitations, real Warlock receiver/restart evidence and final gates. The evaluation harness is not a runtime compatibility mode; deployment and unmeasured frozen-corpus fidelity remain explicit release qualifications.
+
 ## Native historical import coverage
 
 `src/imports/` maps to [Native historical import](native-import.md) and [API](api.md); Archive receipt/branch-aware import Episodes map to [Architecture](architecture.md), [Invariants](invariants.md) and [Storage format](storage-format.md). [Maintainer map](maintainer-map.md) routes ownership and [Behavioral contracts](behavioral-contracts.md) maps recovery/profile fixtures. Current source/format limitations are explicit in [Current limitations](current-limitations.md). The G specification remains the owner of unimplemented ACP/external-derived/host-specific work.

@@ -142,7 +142,8 @@ The current generic `ConversationExecution` handoff is not Memory-consumption pr
 
 - Steps 1–36 accepted on the feature candidates: Reliquary `638992a` and Warlock `cf41c66`; per-step implementation/test evidence is in the [execution record](agentic-memory-retrieval-baseline-2026-10-16.md). The actual receiver and restart gate establishes F3 for the isolated integration candidate, not deployment.
 - Step 37 accepted: the native fixture runner and worktree-copy/hash wrapper are implemented. The current-format protocol smoke passes, exercising functional scenarios and twelve fidelity probes. Inventory reached all three frozen corpora and records an explicit format limitation: each contains a CVAFRS03 prototype record rejected by this branch's CVAFRS02 reader; current-container migration returns AlreadyCurrent. Authoritative REL/PHY/manifest hashes remain unchanged.
-- Steps 38–45 remain pending. Corpus limitations must not be counted as functional or fidelity success.
+- Steps 38–40 evidence closed with explicit corpus-data limitation: functional and fidelity attempts reached all three RELs but CVAFRS03 prevents native open. No frozen retrieval scenarios ran and recall is unmeasured; all source hashes are unchanged. See the [verification record](agentic-memory-retrieval-verification-2026-10-16.md). This is not a fidelity pass.
+- Steps 41–44 complete: Luna documentation closure and hard-cut audit integrated; coordination guard strengthened; refreshed Lexicon/Arcana/Pitlord gate passed, with dynamic call-resolution limitations recorded. Step 45 final core/docs gates remain in progress.
 
 ## Execution rule
 
