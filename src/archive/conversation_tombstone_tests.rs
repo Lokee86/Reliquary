@@ -55,7 +55,7 @@ fn memory_draft() -> MemoryDraft {
         archived: false,
         superseded_by: None,
         parent_id: None,
-        source_node_id: Some("root".into()),
+        source_node_id: None,
         content_source_conversation_id: Some("conversation".into()),
         content_source_node_id: Some("root".into()),
         grounding_source_conversation_id: None,
@@ -100,9 +100,11 @@ fn terminal_conversation_tombstone_reopens_with_historical_closure_only() {
     assert!(reopened.conversation_summaries().is_empty());
     assert!(reopened.branches().is_empty());
     assert_eq!(reopened.historical_branches().len(), 1);
-    assert!(reopened
-        .historical_conversation_metadata("conversation")
-        .is_some());
+    assert!(
+        reopened
+            .historical_conversation_metadata("conversation")
+            .is_some()
+    );
     assert_eq!(
         reopened
             .historical_conversation_turns("conversation", "root")
@@ -413,8 +415,10 @@ fn tombstone_crash_prefix_reclaim_and_reconcile_preserve_archive_history() {
     assert_eq!(reconciled.memory(memory.id).unwrap().id, memory.id);
     assert_eq!(reconciled.entity(entity.id).unwrap().id, entity.id);
     assert_eq!(reconciled.file_memory_links(attachment_id).len(), 1);
-    assert!(reconciled
-        .conversation_summaries()
-        .iter()
-        .any(|summary| summary.conversation_id == "unrelated"));
+    assert!(
+        reconciled
+            .conversation_summaries()
+            .iter()
+            .any(|summary| summary.conversation_id == "unrelated")
+    );
 }

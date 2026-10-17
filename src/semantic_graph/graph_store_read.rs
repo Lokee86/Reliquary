@@ -17,18 +17,23 @@ impl GraphStore {
 
     pub(crate) fn stats(&self) -> GraphStats {
         GraphStats {
-            nodes: self.nodes.len(),
+            nodes: self
+                .nodes
+                .iter()
+                .filter(|node| !self.excluded_nodes.contains(&node.semantic_node))
+                .count(),
             memory_nodes: self.memory_nodes.len(),
             active_relations: self
                 .states
                 .values()
-                .filter(|relation| relation.active)
+                .filter(|relation| self.is_current_relation(relation))
                 .count(),
             memory_active_relations: self
                 .states
                 .values()
                 .filter(|relation| {
-                    relation.active && matches!(relation.kind, SemanticGraphRelationKind::Memory(_))
+                    self.is_current_relation(relation)
+                        && matches!(relation.kind, SemanticGraphRelationKind::Memory(_))
                 })
                 .count(),
             relation_mutations: self.relation_mutations,
@@ -41,7 +46,7 @@ impl GraphStore {
         let mut relations: Vec<_> = self
             .states
             .values()
-            .filter(|relation| relation.active)
+            .filter(|relation| self.is_current_relation(relation))
             .copied()
             .collect();
         relations.sort_by_key(semantic_relation_sort_key);
@@ -116,6 +121,10 @@ impl GraphStore {
         self.memory_nodes.len()
     }
 
+    pub(crate) fn current_memory_node_ids(&self) -> &[MemoryId] {
+        &self.memory_nodes
+    }
+
     #[cfg(test)]
     pub(crate) fn semantic_nodes(&self) -> Vec<SemanticNodeRef> {
         self.nodes.iter().map(|node| node.semantic_node).collect()
@@ -129,10 +138,20 @@ impl GraphStore {
             })
     }
 
+    pub(crate) fn historical_memory_node_id(&self, id: MemoryId) -> Result<NodeId, GraphError> {
+        self.node_by_semantic
+            .get(&SemanticNodeRef::memory(id))
+            .copied()
+            .ok_or(GraphError::MissingNode(id))
+    }
+
     pub(crate) fn semantic_node_id(
         &self,
         semantic_node: SemanticNodeRef,
     ) -> Result<NodeId, GraphError> {
+        if self.excluded_nodes.contains(&semantic_node) {
+            return Err(GraphError::UnsupportedSemanticNode(semantic_node));
+        }
         self.node_by_semantic
             .get(&semantic_node)
             .copied()
@@ -182,7 +201,8 @@ impl GraphStore {
 
         let mut edges = Vec::new();
         for relation in self.states.values().filter(|relation| {
-            relation.active && relation.kind != SemanticGraphRelationKind::PrincipalAssociation
+            self.is_current_relation(relation)
+                && relation.kind != SemanticGraphRelationKind::PrincipalAssociation
         }) {
             edges.push(Edge {
                 source: self.semantic_node_id(relation.source)?,
@@ -204,8 +224,11 @@ impl GraphStore {
         self.memories_by_entity.clear();
         self.principals_by_memory.clear();
         self.memories_by_principal.clear();
+        let excluded = &self.excluded_nodes;
         for relation in self.states.values().filter(|relation| {
             relation.active
+                && !excluded.contains(&relation.source)
+                && !excluded.contains(&relation.target)
                 && matches!(
                     relation.kind,
                     SemanticGraphRelationKind::EntityAssociation
@@ -252,7 +275,12 @@ impl GraphStore {
             .nodes
             .iter()
             .filter_map(|node| node.semantic_node.as_memory())
-            .filter(|memory_id| self.memory_relation_nodes.contains(memory_id))
+            .filter(|memory_id| {
+                self.memory_relation_nodes.contains(memory_id)
+                    && !self
+                        .excluded_nodes
+                        .contains(&SemanticNodeRef::memory(*memory_id))
+            })
             .collect();
         self.memory_node_by_id.clear();
         for (index, memory_id) in self.memory_nodes.iter().copied().enumerate() {
@@ -261,7 +289,11 @@ impl GraphStore {
         }
 
         let mut edges = Vec::new();
-        for relation in self.states.values().filter(|relation| relation.active) {
+        for relation in self
+            .states
+            .values()
+            .filter(|relation| self.is_current_relation(relation))
+        {
             let SemanticGraphRelationKind::Memory(kind) = relation.kind else {
                 continue;
             };

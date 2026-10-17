@@ -32,6 +32,39 @@ pub struct MemoryRevisionId {
     pub revision: u64,
 }
 
+/// Minimum structural evidence retained when tombstoned Memory payload is pruned.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MemoryRetentionDescriptor {
+    pub id: MemoryId,
+    pub tombstone_revision: u64,
+    pub tombstone_global_version: u64,
+    pub tombstone_memory_version: u64,
+    /// Bodies exclusively retained by tombstoned Memories; shared live bodies are excluded.
+    pub prunable_body_ids: Vec<MemoryBodyId>,
+    pub revisions: Vec<MemoryRetainedRevision>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MemoryRetainedRevision {
+    pub revision: u64,
+    pub global_version: u64,
+    pub memory_version: u64,
+    pub body_id: MemoryBodyId,
+    pub parent_id: Option<MemoryId>,
+    pub superseded_by: Option<MemoryId>,
+    pub source_episode_id: Option<EpisodeId>,
+    pub source_node_id: Option<String>,
+    pub content_source_conversation_id: Option<String>,
+    pub content_source_node_id: Option<String>,
+    pub grounding_source_conversation_id: Option<String>,
+    pub grounding_source_node_id: Option<String>,
+    pub source_ref: Option<MemorySourceRef>,
+    pub source_time_ns: Option<i64>,
+    pub created_at_ns: i64,
+    pub updated_at_ns: i64,
+    pub mutation_id: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct MemoryTemporalInference {
     pub body_id: MemoryBodyId,

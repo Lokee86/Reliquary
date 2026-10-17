@@ -44,6 +44,9 @@ impl EgoStore {
         text: String,
     ) -> Result<(EgoAnchor, bool), EgoError> {
         validate_anchor_text(&text)?;
+        self.anchor_lifecycle(id)
+            .ok_or(EgoError::NotFound("Anchor"))?
+            .require_active(crate::owner_lifecycle::LifecycleTarget::EgoAnchor(id))?;
         let state = self
             .anchors
             .get(&id)
@@ -80,11 +83,11 @@ impl EgoStore {
         id: EgoAnchorId,
         expected_revision: u64,
     ) -> Result<bool, EgoError> {
-        let state = self
-            .anchors
-            .get(&id)
-            .filter(|state| !state.deleted)
-            .ok_or(EgoError::NotFound("Anchor"))?;
+        let state = self.anchors.get(&id).ok_or(EgoError::NotFound("Anchor"))?;
+        if state.deleted {
+            check_revision(expected_revision, state.revision - 1)?;
+            return Ok(false);
+        }
         check_revision(expected_revision, state.revision)?;
         let record = EgoRecord::Anchor {
             ego_version: self.next_version()?,

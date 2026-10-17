@@ -1,5 +1,6 @@
 use crate::memory_codec::{
-    MemoryVersion, decode_body, encode_body, encode_format, encode_record, encode_version,
+    MemoryTombstone, MemoryVersion, decode_body, encode_body, encode_format, encode_record,
+    encode_tombstone, encode_version,
 };
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
@@ -22,6 +23,8 @@ pub(crate) struct MemoryStore {
     records: Vec<MemoryRecord>,
     current: HashMap<MemoryId, usize>,
     by_mutation: HashMap<String, usize>,
+    revisions: HashMap<MemoryId, u64>,
+    tombstones: HashMap<MemoryId, crate::owner_lifecycle::TombstoneCoordinates>,
     next_memory_version: u64,
 }
 
@@ -45,6 +48,8 @@ impl MemoryStore {
             records: Vec::new(),
             current: HashMap::new(),
             by_mutation: HashMap::new(),
+            revisions: HashMap::new(),
+            tombstones: HashMap::new(),
             next_memory_version: 1,
         }
     }
@@ -144,7 +149,14 @@ impl MemoryStore {
         if let Some(inference) = temporal_inference {
             validate_temporal_inference_binding(body_id, draft.source_time_ns, inference)?;
         }
+        let target_id = id.unwrap_or_else(|| memory_id(&draft.mutation_id));
+        if self.tombstones.contains_key(&target_id) {
+            return Err(MemoryError::TerminalTombstone);
+        }
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
+            if self.records[index].id != target_id {
+                return Err(MemoryError::MutationConflict);
+            }
             let existing = self.resolve_record(container, &self.records[index])?;
             let source_matches = source_ref
                 .is_none_or(|source_ref| existing.source_ref.as_ref() == Some(source_ref));
@@ -156,7 +168,6 @@ impl MemoryStore {
                 Err(MemoryError::MutationConflict)
             };
         }
-        let target_id = id.unwrap_or_else(|| memory_id(&draft.mutation_id));
         let current_revision = self
             .current
             .get(&target_id)
@@ -259,8 +270,172 @@ impl MemoryStore {
         self.resolve_record(container, record)
     }
 
+    pub(crate) fn tombstone(
+        &mut self,
+        container: &mut Container,
+        id: MemoryId,
+        expected_revision: u64,
+    ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
+        if let Some(&coordinates) = self.tombstones.get(&id) {
+            if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
+                return Err(MemoryError::RevisionConflict);
+            }
+            return Ok(crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(
+                coordinates,
+            ));
+        }
+        let index = self
+            .current
+            .get(&id)
+            .copied()
+            .ok_or(MemoryError::MissingMemory)?;
+        if self.records[index].revision != expected_revision {
+            return Err(MemoryError::RevisionConflict);
+        }
+        self.next_memory_version
+            .checked_add(1)
+            .ok_or(MemoryError::VersionExhausted)?;
+        let tombstone = MemoryTombstone {
+            id,
+            revision: expected_revision
+                .checked_add(1)
+                .ok_or(MemoryError::VersionExhausted)?,
+        };
+        let record = container.append(&encode_tombstone(tombstone))?;
+        let global_version = container.allocate_version()?;
+        let memory_version = self.next_memory_version;
+        container.append(&encode_version(MemoryVersion {
+            global_version,
+            memory_version,
+            record,
+        }))?;
+        self.insert_tombstone_rebuilt(tombstone, global_version, memory_version)?;
+        Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: Some(global_version),
+                domain_version: Some(memory_version),
+            },
+        ))
+    }
+
+    pub(crate) fn insert_tombstone_rebuilt(
+        &mut self,
+        tombstone: MemoryTombstone,
+        global_version: u64,
+        memory_version: u64,
+    ) -> Result<(), MemoryError> {
+        if global_version == 0 || memory_version != self.next_memory_version {
+            return Err(MemoryError::InvalidVersion);
+        }
+        let index = self
+            .current
+            .get(&tombstone.id)
+            .copied()
+            .ok_or(MemoryError::MissingMemory)?;
+        if tombstone.revision
+            != self.records[index]
+                .revision
+                .checked_add(1)
+                .ok_or(MemoryError::VersionExhausted)?
+        {
+            return Err(MemoryError::RevisionConflict);
+        }
+        self.current.remove(&tombstone.id);
+        self.revisions.insert(tombstone.id, tombstone.revision);
+        self.tombstones.insert(
+            tombstone.id,
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: Some(global_version),
+                domain_version: Some(memory_version),
+            },
+        );
+        self.next_memory_version = memory_version
+            .checked_add(1)
+            .ok_or(MemoryError::VersionExhausted)?;
+        Ok(())
+    }
+
+    pub(crate) fn lifecycle_state(
+        &self,
+        id: MemoryId,
+    ) -> Result<crate::owner_lifecycle::LifecycleState, MemoryError> {
+        if let Some(&coordinates) = self.tombstones.get(&id) {
+            return Ok(crate::owner_lifecycle::LifecycleState::Tombstoned(
+                coordinates,
+            ));
+        }
+        self.current
+            .contains_key(&id)
+            .then_some(crate::owner_lifecycle::LifecycleState::Active)
+            .ok_or(MemoryError::MissingMemory)
+    }
+
+    pub(crate) fn retention_descriptor(
+        &self,
+        id: MemoryId,
+    ) -> Result<crate::memory_model::MemoryRetentionDescriptor, MemoryError> {
+        let coordinates = self.tombstones.get(&id).copied().ok_or_else(|| {
+            if self.contains_historical_memory(id) {
+                MemoryError::PayloadRequiredByLiveTarget
+            } else {
+                MemoryError::MissingMemory
+            }
+        })?;
+        let revisions = self
+            .records
+            .iter()
+            .filter(|record| record.id == id)
+            .map(|record| crate::memory_model::MemoryRetainedRevision {
+                revision: record.revision,
+                global_version: record.global_version,
+                memory_version: record.memory_version,
+                body_id: record.body_id,
+                parent_id: record.parent_id,
+                superseded_by: record.superseded_by,
+                source_episode_id: record.source_episode_id,
+                source_node_id: record.source_node_id.clone(),
+                content_source_conversation_id: record.content_source_conversation_id.clone(),
+                content_source_node_id: record.content_source_node_id.clone(),
+                grounding_source_conversation_id: record.grounding_source_conversation_id.clone(),
+                grounding_source_node_id: record.grounding_source_node_id.clone(),
+                source_ref: record.source_ref.clone(),
+                source_time_ns: record.source_time_ns,
+                created_at_ns: record.created_at_ns,
+                updated_at_ns: record.updated_at_ns,
+                mutation_id: record.mutation_id.clone(),
+            })
+            .collect();
+        let live_bodies: HashSet<_> = self
+            .current
+            .values()
+            .map(|index| self.records[*index].body_id)
+            .collect();
+        let mut prunable_body_ids: Vec<_> = self
+            .records
+            .iter()
+            .filter(|record| record.id == id && !live_bodies.contains(&record.body_id))
+            .map(|record| record.body_id)
+            .collect();
+        prunable_body_ids.sort_by_key(|body_id| body_id.0);
+        prunable_body_ids.dedup();
+        Ok(crate::memory_model::MemoryRetentionDescriptor {
+            id,
+            prunable_body_ids,
+            tombstone_revision: self.revisions[&id],
+            tombstone_global_version: coordinates.global_version.unwrap(),
+            tombstone_memory_version: coordinates.domain_version.unwrap(),
+            revisions,
+        })
+    }
+
     pub(crate) fn records(&self) -> &[MemoryRecord] {
         &self.records
+    }
+
+    pub(crate) fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
+        self.tombstones
+            .values()
+            .filter_map(|coordinates| coordinates.global_version)
     }
 
     pub(crate) fn memory_version(&self) -> u64 {
@@ -317,8 +492,14 @@ impl MemoryStore {
         Ok(self.records[*index].body_id)
     }
 
+    pub(crate) fn contains_historical_memory(&self, id: MemoryId) -> bool {
+        self.revisions.contains_key(&id)
+    }
+
     pub(crate) fn routing_metadata(&self, id: MemoryId) -> Option<&MemoryRoutingMetadata> {
-        self.routing_metadata.get(&id)
+        self.routing_metadata
+            .get(&id)
+            .filter(|_| self.current.contains_key(&id))
     }
 
     pub(crate) fn entity_mention_keys_for_surface(
@@ -333,6 +514,7 @@ impl MemoryStore {
             .flatten()
             .copied()
             .collect();
+        keys.retain(|key| self.current.contains_key(&key.memory_id));
         keys.sort_by_key(|key| {
             (
                 key.memory_id.0,
@@ -345,6 +527,16 @@ impl MemoryStore {
     }
 
     pub(crate) fn validate_entity_mention_key(
+        &self,
+        key: MemoryEntityMentionKey,
+    ) -> Result<(), MemoryError> {
+        if !self.current.contains_key(&key.memory_id) {
+            return Err(MemoryError::MissingMemory);
+        }
+        self.validate_historical_entity_mention_key(key)
+    }
+
+    pub(crate) fn validate_historical_entity_mention_key(
         &self,
         key: MemoryEntityMentionKey,
     ) -> Result<(), MemoryError> {
@@ -378,6 +570,7 @@ impl MemoryStore {
         container: &mut Container,
         metadata: MemoryRoutingMetadata,
     ) -> Result<bool, MemoryError> {
+        self.current_body_id(metadata.memory_id)?;
         self.validate_routing_binding(&metadata)?;
         self.validate_routing_text(container, &metadata)?;
         if let Some(existing) = self.routing_metadata.get(&metadata.memory_id) {
@@ -526,6 +719,9 @@ impl MemoryStore {
     }
 
     fn insert(&mut self, record: MemoryRecord) -> Result<(), MemoryError> {
+        if self.tombstones.contains_key(&record.id) {
+            return Err(MemoryError::TerminalTombstone);
+        }
         if record.revision == 0 || record.memory_version == 0 || record.global_version == 0 {
             return Err(MemoryError::InvalidVersion);
         }
@@ -552,6 +748,7 @@ impl MemoryStore {
         let index = self.records.len();
         self.by_mutation.insert(record.mutation_id.clone(), index);
         self.current.insert(record.id, index);
+        self.revisions.insert(record.id, record.revision);
         self.records.push(record);
         Ok(())
     }
@@ -598,7 +795,11 @@ impl MemoryStore {
         if metadata.entity_mentions.len() > MAX_MEMORY_ENTITY_MENTIONS {
             return Err(MemoryError::InvalidField("Memory routing metadata count"));
         }
-        if self.current_body_id(metadata.memory_id)? != metadata.body_id {
+        if !self
+            .records
+            .iter()
+            .any(|record| record.id == metadata.memory_id && record.body_id == metadata.body_id)
+        {
             return Err(MemoryError::InvalidField("Memory routing metadata binding"));
         }
         for mention in &metadata.entity_mentions {

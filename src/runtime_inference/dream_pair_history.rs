@@ -38,7 +38,8 @@ impl DreamPairStore {
 
     pub(crate) fn validate(&self, memories: &MemoryStore) -> Result<(), MemoryError> {
         if self.pairs.iter().all(|(left, right)| {
-            memories.contains_memory(*left) && memories.contains_memory(*right)
+            memories.contains_historical_memory(*left)
+                && memories.contains_historical_memory(*right)
         }) {
             Ok(())
         } else {

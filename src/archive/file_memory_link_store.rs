@@ -48,7 +48,7 @@ pub(crate) fn validate_file_memory_targets(
     memories: &MemoryStore,
 ) -> Result<(), ArchiveError> {
     for link in archive.file_memory_links.iter() {
-        if memories.current_body_id(link.memory_id).is_err() {
+        if !memories.contains_historical_memory(link.memory_id) {
             return Err(ArchiveError::MissingFileMemoryTarget);
         }
     }

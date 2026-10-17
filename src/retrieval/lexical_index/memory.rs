@@ -21,9 +21,17 @@ impl LexicalIndex {
             .iter()
             .filter(|record| record.memory_version > self.memory_version)
         {
-            changed.insert(record.id, record.archived);
+            changed.insert(
+                record.id,
+                record.archived || !memories.contains_memory(record.id),
+            );
         }
 
+        for id in self.memory_slots.keys().copied() {
+            if !memories.contains_memory(id) {
+                changed.insert(id, true);
+            }
+        }
         let mut changed = changed.into_iter().collect::<Vec<_>>();
         changed.sort_by_key(|(id, _)| id.0);
         for (id, archived) in changed {

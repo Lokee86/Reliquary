@@ -242,7 +242,7 @@ impl EntityResolutionStore {
         let mut repairs = Vec::new();
 
         for current in values {
-            memories.validate_entity_mention_key(current.key)?;
+            memories.validate_historical_entity_mention_key(current.key)?;
             validate_status(&current.status)?;
             let mut changed = false;
             let status = match current.status {
@@ -250,9 +250,12 @@ impl EntityResolutionStore {
                     mut entity_id,
                     reason,
                 } => {
-                    let canonical = entities.canonical_active_id(entity_id).ok_or(
-                        MemoryError::InvalidField("Entity resolution Entity reference"),
-                    )?;
+                    let canonical = entities
+                        .canonical_active_id(entity_id)
+                        .or_else(|| entities.contains_historical(entity_id).then_some(entity_id))
+                        .ok_or(MemoryError::InvalidField(
+                            "Entity resolution Entity reference",
+                        ))?;
                     if canonical != entity_id {
                         entity_id = canonical;
                         changed = true;
@@ -347,6 +350,7 @@ fn canonicalize_candidates(
     for value in values.iter_mut() {
         let canonical = entities
             .canonical_active_id(*value)
+            .or_else(|| entities.contains_historical(*value).then_some(*value))
             .ok_or(MemoryError::InvalidField(
                 "Entity resolution Entity reference",
             ))?;

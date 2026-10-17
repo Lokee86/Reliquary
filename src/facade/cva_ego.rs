@@ -65,3 +65,15 @@ impl Cva {
         )?)
     }
 }
+
+impl Cva {
+    pub fn ego_anchor_lifecycle(
+        &self,
+        id: EgoAnchorId,
+    ) -> Option<crate::owner_lifecycle::LifecycleState> {
+        self.ego.anchor_lifecycle(id)
+    }
+    pub fn historical_ego_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
+        self.ego.historical_anchor(id, revision)
+    }
+}

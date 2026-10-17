@@ -1039,8 +1039,9 @@ pub use entity_candidate_model::{
 };
 pub use entity_error::EntityError;
 pub use entity_model::{
-    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome, EntityRef, EntityStats,
-    MAX_ENTITY_ALIASES, MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
+    Entity, EntityDraft, EntityGlobalId, EntityId, EntityMergeOutcome, EntityRef,
+    EntityRetainedRevision, EntityRetentionDescriptor, EntityStats, MAX_ENTITY_ALIASES,
+    MAX_ENTITY_KIND_BYTES, MAX_ENTITY_NAME_BYTES, MAX_ENTITY_SUMMARY_BYTES,
 };
 pub use entity_reconciliation_error::EntityReconciliationError;
 pub use entity_reconciliation_model::{
@@ -1126,8 +1127,9 @@ pub use master_key::{
 };
 pub use memory_error::MemoryError;
 pub use memory_model::{
-    Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRevisionId, MemorySourceRef,
-    MemoryStats, MemoryTemporalInference,
+    Memory, MemoryBodyId, MemoryDraft, MemoryId, MemoryRef, MemoryRetainedRevision,
+    MemoryRetentionDescriptor, MemoryRevisionId, MemorySourceRef, MemoryStats,
+    MemoryTemporalInference,
 };
 pub use memory_provenance_model::MemoryProvenance;
 pub use memory_retrieval_error::MemoryRetrievalError;
@@ -1184,7 +1186,8 @@ pub use relationship_error::RelationshipError;
 pub use relationship_model::{
     MAX_RELATIONSHIP_EVIDENCE, MAX_RELATIONSHIP_KIND_BYTES, MAX_RELATIONSHIP_OWNER_ID_BYTES,
     MAX_RELATIONSHIP_PARTICIPANTS, MAX_RELATIONSHIP_ROLE_BYTES, MAX_RELATIONSHIP_SUMMARY_BYTES,
-    Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant, RelationshipStats,
+    Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant,
+    RelationshipRetainedRevision, RelationshipRetentionDescriptor, RelationshipStats,
 };
 pub use runtime_host::memory_search::{
     DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
@@ -1448,6 +1451,9 @@ mod echo_tests;
 #[path = "ego/ego_tests.rs"]
 mod ego_tests;
 #[cfg(test)]
+#[path = "perception/entity_lifecycle_tests.rs"]
+mod entity_lifecycle_tests;
+#[cfg(test)]
 #[path = "perception/entity_resolution_wake_tests.rs"]
 mod entity_resolution_wake_tests;
 #[cfg(test)]
@@ -1492,6 +1498,9 @@ mod master_key_tests;
 #[cfg(test)]
 #[path = "memory/memory_codec_tests.rs"]
 mod memory_codec_tests;
+#[cfg(test)]
+#[path = "memory/memory_lifecycle_tests.rs"]
+mod memory_lifecycle_tests;
 #[cfg(test)]
 #[path = "retrieval/memory_retrieval_stale_tests.rs"]
 mod memory_retrieval_stale_tests;
@@ -1555,6 +1564,9 @@ mod project_history_reconcile_tests;
 #[cfg(test)]
 #[path = "archive/project_history_tests.rs"]
 mod project_history_tests;
+#[cfg(test)]
+#[path = "perception/relationship_lifecycle_tests.rs"]
+mod relationship_lifecycle_tests;
 #[cfg(test)]
 #[path = "perception/relationship_maintenance_tests.rs"]
 mod relationship_maintenance_tests;

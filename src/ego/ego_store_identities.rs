@@ -68,6 +68,9 @@ impl EgoStore {
         self.require_phylactery("Identity is PHY-owned")?;
         validate_text("identity name", &name)?;
         validate_text("identity", &text)?;
+        self.identity_lifecycle(id)
+            .ok_or(EgoError::NotFound("Identity"))?
+            .require_active(crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id))?;
         let state = self
             .identities
             .get(&id)
@@ -131,8 +134,11 @@ impl EgoStore {
         let state = self
             .identities
             .get(&id)
-            .filter(|state| !state.deleted)
             .ok_or(EgoError::NotFound("Identity"))?;
+        if state.deleted {
+            check_revision(expected_revision, state.revision - 1)?;
+            return Ok(false);
+        }
         check_revision(expected_revision, state.revision)?;
         if self.active_identity_id == Some(id) && self.live_identity_count() > 1 {
             return Err(EgoError::ActiveIdentityDeletion);

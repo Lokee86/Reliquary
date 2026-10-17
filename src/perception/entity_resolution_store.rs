@@ -75,9 +75,9 @@ impl EntityResolutionStore {
         entities: &EntityStore,
     ) -> Result<(), MemoryError> {
         for value in self.current.values() {
-            memories.validate_entity_mention_key(value.key)?;
+            memories.validate_historical_entity_mention_key(value.key)?;
             validate_status(&value.status)?;
-            validate_entity_refs(&value.status, entities)?;
+            validate_historical_entity_refs(&value.status, entities)?;
         }
         Ok(())
     }
@@ -189,7 +189,7 @@ impl EntityResolutionStore {
     ) -> Result<(), MemoryError> {
         memories.validate_entity_mention_key(value.key)?;
         validate_status(&value.status)?;
-        validate_entity_refs(&value.status, entities)?;
+        validate_live_entity_refs(&value.status, entities)?;
         if let Some(existing) = self.current.get(&value.key) {
             return if existing.status == value.status {
                 Ok(())
@@ -219,20 +219,36 @@ impl EntityResolutionStore {
     }
 }
 
-fn validate_entity_refs(
+fn validate_live_entity_refs(
     status: &MemoryEntityResolutionStatus,
     entities: &EntityStore,
 ) -> Result<(), MemoryError> {
+    validate_entity_refs_with(status, |id| entities.contains(id))
+}
+
+fn validate_historical_entity_refs(
+    status: &MemoryEntityResolutionStatus,
+    entities: &EntityStore,
+) -> Result<(), MemoryError> {
+    validate_entity_refs_with(status, |id| entities.contains_historical(id))
+}
+
+fn validate_entity_refs_with(
+    status: &MemoryEntityResolutionStatus,
+    mut contains: impl FnMut(EntityId) -> bool,
+) -> Result<(), MemoryError> {
     let valid = match status {
-        MemoryEntityResolutionStatus::Resolved { entity_id, .. } => entities.contains(*entity_id),
+        MemoryEntityResolutionStatus::Resolved { entity_id, .. } => contains(*entity_id),
         MemoryEntityResolutionStatus::Pending(value) => value
             .candidate_entity_ids
             .iter()
-            .all(|id| entities.contains(*id)),
+            .copied()
+            .all(&mut contains),
         MemoryEntityResolutionStatus::Dormant(value) => value
             .candidate_entity_ids
             .iter()
-            .all(|id| entities.contains(*id)),
+            .copied()
+            .all(&mut contains),
         MemoryEntityResolutionStatus::Rejected { .. } => true,
     };
     if valid {

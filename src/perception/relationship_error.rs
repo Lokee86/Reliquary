@@ -10,6 +10,8 @@ pub enum RelationshipError {
     FieldTooLarge,
     ConflictingFormat,
     MissingRelationship,
+    TerminalTombstone,
+    PayloadRequiredByLiveTarget,
     MissingLocalEntity(EntityId),
     MissingLocalMemory(MemoryId),
     MissingOwnerIdentity,

@@ -16,6 +16,8 @@ pub enum MemoryError {
     RevisionConflict,
     SemanticMutation,
     MissingMemory,
+    TerminalTombstone,
+    PayloadRequiredByLiveTarget,
     MutationConflict,
     RoutingMetadataConflict,
     InvalidProvenance,

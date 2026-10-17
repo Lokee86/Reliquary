@@ -54,6 +54,35 @@ pub(super) fn validate_change(
     Ok(())
 }
 
+pub(super) fn validate_stored_change(
+    memories: &MemoryStore,
+    entities: &EntityStore,
+    relation: crate::SemanticGraphRelation,
+) -> Result<(), GraphError> {
+    validate_relation_contract(
+        relation.source,
+        relation.target,
+        relation.kind,
+        relation.origin,
+    )?;
+    validate_stored_node(memories, entities, relation.source)?;
+    validate_stored_node(memories, entities, relation.target)?;
+    if let Some(id) = relation.target.as_entity() {
+        let entity = entities
+            .records()
+            .iter()
+            .rev()
+            .find(|record| record.id == id)
+            .ok_or(GraphError::MissingEntity(id))?;
+        if (relation.kind == SemanticGraphRelationKind::PrincipalAssociation)
+            != (entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+        {
+            return Err(GraphError::InvalidRelationShape);
+        }
+    }
+    Ok(())
+}
+
 pub(super) fn validate_relation_contract(
     source: SemanticNodeRef,
     target: SemanticNodeRef,
@@ -119,10 +148,18 @@ pub(super) fn validate_stored_node(
     match node.kind {
         SemanticNodeKind::Entity => {
             let entity_id = node.as_entity().expect("Entity node decodes");
-            if entities.contains(entity_id) || entities.retired_replacement(entity_id).is_some() {
+            if entities.contains_historical(entity_id) {
                 Ok(())
             } else {
                 Err(GraphError::MissingEntity(entity_id))
+            }
+        }
+        SemanticNodeKind::Memory => {
+            let memory_id = node.as_memory().expect("Memory node decodes");
+            if memories.contains_historical_memory(memory_id) {
+                Ok(())
+            } else {
+                Err(GraphError::MissingMemory(memory_id))
             }
         }
         _ => validate_node(memories, entities, node),

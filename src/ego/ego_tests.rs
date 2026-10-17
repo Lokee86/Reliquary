@@ -2,6 +2,8 @@
 mod anchors;
 #[path = "ego_identity_tests.rs"]
 mod identities;
+#[path = "ego_lifecycle_tests.rs"]
+mod lifecycle;
 #[path = "ego_persona_tests.rs"]
 mod persona;
 

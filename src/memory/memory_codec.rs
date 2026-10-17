@@ -14,6 +14,13 @@ const RECORD_MAGIC_V6: [u8; 8] = *b"CVAMEMR6";
 const RECORD_MAGIC_V7: [u8; 8] = *b"CVAMEMR7";
 const RECORD_MAGIC_V8: [u8; 8] = *b"CVAMEMR8";
 const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
+const TOMBSTONE_MAGIC: [u8; 8] = *b"CVAMEMT1";
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct MemoryTombstone {
+    pub id: MemoryId,
+    pub revision: u64,
+}
 
 pub(crate) struct MemoryVersion {
     pub global_version: u64,
@@ -219,6 +226,27 @@ pub(crate) fn decode_version(bytes: &[u8]) -> Result<Option<MemoryVersion>, Memo
         global_version: u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
         memory_version: u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
         record: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
+    }))
+}
+
+pub(crate) fn encode_tombstone(value: MemoryTombstone) -> Vec<u8> {
+    let mut out = Vec::with_capacity(48);
+    out.extend_from_slice(&TOMBSTONE_MAGIC);
+    out.extend_from_slice(&value.id.0);
+    out.extend_from_slice(&value.revision.to_le_bytes());
+    out
+}
+
+pub(crate) fn decode_tombstone(bytes: &[u8]) -> Result<Option<MemoryTombstone>, MemoryError> {
+    if bytes.len() < 8 || bytes[..8] != TOMBSTONE_MAGIC {
+        return Ok(None);
+    }
+    if bytes.len() != 48 {
+        return Err(MemoryError::CorruptRecord("invalid Memory tombstone"));
+    }
+    Ok(Some(MemoryTombstone {
+        id: MemoryId(bytes[8..40].try_into().unwrap()),
+        revision: u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
     }))
 }
 

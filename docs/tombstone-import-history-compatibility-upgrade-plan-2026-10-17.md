@@ -3,7 +3,7 @@
 Parent: [Documentation index](INDEX.md).
 
 **Date:** 2026-10-17  
-**Status:** implementation-ready specification; no implementation step is complete merely because it appears here.  
+**Status:** active execution; convergence steps 1–12 are complete on `main`. The authoritative continuation is the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
 **Scope:** generalized REL/PHY tombstoning, Archive conversation deletion, import epoch markers, repeated-import Historical Freshness reconstruction, explicit destructive historical pruning/repack, compatibility-policy v3/profile retirement, and retained-REL normalization.  
 **Migration policy:** staged hard cut internally, with compatibility isolated only at persisted REL/PHY format boundaries that must continue to open.
 
@@ -13,7 +13,7 @@ Implement the lifecycle, repeated-import history and compatibility upgrades defi
 
 ## Overview
 
-Execute the 50 acceptance-gated Sol/Luna steps in section 6. The [execution contract](tombstone-import-history-execution-contract.md) distinguishes current implementation from accepted architecture.
+The original 50-step decomposition below remains the architectural work breakdown, but its execution order has been superseded by the convergence sequence actually being used. Steps 1–12 of that convergence sequence are complete; **step 13 is next**. Use the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) for authoritative step numbering and the [execution contract](tombstone-import-history-execution-contract.md) for frozen semantics and verified progress.
 
 ## Related docs
 
@@ -23,7 +23,7 @@ Execute the 50 acceptance-gated Sol/Luna steps in section 6. The [execution cont
 
 ## Notes
 
-No step is complete without implementation evidence and its acceptance gates. Authoritative fixtures remain untouched before final promotion.
+No step is complete without implementation evidence and its acceptance gates. Convergence steps 1–12 are recorded as complete in the [domain convergence inventory](domain-tombstone-convergence-split-2026-10-17.md). Authoritative fixtures remain untouched before final promotion.
 
 ## 1. Problem statement
 
@@ -643,7 +643,9 @@ Do not create forwarding wrappers, dual write paths, permanent aliases or fallba
 
 Each phase must still run the coherent targeted tests for the completed subgraph.
 
-## 6. Linear implementation plan
+## 6. Original architectural work breakdown
+
+> **Execution status:** this 50-step table is no longer the authoritative execution order. It is retained as the original architectural decomposition. Current execution continues at **step 9** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
 
 ### Model assignment
 

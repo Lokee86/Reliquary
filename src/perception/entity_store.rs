@@ -4,7 +4,8 @@ mod read;
 mod validation;
 
 use crate::entity_codec::{
-    EntityTombstone, EntityVersion, encode_format, encode_record, encode_tombstone, encode_version,
+    DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone, encode_format,
+    encode_record, encode_tombstone, encode_version,
 };
 use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
@@ -21,6 +22,7 @@ pub(crate) struct EntityStore {
     by_alias_surface: HashMap<String, BTreeSet<EntityId>>,
     revisions: HashMap<EntityId, u64>,
     retired: HashMap<EntityId, EntityId>,
+    tombstones: HashMap<EntityId, crate::owner_lifecycle::TombstoneCoordinates>,
     next_entity_version: u64,
 }
 
@@ -35,6 +37,7 @@ impl EntityStore {
             by_alias_surface: HashMap::new(),
             revisions: HashMap::new(),
             retired: HashMap::new(),
+            tombstones: HashMap::new(),
             next_entity_version: 1,
         }
     }
@@ -72,6 +75,9 @@ impl EntityStore {
         } else {
             id.unwrap_or_else(|| entity_id(&draft.mutation_id))
         };
+        if self.tombstones.contains_key(&id) {
+            return Err(EntityError::TerminalTombstone);
+        }
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
             let existing = resolve(&self.records[index]);
             return if existing.id == id
@@ -82,9 +88,6 @@ impl EntityStore {
             } else {
                 Err(EntityError::MutationConflict)
             };
-        }
-        if self.retired.contains_key(&id) {
-            return Err(EntityError::InvalidField("terminal Entity tombstone"));
         }
         let current = self.current.get(&id).map(|index| &self.records[*index]);
         let current_revision = self.revisions.get(&id).copied().unwrap_or(0);
@@ -145,6 +148,9 @@ impl EntityStore {
     }
 
     pub(crate) fn insert_rebuilt(&mut self, record: EntityRecord) -> Result<(), EntityError> {
+        if self.tombstones.contains_key(&record.id) {
+            return Err(EntityError::TerminalTombstone);
+        }
         if record.revision == 0
             || record.entity_version == 0
             || record.global_version == 0
@@ -175,9 +181,6 @@ impl EntityStore {
         {
             return Err(EntityError::RevisionConflict);
         }
-        if self.retired.contains_key(&record.id) {
-            return Err(EntityError::InvalidField("terminal Entity tombstone"));
-        }
         validate_record(&record)?;
 
         if let Some(index) = self.current.get(&record.id).copied() {
@@ -197,6 +200,7 @@ impl EntityStore {
         self.by_mutation.insert(record.mutation_id.clone(), index);
         self.current.insert(record.id, index);
         self.revisions.insert(record.id, record.revision);
+        self.retired.remove(&record.id);
         if record.kind != "principal" {
             for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
                 self.by_surface
@@ -313,6 +317,13 @@ impl EntityStore {
         );
         self.revisions.insert(tombstone.id, tombstone.revision);
         self.retired.insert(tombstone.id, tombstone.replacement_id);
+        self.tombstones.insert(
+            tombstone.id,
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: Some(global_version),
+                domain_version: Some(entity_version),
+            },
+        );
         self.next_entity_version = self
             .next_entity_version
             .checked_add(1)
@@ -322,6 +333,97 @@ impl EntityStore {
 
     pub(crate) fn retired_replacement(&self, id: EntityId) -> Option<EntityId> {
         self.retired.get(&id).copied()
+    }
+
+    pub(crate) fn tombstone_direct(
+        &mut self,
+        container: &mut Container,
+        id: EntityId,
+        expected_revision: u64,
+    ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
+        if let Some(&coordinates) = self.tombstones.get(&id) {
+            if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
+                return Err(EntityError::RevisionConflict);
+            }
+            return Ok(crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(
+                coordinates,
+            ));
+        }
+        let index = self
+            .current
+            .get(&id)
+            .copied()
+            .ok_or(EntityError::MissingEntity)?;
+        if self.records[index].revision != expected_revision {
+            return Err(EntityError::RevisionConflict);
+        }
+        self.next_entity_version
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+        let tombstone = DirectEntityTombstone {
+            id,
+            revision: expected_revision
+                .checked_add(1)
+                .ok_or(EntityError::VersionExhausted)?,
+        };
+        let record = container.append(&encode_direct_tombstone(tombstone))?;
+        let global_version = container.allocate_version()?;
+        let entity_version = self.next_entity_version;
+        container.append(&encode_version(EntityVersion {
+            global_version,
+            entity_version,
+            record,
+        }))?;
+        self.insert_direct_tombstone_rebuilt(tombstone, global_version, entity_version)?;
+        Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: Some(global_version),
+                domain_version: Some(entity_version),
+            },
+        ))
+    }
+
+    pub(crate) fn insert_direct_tombstone_rebuilt(
+        &mut self,
+        tombstone: DirectEntityTombstone,
+        global_version: u64,
+        entity_version: u64,
+    ) -> Result<(), EntityError> {
+        if global_version == 0 || entity_version != self.next_entity_version {
+            return Err(EntityError::InvalidVersion);
+        }
+        let index = self
+            .current
+            .get(&tombstone.id)
+            .copied()
+            .ok_or(EntityError::MissingEntity)?;
+        if tombstone.revision
+            != self.records[index]
+                .revision
+                .checked_add(1)
+                .ok_or(EntityError::VersionExhausted)?
+        {
+            return Err(EntityError::RevisionConflict);
+        }
+        self.current.remove(&tombstone.id);
+        deindex_entity(
+            &mut self.by_surface,
+            &mut self.by_normalized_surface,
+            &mut self.by_alias_surface,
+            &self.records[index],
+        );
+        self.revisions.insert(tombstone.id, tombstone.revision);
+        self.tombstones.insert(
+            tombstone.id,
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: Some(global_version),
+                domain_version: Some(entity_version),
+            },
+        );
+        self.next_entity_version = entity_version
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+        Ok(())
     }
 
     pub(crate) fn canonical_active_id(&self, id: EntityId) -> Option<EntityId> {

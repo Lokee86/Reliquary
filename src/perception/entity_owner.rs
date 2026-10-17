@@ -73,6 +73,61 @@ macro_rules! impl_owner {
                 self.entities.entity(id)
             }
 
+            pub fn tombstone_entity(
+                &mut self,
+                id: EntityId,
+                expected_revision: u64,
+            ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
+                let result =
+                    self.entities
+                        .tombstone_direct(&mut self.container, id, expected_revision)?;
+                self.graph
+                    .exclude_from_current(crate::SemanticNodeRef::entity(id))
+                    .map_err(|_| EntityError::InvalidField("Entity graph projection"))?;
+                Ok(result)
+            }
+
+            pub fn entity_retention_descriptor(
+                &self,
+                id: EntityId,
+            ) -> Result<crate::EntityRetentionDescriptor, EntityError> {
+                self.entities.retention_descriptor(id)
+            }
+
+            pub fn historical_entity_revision(
+                &self,
+                id: EntityId,
+                revision: u64,
+            ) -> Result<
+                crate::owner_lifecycle::HistoricalPayload<Entity, crate::EntityRetainedRevision>,
+                EntityError,
+            > {
+                let value = self.entity_revision(id, revision)?;
+                Ok(match self.entity_lifecycle_state(id)? {
+                    crate::owner_lifecycle::LifecycleState::Active => {
+                        crate::owner_lifecycle::HistoricalPayload::Available(value)
+                    }
+                    crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
+                        crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
+                    }
+                })
+            }
+
+            pub fn entity_lifecycle_state(
+                &self,
+                id: EntityId,
+            ) -> Result<crate::owner_lifecycle::LifecycleState, EntityError> {
+                self.entities.lifecycle_state(id)
+            }
+
+            pub fn entity_revision(
+                &self,
+                id: EntityId,
+                revision: u64,
+            ) -> Result<Entity, EntityError> {
+                self.entities.entity_revision(id, revision)
+            }
+
             pub fn entities(&self) -> Vec<Entity> {
                 self.entities.current()
             }

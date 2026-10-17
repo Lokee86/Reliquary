@@ -1,5 +1,13 @@
 # Architecture
 Parent index: [Documentation index](INDEX.md)
+## Domain tombstone convergence
+
+Memory, Entity and Relationship stores own terminal direct tombstones on their existing domain/global clocks. Exact retry preserves the original coordinates; later publication under the deleted ID rejects. Current lookup, lexical candidates and graph projection exclude terminal identities without rewriting historical graph transactions or cascading to independent owners. Historical revisions and owner retention descriptors preserve payload, topology, evidence and provenance for later explicit pruning. Community projection additionally validates current graph membership, so a clock-neutral Memory deletion invalidates the old derived snapshot until refresh while retaining its historical record. Entity merge tombstones retain their replacement chain; direct Entity tombstones have no replacement.
+
+## Ego terminal lifecycle
+
+EgoStore remains the sole owner of Identity and Anchor lifecycle. Existing deleted Identity/Anchor records are terminal on runtime mutation and replay. Exact deletion retries with the original expected revision return `false` without appending or advancing any clock; conflicting retries reject. Current projections exclude deleted IDs, while retained nondeleted revisions remain available through explicit historical getters. Lifecycle coordinates use the existing Ego version and omit the global version because Ego records allocate no semantic global ticket.
+
 ## Native historical import ownership
 
 The branch-local G-import implementation normalizes supplied provider/agent bytes in `src/imports/`; `Cva::import_native` composes existing turn/file/branch publication and Insomnia scheduling. Archive owns source mappings, revision/delete/artifact evidence and `CVAIMPT1` receipt publication/rebuild. Import Episode coverage is per immutable source Node across branches, using existing response-cycle packing. No second queue, runtime, store or semantic clock is introduced. Live scheduling is unchanged. Exact retry and partial progress recovery are specified in [Native historical import](native-import.md). Mounted F5 authorization/P4/coordinator integration remains unimplemented.

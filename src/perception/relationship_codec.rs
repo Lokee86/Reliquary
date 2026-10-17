@@ -7,6 +7,13 @@ use crate::{
 const FORMAT_MAGIC: [u8; 8] = *b"CVARELF1";
 const RECORD_MAGIC: [u8; 8] = *b"CVARELR1";
 const VERSION_MAGIC: [u8; 8] = *b"CVARELV1";
+const TOMBSTONE_MAGIC: [u8; 8] = *b"CVARELT1";
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct RelationshipTombstone {
+    pub id: RelationshipId,
+    pub revision: u64,
+}
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct RelationshipVersion {
@@ -101,6 +108,31 @@ pub(crate) fn decode_version(
         global_version: u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
         relationship_version: u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
         record: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
+    }))
+}
+
+pub(crate) fn encode_tombstone(value: RelationshipTombstone) -> Vec<u8> {
+    let mut out = Vec::with_capacity(48);
+    out.extend_from_slice(&TOMBSTONE_MAGIC);
+    out.extend_from_slice(&value.id.0);
+    out.extend_from_slice(&value.revision.to_le_bytes());
+    out
+}
+
+pub(crate) fn decode_tombstone(
+    bytes: &[u8],
+) -> Result<Option<RelationshipTombstone>, RelationshipError> {
+    if bytes.len() < 8 || bytes[..8] != TOMBSTONE_MAGIC {
+        return Ok(None);
+    }
+    if bytes.len() != 48 {
+        return Err(RelationshipError::CorruptRecord(
+            "invalid Relationship tombstone",
+        ));
+    }
+    Ok(Some(RelationshipTombstone {
+        id: RelationshipId(bytes[8..40].try_into().unwrap()),
+        revision: u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
     }))
 }
 

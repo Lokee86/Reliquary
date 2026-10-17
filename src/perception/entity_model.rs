@@ -49,6 +49,28 @@ pub struct EntityStats {
     pub entity_version: u64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EntityRetentionDescriptor {
+    pub id: EntityId,
+    pub tombstone_revision: u64,
+    pub tombstone_global_version: u64,
+    pub tombstone_entity_version: u64,
+    pub replacement_id: Option<EntityId>,
+    pub revisions: Vec<EntityRetainedRevision>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EntityRetainedRevision {
+    pub revision: u64,
+    pub global_version: u64,
+    pub entity_version: u64,
+    pub global_id: Option<EntityGlobalId>,
+    pub kind: String,
+    pub created_at_ns: i64,
+    pub updated_at_ns: i64,
+    pub mutation_id: String,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct EntityMergeOutcome {
     pub survivor_id: EntityId,

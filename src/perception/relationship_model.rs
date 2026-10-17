@@ -49,6 +49,29 @@ pub struct RelationshipStats {
     pub relationship_version: u64,
 }
 
+/// Minimum structural evidence retained for a tombstoned Relationship.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RelationshipRetentionDescriptor {
+    pub id: RelationshipId,
+    pub tombstone_revision: u64,
+    pub tombstone_global_version: u64,
+    pub tombstone_relationship_version: u64,
+    pub revisions: Vec<RelationshipRetainedRevision>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RelationshipRetainedRevision {
+    pub revision: u64,
+    pub global_version: u64,
+    pub relationship_version: u64,
+    pub kind: String,
+    pub participants: Vec<RelationshipParticipant>,
+    pub evidence: Vec<MemoryRef>,
+    pub created_at_ns: i64,
+    pub updated_at_ns: i64,
+    pub mutation_id: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct RelationshipRecord {
     pub id: RelationshipId,

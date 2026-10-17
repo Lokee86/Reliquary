@@ -2,6 +2,14 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Tombstones and derived Community state
+
+A Community snapshot is current only when its graph version and exact member set match the current graph projection. Memory tombstones can invalidate that membership without advancing the graph clock. Old snapshots remain historical data; current Community/Freshness reads cannot use their deleted members, and refresh must produce a new derived generation.
+
+## Ego terminal lifecycle
+
+Ego Identity and Anchor deletion is terminal, including after reopen and during replay. An exact retry uses the original pre-delete expected revision and allocates no Ego or global version. Deletion preserves prior payload revisions and never cascades to other semantic owners. Identity activation cannot select a deleted ID; the existing active-Identity deletion guard remains enforced.
+
 ## Native historical import invariants
 
 Schema-1 source identity is namespace-qualified and deterministic. Imports preserve immutable historical revisions; omission never implies deletion. Explicit tombstones carry no body, and source artifact references accompany supplied-byte hashes/native File identity. Provider normalizers perform no filesystem/network/credential or semantic writes. Archive owns receipt records and per-Node imported Episode coverage; Insomnia owns the only work queue. A receipt is returned only after synchronization. Interrupted unacknowledged batches resume through identical normalized input, not a second journal. Mounted management must retain exact owner admission; the offline API is not an authorization escape. [Exact contract](native-import.md).

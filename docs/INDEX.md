@@ -1,5 +1,8 @@
 # Reliquary Memory v2 Documentation
 
+- [Tombstone/import execution contract](tombstone-import-history-execution-contract.md) — frozen boundaries and staged implementation record.
+- [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) — terminal lifecycle, owner import identity, explicit pruning and policy v3 decisions.
+
 - [Operator and integration manual](manual/INDEX.md) — task-oriented workflows for users, operators, and product integrators.
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
@@ -12,6 +15,8 @@
 - [Agentic Memory host handoff seam — 2026-10-16](agentic-memory-host-handoff-seam-2026-10-16.md) — real host source trace, receiver acknowledgment and exact-manifest recovery boundary.
 - [Agentic Memory retrieval Luna baseline — 2026-10-16](agentic-memory-retrieval-baseline-2026-10-16.md) — Step 1 snapshot, ownership inspection, commands, and truthful blockers.
 - [Freshness retrieval boundary implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md) — ordered F1–F5 scope and gates.
+- [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade — 2026-10-17](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md) — canonical architectural specification for terminal direct-only tombstones, repeated-import epoch reconstruction, destructive historical pruning/repack, policy v3/profile retirement and retained-REL normalization.
+- [Tombstone/import/history/compatibility remaining execution plan — 2026-10-17](tombstone-import-history-remaining-execution-plan-2026-10-17.md) — authoritative continuation from completed convergence step 8 through final integration, fixture repair, benchmark rerun and cleanup.
 - [Freshness retrieval boundary execution record](freshness-retrieval-boundary-verification-2026-10-15.md) — caller map, regression evidence and external-host wiring disposition.
 - [External Memory consumption and Freshness](freshness-external-consumption-contract.md) — passive internal retrieval, existing receipts and planned successful-host-handoff integration.
 - [Rust API](api.md) — current public library surface and behavior.
@@ -95,3 +100,5 @@
 
 - [retained normalization verification](freshness-retained-normalization-verification-2026-10-13.md) — authoritative normalization and C10 evidence.
 - [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) — H1–H8 complete/merge-ready as explicit offline REL opt-in; defaults off and PHY deferred.
+
+- [Domain tombstone convergence inventory](domain-tombstone-convergence-split-2026-10-17.md)

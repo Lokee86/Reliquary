@@ -6,6 +6,7 @@ const RECORD_MAGIC_V1: [u8; 8] = *b"CVAENTR1";
 const RECORD_MAGIC_V2: [u8; 8] = *b"CVAENTR2";
 const VERSION_MAGIC: [u8; 8] = *b"CVAENTV1";
 const TOMBSTONE_MAGIC: [u8; 8] = *b"CVAENTT1";
+const DIRECT_TOMBSTONE_MAGIC: [u8; 8] = *b"CVAENTT2";
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct EntityVersion {
@@ -19,6 +20,12 @@ pub(crate) struct EntityTombstone {
     pub id: EntityId,
     pub revision: u64,
     pub replacement_id: EntityId,
+}
+
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct DirectEntityTombstone {
+    pub id: EntityId,
+    pub revision: u64,
 }
 
 pub(crate) fn encode_format() -> [u8; 8] {
@@ -152,6 +159,31 @@ pub(crate) fn decode_tombstone(bytes: &[u8]) -> Result<Option<EntityTombstone>, 
         id: EntityId(bytes[8..40].try_into().unwrap()),
         revision: u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
         replacement_id: EntityId(bytes[48..80].try_into().unwrap()),
+    }))
+}
+
+pub(crate) fn encode_direct_tombstone(value: DirectEntityTombstone) -> Vec<u8> {
+    let mut out = Vec::with_capacity(48);
+    out.extend_from_slice(&DIRECT_TOMBSTONE_MAGIC);
+    out.extend_from_slice(&value.id.0);
+    out.extend_from_slice(&value.revision.to_le_bytes());
+    out
+}
+
+pub(crate) fn decode_direct_tombstone(
+    bytes: &[u8],
+) -> Result<Option<DirectEntityTombstone>, EntityError> {
+    if bytes.len() < 8 || bytes[..8] != DIRECT_TOMBSTONE_MAGIC {
+        return Ok(None);
+    }
+    if bytes.len() != 48 {
+        return Err(EntityError::CorruptRecord(
+            "invalid direct Entity tombstone",
+        ));
+    }
+    Ok(Some(DirectEntityTombstone {
+        id: EntityId(bytes[8..40].try_into().unwrap()),
+        revision: u64::from_le_bytes(bytes[40..48].try_into().unwrap()),
     }))
 }
 

@@ -27,6 +27,8 @@ pub(crate) struct GraphStore {
     nodes: Vec<GraphNodeRecord>,
     node_by_semantic: HashMap<SemanticNodeRef, NodeId>,
     states: HashMap<RelationKey, SemanticGraphRelation>,
+    // Derived visibility only; canonical relation mutations remain unchanged.
+    excluded_nodes: HashSet<SemanticNodeRef>,
     relation_mutations: usize,
     transaction_global_versions: Vec<u64>,
     topology: InMemoryGraph,
@@ -49,6 +51,7 @@ impl GraphStore {
             nodes: Vec::new(),
             node_by_semantic: HashMap::new(),
             states: HashMap::new(),
+            excluded_nodes: HashSet::new(),
             relation_mutations: 0,
             transaction_global_versions: Vec::new(),
             topology: empty_topology(),
@@ -128,19 +131,28 @@ impl GraphStore {
             validation::validate_stored_node(memories, entities, node.semantic_node)?;
         }
         for relation in self.states.values().filter(|relation| relation.active) {
-            validation::validate_change(
-                memories,
-                entities,
-                crate::SemanticGraphRelationChange {
-                    source: relation.source,
-                    target: relation.target,
-                    kind: relation.kind,
-                    active: true,
-                },
-                relation.origin,
-            )?;
+            validation::validate_stored_change(memories, entities, *relation)?;
         }
+        self.excluded_nodes = self
+            .nodes
+            .iter()
+            .map(|node| node.semantic_node)
+            .filter(|node| validation::validate_node(memories, entities, *node).is_err())
+            .collect();
         self.rebuild_topologies()
+    }
+
+    pub(crate) fn exclude_from_current(&mut self, node: SemanticNodeRef) -> Result<(), GraphError> {
+        if self.excluded_nodes.insert(node) {
+            self.rebuild_topologies()?;
+        }
+        Ok(())
+    }
+
+    fn is_current_relation(&self, relation: &SemanticGraphRelation) -> bool {
+        relation.active
+            && !self.excluded_nodes.contains(&relation.source)
+            && !self.excluded_nodes.contains(&relation.target)
     }
 
     pub(super) fn ensure_format(&mut self, container: &mut Container) -> Result<(), GraphError> {

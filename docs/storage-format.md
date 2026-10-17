@@ -1,5 +1,13 @@
 # Reliquary Storage Format
 Parent index: [Documentation index](INDEX.md)
+## Domain tombstone records
+
+`CVAMEMT1`, `CVAENTT2` and `CVARELT1` encode direct Memory, Entity and Relationship deletion, respectively. Each stores the target identity, terminal revision and owner domain version; the existing container semantic publication supplies the global version. `CVAENTT1` remains the Entity merge/retirement record with a replacement identity. Rebuild rejects later publication for either terminal Entity form, reconstructs current exclusions, and retains earlier revisions and references. These records do not authorize payload destruction.
+
+## Ego terminal lifecycle
+
+The existing Ego Identity/Anchor deleted-record encoding is unchanged. Replay rebuilds terminal lifecycle coordinates from each deletion record's `ego_version` and retains nondeleted revision payloads for historical reads. No extra lifecycle journal or clock is persisted. A later revision for an already deleted Identity/Anchor is rejected. Legacy single-Identity framing continues to rebuild the active `Default` Identity.
+
 ## Native import receipt record
 
 `CVAIMPT1` is an Archive semantic record: eight magic bytes followed by UTF-8 Serde JSON `imports::ImportReceipt` schema 1. It uses the existing `CVAAREC1` Archive record-version publication. The exact JSON fields are the exported receipt DTO fields: import key, source namespace/profile, conversation identity/title, source message revision/ancestry/replacement/delete marker and native Node references, source artifact reference/hash/native FileId, and source/native branch/head/canonical facts. Bodies remain in existing Node/content/File/turn-attachment records. Unknown fields, invalid schema/key and corrupt native references fail closed.

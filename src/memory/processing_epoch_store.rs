@@ -69,7 +69,7 @@ impl ProcessingEpochStore {
         if self
             .states
             .keys()
-            .all(|(memory_id, _)| memories.contains_memory(*memory_id))
+            .all(|(memory_id, _)| memories.contains_historical_memory(*memory_id))
         {
             Ok(())
         } else {

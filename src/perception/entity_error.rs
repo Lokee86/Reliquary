@@ -10,6 +10,8 @@ pub enum EntityError {
     FieldTooLarge,
     ConflictingFormat,
     MissingEntity,
+    TerminalTombstone,
+    PayloadRequiredByLiveTarget,
     RevisionConflict,
     MutationConflict,
     InvalidVersion,

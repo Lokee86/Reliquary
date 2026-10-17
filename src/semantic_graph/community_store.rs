@@ -35,10 +35,13 @@ impl CommunityStore {
         resolve_semantic_name(&self.snapshots, &self.semantic_names, community_id)
     }
 
-    pub(crate) fn current_semantic_names(&self) -> Vec<CommunitySemanticName> {
+    pub(crate) fn current_semantic_names(&self, graph: &GraphStore) -> Vec<CommunitySemanticName> {
         let Some(snapshot) = self.latest() else {
             return Vec::new();
         };
+        if !snapshot_members_are_live(graph, snapshot) {
+            return Vec::new();
+        }
         snapshot
             .communities
             .iter()
@@ -82,6 +85,7 @@ impl CommunityStore {
             .latest()
             .filter(|snapshot| {
                 snapshot.derived_graph_version == graph.memory_graph_version()
+                    && snapshot_matches_current_graph(graph, snapshot)
                     && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
             })
             .ok_or(CommunityError::InvalidSemanticName(
@@ -96,7 +100,7 @@ impl CommunityStore {
         Ok(true)
     }
 
-    pub(crate) fn stats(&self, graph_version: u64) -> CommunityStats {
+    pub(crate) fn stats(&self, graph: &GraphStore) -> CommunityStats {
         let latest = self.latest();
         CommunityStats {
             generations: latest.map_or(0, |snapshot| snapshot.generation),
@@ -110,10 +114,20 @@ impl CommunityStore {
             }),
             derived_graph_version: latest.map(|snapshot| snapshot.derived_graph_version),
             current: latest.is_some_and(|snapshot| {
-                snapshot.derived_graph_version == graph_version
+                snapshot_matches_current_graph(graph, snapshot)
                     && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
             }),
         }
+    }
+
+    pub(crate) fn latest_if_current_graph(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {
+        self.latest()
+            .filter(|snapshot| snapshot_matches_current_graph(graph, snapshot))
+    }
+
+    pub(crate) fn latest_if_live_members(&self, graph: &GraphStore) -> Option<&CommunitySnapshot> {
+        self.latest()
+            .filter(|snapshot| snapshot_members_are_live(graph, snapshot))
     }
 
     fn insert_rebuilt(
@@ -245,7 +259,7 @@ fn validate_snapshot(
                 return Err(CommunityError::InvalidSnapshot("member order"));
             }
             previous_member = Some(member.0);
-            graph.node_id(*member)?;
+            graph.historical_memory_node_id(*member)?;
             if !seen_members.insert(*member) {
                 return Err(CommunityError::InvalidSnapshot("duplicate member"));
             }
@@ -256,13 +270,49 @@ fn validate_snapshot(
     }
 
     if snapshot.derived_graph_version == graph.memory_graph_version()
-        && seen_members.len() != graph.memory_node_count()
+        && graph
+            .current_memory_node_ids()
+            .iter()
+            .any(|member| !seen_members.contains(member))
     {
         return Err(CommunityError::InvalidSnapshot(
             "current snapshot does not cover graph nodes",
         ));
     }
     Ok(())
+}
+
+fn snapshot_matches_current_graph(graph: &GraphStore, snapshot: &CommunitySnapshot) -> bool {
+    if snapshot.derived_graph_version != graph.memory_graph_version()
+        || !snapshot_members_are_live(graph, snapshot)
+    {
+        return false;
+    }
+    let members: HashSet<_> = snapshot
+        .communities
+        .iter()
+        .flat_map(|community| community.members.iter())
+        .copied()
+        .collect();
+    if members.len() != graph.memory_node_count() {
+        return false;
+    }
+    graph
+        .current_memory_node_ids()
+        .iter()
+        .all(|member| members.contains(member))
+}
+
+fn snapshot_members_are_live(graph: &GraphStore, snapshot: &CommunitySnapshot) -> bool {
+    snapshot
+        .communities
+        .iter()
+        .flat_map(|community| community.members.iter())
+        .all(|member| {
+            graph
+                .semantic_node_id(crate::SemanticNodeRef::memory(*member))
+                .is_ok()
+        })
 }
 
 fn validate_semantic_name(

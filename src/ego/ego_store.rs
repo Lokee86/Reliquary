@@ -47,6 +47,10 @@ pub(crate) struct EgoStore {
     owner_kind: EgoOwnerKind,
     version: u64,
     identities: BTreeMap<EgoIdentityId, IdentityState>,
+    identity_history: BTreeMap<(EgoIdentityId, u64), crate::EgoIdentity>,
+    anchor_history: BTreeMap<(EgoAnchorId, u64), crate::EgoAnchor>,
+    identity_deletions: BTreeMap<EgoIdentityId, u64>,
+    anchor_deletions: BTreeMap<EgoAnchorId, u64>,
     active_identity_id: Option<EgoIdentityId>,
     personality: Option<EgoPersonality>,
     anchors: BTreeMap<EgoAnchorId, AnchorState>,
@@ -66,6 +70,10 @@ impl EgoStore {
             owner_kind,
             version: 0,
             identities: BTreeMap::new(),
+            identity_history: BTreeMap::new(),
+            anchor_history: BTreeMap::new(),
+            identity_deletions: BTreeMap::new(),
+            anchor_deletions: BTreeMap::new(),
             active_identity_id: None,
             personality: None,
             anchors: BTreeMap::new(),
@@ -104,6 +112,7 @@ impl EgoStore {
     }
 
     fn apply(&mut self, record: EgoRecord) -> Result<(), EgoError> {
+        let ego_version = record_ego_version(&record);
         match record {
             EgoRecord::LegacyIdentity { revision, text, .. } => {
                 self.apply_identity(
@@ -125,6 +134,9 @@ impl EgoStore {
                 ..
             } => {
                 self.apply_identity(id, revision, deleted, activate, name, text)?;
+                if deleted {
+                    self.identity_deletions.insert(id, ego_version);
+                }
             }
             EgoRecord::IdentityActive { id, .. } => {
                 self.require_live_identity(id)?;
@@ -158,6 +170,25 @@ impl EgoStore {
                     self.anchors.get(&id).map(|value| value.revision),
                     revision,
                 )?;
+                if self.anchors.get(&id).is_some_and(|state| state.deleted) {
+                    return Err(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
+                        crate::owner_lifecycle::LifecycleTarget::EgoAnchor(id),
+                    )
+                    .into());
+                }
+                if deleted {
+                    self.anchor_deletions.insert(id, ego_version);
+                } else {
+                    self.anchor_history.insert(
+                        (id, revision),
+                        crate::EgoAnchor {
+                            id,
+                            revision,
+                            priority,
+                            text: text.clone(),
+                        },
+                    );
+                }
                 self.anchors.insert(
                     id,
                     AnchorState {
@@ -201,6 +232,23 @@ impl EgoStore {
             self.identities.get(&id).map(|value| value.revision),
             revision,
         )?;
+        if self.identities.get(&id).is_some_and(|state| state.deleted) {
+            return Err(crate::owner_lifecycle::LifecycleError::TerminalTombstone(
+                crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id),
+            )
+            .into());
+        }
+        if !deleted {
+            self.identity_history.insert(
+                (id, revision),
+                crate::EgoIdentity {
+                    id,
+                    revision,
+                    name: name.clone(),
+                    text: text.clone(),
+                },
+            );
+        }
         if deleted && self.active_identity_id == Some(id) && self.live_identity_count() > 1 {
             return Err(EgoError::ActiveIdentityDeletion);
         }
@@ -229,11 +277,10 @@ impl EgoStore {
     }
 
     fn require_live_identity(&self, id: EgoIdentityId) -> Result<(), EgoError> {
-        self.identities
-            .get(&id)
-            .filter(|state| !state.deleted)
-            .map(|_| ())
-            .ok_or(EgoError::NotFound("Identity"))
+        let state = self
+            .identity_lifecycle(id)
+            .ok_or(EgoError::NotFound("Identity"))?;
+        Ok(state.require_active(crate::owner_lifecycle::LifecycleTarget::EgoIdentity(id))?)
     }
 
     fn live_identity_count(&self) -> usize {

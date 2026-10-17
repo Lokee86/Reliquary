@@ -1,5 +1,9 @@
 # Rust API Reference
 Parent index: [Documentation index](INDEX.md)
+## Ego terminal lifecycle
+
+REL and PHY expose `ego_anchor_lifecycle(id)` and `historical_ego_anchor(id, revision)`. PHY additionally exposes `ego_identity_lifecycle(id)` and `historical_ego_identity(id, revision)`. Lifecycle inspection returns the shared `LifecycleState`; historical getters return an optional retained nondeleted revision, including after deletion. A deletion revision itself has no document payload. Existing `delete_ego_identity`/`delete_ego_anchor` return `true` on publication and `false` on an exact retry using the original expected revision; mismatched revisions reject.
+
 ## Native historical import API
 
 The public `reliquary_memory::imports` module exports schema-1 DTOs and `normalize_chatgpt`, `normalize_claude`, `normalize_hermes_jsonl`, `normalize_agent`. Normalizers accept supplied bytes only. `Cva::import_native(&NativeImport, now_ns) -> Result<ImportReceipt, ImportError>` is exclusive/offline and syncs before acknowledgement. `native_import_receipts()` returns Archive-owned source evidence. Native import names are available under the public imports namespace; the E/F root cut preserves that namespace. [Native historical import](native-import.md) owns the exact profiles, bounds, fields, ancestry/revision/delete/artifact identity and partial-failure recovery. No mounted gateway import operation is exposed in this cut.

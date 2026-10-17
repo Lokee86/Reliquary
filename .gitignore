@@ -21,3 +21,7 @@ continuity.master-key.json
 # Python generated state
 __pycache__/
 *.pyc
+
+# Repository-local verification artifacts
+.test-tmp/
+.verification-tmp/

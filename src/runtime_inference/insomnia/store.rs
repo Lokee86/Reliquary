@@ -208,7 +208,7 @@ impl InsomniaStore {
             .attempts
             .iter()
             .flat_map(|attempt| attempt.memory_ids.iter())
-            .all(|id| memories.contains_memory(*id))
+            .all(|id| memories.contains_historical_memory(*id))
         {
             Ok(())
         } else {

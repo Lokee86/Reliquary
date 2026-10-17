@@ -291,7 +291,7 @@ fn retired_entity_cannot_be_republished_before_or_after_reopen() {
                 retired.revision + 1,
                 draft("New equivalent", vec![], "service", 3),
             ),
-            Err(EntityError::InvalidField("terminal Entity tombstone"))
+            Err(EntityError::TerminalTombstone)
         ));
         assert_eq!((rel.entity_version(), rel.latest_global_version()), before);
         assert_eq!(

@@ -148,3 +148,27 @@ impl Phylactery {
         )?)
     }
 }
+
+impl Phylactery {
+    pub fn ego_anchor_lifecycle(
+        &self,
+        id: EgoAnchorId,
+    ) -> Option<crate::owner_lifecycle::LifecycleState> {
+        self.ego.anchor_lifecycle(id)
+    }
+    pub fn historical_ego_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
+        self.ego.historical_anchor(id, revision)
+    }
+}
+
+impl Phylactery {
+    pub fn ego_identity_lifecycle(
+        &self,
+        id: EgoIdentityId,
+    ) -> Option<crate::owner_lifecycle::LifecycleState> {
+        self.ego.identity_lifecycle(id)
+    }
+    pub fn historical_ego_identity(&self, id: EgoIdentityId, revision: u64) -> Option<EgoIdentity> {
+        self.ego.historical_identity(id, revision)
+    }
+}

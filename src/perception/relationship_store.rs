@@ -6,7 +6,8 @@ mod validation;
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::relationship_codec::{
-    RelationshipVersion, encode_format, encode_record, encode_version,
+    RelationshipTombstone, RelationshipVersion, encode_format, encode_record, encode_tombstone,
+    encode_version,
 };
 use crate::relationship_model::RelationshipRecord;
 use crate::{
@@ -22,6 +23,7 @@ pub(crate) struct RelationshipStore {
     by_mutation: HashMap<String, usize>,
     by_participant: HashMap<EntityRef, BTreeSet<RelationshipId>>,
     revisions: HashMap<RelationshipId, u64>,
+    tombstones: HashMap<RelationshipId, crate::owner_lifecycle::TombstoneCoordinates>,
     next_relationship_version: u64,
 }
 
@@ -33,6 +35,7 @@ impl RelationshipStore {
             by_mutation: HashMap::new(),
             by_participant: HashMap::new(),
             revisions: HashMap::new(),
+            tombstones: HashMap::new(),
             next_relationship_version: 1,
         }
     }
@@ -53,7 +56,7 @@ impl RelationshipStore {
         mut draft: RelationshipDraft,
     ) -> Result<(Relationship, bool), RelationshipError> {
         normalize_draft(&mut draft)?;
-        validate_local_refs(
+        validate_live_local_refs(
             owner_id,
             memories,
             entities,
@@ -82,6 +85,9 @@ impl RelationshipStore {
         draft: RelationshipDraft,
     ) -> Result<(Relationship, bool), RelationshipError> {
         let id = id.unwrap_or_else(|| relationship_id(&draft.mutation_id));
+        if self.tombstones.contains_key(&id) {
+            return Err(RelationshipError::TerminalTombstone);
+        }
         if let Some(index) = self.by_mutation.get(&draft.mutation_id).copied() {
             let existing = resolve(&self.records[index]);
             return if existing.id == id
@@ -138,6 +144,9 @@ impl RelationshipStore {
         &mut self,
         record: RelationshipRecord,
     ) -> Result<(), RelationshipError> {
+        if self.tombstones.contains_key(&record.id) {
+            return Err(RelationshipError::TerminalTombstone);
+        }
         if record.revision == 0
             || record.relationship_version == 0
             || record.global_version == 0
@@ -202,6 +211,97 @@ impl RelationshipStore {
         }
     }
 
+    pub(crate) fn tombstone(
+        &mut self,
+        container: &mut Container,
+        id: RelationshipId,
+        expected_revision: u64,
+    ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError> {
+        if let Some(&coordinates) = self.tombstones.get(&id) {
+            if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
+                return Err(RelationshipError::RevisionConflict);
+            }
+            return Ok(crate::owner_lifecycle::TombstoneOutcome::AlreadyTombstoned(
+                coordinates,
+            ));
+        }
+
+        let index = self
+            .current
+            .get(&id)
+            .copied()
+            .ok_or(RelationshipError::MissingRelationship)?;
+        if self.records[index].revision != expected_revision {
+            return Err(RelationshipError::RevisionConflict);
+        }
+
+        self.next_relationship_version
+            .checked_add(1)
+            .ok_or(RelationshipError::VersionExhausted)?;
+        let tombstone = RelationshipTombstone {
+            id,
+            revision: expected_revision
+                .checked_add(1)
+                .ok_or(RelationshipError::VersionExhausted)?,
+        };
+        let record = container.append(&encode_tombstone(tombstone))?;
+        let global_version = container.allocate_version()?;
+        let relationship_version = self.next_relationship_version;
+        container.append(&encode_version(RelationshipVersion {
+            global_version,
+            relationship_version,
+            record,
+        }))?;
+        self.insert_tombstone_rebuilt(tombstone, global_version, relationship_version)?;
+
+        Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: Some(global_version),
+                domain_version: Some(relationship_version),
+            },
+        ))
+    }
+
+    pub(crate) fn insert_tombstone_rebuilt(
+        &mut self,
+        tombstone: RelationshipTombstone,
+        global_version: u64,
+        relationship_version: u64,
+    ) -> Result<(), RelationshipError> {
+        if global_version == 0 || relationship_version != self.next_relationship_version {
+            return Err(RelationshipError::InvalidVersion);
+        }
+
+        let index = self
+            .current
+            .get(&tombstone.id)
+            .copied()
+            .ok_or(RelationshipError::MissingRelationship)?;
+        if tombstone.revision
+            != self.records[index]
+                .revision
+                .checked_add(1)
+                .ok_or(RelationshipError::VersionExhausted)?
+        {
+            return Err(RelationshipError::RevisionConflict);
+        }
+
+        self.current.remove(&tombstone.id);
+        self.deindex(index);
+        self.revisions.insert(tombstone.id, tombstone.revision);
+        self.tombstones.insert(
+            tombstone.id,
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: Some(global_version),
+                domain_version: Some(relationship_version),
+            },
+        );
+        self.next_relationship_version = relationship_version
+            .checked_add(1)
+            .ok_or(RelationshipError::VersionExhausted)?;
+        Ok(())
+    }
+
     pub(crate) fn validate_local_references(
         &self,
         owner_id: Option<&str>,
@@ -214,7 +314,7 @@ impl RelationshipStore {
         let owner_id = owner_id.ok_or(RelationshipError::MissingOwnerIdentity)?;
         for index in self.current.values() {
             let record = &self.records[*index];
-            validate_local_refs(
+            validate_historical_local_refs(
                 owner_id,
                 memories,
                 entities,
@@ -226,12 +326,42 @@ impl RelationshipStore {
     }
 }
 
-fn validate_local_refs(
+fn validate_live_local_refs(
     owner_id: &str,
     memories: &MemoryStore,
     entities: &EntityStore,
     participants: &[crate::RelationshipParticipant],
     evidence: &[crate::MemoryRef],
+) -> Result<(), RelationshipError> {
+    validate_live_local_entity_refs(owner_id, entities, participants)?;
+    for value in evidence {
+        if value.owner_id == owner_id && !memories.contains_memory(value.memory_id) {
+            return Err(RelationshipError::MissingLocalMemory(value.memory_id));
+        }
+    }
+    Ok(())
+}
+
+fn validate_historical_local_refs(
+    owner_id: &str,
+    memories: &MemoryStore,
+    entities: &EntityStore,
+    participants: &[crate::RelationshipParticipant],
+    evidence: &[crate::MemoryRef],
+) -> Result<(), RelationshipError> {
+    validate_historical_local_entity_refs(owner_id, entities, participants)?;
+    for value in evidence {
+        if value.owner_id == owner_id && !memories.contains_historical_memory(value.memory_id) {
+            return Err(RelationshipError::MissingLocalMemory(value.memory_id));
+        }
+    }
+    Ok(())
+}
+
+fn validate_live_local_entity_refs(
+    owner_id: &str,
+    entities: &EntityStore,
+    participants: &[crate::RelationshipParticipant],
 ) -> Result<(), RelationshipError> {
     for participant in participants {
         if participant.entity.owner_id == owner_id
@@ -242,9 +372,21 @@ fn validate_local_refs(
             ));
         }
     }
-    for value in evidence {
-        if value.owner_id == owner_id && !memories.contains_memory(value.memory_id) {
-            return Err(RelationshipError::MissingLocalMemory(value.memory_id));
+    Ok(())
+}
+
+fn validate_historical_local_entity_refs(
+    owner_id: &str,
+    entities: &EntityStore,
+    participants: &[crate::RelationshipParticipant],
+) -> Result<(), RelationshipError> {
+    for participant in participants {
+        if participant.entity.owner_id == owner_id
+            && !entities.contains_historical(participant.entity.entity_id)
+        {
+            return Err(RelationshipError::MissingLocalEntity(
+                participant.entity.entity_id,
+            ));
         }
     }
     Ok(())

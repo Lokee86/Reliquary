@@ -443,6 +443,53 @@ impl Cva {
         self.memories.memory(&mut self.container, id)
     }
 
+    pub fn tombstone_memory(
+        &mut self,
+        id: MemoryId,
+        expected_revision: u64,
+    ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
+        let result = self
+            .memories
+            .tombstone(&mut self.container, id, expected_revision)?;
+        self.graph
+            .exclude_from_current(crate::SemanticNodeRef::memory(id))
+            .map_err(|_| MemoryError::InvalidField("Memory graph projection"))?;
+        Ok(result)
+    }
+
+    pub fn memory_retention_descriptor(
+        &self,
+        id: MemoryId,
+    ) -> Result<crate::MemoryRetentionDescriptor, MemoryError> {
+        self.memories.retention_descriptor(id)
+    }
+
+    pub fn historical_memory_revision(
+        &mut self,
+        id: MemoryId,
+        revision: u64,
+    ) -> Result<
+        crate::owner_lifecycle::HistoricalPayload<Memory, crate::MemoryRetainedRevision>,
+        MemoryError,
+    > {
+        let value = self.memory_revision(id, revision)?;
+        Ok(match self.memory_lifecycle_state(id)? {
+            crate::owner_lifecycle::LifecycleState::Active => {
+                crate::owner_lifecycle::HistoricalPayload::Available(value)
+            }
+            crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
+                crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
+            }
+        })
+    }
+
+    pub fn memory_lifecycle_state(
+        &self,
+        id: MemoryId,
+    ) -> Result<crate::owner_lifecycle::LifecycleState, MemoryError> {
+        self.memories.lifecycle_state(id)
+    }
+
     pub fn set_memory_temporal_status(
         &mut self,
         id: MemoryId,

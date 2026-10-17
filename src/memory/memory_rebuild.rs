@@ -1,4 +1,6 @@
-use crate::memory_codec::{decode_body, decode_format, decode_record, decode_version};
+use crate::memory_codec::{
+    decode_body, decode_format, decode_record, decode_tombstone, decode_version,
+};
 use crate::memory_model::{MemoryRecord, memory_body_id};
 use crate::{Container, MemoryError, MemoryRoutingMetadata, ObjectRef};
 use std::collections::HashMap;
@@ -6,6 +8,7 @@ use std::collections::HashMap;
 pub(crate) struct MemoryOpenState {
     store: crate::memory_store::MemoryStore,
     pending_records: HashMap<ObjectRef, MemoryRecord>,
+    pending_tombstones: HashMap<ObjectRef, crate::memory_codec::MemoryTombstone>,
     pending_routing_metadata: Vec<MemoryRoutingMetadata>,
     format_seen: bool,
 }
@@ -15,6 +18,7 @@ impl MemoryOpenState {
         Self {
             store: crate::memory_store::MemoryStore::empty(),
             pending_records: HashMap::new(),
+            pending_tombstones: HashMap::new(),
             pending_routing_metadata: Vec::new(),
             format_seen: false,
         }
@@ -79,6 +83,10 @@ impl MemoryOpenState {
             self.pending_records.insert(chunk, record);
             return Ok(());
         }
+        if let Some(tombstone) = decode_tombstone(payload)? {
+            self.pending_tombstones.insert(chunk, tombstone);
+            return Ok(());
+        }
         if let Some(metadata) = crate::memory_routing_codec::decode(payload)? {
             self.pending_routing_metadata.push(metadata);
             return Ok(());
@@ -86,6 +94,14 @@ impl MemoryOpenState {
         if let Some(version) = decode_version(payload)? {
             if version.global_version == 0 || version.global_version > latest_global_version {
                 return Err(MemoryError::InvalidVersion);
+            }
+            if let Some(tombstone) = self.pending_tombstones.remove(&version.record) {
+                self.store.insert_tombstone_rebuilt(
+                    tombstone,
+                    version.global_version,
+                    version.memory_version,
+                )?;
+                return Ok(());
             }
             let mut record = self
                 .pending_records

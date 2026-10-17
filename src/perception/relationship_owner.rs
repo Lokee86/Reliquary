@@ -47,6 +47,59 @@ macro_rules! impl_owner {
                 self.relationships.relationship(id)
             }
 
+            pub fn tombstone_relationship(
+                &mut self,
+                id: RelationshipId,
+                expected_revision: u64,
+            ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError> {
+                self.relationships
+                    .tombstone(&mut self.container, id, expected_revision)
+            }
+
+            pub fn relationship_retention_descriptor(
+                &self,
+                id: RelationshipId,
+            ) -> Result<crate::RelationshipRetentionDescriptor, RelationshipError> {
+                self.relationships.retention_descriptor(id)
+            }
+
+            pub fn historical_relationship_revision(
+                &self,
+                id: RelationshipId,
+                revision: u64,
+            ) -> Result<
+                crate::owner_lifecycle::HistoricalPayload<
+                    Relationship,
+                    crate::RelationshipRetainedRevision,
+                >,
+                RelationshipError,
+            > {
+                let value = self.relationship_revision(id, revision)?;
+                Ok(match self.relationship_lifecycle_state(id)? {
+                    crate::owner_lifecycle::LifecycleState::Active => {
+                        crate::owner_lifecycle::HistoricalPayload::Available(value)
+                    }
+                    crate::owner_lifecycle::LifecycleState::Tombstoned(_) => {
+                        crate::owner_lifecycle::HistoricalPayload::Tombstoned(value)
+                    }
+                })
+            }
+
+            pub fn relationship_lifecycle_state(
+                &self,
+                id: RelationshipId,
+            ) -> Result<crate::owner_lifecycle::LifecycleState, RelationshipError> {
+                self.relationships.lifecycle_state(id)
+            }
+
+            pub fn relationship_revision(
+                &self,
+                id: RelationshipId,
+                revision: u64,
+            ) -> Result<Relationship, RelationshipError> {
+                self.relationships.relationship_revision(id, revision)
+            }
+
             pub fn relationships(&self) -> Vec<Relationship> {
                 self.relationships.current()
             }

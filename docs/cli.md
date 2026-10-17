@@ -18,6 +18,10 @@ cargo run --manifest-path cli/Cargo.toml -- --help
 
 The package depends only on the public `reliquary-memory` Rust API through a path dependency. Deleting or moving `cli/` does not change the core library package. A detached copy only needs its dependency source changed from `path = ".."` to the desired Git/package source.
 
+## Archive lifecycle commands
+
+`reliquary archive tombstone <REL> --conversation <ID>` publishes a terminal conversation tombstone and synchronizes before reporting success. Exact retry reports `already-tombstoned`. `reliquary archive lifecycle <REL> --conversation <ID>` inspects the current lifecycle and, for a tombstone, its global/Archive coordinates. Current Archive listing excludes the deleted conversation; retained historical payload remains readable through the library historical APIs. Independently identified Memories, Entities, Relationships and Ego records survive the operation.
+
 ## Command surface
 
 ```text

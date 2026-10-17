@@ -67,3 +67,48 @@ impl EgoStore {
         })
     }
 }
+
+impl EgoStore {
+    pub(crate) fn identity_lifecycle(
+        &self,
+        id: EgoIdentityId,
+    ) -> Option<crate::owner_lifecycle::LifecycleState> {
+        let state = self.identities.get(&id)?;
+        Some(lifecycle(
+            state.deleted,
+            self.identity_deletions.get(&id).copied(),
+        ))
+    }
+    pub(crate) fn anchor_lifecycle(
+        &self,
+        id: EgoAnchorId,
+    ) -> Option<crate::owner_lifecycle::LifecycleState> {
+        let state = self.anchors.get(&id)?;
+        Some(lifecycle(
+            state.deleted,
+            self.anchor_deletions.get(&id).copied(),
+        ))
+    }
+    pub(crate) fn historical_identity(
+        &self,
+        id: EgoIdentityId,
+        revision: u64,
+    ) -> Option<EgoIdentity> {
+        self.identity_history.get(&(id, revision)).cloned()
+    }
+    pub(crate) fn historical_anchor(&self, id: EgoAnchorId, revision: u64) -> Option<EgoAnchor> {
+        self.anchor_history.get(&(id, revision)).cloned()
+    }
+}
+fn lifecycle(deleted: bool, version: Option<u64>) -> crate::owner_lifecycle::LifecycleState {
+    if deleted {
+        crate::owner_lifecycle::LifecycleState::Tombstoned(
+            crate::owner_lifecycle::TombstoneCoordinates {
+                global_version: None,
+                domain_version: version,
+            },
+        )
+    } else {
+        crate::owner_lifecycle::LifecycleState::Active
+    }
+}

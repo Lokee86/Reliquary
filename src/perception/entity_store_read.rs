@@ -5,11 +5,77 @@ use crate::{Entity, EntityError, EntityId, EntityStats};
 use std::collections::BTreeSet;
 
 impl EntityStore {
+    pub(crate) fn entity_revision(
+        &self,
+        id: EntityId,
+        revision: u64,
+    ) -> Result<Entity, EntityError> {
+        self.records
+            .iter()
+            .find(|record| record.id == id && record.revision == revision)
+            .map(resolve)
+            .ok_or(EntityError::MissingEntity)
+    }
+
+    pub(crate) fn lifecycle_state(
+        &self,
+        id: EntityId,
+    ) -> Result<crate::owner_lifecycle::LifecycleState, EntityError> {
+        if let Some(&coordinates) = self.tombstones.get(&id) {
+            return Ok(crate::owner_lifecycle::LifecycleState::Tombstoned(
+                coordinates,
+            ));
+        }
+        self.current
+            .contains_key(&id)
+            .then_some(crate::owner_lifecycle::LifecycleState::Active)
+            .ok_or(EntityError::MissingEntity)
+    }
+
+    pub(crate) fn retention_descriptor(
+        &self,
+        id: EntityId,
+    ) -> Result<crate::entity_model::EntityRetentionDescriptor, EntityError> {
+        let coordinates = self.tombstones.get(&id).copied().ok_or_else(|| {
+            if self.contains_historical(id) {
+                EntityError::PayloadRequiredByLiveTarget
+            } else {
+                EntityError::MissingEntity
+            }
+        })?;
+        let revisions = self
+            .records
+            .iter()
+            .filter(|record| record.id == id)
+            .map(|record| crate::entity_model::EntityRetainedRevision {
+                revision: record.revision,
+                global_version: record.global_version,
+                entity_version: record.entity_version,
+                global_id: record.global_id,
+                kind: record.kind.clone(),
+                created_at_ns: record.created_at_ns,
+                updated_at_ns: record.updated_at_ns,
+                mutation_id: record.mutation_id.clone(),
+            })
+            .collect();
+        Ok(crate::entity_model::EntityRetentionDescriptor {
+            id,
+            tombstone_revision: self.revisions[&id],
+            tombstone_global_version: coordinates.global_version.unwrap(),
+            tombstone_entity_version: coordinates.domain_version.unwrap(),
+            replacement_id: self.retired.get(&id).copied(),
+            revisions,
+        })
+    }
     pub(crate) fn entity(&self, id: EntityId) -> Result<Entity, EntityError> {
         self.current
             .get(&id)
             .map(|index| resolve(&self.records[*index]))
             .ok_or(EntityError::MissingEntity)
+    }
+
+    pub(crate) fn contains_historical(&self, id: EntityId) -> bool {
+        self.revisions.contains_key(&id)
     }
 
     pub(crate) fn contains(&self, id: EntityId) -> bool {
@@ -129,6 +195,12 @@ impl EntityStore {
 
     pub(crate) fn records(&self) -> &[EntityRecord] {
         &self.records
+    }
+
+    pub(crate) fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
+        self.tombstones
+            .values()
+            .filter_map(|coordinates| coordinates.global_version)
     }
 
     pub(crate) fn entity_version(&self) -> u64 {

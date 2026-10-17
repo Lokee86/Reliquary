@@ -6,22 +6,25 @@ use crate::{
 
 impl Cva {
     pub fn community_snapshot(&self) -> Option<CommunitySnapshot> {
-        self.communities.latest().cloned()
+        self.communities
+            .latest_if_live_members(&self.graph)
+            .cloned()
     }
 
     pub fn community_stats(&self) -> CommunityStats {
-        self.communities.stats(self.graph.memory_graph_version())
+        self.communities.stats(&self.graph)
     }
 
     pub fn community_semantic_name(
         &self,
         community_id: CommunityId,
     ) -> Option<CommunitySemanticName> {
+        self.communities.latest_if_live_members(&self.graph)?;
         self.communities.semantic_name(community_id)
     }
 
     pub fn community_semantic_names(&self) -> Vec<CommunitySemanticName> {
-        self.communities.current_semantic_names()
+        self.communities.current_semantic_names(&self.graph)
     }
 
     pub fn community_lineage(&self) -> Option<CommunityLineageTransition> {
@@ -55,6 +58,10 @@ impl Cva {
     pub fn refresh_communities_leiden(&mut self) -> Result<CommunitySnapshot, CommunityError> {
         if let Some(snapshot) = self.communities.latest()
             && snapshot.derived_graph_version == self.graph.memory_graph_version()
+            && self
+                .communities
+                .latest_if_current_graph(&self.graph)
+                .is_some()
             && snapshot.algorithm_version == COMMUNITY_ALGORITHM_VERSION
         {
             return Ok(snapshot.clone());

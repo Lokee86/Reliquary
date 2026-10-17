@@ -35,6 +35,9 @@ pub(crate) fn validate_semantic_global_versions(
                 .iter()
                 .map(|record| record.global_version),
         )
+        .chain(memories.tombstone_global_versions())
+        .chain(entities.tombstone_global_versions())
+        .chain(relationships.tombstone_global_versions())
         .chain(graph.transaction_global_versions().iter().copied())
         .chain(
             vector_generations
