@@ -29,6 +29,8 @@ mod episode_import;
 pub mod freshness;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
+#[path = "facade/history_prune_manifest.rs"]
+mod history_prune_manifest;
 pub mod imports;
 pub mod owner_lifecycle;
 pub use freshness::{
