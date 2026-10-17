@@ -267,6 +267,37 @@ fn divergent_reconcile_replays_entity_retirement() {
     );
 }
 
+#[test]
+fn retired_entity_cannot_be_republished_before_or_after_reopen() {
+    let path = temp_path("terminal-retirement.rel");
+    let mut rel = Cva::create(&path).unwrap();
+    let (survivor, _) = rel
+        .publish_entity(None, 0, draft("Canonical", vec![], "service", 1))
+        .unwrap();
+    let (retired, _) = rel
+        .publish_entity(None, 0, draft("Duplicate", vec![], "service", 1))
+        .unwrap();
+    rel.merge_entities(survivor.id, retired.id, 10).unwrap();
+    let before = (rel.entity_version(), rel.latest_global_version());
+    for reopened in [false, true] {
+        if reopened {
+            rel.sync().unwrap();
+            drop(rel);
+            rel = Cva::open(&path).unwrap();
+        }
+        assert!(matches!(
+            rel.publish_entity(
+                Some(retired.id),
+                retired.revision + 1,
+                draft("New equivalent", vec![], "service", 3),
+            ),
+            Err(EntityError::InvalidField("terminal Entity tombstone"))
+        ));
+        assert_eq!((rel.entity_version(), rel.latest_global_version()), before);
+        assert_eq!(rel.retired_entity_replacement(retired.id), Some(survivor.id));
+    }
+}
+
 fn draft(name: &str, aliases: Vec<&str>, kind: &str, revision: u64) -> EntityDraft {
     EntityDraft {
         canonical_name: name.into(),

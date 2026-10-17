@@ -2,6 +2,10 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Shared lifecycle vocabulary
+
+`src/owner_lifecycle.rs` owns only typed lifecycle identities, terminal-state/idempotency checks, explicit target selection and historical payload availability. It has no storage, clock or provenance traversal authority. Domain stores retain persistence and validation. [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) records the direction; the [execution contract](tombstone-import-history-execution-contract.md) distinguishes staged work from current behavior.
+
 ## Native historical import route
 
 | Change | Implementation owner | Canonical documentation | Verification |

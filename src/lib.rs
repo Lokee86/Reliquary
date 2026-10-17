@@ -30,6 +30,7 @@ pub mod freshness;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
 pub mod imports;
+pub mod owner_lifecycle;
 pub use freshness::{
     CommunityMembership, FreshnessBoundaryIndex, FreshnessError, FreshnessRecord, FreshnessState,
     MemoryAdjacency, PropagationError, PropagationEvent, propagate,

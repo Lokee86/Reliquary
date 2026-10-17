@@ -87,7 +87,8 @@
       "description": "Public Cva/Reliquary/Phylactery composition, migration, reconciliation, and cross-owner facade methods",
       "paths": [
         "src/facade",
-        "src/lib.rs"
+        "src/lib.rs",
+        "src/owner_lifecycle.rs"
       ]
     },
     {

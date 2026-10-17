@@ -83,6 +83,9 @@ impl EntityStore {
                 Err(EntityError::MutationConflict)
             };
         }
+        if self.retired.contains_key(&id) {
+            return Err(EntityError::InvalidField("terminal Entity tombstone"));
+        }
         let current = self.current.get(&id).map(|index| &self.records[*index]);
         let current_revision = self.revisions.get(&id).copied().unwrap_or(0);
         if current_revision != expected_revision {
@@ -172,6 +175,9 @@ impl EntityStore {
         {
             return Err(EntityError::RevisionConflict);
         }
+        if self.retired.contains_key(&record.id) {
+            return Err(EntityError::InvalidField("terminal Entity tombstone"));
+        }
         validate_record(&record)?;
 
         if let Some(index) = self.current.get(&record.id).copied() {
@@ -191,7 +197,6 @@ impl EntityStore {
         self.by_mutation.insert(record.mutation_id.clone(), index);
         self.current.insert(record.id, index);
         self.revisions.insert(record.id, record.revision);
-        self.retired.remove(&record.id);
         if record.kind != "principal" {
             for surface in entity_surfaces(&record.canonical_name, &record.aliases) {
                 self.by_surface
