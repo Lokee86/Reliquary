@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "phase": "inventory",
+  "fixture_root": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative",
+  "source_before": {
+    "chatgpt-first14d\\project.prj.rel": "800d98cc09081901ffdc8e37b6c4dab60579e6356ac710a810bd37508343c851",
+    "chatgpt-first14d\\user.phy": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+    "chatgpt-first14d\\AUTHORITATIVE.txt": "e85c9d91fdc63fde4b80c0584cec3282dc6753410f06132b9e2e9629e9751916",
+    "chatgpt-first14d\\SHA256SUMS.txt": "5f640449c17a42d23f342915ee0f51c38f72bb4c1f063a82a1514af043e827e8",
+    "chatgpt-first28d\\project.prj.rel": "3816e5a83c73a0c30465536402bab07a938c97cfaabf2b0be1a672ba2cc02c2b",
+    "chatgpt-first28d\\user.phy": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+    "chatgpt-first28d\\AUTHORITATIVE.txt": "4eeaafcac0fadf62182d47c9c6e902d95ad488a28bf8b214bc4a2d718ec42af2",
+    "chatgpt-first28d\\SHA256SUMS.txt": "fe03ddda2ecd10cf3f44b6d76420594af46e55db2fd48b95d74bcd05743f1e1a",
+    "rhelm-david-r-ellis-pre-relationship\\project.prj.rel": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+    "rhelm-david-r-ellis-pre-relationship\\user.phy": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+    "rhelm-david-r-ellis-pre-relationship\\AUTHORITATIVE.txt": "248d5f9f686b65decaf5a574c44a2ccbe2c45067ba67a402dad4bf2ed0cd8fe5",
+    "rhelm-david-r-ellis-pre-relationship\\SHA256SUMS.txt": "bd68b90a646b223d1499cd5f3938e90527087f62a25eecd199d430e4bbda78da"
+  },
+  "binary_sha256": "dfd468927635020d92b7766fe39e554f0e40b244ffbaa927df0e1f741b4bfe7b",
+  "harness_sources": {
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_endpoints.rs": "095f36a2876d531d56b2cbc5ddb2f4f29d194f691ad3f1d2502dc8f98f6d15c8",
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_fidelity.rs": "6b3438f50931cf608f4621697ae1fa3b8331eae67a07bcc0dfde99f63f8745f6",
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_scenarios.rs": "3619ba54c87e852646812d530239f87223422bb9de30e9df176e07a3da8f1b31",
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_tests.rs": "fd0e9a4a15f4ef52a9c9c3c9a3b6f8087da95ac8efa4febd6d2dbe885f98f0d7",
+    "scripts\\agentic_memory_fixture_acceptance.py": "7531c92bd8857faed1e9094333df95d7348cad34208057579f7b83d73ac938e8"
+  },
+  "head": "638992aff30508e52e597b4955ed6a18a286fcdc",
+  "results": [
+    {
+      "corpus": "first14d",
+      "command": [
+        "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-core-final-cache\\debug\\deps\\reliquary_memory-3e7a1095be73f667.exe",
+        "agentic_frozen_fixture_acceptance",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "copy": "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-fixture-runs\\8f48e5b3-5cb7-408d-ac0c-a4ce0e42c790\\first14d\\owner.rel",
+      "result": {
+        "answer_recall": null,
+        "blocked_scenarios": [
+          "Freshness ordering",
+          "more-than-ten one-hop neighbors",
+          "repeat traversal",
+          "refinement",
+          "shared-neighbor concurrency",
+          "already_provided",
+          "failed handoff",
+          "success and retry",
+          "broader-context fidelity"
+        ],
+        "candidate_counts": null,
+        "current_owner_uuid": true,
+        "evidence_recall": null,
+        "existing_migration": "migrate_file rejects AlreadyCurrent; it is not a prototype Freshness converter",
+        "freshness_formats": {
+          "CVAFRS02": 71,
+          "CVAFRS03": 1
+        },
+        "functional_scenarios_executed": 0,
+        "latency_us": null,
+        "phase": "inventory",
+        "physical_chunks": 64488,
+        "policy": "No bypass, reconstruction, prototype decoder, synthetic replacement corpus or new runtime migration path was added",
+        "reason": "unsupported Freshness prototype format; explicit migration is required",
+        "required_freshness_format": "CVAFRS02",
+        "retrieval_calls": 0,
+        "status": "corpus_limitation"
+      }
+    },
+    {
+      "corpus": "first28d",
+      "command": [
+        "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-core-final-cache\\debug\\deps\\reliquary_memory-3e7a1095be73f667.exe",
+        "agentic_frozen_fixture_acceptance",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "copy": "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-fixture-runs\\8f48e5b3-5cb7-408d-ac0c-a4ce0e42c790\\first28d\\owner.rel",
+      "result": {
+        "answer_recall": null,
+        "blocked_scenarios": [
+          "Freshness ordering",
+          "more-than-ten one-hop neighbors",
+          "repeat traversal",
+          "refinement",
+          "shared-neighbor concurrency",
+          "already_provided",
+          "failed handoff",
+          "success and retry",
+          "broader-context fidelity"
+        ],
+        "candidate_counts": null,
+        "current_owner_uuid": true,
+        "evidence_recall": null,
+        "existing_migration": "migrate_file rejects AlreadyCurrent; it is not a prototype Freshness converter",
+        "freshness_formats": {
+          "CVAFRS02": 57,
+          "CVAFRS03": 1
+        },
+        "functional_scenarios_executed": 0,
+        "latency_us": null,
+        "phase": "inventory",
+        "physical_chunks": 198538,
+        "policy": "No bypass, reconstruction, prototype decoder, synthetic replacement corpus or new runtime migration path was added",
+        "reason": "unsupported Freshness prototype format; explicit migration is required",
+        "required_freshness_format": "CVAFRS02",
+        "retrieval_calls": 0,
+        "status": "corpus_limitation"
+      }
+    },
+    {
+      "corpus": "ellis",
+      "command": [
+        "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-core-final-cache\\debug\\deps\\reliquary_memory-3e7a1095be73f667.exe",
+        "agentic_frozen_fixture_acceptance",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "copy": "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-fixture-runs\\8f48e5b3-5cb7-408d-ac0c-a4ce0e42c790\\ellis\\owner.rel",
+      "result": {
+        "answer_recall": null,
+        "blocked_scenarios": [
+          "Freshness ordering",
+          "more-than-ten one-hop neighbors",
+          "repeat traversal",
+          "refinement",
+          "shared-neighbor concurrency",
+          "already_provided",
+          "failed handoff",
+          "success and retry",
+          "broader-context fidelity"
+        ],
+        "candidate_counts": null,
+        "current_owner_uuid": true,
+        "evidence_recall": null,
+        "existing_migration": "migrate_file rejects AlreadyCurrent; it is not a prototype Freshness converter",
+        "freshness_formats": {
+          "CVAFRS02": 92,
+          "CVAFRS03": 1
+        },
+        "functional_scenarios_executed": 0,
+        "latency_us": null,
+        "phase": "inventory",
+        "physical_chunks": 49416,
+        "policy": "No bypass, reconstruction, prototype decoder, synthetic replacement corpus or new runtime migration path was added",
+        "reason": "unsupported Freshness prototype format; explicit migration is required",
+        "required_freshness_format": "CVAFRS02",
+        "retrieval_calls": 0,
+        "status": "corpus_limitation"
+      }
+    }
+  ],
+  "failure": null,
+  "scope": "REL-only native acceptance on disposable copies; deterministic oracle and stored-vector replay; F3 is a separate real-host gate",
+  "corpus_limitations": 3,
+  "source_after": {
+    "chatgpt-first14d\\project.prj.rel": "800d98cc09081901ffdc8e37b6c4dab60579e6356ac710a810bd37508343c851",
+    "chatgpt-first14d\\user.phy": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+    "chatgpt-first14d\\AUTHORITATIVE.txt": "e85c9d91fdc63fde4b80c0584cec3282dc6753410f06132b9e2e9629e9751916",
+    "chatgpt-first14d\\SHA256SUMS.txt": "5f640449c17a42d23f342915ee0f51c38f72bb4c1f063a82a1514af043e827e8",
+    "chatgpt-first28d\\project.prj.rel": "3816e5a83c73a0c30465536402bab07a938c97cfaabf2b0be1a672ba2cc02c2b",
+    "chatgpt-first28d\\user.phy": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+    "chatgpt-first28d\\AUTHORITATIVE.txt": "4eeaafcac0fadf62182d47c9c6e902d95ad488a28bf8b214bc4a2d718ec42af2",
+    "chatgpt-first28d\\SHA256SUMS.txt": "fe03ddda2ecd10cf3f44b6d76420594af46e55db2fd48b95d74bcd05743f1e1a",
+    "rhelm-david-r-ellis-pre-relationship\\project.prj.rel": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+    "rhelm-david-r-ellis-pre-relationship\\user.phy": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+    "rhelm-david-r-ellis-pre-relationship\\AUTHORITATIVE.txt": "248d5f9f686b65decaf5a574c44a2ccbe2c45067ba67a402dad4bf2ed0cd8fe5",
+    "rhelm-david-r-ellis-pre-relationship\\SHA256SUMS.txt": "bd68b90a646b223d1499cd5f3938e90527087f62a25eecd199d430e4bbda78da"
+  },
+  "source_unchanged": true,
+  "acceptance_status": "blocked_by_corpus_format"
+}

@@ -234,3 +234,7 @@ mod concurrency;
 #[cfg(test)]
 #[path = "runtime_host_gateway_agentic_memory_graph_contract_tests.rs"]
 mod contracts;
+
+#[cfg(test)]
+#[path = "agentic_memory_frozen_fixture_tests.rs"]
+mod frozen_fixture_tests;

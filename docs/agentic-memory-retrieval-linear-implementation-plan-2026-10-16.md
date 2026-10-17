@@ -140,13 +140,9 @@ The current generic `ConversationExecution` handoff is not Memory-consumption pr
 
 ## Execution status
 
-- Step 1 accepted: refreshed snapshot and 5 retrieval, 15 route, and 3 Freshness boundary tests passed; see [baseline evidence](agentic-memory-retrieval-baseline-2026-10-16.md).
-- Steps 5–9 accepted: the independent Luna route commits are integrated. Combined convergence verification passes 9 controller and 21 switchboard tests; locked CLI verification passed the existing 20-test suite and both focused route workflow/parser tests. Formatting and diff checks pass; route isolation, URL validation, credential validation, persistence and clearing are covered.
-- Step 2 accepted: canonical controller/modules and ordered owner-qualified state compile with `cargo check -j 2`; formatting and diff checks pass. The gateway owns no controller registry. API/maintainer references describe the staged scaffold.
-- Step 3 accepted: typed outcomes/reports/prepared values and discardable state transitions compile; `cargo check -j 2`, formatting, and diff checks pass. Preparation cannot change `SelectedIDs`; stale transitions fail without replacing current state.
-- Step 4 accepted: 9 focused controller tests passed, including exhaustive three-field destructuring, owner-qualified collisions/order, reset/preservation, prepared-vs-selected state, invalid-batch atomicity, rollback and stale commits. Review tightened staged refinement/traversal evaluation eligibility without adding controller state.
-- Step 10 accepted: owner-local candidate/evidence types and the uncapped internal lexical collector are implemented. `cargo fmt --all -- --check`, `cargo test --lib lexical_index -j 2` (7 passed), and `git diff --check` pass. The 32-match regression proves completeness beyond the public ten-result limit, archived exclusion, identical public-prefix ordering, and unchanged REL activity/Memory/graph versions. `cargo test --lib memory_search -j 2` matched no tests; it is not counted as coverage. Both documentation-policy checks report only the four pre-existing missing sections in the unrelated Ego inventory document. Shared semantic scoring and pool union remain pending in Steps 11–12; no agentic tool is exposed by this step.
-- Steps 11–45 remain pending on the convergence branch.
+- Steps 1–36 accepted on the feature candidates: Reliquary `638992a` and Warlock `cf41c66`; per-step implementation/test evidence is in the [execution record](agentic-memory-retrieval-baseline-2026-10-16.md). The actual receiver and restart gate establishes F3 for the isolated integration candidate, not deployment.
+- Step 37 accepted: the native fixture runner and worktree-copy/hash wrapper are implemented. The current-format protocol smoke passes, exercising functional scenarios and twelve fidelity probes. Inventory reached all three frozen corpora and records an explicit format limitation: each contains a CVAFRS03 prototype record rejected by this branch's CVAFRS02 reader; current-container migration returns AlreadyCurrent. Authoritative REL/PHY/manifest hashes remain unchanged.
+- Steps 38–45 remain pending. Corpus limitations must not be counted as functional or fidelity success.
 
 ## Execution rule
 
