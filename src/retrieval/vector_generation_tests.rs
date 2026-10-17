@@ -188,7 +188,7 @@ fn retired_generation_is_excluded_but_historical_numeric_evidence_remains_readab
     cva.sync().unwrap();
     drop(cva);
 
-    let reopened = Cva::open(path).unwrap();
+    let mut reopened = Cva::open(path).unwrap();
     assert!(reopened.compatibility_profile_is_retired(profile.id));
     assert!(reopened.current_vector_generation(profile.id).is_none());
     assert_eq!(
