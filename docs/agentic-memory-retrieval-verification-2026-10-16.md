@@ -8,7 +8,7 @@ Record the implementation, real host receiver evidence, frozen-corpus dispositio
 
 Reliquary implements the REL-only three-tool controller, complete lexical/exact-semantic candidate pool, passive Freshness ordering, full declined-set refinement, concurrent one-hop traversal, strict model contracts, canonical delivery manifests, and confirmed owner-grouped accepted-use receipts. The actual requesting-context receiver and exact-manifest restart recovery are implemented in the isolated Warlock candidate `cf41c6690e089cab4a00950d6048ad6828eaeab7`.
 
-Implementation and evidence closeout are complete through Step 44; the full core gate is running. Frozen-corpus limitations and final gate results below must be read separately from implementation completion. The candidate has not been deployed or merged into the original main worktrees.
+Implementation and evidence closeout are complete through Step 45, with the frozen-corpus format qualification retained. Frozen-corpus limitations and final gate results below must be read separately from implementation completion. The candidate has not been deployed or merged into the original main worktrees.
 
 ## Implementation and host evidence
 
@@ -48,11 +48,31 @@ The real production consumer lives in the separate Warlock candidate; the absenc
 
 ## Final repository gates
 
-Locked CLI formatting/check/test passed: all 21 tests. Full core formatting/check/test and both documentation policy modes are pending final collection.
+Locked CLI formatting/check/test passed: all 21 tests. Core formatting and cargo check passed. Full cargo test passed: 1,227 library tests, three ignored; 141 integration tests across 23 targets; zero doc tests and zero failures. Both documentation policy modes report only the four pre-existing missing sections in the Ego inventory, with no retrieval findings.
+
+The final core gate uses `CARGO_TARGET_DIR=C:\!bin\workspace\Reliquary-agentic-retrieval\bin\agentic-core-final-cache` and `TEMP`/`TMP=C:\!bin\workspace\agentic-test-tmp`, then `cargo fmt --all -- --check`, `cargo check --quiet -j2` and `cargo test --quiet -j2` against this worktree's manifest. This fresh physical cache avoids the earlier missing generated dependency archives; no source workaround or machine cleanup-policy change was introduced.
+
+The first whole-suite run finished with 1,224 passed, three failed and three ignored. The existing external-source plan installer uses raw MoveFileExW paths; the longer worktree-local TEMP made its generated destination 266 characters and caused Storage/Conflict. The tests, helper and installer are unchanged from baseline 596f5ce. All seven external tests pass with the shorter workspace TEMP and identical source/binary; the full suite then passed under that environment (job job_8LNsKwIMm5PHMvS6sHttTdRB, exit 0). This is an existing Windows path-length constraint, not an agentic runtime change.
 
 `python scripts/check_architecture.py --refresh` passed: 17 areas, 23 rules, no violations; 92 coordination guard fixtures and 11 external-boundary guard fixtures passed. Refreshed snapshot: `sha256:268ff9b01f3749e5cc028848dee1046b0ae984b0930f502ed8613b7f3e20aae1`. Arcana records 77,755 nodes, 197,085 edges, 16,352 resolved calls and 17,711 possible calls. No Rust source changed after this refresh. Dynamic field calls to `runtime.cva.collect_memory_candidate_pool` and `runtime.cva.record_accepted_memory_use` remain unresolved in the generated call graph (builtin-target/dynamic-target); direct source, enforced guard classifications and runtime tests establish these edges. The graph is current but does not independently prove those calls. No unexpected ownership violation was found.
 
 Full fixture fidelity and deployment are separate release qualifications even when code/guard gates pass.
+
+## Documentation impact
+
+- Inspected: architecture, invariants, storage format, maintainer map, limitations, roadmap, design/specification, host seam and shared documentation rules.
+- Updated: current architecture/API/status/Freshness records, index, behavioral/coverage maps, linear ledger, execution record and this verification report.
+- Not affected: unrelated Ego edits and storage-format semantics.
+- Compliance check: both structural and change-impact modes isolate the same four pre-existing Ego inventory missing sections; retrieval documentation is clear.
+- Known documentation gaps: Ego inventory lacks Purpose, Overview, Related docs and Notes.
+
+## Architecture impact
+
+- Standards added or changed: no shared standard or Pitlord policy change.
+- Ownership or boundary impact: one host-owned turn controller; passive REL preparation; exact receiver-confirmed coordinated existing accepted-use writer; no second journal or Freshness implementation.
+- Pitlord enforcement impact: refreshed enforcement passes; source coordination coverage now admits the new APIs explicitly and rejects preparation writes.
+- Other verification impact: frozen fixture wrapper binds source/binary hashes and reports format blocks; focused real-host receiver/restart and full CLI gates pass.
+- Known architectural gaps: dynamic graph call-resolution limits, uncapped anchor fan-out sizing, unmeasured frozen-corpus fidelity and deployment qualification remain explicit.
 
 ## Related docs
 

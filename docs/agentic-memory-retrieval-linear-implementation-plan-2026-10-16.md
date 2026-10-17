@@ -1,7 +1,7 @@
 # Agentic Memory retrieval — linear implementation plan
 
 **Date:** 2026-10-16  
-**Status:** implementation-ready sequencing document; no numbered step is complete merely because it appears here.  
+**Status:** executed through Step 45 on isolated feature candidates; code/integration gates passed, with frozen-corpus fidelity blocked by CVAFRS03 and deployment not claimed.
 **Scope:** implement the accepted three-tool agentic Memory retrieval architecture from lower-domain candidate collection through real host handoff, Freshness reinforcement, frozen-fixture verification, and final integration.  
 **Source specs:** [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md), [Agentic Memory retrieval implementation specification](agentic-memory-retrieval-implementation-plan-2026-10-16.md), [External Memory consumption and Freshness](freshness-external-consumption-contract.md), and [Freshness retrieval boundary verification](freshness-retrieval-boundary-verification-2026-10-15.md).
 
@@ -143,7 +143,7 @@ The current generic `ConversationExecution` handoff is not Memory-consumption pr
 - Steps 1–36 accepted on the feature candidates: Reliquary `638992a` and Warlock `cf41c66`; per-step implementation/test evidence is in the [execution record](agentic-memory-retrieval-baseline-2026-10-16.md). The actual receiver and restart gate establishes F3 for the isolated integration candidate, not deployment.
 - Step 37 accepted: the native fixture runner and worktree-copy/hash wrapper are implemented. The current-format protocol smoke passes, exercising functional scenarios and twelve fidelity probes. Inventory reached all three frozen corpora and records an explicit format limitation: each contains a CVAFRS03 prototype record rejected by this branch's CVAFRS02 reader; current-container migration returns AlreadyCurrent. Authoritative REL/PHY/manifest hashes remain unchanged.
 - Steps 38–40 evidence closed with explicit corpus-data limitation: functional and fidelity attempts reached all three RELs but CVAFRS03 prevents native open. No frozen retrieval scenarios ran and recall is unmeasured; all source hashes are unchanged. See the [verification record](agentic-memory-retrieval-verification-2026-10-16.md). This is not a fidelity pass.
-- Steps 41–44 complete: Luna documentation closure and hard-cut audit integrated; coordination guard strengthened; refreshed Lexicon/Arcana/Pitlord gate passed, with dynamic call-resolution limitations recorded. Step 45 final core/docs gates remain in progress.
+- Steps 41–44 complete: Luna documentation closure and hard-cut audit integrated; coordination guard strengthened; refreshed Lexicon/Arcana/Pitlord gate passed, with dynamic call-resolution limitations recorded. Step 45 closed: core fmt/check/test (1,227 library + 141 integration, three ignored), locked CLI (21 tests), focused real host (8 Memory + 5 context), architecture and diff gates pass. Both docs checks retain only the four pre-existing unrelated Ego inventory gaps. Frozen-corpus recall remains unmeasured; the candidate is not deployed.
 
 ## Execution rule
 

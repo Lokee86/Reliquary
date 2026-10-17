@@ -4,7 +4,7 @@ Parent design: [Agentic Memory retrieval design](agentic-memory-retrieval-design
 
 Linear execution plan: [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
 
-Status: **Architecture specification; Reliquary Steps 1–36 implemented; frozen-corpus qualification blocked by CVAFRS03; final integration checks running**
+Status: **Architecture specification; Reliquary Steps 1–36 implemented; final integration checks passed; frozen-corpus qualification blocked by CVAFRS03**
 
 ## Purpose
 

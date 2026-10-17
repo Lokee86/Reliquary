@@ -4,6 +4,10 @@ Date: 2026-10-15
 Parent plan: [implementation specification](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md)
 Status: F1, F2, F4, and F5 evidence remains valid. F3's actual receiver/replay seam is implemented and tested in the Warlock `cf41c66` integration candidate, not deployed production. The Reliquary/host receiver evidence is recorded in [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md); frozen-corpus and final disposition gates remain open.
 
+## Later closeout — 2026-10-16
+
+The F1 caller map, F4 pending-F3 language, F5 timeout and impact sections below are historical 2026-10-15 evidence, not current absence claims. Agentic completion now calls the existing writer under normal owner coordination, and Warlock candidate cf41c66 supplies receiver-owned acceptance/restart replay. The [retrieval verification](agentic-memory-retrieval-verification-2026-10-16.md) supersedes current gate status: refreshed architecture enforcement passed; frozen-corpus runs are blocked by CVAFRS03, with unchanged source hashes and unmeasured recall. Deployment remains separate.
+
 ## F2 — explicit passive-read contract
 
 Existing primitives already satisfy the implementation boundary; no duplicate reader, scoring engine, flag or propagation was needed. Rust API documentation now explicitly marks REL/PHY Memory reads, lexical search and Freshness scores as passive, and distinguishes authorized gateway delivery from consumption. Receipt/API documentation assigns attestation to the trusted embedding host and disclaims authentication of arbitrary client claims. Existing return values, errors and numeric/persistence behavior are unchanged.

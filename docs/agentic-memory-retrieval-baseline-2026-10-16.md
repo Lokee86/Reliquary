@@ -205,3 +205,11 @@ python scripts/check_architecture.py --refresh then passed: 17 areas, 23 rules, 
 
 Closeout reran the retained Warlock candidate executable: 8/8 chat_memory and 5/5 chat_task_context_tests pass; documentation check passes. This is candidate verification, not a fresh whole-host build, pin change or deployment. Locked CLI fmt/check/test passes all 21 tests. Both library documentation-policy modes report only the same four missing sections in the unrelated Ego inventory; no retrieval findings remain.
 
+## Step 45 — final integration and disposition
+
+Core cargo fmt --all -- --check and cargo check --quiet -j2 pass. Full cargo test --quiet -j2 passes: 1,227 library tests, three ignored, 141 integration tests across 23 targets, zero doc tests and zero failures. The passing full-suite job is job_8LNsKwIMm5PHMvS6sHttTdRB (exit 0). Locked CLI gate passes 21 tests; real host receiver/context reruns and refreshed architecture evidence are recorded above. Both final documentation policy modes isolate only the four known unrelated Ego inventory missing sections. git diff --check passes.
+
+The first full run passed 1,224 library tests but failed three unchanged external-source tests. A serial rerun reproduced Storage/Conflict; Luna traced the generated plan destination to 266 characters under the long worktree TEMP. The unchanged Windows installer calls raw MoveFileExW. Shortening TEMP/TMP to C:\!bin\workspace\agentic-test-tmp made all seven external-source tests pass without a source change; the entire suite then passed. The physical Cargo cache remains bin/agentic-core-final-cache. No compatibility source workaround or machine policy change was added.
+
+The feature implementation and closeout are finished. Production qualification is NOT asserted: all three frozen corpora require a compatible Freshness format or separately scoped migration/rebase, so frozen functional scenarios and answer/evidence recall remain unmeasured. Warlock cf41c66 is an integration candidate, not deployed wiring. The original main checkout retains exactly its two pre-existing Ego edits; the host worktree is clean. Documentation and Architecture impact fields are recorded in the indexed verification report.
+
