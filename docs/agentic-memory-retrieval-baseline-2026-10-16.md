@@ -213,3 +213,9 @@ The first full run passed 1,224 library tests but failed three unchanged externa
 
 The feature implementation and closeout are finished. Production qualification is NOT asserted: all three frozen corpora require a compatible Freshness format or separately scoped migration/rebase, so frozen functional scenarios and answer/evidence recall remain unmeasured. Warlock cf41c66 is an integration candidate, not deployed wiring. The original main checkout retains exactly its two pre-existing Ego edits; the host worktree is clean. Documentation and Architecture impact fields are recorded in the indexed verification report.
 
+
+## Main rerun preflight for Steps 38–40
+
+The consolidated main baseline is `fbc6e0c`, including historical Freshness merge `2d5d2bb` and typed REL-owner prefix fix `345d546`. Its Freshness owner recognizes the native CVAFRS03 import checkpoint before the unsupported-prototype check. The previous feature-branch format-blocked reports therefore cannot qualify this main revision; actual frozen scenarios and fidelity must be rerun.
+
+A fresh main test build exposed an undeclared `tempfile` reference in the new mount-prefix regression. That test now uses the existing runtime-host test-path helper and standard read/write file creation, with explicit file cleanup. No runtime or dependency behavior changed. Both `legacy_typed_rel_prefixes` tests pass; formatting/diff checks pass. Verification uses worktree-local `bin/agentic-main-cache` and `bin/agentic-test-tmp`, `CARGO_INCREMENTAL=0`, `CARGO_PROFILE_DEV_DEBUG=0`, and two build jobs. The original two Ego edits remain untouched. Frozen input hashes and new scenario results are recorded by the subsequent main rerun.

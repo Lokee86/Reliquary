@@ -328,7 +328,13 @@ mod tests {
 
     #[test]
     fn legacy_typed_rel_prefixes_pass_mount_identity_validation() {
-        let file = tempfile::tempfile().unwrap();
+        let path = crate::runtime_host_test_support::test_path("legacy-owner.rel");
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create_new(true)
+            .open(&path)
+            .unwrap();
         let uuid = uuid::Uuid::new_v4();
         for prefix in REL_OWNER_PREFIXES {
             let owner_id = format!("{prefix}{uuid}");
@@ -342,6 +348,8 @@ mod tests {
             .unwrap();
             assert_eq!(identity.owner_id, owner_id);
         }
+        drop(file);
+        std::fs::remove_file(path).unwrap();
     }
 
     #[test]
