@@ -16,146 +16,89 @@
     "rhelm-david-r-ellis-pre-relationship\\AUTHORITATIVE.txt": "248d5f9f686b65decaf5a574c44a2ccbe2c45067ba67a402dad4bf2ed0cd8fe5",
     "rhelm-david-r-ellis-pre-relationship\\SHA256SUMS.txt": "bd68b90a646b223d1499cd5f3938e90527087f62a25eecd199d430e4bbda78da"
   },
-  "binary_sha256": "dfd468927635020d92b7766fe39e554f0e40b244ffbaa927df0e1f741b4bfe7b",
+  "binary_sha256": "11659550016dc92cfa608fc6f61dca3ae055db71803502b2e99e1566ae1af72b",
   "harness_sources": {
     "src\\runtime_inference\\agentic_memory_frozen_fixture_endpoints.rs": "095f36a2876d531d56b2cbc5ddb2f4f29d194f691ad3f1d2502dc8f98f6d15c8",
-    "src\\runtime_inference\\agentic_memory_frozen_fixture_fidelity.rs": "6b3438f50931cf608f4621697ae1fa3b8331eae67a07bcc0dfde99f63f8745f6",
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_fidelity.rs": "a9e0178e36c09b23f0119b23127f56c67efd85856682cdccc1e4d75f10adc269",
     "src\\runtime_inference\\agentic_memory_frozen_fixture_scenarios.rs": "3619ba54c87e852646812d530239f87223422bb9de30e9df176e07a3da8f1b31",
     "src\\runtime_inference\\agentic_memory_frozen_fixture_tests.rs": "fd0e9a4a15f4ef52a9c9c3c9a3b6f8087da95ac8efa4febd6d2dbe885f98f0d7",
-    "scripts\\agentic_memory_fixture_acceptance.py": "7531c92bd8857faed1e9094333df95d7348cad34208057579f7b83d73ac938e8"
+    "scripts\\agentic_memory_fixture_acceptance.py": "180d3a972bbbfd0ae43bca726f154a729ba2109b912d0343b1f19c3e6be7e1bc"
   },
-  "head": "638992aff30508e52e597b4955ed6a18a286fcdc",
+  "head": "16812786757bf75ab05ee831e8bf5277cc4c6c7b",
   "results": [
     {
       "corpus": "first14d",
       "command": [
-        "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-core-final-cache\\debug\\deps\\reliquary_memory-3e7a1095be73f667.exe",
+        "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-main-fixture-1681278.exe",
         "agentic_frozen_fixture_acceptance",
         "--ignored",
         "--nocapture",
         "--test-threads=1"
       ],
-      "copy": "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-fixture-runs\\8f48e5b3-5cb7-408d-ac0c-a4ce0e42c790\\first14d\\owner.rel",
+      "copy": "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-fixture-runs\\d8aa04e1-f624-46ad-9a0c-e8dd7616f7c0\\first14d\\owner.rel",
       "result": {
-        "answer_recall": null,
-        "blocked_scenarios": [
-          "Freshness ordering",
-          "more-than-ten one-hop neighbors",
-          "repeat traversal",
-          "refinement",
-          "shared-neighbor concurrency",
-          "already_provided",
-          "failed handoff",
-          "success and retry",
-          "broader-context fidelity"
-        ],
-        "candidate_counts": null,
-        "current_owner_uuid": true,
-        "evidence_recall": null,
-        "existing_migration": "migrate_file rejects AlreadyCurrent; it is not a prototype Freshness converter",
-        "freshness_formats": {
-          "CVAFRS02": 71,
-          "CVAFRS03": 1
+        "inventory": {
+          "active_memories": 1016,
+          "activity_cut": 5857,
+          "current_vectors": 1016,
+          "dimensions": 1024,
+          "graph_relations": 11590,
+          "inference": "stored compatibility probes and target document vector replay; no live embedding or general inference",
+          "profile": "38b2c3d1ded65fdbc2a76086f1d2875c03eb4470afa63de8bbd0689cbf51c266"
         },
-        "functional_scenarios_executed": 0,
-        "latency_us": null,
-        "phase": "inventory",
-        "physical_chunks": 64488,
-        "policy": "No bypass, reconstruction, prototype decoder, synthetic replacement corpus or new runtime migration path was added",
-        "reason": "unsupported Freshness prototype format; explicit migration is required",
-        "required_freshness_format": "CVAFRS02",
-        "retrieval_calls": 0,
-        "status": "corpus_limitation"
+        "status": "passed"
       }
     },
     {
       "corpus": "first28d",
       "command": [
-        "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-core-final-cache\\debug\\deps\\reliquary_memory-3e7a1095be73f667.exe",
+        "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-main-fixture-1681278.exe",
         "agentic_frozen_fixture_acceptance",
         "--ignored",
         "--nocapture",
         "--test-threads=1"
       ],
-      "copy": "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-fixture-runs\\8f48e5b3-5cb7-408d-ac0c-a4ce0e42c790\\first28d\\owner.rel",
+      "copy": "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-fixture-runs\\d8aa04e1-f624-46ad-9a0c-e8dd7616f7c0\\first28d\\owner.rel",
       "result": {
-        "answer_recall": null,
-        "blocked_scenarios": [
-          "Freshness ordering",
-          "more-than-ten one-hop neighbors",
-          "repeat traversal",
-          "refinement",
-          "shared-neighbor concurrency",
-          "already_provided",
-          "failed handoff",
-          "success and retry",
-          "broader-context fidelity"
-        ],
-        "candidate_counts": null,
-        "current_owner_uuid": true,
-        "evidence_recall": null,
-        "existing_migration": "migrate_file rejects AlreadyCurrent; it is not a prototype Freshness converter",
-        "freshness_formats": {
-          "CVAFRS02": 57,
-          "CVAFRS03": 1
+        "inventory": {
+          "active_memories": 2191,
+          "activity_cut": 16465,
+          "current_vectors": 2191,
+          "dimensions": 1024,
+          "graph_relations": 34503,
+          "inference": "stored compatibility probes and target document vector replay; no live embedding or general inference",
+          "profile": "e012fa5173c94058e83749208bd3250628a4d533d01d96fe711c86a813c14258"
         },
-        "functional_scenarios_executed": 0,
-        "latency_us": null,
-        "phase": "inventory",
-        "physical_chunks": 198538,
-        "policy": "No bypass, reconstruction, prototype decoder, synthetic replacement corpus or new runtime migration path was added",
-        "reason": "unsupported Freshness prototype format; explicit migration is required",
-        "required_freshness_format": "CVAFRS02",
-        "retrieval_calls": 0,
-        "status": "corpus_limitation"
+        "status": "passed"
       }
     },
     {
       "corpus": "ellis",
       "command": [
-        "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-core-final-cache\\debug\\deps\\reliquary_memory-3e7a1095be73f667.exe",
+        "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-main-fixture-1681278.exe",
         "agentic_frozen_fixture_acceptance",
         "--ignored",
         "--nocapture",
         "--test-threads=1"
       ],
-      "copy": "C:\\!bin\\workspace\\Reliquary-agentic-retrieval\\bin\\agentic-fixture-runs\\8f48e5b3-5cb7-408d-ac0c-a4ce0e42c790\\ellis\\owner.rel",
+      "copy": "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-fixture-runs\\d8aa04e1-f624-46ad-9a0c-e8dd7616f7c0\\ellis\\owner.rel",
       "result": {
-        "answer_recall": null,
-        "blocked_scenarios": [
-          "Freshness ordering",
-          "more-than-ten one-hop neighbors",
-          "repeat traversal",
-          "refinement",
-          "shared-neighbor concurrency",
-          "already_provided",
-          "failed handoff",
-          "success and retry",
-          "broader-context fidelity"
-        ],
-        "candidate_counts": null,
-        "current_owner_uuid": true,
-        "evidence_recall": null,
-        "existing_migration": "migrate_file rejects AlreadyCurrent; it is not a prototype Freshness converter",
-        "freshness_formats": {
-          "CVAFRS02": 92,
-          "CVAFRS03": 1
+        "inventory": {
+          "active_memories": 703,
+          "activity_cut": 2972,
+          "current_vectors": 703,
+          "dimensions": 1024,
+          "graph_relations": 8995,
+          "inference": "stored compatibility probes and target document vector replay; no live embedding or general inference",
+          "profile": "3aad70f4c0083a74be98cc41b51515559c7ed26669597641e562299424ddcd82"
         },
-        "functional_scenarios_executed": 0,
-        "latency_us": null,
-        "phase": "inventory",
-        "physical_chunks": 49416,
-        "policy": "No bypass, reconstruction, prototype decoder, synthetic replacement corpus or new runtime migration path was added",
-        "reason": "unsupported Freshness prototype format; explicit migration is required",
-        "required_freshness_format": "CVAFRS02",
-        "retrieval_calls": 0,
-        "status": "corpus_limitation"
+        "status": "passed"
       }
     }
   ],
   "failure": null,
   "scope": "REL-only native acceptance on disposable copies; deterministic oracle and stored-vector replay; F3 is a separate real-host gate",
-  "corpus_limitations": 3,
+  "corpus_limitations": 0,
   "source_after": {
     "chatgpt-first14d\\project.prj.rel": "800d98cc09081901ffdc8e37b6c4dab60579e6356ac710a810bd37508343c851",
     "chatgpt-first14d\\user.phy": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
@@ -171,5 +114,5 @@
     "rhelm-david-r-ellis-pre-relationship\\SHA256SUMS.txt": "bd68b90a646b223d1499cd5f3938e90527087f62a25eecd199d430e4bbda78da"
   },
   "source_unchanged": true,
-  "acceptance_status": "blocked_by_corpus_format"
+  "acceptance_status": "executed"
 }

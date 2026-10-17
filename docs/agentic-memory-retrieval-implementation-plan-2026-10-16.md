@@ -4,7 +4,7 @@ Parent design: [Agentic Memory retrieval design](agentic-memory-retrieval-design
 
 Linear execution plan: [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
 
-Status: **Architecture specification; Reliquary Steps 1–36 implemented; final integration checks passed; frozen-corpus qualification blocked by CVAFRS03**
+Status: **Architecture specification; Reliquary Steps 1–36 implemented; final integration checks passed; main frozen functional scenarios pass; measured evidence recall is 1/128 (0.78%)**
 
 ## Purpose
 
@@ -428,7 +428,7 @@ The feature is complete only when:
 - [ ] Rust, CLI, docs, and architecture checks pass;
 - [ ] superseded F3 assumptions are no longer presented as current implementation requirements.
 
-AR9 receiver/replay behavior is evidenced by Warlock candidate `cf41c66` and eight passing host Memory tests. The truthful current status is: **Reliquary Steps 1–36 and host receiver/replay implementation are complete in their respective worktrees; frozen-corpus qualification is blocked by CVAFRS03 and final production disposition remains pending, and the host candidate is not deployed**.
+AR9 receiver/replay behavior is evidenced by Warlock candidate `cf41c66` and eight passing host Memory tests. The truthful current status is: **Reliquary implementation is consolidated on main and host receiver/replay remains evidenced by its integration candidate; main frozen functional scenarios pass, while the 36-probe evidence comparison retrieves only 1/128 expected occurrences (0.78%). AR10 evidence is closed with a negative fidelity result. Useful recall qualification, final production disposition and host deployment remain pending**.
 
 ## Notes
 
@@ -444,7 +444,7 @@ This plan does not implement Ego’s candidate-selection → audit → summary e
 
 The earlier F3 work remains correct that internal retrieval cannot create access reinforcement and that host-owned evidence is required. The accepted design narrows the qualifying event to successful Memory tool-result handoff and makes `SelectedIDs` the sole turn-scoped delivered-ID set.
 
-AR8 creates the canonical Reliquary completion seam. AR9's real-host receiver acknowledgment and exact-manifest recovery are implemented in candidate `cf41c66`; the F3 implementation gate is evidenced, while deployment and frozen-corpus verification remain separate.
+AR8 creates the canonical Reliquary completion seam. AR9's real-host receiver acknowledgment and exact-manifest recovery are implemented in candidate `cf41c66`; the F3 implementation gate is evidenced, while deployment and useful-recall qualification remain separate; the main frozen functional run passes and its evidence comparison is poor.
 
 ## Related docs
 

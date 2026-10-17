@@ -8,7 +8,7 @@ Record the implementation, real host receiver evidence, frozen-corpus dispositio
 
 Reliquary implements the REL-only three-tool controller, complete lexical/exact-semantic candidate pool, passive Freshness ordering, full declined-set refinement, concurrent one-hop traversal, strict model contracts, canonical delivery manifests, and confirmed owner-grouped accepted-use receipts. The actual requesting-context receiver and exact-manifest restart recovery are implemented in the isolated Warlock candidate `cf41c6690e089cab4a00950d6048ad6828eaeab7`.
 
-Implementation and evidence closeout are complete through Step 45, with the frozen-corpus format qualification retained. Frozen-corpus limitations and final gate results below must be read separately from implementation completion. The candidate has not been deployed or merged into the original main worktrees.
+Reliquary is consolidated on `main`. Steps 38-40 have been rerun on main: functional scenarios pass on all three frozen corpora, while the measured evidence-recall comparison is poor. Evidence closure does not imply useful recall preservation or deployed host qualification. Historical Step 45 feature-candidate gates below are labelled separately from the current main rerun.
 
 ## Implementation and host evidence
 
@@ -29,9 +29,25 @@ The three phases are `inventory`, `functional`, and `fidelity`. The native scena
 
 The evaluation-only fidelity harness uses at most twelve deterministic rare-term probes from retained Memory data, a full-corpus evidence oracle and an idealized retained document vector. It records selected/missed refs, candidate presentations, call counts, local elapsed time and evidence recall. It does not grade generated answers or establish live-model/service quality.
 
-Results: the current-format protocol smoke passes (1/1), including all functional assertions and twelve fidelity probes. Inventory, functional and fidelity phases each reached all three frozen corpora and returned `blocked_by_corpus_format`, with all twelve authoritative source hashes unchanged. Each REL contains one CVAFRS03 record plus 71/57/92 CVAFRS02 records respectively. This branch requires CVAFRS02; current-owner container migration returns AlreadyCurrent and is not a prototype converter. Consequently zero frozen-corpus retrieval calls/scenarios ran and recall, candidate counts and latency remain null. Useful frozen-corpus answer/evidence recall is unmeasured, not preserved by assertion. Compatible authoritative fixtures or separately scoped format migration/rebase are required before production qualification.
+Main rerun source: `16812786757bf75ab05ee831e8bf5277cc4c6c7b`. All three phases execute on all three native corpora, with no corpus-data exceptions. All twelve authoritative REL/PHY/manifest hashes remain unchanged before and after every phase. The previous `blocked_by_corpus_format` artifacts came from an older feature reader and are superseded; `CVAFRS03` is the native historical checkpoint supported on consolidated main. The additional legacy-prefix mount gap was corrected before these runs, without rewriting frozen inputs.
 
-Reproduce with `python scripts/agentic_memory_fixture_acceptance.py --binary bin/agentic-core-final-cache/debug/deps/reliquary_memory-3e7a1095be73f667.exe --phase inventory` (then `functional` and `fidelity`). Retained results: [inventory](../benchmarks/agentic-memory-fixture-inventory-2026-10-16.json), [functional](../benchmarks/agentic-memory-fixture-functional-2026-10-16.json), [fidelity](../benchmarks/agentic-memory-fixture-fidelity-2026-10-16.json). Unsupported prototype format must be reported as a corpus limitation, not bypassed or counted as functional/fidelity success. No new prototype converter, synthetic replacement corpus, or runtime compatibility mode is authorized by this acceptance harness.
+Step 38 passes all mandatory scenarios on every corpus: Freshness differs from raw semantic top-ten presentation; active one-hop anchors have 52 / 70 / 51 neighbors and both successive calls return ten disjoint neighbors; refinement reconsiders 30 declined candidates with zero additional query embeddings; concurrent anchors retain two independent reports and one shared neighbor, with 12 / 19 / 16 unique returned bodies; already-provided, failed/cancelled handoff, successful completion and byte-stable exact retry all pass.
+
+Step 39 completed 36 deterministic probes, but useful evidence recall is not preserved in this comparison:
+
+| Corpus | Active Memories / current vectors | Probe evidence hits / broad oracle | Micro recall | Decision calls / presentations | Median local elapsed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| first14d | 1016 / 1016 | 0 / 56 | 0.00% | 36 / 240 | 322.7 ms |
+| first28d | 2191 / 2191 | 1 / 48 | 2.08% | 37 / 249 | 944.1 ms |
+| ellis | 703 / 703 | 0 / 24 | 0.00% | 36 / 240 | 253.3 ms |
+
+The aggregate is **1/128 evidence occurrences (0.78%)**, with one nonempty probe out of 36. Every corpus uses twelve query retrievals, twelve refinements and twelve query embeddings. Only the 28-day corpus obtains approved anchors, producing one graph call; the other corpora produce none. Local elapsed ranges are 300.0-429.0 ms, 741.3-5777.2 ms and 225.4-338.3 ms respectively. These concurrent-host diagnostic timings include local receipts and are not service SLO measurements. Exact selected references, misses and per-probe counts/timings are retained in the JSON.
+
+The observed failure is candidate exposure. The semantic lane includes every compatible vector-bearing Memory; query preparation retains candidate IDs and sorts by Freshness then owner-qualified ID before presenting ten bodies. Lexical/cosine scores do not order that presentation. Refinement only revisits the already-declined presentation, and no approved seed means the requester cannot start the bounded graph expansion in this harness. Even replaying the target document vector therefore does not establish access to the expected evidence. This is consistent with the implemented frozen policy, not a reason to alter it silently during acceptance. Relevance eligibility/order and how the requester discovers further candidates require a separately reviewed design change and a new comparison.
+
+The broad oracle has evidence recall 1.0 by construction. Rare literal-term probes and idealized document-vector replay stress evidence exposure; answer recall remains null, and no live model, representative user-task accuracy or generated-answer quality is measured. Step 39's dated comparison and Step 40's reproducible evidence closure are complete; this is a negative fidelity result and does not qualify production recall or deployment.
+
+Reproduce from the main root with `python scripts/agentic_memory_fixture_acceptance.py --binary bin/agentic-main-fixture-1681278.exe --phase inventory`, then the same command with `functional` and `fidelity`. Build the library test executable using `cargo test --lib --no-run -j2` with `CARGO_TARGET_DIR=bin/agentic-main-cache`, `CARGO_INCREMENTAL=0`, `CARGO_PROFILE_DEV_DEBUG=0` and `TEMP`/`TMP=bin/agentic-test-tmp` (all resolved inside this repository), then copy the resulting executable to the retained path before parallel build checks. Binary SHA-256: `11659550016dc92cfa608fc6f61dca3ae055db71803502b2e99e1566ae1af72b`. The reports bind the full code commit, binary and harness hashes, exact invocation, input hashes and disposable-copy paths. Retained results: [inventory](../benchmarks/agentic-memory-fixture-inventory-2026-10-16.json), [functional](../benchmarks/agentic-memory-fixture-functional-2026-10-16.json), [fidelity](../benchmarks/agentic-memory-fixture-fidelity-2026-10-16.json).
 
 ## Hard-cut and ownership audit
 
@@ -46,7 +62,7 @@ Two audit observations were resolved without changing the frozen protocol:
 
 The real production consumer lives in the separate Warlock candidate; the absence of a host caller inside the storage/runtime crate is expected call direction.
 
-## Final repository gates
+## Historical Step 45 feature-candidate repository gates
 
 Locked CLI formatting/check/test passed: all 21 tests. Core formatting and cargo check passed. Full cargo test passed: 1,227 library tests, three ignored; 141 integration tests across 23 targets; zero doc tests and zero failures. Both documentation policy modes report only the four pre-existing missing sections in the Ego inventory, with no retrieval findings.
 
@@ -56,23 +72,23 @@ The first whole-suite run finished with 1,224 passed, three failed and three ign
 
 `python scripts/check_architecture.py --refresh` passed: 17 areas, 23 rules, no violations; 92 coordination guard fixtures and 11 external-boundary guard fixtures passed. Refreshed snapshot: `sha256:268ff9b01f3749e5cc028848dee1046b0ae984b0930f502ed8613b7f3e20aae1`. Arcana records 77,755 nodes, 197,085 edges, 16,352 resolved calls and 17,711 possible calls. No Rust source changed after this refresh. Dynamic field calls to `runtime.cva.collect_memory_candidate_pool` and `runtime.cva.record_accepted_memory_use` remain unresolved in the generated call graph (builtin-target/dynamic-target); direct source, enforced guard classifications and runtime tests establish these edges. The graph is current but does not independently prove those calls. No unexpected ownership violation was found.
 
-Full fixture fidelity and deployment are separate release qualifications even when code/guard gates pass.
+The main rerun above supersedes the historical format blocker. Useful recall and deployment remain release qualifications even when code/guard gates pass.
 
 ## Documentation impact
 
 - Inspected: architecture, invariants, storage format, maintainer map, limitations, roadmap, design/specification, host seam and shared documentation rules.
 - Updated: current architecture/API/status/Freshness records, index, behavioral/coverage maps, linear ledger, execution record and this verification report.
 - Not affected: unrelated Ego edits and storage-format semantics.
-- Compliance check: both structural and change-impact modes isolate the same four pre-existing Ego inventory missing sections; retrieval documentation is clear.
-- Known documentation gaps: Ego inventory lacks Purpose, Overview, Related docs and Notes.
+- Compliance check: the current main rerun of both structural and change-impact modes reports only five unrelated pre-existing Ego findings: four inventory sections and the index link to the absent Ego Memory-Web Summary implementation plan. No retrieval findings remain.
+- Known documentation gaps: Ego inventory lacks Purpose, Overview, Related docs and Notes; `docs/INDEX.md` links to the absent `ego-memory-web-summary-implementation-plan.md`.
 
 ## Architecture impact
 
 - Standards added or changed: no shared standard or Pitlord policy change.
 - Ownership or boundary impact: one host-owned turn controller; passive REL preparation; exact receiver-confirmed coordinated existing accepted-use writer; no second journal or Freshness implementation.
 - Pitlord enforcement impact: refreshed enforcement passes; source coordination coverage now admits the new APIs explicitly and rejects preparation writes.
-- Other verification impact: frozen fixture wrapper binds source/binary hashes and reports format blocks; focused real-host receiver/restart and full CLI gates pass.
-- Known architectural gaps: dynamic graph call-resolution limits, uncapped anchor fan-out sizing, unmeasured frozen-corpus fidelity and deployment qualification remain explicit.
+- Other verification impact: frozen fixture wrapper binds source/binary hashes and records actual main results and negative recall evidence; focused real-host receiver/restart and full CLI gates pass.
+- Known architectural gaps: dynamic graph call-resolution limits, uncapped anchor fan-out sizing, poor measured frozen-corpus evidence recall and deployment qualification remain explicit.
 
 ## Related docs
 

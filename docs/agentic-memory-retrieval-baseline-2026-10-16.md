@@ -189,7 +189,7 @@ Inventory completed for first14d, first28d and Ellis with unchanged source hashe
 
 The first build failed linking against missing generated dependency archives. The old cache also lacked its fingerprint directory; no cache marker was moved or source workaround introduced. A fresh physical cache under bin/agentic-core-final-cache rebuilt successfully. cargo test --lib agentic_fixture_runner_current_format_protocol_smoke -j 2 passed (1/1), and the inventory wrapper completed all three corpora. Raw inventory is benchmarks/agentic-memory-fixture-inventory-2026-10-16.json. Formatting/diff checks pass; Steps 38–39 will attempt the remaining phases and record the same native-reader limitation if it persists.
 
-## Steps 38–40 — frozen functional/fidelity disposition
+## Steps 38–40 — frozen functional/fidelity disposition (historical feature candidate)
 
 Both remaining phases completed all three corpora with blocked_by_corpus_format, failure:null and source_unchanged:true. Zero native retrieval calls/scenarios executed; evidence/answer recall, candidate counts and latency remain null. Each copy is blocked by the same CVAFRS03 record. This is the plan's explicit corpus-data limitation, not successful functional or fidelity acceptance. No prototype converter, runtime bypass, inferred score or synthetic replacement corpus was added. All twelve authoritative source hashes match before/after in all three reports.
 
@@ -225,3 +225,25 @@ The main inventory rerun then opened the native Freshness checkpoint successfull
 The fidelity evidence now retains each probe's exact selected owner-qualified Memory references in addition to counts and missed references, so the Step 39 selected-evidence requirement can be reviewed directly. Probe selection, runtime policy and the full-corpus oracle are unchanged.
 
 Main prerequisite verification: the native typed-REL mount/subscription/reconnect regression passes (1/1), both mount-prefix tests pass (2/2), and the focused agentic suite passes (80 passed, one ignored fixture runner). Formatting and diff checks pass. A broad legacy-name filter also reaches the pre-existing UUID-less migration test, which fails in intrinsic semantic Freshness with `semantic Freshness requires REL UUID`; it is outside this Gateway conversion. Final whole-suite results are recorded below.
+
+## Main Steps 38-40 rerun - 2026-10-16
+
+Main rerun source: `16812786757bf75ab05ee831e8bf5277cc4c6c7b`. All three phases execute on all three native corpora, with no corpus-data exceptions. All twelve authoritative REL/PHY/manifest hashes remain unchanged before and after every phase. The previous `blocked_by_corpus_format` artifacts came from an older feature reader and are superseded; `CVAFRS03` is the native historical checkpoint supported on consolidated main. The additional legacy-prefix mount gap was corrected before these runs, without rewriting frozen inputs.
+
+Step 38 passes all mandatory scenarios on every corpus: Freshness differs from raw semantic top-ten presentation; active one-hop anchors have 52 / 70 / 51 neighbors and both successive calls return ten disjoint neighbors; refinement reconsiders 30 declined candidates with zero additional query embeddings; concurrent anchors retain two independent reports and one shared neighbor, with 12 / 19 / 16 unique returned bodies; already-provided, failed/cancelled handoff, successful completion and byte-stable exact retry all pass.
+
+Step 39 completed 36 deterministic probes, but useful evidence recall is not preserved in this comparison:
+
+| Corpus | Active Memories / current vectors | Probe evidence hits / broad oracle | Micro recall | Decision calls / presentations | Median local elapsed |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| first14d | 1016 / 1016 | 0 / 56 | 0.00% | 36 / 240 | 322.7 ms |
+| first28d | 2191 / 2191 | 1 / 48 | 2.08% | 37 / 249 | 944.1 ms |
+| ellis | 703 / 703 | 0 / 24 | 0.00% | 36 / 240 | 253.3 ms |
+
+The aggregate is **1/128 evidence occurrences (0.78%)**, with one nonempty probe out of 36. Every corpus uses twelve query retrievals, twelve refinements and twelve query embeddings. Only the 28-day corpus obtains approved anchors, producing one graph call; the other corpora produce none. Local elapsed ranges are 300.0-429.0 ms, 741.3-5777.2 ms and 225.4-338.3 ms respectively. These concurrent-host diagnostic timings include local receipts and are not service SLO measurements. Exact selected references, misses and per-probe counts/timings are retained in the JSON.
+
+The observed failure is candidate exposure. The semantic lane includes every compatible vector-bearing Memory; query preparation retains candidate IDs and sorts by Freshness then owner-qualified ID before presenting ten bodies. Lexical/cosine scores do not order that presentation. Refinement only revisits the already-declined presentation, and no approved seed means the requester cannot start the bounded graph expansion in this harness. Even replaying the target document vector therefore does not establish access to the expected evidence. This is consistent with the implemented frozen policy, not a reason to alter it silently during acceptance. Relevance eligibility/order and how the requester discovers further candidates require a separately reviewed design change and a new comparison.
+
+The broad oracle has evidence recall 1.0 by construction. Rare literal-term probes and idealized document-vector replay stress evidence exposure; answer recall remains null, and no live model, representative user-task accuracy or generated-answer quality is measured. Step 39's dated comparison and Step 40's reproducible evidence closure are complete; this is a negative fidelity result and does not qualify production recall or deployment.
+
+Reproduce from the main root with `python scripts/agentic_memory_fixture_acceptance.py --binary bin/agentic-main-fixture-1681278.exe --phase inventory`, then the same command with `functional` and `fidelity`. Build the library test executable using `cargo test --lib --no-run -j2` with `CARGO_TARGET_DIR=bin/agentic-main-cache`, `CARGO_INCREMENTAL=0`, `CARGO_PROFILE_DEV_DEBUG=0` and `TEMP`/`TMP=bin/agentic-test-tmp` (all resolved inside this repository), then copy the resulting executable to the retained path before parallel build checks. Binary SHA-256: `11659550016dc92cfa608fc6f61dca3ae055db71803502b2e99e1566ae1af72b`. The reports bind the full code commit, binary and harness hashes, exact invocation, input hashes and disposable-copy paths. Retained results: [inventory](../benchmarks/agentic-memory-fixture-inventory-2026-10-16.json), [functional](../benchmarks/agentic-memory-fixture-functional-2026-10-16.json), [fidelity](../benchmarks/agentic-memory-fixture-fidelity-2026-10-16.json).

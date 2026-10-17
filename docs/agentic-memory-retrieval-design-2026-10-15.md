@@ -1,7 +1,7 @@
 # Agentic Memory retrieval architecture — decided design
 
 Date: 2026-10-15
-Status: **Design accepted; Reliquary implementation complete through Step 36; frozen-corpus verification blocked by CVAFRS03.** This is the behavioral authority for the REL-only agent-facing retrieval workflow; see the [implementation evidence](agentic-memory-retrieval-baseline-2026-10-16.md), [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md), and [frozen-fixture verification](agentic-memory-retrieval-verification-2026-10-16.md).
+Status: **Design accepted; Reliquary implementation complete through Step 36; main frozen functional verification passed; evidence recall measured at 1/128 (0.78%).** This is the behavioral authority for the REL-only agent-facing retrieval workflow; see the [implementation evidence](agentic-memory-retrieval-baseline-2026-10-16.md), [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md), and [frozen-fixture verification](agentic-memory-retrieval-verification-2026-10-16.md).
 Implementation sequence: [Agentic Memory retrieval implementation plan — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md).
 Parent index: [Documentation index](INDEX.md)
 
@@ -63,4 +63,4 @@ This design changes **agent-facing retrieval**, not Ego's Candidate Selection �
 
 ## Notes
 
-Reliquary's agentic controller and retrieval operations are implemented, and the Warlock `cf41c66` integration candidate implements receiver acknowledgment plus exact-manifest restart recovery. It is not a deployed release, and frozen 14-day, 28-day, and Ellis corpus fidelity verification is blocked by unsupported CVAFRS03 records. Preserve the distinction between passive internal reads, which never reinforce, and the confirmed successful-host-handoff boundary. Generic ConversationExecution/provider success remains insufficient consumption evidence.
+Reliquary's agentic controller and retrieval operations are implemented, and the Warlock `cf41c66` integration candidate implements receiver acknowledgment plus exact-manifest restart recovery. It is not a deployed release, and main frozen functional scenarios pass on 14-day, 28-day and Ellis, while the deterministic broader-context evidence comparison retrieves only 1/128 expected occurrences (0.78%). Native CVAFRS03 checkpoints are supported; useful recall preservation is not established. Preserve the distinction between passive internal reads, which never reinforce, and the confirmed successful-host-handoff boundary. Generic ConversationExecution/provider success remains insufficient consumption evidence.
