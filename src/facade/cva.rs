@@ -242,6 +242,14 @@ impl Cva {
         self.archive.conversation_metadata(conversation_id)
     }
 
+    pub fn historical_conversation_metadata(
+        &self,
+        conversation_id: &str,
+    ) -> Option<&ConversationMetadata> {
+        self.archive
+            .historical_conversation_metadata(conversation_id)
+    }
+
     pub fn branch_turns(
         &mut self,
         conversation_id: &str,
@@ -249,6 +257,15 @@ impl Cva {
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
         self.archive
             .branch_turns(&mut self.container, conversation_id, branch_id)
+    }
+
+    pub fn historical_branch_turns(
+        &mut self,
+        conversation_id: &str,
+        branch_id: &str,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.archive
+            .historical_branch_turns(&mut self.container, conversation_id, branch_id)
     }
 
     pub fn branch_at(
@@ -349,8 +366,21 @@ impl Cva {
         self.archive.episodes_for_conversation(conversation_id)
     }
 
+    pub fn historical_episodes(&self) -> Vec<Episode> {
+        self.archive.historical_episodes()
+    }
+
+    pub fn historical_episodes_for_conversation(&self, conversation_id: &str) -> Vec<Episode> {
+        self.archive
+            .historical_episodes_for_conversation(conversation_id)
+    }
+
     pub fn episode(&self, id: EpisodeId) -> Option<&Episode> {
         self.archive.episode(id)
+    }
+
+    pub fn historical_episode(&self, id: EpisodeId) -> Option<&Episode> {
+        self.archive.historical_episode(id)
     }
 
     pub fn episode_turns(&mut self, id: EpisodeId) -> Result<Vec<ResolvedTurn>, ArchiveError> {
@@ -509,8 +539,16 @@ impl Cva {
         self.archive.branches()
     }
 
+    pub fn historical_branches(&self) -> Vec<Branch> {
+        self.archive.historical_branches()
+    }
+
     pub fn fragments(&self) -> Vec<Fragment> {
         self.archive.fragments()
+    }
+
+    pub fn historical_fragments(&self) -> Vec<Fragment> {
+        self.archive.historical_fragments()
     }
 
     pub fn store_file(

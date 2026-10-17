@@ -9,6 +9,7 @@ impl Archive {
         container: &mut Container,
         fragment: Fragment,
     ) -> Result<bool, ArchiveError> {
+        self.require_current_conversation_id(&fragment.conversation_id)?;
         self.validate_fragment(&fragment)?;
         if let Some(existing) = self.fragments.get(fragment.id) {
             return if existing == &fragment {
@@ -98,6 +99,7 @@ impl Archive {
             .get(id)
             .ok_or(ArchiveError::MissingFragment)?
             .clone();
+        self.require_current_conversation_id(&fragment.conversation_id)?;
         let nodes = self.fragment_nodes_for(&fragment)?;
         nodes
             .into_iter()
@@ -124,6 +126,7 @@ impl Archive {
             .get(id)
             .ok_or(ArchiveError::MissingFragment)?
             .clone();
+        self.require_current_conversation_id(&fragment.conversation_id)?;
         self.fragment_text_for(container, &fragment)
     }
 
@@ -198,6 +201,17 @@ impl Archive {
     }
 
     pub fn fragments(&self) -> Vec<Fragment> {
+        let mut fragments: Vec<_> = self
+            .fragments
+            .iter()
+            .filter(|fragment| !self.is_conversation_tombstoned(&fragment.conversation_id))
+            .cloned()
+            .collect();
+        fragments.sort_by_key(|fragment| fragment.id.0);
+        fragments
+    }
+
+    pub fn historical_fragments(&self) -> Vec<Fragment> {
         let mut fragments: Vec<_> = self.fragments.iter().cloned().collect();
         fragments.sort_by_key(|fragment| fragment.id.0);
         fragments

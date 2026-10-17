@@ -5,6 +5,9 @@ impl Archive {
     pub fn conversation_summaries(&self) -> Vec<ConversationSummary> {
         let mut grouped = HashMap::<&str, Vec<_>>::new();
         for node in self.nodes.iter() {
+            if self.is_conversation_tombstoned(&node.conversation_id) {
+                continue;
+            }
             grouped
                 .entry(node.conversation_id.as_str())
                 .or_default()
@@ -35,6 +38,16 @@ impl Archive {
         conversation_id: &str,
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.require_current_conversation_id(conversation_id)?;
+        self.historical_conversation_turns(container, conversation_id, leaf_node_id)
+    }
+
+    pub(crate) fn historical_conversation_turns(
+        &self,
+        container: &mut Container,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
         self.branch_nodes(conversation_id, leaf_node_id)?
             .into_iter()
             .map(|node| self.resolve_turn(container, node))
@@ -49,6 +62,7 @@ impl Archive {
         limit: usize,
     ) -> Result<(Vec<ResolvedTurn>, Option<String>), ArchiveError> {
         let limit = limit.max(1);
+        self.require_current_conversation_id(conversation_id)?;
         let mut nodes = Vec::with_capacity(limit);
         let mut seen = HashSet::new();
         let mut current = Some(end_node_id.to_owned());
@@ -91,6 +105,7 @@ impl Archive {
         conversation_id: &str,
         leaf_node_id: &str,
     ) -> Result<Vec<String>, ArchiveError> {
+        self.require_current_conversation_id(conversation_id)?;
         let path = self.branch_nodes(conversation_id, leaf_node_id)?;
         let mut child_counts = HashMap::<&str, usize>::new();
         for node in self

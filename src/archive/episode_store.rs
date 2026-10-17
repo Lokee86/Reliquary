@@ -9,6 +9,7 @@ impl Archive {
         container: &mut Container,
         mut episode: Episode,
     ) -> Result<bool, ArchiveError> {
+        self.require_current_conversation_id(&episode.conversation_id)?;
         episode.id = episode_id(
             &episode.conversation_id,
             &episode.start_node_id,
@@ -28,10 +29,25 @@ impl Archive {
     }
 
     pub fn episodes(&self) -> Vec<Episode> {
-        self.episodes.iter().cloned().collect()
+        self.episodes
+            .iter()
+            .filter(|episode| !self.is_conversation_tombstoned(&episode.conversation_id))
+            .cloned()
+            .collect()
     }
 
     pub fn episodes_for_conversation(&self, conversation_id: &str) -> Vec<Episode> {
+        if self.is_conversation_tombstoned(conversation_id) {
+            return Vec::new();
+        }
+        self.historical_episodes_for_conversation(conversation_id)
+    }
+
+    pub fn historical_episodes(&self) -> Vec<Episode> {
+        self.episodes.iter().cloned().collect()
+    }
+
+    pub fn historical_episodes_for_conversation(&self, conversation_id: &str) -> Vec<Episode> {
         self.episodes
             .for_conversation(conversation_id)
             .into_iter()
@@ -40,6 +56,12 @@ impl Archive {
     }
 
     pub fn episode(&self, id: EpisodeId) -> Option<&Episode> {
+        self.episodes
+            .get(id)
+            .filter(|episode| !self.is_conversation_tombstoned(&episode.conversation_id))
+    }
+
+    pub fn historical_episode(&self, id: EpisodeId) -> Option<&Episode> {
         self.episodes.get(id)
     }
 
@@ -52,6 +74,7 @@ impl Archive {
             .episodes
             .get(id)
             .ok_or(ArchiveError::InvalidEpisodeRange)?;
+        self.require_current_conversation_id(&episode.conversation_id)?;
         let nodes = self.branch_nodes(&episode.conversation_id, &episode.end_node_id)?;
         let start = nodes
             .iter()

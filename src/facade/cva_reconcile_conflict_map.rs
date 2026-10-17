@@ -46,6 +46,28 @@ pub(crate) fn archive_replay_error(
         (ArchiveReplayRecord::File(file, _, _), ArchiveError::ConflictingFile) => {
             Some(CvaReconcileConflict::File { file_id: file.id })
         }
+        (ArchiveReplayRecord::ConversationTombstone(tombstone), _) => {
+            Some(CvaReconcileConflict::ConversationTombstone {
+                conversation_id: tombstone.conversation_id.clone(),
+            })
+        }
+        (ArchiveReplayRecord::Node(turn), ArchiveError::TombstonedConversation)
+        | (ArchiveReplayRecord::IngestedTurn(turn), ArchiveError::TombstonedConversation) => {
+            Some(CvaReconcileConflict::ConversationTombstone {
+                conversation_id: turn.conversation_id.clone(),
+            })
+        }
+        (
+            ArchiveReplayRecord::ConversationMetadata(metadata),
+            ArchiveError::TombstonedConversation,
+        ) => Some(CvaReconcileConflict::ConversationTombstone {
+            conversation_id: metadata.conversation_id.clone(),
+        }),
+        (ArchiveReplayRecord::Branch(branch), ArchiveError::TombstonedConversation) => {
+            Some(CvaReconcileConflict::ConversationTombstone {
+                conversation_id: branch.conversation_id.clone(),
+            })
+        }
         _ => None,
     };
     conflict

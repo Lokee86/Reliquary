@@ -53,6 +53,8 @@ impl Cva {
         if !(1..=crate::MAX_SEMANTIC_SEARCH_LIMIT).contains(&limit) {
             return Err(SearchError::InvalidConfig);
         }
+        self.archive
+            .require_current_conversation_id(conversation_id)?;
         let nodes = self.archive.branch_nodes(conversation_id, leaf_node_id)?;
         let fragments = path_fragment_windows(&nodes, FragmentConfig::default(), true)?;
         let candidate_limit = crate::DEFAULT_SEARCH_CANDIDATE_LIMIT

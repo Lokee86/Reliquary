@@ -23,8 +23,17 @@ impl Cva {
         if !(1..=MAX_ARCHIVE_SEARCH_RESULTS).contains(&limit) {
             return Err(SearchError::InvalidConfig);
         }
-        self.raw_archive_candidates(query, limit)?
+        let hits = self
+            .raw_archive_candidates(query, crate::MAX_ARCHIVE_SEARCH_RESULTS)?
             .into_iter()
+            .filter(|hit| {
+                !self
+                    .archive
+                    .is_conversation_tombstoned(&hit.fragment.conversation_id)
+            })
+            .take(limit)
+            .collect::<Vec<_>>();
+        hits.into_iter()
             .map(|hit| {
                 let text = self
                     .archive

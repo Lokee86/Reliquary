@@ -17,6 +17,9 @@ pub struct Archive {
     pub(crate) activity: crate::archive_activity::ArchiveActivityIndex,
     pub(crate) branches: BranchIndex,
     pub(crate) conversations: ConversationMetadataIndex,
+    pub(crate) conversation_metadata_versions: std::collections::BTreeMap<String, Vec<u64>>,
+    pub(crate) conversation_tombstones:
+        std::collections::BTreeMap<String, crate::ConversationTombstone>,
     pub(crate) fragments: FragmentIndex,
     pub(crate) episodes: crate::episode_index::EpisodeIndex,
     pub(crate) files: FileIndex,
@@ -40,6 +43,7 @@ impl Archive {
     ) -> Result<crate::archive_activity::TurnAcceptance<Node>, ArchiveError> {
         validate_text(&id, "node id")?;
         validate_text(&conversation_id, "conversation id")?;
+        self.require_current_conversation_id(&conversation_id)?;
         validate_text(&role, "role")?;
         if let Some(principal_id) = principal_id.as_deref() {
             validate_text(principal_id, "principal id")?;
@@ -77,6 +81,7 @@ impl Archive {
     ) -> Result<(), ArchiveError> {
         validate_text(&branch.id, "branch id")?;
         validate_text(&branch.conversation_id, "conversation id")?;
+        self.require_current_conversation_id(&branch.conversation_id)?;
         self.require_node(
             &branch.conversation_id,
             &branch.leaf_node_id,
@@ -98,6 +103,16 @@ impl Archive {
     }
 
     pub(crate) fn branch_turns(
+        &self,
+        container: &mut Container,
+        conversation_id: &str,
+        branch_id: &str,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.require_current_conversation_id(conversation_id)?;
+        self.historical_branch_turns(container, conversation_id, branch_id)
+    }
+
+    pub(crate) fn historical_branch_turns(
         &self,
         container: &mut Container,
         conversation_id: &str,
@@ -125,6 +140,14 @@ impl Archive {
     }
 
     pub fn branches(&self) -> Vec<Branch> {
+        self.branches
+            .iter()
+            .filter(|branch| !self.is_conversation_tombstoned(&branch.conversation_id))
+            .cloned()
+            .collect()
+    }
+
+    pub fn historical_branches(&self) -> Vec<Branch> {
         self.branches.iter().cloned().collect()
     }
 
@@ -133,9 +156,25 @@ impl Archive {
     }
 
     pub(crate) fn has_conversation(&self, conversation_id: &str) -> bool {
+        !self.is_conversation_tombstoned(conversation_id)
+            && self.has_historical_conversation(conversation_id)
+    }
+
+    pub(crate) fn has_historical_conversation(&self, conversation_id: &str) -> bool {
         self.nodes
             .iter()
             .any(|node| node.conversation_id == conversation_id)
+    }
+
+    pub(crate) fn require_current_conversation_id(
+        &self,
+        conversation_id: &str,
+    ) -> Result<(), ArchiveError> {
+        if self.is_conversation_tombstoned(conversation_id) {
+            Err(ArchiveError::TombstonedConversation)
+        } else {
+            Ok(())
+        }
     }
 
     pub fn stats(&self) -> ArchiveStats {

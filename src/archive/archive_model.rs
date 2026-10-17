@@ -30,6 +30,24 @@ pub struct ResolvedTurn {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConversationTombstoneClosure {
+    pub node_ids: Vec<String>,
+    pub branch_ids: Vec<String>,
+    pub fragment_ids: Vec<crate::FragmentId>,
+    pub episode_ids: Vec<crate::EpisodeId>,
+    pub file_ids: Vec<crate::FileId>,
+    pub metadata_archive_versions: Vec<u64>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConversationTombstone {
+    pub conversation_id: String,
+    pub closure: ConversationTombstoneClosure,
+    pub archive_version: u64,
+    pub global_version: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ConversationSummary {
     pub conversation_id: String,
     pub title: Option<String>,

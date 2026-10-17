@@ -53,6 +53,8 @@ mod archive_codec;
 mod archive_conversation;
 #[path = "archive/archive_conversation_metadata.rs"]
 mod archive_conversation_metadata;
+#[path = "archive/archive_conversation_tombstone.rs"]
+mod archive_conversation_tombstone;
 #[path = "archive/archive_error.rs"]
 mod archive_error;
 #[path = "archive/archive_history.rs"]
@@ -883,7 +885,10 @@ mod vector_generation_validation;
 pub use archive::Archive;
 pub use archive_error::ArchiveError;
 pub use archive_history_model::ArchiveRecordVersion;
-pub use archive_model::{ArchiveStats, Branch, ContentId, ConversationSummary, Node, ResolvedTurn};
+pub use archive_model::{
+    ArchiveStats, Branch, ContentId, ConversationSummary, ConversationTombstone,
+    ConversationTombstoneClosure, Node, ResolvedTurn,
+};
 pub use archive_search::{
     ArchiveSearchHit, MAX_ARCHIVE_SEARCH_QUERY_BYTES, MAX_ARCHIVE_SEARCH_RESULTS,
 };
@@ -1350,6 +1355,9 @@ mod conversation_search_tests;
 #[cfg(test)]
 #[path = "archive/conversation_tests.rs"]
 mod conversation_tests;
+#[cfg(test)]
+#[path = "archive/conversation_tombstone_tests.rs"]
+mod conversation_tombstone_tests;
 #[cfg(test)]
 #[path = "config_security/credential_tests.rs"]
 mod credential_tests;

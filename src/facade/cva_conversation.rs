@@ -14,6 +14,18 @@ impl Cva {
             .conversation_turns(&mut self.container, conversation_id, leaf_node_id)
     }
 
+    pub fn historical_conversation_turns(
+        &mut self,
+        conversation_id: &str,
+        leaf_node_id: &str,
+    ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
+        self.archive.historical_conversation_turns(
+            &mut self.container,
+            conversation_id,
+            leaf_node_id,
+        )
+    }
+
     pub fn conversation_turn_page(
         &mut self,
         conversation_id: &str,

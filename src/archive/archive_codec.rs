@@ -8,8 +8,9 @@ use crate::turn_ingest_codec::{
     INGESTED_TURN_MAGIC, LEGACY_INGESTED_TURN_MAGIC, decode_ingested_turn,
 };
 use crate::{
-    ArchiveError, Branch, ContentId, ConversationMetadata, Episode, FileId, FileMemoryLink,
-    Fragment, FragmentId, IngestedTurn, Node, StoredFile,
+    ArchiveError, Branch, ContentId, ConversationMetadata, ConversationTombstone,
+    ConversationTombstoneClosure, Episode, FileId, FileMemoryLink, Fragment, FragmentId,
+    IngestedTurn, Node, StoredFile,
 };
 
 const CONTENT_MAGIC: [u8; 8] = *b"CVACONT1";
@@ -18,6 +19,7 @@ const NODE_MAGIC: [u8; 8] = *b"CVANODE2";
 const BRANCH_MAGIC: [u8; 8] = *b"CVABRCH1";
 const FRAGMENT_MAGIC: [u8; 8] = *b"CVAFRAG1";
 const FILE_MAGIC: [u8; 8] = *b"CVAFILE1";
+const CONVERSATION_TOMBSTONE_MAGIC: [u8; 8] = *b"CVACTMB1";
 
 pub enum ArchiveRecord {
     ImportReceipt(crate::imports::ImportReceipt),
@@ -25,6 +27,7 @@ pub enum ArchiveRecord {
     Node(Node),
     Branch(Branch),
     ConversationMetadata(ConversationMetadata),
+    ConversationTombstone(ConversationTombstone),
     Fragment(Fragment),
     Episode(Episode),
     File(StoredFile),
@@ -63,6 +66,35 @@ pub fn encode_branch(branch: &Branch) -> Result<Vec<u8>, ArchiveError> {
     write_string(&mut out, &branch.id)?;
     write_string(&mut out, &branch.conversation_id)?;
     write_string(&mut out, &branch.leaf_node_id)?;
+    Ok(out)
+}
+
+pub fn encode_conversation_tombstone(
+    tombstone: &ConversationTombstone,
+) -> Result<Vec<u8>, ArchiveError> {
+    let mut out = Vec::new();
+    out.extend_from_slice(&CONVERSATION_TOMBSTONE_MAGIC);
+    out.extend_from_slice(&tombstone.archive_version.to_le_bytes());
+    out.extend_from_slice(&tombstone.global_version.to_le_bytes());
+    write_string(&mut out, &tombstone.conversation_id)?;
+    write_strings(&mut out, &tombstone.closure.node_ids)?;
+    write_strings(&mut out, &tombstone.closure.branch_ids)?;
+    write_ids(
+        &mut out,
+        tombstone.closure.fragment_ids.iter().map(|id| id.0),
+    )?;
+    write_ids(
+        &mut out,
+        tombstone.closure.episode_ids.iter().map(|id| id.0),
+    )?;
+    write_len(&mut out, tombstone.closure.file_ids.len())?;
+    for file_id in &tombstone.closure.file_ids {
+        out.extend_from_slice(&file_id.0);
+    }
+    write_len(&mut out, tombstone.closure.metadata_archive_versions.len())?;
+    for version in &tombstone.closure.metadata_archive_versions {
+        out.extend_from_slice(&version.to_le_bytes());
+    }
     Ok(out)
 }
 
@@ -116,6 +148,9 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     }
     if bytes[..8] == BRANCH_MAGIC {
         return decode_branch(bytes);
+    }
+    if bytes[..8] == CONVERSATION_TOMBSTONE_MAGIC {
+        return decode_conversation_tombstone(bytes);
     }
     if bytes[..8] == CONVERSATION_METADATA_MAGIC
         || bytes[..8] == ACTIVE_CONVERSATION_METADATA_MAGIC
@@ -209,6 +244,62 @@ fn decode_branch(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     }))
 }
 
+fn decode_conversation_tombstone(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
+    if bytes.len() < 24 {
+        return Err(ArchiveError::CorruptRecord("short conversation tombstone"));
+    }
+    let archive_version = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
+    let global_version = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
+    let mut cursor = 24;
+    let conversation_id = read_string(bytes, &mut cursor)?;
+    let node_ids = read_strings(bytes, &mut cursor)?;
+    let branch_ids = read_strings(bytes, &mut cursor)?;
+    let fragment_ids = read_ids(bytes, &mut cursor)?
+        .into_iter()
+        .map(FragmentId)
+        .collect();
+    let episode_ids = read_ids(bytes, &mut cursor)?
+        .into_iter()
+        .map(crate::EpisodeId)
+        .collect();
+    let file_count = read_len(bytes, &mut cursor)?;
+    let mut file_ids = Vec::with_capacity(file_count);
+    for _ in 0..file_count {
+        let end = cursor.checked_add(32).ok_or(ArchiveError::FieldTooLarge)?;
+        let raw = bytes
+            .get(cursor..end)
+            .ok_or(ArchiveError::CorruptRecord("truncated tombstone file id"))?;
+        file_ids.push(FileId(raw.try_into().unwrap()));
+        cursor = end;
+    }
+    let metadata_count = read_len(bytes, &mut cursor)?;
+    let mut metadata_archive_versions = Vec::with_capacity(metadata_count);
+    for _ in 0..metadata_count {
+        let end = cursor.checked_add(8).ok_or(ArchiveError::FieldTooLarge)?;
+        let raw = bytes.get(cursor..end).ok_or(ArchiveError::CorruptRecord(
+            "truncated tombstone metadata version",
+        ))?;
+        metadata_archive_versions.push(u64::from_le_bytes(raw.try_into().unwrap()));
+        cursor = end;
+    }
+    require_end(bytes, cursor)?;
+    Ok(ArchiveRecord::ConversationTombstone(
+        ConversationTombstone {
+            conversation_id,
+            closure: ConversationTombstoneClosure {
+                node_ids,
+                branch_ids,
+                fragment_ids,
+                episode_ids,
+                file_ids,
+                metadata_archive_versions,
+            },
+            archive_version,
+            global_version,
+        },
+    ))
+}
+
 fn decode_fragment(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 40 {
         return Err(ArchiveError::CorruptRecord("short fragment record"));
@@ -254,6 +345,31 @@ fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), ArchiveError> {
     Ok(())
 }
 
+fn write_len(out: &mut Vec<u8>, len: usize) -> Result<(), ArchiveError> {
+    let len = u32::try_from(len).map_err(|_| ArchiveError::FieldTooLarge)?;
+    out.extend_from_slice(&len.to_le_bytes());
+    Ok(())
+}
+
+fn write_strings(out: &mut Vec<u8>, values: &[String]) -> Result<(), ArchiveError> {
+    write_len(out, values.len())?;
+    for value in values {
+        write_string(out, value)?;
+    }
+    Ok(())
+}
+
+fn write_ids(
+    out: &mut Vec<u8>,
+    values: impl ExactSizeIterator<Item = [u8; 32]>,
+) -> Result<(), ArchiveError> {
+    write_len(out, values.len())?;
+    for value in values {
+        out.extend_from_slice(&value);
+    }
+    Ok(())
+}
+
 fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, ArchiveError> {
     let length_end = cursor.checked_add(4).ok_or(ArchiveError::FieldTooLarge)?;
     let raw = bytes
@@ -267,6 +383,38 @@ fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, ArchiveError>
         .ok_or(ArchiveError::CorruptRecord("truncated string"))?;
     *cursor = end;
     String::from_utf8(value.to_vec()).map_err(|_| ArchiveError::InvalidUtf8)
+}
+
+fn read_len(bytes: &[u8], cursor: &mut usize) -> Result<usize, ArchiveError> {
+    let end = cursor.checked_add(4).ok_or(ArchiveError::FieldTooLarge)?;
+    let raw = bytes
+        .get(*cursor..end)
+        .ok_or(ArchiveError::CorruptRecord("missing collection length"))?;
+    *cursor = end;
+    Ok(u32::from_le_bytes(raw.try_into().unwrap()) as usize)
+}
+
+fn read_strings(bytes: &[u8], cursor: &mut usize) -> Result<Vec<String>, ArchiveError> {
+    let len = read_len(bytes, cursor)?;
+    let mut values = Vec::with_capacity(len);
+    for _ in 0..len {
+        values.push(read_string(bytes, cursor)?);
+    }
+    Ok(values)
+}
+
+fn read_ids(bytes: &[u8], cursor: &mut usize) -> Result<Vec<[u8; 32]>, ArchiveError> {
+    let len = read_len(bytes, cursor)?;
+    let mut values = Vec::with_capacity(len);
+    for _ in 0..len {
+        let end = cursor.checked_add(32).ok_or(ArchiveError::FieldTooLarge)?;
+        let raw = bytes
+            .get(*cursor..end)
+            .ok_or(ArchiveError::CorruptRecord("truncated tombstone id"))?;
+        values.push(raw.try_into().unwrap());
+        *cursor = end;
+    }
+    Ok(values)
 }
 
 fn require_end(bytes: &[u8], cursor: usize) -> Result<(), ArchiveError> {

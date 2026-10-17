@@ -12,6 +12,8 @@ pub enum ArchiveError {
     MissingLeaf,
     MissingBranch,
     MissingConversation,
+    TombstonedConversation,
+    ConflictingConversationTombstone,
     MissingNode,
     MissingContent,
     ConflictingNode,

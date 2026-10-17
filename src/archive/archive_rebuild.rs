@@ -18,6 +18,8 @@ pub(crate) struct ArchiveOpenState {
     activity: crate::archive_activity::ArchiveActivityIndex,
     branches: BranchIndex,
     conversations: ConversationMetadataIndex,
+    conversation_metadata_versions: std::collections::BTreeMap<String, Vec<u64>>,
+    conversation_tombstones: std::collections::BTreeMap<String, crate::ConversationTombstone>,
     fragments: FragmentIndex,
     episodes: EpisodeIndex,
     files: FileIndex,
@@ -39,6 +41,8 @@ impl ArchiveOpenState {
             activity: Default::default(),
             branches: Default::default(),
             conversations: Default::default(),
+            conversation_metadata_versions: Default::default(),
+            conversation_tombstones: Default::default(),
             fragments: Default::default(),
             episodes: Default::default(),
             files: Default::default(),
@@ -79,6 +83,7 @@ impl ArchiveOpenState {
             record @ (ArchiveRecord::Node(_)
             | ArchiveRecord::Branch(_)
             | ArchiveRecord::ConversationMetadata(_)
+            | ArchiveRecord::ConversationTombstone(_)
             | ArchiveRecord::Fragment(_)
             | ArchiveRecord::Episode(_)
             | ArchiveRecord::File(_)
@@ -103,6 +108,8 @@ impl ArchiveOpenState {
             activity: self.activity,
             branches: self.branches,
             conversations: self.conversations,
+            conversation_metadata_versions: self.conversation_metadata_versions,
+            conversation_tombstones: self.conversation_tombstones,
             fragments: self.fragments,
             episodes: self.episodes,
             files: self.files,
@@ -132,7 +139,7 @@ impl ArchiveOpenState {
         }
 
         if let Some(record) = self.pending_records.remove(&version.record) {
-            self.apply_record(record, version.archive_version)?;
+            self.apply_record(record, version.archive_version, version.global_version)?;
             self.versioned_records.insert(version.record);
         } else if !self.versioned_records.contains(&version.record) {
             return Err(ArchiveError::InvalidArchiveRecordVersion);
@@ -150,6 +157,7 @@ impl ArchiveOpenState {
         &mut self,
         record: ArchiveRecord,
         archive_version: u64,
+        global_version: u64,
     ) -> Result<(), ArchiveError> {
         match record {
             ArchiveRecord::ImportReceipt(receipt) => {
@@ -163,6 +171,12 @@ impl ArchiveOpenState {
                 Ok(())
             }
             ArchiveRecord::Node(node) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&node.conversation_id)
+                {
+                    return Err(ArchiveError::TombstonedConversation);
+                }
                 let prepared = self.activity.prepare_node(&mut self.nodes, &node)?;
                 let inserted = self.nodes.insert(node)?;
                 if let Some(prepared) = prepared.filter(|_| inserted) {
@@ -171,20 +185,74 @@ impl ArchiveOpenState {
                 Ok(())
             }
             ArchiveRecord::Branch(branch) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&branch.conversation_id)
+                {
+                    return Err(ArchiveError::TombstonedConversation);
+                }
                 self.branches.put(branch);
                 Ok(())
             }
             ArchiveRecord::ConversationMetadata(metadata) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&metadata.conversation_id)
+                {
+                    return Err(ArchiveError::TombstonedConversation);
+                }
+                self.conversation_metadata_versions
+                    .entry(metadata.conversation_id.clone())
+                    .or_default()
+                    .push(archive_version);
                 self.conversations.put(metadata);
                 Ok(())
             }
+            ArchiveRecord::ConversationTombstone(tombstone) => {
+                if tombstone.archive_version != archive_version
+                    || tombstone.global_version != global_version
+                    || !self
+                        .nodes
+                        .iter()
+                        .any(|node| node.conversation_id == tombstone.conversation_id)
+                    || self.discover_conversation_tombstone_closure(&tombstone.conversation_id)
+                        != tombstone.closure
+                {
+                    return Err(ArchiveError::ConflictingConversationTombstone);
+                }
+                if let Some(existing) = self.conversation_tombstones.get(&tombstone.conversation_id)
+                    && existing.closure != tombstone.closure
+                {
+                    return Err(ArchiveError::ConflictingConversationTombstone);
+                }
+                self.conversation_tombstones
+                    .insert(tombstone.conversation_id.clone(), tombstone);
+                Ok(())
+            }
             ArchiveRecord::Fragment(fragment) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&fragment.conversation_id)
+                {
+                    return Err(ArchiveError::TombstonedConversation);
+                }
                 self.fragments.insert(fragment, archive_version).map(|_| ())
             }
-            ArchiveRecord::Episode(episode) => self.episodes.insert(episode).map(|_| ()),
+            ArchiveRecord::Episode(episode) => {
+                if self
+                    .conversation_tombstones
+                    .contains_key(&episode.conversation_id)
+                {
+                    return Err(ArchiveError::TombstonedConversation);
+                }
+                self.episodes.insert(episode).map(|_| ())
+            }
             ArchiveRecord::File(file) => self.files.insert(file).map(|_| ()),
             ArchiveRecord::IngestedTurn(turn) => {
                 let conversation_id = turn.node.conversation_id.clone();
+                if self.conversation_tombstones.contains_key(&conversation_id) {
+                    return Err(ArchiveError::TombstonedConversation);
+                }
                 let node_id = turn.node.id.clone();
                 let file_ids = turn.attachments.iter().map(|file| file.id).collect();
                 let prepared = self.activity.prepare_node(&mut self.nodes, &turn.node)?;
@@ -204,6 +272,57 @@ impl ArchiveOpenState {
                 Ok(())
             }
             _ => Err(ArchiveError::InvalidArchiveRecordVersion),
+        }
+    }
+
+    fn discover_conversation_tombstone_closure(
+        &self,
+        conversation_id: &str,
+    ) -> crate::ConversationTombstoneClosure {
+        let mut node_ids = self
+            .nodes
+            .iter()
+            .filter(|node| node.conversation_id == conversation_id)
+            .map(|node| node.id.clone())
+            .collect::<Vec<_>>();
+        let mut branch_ids = self
+            .branches
+            .iter()
+            .filter(|branch| branch.conversation_id == conversation_id)
+            .map(|branch| branch.id.clone())
+            .collect::<Vec<_>>();
+        let mut fragment_ids = self
+            .fragments
+            .iter()
+            .filter(|fragment| fragment.conversation_id == conversation_id)
+            .map(|fragment| fragment.id)
+            .collect::<Vec<_>>();
+        let mut episode_ids = self
+            .episodes
+            .for_conversation(conversation_id)
+            .into_iter()
+            .map(|episode| episode.id)
+            .collect::<Vec<_>>();
+        let mut file_ids = self
+            .source_attachments
+            .conversation_file_ids(conversation_id);
+        node_ids.sort();
+        branch_ids.sort();
+        fragment_ids.sort_by_key(|id| id.0);
+        episode_ids.sort_by_key(|id| id.0);
+        file_ids.sort_by_key(|id| id.0);
+        file_ids.dedup();
+        crate::ConversationTombstoneClosure {
+            node_ids,
+            branch_ids,
+            fragment_ids,
+            episode_ids,
+            file_ids,
+            metadata_archive_versions: self
+                .conversation_metadata_versions
+                .get(conversation_id)
+                .cloned()
+                .unwrap_or_default(),
         }
     }
 }

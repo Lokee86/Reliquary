@@ -316,6 +316,20 @@ u64       policy revision (nonzero)
 Conversation metadata is conversation-owned Archive semantic state, independent of branch topology. Records are append-only revisions keyed by conversation ID and published through ordinary Archive/global version metadata. Reopening keeps the latest visible revision; identical metadata publication is idempotent. Policy revision starts at 1 and increments only when the policy value changes; title/active writes preserve it. Overflow fails before publication.
 
 Legacy `CVACONV1` contains only the conversation ID/title strings and decodes inactive. `CVACONV2` adds the active flag. Both remain readable and interpret missing policy as SequentialChronological at revision 1; opening does not rewrite them. Unknown policy tags, zero revisions, truncated records and trailing bytes fail closed. A conversation without metadata has the same default. No separate policy file or queue record is introduced.
+Conversation tombstone:
+```text
+8 bytes   "CVACTMB1"
+u64       authoritative Archive version
+u64       authoritative global version
+string    conversation ID
+strings   sorted node IDs
+strings   sorted branch IDs
+ids       sorted FragmentIds
+ids       sorted EpisodeIds
+ids       sorted attached FileIds
+u64s      conversation-metadata Archive versions
+```
+Each collection is prefixed by a `u32` count; each typed ID is 32 bytes. The record is published through ordinary `CVAAREC1` metadata, and its embedded coordinates must equal that publication. Reopen deterministically reconstructs the same direct closure before accepting the terminal state. Current conversation/branch/metadata/turn/fragment/Episode/attachment views exclude the target; explicit historical views retain access. Identical re-delete is clock-neutral. No downstream semantic owner is traversed or mutated.
 Fragment:
 ```text
 8 bytes   "CVAFRAG1"

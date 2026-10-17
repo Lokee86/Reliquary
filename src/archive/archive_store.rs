@@ -12,6 +12,8 @@ impl Archive {
             activity: Default::default(),
             branches: Default::default(),
             conversations: Default::default(),
+            conversation_metadata_versions: Default::default(),
+            conversation_tombstones: Default::default(),
             fragments: Default::default(),
             episodes: Default::default(),
             files: Default::default(),
@@ -118,8 +120,16 @@ impl Archive {
             }
         }
         for metadata in self.conversations.iter() {
-            if !self.has_conversation(&metadata.conversation_id) {
+            if !self.has_historical_conversation(&metadata.conversation_id) {
                 return Err(ArchiveError::MissingConversation);
+            }
+        }
+        for tombstone in self.conversation_tombstones.values() {
+            if !self.has_historical_conversation(&tombstone.conversation_id)
+                || self.discover_conversation_tombstone_closure(&tombstone.conversation_id)
+                    != tombstone.closure
+            {
+                return Err(ArchiveError::ConflictingConversationTombstone);
             }
         }
         for receipt in self.import_receipts.values() {

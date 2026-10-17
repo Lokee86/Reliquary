@@ -23,4 +23,13 @@ impl Cva {
     pub fn files_for_source(&self, conversation_id: &str, node_id: &str) -> Vec<StoredFile> {
         self.archive.files_for_source(conversation_id, node_id)
     }
+
+    pub fn historical_files_for_source(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Vec<StoredFile> {
+        self.archive
+            .historical_files_for_source(conversation_id, node_id)
+    }
 }

@@ -40,4 +40,14 @@ impl SourceAttachmentIndex {
             .get(node_id)
             .map(Vec::as_slice)
     }
+
+    pub(crate) fn conversation_file_ids(&self, conversation_id: &str) -> Vec<FileId> {
+        self.by_conversation
+            .get(conversation_id)
+            .into_iter()
+            .flat_map(|nodes| nodes.values())
+            .flatten()
+            .copied()
+            .collect()
+    }
 }

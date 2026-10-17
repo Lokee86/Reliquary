@@ -24,6 +24,12 @@ This document owns the current Reliquary Memory v2 implementation boundaries, st
 
 Archive conversation metadata owns SequentialChronological/VisibleAutoBranch and its separate policy revision. The existing Cva facade delegates publication; Gateway uses exact-owner ViewRel reads and ManageRel mutation with sync-before-acknowledgement. The shared observation contract imports Archive's canonical enum.
 
+## Archive conversation tombstones
+
+Archive owns terminal aggregate conversation tombstones on its existing Archive and global clocks. Publication records a deterministic direct closure of conversation nodes, branches, metadata record versions, fragments, Episodes, and attached-file exposure. Current Archive queries exclude that closure after publication and reopen; explicit historical queries continue to resolve retained records and payload. All later writes using the same conversation ID fail closed, so continuation requires a new conversation identity.
+
+The tombstone does not traverse provenance or mutate independently identified Memory, Entity, Relationship, Graph, vector, or Ego state. Divergent reconciliation replays a noncompeting tombstone, deduplicates an already terminal target, and reports a typed conversation-tombstone conflict when the other branch independently changed the same conversation. The future shared owner-lifecycle contract may normalize inspection types; it does not replace Archive persistence or clocks.
+
 Policy publication and FinalizeWon capture share the existing owner runtime mutex. Capture synchronizes policy, then acquires the REL journal while retaining the runtime lock; no journal-held path acquires that runtime lock. Already captured finalization ancestry/revision is never rebound to current metadata during recovery. Default sequential finalization and VisibleAutoBranch stale-head conflict handling are implemented. [P3.1 evidence](multiplexing-implementation-plan.md) records policy ownership; [P3.5 evidence](multiplexing-implementation-plan.md) records visible conflict branching.
 
 ## Sequential finalization (P3.4)

@@ -9,6 +9,7 @@ impl Archive {
         metadata: ConversationMetadata,
     ) -> Result<bool, ArchiveError> {
         validate_text(&metadata.conversation_id, "conversation id")?;
+        self.require_current_conversation_id(&metadata.conversation_id)?;
         if !self.has_conversation(&metadata.conversation_id) {
             return Err(ArchiveError::MissingConversation);
         }
@@ -19,13 +20,20 @@ impl Archive {
             return Ok(false);
         }
         let record = container.append(&encode_conversation_metadata(&metadata)?)?;
-        self.publish_record(container, record)?;
+        let version = self.publish_record(container, record)?;
+        self.conversation_metadata_versions
+            .entry(metadata.conversation_id.clone())
+            .or_default()
+            .push(version.archive_version);
         self.conversations.put(metadata);
         Ok(true)
     }
 
     /// Absence of metadata uses the legacy default, including a new conversation.
     pub fn conversation_policy(&self, conversation_id: &str) -> (ConversationPolicy, u64) {
+        if self.is_conversation_tombstoned(conversation_id) {
+            return (ConversationPolicy::default(), 1);
+        }
         self.conversations
             .get(conversation_id)
             .map(|metadata| (metadata.policy, metadata.policy_revision))
@@ -38,6 +46,7 @@ impl Archive {
         conversation_id: &str,
         policy: ConversationPolicy,
     ) -> Result<bool, ArchiveError> {
+        self.require_current_conversation_id(conversation_id)?;
         if !self.has_conversation(conversation_id) {
             return Err(ArchiveError::MissingConversation);
         }
@@ -58,6 +67,16 @@ impl Archive {
     }
 
     pub fn conversation_metadata(&self, conversation_id: &str) -> Option<&ConversationMetadata> {
+        if self.is_conversation_tombstoned(conversation_id) {
+            return None;
+        }
+        self.historical_conversation_metadata(conversation_id)
+    }
+
+    pub fn historical_conversation_metadata(
+        &self,
+        conversation_id: &str,
+    ) -> Option<&ConversationMetadata> {
         self.conversations.get(conversation_id)
     }
 }

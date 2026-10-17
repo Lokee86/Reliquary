@@ -13,6 +13,7 @@ pub(crate) enum ArchiveReplayRecord {
     IngestedTurn(IncomingTurn),
     Branch(Branch),
     ConversationMetadata(ConversationMetadata),
+    ConversationTombstone(crate::ConversationTombstone),
     Episode(Episode),
     Fragment(Fragment),
     File(StoredFile, Option<Vec<u8>>, Option<ProjectFileRef>),
@@ -98,6 +99,9 @@ pub(crate) fn read_archive_tail(
             ArchiveRecord::ConversationMetadata(metadata) => {
                 ArchiveReplayRecord::ConversationMetadata(metadata)
             }
+            ArchiveRecord::ConversationTombstone(tombstone) => {
+                ArchiveReplayRecord::ConversationTombstone(tombstone)
+            }
             ArchiveRecord::Episode(episode) => ArchiveReplayRecord::Episode(episode),
             ArchiveRecord::File(file) => {
                 if let Some(reference) = cva.project_file_ref(file.id) {
@@ -174,6 +178,36 @@ fn replay_archive_record(
             .archive
             .put_conversation_metadata(&mut destination.container, metadata.clone())
             .map(|_| ()),
+        ArchiveReplayRecord::ConversationTombstone(tombstone) => {
+            if let Some(existing) = destination
+                .archive
+                .conversation_tombstone(&tombstone.conversation_id)
+            {
+                return if existing.closure == tombstone.closure {
+                    Ok(())
+                } else {
+                    Err(CvaReconcileError::Conflict(
+                        crate::CvaReconcileConflict::ConversationTombstone {
+                            conversation_id: tombstone.conversation_id.clone(),
+                        },
+                    ))
+                };
+            }
+            if destination
+                .archive
+                .discover_conversation_tombstone_closure(&tombstone.conversation_id)
+                != tombstone.closure
+            {
+                return Err(CvaReconcileError::Conflict(
+                    crate::CvaReconcileConflict::ConversationTombstone {
+                        conversation_id: tombstone.conversation_id.clone(),
+                    },
+                ));
+            }
+            destination
+                .tombstone_conversation(&tombstone.conversation_id)
+                .map(|_| ())
+        }
         ArchiveReplayRecord::Episode(episode) => destination
             .archive
             .put_episode(&mut destination.container, episode.clone())

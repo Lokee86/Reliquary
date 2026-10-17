@@ -24,6 +24,9 @@ pub enum CvaReconcileConflict {
     File {
         file_id: FileId,
     },
+    ConversationTombstone {
+        conversation_id: String,
+    },
     MemoryRevision {
         memory_id: MemoryId,
         expected_revision: u64,
@@ -70,6 +73,7 @@ impl CvaReconcileConflict {
             Self::Episode { .. } => "episode",
             Self::Fragment { .. } => "fragment",
             Self::File { .. } => "file",
+            Self::ConversationTombstone { .. } => "conversation_tombstone",
             Self::MemoryRevision { .. } => "memory_revision",
             Self::MemoryMutation { .. } => "memory_mutation",
             Self::MemorySemanticMutation { .. } => "memory_semantic_mutation",

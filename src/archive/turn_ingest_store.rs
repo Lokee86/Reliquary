@@ -14,6 +14,7 @@ impl Archive {
     ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
         validate_text(&incoming.id, "node id")?;
         validate_text(&incoming.conversation_id, "conversation id")?;
+        self.require_current_conversation_id(&incoming.conversation_id)?;
         validate_text(&incoming.role, "role")?;
         if let Some(principal_id) = incoming.principal_id.as_deref() {
             validate_text(principal_id, "principal id")?;
@@ -131,6 +132,17 @@ impl Archive {
     }
 
     pub(crate) fn files_for_source(&self, conversation_id: &str, node_id: &str) -> Vec<StoredFile> {
+        if self.is_conversation_tombstoned(conversation_id) {
+            return Vec::new();
+        }
+        self.historical_files_for_source(conversation_id, node_id)
+    }
+
+    pub(crate) fn historical_files_for_source(
+        &self,
+        conversation_id: &str,
+        node_id: &str,
+    ) -> Vec<StoredFile> {
         self.source_attachments
             .get(conversation_id, node_id)
             .into_iter()

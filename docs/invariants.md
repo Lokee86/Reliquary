@@ -86,6 +86,8 @@ Only the conversation coordinator selects fresh Pending work. Selection and bran
 13. **Concurrent conversations do not acquire semantic ancestry from physical ordering.**
 14. **Branch/session heads are revisions, not mutable in-place records.** Existing heads advance only to descendants.
 15. **Reviving an old conversation creates a new local branch identity; it does not rewind an existing branch or the Archive.**
+15a. **Conversation tombstones are terminal Archive mutations.** One Archive/global version records the deterministic direct Archive closure. Current reads and writes cannot expose or extend that conversation after reopen; historical reads remain explicit.
+15b. **Conversation deletion is direct-only.** It does not infer a provenance cascade into Memory, Entity, Relationship, Graph, vector, or Ego owners. Reconciliation never uses a tombstone to resurrect or auto-cascade and reports an independent update-versus-delete conflict.
 16. **Fragment identity is branch-neutral.**
 17. **Live fragment materialization is append-only.**
 18. **Global version is the canonical semantic mutation order.** It is not a CVA root or semantic dependency identity. Current version tickets additionally map that order to owner-local transaction time; wall-clock timestamps never replace integer version ordering, and a wall-clock cut may expose only a contiguous global-version prefix whose included timestamps are all known and within the requested time.
