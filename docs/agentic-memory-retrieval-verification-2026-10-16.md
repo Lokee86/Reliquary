@@ -43,7 +43,7 @@ Step 39 completed 36 deterministic probes, but useful evidence recall is not pre
 
 The aggregate is **1/128 evidence occurrences (0.78%)**, with one nonempty probe out of 36. Every corpus uses twelve query retrievals, twelve refinements and twelve query embeddings. Only the 28-day corpus obtains approved anchors, producing one graph call; the other corpora produce none. Local elapsed ranges are 300.0-429.0 ms, 741.3-5777.2 ms and 225.4-338.3 ms respectively. These concurrent-host diagnostic timings include local receipts and are not service SLO measurements. Exact selected references, misses and per-probe counts/timings are retained in the JSON.
 
-The observed failure is candidate exposure. The semantic lane includes every compatible vector-bearing Memory; query preparation retains candidate IDs and sorts by Freshness then owner-qualified ID before presenting ten bodies. Lexical/cosine scores do not order that presentation. Refinement only revisits the already-declined presentation, and no approved seed means the requester cannot start the bounded graph expansion in this harness. Even replaying the target document vector therefore does not establish access to the expected evidence. This is consistent with the implemented frozen policy, not a reason to alter it silently during acceptance. Relevance eligibility/order and how the requester discovers further candidates require a separately reviewed design change and a new comparison.
+The observed failure is candidate exposure. The semantic lane includes every compatible vector-bearing Memory; query preparation retains candidate IDs and sorts by Freshness then owner-qualified ID before presenting ten bodies. Lexical/cosine scores do not order that presentation. Because every active Memory has a current vector in these corpora, the initial ten are query-independent for a fixed Freshness snapshot and SelectedIDs set. Refinement only revisits the already-declined presentation, and no approved seed means the requester cannot start the bounded graph expansion in this harness. Even replaying the target document vector therefore does not establish access to the expected evidence. This is consistent with the implemented frozen policy, not a reason to alter it silently during acceptance. Relevance eligibility/order and how the requester discovers further candidates require a separately reviewed design change and a new comparison.
 
 The broad oracle has evidence recall 1.0 by construction. Rare literal-term probes and idealized document-vector replay stress evidence exposure; answer recall remains null, and no live model, representative user-task accuracy or generated-answer quality is measured. Step 39's dated comparison and Step 40's reproducible evidence closure are complete; this is a negative fidelity result and does not qualify production recall or deployment.
 
@@ -61,6 +61,21 @@ Two audit observations were resolved without changing the frozen protocol:
 - Anchor count and therefore concurrent fan-out are not globally capped by this design. Each anchor retains its ten-candidate cut, and there is no new turn budget. Large anchor lists remain an operational sizing concern for the embedding host.
 
 The real production consumer lives in the separate Warlock candidate; the absence of a host caller inside the storage/runtime crate is expected call direction.
+
+## Main rerun repository checks
+
+Core formatting and `cargo check --quiet -j2` pass. `cargo test --quiet --no-fail-fast -j2` executes all targets: 1,346 library tests pass, 16 fail and five are ignored; all 141 integration tests across 23 targets pass; zero doc tests fail. The process exits 101 for the library target. Fourteen of the sixteen library failures pass in focused runs outside the sandbox (local HTTP mocks, hard links and native Lore repository operations). These reruns do not constitute a fresh all-tests nonsandbox pass. The independent retained fixture executable also completes the full library suite with 1,347 passed, 15 failed and five ignored; its thirteen environment-sensitive failures pass in focused nonsandbox reruns, leaving the same two unresolved failures.
+
+Both remaining failures reproduce outside the sandbox and use unchanged main Cva paths, without entering the modified Gateway identity conversion:
+
+- `historical_generation_refresh_changes_proof_but_never_fragment_event_identity`: `import scoring is not an isolated provisional Dream history` at `historical_manifest_tests.rs:93`.
+- `legacy_typed_rel_migration_preserves_identity_and_state`: `semantic Freshness requires REL UUID` at `migration_tests.rs:117`.
+
+No unrelated historical/F8 or UUID-less migration change is included. The focused agentic suite passes (80 passed, one ignored); the native legacy typed-REL mount/journal/subscription/reconnect regression and both prefix tests pass. The final Cargo library executable is retained as `bin/agentic-main-gates-c2b2d4c.exe`, SHA-256 `e1ca34b231311f8754b54724e075ca1143e6ab386e7a085482b6b39a42e79a1e`; the fixture reports retain their separately identified executable and source commit. Build/test output and TEMP/TMP remain inside main under `bin/`. A preceding Cargo attempt could not execute its missing cached test executable; restoring the verified retained executable and allowing Cargo to rebuild produced the complete run above. No machine cleanup policy changed.
+
+CLI checks were not repeated: this correction adds a private Gateway identity seam, changes no public signature or storage format, and the detachable CLI has no dependency on these Gateway mount/journal/stream paths. Both documentation-policy modes report only five existing Ego findings: four missing inventory sections and the index link to the absent Ego Memory-Web Summary implementation plan. The two pre-existing Ego diffs are unchanged. Useful retrieval recall and production deployment remain unqualified.
+
+`python scripts/check_architecture.py --refresh` passes on the settled tree: 17 areas, 23 rules, zero violations; 92 coordination fixtures and 11 external-boundary fixtures pass, with 166 public APIs classified. Snapshot `sha256:1fd6d2d2150632772ed0864b31449be63eda742beb5dad634cf47cebe16c755b` records 73,924 source nodes and 2,389 policy relationships. Every one of its 980 Rust-analysis input content hashes matches the final files, including both final fixture/admission test edits. All authoritative source and harness hashes were checked again after the refresh. No Rust source changed afterward. No shared standard, policy rule, storage format or semantic owner changed.
 
 ## Historical Step 45 feature-candidate repository gates
 
@@ -87,7 +102,7 @@ The main rerun above supersedes the historical format blocker. Useful recall and
 - Standards added or changed: no shared standard or Pitlord policy change.
 - Ownership or boundary impact: one host-owned turn controller; passive REL preparation; exact receiver-confirmed coordinated existing accepted-use writer; no second journal or Freshness implementation.
 - Pitlord enforcement impact: refreshed enforcement passes; source coordination coverage now admits the new APIs explicitly and rejects preparation writes.
-- Other verification impact: frozen fixture wrapper binds source/binary hashes and records actual main results and negative recall evidence; focused real-host receiver/restart and full CLI gates pass.
+- Other verification impact: main fixture/scenario/hash checks and current architecture enforcement pass; the main full-test findings above remain explicit. Prior host/CLI evidence is historical.
 - Known architectural gaps: dynamic graph call-resolution limits, uncapped anchor fan-out sizing, poor measured frozen-corpus evidence recall and deployment qualification remain explicit.
 
 ## Related docs
