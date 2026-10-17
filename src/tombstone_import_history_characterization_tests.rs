@@ -147,7 +147,7 @@ fn repeated_native_import_is_idempotent_after_reopen() {
         (reopened.archive_version(), reopened.latest_global_version()),
         versions
     );
-    assert_eq!(reopened.native_import_receipts(), vec![receipt]);
+    assert_eq!(reopened.native_import_receipts(), vec![receipt.clone()]);
     assert!(
         !fs::read(&file)
             .unwrap()
@@ -168,7 +168,7 @@ fn valid_legacy_cvafrs03_checkpoint_decodes_and_reopens_with_exact_fields() {
     let owner = rel.owner_uuid().unwrap();
     let memory = crate::MemoryId([7; 32]);
     let record = crate::FreshnessRecord::created();
-    let checkpoint = crate::freshness_import_checkpoint::ImportCheckpoint {
+    let checkpoint = crate::freshness_storage::ImportCheckpoint {
         owner,
         import_id: [1; 32],
         corpus_digest: [2; 32],
@@ -186,7 +186,7 @@ fn valid_legacy_cvafrs03_checkpoint_decodes_and_reopens_with_exact_fields() {
     };
     let bytes = checkpoint.encode();
     assert_eq!(
-        crate::freshness_import_checkpoint::ImportCheckpoint::decode(&bytes).unwrap(),
+        crate::freshness_storage::ImportCheckpoint::decode(&bytes).unwrap(),
         checkpoint
     );
     rel.container.append(&bytes).unwrap();

@@ -1,9 +1,9 @@
+use crate::compatibility_profile_model::COMPATIBILITY_MIN_STORED_POLICY_VERSION;
 use crate::compatibility_vector::{cosine, validate_vectors};
 use crate::{
-    COMPATIBILITY_MIN_COSINE, COMPATIBILITY_MIN_STORED_POLICY_VERSION,
-    COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION, CompatibilityProbeReference,
-    CompatibilityProfile, CompatibilityProfileError, CompatibilityProfileId, CompatibilityReport,
-    EmbeddingEndpoint, EmbeddingMode,
+    COMPATIBILITY_MIN_COSINE, COMPATIBILITY_POLICY_VERSION, COMPATIBILITY_PROBE_SUITE_VERSION,
+    CompatibilityProbeReference, CompatibilityProfile, CompatibilityProfileError,
+    CompatibilityProfileId, CompatibilityReport, EmbeddingEndpoint, EmbeddingMode,
 };
 use sha2::{Digest, Sha256};
 

@@ -1,7 +1,9 @@
 //! Shared owner-local lifecycle vocabulary. Stores retain mutation and clock authority.
 //! No state, persistence, clock allocation or provenance traversal lives here.
 
-use crate::{CompatibilityProfileId, EgoAnchorId, EgoIdentityId, EntityId, MemoryId, RelationshipId};
+use crate::{
+    CompatibilityProfileId, EgoAnchorId, EgoIdentityId, EntityId, MemoryId, RelationshipId,
+};
 
 /// An identity within the owner on which a lifecycle operation is invoked.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

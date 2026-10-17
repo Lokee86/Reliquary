@@ -106,6 +106,9 @@ impl Cva {
         source_archive_version: u64,
         process_live_semantic: bool,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.compatibility_profiles
+            .get_active(compatibility_profile_id)
+            .ok_or(VectorGenerationError::MissingProfile)?;
         let candidate = VectorGeneration {
             id: vector_generation_id(
                 compatibility_profile_id,

@@ -92,7 +92,7 @@ fn terminal_conversation_tombstone_reopens_with_historical_closure_only() {
         cva.ingest_turn(turn("conversation", "later", Some("root"))),
         Err(ArchiveError::TombstonedConversation)
     ));
-    assert!(cva.memory(memory.id).is_some());
+    assert!(cva.memory(memory.id).is_ok());
     cva.sync().unwrap();
     drop(cva);
 
@@ -116,7 +116,7 @@ fn terminal_conversation_tombstone_reopens_with_historical_closure_only() {
         reopened.conversation_turns("conversation", "root"),
         Err(ArchiveError::TombstonedConversation)
     ));
-    assert!(reopened.memory(memory.id).is_some());
+    assert!(reopened.memory(memory.id).is_ok());
 }
 
 #[test]
@@ -143,9 +143,9 @@ fn reconcile_replays_noncompeting_delete_without_cascade() {
     }
 
     Cva::reconcile(&left, &right, &output).unwrap();
-    let merged = Cva::open(output).unwrap();
+    let mut merged = Cva::open(output).unwrap();
     assert!(merged.conversation_tombstone("conversation").is_some());
-    assert!(merged.memory(memory.id).is_some());
+    assert!(merged.memory(memory.id).is_ok());
     assert_eq!(merged.conversation_summaries().len(), 1);
     assert_eq!(merged.conversation_summaries()[0].conversation_id, "other");
 }

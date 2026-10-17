@@ -103,6 +103,7 @@ impl ReclamationScan {
                 return Ok(());
             }
             ArchiveRecord::ImportReceipt(_)
+            | ArchiveRecord::ConversationTombstone(_)
             | ArchiveRecord::Branch(_)
             | ArchiveRecord::ConversationMetadata(_)
             | ArchiveRecord::Fragment(_)

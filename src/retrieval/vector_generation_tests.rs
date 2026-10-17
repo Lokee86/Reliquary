@@ -184,7 +184,7 @@ fn retired_generation_is_excluded_but_historical_numeric_evidence_remains_readab
         cva.historical_vector_generation(profile.id),
         Some(generation)
     );
-    assert_eq!(archive_vectors.rows, packed.count());
+    assert_eq!(archive_vectors.fragment_ids.len(), packed.count());
     cva.sync().unwrap();
     drop(cva);
 

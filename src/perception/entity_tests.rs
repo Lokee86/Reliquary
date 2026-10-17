@@ -294,7 +294,10 @@ fn retired_entity_cannot_be_republished_before_or_after_reopen() {
             Err(EntityError::InvalidField("terminal Entity tombstone"))
         ));
         assert_eq!((rel.entity_version(), rel.latest_global_version()), before);
-        assert_eq!(rel.retired_entity_replacement(retired.id), Some(survivor.id));
+        assert_eq!(
+            rel.retired_entity_replacement(retired.id),
+            Some(survivor.id)
+        );
     }
 }
 
