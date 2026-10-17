@@ -104,6 +104,11 @@ fn invalid_header_and_noncanonical_owner_ids_fail_without_journal_creation() {
     assert!(validate_owner_id("rel-00000000-0000-0000-0000-000000000000", "rel-").is_err());
     assert!(validate_owner_id("rel-AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA", "rel-").is_err());
     assert!(validate_owner_id("phy-11111111-1111-4111-8111-111111111111", "rel-").is_err());
+    let uuid = uuid::Uuid::new_v4();
+    for prefix in REL_OWNER_PREFIXES {
+        assert!(validate_rel_owner_id(&format!("{prefix}{uuid}")).is_ok());
+    }
+    assert!(validate_rel_owner_id(&format!("phy-{uuid}")).is_err());
     assert!(gateway.mounted_rel_ids().unwrap().is_empty());
     assert!(!gateway.state_dir().join("conversation-queues").exists());
 }

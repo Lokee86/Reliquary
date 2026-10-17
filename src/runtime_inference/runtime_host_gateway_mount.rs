@@ -61,13 +61,10 @@ impl MountedFileIdentity {
         }
         let owner_id =
             owner_id.ok_or_else(|| operation("gateway mount requires a durable owner UUID"))?;
-        validate_owner_id(
-            &owner_id,
-            match kind {
-                OwnerKind::Rel => "rel-",
-                OwnerKind::Phy => "phy-",
-            },
-        )?;
+        match kind {
+            OwnerKind::Rel => validate_rel_owner_id(&owner_id)?,
+            OwnerKind::Phy => validate_owner_id(&owner_id, "phy-")?,
+        }
         let key = physical_key(file)
             .map_err(operation)?
             .unwrap_or_else(|| FileKey::PathScoped(canonical_path.clone()));
@@ -124,7 +121,7 @@ impl MountClaim {
 }
 fn claim_registry_id(identity: &MountedFileIdentity) -> String {
     let prefixes: &[&str] = match identity.kind {
-        OwnerKind::Rel => &["rel-", "proj-", "org-", "con-"],
+        OwnerKind::Rel => REL_OWNER_PREFIXES,
         OwnerKind::Phy => &["phy-"],
     };
     for prefix in prefixes {
@@ -326,6 +323,24 @@ mod tests {
             kind,
             key: FileKey::PathScoped(PathBuf::from(path)),
             canonical_path: PathBuf::from(path),
+        }
+    }
+
+    #[test]
+    fn legacy_typed_rel_prefixes_pass_mount_identity_validation() {
+        let file = tempfile::tempfile().unwrap();
+        let uuid = uuid::Uuid::new_v4();
+        for prefix in REL_OWNER_PREFIXES {
+            let owner_id = format!("{prefix}{uuid}");
+            let identity = MountedFileIdentity::validated(
+                &file,
+                PathBuf::from(format!("legacy-{prefix}{uuid}.rel")),
+                Some(FileKind::Reliquary),
+                Some(owner_id.clone()),
+                OwnerKind::Rel,
+            )
+            .unwrap();
+            assert_eq!(identity.owner_id, owner_id);
         }
     }
 

@@ -878,8 +878,8 @@ impl GatewayRuntime {
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
         for (owner, caps) in grants {
-            if owner.starts_with("rel-") {
-                validate_owner_id(owner, "rel-")?;
+            if rel_owner_prefix(owner).is_some() {
+                validate_rel_owner_id(owner)?;
                 if caps.contains(&OwnerGrant::UseOwnPhy) {
                     return Err(operation("UseOwnPhy is not a REL capability"));
                 }
@@ -1527,6 +1527,24 @@ impl GatewayRuntime {
 struct AttachmentEntryRef {
     instance: Arc<InstanceRuntime>,
     leases: Arc<LeaseGate>,
+}
+
+const REL_OWNER_PREFIXES: &[&str] = &["rel-", "proj-", "org-", "con-"];
+
+fn rel_owner_prefix(owner_id: &str) -> Option<&'static str> {
+    REL_OWNER_PREFIXES
+        .iter()
+        .copied()
+        .find(|prefix| owner_id.starts_with(prefix))
+}
+
+fn validate_rel_owner_id(owner_id: &str) -> Result<(), ReliquaryRuntimeHostError> {
+    let Some(prefix) = rel_owner_prefix(owner_id) else {
+        return Err(operation(format!(
+            "owner ID {owner_id} must use a supported REL <prefix><uuid> form"
+        )));
+    };
+    validate_owner_id(owner_id, prefix)
 }
 
 fn validate_owner_id(owner_id: &str, prefix: &str) -> Result<(), ReliquaryRuntimeHostError> {

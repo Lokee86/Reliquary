@@ -303,7 +303,7 @@ impl GatewayRuntime {
         instance: &InstanceRuntime,
         owner_id: &str,
     ) -> Result<(usize, bool), ReliquaryRuntimeHostError> {
-        if owner_id.starts_with("rel-") {
+        if rel_owner_prefix(owner_id).is_some() {
             let token = self.authorize(instance, owner_id, OwnerGrant::ViewRel)?;
             let state = {
                 let owners = self
