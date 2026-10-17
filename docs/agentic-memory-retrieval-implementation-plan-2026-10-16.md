@@ -4,7 +4,7 @@ Parent design: [Agentic Memory retrieval design](agentic-memory-retrieval-design
 
 Linear execution plan: [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
 
-Status: **implementation-ready architecture specification; runtime implementation pending**
+Status: **Architecture specification; Reliquary Steps 1–36 implemented; frozen-corpus and final disposition gates pending**
 
 ## Purpose
 
@@ -16,7 +16,7 @@ The target is one turn-scoped controller with exactly three model-visible tools,
 
 ## Problem Statement
 
-Reliquary has passive Memory search, owner-local vector retrieval, graph reads, non-reinforcing Freshness reads, the generic `DecisionEndpoint`, and the durable `Cva::record_accepted_memory_use()` write boundary. It does not yet have the accepted agent-facing retrieval controller.
+Reliquary's passive Memory search, owner-local vector retrieval, graph reads, non-reinforcing Freshness reads, and durable `Cva::record_accepted_memory_use()` boundary remain the underlying primitives. The accepted agent-facing controller, full lexical/exact-semantic candidate union, dedicated decision route, strict refinement, concurrent one-hop traversal, fallback semantics, and exact prepared-manifest completion seam are implemented through Step 36. Frozen-corpus fidelity and final disposition remain open.
 
 The existing `GatewayRuntime::search_visible_memories()` is not the target implementation. It uses `MemoryRetrievalConfig` seed/community/traversal bounds and then truncates results. Reusing it underneath `memory_query()` would Freshness-rank an already bounded set and would import depth-based graph traversal into a design that explicitly requires an independent one-hop `traverse_graph()`.
 
@@ -30,7 +30,7 @@ The missing production pieces are:
 - `already_provided` fallback semantics; and
 - a real successful-host-handoff integration that is allowed to call the existing accepted-use receipt path.
 
-F3 remains incomplete until the last item is connected to the actual embedding host.
+At the time this architecture specification was drafted, F3 remained incomplete until the final host-handoff item was connected. The Step 36 receiver/replay path is now evidenced in Warlock `cf41c66`; deployment and frozen-corpus acceptance remain separate gates.
 
 ## Target Architecture
 
@@ -255,7 +255,7 @@ Failed, cancelled, or unknown handoff does not invoke completion. Exact retry re
 
 Reliquary must not treat a provider response, generic HTTP 200, stream event, transcript admission, or the current `ConversationExecution` handoff as proof that Memory tool content reached the requesting agent.
 
-The actual embedding-host callback is not present in the identified Reliquary source. F3 is therefore complete only when the real host:
+This specification's source trace correctly found no embedding-host callback in Reliquary itself; the receiver belongs to Warlock. Warlock candidate `cf41c66` now provides the real receiver acknowledgment and exact-manifest restart replay. Treat the following list as the acceptance contract that this candidate must satisfy, not as an assertion that the host is absent:
 
 - identifies the actual successful Memory tool-result handoff;
 - supplies stable delivery identity;
@@ -305,7 +305,7 @@ This is a **staged hard cut**. Existing passive search remains valid, but no com
 | **AR6** | **Sol** | Implement concurrent one-hop `traverse_graph()`, state counts, per-anchor top ten, gather-before-update, overlap collapse, and relation reports. | >10-neighbour, shared-neighbour, selected/declined-anchor, conflicting-overlap, and strict one-hop tests pass. |
 | **AR7** | **Luna** | Add versioned selection/refinement contracts and simulator-driven malformed-output tests. | Invalid/unknown/duplicate model output cannot mutate state or authorize delivery. |
 | **AR8** | **Sol** | Implement the two-phase gateway delivery completion seam and owner-grouped calls to existing `record_accepted_memory_use()`. | Failed/cancelled/unknown delivery gives zero reinforcement; success, multi-owner grouping, exact retry, and changed-manifest conflict pass. |
-| **AR9** | **Sol** | Wire the real embedding host to AR8 at the actual successful Memory tool-result handoff, including replayable exact manifest identity. | End-to-end failed handoff gives zero reinforcement; successful handoff followed by retry/restart gives one durable reinforcement. F3 may only be marked complete here. |
+| **AR9** | **Sol** | Wire the real embedding host to AR8 at the actual successful Memory tool-result handoff, including replayable exact manifest identity. | Implemented in Warlock integration candidate `cf41c66`; focused receiver/restart tests pass. Not a deployed release; frozen-corpus/final disposition gates remain. |
 | **AR10** | **Sol** | Verify 14-day, 28-day, and Ellis frozen REL fixtures, using copies/read-only inputs and a broader-context evaluation baseline. | Search order, repeat traversal, refinement, overlap, fallback, and handoff idempotence pass; fixture hashes are unchanged. |
 | **AR11** | **Luna** | Update architecture, roadmap, current limitations, external-consumption contract, Freshness plan/record, docs index, and maintainer map to actual implementation status. | Docs checks pass and no document claims AR9 before real evidence exists. |
 | **AR12** | **Sol** | Remove migration-only helpers, refresh Lexicon/Arcana, audit exports/call graph, and run the full repository integration gate. | Rust, CLI, docs, architecture checks pass; one canonical agentic path remains. |
@@ -428,7 +428,7 @@ The feature is complete only when:
 - [ ] Rust, CLI, docs, and architecture checks pass;
 - [ ] superseded F3 assumptions are no longer presented as current implementation requirements.
 
-Until AR9 is actually verified, the truthful status is: **agentic retrieval core may be implemented; automatic external-consumption reinforcement remains pending**.
+AR9 receiver/replay behavior is evidenced by Warlock candidate `cf41c66` and eight passing host Memory tests. The truthful current status is: **Reliquary Steps 1–36 and host receiver/replay implementation are complete in their respective worktrees; frozen-corpus and final production-disposition gates remain pending, and the host candidate is not deployed**.
 
 ## Notes
 
@@ -444,7 +444,7 @@ This plan does not implement Ego’s candidate-selection → audit → summary e
 
 The earlier F3 work remains correct that internal retrieval cannot create access reinforcement and that host-owned evidence is required. The accepted design narrows the qualifying event to successful Memory tool-result handoff and makes `SelectedIDs` the sole turn-scoped delivered-ID set.
 
-AR8 creates the canonical Reliquary completion seam. AR9 proves that a real host is attached to it. F3 is not complete before AR9.
+AR8 creates the canonical Reliquary completion seam. AR9's real-host receiver acknowledgment and exact-manifest recovery are implemented in candidate `cf41c66`; the F3 implementation gate is evidenced, while deployment and frozen-corpus verification remain separate.
 
 ## Related docs
 

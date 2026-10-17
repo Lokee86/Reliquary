@@ -2,7 +2,7 @@
 
 Date: 2026-10-15
 Parent plan: [implementation specification](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md)
-Status: F1 and F2 complete. F3 contract documented; production wiring blocked on the external host acceptance coordinator. F4 complete with three passing boundary tests; F5 verification and closeout concluded with the documentation/architecture exceptions below.
+Status: F1, F2, F4, and F5 evidence remains valid. F3's actual receiver/replay seam is implemented and tested in the Warlock `cf41c66` integration candidate, not deployed production. The Reliquary/host receiver evidence is recorded in [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md); frozen-corpus and final disposition gates remain open.
 
 ## F2 — explicit passive-read contract
 
@@ -10,11 +10,11 @@ Existing primitives already satisfy the implementation boundary; no duplicate re
 
 ## Subsequent retrieval design (status clarification)
 
-The later accepted [agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) uses successful host tool-result handoff as the future F3 reinforcement event and a single turn-wide `SelectedIDs` set. This document remains the historical F1/F2/F4/F5 **execution evidence**; its original stricter accepted-context/outbox assumptions are superseded as design requirements where inconsistent. F3 remains unimplemented.
+The later accepted [agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) uses successful host tool-result handoff and a single turn-wide `SelectedIDs` set. This document remains the historical F1/F2/F4/F5 **execution evidence**; its original stricter accepted-context/outbox assumptions are superseded where inconsistent. The current F3 receiver/replay seam passes focused Warlock host tests in candidate `cf41c66`, but final frozen-corpus/release verification remains outstanding.
 
 ## F3 — external integration disposition
 
-No production wiring was added because F1 found no authoritative accepted-context event. The [host consumption contract](freshness-external-consumption-contract.md) specifies exact IDs, owner/cut/identity, durable acceptance-to-receipt handoff, authority, cancellation and retry requirements. F3 remains pending externally and must not be reported as implemented.
+The 2026-10-15 F1 finding remains an accurate historical baseline: no production caller was then identified. The later Warlock `cf41c66` integration candidate supplies receiver-owned acknowledgment and exact-manifest restart replay, with eight focused host Memory tests passing. It is not a deployed release; frozen-corpus and final production-disposition gates remain open.
 
 ## Purpose
 
@@ -87,7 +87,7 @@ The tests use real Cva persistence and event recording, not private mocks. Episo
 
 The behavior matrix is unchanged: all classified reads produce zero access reinforcement; only the existing explicit accepted-use API writes it. No runtime algorithm, public signature, numeric policy, propagation, storage format or persistence mechanics changed. The detachable CLI is unaffected; no CLI-specific change gate was triggered.
 
-F1/F2/F4 are complete. F5 verification is recorded with the two exceptions above; it is not an all-gates-green claim. F3 production wiring remains pending outside this repository. The separate Ego audit-selection refactor was not performed. Both pre-existing dirty Ego documents remain outside this change and must not be staged with it. The exact implementation commit is reported in the completion response.
+F1/F2/F4 are complete. F5 verification is recorded with the two exceptions above; it is not an all-gates-green claim. F3 receiver/replay wiring is implemented in Warlock candidate `cf41c66`; deployment and frozen-corpus verification remain pending. The separate Ego audit-selection refactor was not performed. Both pre-existing dirty Ego documents remain outside this change and must not be staged with it. The exact implementation commit is reported in the completion response.
 
 ### Documentation impact
 

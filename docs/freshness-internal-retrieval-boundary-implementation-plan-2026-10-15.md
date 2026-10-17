@@ -1,17 +1,17 @@
 # Freshness internal retrieval boundary — implementation specification
 
-Status: F1/F2/F4 complete; full Rust verification passed. F3 remains blocked on external host acceptance integration. F5 closeout records four unrelated Ego documentation findings and a timed-out architecture graph refresh. See the [execution record](freshness-retrieval-boundary-verification-2026-10-15.md).
+Status: F1/F2/F4 complete; full Rust verification passed. The original F3 plan is superseded by the accepted successful-tool-handoff design; its receiver/replay implementation is evidenced in Warlock candidate `cf41c66`, while deployment and frozen-corpus acceptance remain open. F5 closeout records four unrelated Ego documentation findings and a timed-out architecture graph refresh. See the [execution record](freshness-retrieval-boundary-verification-2026-10-15.md) and [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md).
 Date: 2026-10-15
 Repository: Reliquary
 Scope: retrieval/access-reinforcement boundary only; Ego synthesis selection is separate.
 
 ## Later accepted agent-facing retrieval design
 
-See [Agentic Memory retrieval architecture](agentic-memory-retrieval-design-2026-10-15.md). The later approved F3 consumption boundary is **successful host handoff of newly selected Memory content**, rather than a separate model/context-admission acknowledgment. `SelectedIDs` is the sole turn-scoped delivered-ID set; retrieval candidate evaluation remains non-reinforcing. The F3 steps and consumption wording below record the **original 2026-10-15 implementation plan**, not an additional live design requirement where they conflict with the newer architecture. F1/F2/F4/F5 verification history is unchanged; F3 production integration is still pending.
+See [Agentic Memory retrieval architecture](agentic-memory-retrieval-design-2026-10-15.md). The later approved F3 consumption boundary is **successful host handoff of newly selected Memory content**, rather than a separate model/context-admission acknowledgment. `SelectedIDs` is the sole turn-scoped delivered-ID set; retrieval candidate evaluation remains non-reinforcing. The F3 steps and consumption wording below record the **original 2026-10-15 implementation plan**, not an additional live design requirement where they conflict with the newer architecture. F1/F2/F4/F5 verification history is unchanged; the original F3 assumptions are historical. The current receiver/replay candidate is documented in the later host handoff seam; it is not a deployed release.
 
 ## Overview
 
-Execute F1–F5 in order while preserving the engine. A missing external acceptance coordinator leaves F3 pending and permits independent regression verification to continue.
+This document records the original F1–F5 execution sequence while preserving the engine; F3's acceptance boundary and implementation status were later revised by the accepted agentic retrieval design and current host evidence.
 
 ## Purpose
 

@@ -12,13 +12,13 @@ All internal Reliquary retrieval is non-reinforcing. Content/revision fetches, l
 
 `Cva::record_accepted_memory_use` is the sole access-reinforcement write boundary. It reuses the existing Freshness engine and durable event path. It is a trusted in-process embedding-host API, not an authenticated public client endpoint. Its owner, activity-cut and replay validation does not prove consumption. Do not expose arbitrary receipt submission or a public `reinforce=false` switch.
 
-Gateway Memory search and management APIs return candidates or inspection data. Even hydrated content and successful authorization/delivery do not establish accepted use. No production external accepted-context producer is implemented in this repository; therefore automatic end-to-end consumption reinforcement remains pending in the embedding host. `deliver_rel`, stream acknowledgements, transcript admission and conversation completion are not substitutes.
+Gateway Memory search and management APIs return candidates or inspection data. Even hydrated content and successful authorization/delivery do not establish accepted use. The Warlock `cf41c66` integration candidate now acknowledges exact content transfer at the requesting-context receiver and restores/replays the original manifest after restart; this is integration-candidate evidence, not a deployed production release. `deliver_rel`, stream acknowledgements, transcript admission, generic ConversationExecution/provider success, and conversation completion remain insufficient proof.
 
-## Subsequent design decision (not yet implemented)
+## Accepted handoff design and integration-candidate status
 
 The accepted future agent-facing retrieval architecture is specified in [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md). It replaces the earlier *design requirement* to prove eventual language-model context admission with a host-successful tool-result handoff boundary: after the host successfully receives newly selected Memory content, those IDs enter turn-scoped `SelectedIDs` and qualify for one idempotent accepted-use receipt. Candidate evaluation and failed handoff never reinforce. There is no `SentMemoryIDs` alongside `SelectedIDs`.
 
-The existing implementation and F1/F2/F4 evidence below remain valid; the older unimplemented host acceptance/outbox requirements below are historical F3 assumptions to be reconciled when implementing this newly accepted handoff contract, **not** additional decisions that override the agentic retrieval design. The host confirmation mechanism remains to be identified in code.
+The existing implementation and F1/F2/F4 evidence below remain valid. The older host acceptance/outbox requirements below are historical F3 assumptions; the current handoff contract is implemented in the Warlock `cf41c66` integration candidate, which uses receiver-owned Echo acknowledgment and exact-manifest replay. Do not treat it as deployed until frozen-corpus and final release disposition gates close.
 
 ## Required host integration (original F3 contract; superseded where inconsistent)
 

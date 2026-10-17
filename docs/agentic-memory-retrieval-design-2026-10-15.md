@@ -1,7 +1,7 @@
 # Agentic Memory retrieval architecture — decided design
 
 Date: 2026-10-15
-Status: **Design accepted; implementation pending**. This is the current authority for the planned agent-facing retrieval workflow, not a description of shipped APIs.
+Status: **Design accepted; Reliquary implementation complete through Step 36; frozen-corpus verification pending.** This is the behavioral authority for the REL-only agent-facing retrieval workflow; see the [implementation evidence](agentic-memory-retrieval-baseline-2026-10-16.md), [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md), and [forthcoming frozen-fixture verification](agentic-memory-retrieval-verification-2026-10-16.md).
 Implementation sequence: [Agentic Memory retrieval implementation plan — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md).
 Parent index: [Documentation index](INDEX.md)
 
@@ -63,4 +63,4 @@ This design changes **agent-facing retrieval**, not Ego's Candidate Selection �
 
 ## Notes
 
-Design is approved, but agentic retrieval, semantic refinement, batched traversal and host handoff/receipt wiring have **not** been implemented or end-to-end verified. Preserve the distinction between the shipped passive read APIs and this future agent-facing controller.
+Reliquary's agentic controller and retrieval operations are implemented, and the Warlock `cf41c66` integration candidate implements receiver acknowledgment plus exact-manifest restart recovery. It is not a deployed release, and frozen 14-day, 28-day, and Ellis corpus fidelity verification remains in progress. Preserve the distinction between passive internal reads, which never reinforce, and the confirmed successful-host-handoff boundary. Generic ConversationExecution/provider success remains insufficient consumption evidence.
