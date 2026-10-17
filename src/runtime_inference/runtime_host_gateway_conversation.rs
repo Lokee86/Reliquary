@@ -1,4 +1,5 @@
 use super::owner_operations::{ActorClass, AdmissionIdentity, Attribution, OwnerOperationJournal};
+use super::rel_journal_owner_id;
 #[cfg(test)]
 use super::{
     GatewayHostAdapter, HandoffReceipt, HostCapabilityContract, HostConnection,
@@ -9,11 +10,13 @@ use super::{
     OwnerAccessToken, OwnerAdmission, OwnerGrant, ReliquaryRuntimeHostError, RuntimeCapability,
     StageAuthority, operation,
 };
+#[cfg(test)]
+use crate::multiplexing_journal::RelOwnerId;
 use crate::multiplexing_journal::{
     ArchiveReceipt, AttachmentIdentity, ConversationId, ConversationSubmissionId,
     DurableGeneration, DurableGenerationPhase, DurableHostOperationPhase, EnqueueOutcome,
-    FinalizeCapture, JournalError, PostCommitReceipt, RelJournal, RelOwnerId, Submission,
-    SubmissionId, SubmissionState, SubmissionStatus, TransitionOutcome,
+    FinalizeCapture, JournalError, PostCommitReceipt, RelJournal, Submission, SubmissionId,
+    SubmissionState, SubmissionStatus, TransitionOutcome,
 };
 use crate::{
     Branch, InteractionAttachment, InteractionRole, InteractionStreamRecord,
@@ -107,7 +110,7 @@ impl ConversationRegistry {
         }
     }
     pub(super) fn mount_rel(&self, owner_id: &str) -> Result<(), ReliquaryRuntimeHostError> {
-        let rel_id = RelOwnerId::parse_canonical(owner_id).map_err(operation)?;
+        let rel_id = rel_journal_owner_id(owner_id)?;
         let operations =
             OwnerOperationJournal::open(&self.state_dir, &rel_id.as_uuid().to_string())
                 .map_err(operation)?;
@@ -267,7 +270,7 @@ impl ConversationRegistry {
                     .revoke_personal_authority(&instance_id.to_string(), revoke_rel, revoked_phy)
                     .map_err(operation)?;
             } else {
-                let rel = RelOwnerId::parse_canonical(&owner).map_err(operation)?;
+                let rel = rel_journal_owner_id(&owner)?;
                 let uuid = rel.as_uuid().to_string();
                 if !self
                     .state_dir

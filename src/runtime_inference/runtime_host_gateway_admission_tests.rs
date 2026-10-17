@@ -237,3 +237,68 @@ fn authentication_resolves_principal_phy_and_grants_and_rejects_credential_subst
     drop(gateway.unmount_phy(&phy).unwrap());
     drop(gateway.unmount_rel(&rel).unwrap());
 }
+
+#[test]
+fn legacy_typed_rel_mounts_reuse_uuid_journal_and_distribution_identity() {
+    use crate::{Cva, ReliquaryScopeKind};
+    for scope in [
+        None,
+        Some(ReliquaryScopeKind::Project),
+        Some(ReliquaryScopeKind::Organization),
+        Some(ReliquaryScopeKind::Connection),
+    ] {
+        let path = test_path("legacy-typed-native.rel");
+        let uuid = uuid::Uuid::new_v4();
+        let rel = match scope {
+            Some(scope) => Cva::create_legacy_scope_with_uuid(&path, scope, *uuid.as_bytes()),
+            None => Cva::create_rel_with_uuid(&path, *uuid.as_bytes(), None),
+        }
+        .unwrap();
+        let owner = rel.owner_id().unwrap();
+        drop(rel);
+        let bytes = std::fs::read(&path).unwrap();
+        let gateway = gateway();
+        assert_eq!(gateway.mount_rel_path(&path).unwrap(), owner);
+        assert_eq!(
+            gateway
+                .conversation
+                .journal_for_test(&owner)
+                .unwrap()
+                .lock()
+                .unwrap()
+                .rel_id()
+                .as_uuid(),
+            uuid
+        );
+        let instance = gateway
+            .attach_instance(
+                "legacy-owner-reader".into(),
+                None,
+                BTreeMap::from([(owner.clone(), BTreeSet::from([OwnerGrant::ViewRel]))]),
+            )
+            .unwrap();
+        gateway.select_rel(&instance, &owner).unwrap();
+        let (snapshot, subscription) = gateway.subscribe_rel(&instance, &owner, None, 8).unwrap();
+        assert_eq!(snapshot.rel_id.as_uuid(), uuid);
+        let (reconnected, _replacement) = gateway
+            .reconnect_rel(&instance, &subscription, None, 8)
+            .unwrap();
+        assert_eq!(reconnected.rel_id.as_uuid(), uuid);
+        let canonical = format!("rel-{uuid}");
+        if owner != canonical {
+            assert!(
+                gateway
+                    .authorize(&instance, &canonical, OwnerGrant::ViewRel)
+                    .is_err(),
+                "typed identity normalization cannot alias grants"
+            );
+            assert!(
+                crate::multiplexing_journal::RelOwnerId::parse_canonical(&owner).is_err(),
+                "public canonical parser stays strict"
+            );
+        }
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
+        gateway.detach_instance(&instance).unwrap();
+        drop(gateway.unmount_rel(&owner).unwrap());
+    }
+}

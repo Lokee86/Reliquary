@@ -105,6 +105,7 @@ pub(super) fn run(f: &Fixture) -> Value {
         results.push(json!({"probe":index,"target":crate::agentic_memory_retrieval_manifest::memory_ref_value(&f.reference(target)),
             "query":query,"broad_evidence":relevant.len(),"broad_candidate_memories":f.memories.len(),
             "agentic_selected":controller.selected_ids().len(),"evidence_hits":hits,
+            "selected_evidence":controller.selected_ids().iter().map(crate::agentic_memory_retrieval_manifest::memory_ref_value).collect::<Vec<_>>(),
             "missed_evidence":relevant.difference(controller.selected_ids()).map(crate::agentic_memory_retrieval_manifest::memory_ref_value).collect::<Vec<_>>(),
             "evidence_recall":hits as f64/relevant.len() as f64,"broad_evidence_recall":1.0,
             "query_retrievals":1,"refinements":1,"graph_traversals":graph_calls,"max_graph_anchors":2,

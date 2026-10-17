@@ -7,6 +7,7 @@ use super::observation::{
     ConversationObservationSnapshot, GenerationCheckpointContent, GenerationIdentity,
     GenerationObservation, GenerationStatus,
 };
+use super::rel_journal_owner_id;
 use super::{
     GatewayRuntime, InstanceRuntime, OwnerAccessToken, OwnerGrant, ReliquaryRuntimeHostError,
     operation,
@@ -58,7 +59,7 @@ impl StreamKey {
         if token.kind != super::OwnerKind::Rel
             || token.grant != OwnerGrant::ViewRel
             || self.mount_epoch != token.mount_epoch
-            || self.rel_id != RelOwnerId::parse_canonical(&token.owner_id).map_err(operation)?
+            || self.rel_id != rel_journal_owner_id(&token.owner_id)?
             || [&self.operation_id, &self.generation_id, &self.branch_id]
                 .iter()
                 .any(|id| id.is_empty() || id.len() > 512 || id.chars().any(char::is_control))

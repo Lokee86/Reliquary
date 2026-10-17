@@ -10,7 +10,7 @@ use super::streams::{
 use super::{
     GatewayRuntime, InstanceRuntime, OwnerAccessToken, OwnerGrant, ReliquaryRuntimeHostError,
 };
-use crate::multiplexing_journal::{ConversationId, RelOwnerId};
+use crate::multiplexing_journal::ConversationId;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
@@ -411,8 +411,7 @@ impl LiveSession {
                 })
                 .ok_or_else(|| super::operation("generation unavailable"))?;
             let key = StreamKey {
-                rel_id: RelOwnerId::parse_canonical(self.token.owner_id())
-                    .map_err(|_| super::operation("invalid owner identity"))?,
+                rel_id: super::rel_journal_owner_id(self.token.owner_id())?,
                 mount_epoch: self.token.mount_epoch,
                 conversation_id: ConversationId::new(self.conversation_id.clone())
                     .map_err(super::operation)?,

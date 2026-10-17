@@ -5,8 +5,9 @@ use super::super::observation::{
     GenerationCheckpointObservation, GenerationObservation, HostOperationObservation,
     RelConversationSummary, RelObservationSummary, SubmissionObservation,
 };
+use super::super::rel_journal_owner_id;
 use super::{GenerationKey, ReliquaryRuntimeHostError, operation};
-use crate::multiplexing_journal::{ConversationId, ConversationSubmissionId, RelOwnerId};
+use crate::multiplexing_journal::{ConversationId, ConversationSubmissionId};
 use std::collections::BTreeMap;
 
 pub(super) struct QueuedBroadEvent {
@@ -20,7 +21,7 @@ pub(super) fn checkpoint_position_map<'a>(
     positions: &'a [GenerationCheckpointObservation],
 ) -> Result<BTreeMap<GenerationKey, &'a GenerationCheckpointObservation>, ReliquaryRuntimeHostError>
 {
-    let rel_id = RelOwnerId::parse_canonical(owner_id).map_err(operation)?;
+    let rel_id = rel_journal_owner_id(owner_id)?;
     if positions.len() > 16_384 {
         return Err(operation("checkpoint position source exceeds its bound"));
     }
@@ -112,7 +113,7 @@ pub(super) fn validate_receipt_facts(
     epoch: u64,
     facts: &[ConversationDurableDelta],
 ) -> Result<(), ReliquaryRuntimeHostError> {
-    let rel_id = RelOwnerId::parse_canonical(owner_id).map_err(operation)?;
+    let rel_id = rel_journal_owner_id(owner_id)?;
     if facts.len() > 16_384
         || facts
             .iter()
@@ -131,7 +132,7 @@ pub(super) fn validate_distribution_identity(
     epoch: u64,
     summary: &RelObservationSummary,
 ) -> Result<(), ReliquaryRuntimeHostError> {
-    let rel_id = RelOwnerId::parse_canonical(owner_id).map_err(operation)?;
+    let rel_id = rel_journal_owner_id(owner_id)?;
     if summary.rel_id != rel_id || summary.mount_epoch != epoch {
         return Err(operation(
             "conversation distribution source belongs to another REL epoch",

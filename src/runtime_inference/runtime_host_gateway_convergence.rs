@@ -5,11 +5,12 @@ use super::observation::{
     CheckpointContentIdentity, ConversationDurableDelta, GenerationCheckpointContent,
     GenerationCheckpointObservation, GenerationObservation, RelObservationSummary,
 };
+use super::rel_journal_owner_id;
 use super::streams::{
     ConversationStreamProvider, StreamKey, StreamSnapshot, StreamSourceSnapshot, StreamSubscription,
 };
 use super::{GatewayRuntime, InstanceRuntime, ReliquaryRuntimeHostError, operation};
-use crate::multiplexing_journal::{ConversationId, RelOwnerId};
+use crate::multiplexing_journal::ConversationId;
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
 
@@ -305,7 +306,7 @@ fn publish_distribution_changes(
     // invalidates this sequencer and requires a fresh snapshot after epoch reset.
     let mut stream_events = Vec::with_capacity(changed_generations.len());
     for (key, generation) in changed_generations {
-        let rel_id = RelOwnerId::parse_canonical(owner_id).map_err(operation)?;
+        let rel_id = rel_journal_owner_id(owner_id)?;
         let stream_key = StreamKey {
             rel_id,
             mount_epoch: epoch,
@@ -370,7 +371,7 @@ fn checkpoint_event(
     generation: &GenerationObservation,
     mut current: GenerationCheckpointContent,
 ) -> Result<GenerationCheckpointContent, ReliquaryRuntimeHostError> {
-    let rel_id = RelOwnerId::parse_canonical(owner_id).map_err(operation)?;
+    let rel_id = rel_journal_owner_id(owner_id)?;
     let sequence = generation
         .durable_checkpoint_sequence
         .ok_or_else(|| operation("checkpoint event has no durable sequence"))?;

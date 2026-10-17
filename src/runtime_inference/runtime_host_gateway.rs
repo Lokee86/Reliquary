@@ -1538,6 +1538,17 @@ fn rel_owner_prefix(owner_id: &str) -> Option<&'static str> {
         .find(|prefix| owner_id.starts_with(prefix))
 }
 
+/// Gateway strings retain the file's legacy typed prefix. Journal/feed identities
+/// use the same header UUID without weakening the public canonical REL parser.
+fn rel_journal_owner_id(
+    owner_id: &str,
+) -> Result<crate::multiplexing_journal::RelOwnerId, ReliquaryRuntimeHostError> {
+    validate_rel_owner_id(owner_id)?;
+    let prefix = rel_owner_prefix(owner_id).expect("validated REL prefix");
+    let uuid = Uuid::parse_str(&owner_id[prefix.len()..]).map_err(operation)?;
+    Ok(crate::multiplexing_journal::RelOwnerId::from_uuid(uuid))
+}
+
 fn validate_rel_owner_id(owner_id: &str) -> Result<(), ReliquaryRuntimeHostError> {
     let Some(prefix) = rel_owner_prefix(owner_id) else {
         return Err(operation(format!(

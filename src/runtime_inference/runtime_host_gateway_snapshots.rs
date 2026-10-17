@@ -9,6 +9,7 @@ use super::events::{RelSequencer, RelSequencerGate};
 use super::observation::{
     DurableWatermarks, HostOperationObservation, RelObservationSummary, SubmissionOrder,
 };
+use super::rel_journal_owner_id;
 use super::subscriptions::{RelDelivery, SubscriptionId};
 use super::{
     GatewayRuntime, InstanceRuntime, OwnerAccessToken, OwnerAdmission, OwnerGrant, OwnerKind,
@@ -165,8 +166,7 @@ impl GatewayRuntime {
                 return Err(operation("REL snapshot is not from an open owner"));
             }
             if let Some(observation) = &state.conversation_observation {
-                if observation.rel_id
-                    != RelOwnerId::parse_canonical(&token.owner_id).map_err(operation)?
+                if observation.rel_id != rel_journal_owner_id(&token.owner_id)?
                     || observation.mount_epoch != token.mount_epoch
                 {
                     return Err(operation(
@@ -179,7 +179,7 @@ impl GatewayRuntime {
                 mount_epoch: token.mount_epoch,
                 cursor: gate.cursor(),
             };
-            let rel_id = RelOwnerId::parse_canonical(&token.owner_id).map_err(operation)?;
+            let rel_id = rel_journal_owner_id(&token.owner_id)?;
             // Register last: failed readers, bounds and final authorization leave no recipient.
             let id = gate.register_replacing(token.clone(), capacity, previous)?;
             gate.observe_snapshot_watermarks(state.watermarks.clone());
@@ -235,8 +235,7 @@ impl GatewayRuntime {
             gate.prepare_resync(subscription.id, &subscription.token)?;
             gate.observe_snapshot_watermarks(state.watermarks.clone());
             Ok(RelSnapshot {
-                rel_id: RelOwnerId::parse_canonical(&subscription.token.owner_id)
-                    .map_err(operation)?,
+                rel_id: rel_journal_owner_id(&subscription.token.owner_id)?,
                 watermark,
                 state,
             })

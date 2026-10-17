@@ -3,6 +3,7 @@
 #![allow(dead_code)] // P4 staged cut: publication/snapshot adapters follow the core.
 
 use super::observation::{ConversationDurableDelta, DurableWatermarks};
+use super::rel_journal_owner_id;
 use super::subscriptions::{RelDelivery, SubscriberRegistry, SubscriptionId};
 use super::{OwnerAccessToken, ReliquaryRuntimeHostError, operation};
 use crate::multiplexing_journal::{ConversationId, ConversationSubmissionId, RelOwnerId};
@@ -78,7 +79,7 @@ pub(super) struct RelSequencerGate<'a> {
 
 impl RelSequencer {
     pub(super) fn new(owner: &str, epoch: u64) -> Result<Self, ReliquaryRuntimeHostError> {
-        let owner = RelOwnerId::parse_canonical(owner).map_err(operation)?;
+        let owner = rel_journal_owner_id(owner)?;
         if epoch == 0 {
             return Err(operation("REL distribution requires a mounted epoch"));
         }
@@ -273,7 +274,7 @@ impl RelSequencerGate<'_> {
             || token.kind != super::OwnerKind::Rel
             || token.grant != super::OwnerGrant::ViewRel
             || token.mount_epoch != self.state.epoch
-            || RelOwnerId::parse_canonical(&token.owner_id).map_err(operation)? != self.owner
+            || rel_journal_owner_id(&token.owner_id)? != self.owner
         {
             return Err(operation(
                 "subscription token is not for this REL epoch and ViewRel grant",
