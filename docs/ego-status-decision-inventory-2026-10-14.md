@@ -4,10 +4,10 @@ Parent: [Documentation index](INDEX.md). This is the entry point for **implement
 
 ## Evidence and scope
 
-- Baseline: `main` at `4a922ceb16fba020f04acb1a56303f33a7659e38` (2026-10-12), plus the documentation-only reconciliation currently in the working tree.
-- Separate, **not merged into this baseline**: `feat/freshness-semantic-historical-linear` at `08e7bfeacb8ad65ddfdabc365254d1ce17cda50a` (2026-10-13).
+- Baseline: consolidated `main`, including agentic Memory retrieval, live semantic Freshness (F8), and explicit offline historical Freshness reconstruction.
+- The former `feat/freshness-semantic-historical-linear` and agentic retrieval feature lines have been merged into `main`; their separate worktrees/branches are retired.
 - Evidence: Rust source, existing tests and retained verification records. A focused `cargo test --lib ego_` was started but cancelled while compiling dependencies, before any Ego tests ran. No fresh test pass is claimed.
-- **Classification:** *Implemented* = present in production source with source/tests or retained verification evidence; not equivalent to freshly retested or deployed. *Partial* = implemented substrate does not fulfill the named target behavior. *Designed* = agreed behavioral requirements without completed consumer. *Open* = design questions remain. *Calibration* = values/operational thresholds still to measure or choose. *Feature branch* = source in the separate worktree, not in baseline `main`.
+- **Classification:** *Implemented* = present in production source with source/tests or retained verification evidence; not equivalent to freshly retested or deployed. *Partial* = implemented substrate does not fulfill the named target behavior. *Designed* = agreed behavioral requirements without completed consumer. *Open* = design questions remain. *Calibration* = values/operational thresholds still to measure or choose.
 
 ## Capability status matrix
 
@@ -19,8 +19,8 @@ Parent: [Documentation index](INDEX.md). This is the entry point for **implement
 | Owner-local cached Web synthesis | Partial target | `EgoWebSynthesis` in `ego_model.rs`; singleton text/revision/watermark, not PHY-owned per-source-REL three-size bundle |
 | REL accepted-turn activity | Implemented dependency | `src/archive/archive_activity.rs`, `src/facade/cva_activity.rs`, `tests/rel_activity_clock_contract.rs` |
 | Signed REL Memory Freshness and historical cut reads | Implemented dependency | `src/freshness/`, `src/facade/cva_freshness.rs`, Freshness tests; not an Ego audit controller |
-| Live semantic reinforcement (F8) | Feature branch | `src/facade/cva_semantic_live.rs` in Freshness worktree; no claim of merge into `main` |
-| Explicit offline historical reconstruction | Feature branch | `src/facade/cva_historical_import.rs` and C12 disposition; separate release/activation decision |
+| Live semantic reinforcement (F8) | Implemented dependency | `src/facade/cva_semantic_live.rs`; intrinsic eligible REL behavior on `main` |
+| Explicit offline historical reconstruction | Implemented dependency | `src/facade/cva_historical_import.rs` and C12 disposition; explicit offline/exclusive operation on `main` |
 | Memory search and retrieval | Implemented dependency | `src/retrieval/memory_search.rs`, `memory_retrieval*.rs`; mandatory Ego audit integration missing |
 | Dream duplicate/lifecycle relationships | Implemented dependency | `src/runtime_inference/dream_*.rs`; lifecycle admission adapter missing in Ego |
 | Insomnia settled-source boundary | Implemented upstream processing; Ego coordination missing | `src/runtime_inference/insomnia/`; Ego refresh queue not implemented |
