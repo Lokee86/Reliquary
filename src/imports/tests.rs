@@ -839,6 +839,7 @@ fn divergent_source_revision_conflicts_preserve_both_inputs() {
     let right = f.rel("right.rel");
     let mut cva = Cva::create(&left).unwrap();
     cva.import_native(&input(), 100).unwrap();
+    finish_current_import(&mut cva, 110);
     drop(cva);
     fs::copy(&left, &right).unwrap();
     let mut incoming = input();
@@ -846,10 +847,12 @@ fn divergent_source_revision_conflicts_preserve_both_inputs() {
     incoming.conversations[0].messages[1].content = "left edit".into();
     let mut cva = Cva::open(&left).unwrap();
     cva.import_native(&incoming, 200).unwrap();
+    finish_current_import(&mut cva, 210);
     drop(cva);
     incoming.conversations[0].messages[1].content = "right edit".into();
     let mut cva = Cva::open(&right).unwrap();
     cva.import_native(&incoming, 200).unwrap();
+    finish_current_import(&mut cva, 210);
     drop(cva);
     let before_left = fs::read(&left).unwrap();
     let before_right = fs::read(&right).unwrap();
@@ -870,6 +873,7 @@ fn import_receipt_survives_reclaim_and_divergent_reconciliation() {
     let path = f.rel("a.rel");
     let mut cva = Cva::create(&path).unwrap();
     let original = cva.import_native(&input(), 100).unwrap();
+    finish_current_import(&mut cva, 110);
     cva.reclaim_storage(f.rel("reclaimed.rel")).unwrap();
     assert_eq!(
         Cva::open(f.rel("reclaimed.rel"))
@@ -883,12 +887,14 @@ fn import_receipt_survives_reclaim_and_divergent_reconciliation() {
     let mut left = input();
     left.source_namespace = "left".into();
     a.import_native(&left, 200).unwrap();
+    finish_current_import(&mut a, 210);
     a.sync().unwrap();
     drop(a);
     let mut b = Cva::open(f.rel("b.rel")).unwrap();
     let mut right = input();
     right.source_namespace = "right".into();
     b.import_native(&right, 200).unwrap();
+    finish_current_import(&mut b, 210);
     b.sync().unwrap();
     drop(b);
     Cva::reconcile(&path, f.rel("b.rel"), f.rel("merged.rel")).unwrap();
@@ -896,7 +902,7 @@ fn import_receipt_survives_reclaim_and_divergent_reconciliation() {
     assert_eq!(merged.native_import_receipts().len(), 3);
 }
 
-fn current_watermarks(cva: &Cva) -> ImportWatermarks {
+pub(crate) fn current_watermarks(cva: &Cva) -> ImportWatermarks {
     ImportWatermarks {
         global_version: cva.latest_global_version(),
         archive_version: cva.archive_version(),

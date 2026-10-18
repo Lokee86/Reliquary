@@ -135,3 +135,8 @@ Final acceptance passed:
 - CLI check plus 22/22 CLI tests.
 
 Steps 18–23 are accepted on the isolated integration branch. Production completion remains intentionally unavailable: no normal caller owns `append_complete()` and no derived-work/Freshness readiness coordinator exists yet. That is later step 28–31 work, not part of this checkpoint.
+
+
+### Step 34 source-only reconciliation slice (2026-10-18)
+
+The isolated branch has focused acceptance for completed source-only zero-output right-tail epoch replay with preserved left physical history and regenerated destination start/settlement/completion evidence. The import module passes 56/56 cases, covering exact duplicate/conflicting-ID evidence, ordered epochs, unchanged left queue state and fail-closed unsupported histories. Nonzero grouped Memory and accepted Freshness interval replay remain open in step 34; transform acceptance (35) and main promotion (36) are not accepted by this slice. The [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) owns detailed verification and impact reports.

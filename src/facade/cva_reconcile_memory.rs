@@ -31,12 +31,21 @@ pub(crate) fn read_memory_tail(
     cva: &mut Cva,
     start_chunk: usize,
 ) -> Result<MemoryTail, CvaReconcileError> {
+    read_memory_range(cva, start_chunk, usize::MAX)
+}
+
+/// Read a finite source interval without moving later epochs ahead of it.
+pub(crate) fn read_memory_range(
+    cva: &mut Cva,
+    start_chunk: usize,
+    end_chunk: usize,
+) -> Result<MemoryTail, CvaReconcileError> {
     let chunks = cva.container.chunks()?;
     let mut revisions = Vec::new();
     let mut completions = Vec::new();
     let mut seen = HashSet::new();
 
-    for chunk in chunks.iter().skip(start_chunk) {
+    for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
         if let Some(completion) =
             decode_completion(&payload).map_err(CvaReconcileError::InvalidInsomniaCompletion)?

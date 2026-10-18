@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Historical Freshness post-generation operation
 
-New imports remain fenced after receipt publication until the explicit Historical Freshness operation and exclusive completion coordinator both accept their evidence. The coordinator derives attributed Insomnia, local Memory, import-born Dream and active non-superseded output Memory mention-resolution readiness from owner stores. Routed PHY outputs return a typed unsupported blocker because this REL-only API cannot validate the other owner. Divergent import-epoch reconciliation and mounted completion remain unavailable.
+New imports remain fenced after receipt publication until the explicit Historical Freshness operation and exclusive completion coordinator both accept their evidence. The coordinator derives attributed Insomnia, local Memory, import-born Dream and active non-superseded output Memory mention-resolution readiness from owner stores. Routed PHY outputs return a typed unsupported blocker because this REL-only API cannot validate the other owner. A bounded divergent source-only zero-output replay path has focused acceptance; mounted completion remains unavailable.
 
 Historical reconstruction cannot reuse an earlier settlement while a different epoch is open. Internal attribution derives exact receipt source Nodes and complete Episode paths, keeps born-Memory identity separate from existing recipients, and bounds provisional events by physical start/freeze prefixes. Same-activity-cut pre-start receipts remain outside the import interval. Accepted scoped replay is implemented; completion additionally validates exact import Episode outputs and the downstream work those outputs actually cause.
 
@@ -23,6 +23,12 @@ This document owns the current versioned native import contract, supported norma
 The public `imports` module supplies `NativeImport`, conversation/message/branch/artifact DTOs, `ImportReceipt`, epoch status/completion types, `ImportReadinessBlocker`, `ImportReadinessReport`, `ImportVectorReadiness` and four byte-only normalizers. `Cva::native_import_readiness(import_id)` is a read-only report for the current open epoch, returning the import ID, optional typed blocker and vector status; unknown, completed and noncurrent IDs reject. `Cva::import_native(input, now_ns)` is the exclusive/offline construction path. It opens or resumes one deterministic durable epoch before Archive publication and Import-priority Insomnia scheduling. The import construction call does not itself write PHY state; later routed Insomnia output may reference a PHY Memory, which this REL-only readiness API currently reports as `Memory/Unsupported`.
 
 Mounted F5 management must add exact REL authorization, canonical P4 mutation admission and coordinator inventory refresh around this same owner operation. No mounted import primitive is claimed by this branch.
+
+## Divergent reconciliation boundary
+
+The bounded path handles completed source-only zero-output epochs in a divergent right tail. It copies the left CVA as the output prefix, replays Archive records from finite physical ranges, and derives fresh destination `ImportStart`, `CVAFRS05` settlement and `ImportComplete` evidence using destination watermarks and physical prefixes. Same-ID source-only duplicates are accepted only after exact receipt/source identity, accepted Archive records, normalized Insomnia completion evidence, and original start/completion timestamps agree; conflicting same-ID evidence returns a typed conflict. The accepted epoch is reconstructed and completed through the normal owner paths rather than copying source offsets or settlement bytes.
+
+This scope refuses open epochs; right-side Memory payloads (including body/routing-only completions) or Freshness effects; file publication; unsupported owner payloads; and right-source outstanding Insomnia work or attempt journals. General derived-owner replay, divergent continuation within an open epoch, and historical transform/reconciliation acceptance are not included. This bounded path has focused acceptance; import reconciliation step 34 remains open.
 
 ## Exact contract
 

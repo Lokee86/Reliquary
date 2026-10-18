@@ -5,6 +5,9 @@ use crate::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum CvaReconcileConflict {
+    ImportEpoch {
+        import_id: String,
+    },
     SourceTurn {
         conversation_id: String,
         node_id: String,
@@ -68,6 +71,7 @@ pub enum CvaReconcileConflict {
 impl CvaReconcileConflict {
     pub fn kind(&self) -> &'static str {
         match self {
+            Self::ImportEpoch { .. } => "import_epoch",
             Self::SourceTurn { .. } => "source_turn",
             Self::Branch { .. } => "branch",
             Self::Episode { .. } => "episode",

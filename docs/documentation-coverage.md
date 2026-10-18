@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-Epoch source/cohort derivation, physical-prefix event attribution and pre-start Freshness base replay map to [Native import](native-import.md), [Maintainer map](maintainer-map.md), [Invariants](invariants.md) and [Behavioral contracts](behavioral-contracts.md). [Current limitations](current-limitations.md) records the implemented completion readiness boundary and the still-closed divergent reconciliation path; [remaining execution](tombstone-import-history-remaining-execution-plan-2026-10-17.md) records sequential-import acceptance and remaining reconciliation/transform work.
+Epoch source/cohort derivation, physical-prefix event attribution and pre-start Freshness base replay map to [Native import](native-import.md), [Maintainer map](maintainer-map.md), [Invariants](invariants.md) and [Behavioral contracts](behavioral-contracts.md). These documents also describe the bounded source-only zero-output right-tail reconciliation path, its left-prefix preservation and destination evidence regeneration, and its remaining refusal boundaries. [Current limitations](current-limitations.md) records that this bounded path has focused acceptance; [remaining execution](tombstone-import-history-remaining-execution-plan-2026-10-17.md) remains the owner of execution order and broader step-34 gates.
 
 ## Agentic Memory retrieval coverage
 

@@ -9,8 +9,13 @@ mod hermes;
 mod prepare;
 mod providers;
 mod readiness;
+mod reconciliation;
+mod reconciliation_replay;
 pub use contract::*;
 pub use hermes::normalize_hermes_jsonl;
+pub(crate) use reconciliation::reconcile_import_epochs;
+#[cfg(test)]
+mod reconcile_tests;
 #[cfg(test)]
 mod sequential_completion_tests;
 #[cfg(test)]

@@ -97,6 +97,14 @@ impl Cva {
             return Ok(empty_result(comparison));
         }
 
+        if let Some(result) = crate::imports::reconcile_import_epochs(
+            left_path,
+            right_path,
+            output_path,
+            comparison.clone(),
+        )? {
+            return Ok(result);
+        }
         reconcile_diverged(left_path, right_path, output_path, comparison)
     }
 }

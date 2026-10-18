@@ -3,8 +3,8 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** steps 13–33 accepted on the isolated integration branch; reconciliation/transform work remains open; main promotion remains step 36
-**Next step:** 34 — destination-aware import-epoch reconciliation
+**Status:** steps 13–33 accepted; step 34 source-only replay slice accepted on the isolated branch; derived-owner reconciliation/transform work remains open; main promotion remains step 36
+**Next step:** 34 — grouped Memory publication and accepted Freshness interval replay
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
 ## Purpose
@@ -137,7 +137,7 @@ Add a versioned settlement/replay representation authenticating physical start/b
 
 **33 — Luna — Native-only REL test (complete on the isolated integration branch).** A REL with no imports has zero import markers and otherwise behaves normally.
 
-**34 — Sol — Import-epoch reconciliation.** Same ID + exact evidence dedupes; conflicting same ID rejects; one-sided complete imports replay as one complete epoch with destination watermarks.
+**34 — Sol — Import-epoch reconciliation (source-only slice complete; derived-owner replay open).** Same ID + exact evidence dedupes; conflicting same ID rejects; one-sided complete imports replay as one complete epoch with destination watermarks.
 
 **35 — Luna — Transform preservation tests.** Reopen, migration/repack and ordinary reclamation preserve completed import epochs and Freshness settlements exactly.
 
@@ -459,3 +459,38 @@ Architecture impact:
 Read-only investigation confirms that divergent reconciliation must preserve epoch ordering before its current guards can be removed. `cva_reconcile_freshness::validate_freshness` and `FreshnessStore::replay_entries` refuse accepted settlements; divergent repack currently replays semantic owner tails without import markers. The physical-copy validation in `historical_import_transform.rs` covers unchanged coordinates, not destination rebasing.
 
 A destination replay must classify exact duplicates, one-sided completed epochs and conflicting same-ID evidence before output creation. A one-sided epoch requires destination pre/post watermarks, a coherent import-owned replay interval, destination start/freeze prefixes and prefix digest, and a settlement before its completion marker. Reusing source offsets or simply removing refusal guards would lose authority. Cross-branch Freshness effects and subsequent epochs must retain destination event order and canonical base state. This investigation does not accept step 34 or authorize main promotion.
+
+
+## Step 34 bounded source-only replay acceptance (2026-10-18)
+
+The first reconciliation slice preserves the left CVA as an unchanged physical prefix and replays complete source-only zero-output epochs from finite right-side intervals. It inventories physical starts/completions and scoped settlements before creating output, rejects open epochs and source revision conflicts, deduplicates same-ID evidence only when the exact Archive receipt, accepted Archive interval records, ordered normalized Insomnia completions and original start/completion timestamps agree, and reports `CvaReconcileConflict::ImportEpoch` for conflicting same-ID evidence. Source Cva opens independently validate start/scope, immutable prefixes and settlement-before-completion evidence.
+
+Destination `ImportStart.pre` comes from the actual left prefix plus already replayed right activity. Native Historical Freshness reconstruction freezes each destination interval and derives its canonical base, source/cohort proof, start/freeze prefixes and immutable-prefix digest. The exclusive completion coordinator then binds and syncs the destination settlement before opening writes. No source physical coordinates or settlement replacement bytes are copied into a rebased epoch. Left epoch evidence and existing Insomnia work/attempts remain unchanged. Queue admission is limited to newly replayed Episode IDs. Repeated physical marker occurrences refuse replay rather than creating overlapping intervals.
+
+This slice refuses right-tail Memory publications, accepted Freshness effects, file publication, other unhandled owner payloads and retained `CVAINSW1`/`CVAINSA1` journals. Outstanding right-source Insomnia work is also refused. The generic Freshness refusal guards remain for unsupported derived-owner histories. Eligible-recipient proof populations and physical/manifest digests are destination evidence, not source-only duplicate identity; both source settlements are validated before normalization. Insomnia completion ordering and accepted Archive record order are retained in duplicate comparison.
+
+Focused verification: **56/56 import-module tests pass**, including both formerly failing divergent fixtures forwarded through real processing/settlement/completion. Six new cases cover rebased watermarks/scope validation and unchanged left work/attempts; same-ID dedupe plus live Archive tails; same-ID conflict before output; open-epoch refusal; multiple right epochs separated by live activity including an empty import; and refusal of a real terminal/retry/complete journal without mutating either input. All **141 integration tests** and **22 CLI tests** pass. Library `cargo check --tests --locked` and CLI check pass. The first broad Cargo run could not launch the missing library test executable; its integration targets did execute. The library-only retry completed with **1,441 passed, 11 failed, 5 ignored**; both exhaustive byte-prefix recovery cases and the repeated post-rebase reconciliation assertion pass. All 11 failure names were present in the preceding broad run: four historical embedding cases, two semantic source cases, pre-UUID migration, incomplete Archive vector identity coverage and three external-window workflows. No green full-library claim is made. The final payload guard also refuses body/routing-only completions. After that conservative restriction, the focused rerun passes **56/56**, the CLI passes **22/22**, and library/CLI compile checks pass. The broad library run preceded only that final restriction; its six reconciliation cases include the byte-identical post-rebase repeat merge.
+
+Documentation impact:
+- Inspected: repository/shared guidance; architecture, invariants, storage, ownership, limitations, roadmap, version-history/ADR 0002, native import/API and active execution plans.
+- Updated: canonical source-only reconciliation behavior, refusal boundaries, implementation/test routing and this record.
+- Not affected: persisted formats, ordinary non-import reconciliation, CLI syntax, authoritative retained fixtures and unrelated main-checkout work.
+- Compliance check: both documentation-policy modes retain five existing Ego findings. Library/CLI formatting and whitespace pass; both final documentation-policy modes report the same five existing findings.
+- Known documentation gaps: existing Ego index link and four missing decision-inventory sections remain outside this batch.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: Import/CVA inventories epochs and coordinates finite replay; Archive/Insomnia retain source/completion authority; native Freshness reconstruction and the exclusive coordinator own destination settlement/completion. Container mechanics/formats are unchanged. No generic replay framework or proof bypass was introduced.
+- Pitlord enforcement impact: source guards pass 92 fixtures/166 classified APIs and 11 external-ownership fixtures plus production boundaries. A bounded refresh reached Lexicon Rust analysis and timed out after 75 seconds; no Arcana/Pitlord structural pass is claimed.
+- Other verification impact: 56 import tests, 141 integration tests, 22 CLI tests and both compile checks pass; library-only retry is 1,441 passed/11 failed/5 ignored with no new failure names against the preceding broad run.
+- Known architectural gaps: step 34 is **not complete**. Grouped nonzero Memory publication, initial Dream/Perception and accepted Freshness events still need interval-aware owner adapters preserving pinned accepted effects against destination canonical state. File/other-owner replay and retained queue journals remain unsupported. Step 35 transform acceptance and step 36 main promotion remain open; no performance claim is added.
+
+
+### Step 34 next implementation seam
+
+The remaining nonzero publication adapter belongs beside native Insomnia `processor/application.rs::commit_application`, not in Container or in caller-supplied readiness flags. Retain the entire accepted source `InsomniaCompletion` at its physical interval position. Validate its IDs, exact first-publication provenance and destination mutation conflicts; preserve Memory semantic fields, mutation IDs, source/grounding/temporal evidence, body bytes and routing metadata. Rebase only global tickets and contiguous Memory-local version coordinates, then append the full grouped completion and advance the embedded global range with `commit_embedded_version_range_at`. Apply the grouped Memory bodies/records/routing state and Insomnia completion through their owners, then derive proven birth evidence at the destination Archive cut.
+
+The generic `cva_reconcile_memory` helper currently decomposes completion records into separate ordinary Memory writes and emits a completion with empty records/bodies/routing metadata. That remains insufficient for native import readiness. `stage_grouped_insomnia` is a conflict-check reference, not an exact replay substitute: it regenerates publication fields, including clearing `source_ref`. Memory-local ticket allocation should remain inside MemoryStore or use checked arithmetic from its current watermark. Subsequent Dream/Perception and accepted Freshness adapters must preserve pinned accepted effects in finite destination intervals before removing the derived-owner refusal guards.
+
+
+Local verification encountered a cache-maintenance race: the background cleanup log confirms deletion of this worktree's verification files during the run, causing missing executable, library and metadata errors before test execution. Cache-only fingerprint repair was limited to missing artifacts. For the final 56-case rerun, only the verified cache maintenance service was temporarily stopped and automatically restarted in a `finally` block with its original configuration. No service configuration, source fixture or main code was changed by that repair.

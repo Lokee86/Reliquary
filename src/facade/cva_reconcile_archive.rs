@@ -38,11 +38,20 @@ pub(crate) fn read_archive_tail(
     cva: &mut Cva,
     start_chunk: usize,
 ) -> Result<ArchiveTail, CvaReconcileError> {
+    read_archive_range(cva, start_chunk, usize::MAX)
+}
+
+/// Read a finite source interval without moving later epochs ahead of it.
+pub(crate) fn read_archive_range(
+    cva: &mut Cva,
+    start_chunk: usize,
+    end_chunk: usize,
+) -> Result<ArchiveTail, CvaReconcileError> {
     let chunks = cva.container.chunks()?;
     let mut records = Vec::new();
     let mut file_memory_links = Vec::new();
 
-    for chunk in chunks.iter().skip(start_chunk) {
+    for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
         let Some(version) = decode_record_version(&payload)? else {
             continue;
