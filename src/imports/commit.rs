@@ -28,6 +28,8 @@ impl Cva {
             self.container.sync()?;
             return Ok(receipt);
         }
+        // Reject immutable source conflicts before accepting a durable epoch.
+        self.archive.validate_import_revisions(&prepared.receipt)?;
         if let Some(open) = self.import_epochs.open() {
             if open.import_id != import_id
                 || open.import_key != prepared.receipt.import_key
@@ -60,8 +62,6 @@ impl Cva {
         prepared: super::prepare::PreparedImport,
         now_ns: i64,
     ) -> Result<ImportReceipt, ImportError> {
-        // Archive owns revision consistency for import, reopen and reconciliation.
-        self.archive.validate_import_revisions(&prepared.receipt)?;
         for turn in prepared.turns {
             self.ingest_turn(turn)?;
         }

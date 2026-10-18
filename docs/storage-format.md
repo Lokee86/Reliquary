@@ -18,7 +18,11 @@ Rebuild applies only Archive-versioned receipt records. Reconciliation republish
 
 `CVAIEPS1` and `CVAIEPC1` are owner-level import metadata, not semantic global-version records. Each is eight magic bytes, a little-endian u32 JSON byte length, and exact Serde JSON for `ImportStart` or `ImportComplete`; trailing or truncated bytes fail closed. Start records bind owner UUID, deterministic import ID, canonical import key, source namespace/format, time and pre-import global/Archive/Memory/Entity/Relationship/full-Graph/Memory-Graph/vector cuts. Completion additionally binds the exact start digest, Archive receipt digest, post-import cuts and Historical Freshness settlement digest.
 
+Start admission and replay require a canonical 64-byte lowercase hexadecimal import key, bounded nonempty NUL-free source text, and an owner-bound deterministic ID. Admission validates before appending or closing the fence.
+
 Rebuild permits at most one open epoch, requires start-before-completion ordering, validates owner and deterministic identity before store mutation, validates start and receipt digests, and requires monotone cuts and times. A normal REL has no epoch records. Current code writes starts but intentionally exposes no completion mutation path until attributed derived-work and Freshness settlement authority exists.
+
+Completion storage currently requires a nonempty settlement digest; it does not establish import-attributed readiness or verify that digest against a real Freshness settlement. The pending coordinator and completed-epoch verification must supply that authority before production completion is enabled.
 
 ## C8 embedding retention
 

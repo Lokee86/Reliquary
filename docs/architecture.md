@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 FreshnessStore owns ordered sparse `HistoricalImportFreshnessSettlement` records in `CVAFRS04`, with no singleton ImportCheckpoint. The codec alone reads persisted `CVAFRS03` into one synthetic initial settlement at base cut zero. New writes use `CVAFRS04`; passive reopen preserves legacy bytes. Birth, Dream and accepted-use receipts remain durable. Exact settlement retries preserve later live effects, including accepted use appended at the same activity cut.
 
-Multiple ordered settlements are supported by the codec/store foundation. Native reconstruction still treats the latest accepted settlement as an idempotent retry. Durable import admission, repeated-import reconstruction and completion/readiness coordination remain later integration steps in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
+Multiple ordered settlements are supported by the codec/store foundation. Native reconstruction still treats the latest accepted settlement as an idempotent retry. Durable import admission is integrated; repeated-import reconstruction and completion/readiness coordination remain later integration steps in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
 
 ## Domain tombstone convergence
 

@@ -4,6 +4,8 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Historical Freshness post-generation operation
 
+New imports currently remain fenced after receipt publication. Scoped derived-worker execution and completion coordination are not integrated, so the operation below remains usable for retained completed import history rather than a completed new-epoch workflow.
+
 Historical reconstruction is a separate explicit post-generation step, not an automatic import side effect. Complete queued Import Insomnia work and real first-cycle Dream settlement, retain a compatible embedding profile, then call ConfiguredRuntime::reconstruct_historical_freshness on the exclusive offline Cva. The default options do not fill embeddings. Requested bounded fill uses the configured embedding route for missing genuine source-fragment rows, then native reconstruction refreezes and commits a sparse CVAFRS04 settlement. Legacy CVAFRS03 remains readable without rewriting its bytes. Exact accepted retries use no provider and preserve live growth.
 
 C8 verifies a schema-1 import fixture through actual import_native, Insomnia publication, first-cycle settlement, configured local HTTP embedding, native checkpoint, reopen/retry and intrinsic post-checkpoint live F8. This is executable synthetic importer evidence, not retained production-corpus acceptance (C10). Noncanonical first acceptance rejects instead of rewriting the Archive clock. Gateway mounted historical management remains unavailable.
@@ -54,7 +56,7 @@ Import Episode coverage belongs to Archive and is per immutable source Node acro
 
 The operation is resumable, not an atomic whole-batch transaction. Failure before receipt acknowledgement may leave durable source/branch/Episode/queue progress. Retry the identical normalized input after reopen. Existing immutable IDs and Node coverage recover every tested handoff cut without duplicate work. A synchronized receipt acknowledges the full batch; exact accepted retry returns that receipt without advancing clocks, restoring old titles or rewinding later native branches.
 
-`CVAIMPT1` is an Archive-versioned receipt record. Cold rebuild, semantic reconciliation and physical reclamation preserve it and validate native Node/branch/file references. There is no independent import store, queue, semantic clock or container-wide manifest.
+`CVAIMPT1` is an Archive-versioned receipt record. Cold rebuild, semantic reconciliation and physical reclamation preserve it and validate native Node/branch/file references. Import/CVA separately owns the epoch metadata in ImportEpochStore. There is no second work queue, semantic clock or container-wide manifest.
 
 ## Supported profiles and source audit
 

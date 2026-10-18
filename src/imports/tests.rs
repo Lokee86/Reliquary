@@ -907,3 +907,47 @@ fn completed_epoch_rebuilds_and_completion_retry_is_exact() {
     );
     assert_eq!(reopened.native_import_receipts(), vec![receipt]);
 }
+
+#[test]
+fn invalid_source_revision_does_not_open_or_poison_an_epoch() {
+    let f = Fixture::new();
+    let path = f.rel("invalid-revision-admission.rel");
+    let mut cva = Cva::create(&path).unwrap();
+    let receipt = cva.import_native(&input(), 100).unwrap();
+    let start = cva.open_import_epoch().unwrap();
+    // Storage-only completion fixture; this does not prove production readiness.
+    let complete = completion_for(&cva, &start, &receipt, 200);
+    cva.with_import_write_scope(|cva| {
+        cva.import_epochs
+            .append_complete(&mut cva.container, complete)
+    })
+    .unwrap();
+    cva.sync().unwrap();
+
+    let statuses = cva.import_epoch_statuses();
+    let clocks = current_watermarks(&cva);
+    let bytes = fs::read(&path).unwrap();
+    let mut conflicting = input();
+    conflicting.conversations[0].messages[1].content = "changed immutable revision".into();
+    for now in [250, 260] {
+        assert!(cva.import_native(&conflicting, now).is_err());
+        assert!(cva.open_import_epoch().is_none());
+        assert_eq!(cva.import_epoch_statuses(), statuses);
+        assert_eq!(current_watermarks(&cva), clocks);
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+    }
+    drop(cva);
+
+    let mut cva = Cva::open(&path).unwrap();
+    assert!(cva.import_native(&conflicting, 300).is_err());
+    assert!(cva.open_import_epoch().is_none());
+    assert_eq!(cva.import_epoch_statuses(), statuses);
+    assert_eq!(current_watermarks(&cva), clocks);
+    assert_eq!(fs::read(&path).unwrap(), bytes);
+
+    conflicting.conversations[0].messages[1].revision = Some("2".into());
+    let next = cva.import_native(&conflicting, 400).unwrap();
+    assert_ne!(next.import_key, receipt.import_key);
+    assert_eq!(cva.open_import_epoch().unwrap().import_key, next.import_key);
+    assert_eq!(cva.import_epoch_statuses().len(), 2);
+}

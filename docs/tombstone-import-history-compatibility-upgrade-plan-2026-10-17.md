@@ -13,7 +13,7 @@ Implement the lifecycle, repeated-import history and compatibility upgrades defi
 
 ## Overview
 
-The original 50-step decomposition below remains the architectural work breakdown, but its execution order has been superseded by the convergence sequence actually being used. Steps 1–12 of that convergence sequence are complete; **step 13 is next**. Use the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) for authoritative step numbering and the [execution contract](tombstone-import-history-execution-contract.md) for frozen semantics and verified progress.
+The original 50-step decomposition below remains the architectural work breakdown, but its execution order has been superseded by the convergence sequence actually being used. Steps 1–23 of the convergence/integration sequence are accepted on the isolated integration branch; **step 24 is next**. Use the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) for authoritative step numbering and the [execution contract](tombstone-import-history-execution-contract.md) for frozen semantics and verified progress.
 
 ## Related docs
 
@@ -645,7 +645,7 @@ Each phase must still run the coherent targeted tests for the completed subgraph
 
 ## 6. Original architectural work breakdown
 
-> **Execution status:** this 50-step table is no longer the authoritative execution order. It is retained as the original architectural decomposition. Current execution continues at **step 9** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
+> **Execution status:** this 50-step table is no longer the authoritative execution order. It is retained as the original architectural decomposition. Lifecycle convergence is committed through step 12; current execution has accepted steps 13–23 and continues at **step 24** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
 
 ### Model assignment
 
@@ -944,3 +944,40 @@ Embedding compatibility
 ```
 
 This is the canonical target. Implementation should move directly toward it rather than preserve the current one-shot Freshness checkpoint or append-only-active-profile assumptions behind compatibility scaffolding.
+
+## Settlement integration checkpoint (2026-10-17)
+
+Settlement commit `10a2aaf` was cherry-picked onto `959e98c` as `44f52b0` in `integrate/import-freshness-settlements-20261017`. Main remains at `959e98c`; promotion waits for the completed import architecture at step 36.
+
+The integration audit repaired same-activity-cut live accepted-use replay, replaced the invented-cohort legacy fixture with real accepted Memory/birth evidence and passive Cva reopen coverage, corrected the CVAFRS04 policy-corruption offset, and added persisted multi-settlement replay coverage. The 35-test focused settlement/legacy/live-use/transform/lifecycle matrix passes; formatting and `cargo check --tests --locked` pass. CLI formatting/checks and all 22 CLI tests passed. The architecture refresh passed both source guards (92 multiplexing fixtures, 166 classified APIs and 11 external-ownership fixtures), then timed out after ten minutes in Lexicon Rust analysis; Arcana/Pitlord did not run. The scoped settlement repairs and eight current-behavior docs are committed as `957bf45` after `44f52b0`. Steps 13–17 have passed their focused acceptance on the lifecycle-converged isolated branch; final structural acceptance remains open. Both documentation-policy checks report five existing findings outside the changed canonical docs (one broken Ego-plan link and four missing sections in the Ego decision inventory).
+
+Steps 24–25 must explicitly handle zero-result and zero-activity imports, preserve the canonical Freshness base at ImportStart, and distinguish same-cut pre-start evidence from later live receipts by accepted identity/order rather than activity cut alone. The current codec/store requires nonempty replacements/cohort and an advancing cut; no completed repeated-import claim is made.
+
+Luna prepared isolated epoch codec/storage/reopen tests in `7e2f337` on `7706ed0`; they are not integrated or Cargo-verified yet. The next integration batch remains step 18 after settlement verification and commit.
+
+
+## Epoch admission integration checkpoint (2026-10-17)
+
+Durable epoch admission was integrated on top of the accepted settlement branch as `ef86f04`, with marker/storage coverage in `9480f5f`, write-admission hardening in `5e97169`, and phase-cut crash/retry coverage in `9973ff7`.
+
+Final hardening moved immutable source-revision conflict validation ahead of `ImportStart`, added the missing `WriteAdmissionClosed` display path, and added a regression proving invalid immutable source revisions do not open or poison an epoch and do not change bytes, clocks or epoch status. This preserves the rule that rejected admission is physically and semantically inert.
+
+Final acceptance passed:
+
+- multiplexing coverage guard: 92 fixtures and 166 classified public APIs;
+- external-source ownership guard: 11 fixtures plus production-boundary check;
+- `cargo fmt --check` and CLI formatting;
+- `cargo check --tests --locked`;
+- 5 epoch codec/store/identity tests;
+- native-only no-marker reopen;
+- exact retry with no marker/semantic-clock change;
+- completed-epoch storage/rebuild/idempotent retry;
+- durable start + unrelated-write fencing;
+- open-epoch conflict/policy rejection;
+- invalid source revision admission neutrality;
+- phase-cut interrupted-import recovery without duplicate work;
+- 7 import settlement storage/legacy/replay tests;
+- 18 lifecycle regression tests;
+- CLI check plus 22/22 CLI tests.
+
+Steps 18–23 are accepted on the isolated integration branch. Production completion remains intentionally unavailable: no normal caller owns `append_complete()` and no derived-work/Freshness readiness coordinator exists yet. That is later step 28–31 work, not part of this checkpoint.
