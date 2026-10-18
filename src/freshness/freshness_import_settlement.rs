@@ -38,6 +38,50 @@ pub(crate) struct HistoricalImportFreshnessSettlement {
 }
 
 #[cfg(test)]
+pub(crate) fn encode_legacy_test_fixture(
+    settlement: &HistoricalImportFreshnessSettlement,
+) -> Vec<u8> {
+    let mut out = LEGACY_CHECKPOINT_MAGIC.to_vec();
+    out.extend(settlement.owner);
+    for digest in [
+        settlement.import_id,
+        settlement.corpus_digest,
+        settlement.manifest_digest,
+        settlement.input_digest,
+        crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST,
+        crate::freshness::semantic_policy::SemanticPolicy::default()
+            .digest()
+            .unwrap(),
+    ] {
+        out.extend(digest);
+    }
+    for value in [
+        settlement.settlement_cut,
+        settlement.global_version,
+        settlement.input_bytes,
+        settlement.archive_version,
+        settlement.graph_version,
+        settlement.memory_graph_version,
+    ] {
+        out.extend(value.to_le_bytes());
+    }
+    out.extend((settlement.cohort.len() as u32).to_le_bytes());
+    for id in &settlement.cohort {
+        out.extend(id.0);
+    }
+    out.extend((settlement.records.len() as u32).to_le_bytes());
+    for (id, record) in &settlement.records {
+        out.extend(id.0);
+        put_record(&mut out, *record);
+    }
+    out.extend((settlement.superseded.len() as u32).to_le_bytes());
+    for id in &settlement.superseded {
+        put_bytes(&mut out, id.as_bytes());
+    }
+    out.extend(Sha256::digest(&out));
+    out
+}
+#[cfg(test)]
 mod tests {
     use super::*;
     fn fixture() -> (FreshnessStore, HistoricalImportFreshnessSettlement, Vec<u8>) {
@@ -96,47 +140,6 @@ mod tests {
         };
         (store, cp, event)
     }
-    fn encode_legacy(settlement: &HistoricalImportFreshnessSettlement) -> Vec<u8> {
-        let mut out = LEGACY_CHECKPOINT_MAGIC.to_vec();
-        out.extend(settlement.owner);
-        for digest in [
-            settlement.import_id,
-            settlement.corpus_digest,
-            settlement.manifest_digest,
-            settlement.input_digest,
-            crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST,
-            crate::freshness::semantic_policy::SemanticPolicy::default()
-                .digest()
-                .unwrap(),
-        ] {
-            out.extend(digest);
-        }
-        for value in [
-            settlement.settlement_cut,
-            settlement.global_version,
-            settlement.input_bytes,
-            settlement.archive_version,
-            settlement.graph_version,
-            settlement.memory_graph_version,
-        ] {
-            out.extend(value.to_le_bytes());
-        }
-        out.extend((settlement.cohort.len() as u32).to_le_bytes());
-        for id in &settlement.cohort {
-            out.extend(id.0);
-        }
-        out.extend((settlement.records.len() as u32).to_le_bytes());
-        for (id, record) in &settlement.records {
-            out.extend(id.0);
-            put_record(&mut out, *record);
-        }
-        out.extend((settlement.superseded.len() as u32).to_le_bytes());
-        for id in &settlement.superseded {
-            put_bytes(&mut out, id.as_bytes());
-        }
-        out.extend(Sha256::digest(&out));
-        out
-    }
     #[test]
     fn checkpoint_credit_excluded_replacement_is_canonical_and_roundtrips() {
         let (mut store, mut cp, _) = fixture();
@@ -160,12 +163,25 @@ mod tests {
     #[test]
     fn legacy_checkpoint_decodes_to_one_synthetic_initial_settlement_only() {
         let (mut store, expected, _) = fixture();
-        let legacy = encode_legacy(&expected);
+        let legacy = encode_legacy_test_fixture(&expected);
         store.ingest_import_settlement(&legacy).unwrap();
         let migrated = store.latest_import_settlement().unwrap();
+        assert_eq!(migrated.owner, expected.owner);
         assert_eq!(migrated.base_cut, 0);
+        assert_eq!(migrated.settlement_cut, expected.settlement_cut);
         assert_eq!(migrated.import_id, expected.import_id);
         assert_ne!(migrated.start_evidence_digest, [0; 32]);
+        assert_eq!(migrated.corpus_digest, expected.corpus_digest);
+        assert_eq!(migrated.manifest_digest, expected.manifest_digest);
+        assert_eq!(migrated.input_digest, expected.input_digest);
+        assert_eq!(migrated.cohort, expected.cohort);
+        assert_eq!(migrated.global_version, expected.global_version);
+        assert_eq!(migrated.input_bytes, expected.input_bytes);
+        assert_eq!(migrated.archive_version, expected.archive_version);
+        assert_eq!(migrated.graph_version, expected.graph_version);
+        assert_eq!(migrated.memory_graph_version, expected.memory_graph_version);
+        assert_eq!(migrated.records, expected.records);
+        assert_eq!(migrated.superseded, expected.superseded);
         assert!(migrated.encode().starts_with(SETTLEMENT_MAGIC));
         assert!(!migrated.encode().starts_with(LEGACY_CHECKPOINT_MAGIC));
     }
@@ -232,15 +248,204 @@ mod tests {
         store.ingest_import_settlement(&second.encode()).unwrap();
         assert_eq!(store.import_settlements(), &[first.clone(), second.clone()]);
         assert_eq!(store.records_at(3001).unwrap()[&second_id], second_record);
+        let mut expected_first_record = first.records[&MemoryId([2; 32])];
+        expected_first_record
+            .settle_with_policy(3001, &FreshnessPolicy::default_v1())
+            .unwrap();
         assert_eq!(
             store.records_at(3001).unwrap()[&MemoryId([2; 32])],
-            first.records[&MemoryId([2; 32])]
+            expected_first_record
         );
 
         let mut conflict = second;
         conflict.manifest_digest = [14; 32];
         assert!(store.ingest_import_settlement(&conflict.encode()).is_err());
     }
+    #[test]
+    fn ordered_sparse_settlements_rebuild_from_persisted_container_frames() {
+        use crate::Container;
+
+        let owner = [21; 16];
+        let first_id = MemoryId([22; 32]);
+        let second_id = MemoryId([23; 32]);
+        let mut store = FreshnessStore::new(Some(owner));
+        let mut frames = Vec::new();
+
+        let policy = super::super::encode_policy(owner, FreshnessPolicy::default_v1());
+        store.ingest(&policy).unwrap();
+        frames.push(policy);
+
+        let mut first_birth = FreshnessRecord::created();
+        first_birth.admit(1).unwrap();
+        let first_birth_frame = store.encode_initialize(owner, first_id, 1, first_birth);
+        store.ingest(&first_birth_frame).unwrap();
+        frames.push(first_birth_frame);
+
+        let proof = crate::FreshnessEventProof {
+            graph_version: 0,
+            community_generation: None,
+            community_graph_version: None,
+        };
+        let mut first_live = first_birth;
+        first_live.reinforce(50, 1001).unwrap();
+        let dream_event = store.encode_event(
+            owner,
+            crate::dream_freshness::initial_pass_id(owner, first_id),
+            1001,
+            proof,
+            BTreeMap::from([(first_id, 50)]),
+            BTreeMap::from([(first_id, first_live)]),
+        );
+        store.ingest(&dream_event).unwrap();
+        frames.push(dream_event.clone());
+
+        let mut second_birth = FreshnessRecord::created();
+        second_birth.admit(2).unwrap();
+        let second_birth_frame = store.encode_initialize(owner, second_id, 2, second_birth);
+        store.ingest(&second_birth_frame).unwrap();
+        frames.push(second_birth_frame);
+
+        let accepted_use = store
+            .prepare_accepted_use_batch(
+                owner,
+                "persisted-pre-start-use".into(),
+                500,
+                vec![second_id],
+                proof,
+                vec![BTreeMap::from([(second_id, 25)])],
+            )
+            .unwrap();
+        store.ingest(&accepted_use).unwrap();
+        frames.push(accepted_use);
+
+        let before_use_settlement = store.records_at(500).unwrap();
+        let mut first_replacement = first_birth;
+        first_replacement
+            .settle_with_policy(2001, &FreshnessPolicy::default_v1())
+            .unwrap();
+        let first = HistoricalImportFreshnessSettlement {
+            owner,
+            import_id: [24; 32],
+            start_evidence_digest: [25; 32],
+            corpus_digest: [26; 32],
+            manifest_digest: [27; 32],
+            input_digest: [28; 32],
+            cohort: BTreeSet::from([first_id, second_id]),
+            base_cut: 0,
+            settlement_cut: 2001,
+            global_version: 1,
+            input_bytes: 1,
+            archive_version: 1,
+            graph_version: 0,
+            memory_graph_version: 0,
+            records: BTreeMap::from([(first_id, first_replacement)]),
+            superseded: BTreeSet::from([crate::dream_freshness::initial_pass_id(owner, first_id)]),
+        };
+        let first_frame = first.encode();
+        store.ingest_import_settlement(&first_frame).unwrap();
+        frames.push(first_frame);
+
+        let mut second_replacement = before_use_settlement[&second_id];
+        second_replacement
+            .settle_with_policy(3001, &FreshnessPolicy::default_v1())
+            .unwrap();
+        let second = HistoricalImportFreshnessSettlement {
+            owner,
+            import_id: [29; 32],
+            start_evidence_digest: [30; 32],
+            corpus_digest: [31; 32],
+            manifest_digest: [32; 32],
+            input_digest: [33; 32],
+            cohort: BTreeSet::from([second_id]),
+            base_cut: first.settlement_cut,
+            settlement_cut: 3001,
+            global_version: 2,
+            input_bytes: 2,
+            archive_version: 2,
+            graph_version: 0,
+            memory_graph_version: 0,
+            records: BTreeMap::from([(second_id, second_replacement)]),
+            superseded: BTreeSet::new(),
+        };
+        let second_frame = second.encode();
+        store.ingest_import_settlement(&second_frame).unwrap();
+        frames.push(second_frame.clone());
+
+        let expected_at_500 = store.records_at(500).unwrap();
+        let expected_at_2001 = store.records_at(2001).unwrap();
+        let expected_at_3001 = store.records_at(3001).unwrap();
+        assert_eq!(
+            expected_at_500[&second_id],
+            before_use_settlement[&second_id]
+        );
+        let mut expected_second_at_2001 = before_use_settlement[&second_id];
+        expected_second_at_2001
+            .settle_with_policy(2001, &FreshnessPolicy::default_v1())
+            .unwrap();
+        assert_eq!(expected_at_2001[&second_id], expected_second_at_2001);
+        assert_eq!(expected_at_3001[&second_id], second_replacement);
+        let mut expected_first_at_3001 = first_replacement;
+        expected_first_at_3001
+            .settle_with_policy(3001, &FreshnessPolicy::default_v1())
+            .unwrap();
+        assert_eq!(expected_at_3001[&first_id], expected_first_at_3001);
+
+        let file = std::env::temp_dir().join(format!(
+            "reliquary-settlement-reopen-{}.rel",
+            uuid::Uuid::new_v4()
+        ));
+        let mut container = Container::create(&file).unwrap();
+        for frame in &frames {
+            container.append(frame).unwrap();
+        }
+        container.sync().unwrap();
+        drop(container);
+
+        let payloads = {
+            let mut container = Container::open_read_only_for_scan(&file).unwrap();
+            container
+                .chunks()
+                .unwrap()
+                .into_iter()
+                .map(|chunk| container.read(chunk).unwrap())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(payloads, frames);
+
+        let rebuild = || {
+            let mut reopened = FreshnessStore::new(Some(owner));
+            for payload in &payloads {
+                reopened.ingest(payload).unwrap();
+            }
+            reopened
+        };
+        let mut reopened = rebuild();
+        assert_eq!(
+            reopened.import_settlements(),
+            &[first.clone(), second.clone()]
+        );
+        assert_eq!(reopened.records_at(500).unwrap(), expected_at_500);
+        assert_eq!(reopened.records_at(2001).unwrap(), expected_at_2001);
+        assert_eq!(reopened.records_at(3001).unwrap(), expected_at_3001);
+
+        reopened.ingest_import_settlement(&second_frame).unwrap();
+        assert_eq!(
+            reopened.import_settlements(),
+            &[first.clone(), second.clone()]
+        );
+        assert_eq!(reopened.records_at(3001).unwrap(), expected_at_3001);
+
+        let reopened_again = rebuild();
+        assert_eq!(
+            reopened_again.import_settlements(),
+            &[first.clone(), second.clone()]
+        );
+        assert_eq!(reopened_again.records_at(500).unwrap(), expected_at_500);
+        assert_eq!(reopened_again.records_at(2001).unwrap(), expected_at_2001);
+        assert_eq!(reopened_again.records_at(3001).unwrap(), expected_at_3001);
+        let _ = std::fs::remove_file(file);
+    }
+
     #[test]
     fn checkpoint_corruption_and_conflict_never_partially_replace_records() {
         let (mut store, cp, _) = fixture();

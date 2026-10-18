@@ -365,7 +365,7 @@ fn historical_transform_unverified_corpus_owner_or_policy_cannot_transplant_nume
         let mut payload = altered.encode();
         if case == 2 {
             // Keep valid framing/checksum while selecting an unsupported H policy.
-            payload[8 + 16 + 4 * 32] ^= 1;
+            payload[8 + 16 + 5 * 32] ^= 1;
             let end = payload.len() - 32;
             let checksum = Sha256::digest(&payload[..end]);
             payload[end..].copy_from_slice(&checksum);

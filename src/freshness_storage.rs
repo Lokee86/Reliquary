@@ -159,6 +159,8 @@ const RECENT_BYTES: usize = 256 * 1024;
 mod activation;
 #[path = "freshness/freshness_import_settlement.rs"]
 mod import_settlement_storage;
+#[cfg(test)]
+pub(crate) use import_settlement_storage::encode_legacy_test_fixture;
 pub(crate) use import_settlement_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
 };
@@ -689,7 +691,7 @@ impl FreshnessStore {
                 return Err("expected Freshness event".into());
             };
             if self.import_settlements.iter().any(|settlement| {
-                *turn <= settlement.settlement_cut
+                *turn < settlement.settlement_cut
                     && effects.keys().any(|id| settlement.records.contains_key(id))
             }) {
                 return Err("new event precedes an accepted import settlement".into());
@@ -925,7 +927,7 @@ impl FreshnessStore {
                     admit_index += 1;
                 }
                 for (id, amount) in effects {
-                    if settled_at.get(id).is_some_and(|cut| turn <= cut) {
+                    if settled_at.get(id).is_some_and(|cut| turn < cut) {
                         continue;
                     }
                     if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {

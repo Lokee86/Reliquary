@@ -122,10 +122,39 @@ fn historical_import_fixture_clock(
 }
 
 #[test]
+fn legacy_cvafrs03_settlement_reopens_with_real_import_birth_evidence() {
+    let (path, mut cva, id) = historical_import_fixture("legacy-settlement-reopen.rel");
+    let prepared = cva
+        .freeze_historical_import()
+        .unwrap()
+        .prepare(&[])
+        .unwrap();
+    let mut expected = prepared.settlement.clone();
+    let legacy = crate::freshness_storage::encode_legacy_test_fixture(&expected);
+    assert!(legacy.starts_with(b"CVAFRS03"));
+    cva.container.append(&legacy).unwrap();
+    cva.sync().unwrap();
+    let persisted = fs::read(&path).unwrap();
+    drop(cva);
+
+    let reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.freshness.import_settlements().len(), 1);
+    let actual = reopened.freshness.latest_import_settlement().unwrap();
+    assert_eq!(actual.base_cut, 0);
+    assert_ne!(actual.start_evidence_digest, [0; 32]);
+    expected.start_evidence_digest = actual.start_evidence_digest;
+    assert_eq!(actual, &expected);
+    assert_eq!(reopened.freshness_record(id), Some(expected.records[&id]));
+    assert!(actual.encode().starts_with(b"CVAFRS04"));
+    assert_eq!(fs::read(&path).unwrap(), persisted);
+}
+
+#[test]
 fn historical_import_settlement_reopens_and_retries_without_erasing_live_use() {
     let (path, mut cva, id) = historical_import_fixture("historical-checkpoint.cva");
     let original_revision = cva.memory(id).unwrap().revision;
     assert_eq!(cva.freshness_record(id).unwrap().score, 100);
+    let pre_settlement_projection = cva.freshness_record_at(id, 31).unwrap();
     let frozen = cva.freeze_historical_import().unwrap();
     assert_eq!(frozen.cut(), 32);
     assert_eq!(frozen.initial_records()[&id].admitted_at_turn, Some(16));
@@ -139,7 +168,10 @@ fn historical_import_settlement_reopens_and_retries_without_erasing_live_use() {
     let before = fs::read(&path).unwrap();
     assert!(!cva.commit_historical_import(&prepared).unwrap());
     assert_eq!(fs::read(&path).unwrap(), before);
-    assert!(cva.freshness_record_at(id, 31).is_err());
+    assert_eq!(
+        cva.freshness_record_at(id, 31).unwrap(),
+        pre_settlement_projection
+    );
     drop(cva);
     let mut cva = Cva::open(&path).unwrap();
     assert_eq!(
