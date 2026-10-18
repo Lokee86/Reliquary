@@ -37,6 +37,7 @@ mod transform;
 
 #[derive(Clone, Debug)]
 struct FrozenHistoricalImport {
+    retained: Vec<HistoricalScoreEvent>,
     epoch: bool,
     events: Option<events::NativeHistoricalEvents>,
     propagation: Option<manifest::PropagationInputs>,
@@ -57,7 +58,9 @@ impl FrozenHistoricalImport {
                 settlement: self.settlement.clone(),
             });
         };
-        self.prepare(&self.native_scores()?)
+        let mut scores = self.native_scores()?;
+        scores.extend(self.retained.clone());
+        self.prepare(&scores)
     }
     fn native_scores(&self) -> Result<Vec<HistoricalScoreEvent>, CvaError> {
         let Some(batch) = &self.events else {
@@ -147,13 +150,17 @@ impl FrozenHistoricalImport {
             }
         }
         let mut settlement = self.settlement.clone();
-        settlement.records = score_historical_records(
-            &self.initial,
-            events,
-            settlement.settlement_cut,
-            &FreshnessPolicy::default_v1(),
-        )
-        .map_err(|e| CvaError::Freshness(e.to_string()))?;
+        settlement.records = if self.epoch && self.initial.is_empty() && events.is_empty() {
+            BTreeMap::new()
+        } else {
+            score_historical_records(
+                &self.initial,
+                events,
+                settlement.settlement_cut,
+                &FreshnessPolicy::default_v1(),
+            )
+            .map_err(|e| CvaError::Freshness(e.to_string()))?
+        };
         settlement.validate().map_err(CvaError::Freshness)?;
         Ok(PreparedHistoricalImport {
             epoch: self.epoch,
@@ -182,6 +189,23 @@ fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
     }
     Ok(hash.finalize().into())
 }
+// All ordinary backing records are immutable except Archive conversation
+// compaction allocations. Bind physical coordinates as well as payloads so
+// relocation cannot silently preserve an invalid epoch boundary.
+fn immutable_prefix_digest(path: &std::path::Path, through: u64) -> Result<[u8; 32], CvaError> {
+    let mut scan = crate::Container::open_read_only_for_scan(path)?;
+    let mut hash = Sha256::new();
+    hash.update(b"reliquary:import-immutable-prefix:v1");
+    scan.visit_payloads_through::<CvaError>(through, |object, payload| {
+        if !crate::conversation_compaction_codec::is_compaction_payload(payload) {
+            hash.update(object.legacy_bytes());
+            hash.update(payload);
+        }
+        Ok(())
+    })?;
+    Ok(hash.finalize().into())
+}
+
 impl Cva {
     /// Private checkpoint primitive. The owner coordinator derives the
     /// verified manifest and frozen owner cut; this is not a caller-facing API.
@@ -225,6 +249,7 @@ impl Cva {
                 initial.insert(*id, birth);
             }
             return Ok(FrozenHistoricalImport {
+                retained: Vec::new(),
                 epoch: false,
                 events: None,
                 propagation: None,
@@ -260,6 +285,7 @@ impl Cva {
             manifest.superseded,
         );
         let mut frozen = FrozenHistoricalImport {
+            retained: Vec::new(),
             epoch: manifest.epoch,
             events: Some(events),
             propagation: Some(manifest.propagation),
@@ -284,6 +310,38 @@ impl Cva {
                 binding.update(id.0);
             }
             frozen.settlement.manifest_digest = binding.finalize().into();
+            let scope = self.import_epoch_scope()?;
+            let replay = crate::freshness_storage::ImportEventScope {
+                owner,
+                import_id: frozen.settlement.import_id,
+                start_evidence_digest: scope.start_digest,
+                born_memories: scope.cohort,
+                affected_recipients: frozen
+                    .propagation
+                    .as_ref()
+                    .unwrap()
+                    .availability
+                    .keys()
+                    .copied()
+                    .collect(),
+                source_nodes: scope.source_nodes,
+                start_prefix: scope.start_offset,
+                freeze_prefix: frozen.settlement.input_bytes,
+                base_cut: scope.base_cut,
+                freeze_cut: frozen.cut(),
+            };
+            let mut history = self.freshness.clone();
+            history.bind_history_path(self.container.path(), replay.freeze_prefix);
+            frozen.retained = history
+                .retained_import_scores(
+                    &replay,
+                    &frozen.settlement.cohort,
+                    &frozen.settlement.superseded,
+                )
+                .map_err(CvaError::Freshness)?;
+            frozen.settlement.epoch_prefix_digest =
+                immutable_prefix_digest(self.container.path(), replay.freeze_prefix)?;
+            frozen.settlement.epoch = Some(replay);
         }
         Ok(frozen)
     }
@@ -293,11 +351,6 @@ impl Cva {
         &mut self,
         prepared: &PreparedHistoricalImport,
     ) -> Result<bool, CvaError> {
-        if prepared.epoch {
-            return Err(fail(
-                "epoch reconstruction requires authenticated physical-boundary settlement replay",
-            ));
-        }
         let settlement = &prepared.settlement;
         if self.owner_uuid() != Some(settlement.owner) {
             return Err(fail("import settlement owner mismatch"));
@@ -308,6 +361,9 @@ impl Cva {
             } else {
                 Err(fail("ImportManifestConflict"))
             };
+        }
+        if prepared.epoch != settlement.epoch.is_some() {
+            return Err(fail("historical settlement representation/scope mismatch"));
         }
         if self.latest_global_version() != settlement.global_version
             || self.archive_version() != settlement.archive_version
@@ -322,8 +378,21 @@ impl Cva {
         {
             return Err(fail("ImportInputDrift: discard and refreeze the attempt"));
         }
+        if prepared.epoch {
+            let current = self.import_epoch_scope()?;
+            if current.start_digest != settlement.start_evidence_digest {
+                return Err(fail(
+                    "historical settlement does not belong to the open epoch",
+                ));
+            }
+            input::validate_settlement(self, settlement)?;
+        }
         let payload = settlement.encode();
         let mut staged = self.freshness.clone();
+        if prepared.epoch {
+            staged.bind_history_path(self.container.path(), settlement.input_bytes);
+            staged.freeze_derived_birth_policy();
+        }
         staged
             .ingest_import_settlement(&payload)
             .map_err(CvaError::Freshness)?;
@@ -334,11 +403,18 @@ impl Cva {
             &self.freshness_policy(),
         )
         .map_err(|e| fail(&e.to_string()))?;
-        staged
-            .persist_policy_if_needed(&mut self.container, settlement.owner)
-            .map_err(CvaError::Freshness)?;
-        self.container.append(&payload)?;
-        self.container.sync()?;
+        // Admit only the authenticated settlement append; no worker or completion authority.
+        self.container.set_owner_write_scope(prepared.epoch);
+        let append_result = (|| {
+            staged
+                .persist_policy_if_needed(&mut self.container, settlement.owner)
+                .map_err(CvaError::Freshness)?;
+            self.container.append(&payload)?;
+            self.container.sync()?;
+            Ok::<(), CvaError>(())
+        })();
+        self.container.set_owner_write_scope(false);
+        append_result?;
         staged
             .ingest_appended(&payload)
             .map_err(CvaError::Freshness)?;
@@ -373,7 +449,7 @@ impl Cva {
         let owner = self
             .owner_uuid()
             .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
-        if self.rel_turn_count() == 0
+        if (self.rel_turn_count() == 0 && self.open_import_epoch().is_none())
             || self.freshness_policy() != FreshnessPolicy::default_v1()
             || self.freshness_has_pending_dream_passes()
         {

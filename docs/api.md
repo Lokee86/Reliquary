@@ -666,4 +666,6 @@ The disposable retained-fixture tool and its private test seams have been remove
 
 ## Historical production scope
 
+On the isolated import integration branch, `reconstruct_historical_freshness(Default::default())` also accepts a completed-generation open import epoch. It derives the canonical base from the physical ImportStart marker and writes a sparse CVAFRS05 settlement, including authenticated empty/zero-activity results. Exact retry returns `committed: false` and preserves later live use. The epoch remains open and ordinary write admission remains closed until the completion coordinator is implemented. New scoped-epoch embedding fill remains unavailable; accepted retries require no provider work.
+
 The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.

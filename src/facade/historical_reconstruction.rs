@@ -69,23 +69,15 @@ impl Cva {
         &mut self,
         options: HistoricalReconstructionOptions,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        if self.open_import_epoch().is_some() {
-            // Private freeze remains available for scoped evidence construction,
-            // while the public publication boundary closes before prepare/no-op.
-            return Err(HistoricalReconstructionError::Owner(fail(
-                "epoch reconstruction requires authenticated physical-boundary settlement replay",
-            )));
-        }
-        if options.fill_missing_embeddings && self.freshness.import_settlements().is_empty() {
+        if options.fill_missing_embeddings
+            && self.open_import_epoch().is_none()
+            && self.freshness.import_settlements().is_empty()
+        {
             return Err(HistoricalReconstructionError::EmbeddingFillUnavailable);
         }
         let frozen = self.freeze_historical_import()?;
-        // Keep scoped freeze construction available to the owner path, but do not
-        // send it through the legacy prepare/commit representation.
-        if frozen.epoch {
-            return Err(HistoricalReconstructionError::Owner(fail(
-                "epoch reconstruction requires authenticated physical-boundary settlement replay",
-            )));
+        if options.fill_missing_embeddings && frozen.epoch {
+            return Err(HistoricalReconstructionError::EmbeddingFillUnavailable);
         }
         let prepared = frozen.prepare_native()?;
         let committed = self.commit_historical_import(&prepared)?;
@@ -111,12 +103,11 @@ impl Cva {
         limits: HistoricalEmbeddingLimits,
         cancel: &std::sync::atomic::AtomicBool,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        // A scoped epoch must not invoke an embedding provider before its
-        // authenticated settlement replay contract exists.
+        if !options.fill_missing_embeddings {
+            return self.reconstruct_historical_freshness(options);
+        }
         if self.open_import_epoch().is_some() {
-            return Err(HistoricalReconstructionError::Owner(fail(
-                "epoch reconstruction requires authenticated physical-boundary settlement replay",
-            )));
+            return self.reconstruct_historical_freshness(options);
         }
         if !self.freshness.import_settlements().is_empty() || !options.fill_missing_embeddings {
             return self.reconstruct_historical_freshness(options);

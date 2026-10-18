@@ -83,7 +83,8 @@ fn scan_entries_impl(
                 return Ok(());
             }
 
-            if payload.starts_with(super::import_settlement_storage::SETTLEMENT_MAGIC)
+            if payload.starts_with(super::import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
+                || payload.starts_with(super::import_settlement_storage::SETTLEMENT_MAGIC)
                 || payload.starts_with(super::import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
             {
                 return Ok(());

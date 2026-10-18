@@ -423,7 +423,8 @@ impl FreshnessStore {
     }
 
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), String> {
-        if payload.starts_with(import_settlement_storage::SETTLEMENT_MAGIC)
+        if payload.starts_with(import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
+            || payload.starts_with(import_settlement_storage::SETTLEMENT_MAGIC)
             || payload.starts_with(import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
         {
             return self.ingest_import_settlement(payload);
@@ -862,7 +863,8 @@ impl FreshnessStore {
     ) -> Result<BTreeMap<MemoryId, FreshnessRecord>, String> {
         crate::freshness_trace::measure("freshness.projection.canonical", || {
             if self.import_settlements.iter().any(|settlement| {
-                through >= settlement.settlement_cut
+                !settlement.records.is_empty()
+                    && through >= settlement.settlement_cut
                     && (graph < settlement.memory_graph_version
                         || (through == settlement.settlement_cut
                             && before.is_some_and(|(id, _)| settlement.superseded.contains(id))))
@@ -885,12 +887,7 @@ impl FreshnessStore {
             let mut settled_at = BTreeMap::new();
             for settlement in &applicable {
                 projected.extend(settlement.records.clone());
-                settled_at.extend(
-                    settlement
-                        .records
-                        .keys()
-                        .map(|id| (*id, settlement.settlement_cut)),
-                );
+                settled_at.extend(settlement.records.keys().map(|id| (*id, *settlement)));
             }
             let mut admissions = self
                 .admissions
@@ -929,9 +926,29 @@ impl FreshnessStore {
                         .map_err(|e| e.to_string())?;
                     admit_index += 1;
                 }
+                let mut accepted_prefixes = BTreeMap::new();
                 for (id, amount) in effects {
-                    if settled_at.get(id).is_some_and(|cut| turn < cut) {
-                        continue;
+                    if let Some(settlement) = settled_at.get(id) {
+                        // Earlier-cut new receipts are refused at admission.
+                        // Only equal-cut receipts need physical identity lookup.
+                        if *turn < settlement.settlement_cut {
+                            continue;
+                        }
+                        if settlement.epoch.is_some() && *turn == settlement.settlement_cut {
+                            let absorbed = if let Some(value) =
+                                accepted_prefixes.get(&settlement.input_bytes)
+                            {
+                                *value
+                            } else {
+                                let value =
+                                    self.event_accepted_through(event_id, settlement.input_bytes)?;
+                                accepted_prefixes.insert(settlement.input_bytes, value);
+                                value
+                            };
+                            if absorbed {
+                                continue;
+                            }
+                        }
                     }
                     if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {
                         return Err("Freshness event precedes accepted Memory birth".into());

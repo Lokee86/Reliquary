@@ -219,6 +219,8 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     )
     .unwrap();
     settle_initial_pass(&mut cva, old, 121);
+    cva.put_conversation_compaction("c1".into(), "a6".into(), "old mutable summary".into(), None)
+        .unwrap();
 
     cva.import_native(&imported_snapshot("attributed-source"), 200)
         .unwrap();
@@ -379,8 +381,8 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
         }
     }
 
-    // Exercise the same frozen owner-derived path that step 25 will later publish.
-    // Step 24 verifies its attribution only; commit is intentionally not called here.
+    // First freeze has no affected old recipient; later provisional evidence
+    // below expands only the affected result set before settlement publication.
     let frozen = cva.freeze_historical_import().unwrap();
     let prepared = frozen.prepare_native().unwrap();
     assert_eq!(prepared.settlement.cohort, scope.cohort);
@@ -426,6 +428,18 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     cva.freshness.ingest_appended(&payload).unwrap();
     cva.container.set_owner_write_scope(false);
 
+    cva.container.set_owner_write_scope(true);
+    cva.record_accepted_memory_use(
+        crate::AcceptedMemoryUseReceipt {
+            owner_uuid: cva.owner_uuid().unwrap(),
+            accepted_turn: cva.rel_turn_count(),
+            use_id: "during-epoch-before-freeze".into(),
+            memories: vec![old],
+        },
+        280,
+    )
+    .unwrap();
+    cva.container.set_owner_write_scope(false);
     let affected = cva.freeze_historical_import().unwrap();
     let mut expected_result = scope.cohort.clone();
     expected_result.insert(old);
@@ -437,16 +451,85 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     assert_eq!(affected.initial_records().get(&old), base.get(&old));
     assert!(!affected.initial_records().contains_key(&unrelated));
     assert!(!cva.import_epoch_scope().unwrap().cohort.contains(&old));
-    let before_rejection = std::fs::read(&path).unwrap();
+    let untouched = cva.freshness_record(unrelated).unwrap();
     let prepared = affected.prepare_native().unwrap();
-    assert!(
-        cva.commit_historical_import(&prepared)
-            .unwrap_err()
-            .to_string()
-            .contains("authenticated physical-boundary")
+    assert!(prepared.settlement.encode().starts_with(b"CVAFRS05"));
+    let mut expected_old = base[&old];
+    expected_old
+        .reinforce_with_policy(
+            25,
+            prepared.settlement.settlement_cut,
+            &FreshnessPolicy::default_v1(),
+        )
+        .unwrap();
+    assert_eq!(
+        prepared.records()[&old],
+        expected_old,
+        "retain legitimate same-cut interval use while replacing provisional import credit"
     );
-    assert_eq!(std::fs::read(&path).unwrap(), before_rejection);
+    assert!(cva.commit_historical_import(&prepared).unwrap());
+    assert_eq!(cva.freshness_record(unrelated).unwrap(), untouched);
+    assert_eq!(
+        cva.freshness
+            .records_at(prepared.settlement.settlement_cut)
+            .unwrap()[&old],
+        prepared.records()[&old]
+    );
+    assert!(cva.open_import_epoch().is_some());
+    let accepted = std::fs::read(&path).unwrap();
+    assert!(!cva.commit_historical_import(&prepared).unwrap());
+    assert_eq!(std::fs::read(&path).unwrap(), accepted);
+    // Same-cut accepted use after the settlement must apply once, survive reopen,
+    // and remain intact on an exact settlement retry.
+    cva.container.set_owner_write_scope(true);
+    cva.record_accepted_memory_use(
+        crate::AcceptedMemoryUseReceipt {
+            owner_uuid: cva.owner_uuid().unwrap(),
+            accepted_turn: cva.rel_turn_count(),
+            use_id: "after-epoch-settlement".into(),
+            memories: vec![old],
+        },
+        300,
+    )
+    .unwrap();
+    cva.put_conversation_compaction(
+        "c1".into(),
+        "a7".into(),
+        "replacement mutable summary".into(),
+        Some("a6"),
+    )
+    .unwrap();
+    cva.container.set_owner_write_scope(false);
+    assert_eq!(
+        immutable_prefix_digest(&path, prepared.settlement.input_bytes).unwrap(),
+        prepared.settlement.epoch_prefix_digest
+    );
+    let after_use = cva.freshness.records_at(cva.rel_turn_count()).unwrap();
+    drop(cva);
+    let mut cva = Cva::open(&path).unwrap();
+    assert_eq!(
+        cva.freshness.records_at(cva.rel_turn_count()).unwrap(),
+        after_use
+    );
+    assert!(
+        !cva.reconstruct_historical_freshness(Default::default())
+            .unwrap()
+            .committed
+    );
+    assert_eq!(
+        cva.freshness.records_at(cva.rel_turn_count()).unwrap(),
+        after_use
+    );
 
+    // Scope authentication uses retained source paths after a terminal source.
+    // Full Cva reopen of completed Insomnia work under a deleted conversation is
+    // a separate owner-lifecycle gap; normal import completion is still fenced.
+    cva.container.set_owner_write_scope(true);
+    cva.tombstone_conversation(&imported_conversation).unwrap();
+    cva.container.sync().unwrap();
+    cva.container.set_owner_write_scope(false);
+    cva.validate_import_settlement_scope(prepared.settlement.epoch.as_ref().unwrap())
+        .unwrap();
     drop(cva);
     std::fs::remove_file(path).unwrap();
 }
@@ -479,6 +562,49 @@ fn zero_result_import_has_empty_scoped_birth_and_source_sets() {
     assert!(frozen.settlement.cohort.is_empty());
     assert!(frozen.initial_records().is_empty());
     assert!(cva.freshness.import_settlements().is_empty());
+    let prepared = frozen.prepare_native().unwrap();
+    assert_eq!(prepared.settlement.settlement_cut, 0);
+    let before = std::fs::read(&path).unwrap();
+    let mut forged = prepared.clone();
+    forged.settlement.epoch.as_mut().unwrap().start_prefix += 1;
+    assert!(cva.commit_historical_import(&forged).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    let encoded = prepared.settlement.encode();
+    assert_eq!(
+        HistoricalImportFreshnessSettlement::decode(&encoded).unwrap(),
+        prepared.settlement
+    );
+    for end in 0..encoded.len() {
+        assert!(HistoricalImportFreshnessSettlement::decode(&encoded[..end]).is_err());
+    }
+    for at in [0, 8, encoded.len() / 2, encoded.len() - 1] {
+        let mut corrupt = encoded.clone();
+        corrupt[at] ^= 1;
+        assert!(HistoricalImportFreshnessSettlement::decode(&corrupt).is_err());
+    }
+
+    assert!(cva.commit_historical_import(&prepared).unwrap());
+    assert!(cva.open_import_epoch().is_some());
+    assert!(cva.freshness.records().is_empty());
+    let accepted = std::fs::read(&path).unwrap();
+    assert!(
+        !cva.reconstruct_historical_freshness(Default::default())
+            .unwrap()
+            .committed
+    );
+    assert_eq!(std::fs::read(&path).unwrap(), accepted);
+    assert!(
+        !cva.reconstruct_historical_freshness(HistoricalReconstructionOptions {
+            fill_missing_embeddings: true,
+        })
+        .unwrap()
+        .committed
+    );
+    drop(cva);
+    let cva = Cva::open(&path).unwrap();
+    assert_eq!(cva.freshness.import_settlements().len(), 1);
+    assert!(cva.freshness.records().is_empty());
+
     drop(cva);
     std::fs::remove_file(path).unwrap();
 }
@@ -518,12 +644,19 @@ fn tombstoned_prestart_memory_is_proven_but_never_an_import_recipient() {
     let frozen = cva.freeze_historical_import().unwrap();
     assert!(frozen.settlement.cohort.is_empty());
     assert!(frozen.initial_records().is_empty());
-    let before = std::fs::read(&path).unwrap();
     assert!(
         cva.reconstruct_historical_freshness(Default::default())
-            .is_err()
+            .unwrap()
+            .committed
     );
-    assert_eq!(std::fs::read(&path).unwrap(), before);
+    assert!(
+        cva.freshness
+            .import_settlements()
+            .last()
+            .unwrap()
+            .records
+            .is_empty()
+    );
     assert!(cva.memory(id).is_err());
     assert!(cva.memory_revision(id, 1).is_ok());
     drop(cva);

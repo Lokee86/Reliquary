@@ -6,21 +6,49 @@ use std::collections::{BTreeMap, BTreeSet};
 /// Physical and semantic boundary for provisional events attributed to one import.
 /// The byte coordinates are accepted Container prefixes captured at ImportStart
 /// and freeze; activity cuts alone cannot distinguish receipts at the same turn.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
 pub(crate) struct ImportEventScope {
     pub owner: [u8; 16],
     pub import_id: [u8; 32],
     pub start_evidence_digest: [u8; 32],
     /// Memories born in this ImportEpoch; only these authorize initial-pass IDs.
+    #[serde(with = "scope_memory_ids")]
     pub born_memories: BTreeSet<MemoryId>,
     /// Authenticated eligible effect population, including pre-existing Memories.
     /// Selection derives the smaller affected set from actual event effects.
+    #[serde(with = "scope_memory_ids")]
     pub affected_recipients: BTreeSet<MemoryId>,
     pub source_nodes: BTreeSet<(String, String)>,
     pub start_prefix: u64,
     pub freeze_prefix: u64,
     pub base_cut: u64,
     pub freeze_cut: u64,
+}
+
+mod scope_memory_ids {
+    use super::*;
+    use serde::{Deserialize, Serialize};
+    pub(super) fn serialize<S: serde::Serializer>(
+        ids: &BTreeSet<MemoryId>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        ids.iter()
+            .map(|id| id.0)
+            .collect::<Vec<_>>()
+            .serialize(serializer)
+    }
+    pub(super) fn deserialize<'de, D: serde::Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<BTreeSet<MemoryId>, D::Error> {
+        let ids = Vec::<[u8; 32]>::deserialize(deserializer)?;
+        if ids.windows(2).any(|pair| pair[0] >= pair[1]) {
+            return Err(serde::de::Error::custom(
+                "unordered import scope Memory IDs",
+            ));
+        }
+        Ok(ids.into_iter().map(MemoryId).collect())
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -30,13 +58,101 @@ pub(crate) struct ImportEventEvidence {
 }
 
 impl FreshnessStore {
+    /// Exact accepted identity lookup against a finite physical prefix. This
+    /// trades a scan for bounded memory rather than retaining every old ID.
+    pub(crate) fn event_accepted_through(&self, id: &str, prefix: u64) -> Result<bool, String> {
+        let mut found = false;
+        let path = self
+            .history_path
+            .as_ref()
+            .ok_or("physical Freshness history is unavailable")?;
+        super::stream::scan_entries(path, prefix, |_, entry| {
+            for_each_event(&entry, &mut |event| {
+                if let JournalEntry::Event { event_id, .. } = event {
+                    found |= event_id == id;
+                }
+                Ok(())
+            })
+        })?;
+        Ok(found)
+    }
+
+    /// Legitimate receipts accepted during the frozen interval remain part of
+    /// affected records; only exact import-attributed identities are replaced.
+    pub(crate) fn retained_import_scores(
+        &self,
+        scope: &ImportEventScope,
+        recipients: &BTreeSet<MemoryId>,
+        superseded: &BTreeSet<String>,
+    ) -> Result<Vec<crate::freshness::historical_scorer::HistoricalScoreEvent>, String> {
+        use crate::freshness::historical_scorer::HistoricalScoreEvent;
+        use sha2::{Digest, Sha256};
+        let mut scores = BTreeMap::new();
+        let path = self
+            .history_path
+            .as_ref()
+            .ok_or("physical Freshness history is unavailable")?;
+        super::stream::scan_entries_in_interval(
+            path,
+            scope.start_prefix,
+            scope.freeze_prefix,
+            |_, _, entry| {
+                for_each_event(&entry, &mut |event| {
+                    let JournalEntry::Event {
+                        event_id,
+                        turn,
+                        effects,
+                        ..
+                    } = event
+                    else {
+                        return Ok(());
+                    };
+                    if !effects.keys().any(|id| recipients.contains(id))
+                        || superseded.contains(event_id)
+                        || self.event_accepted_through(event_id, scope.start_prefix)?
+                    {
+                        return Ok(());
+                    }
+                    if *turn < scope.base_cut || *turn > scope.freeze_cut {
+                        return Err("live event outside import activity interval".into());
+                    }
+                    let digest: [u8; 32] = Sha256::digest(
+                        [
+                            b"retained-import-live-event-v1".as_slice(),
+                            event_id.as_bytes(),
+                        ]
+                        .concat(),
+                    )
+                    .into();
+                    for (id, amount) in effects {
+                        if recipients.contains(id) {
+                            let score = HistoricalScoreEvent {
+                                recipient: *id,
+                                position: *turn,
+                                event_id: digest,
+                                amount: *amount,
+                            };
+                            if scores
+                                .insert((*id, digest), score.clone())
+                                .is_some_and(|old| old != score)
+                            {
+                                return Err("conflicting retained import event".into());
+                            }
+                        }
+                    }
+                    Ok(())
+                })
+            },
+        )?;
+        Ok(scores.into_values().collect())
+    }
+
     /// Select exact owner-local event identities physically appended after the
     /// ImportStart prefix and accepted by the finite freeze prefix.
     ///
-    /// This is deliberately a separate API from CVAFRS04 settlement ingestion:
-    /// the scope must come from the owner's durable epoch. Selection alone does
-    /// not authenticate persisted settlement evidence, and legacy receipts do
-    /// not acquire an epoch boundary by inference.
+    /// CVAFRS05 ingestion repeats this selection; Cva authenticates its scope
+    /// against the durable start and frozen owner evidence. Legacy CVAFRS03/04
+    /// receipts do not acquire an epoch boundary by inference.
     pub(crate) fn import_events_in_scope(
         &self,
         scope: &ImportEventScope,

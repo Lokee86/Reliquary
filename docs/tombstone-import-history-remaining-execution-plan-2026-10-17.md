@@ -3,8 +3,8 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** authoritative continuation; isolated integration accepted through step 24; incremental settlement publication/replay remains open
-**Next step:** 25
+**Status:** authoritative continuation; isolated integration accepted through step 25; authenticated incremental settlement publication/replay is complete
+**Next step:** 26
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
 ## Purpose
@@ -59,7 +59,7 @@ Source/worktree inspection against current `main` changes the interpretation of 
 - Compatibility/profile activation hardening is farther along than the old plan states but **not complete**. Current `main` rejects obvious incomplete Archive row counts, treats unversioned generation payload as inert on reopen, and requires complete current Memory-body coverage before a Memory profile is considered active. However, the current Archive coverage predicate proves row count rather than exact fragment identity; the dedicated incomplete-coverage fixture still exposes this gap. Step 51 remains a real hardening task, narrowed to exact identity/coverage and historical-fill activation boundaries.
 - `impl/compatibility-v3-retirement` is patch-equivalent to `main` (`git cherry main ...` reports both commits already applied). It is not a remaining integration lane.
 
-Steps 13–24 are integrated and accepted on the isolated lifecycle-converged branch. Step 24 separates epoch source/birth evidence, authenticated pre-start recipient context and born/affected result IDs; its final 20-test focused matrix passes. The next executable action is step 25; main promotion remains step 36. [Step 24 acceptance](import-step24-attribution-acceptance-2026-10-17.md) records verification limits and deferred publication authority.
+Steps 13–25 are integrated and accepted on the isolated lifecycle-converged branch. Step 24 separates epoch source/birth evidence, authenticated pre-start recipient context and born/affected result IDs; step 25 adds authenticated sparse CVAFRS05 publication/replay from the physical ImportStart base. The next executable action is step 26; main promotion remains step 36. [Step 24 acceptance](import-step24-attribution-acceptance-2026-10-17.md) remains the attribution baseline; step-25 settlement/replay verification is recorded below.
 
 ### Known broader failures mapped to remaining work
 
@@ -115,7 +115,7 @@ These are explicit acceptance items for the named steps. They must not be 'fixed
 
 **24 — Sol — Finish the partial epoch-scoped cohort/evidence WIP (complete on the isolated integration branch).** Source Nodes, complete Import Episodes and first-publication births are bound to the current persisted ImportStart. Proof targets derive from canonical pre-start Freshness plus epoch births; result IDs contain only births and import-attributed provisional/planned effects. Terminal history remains exclusion proof through Memory retention descriptors. Event selection uses finite physical boundaries and candidate identities rather than whole-prefix identity sets. The final 20-test focused attribution/base/legacy/accepted-use matrix passes; new-epoch publication remains closed.
 
-**25 — Sol — Finish incremental reconstruction from `ImportStart` on top of the partial WIP.** The current WIP isolates import-attributable provisional events but is not yet a verified complete before→after reconstruction. Canonical Freshness at the start marker is the base; prior accepted-use/live history remains authoritative; unaffected records are not rewritten.
+**25 — Sol — Finish incremental reconstruction from `ImportStart` on top of the partial WIP (complete on the isolated integration branch).** The accepted implementation replaces import-attributable provisional scoring with an authenticated sparse before→after settlement while preserving canonical pre-start and legitimate interval history. Canonical Freshness at the start marker is the base; prior accepted-use/live history remains authoritative; unaffected records are not rewritten.
 
 Add a versioned settlement/replay representation authenticating physical start/base and exact source/cohort evidence while preserving CVAFRS03/CVAFRS04 compatibility. Persist affected sparse replacements and authenticated zero-result/zero-activity no-ops. Distinguish same-cut effects by accepted identity/order, preserve generating-Episode/publication-cohort exclusions for existing recipients and reused/grounding sources, and keep conversion/reconciliation closed until ordered settlement boundaries are retained.
 
@@ -238,7 +238,7 @@ integrate existing Freshness settlements
 -> final docs/audit/tests/cleanup
 ```
 
-The next executable action is **step 25**: implement authenticated incremental settlement publication/replay on the accepted step 24 attribution base. Main promotion remains step 36; ordinary scoped worker admission and completion coordination remain later work.
+The next executable action is **step 26**: add the later-import accepted-use fixture on the accepted step 25 settlement/replay base. Step 27 then proves legitimate existing-Memory effects while unrelated Memories remain untouched. Main promotion remains step 36; ordinary scoped worker admission and completion coordination remain later work.
 
 ## Related docs
 
@@ -332,3 +332,30 @@ Luna's read-only audit of the original dirty epoch WIP found these acceptance bl
 - Bound event attribution by the frozen physical interval and exact source identity, including same-activity-cut receipts; never substitute an unbounded end offset.
 - Retain conversion/replay refusal until the replay representation can preserve settlement boundaries. Removing the guard alone silently drops authority.
 - Define authenticated no-op settlements for no births/no eligible recipients/no activity without inventing admitted anchors. No-op and existing-Memory effects require distinct fixtures.
+
+
+## Step 25 incremental settlement acceptance
+
+The isolated integration branch implements CVAFRS05 scoped settlements. The canonical pre-start Freshness projection supplies existing records; epoch births and recipients affected by provisional or planned scoring define the sparse replacement set. Legitimate receipts accepted during the frozen interval are folded into affected replacements, while exact pre-start identities are not counted again. Replay distinguishes receipts included in a replacement from later receipts at the same activity cut by a finite physical-prefix identity check.
+
+The new version binds physical start and freeze coordinates, the exact start digest, receipt source Nodes, born cohort, eligible recipient proof population, sparse result records and superseded import event identities. CVAFRS03 decoding and CVAFRS04 read/write behavior remain supported. Empty and zero-activity epochs produce authenticated empty settlements without synthetic admissions or activity. A narrow exclusive Cva append scope admits only verified settlement/policy publication; no completion marker or background-worker authority is added.
+
+Per-record base proof identities remain separate from eligibility policy. Generating Episode paths and canonical publication cohorts determine semantic and Dream exclusions, including cross-member grounding/content evidence. Commit-time input drift still checks the raw frozen bytes. Reopen instead verifies a coordinate-bound immutable-prefix digest that excludes mutable Archive compaction allocations; replacing an old conversation summary must not invalidate accepted scoring. Conversion/reconciliation refusal remains in place until ordered physical boundaries can be preserved.
+
+Step 25 is accepted on the isolated integration branch. Current-source focused verification passes 17/17 settlement/epoch/replay cases plus 3/3 cohort/exclusion regressions. The full current-source library run completed with 1,405 passed, 16 failed and 5 ignored; none of the 16 failures is a step-25 focused regression. They remain mapped to scoped embedding-fill/profile activation, import completion/continuation, legacy migration, exact Archive coverage, and one Windows Lore file-lock case. `cargo fmt --all -- --check` passes. The CLI source/public surface is unchanged from the accepted step-24 baseline (22/22); a fresh CLI rebuild was attempted, but rustc 1.97.1 ICE'd while compiling Lore's multi-crate-type library; this is recorded as a toolchain/dependency-build failure rather than a Reliquary test failure, and no fresh CLI pass is claimed.
+
+Documentation impact:
+- Inspected: architecture, invariants, storage format, maintainer map, current limitations, roadmap, API, version-history plan, ADR 0002, active execution contract and parent plan, plus shared documentation/architecture standards.
+- Updated: current architecture/invariants/format/maintainer/API/limitations and this execution record; final continuation pointers follow acceptance.
+- Not affected: CLI syntax, graph corpus import representation, pruning/retained fixtures and unrelated Ego documentation.
+- Compliance check: both documentation-policy modes retain the same five existing Ego-document findings; the final step-25 documentation/source checks are recorded with acceptance below.
+- Known documentation gaps: the existing broken Ego-plan index link and four missing Ego decision-inventory sections remain outside this change.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: Cva authenticates owner/epoch composition and exclusively publishes; FreshnessStore retains settlement encoding and receipt replay. Container retains generic physical mechanics only.
+- Pitlord enforcement impact: final source guards pass (92 multiplexing fixtures, 166 classified APIs, 11 external-owner fixtures and production boundaries). The refresh was stopped during stalled Lexicon Rust analysis; Arcana/Pitlord structural acceptance remains open.
+- Other verification impact: regression coverage includes authenticated no-op/truncation/corruption, pre-start and interval accepted use, later equal-cut use, sparse unaffected records, compaction mutation, terminal-source scope authentication, exact retry and reopen. The focused current-source matrix passes.
+- Known architectural gaps: completion/readiness, scoped worker admission, scoped embedding fill, sequential completed-epoch acceptance and physical-boundary conversion remain later work. Equal-cut identity lookup is bounded-memory prefix scanning, without a new production performance claim. An expanded source-terminal fixture exposed an existing Insomnia reopen dependency on current-only Episodes (`Insomnia(MissingEpisode)`); scope authentication now uses retained paths, while end-to-end completed-work/source-tombstone lifecycle acceptance remains open before promotion.
+
+Final step-25 repository gates: `cargo fmt --all -- --check` and `git diff --check` pass; the multiplexing coverage guard passes 92 fixtures and classifies 166 public APIs; the external-owner guard passes 11 fixtures plus production boundaries. Both documentation-policy modes report the same five pre-existing Ego-document findings (one broken index link and four missing inventory sections) and no step-25-specific finding. A fresh CLI rebuild was attempted but failed in rustc 1.97.1 with an internal compiler error while compiling Lore's multi-crate-type library; no Reliquary CLI test executed, and the unchanged accepted step-24 CLI baseline remains 22/22 without being misreported as a fresh step-25 pass.

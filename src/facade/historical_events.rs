@@ -56,6 +56,46 @@ pub(super) fn build(
         .copied();
     let mut sources = Vec::new();
     let mut targets = Vec::new();
+    // Proof identity is per base record; policy identity is the canonical
+    // generating Episode/publication cohort shared with live exclusions.
+    let mut policy_cohorts: BTreeMap<_, _> = manifest
+        .memory_inputs
+        .iter()
+        .map(|(id, input)| (*id, input.cohort_key))
+        .collect();
+    if epoch_scope.is_some() {
+        let mut parents: BTreeMap<_, _> = policy_cohorts.keys().map(|id| (*id, *id)).collect();
+        let mut episodes = BTreeMap::new();
+        fn root(
+            parents: &BTreeMap<crate::MemoryId, crate::MemoryId>,
+            mut id: crate::MemoryId,
+        ) -> crate::MemoryId {
+            while parents[&id] != id {
+                id = parents[&id];
+            }
+            id
+        }
+        for id in manifest.memory_inputs.keys() {
+            let memory = cva.memory(*id)?;
+            let mut peers = cva.freshness_publication_cohort(*id)?;
+            if let Some(episode) = memory.source_episode_id {
+                if let Some(peer) = episodes.insert(episode.0, *id) {
+                    peers.insert(peer);
+                }
+            }
+            for peer in peers
+                .into_iter()
+                .filter(|peer| policy_cohorts.contains_key(peer))
+            {
+                let a = root(&parents, *id);
+                let b = root(&parents, peer);
+                parents.insert(a.max(b), a.min(b));
+            }
+        }
+        for (id, key) in &mut policy_cohorts {
+            *key = root(&parents, *id).0;
+        }
+    }
     let profile = generation
         .map(|g| {
             cva.compatibility_profile(g.compatibility_profile_id)
@@ -117,19 +157,19 @@ pub(super) fn build(
             .transpose()?;
         let source_cohorts: BTreeSet<_> = manifest
             .memory_inputs
-            .values()
-            .filter(|input| {
+            .iter()
+            .filter(|(_, input)| {
                 input
                     .necessary_sources
                     .iter()
                     .any(|key| source_keys.contains(key))
             })
-            .map(|input| input.cohort_key)
+            .map(|(id, _)| policy_cohorts[id])
             .collect();
         let credit_excluded = manifest
             .memory_inputs
             .iter()
-            .filter(|(_, input)| source_cohorts.contains(&input.cohort_key))
+            .filter(|(id, _)| source_cohorts.contains(&policy_cohorts[id]))
             .map(|(&id, _)| id)
             .collect();
         let (evidence_available, evidence_digest, vectors) = match source {
@@ -237,8 +277,7 @@ pub(super) fn build(
         .filter_map(|id| manifest.memory_inputs.get(id).map(|input| (*id, input)))
         .map(|(id, input)| HistoricalDreamMemory {
             id,
-            cohort: input
-                .cohort_key
+            cohort: policy_cohorts[&id]
                 .iter()
                 .map(|b| format!("{b:02x}"))
                 .collect(),

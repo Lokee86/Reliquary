@@ -508,6 +508,16 @@ pub(super) fn validate_settlement(
     {
         return Err(fail("import checkpoint input cut is unavailable"));
     }
+    if let Some(scope) = &cp.epoch {
+        cp.validate().map_err(CvaError::Freshness)?;
+        cva.validate_import_settlement_scope(scope)?;
+        if super::immutable_prefix_digest(cva.container.path(), cp.input_bytes)?
+            != cp.epoch_prefix_digest
+        {
+            return Err(fail("import settlement immutable prefix evidence mismatch"));
+        }
+        return Ok(());
+    }
     let original: BTreeSet<_> = cva
         .memory_ids()
         .into_iter()

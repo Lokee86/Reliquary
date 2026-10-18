@@ -10,7 +10,7 @@ Record the frozen implementation seams and distinguish verified progress from ac
 
 ## Overview
 
-The original 50-step decomposition remains the architectural breakdown, but execution has been rebaselined around convergence. Steps 1–12 are complete and committed on `main`; authoritative continuation is accepted through step 24 and resumes at step 25 in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md). Settlement, epoch admission and scoped attribution are accepted on the isolated integration branch; incremental settlement publication/replay and completion remain open. Retained-fixture promotion still requires direct verification.
+The original 50-step decomposition remains the architectural breakdown, but execution has been rebaselined around convergence. Steps 1–12 are complete and committed on `main`; authoritative continuation is accepted through step 25 and resumes at step 26 in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md). Settlement, epoch admission, scoped attribution and authenticated incremental settlement publication/replay are accepted on the isolated integration branch; import completion remains open. Retained-fixture promotion still requires direct verification.
 
 ## Frozen lifecycle contract
 
@@ -49,7 +49,7 @@ Already landed before convergence: Archive conversation tombstones, shared lifec
 
 - Settlement implementation commit `10a2aaf` is not on `main`, but already contains the ordered `CVAFRS04` model, legacy `CVAFRS03` synthetic-initial migration, caller migration to `import_settlements()`, and removal of internal `ImportCheckpoint` references. Steps 13–17 are therefore integration/verification work, not new design.
 - Durable epoch admission commit `7706ed0` is not on `main`, but already contains `ImportStart`/`ImportComplete` codecs/store state, deterministic owner+import-key IDs, open-epoch write admission closure, owner-scoped import writes, reopen/status support and native-import start admission. Steps 18–22 are integration/verification/hardening work.
-- The old import-epochs worktree contains reference-only partial step 24/25 work and must not be copied wholesale. The isolated integration branch now has accepted step 24 source/birth/recipient attribution; versioned incremental settlement publication/replay remains step 25.
+- The old import-epochs worktree contains reference-only partial step 24/25 work and must not be copied wholesale. The isolated integration branch now has accepted step 24 source/birth/recipient attribution and accepted step 25 versioned incremental settlement publication/replay.
 - No normal caller currently owns `ImportEpochStore::append_complete()`. Completion coordination/readiness remains the major missing import seam.
 - Archive transformed-copy prune/reopen/corruption machinery exists as dirty WIP in `impl/explicit-history-prune`; Memory/Entity/Relationship/vector destructive pruning does not.
 - `work/vector-prune` contains no additional implementation beyond code already on `main`.
@@ -71,7 +71,7 @@ The authoritative remaining sequence is [steps 13–68](tombstone-import-history
 10. repair retained RELs without re-embedding, rerun the Ellis benchmark that exposed the multi-profile ambiguity, and only then promote fixtures;
 11. remove obsolete architecture, refresh structural evidence, run final gates and clean implementation worktrees.
 
-The immediate next executable action is **step 25: authenticated incremental settlement publication/replay** on the isolated integration branch. Steps 13–24 are accepted there; main promotion remains step 36. The [step 24 acceptance record](import-step24-attribution-acceptance-2026-10-17.md) owns its final focused verification and explicit broader-gate limits.
+The immediate next executable action is **step 26: later-import accepted-use verification** on the isolated integration branch. Steps 13–25 are accepted there; main promotion remains step 36. The [step 24 acceptance record](import-step24-attribution-acceptance-2026-10-17.md) remains the attribution checkpoint; the remaining execution plan records step-25 settlement/replay acceptance.
 
 ### Known non-lifecycle red mapped forward
 

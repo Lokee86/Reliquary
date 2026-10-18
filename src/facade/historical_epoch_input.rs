@@ -335,6 +335,18 @@ pub(super) fn admission_proof_for_scope(
                 memory.source_episode_id.as_ref(),
                 &mut sources,
             )?;
+            // Eligibility exclusions use the entire generating Episode, not
+            // merely the source Node named by this individual output.
+            if let Some(episode_id) = memory.source_episode_id {
+                let conversation = cva
+                    .episode(episode_id)
+                    .ok_or_else(|| fail("missing recipient Episode"))?
+                    .conversation_id
+                    .clone();
+                for turn in cva.episode_turns(episode_id)? {
+                    sources.insert((conversation.clone(), turn.node_id));
+                }
+            }
             let key = Value::map([
                 ("owner_uuid", Value::bytes(owner)),
                 ("memory_id", Value::bytes(id.0)),

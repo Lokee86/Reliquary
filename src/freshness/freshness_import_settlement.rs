@@ -7,6 +7,7 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 pub(crate) const SETTLEMENT_MAGIC: &[u8; 8] = b"CVAFRS04";
+pub(crate) const EPOCH_SETTLEMENT_MAGIC: &[u8; 8] = b"CVAFRS05";
 pub(crate) const LEGACY_CHECKPOINT_MAGIC: &[u8; 8] = b"CVAFRS03";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -19,6 +20,8 @@ pub(crate) struct HistoricalImportFreshnessScope {
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct HistoricalImportFreshnessSettlement {
+    pub epoch: Option<super::ImportEventScope>,
+    pub epoch_prefix_digest: [u8; 32],
     pub owner: [u8; 16],
     pub import_id: [u8; 32],
     pub start_evidence_digest: [u8; 32],
@@ -121,6 +124,8 @@ mod tests {
             .unwrap();
         let corpus_digest = [3; 32];
         let cp = HistoricalImportFreshnessSettlement {
+            epoch: None,
+            epoch_prefix_digest: [0; 32],
             owner,
             import_id: [6; 32],
             start_evidence_digest: [7; 32],
@@ -227,6 +232,8 @@ mod tests {
             .settle_with_policy(3001, &FreshnessPolicy::default_v1())
             .unwrap();
         let second = HistoricalImportFreshnessSettlement {
+            epoch: None,
+            epoch_prefix_digest: [0; 32],
             owner: first.owner,
             import_id: [9; 32],
             start_evidence_digest: [10; 32],
@@ -324,6 +331,8 @@ mod tests {
             .settle_with_policy(2001, &FreshnessPolicy::default_v1())
             .unwrap();
         let first = HistoricalImportFreshnessSettlement {
+            epoch: None,
+            epoch_prefix_digest: [0; 32],
             owner,
             import_id: [24; 32],
             start_evidence_digest: [25; 32],
@@ -350,6 +359,8 @@ mod tests {
             .settle_with_policy(3001, &FreshnessPolicy::default_v1())
             .unwrap();
         let second = HistoricalImportFreshnessSettlement {
+            epoch: None,
+            epoch_prefix_digest: [0; 32],
             owner,
             import_id: [29; 32],
             start_evidence_digest: [30; 32],
@@ -546,6 +557,8 @@ impl HistoricalImportFreshnessSettlement {
         superseded: BTreeSet<String>,
     ) -> Self {
         Self {
+            epoch: None,
+            epoch_prefix_digest: [0; 32],
             owner: scope.owner,
             import_id: scope.import_id,
             start_evidence_digest: scope.start_evidence_digest,
@@ -566,7 +579,12 @@ impl HistoricalImportFreshnessSettlement {
     }
 
     pub(crate) fn encode(&self) -> Vec<u8> {
-        let mut out = SETTLEMENT_MAGIC.to_vec();
+        let mut out = if self.epoch.is_some() {
+            EPOCH_SETTLEMENT_MAGIC
+        } else {
+            SETTLEMENT_MAGIC
+        }
+        .to_vec();
         out.extend(self.owner);
         for d in [
             self.import_id,
@@ -605,12 +623,20 @@ impl HistoricalImportFreshnessSettlement {
         for id in &self.superseded {
             put_bytes(&mut out, id.as_bytes());
         }
+        if let Some(scope) = &self.epoch {
+            put_bytes(
+                &mut out,
+                &serde_json::to_vec(scope).expect("serializable import scope"),
+            );
+            out.extend(self.epoch_prefix_digest);
+        }
         let checksum = Sha256::digest(&out);
         out.extend(checksum);
         out
     }
     pub(crate) fn decode(payload: &[u8]) -> Result<Self, String> {
-        if payload.len() < 32 || payload.get(..8) != Some(SETTLEMENT_MAGIC.as_slice()) {
+        let epoch_format = payload.starts_with(EPOCH_SETTLEMENT_MAGIC);
+        if payload.len() < 32 || (!epoch_format && !payload.starts_with(SETTLEMENT_MAGIC)) {
             return Err("invalid import settlement framing".into());
         }
         let end = payload.len() - 32;
@@ -672,10 +698,24 @@ impl HistoricalImportFreshnessSettlement {
             previous = Some(id.clone());
             superseded.insert(id);
         }
+        let epoch = if epoch_format {
+            let bytes = r.bytes()?;
+            let scope = serde_json::from_slice::<super::ImportEventScope>(&bytes)
+                .map_err(|e| e.to_string())?;
+            if serde_json::to_vec(&scope).map_err(|e| e.to_string())? != bytes {
+                return Err("noncanonical import scope evidence".into());
+            }
+            Some(scope)
+        } else {
+            None
+        };
+        let epoch_prefix_digest = if epoch_format { r.array()? } else { [0; 32] };
         if r.at != end {
             return Err("trailing import settlement bytes".into());
         }
         let cp = Self {
+            epoch,
+            epoch_prefix_digest,
             owner,
             import_id,
             start_evidence_digest,
@@ -697,10 +737,12 @@ impl HistoricalImportFreshnessSettlement {
         Ok(cp)
     }
     pub(crate) fn validate(&self) -> Result<(), String> {
-        if self.settlement_cut == 0
-            || self.base_cut >= self.settlement_cut
-            || self.records.is_empty()
-            || self.cohort.is_empty()
+        if (self.epoch.is_none()
+            && (self.settlement_cut == 0
+                || self.base_cut >= self.settlement_cut
+                || self.records.is_empty()
+                || self.cohort.is_empty()))
+            || self.base_cut > self.settlement_cut
             || self.cohort.len() > u32::MAX as usize
             || self.records.keys().any(|id| !self.cohort.contains(id))
             || self.records.len() > u32::MAX as usize
@@ -711,6 +753,24 @@ impl HistoricalImportFreshnessSettlement {
             || self.memory_graph_version > self.graph_version
         {
             return Err("invalid import settlement identity/cohort".into());
+        }
+        if let Some(scope) = &self.epoch {
+            if scope.owner != self.owner
+                || scope.import_id != self.import_id
+                || scope.start_evidence_digest != self.start_evidence_digest
+                || scope.base_cut != self.base_cut
+                || scope.freeze_cut != self.settlement_cut
+                || scope.start_prefix >= scope.freeze_prefix
+                || scope.freeze_prefix != self.input_bytes
+                || scope.freeze_prefix == u64::MAX
+                || self.input_digest == [0; 32]
+                || self.epoch_prefix_digest == [0; 32]
+                || !scope.born_memories.is_subset(&self.cohort)
+                || !self.cohort.is_subset(&scope.affected_recipients)
+                || self.records.keys().copied().collect::<BTreeSet<_>>() != self.cohort
+            {
+                return Err("invalid authenticated import settlement scope".into());
+            }
         }
         for record in self.records.values() {
             if record.admitted_at_turn.is_none() {
@@ -811,6 +871,8 @@ fn decode_legacy_checkpoint(payload: &[u8]) -> Result<HistoricalImportFreshnessS
     )
     .into();
     let settlement = HistoricalImportFreshnessSettlement {
+        epoch: None,
+        epoch_prefix_digest: [0; 32],
         owner,
         import_id,
         start_evidence_digest,
@@ -902,9 +964,12 @@ impl FreshnessStore {
             };
         }
         if self.import_settlements.last().is_some_and(|previous| {
-            (previous.settlement_cut, previous.import_id)
-                >= (settlement.settlement_cut, settlement.import_id)
+            (settlement.epoch.is_none()
+                && (previous.settlement_cut, previous.import_id)
+                    >= (settlement.settlement_cut, settlement.import_id))
                 || settlement.base_cut < previous.settlement_cut
+                || (settlement.epoch.is_some()
+                    && previous.input_bytes >= settlement.epoch.as_ref().unwrap().start_prefix)
         }) {
             return Err("import settlements are not in accepted epoch order".into());
         }
@@ -916,12 +981,20 @@ impl FreshnessStore {
         }) {
             return Err("import settlement cohort lacks accepted birth proof".into());
         }
-        if self.provisional_import_events(
-            &settlement.records.keys().copied().collect(),
-            settlement.base_cut,
-            settlement.settlement_cut,
-        )? != settlement.superseded
-        {
+        let provisional = if let Some(scope) = &settlement.epoch {
+            let evidence = self.import_event_evidence_in_scope(scope)?;
+            if !evidence.affected_recipients.is_subset(&settlement.cohort) {
+                return Err("import settlement omits an affected provisional recipient".into());
+            }
+            evidence.event_ids
+        } else {
+            self.provisional_import_events(
+                &settlement.records.keys().copied().collect(),
+                settlement.base_cut,
+                settlement.settlement_cut,
+            )?
+        };
+        if provisional != settlement.superseded {
             return Err("import provisional scoring identity mismatch".into());
         }
         self.records.extend(settlement.records.clone());

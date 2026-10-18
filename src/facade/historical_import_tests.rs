@@ -171,25 +171,33 @@ fn open_epoch_never_retries_an_earlier_import_settlement() {
     .unwrap();
     cva.container.sync().unwrap();
     let before = fs::read(&path).unwrap();
-    // Step 24 may freeze the new empty epoch's evidence, but cannot treat
-    // the earlier accepted settlement as this epoch's successful retry.
+    // The new empty epoch has its own settlement, even at the same activity cut.
     let scope = cva.import_epoch_scope().unwrap();
     let frozen = cva.freeze_historical_import().unwrap();
     assert!(frozen.epoch);
     assert_ne!(frozen.import_id(), prepared.settlement.import_id);
     assert_eq!(frozen.settlement.start_evidence_digest, scope.start_digest);
     assert!(frozen.settlement.cohort.is_empty());
-    let error = cva
+    let report = cva
         .reconstruct_historical_freshness(Default::default())
-        .unwrap_err();
+        .unwrap();
+    assert!(report.committed);
+    assert_eq!(report.import_id, frozen.import_id());
+    assert_eq!(report.reconstructed_memories, 0);
+    assert_ne!(fs::read(&path).unwrap(), before);
+    assert_eq!(cva.freshness.import_settlements().len(), 2);
+    assert_eq!(cva.freshness.import_settlements()[0], prepared.settlement);
+    let accepted = fs::read(&path).unwrap();
     assert!(
-        error
-            .to_string()
-            .contains("physical-boundary settlement replay")
+        !cva.reconstruct_historical_freshness(Default::default())
+            .unwrap()
+            .committed
     );
-    assert_eq!(fs::read(&path).unwrap(), before);
-    assert_eq!(cva.freshness.import_settlements(), &[prepared.settlement]);
+    assert_eq!(fs::read(&path).unwrap(), accepted);
     drop(cva);
+    let reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.freshness.import_settlements().len(), 2);
+    drop(reopened);
     fs::remove_file(path).unwrap();
 }
 
