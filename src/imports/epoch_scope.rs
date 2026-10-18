@@ -2,7 +2,15 @@
 use super::ImportStart;
 use crate::{Cva, CvaError, EpisodeOrigin, MemoryId};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ImportedInsomniaOutput {
+    pub episode_id: [u8; 32],
+    pub memory_ids: BTreeSet<MemoryId>,
+    pub external_memory_refs: BTreeSet<crate::MemoryRef>,
+    pub records: BTreeMap<MemoryId, crate::memory_model::MemoryRecord>,
+}
 
 pub(crate) struct ImportEpochScope {
     pub start: ImportStart,
@@ -13,6 +21,7 @@ pub(crate) struct ImportEpochScope {
     pub source_nodes: BTreeSet<(String, String)>,
     pub episodes: BTreeSet<[u8; 32]>,
     pub cohort: BTreeSet<MemoryId>,
+    pub outputs: BTreeMap<[u8; 32], ImportedInsomniaOutput>,
 }
 
 impl Cva {
@@ -146,6 +155,7 @@ impl Cva {
             Ok(())
         })?;
         let mut cohort = BTreeSet::new();
+        let mut outputs = BTreeMap::new();
         let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
         scan.visit_payloads_through::<CvaError>(through, |object, payload| {
             let chunk = object.legacy_bytes();
@@ -157,18 +167,39 @@ impl Cva {
                 .map_err(|error| CvaError::Freshness(error.into()))?
             {
                 if episodes.contains(&completion.episode_id.0) {
-                    for id in completion.freshness_birth_memory_ids {
-                        let record = completion
-                            .records
-                            .iter()
-                            .find(|r| r.id == id && r.revision == 1)
-                            .ok_or_else(|| {
-                                CvaError::Freshness(
-                                    "import birth has no first-publication record".into(),
-                                )
-                            })?;
-                        if record.source_episode_id != Some(completion.episode_id)
-                            || self.memories.first_mutation_id(id)
+                    let episode_key = completion.episode_id.0;
+                    let mut memory_ids = BTreeSet::new();
+                    for id in &completion.memory_ids {
+                        if !memory_ids.insert(*id) {
+                            return Err(CvaError::Freshness(
+                                "duplicate Memory in imported Insomnia completion".into(),
+                            ));
+                        }
+                    }
+                    let external_memory_refs = completion
+                        .external_memory_refs
+                        .iter()
+                        .cloned()
+                        .collect::<BTreeSet<_>>();
+                    let mut records = BTreeMap::new();
+                    for record in completion.records.iter().cloned() {
+                        if !memory_ids.contains(&record.id)
+                            || records.insert(record.id, record).is_some()
+                        {
+                            return Err(CvaError::Freshness(
+                                "import completion Memory output evidence conflicts".into(),
+                            ));
+                        }
+                    }
+                    for id in &completion.freshness_birth_memory_ids {
+                        let record = records.get(id).ok_or_else(|| {
+                            CvaError::Freshness(
+                                "import birth has no first-publication record".into(),
+                            )
+                        })?;
+                        if record.revision != 1
+                            || record.source_episode_id != Some(completion.episode_id)
+                            || self.memories.first_mutation_id(*id)
                                 != Some(record.mutation_id.as_str())
                             || record.global_version <= start.pre.global_version
                         {
@@ -176,7 +207,22 @@ impl Cva {
                                 "import birth attribution conflicts".into(),
                             ));
                         }
-                        cohort.insert(id);
+                        cohort.insert(*id);
+                    }
+                    let evidence = super::epoch_scope::ImportedInsomniaOutput {
+                        episode_id: episode_key,
+                        memory_ids,
+                        external_memory_refs,
+                        records,
+                    };
+                    if let Some(previous) = outputs.get(&episode_key) {
+                        if previous != &evidence {
+                            return Err(CvaError::Freshness(
+                                "conflicting imported Insomnia completion receipts".into(),
+                            ));
+                        }
+                    } else {
+                        outputs.insert(episode_key, evidence);
                     }
                 }
             }
@@ -194,6 +240,7 @@ impl Cva {
             source_nodes,
             episodes,
             cohort,
+            outputs,
         })
     }
 }

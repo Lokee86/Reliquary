@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-Epoch source/cohort derivation, physical-prefix event attribution and pre-start Freshness base replay map to [Native import](native-import.md), [Maintainer map](maintainer-map.md), [Invariants](invariants.md) and [Behavioral contracts](behavioral-contracts.md). [Current limitations](current-limitations.md) records the closed new-epoch settlement path; [remaining execution](tombstone-import-history-remaining-execution-plan-2026-10-17.md) tracks incomplete incremental reconstruction and completion coordination.
+Epoch source/cohort derivation, physical-prefix event attribution and pre-start Freshness base replay map to [Native import](native-import.md), [Maintainer map](maintainer-map.md), [Invariants](invariants.md) and [Behavioral contracts](behavioral-contracts.md). [Current limitations](current-limitations.md) records the implemented completion readiness boundary and the still-closed divergent reconciliation path; [remaining execution](tombstone-import-history-remaining-execution-plan-2026-10-17.md) records sequential-import acceptance and remaining reconciliation/transform work.
 
 ## Agentic Memory retrieval coverage
 
@@ -12,7 +12,7 @@ The controller/decision modules, REL-local candidate pool and runtime agentic pr
 
 The private epoch freeze in `historical_epoch_input.rs` and `historical_manifest.rs` separates authenticated recipient context from born/affected result attribution. The [step 24 acceptance record](import-step24-attribution-acceptance-2026-10-17.md) records focused verification; persisted settlement representation remains unchanged.
 
-`src/imports/` maps to [Native historical import](native-import.md) and [API](api.md); Archive receipt/branch-aware import Episodes map to [Architecture](architecture.md), [Invariants](invariants.md) and [Storage format](storage-format.md). [Maintainer map](maintainer-map.md) routes ownership and [Behavioral contracts](behavioral-contracts.md) maps recovery/profile fixtures. Current source/format limitations are explicit in [Current limitations](current-limitations.md). The G specification remains the owner of unimplemented ACP/external-derived/host-specific work.
+`src/imports/` maps to [Native historical import](native-import.md) and [API](api.md), including read-only `Cva::native_import_readiness` reporting, exact owner-derived blockers, vector readiness status and typed PHY unsupported evidence. Archive receipt/branch-aware import Episodes map to [Architecture](architecture.md), [Invariants](invariants.md) and [Storage format](storage-format.md). [Maintainer map](maintainer-map.md) routes ownership; [Behavioral contracts](behavioral-contracts.md) maps readiness evidence, pending and terminal-failed reopen preservation, and the test-only direct store seam. The coordinator-only production append boundary and pending Dream-pass behavior through archival/deletion are documented alongside it. Current source/format limitations are explicit in [Current limitations](current-limitations.md). The G specification remains the owner of unimplemented ACP/external-derived/host-specific work.
 
 ## C8 owner/provider coverage
 

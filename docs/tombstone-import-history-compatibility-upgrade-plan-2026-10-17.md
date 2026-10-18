@@ -13,7 +13,7 @@ Implement the lifecycle, repeated-import history and compatibility upgrades defi
 
 ## Overview
 
-The original 50-step decomposition below remains the architectural work breakdown; the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) owns execution order. Steps 1–28 are accepted on the isolated integration branch, with step 28 limited to exclusive empty-import completion. **Step 29 is next:** authoritative import-attributed readiness for nonempty imports. The [execution contract](tombstone-import-history-execution-contract.md) records frozen semantics and verified progress.
+The original 50-step decomposition below remains the architectural work breakdown; the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) owns execution order. Steps 1–28 are historically accepted on the isolated integration branch, with step 28 limited to exclusive empty-import completion. Steps 29–33 are accepted on the isolated branch for owner-derived readiness, private completion authority, pending/failed recovery and sequential/native-only coverage. Step 34 destination-aware reconciliation is next. The [execution contract](tombstone-import-history-execution-contract.md) records frozen semantics and verification status.
 
 ## Related docs
 
@@ -645,7 +645,7 @@ Each phase must still run the coherent targeted tests for the completed subgraph
 
 ## 6. Original architectural work breakdown
 
-> **Execution status:** the original table is an architectural decomposition. Lifecycle convergence is committed through step 12 on `main`; isolated integration is accepted through step 28 for exclusive empty-import completion and continues at **step 29** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
+> **Execution status:** the original table is an architectural decomposition. Lifecycle convergence is committed through step 12 on `main`; steps 13–28 remain historical acceptance on the isolated integration branch. Steps 29–33 are accepted; step 34 reconciliation is next in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
 
 ### Model assignment
 
@@ -672,7 +672,7 @@ Each phase must still run the coherent targeted tests for the completed subgraph
 | **15** | **Sol** | Hard-cut `Cva::import_native` to open/resume an epoch before first mutation and retain current receipt idempotency. | Every real import has one durable start; exact completed reimport produces no new epoch. |
 | **16** | **Sol** | Add owner mutation-admission fencing for an open import epoch, reusing mounted Gateway/instance lifecycle ownership. | Ordinary writes cannot interleave inside the epoch; reads remain allowed where already safe. |
 | **17** | **Luna** | Attribute existing Import-origin Episode/Insomnia work to the epoch and add epoch-specific status queries. | Completion logic can distinguish import work from unrelated owner work. |
-| **18** | **Sol** | Define the import completion coordinator and exact readiness predicate across Insomnia, vectors, semantic work, Dream, Perception, Ego and Historical Freshness. | Completion checks import-caused work, not arbitrary future owner work. |
+| **18** | **Sol** | Define the import completion coordinator and owner-derived readiness report for exact import-attributed Insomnia, local Memory output evidence backed by exact retained InsomniaCompletion, revision-1 same-Episode Memory and matching first mutation, authenticated Historical Freshness settlement, import-born initial Dream work and due active Perception mention resolutions. Routed PHY references are typed `Memory/Unsupported`; vectors are `NotRequired` only for zero source Nodes and zero Memory outputs, otherwise `SupportedUnavailable` without completeness certification; no automatic Ego work is scheduled. | Read-only report rejects unknown/completed/noncurrent IDs, ignores unrelated owner work and never changes completed marker layout; step 29 acceptance still requires the proof matrix in the remaining plan. |
 | **19** | **Luna** | Implement open-epoch recovery/resume after crash at each native-import phase. | Same input resumes; conflicting input fails; no duplicate receipt/episode/marker. |
 | **20** | **Sol** | Replace Freshness singleton `ImportCheckpoint` model with ordered import-scoped settlement ownership. | `FreshnessStore` no longer has one authoritative `Option<ImportCheckpoint>` as its internal model. |
 | **21** | **Sol** | Define incremental Historical Freshness algorithm from `ImportStart` base projection, import cohort and import-attributable events. | Pre-import live history is immutable; affected pre-existing Memories are supported. |

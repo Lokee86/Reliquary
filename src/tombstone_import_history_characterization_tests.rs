@@ -153,6 +153,7 @@ fn repeated_native_import_is_idempotent_after_reopen() {
             .windows(8)
             .any(|w| w == b"CVAFRS03")
     );
+    crate::imports::tests::finish_current_import(&mut reopened, 210);
     let mut later = native_input();
     later.conversations[0].id = "later-conversation".into();
     later.conversations[0].messages[0].content = "later question".into();

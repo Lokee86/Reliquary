@@ -142,13 +142,60 @@ pub enum ImportEpochStatus {
     },
 }
 
-/// An inspectable reason an exclusive completion attempt left its epoch open.
+/// Import owner whose exact evidence prevents completion.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ImportReadinessOwner {
+    Archive,
+    Insomnia,
+    Memory,
+    Dream,
+    Semantic,
+    Perception,
+    Ego,
+    Freshness,
+}
+
+/// Why one import-attributed item is not ready to complete.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ImportReadinessStatus {
+    Missing,
+    Pending,
+    Failed,
+    ConflictingEvidence,
+    Unsupported,
+}
+
+/// A bounded blocker tied to one import-owned identity.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ImportReadinessBlocker {
+    pub owner: ImportReadinessOwner,
+    pub identity: String,
+    pub status: ImportReadinessStatus,
+}
+
+/// Vector support is deliberately not inferred from unrelated owner counts.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ImportVectorReadiness {
+    /// No imported source Nodes or local Insomnia Memory outputs require coverage.
+    NotRequired,
+    /// Native REL imports do not currently certify exact vector coverage.
+    SupportedUnavailable,
+}
+
+/// Owner-derived, read-only readiness evidence for the currently open import.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ImportReadinessReport {
+    pub import_id: String,
+    pub blocker: Option<ImportReadinessBlocker>,
+    pub vectors: ImportVectorReadiness,
+}
+
+/// An inspectable reason an exclusive completion attempt left its epoch open.
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ImportCompletionPending {
     MissingReceipt,
     MissingFreshnessSettlement,
-    /// Nonempty imports require the attributed readiness integration.
-    AttributedReadinessUnavailable,
+    Readiness(ImportReadinessBlocker),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

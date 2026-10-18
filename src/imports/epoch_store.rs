@@ -60,7 +60,27 @@ impl ImportEpochStore {
         Ok(())
     }
 
-    pub(crate) fn append_complete(
+    /// Completion markers may only be appended by the completion coordinator.
+    /// The opaque authority can only be constructed inside that coordinator.
+    pub(super) fn append_complete_coordinated(
+        &mut self,
+        container: &mut Container,
+        complete: ImportComplete,
+        _authority: super::completion::CompletionAuthority,
+    ) -> Result<(), ImportError> {
+        self.append_complete_inner(container, complete)
+    }
+
+    #[cfg(test)]
+    pub(super) fn append_complete(
+        &mut self,
+        container: &mut Container,
+        complete: ImportComplete,
+    ) -> Result<(), ImportError> {
+        self.append_complete_inner(container, complete)
+    }
+
+    fn append_complete_inner(
         &mut self,
         container: &mut Container,
         complete: ImportComplete,

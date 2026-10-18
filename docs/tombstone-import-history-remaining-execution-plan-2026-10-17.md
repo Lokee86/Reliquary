@@ -3,8 +3,8 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** isolated integration accepted through step 28 for exclusive completion of empty imports; nonempty attributed readiness is step 29; main promotion remains step 36
-**Next step:** 29 — import-attributed readiness
+**Status:** steps 13–33 accepted on the isolated integration branch; reconciliation/transform work remains open; main promotion remains step 36
+**Next step:** 34 — destination-aware import-epoch reconciliation
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
 ## Purpose
@@ -59,7 +59,7 @@ Source/worktree inspection against current `main` changes the interpretation of 
 - Compatibility/profile activation hardening is farther along than the old plan states but **not complete**. Current `main` rejects obvious incomplete Archive row counts, treats unversioned generation payload as inert on reopen, and requires complete current Memory-body coverage before a Memory profile is considered active. However, the current Archive coverage predicate proves row count rather than exact fragment identity; the dedicated incomplete-coverage fixture still exposes this gap. Step 51 remains a real hardening task, narrowed to exact identity/coverage and historical-fill activation boundaries.
 - `impl/compatibility-v3-retirement` is patch-equivalent to `main` (`git cherry main ...` reports both commits already applied). It is not a remaining integration lane.
 
-Steps 13–28 are accepted on `integrate/import-freshness-settlements-20261017` in `C:\!bin\workspace\Reliquary-settlement-integration-20261017`. Step 25 is `47dd885`, step 26 is `64126ee` and step 27 is `fdbe3bb`. Step 28 adds the exclusive completion coordinator with eight passing completion cases and real settlement-backed storage fixtures. Only empty imports may complete at this gate; nonempty attributed readiness is step 29. Main promotion remains step 36.
+Steps 13–28 are accepted on `integrate/import-freshness-settlements-20261017` in `C:\!bin\workspace\Reliquary-settlement-integration-20261017`. Step 25 is `47dd885`, step 26 is `64126ee` and step 27 is `fdbe3bb`. At the step-28 acceptance checkpoint, the exclusive completion coordinator had eight passing completion cases and real settlement-backed storage fixtures; only empty imports could complete under that checkpoint's implementation. Steps 29–33 now supply verified owner-derived readiness, private completion authority, pending/failed recovery and sequential/native-only coverage. Main promotion remains step 36.
 
 ### Known broader failures mapped to remaining work
 
@@ -127,15 +127,15 @@ Add a versioned settlement/replay representation authenticating physical start/b
 
 **28 — Sol — Exclusive import completion coordinator (complete on the isolated integration branch).** `Cva::complete_native_import(import_id, now_ns)` derives exact start, receipt and accepted CVAFRS05 settlement evidence internally. Acceptance covers synchronized empty-import completion, append-free exact retry/reopen, recovery after uncertain append, physical settlement-before-completion binding, pending evidence and preservation of a newer epoch's fence. Nonempty receipts remain Pending until step 29; caller-supplied proofs cannot authorize completion. Low-level visibility restriction remains step 30.
 
-**29 — Sol — Implement import-attributed readiness.** Readiness covers import-caused Insomnia, Memory publication, vectors, semantic work, Dream, Perception, Ego and Historical Freshness; unrelated owner background work must not block completion.
+**29 — Sol — Import-attributed readiness (complete on the isolated integration branch).** Expose read-only `Cva::native_import_readiness(import_id)` for the current open epoch, returning `{ import_id, blocker: Option<ImportReadinessBlocker>, vectors: ImportVectorReadiness }`. Reject unknown, completed and noncurrent IDs. Derive blockers from authoritative owner stores for only this import's exact imported EpisodeIds, local output IDs, each backed by its exact retained InsomniaCompletion record, a revision-1 same-Episode Memory record and matching retained first mutation; IDs without that evidence are Memory/ConflictingEvidence, authenticated `CVAFRS05` settlement, import-born initial Dream pass, and mention keys on each active, non-superseded Dream-processed output Memory that must terminate in Perception as Resolved or Rejected; Dormant/unresolved keys remain blockers, while only inactive, archived or superseded Memories have no mention obligation. Routed external PHY references return typed `Memory/Unsupported` because the coordinator cannot prove PHY publication/ownership. Vectors are `NotRequired` only when there are no source Nodes and no Memory outputs; otherwise report `SupportedUnavailable`, which does not certify complete vector coverage. Do not wait for semantic work outside authenticated settlement, automatic Ego work (there is no import scheduling hook), or unrelated owner work. Completed outcome/marker layout is unchanged. The focused acceptance evidence is recorded below. Existing pending Dream passes remain blockers after archival/terminal deletion; new-pass eligibility follows the Dream owner, including nonarchived superseded births.
 
-**30 — Luna — Restrict `append_complete()` to the coordinator.** No normal direct caller may complete an epoch prematurely.
+**30 — Luna — Restrict `append_complete()` to the coordinator (complete on the isolated integration branch).** No normal direct caller may complete an epoch prematurely.
 
-**31 — Luna — Pending/failed completion tests.** Import-owned pending or terminal-failed work must leave the epoch open with inspectable status.
+**31 — Luna — Pending/failed completion tests (complete on the isolated integration branch).** Import-owned pending or terminal-failed work must leave the epoch open with inspectable status.
 
-**32 — Luna — Sequential-import test.** Import A → normal activity → import B → normal activity. B starts from A's completed canonical state and creates a distinct ordered settlement.
+**32 — Luna — Sequential-import test (complete on the isolated integration branch).** Import A → normal activity → import B → normal activity. B starts from A's completed canonical state and creates a distinct ordered settlement.
 
-**33 — Luna — Native-only REL test.** A REL with no imports has zero import markers and otherwise behaves normally.
+**33 — Luna — Native-only REL test (complete on the isolated integration branch).** A REL with no imports has zero import markers and otherwise behaves normally.
 
 **34 — Sol — Import-epoch reconciliation.** Same ID + exact evidence dedupes; conflicting same ID rejects; one-sided complete imports replay as one complete epoch with destination watermarks.
 
@@ -238,7 +238,37 @@ integrate existing Freshness settlements
 -> final docs/audit/tests/cleanup
 ```
 
-The next executable action is **step 29: import-attributed readiness** across the authoritative downstream owners. Step 28 is accepted only for exclusive empty-import completion. Low-level completion visibility restriction remains step 30; nonempty pending/failed, sequential and transform acceptance remain steps 31–35. Main promotion remains step 36.
+Steps 29–33 are accepted for the bounded REL-only readiness/completion contract below. Main promotion remains step 36; destination-aware reconciliation and transform acceptance remain steps 34–35.
+
+### Steps 29–33 acceptance (2026-10-18)
+
+`Cva::native_import_readiness(import_id)` derives exact owner evidence without writing bytes, advancing clocks or opening the epoch fence. Local output IDs require their retained same-epoch InsomniaCompletion, revision-1 same-Episode Memory and first-mutation chain. An authenticated scoped settlement covers semantic/Freshness work and preserves the distinction between born Memories and affected existing recipients. Required initial Dream work and active nonsuperseded Dream-processed mention keys must finish; Perception Resolved/Rejected are terminal, while unresolved/Dormant keys block. A pass already pending before archival or terminal deletion still blocks; new passes obey Dream's eligibility rules. Nonarchived superseded births still require their pass. Unrelated pending work and unscheduled Ego work do not block.
+
+PHY references remain `Memory/Unsupported`. Vector status is `NotRequired` only with no source Nodes and no Memory outputs; otherwise `SupportedUnavailable` reports unavailable certification, not vector completeness. Empty imports still require an authenticated true no-op settlement. No persisted format changes were introduced.
+
+Production completion append requires an opaque coordinator authority whose constructor is private to `completion.rs`; the direct append seam exists only under `cfg(test)` for storage fixtures. Pending and terminal-failed imported work retains an inspectable blocker, unchanged bytes/clocks and the closed write fence across reopen. Real sequential nonempty imports A and B, separated by live activity, create distinct ordered settlements and survive reopen/exact completion retry. Native-only REL rebuild retains zero epoch markers.
+
+Verification:
+- Final import module run: **48 passed, 2 failed** (50 cases). All readiness, completion, recovery, sequencing and native-only acceptance cases pass. The two failures are the retained divergent-reconciliation fixtures `divergent_source_revision_conflicts_preserve_both_inputs` and `import_receipt_survives_reclaim_and_divergent_reconciliation`: both currently attempt another import with an open epoch. They remain step-34 work; refusal guards are preserved.
+- Repeated native-import characterization after real processing/settlement/completion: **1 passed**. Four ordinary repeated-import fixtures now use that same real lifecycle rather than raw completion markers.
+- Earlier broad run: **1,418 library passed, 27 failed, 5 ignored; all 141 integration tests passed**. It preceded the four fixture repairs, characterization repair and final archived-pending regression. Nine local mock-server/filesystem failures passed on recheck with normal OS access. Three external-window failures persist outside the sandbox; baseline comparison could not execute because dependency artifacts were missing. They remain unresolved, without a pre-existing-failure claim. Remaining historical embedding/source/migration/vector-coverage failures stay mapped to later work; this is not a green full-suite claim.
+- Library `cargo check --tests --locked` and CLI check passed before the final small fixture/regression edits. Final library test source compiles in the focused run; the final CLI run also compiles the production library and passes **22/22 CLI tests**. The step-28 external-workflow comparison failed during dependency compilation (`E0463` missing crates), before test execution; cache-only fingerprint repair does not establish a baseline test result.
+- Library/CLI formatting and whitespace checks pass. Both final documentation-policy modes report the same five existing Ego findings. Architecture evidence is recorded below.
+
+Documentation impact:
+- Inspected: repository/shared guidance, architecture, invariants, storage format, maintainer map, limitations, roadmap, version-history plan/ADR 0002, native-import/API/behavioral references and execution plans.
+- Updated: API/readiness/completion contract, ownership, recovery, storage-format commentary, coverage routing and active execution pointers.
+- Not affected: persisted marker/receipt formats, CLI syntax, normalization schemas, authoritative retained fixtures and prior acceptance records.
+- Compliance check: both policy modes retain the five existing Ego findings (one broken index link and four missing decision-inventory sections); final rerun is recorded below.
+- Known documentation gaps: those existing Ego findings remain outside this batch.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: Import/CVA derives readiness from exact Archive/Insomnia/Memory/Dream/Perception/Freshness authority. Container retains generic mechanics; no new owner, proof flag or Ego scheduling hook is introduced. Production append authority is confined to the coordinator.
+- Pitlord enforcement impact: source guards pass 92 multiplexing fixtures/166 classified APIs and 11 external-ownership fixtures plus production boundaries. Refresh reached Lexicon Rust analysis and was stopped after stalling; no Arcana/Pitlord structural pass is claimed.
+- Other verification impact: exact local output provenance, affected existing recipients, unrelated work, archived/superseded Dream rules, terminal Perception, unsupported PHY, pending/failed reopen, sequential imports and native-only REL are covered.
+- Known architectural gaps: destination-aware reconciliation (34), transform acceptance (35), scoped vector certification and mounted PHY publication remain open. No large-owner performance claim is added.
+
 
 ## Related docs
 
@@ -399,7 +429,7 @@ Architecture impact: no production implementation, ownership, format, standard o
 
 The implementation in `src/imports/completion.rs` exposes the offline/exclusive `Cva::complete_native_import(import_id, now_ns)` operation. It derives the start, canonical Archive receipt and accepted scoped CVAFRS05 settlement rather than accepting caller-supplied proof. The existing ImportComplete layout binds canonical start/receipt digests, the exact settlement payload digest and owner post cuts. No semantic clock or persisted format is added.
 
-Only a receipt with zero conversations and an authenticated empty-effect, non-advancing settlement currently proves readiness. Missing receipt/settlement evidence returns typed Pending; every nonempty receipt returns AttributedReadinessUnavailable and stays fenced until step 29 supplies attributed readiness. Completion does not run reconstruction or bypass workers. This is a real empty-import completion path, not acceptance of nonempty import completion.
+At the step-28 acceptance checkpoint, only a receipt with zero conversations and an authenticated empty-effect, non-advancing settlement proved readiness. Missing receipt/settlement evidence returned typed Pending; every nonempty receipt returned `AttributedReadinessUnavailable` and stayed fenced pending step 29. Completion did not run reconstruction or bypass workers. This historical checkpoint is not the current implementation contract: steps 29–33 now provide verified owner-attributed readiness and bounded completion coverage.
 
 Physical scans authenticate settlement-before-completion order and retain only small per-import completion evidence. Reopen validates this binding after existing historical settlement validation. Publication uses a staged epoch store, synchronizes before acknowledgement and releases ordinary admission only afterward. A retry rescans physical markers so a frame accepted before an uncertain append/sync outcome is not appended again. Completed retries return the original marker, preserving newer activity and any newer open epoch's fence.
 
@@ -407,7 +437,7 @@ Existing storage fixtures now derive real zero-output Insomnia completion and ac
 
 Step 28 is accepted for the bounded exclusive empty-import coordinator. Fresh verification: all eight completion cases pass; the full import selection is 29 passed and six failed, with those six blocked by the existing nonempty completion/sequencing/reconciliation gaps. The full Cargo-built library test executable completes with 1,416 passed, 15 failed and 5 ignored, including both exhaustive historical byte-prefix recovery cases passing. Its 15 failures remain in historical embedding/profile coverage, nonempty import continuation/sequencing and pre-UUID migration; none is a completion-coordinator regression. The library and CLI compile successfully under `cargo test --manifest-path cli/Cargo.toml --locked --jobs 1`, and all 22 CLI tests pass. The standalone `cargo check --locked --jobs 1` fails before Reliquary because tempfile cannot find freshly built windows-sys/once_cell metadata; this cache failure is not reported as a successful check. The first import test build hit schannel E0463; a targeted dependency-cache cleanup and serial rebuild produced the verified executable. The only subsequent test-source cleanup removes an unused glob import.
 
-Formatting and whitespace checks pass. Both documentation-policy modes report the same five pre-existing Ego findings. Architecture source guards pass 92 multiplexing fixtures, 166 classified APIs and 11 external-owner fixtures plus production-boundary checks. The refresh attempt is stopped after reaching Lexicon Rust analysis; no Arcana/Pitlord structural pass is claimed. These broader limitations remain visible and do not authorize nonempty completion. Step 29 is next; main promotion remains step 36.
+Formatting and whitespace checks pass. Both documentation-policy modes report the same five pre-existing Ego findings. Architecture source guards pass 92 multiplexing fixtures, 166 classified APIs and 11 external-owner fixtures plus production-boundary checks. The refresh attempt is stopped after reaching Lexicon Rust analysis; no Arcana/Pitlord structural pass is claimed. These broader limitations remain visible and do not authorize nonempty completion. Steps 29–33 are now accepted as recorded above; main promotion remains step 36.
 
 Documentation impact:
 - Inspected: repository/shared guidance, architecture, invariants, storage format, maintainer map, limitations, roadmap, version-history plan/ADR 0002, native-import/API/behavioral references and active execution plans.
@@ -422,3 +452,10 @@ Architecture impact:
 - Pitlord enforcement impact: existing native-import ownership area covers the coordinator; its description is updated. Visibility restriction of low-level append_complete remains step 30; storage-only tests still exercise that seam directly. Source guards pass; Arcana/Pitlord structural refresh remains unverified.
 - Other verification impact: focused cases cover empty completion, exact retry/reopen, pending evidence, invalid identity/time, uncertain append, mismatched digest, physical ordering and preservation of a newer open fence.
 - Known architectural gaps: nonempty attributed readiness (step 29), scoped workers, full pending/terminal-failure owner matrix (step 31), completed nonempty sequencing and transform/reconciliation acceptance remain later work. Completion attempts scan physical owner history; no new large-owner performance acceptance is claimed.
+
+
+## Step 34 replay investigation (2026-10-18)
+
+Read-only investigation confirms that divergent reconciliation must preserve epoch ordering before its current guards can be removed. `cva_reconcile_freshness::validate_freshness` and `FreshnessStore::replay_entries` refuse accepted settlements; divergent repack currently replays semantic owner tails without import markers. The physical-copy validation in `historical_import_transform.rs` covers unchanged coordinates, not destination rebasing.
+
+A destination replay must classify exact duplicates, one-sided completed epochs and conflicting same-ID evidence before output creation. A one-sided epoch requires destination pre/post watermarks, a coherent import-owned replay interval, destination start/freeze prefixes and prefix digest, and a settlement before its completion marker. Reusing source offsets or simply removing refusal guards would lose authority. Cross-branch Freshness effects and subsequent epochs must retain destination event order and canonical base state. This investigation does not accept step 34 or authorize main promotion.

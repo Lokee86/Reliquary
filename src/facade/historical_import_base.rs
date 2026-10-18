@@ -191,6 +191,7 @@ mod tests {
             source_nodes: BTreeSet::new(),
             episodes: BTreeSet::new(),
             cohort: BTreeSet::new(),
+            outputs: BTreeMap::new(),
         };
         let base = cva.historical_import_base(&scope).unwrap();
         assert_eq!(base.get(&memory), Some(&expected));

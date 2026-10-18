@@ -1,6 +1,7 @@
 use crate::imports::{
     ImportBranch, ImportComplete, ImportCompletionOutcome, ImportCompletionPending,
-    ImportConversation, ImportMessage, ImportStart, ImportWatermarks, NativeImport,
+    ImportConversation, ImportMessage, ImportReadinessOwner, ImportReadinessStatus, ImportStart,
+    ImportVectorReadiness, ImportWatermarks, NativeImport,
 };
 use crate::{Container, Cva, HistoricalReconstructionOptions};
 use sha2::{Digest, Sha256};
@@ -155,11 +156,15 @@ fn empty_receipt_completes_only_with_real_freshness_settlement_and_exact_retry()
         .import_settlement(reconstructed.import_id)
         .expect("accepted scoped freshness settlement");
     assert!(settlement.epoch.is_some());
-    assert!(settlement.encode().starts_with(b"CVAFRS05"));
-    let settlement_digest = Sha256::digest(settlement.encode())
+    let settlement_bytes = settlement.encode();
+    assert!(settlement_bytes.starts_with(b"CVAFRS05"));
+    let settlement_digest = Sha256::digest(&settlement_bytes)
         .iter()
         .map(|byte| format!("{byte:02x}"))
         .collect::<String>();
+    let readiness = cva.native_import_readiness(&start.import_id).unwrap();
+    assert!(readiness.blocker.is_none());
+    assert_eq!(readiness.vectors, ImportVectorReadiness::NotRequired);
 
     let before_complete = watermarks(&cva);
     let completed = cva.complete_native_import(&start.import_id, 300).unwrap();
@@ -235,10 +240,14 @@ fn nonempty_receipt_stays_pending_without_changing_readiness_or_bytes() {
     let before_clocks = clocks(&cva);
     let before_statuses = cva.import_epoch_statuses();
 
-    assert_eq!(
-        cva.complete_native_import(&start.import_id, 200).unwrap(),
-        ImportCompletionOutcome::Pending(ImportCompletionPending::AttributedReadinessUnavailable)
-    );
+    let outcome = cva.complete_native_import(&start.import_id, 200).unwrap();
+    let ImportCompletionOutcome::Pending(ImportCompletionPending::Readiness(blocker)) = outcome
+    else {
+        panic!("expected source-without-episode readiness blocker, got {outcome:?}");
+    };
+    assert_eq!(blocker.owner, ImportReadinessOwner::Insomnia);
+    assert_eq!(blocker.status, ImportReadinessStatus::Pending);
+    assert!(!blocker.identity.is_empty());
     assert_eq!(fs::read(&path).unwrap(), before_bytes);
     assert_eq!(clocks(&cva), before_clocks);
     assert_eq!(cva.import_epoch_statuses(), before_statuses);
@@ -256,6 +265,7 @@ fn unknown_id_and_pre_start_time_fail_without_writing() {
     let before_clocks = clocks(&cva);
     let before_statuses = cva.import_epoch_statuses();
 
+    assert!(cva.native_import_readiness("unknown-import-id").is_err());
     assert!(
         cva.complete_native_import("unknown-import-id", 200)
             .is_err()
@@ -487,3 +497,8 @@ fn reopen_rejects_completion_physically_before_its_settlement() {
     assert!(Cva::open(&path).is_err());
     assert_eq!(fs::read(&path).unwrap(), reordered_bytes);
 }
+
+#[path = "readiness_recovery_tests.rs"]
+mod readiness_recovery_tests;
+#[path = "readiness_tests.rs"]
+mod readiness_tests;

@@ -1,5 +1,9 @@
 use super::*;
-use crate::{Cva, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
+use crate::{
+    Cva, EpisodeConfig, EpisodeId, EpisodeOrigin, InsomniaExtractor, InsomniaPriority,
+    InsomniaWorkState, SimulatedGeneralEndpoint,
+};
+use serde_json::{Map, json};
 use sha2::Digest;
 use std::{collections::BTreeSet, fs, path::PathBuf};
 
@@ -66,6 +70,90 @@ fn text(cva: &mut Cva, receipt: &ImportReceipt, branch: usize) -> Vec<String> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+fn complete_zero_output_claim(cva: &mut Cva, claim: &crate::InsomniaWork, now_ns: i64) {
+    let turns = cva.episode_turns(claim.episode_id).unwrap();
+    let mut turn_responses = Map::new();
+    for turn in turns.iter().filter(|turn| turn.role == "user") {
+        turn_responses.insert(
+            turn.node_id.clone(),
+            json!([{
+                "disposition": "omit",
+                "authority_kind": "none",
+                "category": "none",
+                "type": "none",
+                "lifecycle": "none",
+                "proposition": "",
+                "authority_source_node_id": "",
+                "grounding_source_node_id": "",
+                "reason": "zero-output native import fixture"
+            }]),
+        );
+    }
+    let extractor = InsomniaExtractor::new(SimulatedGeneralEndpoint::new(
+        "native-import-fixture",
+        vec![json!({"turns": turn_responses, "evidence_requests": []})],
+    ));
+    let result = cva
+        .process_claimed_insomnia_episode(claim, &extractor, "private", now_ns, now_ns + 1)
+        .unwrap();
+    assert!(result.created.is_empty());
+}
+
+pub(crate) fn finish_current_import(cva: &mut Cva, now_ns: i64) {
+    if let Some(start) = cva.open_import_epoch() {
+        let scope = cva.import_epoch_scope().unwrap();
+        cva.container.set_owner_write_scope(true);
+        let mut pending = BTreeSet::new();
+        for episode_key in &scope.episodes {
+            let episode_id = EpisodeId(*episode_key);
+            let work = cva
+                .insomnia_work(episode_id)
+                .expect("exact imported Episode has Insomnia work");
+            if work.state == InsomniaWorkState::Complete {
+                assert!(
+                    scope.outputs.contains_key(episode_key),
+                    "a completed Episode must have its exact in-epoch completion evidence"
+                );
+                continue;
+            }
+
+            assert_eq!(work.state, InsomniaWorkState::Pending);
+            pending.insert(*episode_key);
+        }
+        while !pending.is_empty() {
+            let claim = cva
+                .claim_insomnia_episode("native-import-fixture", now_ns, 1_000)
+                .unwrap()
+                .expect("pending scoped Import Episode");
+            assert!(pending.remove(&claim.episode_id.0));
+            complete_zero_output_claim(cva, &claim, now_ns);
+        }
+        cva.container.set_owner_write_scope(false);
+
+        // A revision can reuse source Nodes whose Episode predates this epoch;
+        // the exact scope is then empty, but the real no-output settlement still
+        // authenticates the import before the coordinator releases the fence.
+        let report = cva
+            .reconstruct_historical_freshness(crate::HistoricalReconstructionOptions::default())
+            .unwrap();
+        assert!(report.committed, "accepted scoped Freshness settlement");
+        let settlement = cva
+            .freshness
+            .import_settlement(report.import_id)
+            .expect("current import's accepted settlement");
+        assert!(settlement.epoch.is_some());
+        assert!(settlement.encode().starts_with(b"CVAFRS05"));
+        assert!(matches!(
+            cva.complete_native_import(&start.import_id, now_ns + 2)
+                .unwrap(),
+            ImportCompletionOutcome::Completed {
+                committed: true,
+                ..
+            }
+        ));
+    }
 }
 
 #[test]
@@ -246,9 +334,11 @@ fn edits_deletions_and_replacements_keep_historical_evidence() {
     let mut cva = Cva::create(f.rel("a.rel")).unwrap();
     let mut incoming = input();
     let original = cva.import_native(&incoming, 100).unwrap();
+    finish_current_import(&mut cva, 110);
     incoming.conversations[0].messages[1].content = "edited".into();
     incoming.conversations[0].messages[1].revision = Some("2".into());
     let edited = cva.import_native(&incoming, 200).unwrap();
+    finish_current_import(&mut cva, 210);
     assert_eq!(
         original.conversations[0].conversation_id,
         edited.conversations[0].conversation_id
@@ -259,6 +349,7 @@ fn edits_deletions_and_replacements_keep_historical_evidence() {
     incoming.conversations[0].messages[1].content.clear();
     incoming.conversations[0].messages[1].revision = Some("3".into());
     let deleted = cva.import_native(&incoming, 300).unwrap();
+    finish_current_import(&mut cva, 310);
     assert_eq!(text(&mut cva, &deleted, 0), ["question"]);
     assert!(
         deleted.conversations[0]
@@ -279,6 +370,7 @@ fn edits_deletions_and_replacements_keep_historical_evidence() {
         .replaces = Some("a".into());
     incoming.conversations[0].branches[0].leaf_message_id = "replacement".into();
     let replacement = cva.import_native(&incoming, 400).unwrap();
+    finish_current_import(&mut cva, 410);
     assert_eq!(text(&mut cva, &replacement, 0), ["question", "replacement"]);
     assert!(
         replacement.conversations[0]
@@ -298,49 +390,66 @@ fn edits_deletions_and_replacements_keep_historical_evidence() {
     assert_eq!(cva.native_import_receipts().len(), 4);
 }
 #[test]
-fn new_snapshot_preserves_leased_and_completed_insomnia_work() {
+fn conflicting_snapshot_rejects_open_lease_then_completed_work_survives_retry() {
     let f = Fixture::new();
     let path = f.rel("a.rel");
     let mut cva = Cva::create(&path).unwrap();
     let mut incoming = input();
-    cva.import_native(&incoming, 100).unwrap();
+    let receipt = cva.import_native(&incoming, 100).unwrap();
+    cva.container.set_owner_write_scope(true);
     let claim = cva
         .claim_insomnia_episode("worker", 110, 1000)
         .unwrap()
         .unwrap();
+    cva.container.set_owner_write_scope(false);
+    let open_bytes = fs::read(&path).unwrap();
+    let open_clocks = current_watermarks(&cva);
     incoming.conversations[0].title = Some("Renamed".into());
-    cva.import_native(&incoming, 120).unwrap();
+    assert!(cva.import_native(&incoming, 120).is_err());
+    assert_eq!(fs::read(&path).unwrap(), open_bytes);
+    assert_eq!(current_watermarks(&cva), open_clocks);
     assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), &claim);
-    let complete = cva
-        .complete_insomnia_episode(
-            claim.episode_id,
-            claim.lease_token.unwrap(),
-            110,
-            130,
-            "model".into(),
-            "test".into(),
-            vec![],
-            0,
-        )
-        .unwrap();
+
+    // The exact A retry remains safe while the lease is active and leaves the
+    // byte stream and owner clocks unchanged.
+    let original = input();
+    assert_eq!(cva.import_native(&original, 130).unwrap(), receipt);
+    assert_eq!(fs::read(&path).unwrap(), open_bytes);
+    assert_eq!(current_watermarks(&cva), open_clocks);
+    assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), &claim);
+
+    cva.container.set_owner_write_scope(true);
+    complete_zero_output_claim(&mut cva, &claim, 140);
+    cva.container.set_owner_write_scope(false);
+    finish_current_import(&mut cva, 150);
+    assert!(cva.open_import_epoch().is_none());
+    assert_eq!(
+        cva.insomnia_work(claim.episode_id).unwrap().state,
+        InsomniaWorkState::Complete
+    );
+
     incoming.conversations[0].title = Some("Renamed again".into());
-    cva.import_native(&incoming, 140).unwrap();
-    assert_eq!(cva.insomnia_work(claim.episode_id).unwrap(), &complete);
+    let renamed = cva.import_native(&incoming, 160).unwrap();
+    finish_current_import(&mut cva, 170);
+    assert_eq!(
+        cva.insomnia_work(claim.episode_id).unwrap().state,
+        InsomniaWorkState::Complete
+    );
     assert_eq!(cva.episodes().len(), 1);
     assert!(
-        cva.claim_insomnia_episode("other", 150, 100)
+        cva.claim_insomnia_episode("other", 180, 100)
             .unwrap()
             .is_none()
     );
     drop(cva);
     let mut cva = Cva::open(path).unwrap();
-    cva.import_native(&incoming, 160).unwrap();
+    assert_eq!(cva.import_native(&incoming, 200).unwrap(), renamed);
     assert_eq!(
         cva.insomnia_work(claim.episode_id).unwrap().state,
         crate::InsomniaWorkState::Complete
     );
     assert!(
-        cva.claim_insomnia_episode("other", 170, 100)
+        cva.claim_insomnia_episode("other", 210, 100)
             .unwrap()
             .is_none()
     );
@@ -353,6 +462,7 @@ fn source_namespaces_and_rel_owners_remain_independent() {
     let original = left.import_native(&input(), 100).unwrap();
     assert!(right.native_import_receipts().is_empty());
     assert_eq!(right.stats().nodes, 0);
+    finish_current_import(&mut left, 110);
     let mut other = input();
     other.source_namespace = "agent/account-2".into();
     let second = left.import_native(&other, 200).unwrap();
@@ -643,6 +753,7 @@ fn imported_branch_can_continue_natively_without_invalidating_receipt() {
         canonical: false,
     });
     let receipt = cva.import_native(&incoming, 100).unwrap();
+    finish_current_import(&mut cva, 110);
     let c = &receipt.conversations[0];
     let b = &c.branches[0];
     cva.append_node(
@@ -672,6 +783,7 @@ fn imported_branch_can_continue_natively_without_invalidating_receipt() {
     );
     incoming.conversations[0].title = Some("Changed source title".into());
     cva.import_native(&incoming, 350).unwrap();
+    finish_current_import(&mut cva, 360);
     assert_eq!(
         cva.branches()
             .iter()

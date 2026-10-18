@@ -1,4 +1,11 @@
 //! Exclusive import completion composition; stores retain their own evidence.
+
+/// Unforgeable authority for appending an import completion marker.
+/// Its private field confines construction to this coordinator module.
+pub(super) struct CompletionAuthority {
+    _private: (),
+}
+
 use super::{
     ImportComplete, ImportCompletionOutcome, ImportCompletionPending, ImportEpochStatus,
     ImportEpochStore, ImportError, ImportStart, epoch_codec, prepare,
@@ -29,6 +36,18 @@ struct AcceptedSettlement {
     memory_graph: u64,
 }
 
+pub(super) fn settlement_is_current(
+    cva: &Cva,
+    settlement: &HistoricalImportFreshnessSettlement,
+) -> bool {
+    let post = cva.import_watermarks();
+    settlement.settlement_cut == cva.rel_turn_count()
+        && settlement.global_version == post.global_version
+        && settlement.archive_version == post.archive_version
+        && settlement.graph_version == post.graph_version
+        && settlement.memory_graph_version == post.memory_graph_version
+}
+
 fn validate_binding(
     start: &ImportStart,
     settlement: &HistoricalImportFreshnessSettlement,
@@ -53,8 +72,7 @@ fn validate_binding(
 impl Cva {
     /// Explicit offline/exclusive completion. Call after historical settlement.
     /// No caller-supplied digests or readiness assertions authorize publication.
-    /// Until attributed readiness is integrated, only empty imports can complete;
-    /// all nonempty receipts return Pending and retain the ordinary-write fence.
+    /// The coordinator derives every readiness decision from owner evidence.
     pub fn complete_native_import(
         &mut self,
         import_id: &str,
@@ -97,43 +115,29 @@ impl Cva {
         {
             return Err(epoch_error("completion receipt/start identity mismatch"));
         }
-        // This is a vacuous readiness proof only: no imported conversation,
-        // source, Episode, birth or downstream work exists. Step 29 replaces
-        // this conservative gate with owner-derived attributed readiness.
-        if !receipt.conversations.is_empty() {
-            return Ok(ImportCompletionOutcome::Pending(
-                ImportCompletionPending::AttributedReadinessUnavailable,
-            ));
-        }
-        let Some(settlement) = self
+        // Derive scoped owner work first. Missing or failed imported work
+        // remains observable even before historical freshness has settled.
+        let settlement = self
             .freshness
             .import_settlements()
             .iter()
             .find(|settlement| id_text(&settlement.import_id) == start.import_id)
-            .cloned()
-        else {
+            .cloned();
+        if let Some(blocker) =
+            self.derive_import_readiness(&start, &receipt, settlement.as_ref())?
+        {
+            return Ok(ImportCompletionOutcome::Pending(
+                ImportCompletionPending::Readiness(blocker),
+            ));
+        }
+        let Some(settlement) = settlement else {
             return Ok(ImportCompletionOutcome::Pending(
                 ImportCompletionPending::MissingFreshnessSettlement,
             ));
         };
         validate_binding(&start, &settlement)?;
-        let scope = settlement.epoch.as_ref().expect("validated epoch binding");
-        if !scope.source_nodes.is_empty()
-            || !scope.born_memories.is_empty()
-            || !settlement.cohort.is_empty()
-            || !settlement.records.is_empty()
-            || !settlement.superseded.is_empty()
-            || settlement.base_cut != settlement.settlement_cut
-        {
-            return Err(epoch_error("empty import has nonempty settlement effects"));
-        }
         let post = self.import_watermarks();
-        if settlement.settlement_cut != self.rel_turn_count()
-            || settlement.global_version != post.global_version
-            || settlement.archive_version != post.archive_version
-            || settlement.graph_version != post.graph_version
-            || settlement.memory_graph_version != post.memory_graph_version
-        {
+        if !settlement_is_current(self, &settlement) {
             return Err(epoch_error("completion settlement cut is stale"));
         }
         let complete = ImportComplete {
@@ -146,7 +150,11 @@ impl Cva {
             historical_freshness_settlement_digest: settlement_digest(&settlement),
         };
         let result = self.with_import_write_scope(|cva| {
-            epochs.append_complete(&mut cva.container, complete.clone())
+            epochs.append_complete_coordinated(
+                &mut cva.container,
+                complete.clone(),
+                CompletionAuthority { _private: () },
+            )
         });
         // Store append changes its own local state and admission. Keep the
         // original owner state and fence until sync-before-acknowledgement.
@@ -163,7 +171,7 @@ impl Cva {
 
     /// Rebuild validates physical settlement-before-completion ordering as well
     /// as exact accepted evidence. This also recovers uncertain append retries.
-    fn completion_epochs_from_bytes(&self) -> Result<ImportEpochStore, CvaError> {
+    pub(super) fn completion_epochs_from_bytes(&self) -> Result<ImportEpochStore, CvaError> {
         let mut epochs = ImportEpochStore::default();
         let mut settlements = BTreeMap::new();
         let mut scan = Container::open_read_only_for_scan(self.container.path())?;
