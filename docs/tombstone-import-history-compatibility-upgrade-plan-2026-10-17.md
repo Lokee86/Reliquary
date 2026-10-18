@@ -13,7 +13,7 @@ Implement the lifecycle, repeated-import history and compatibility upgrades defi
 
 ## Overview
 
-The original 50-step decomposition below remains the architectural work breakdown, but its execution order has been superseded by the convergence sequence actually being used. Steps 1–25 of the convergence/integration sequence are accepted on the isolated integration branch; **step 26 is next**. Use the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) for authoritative step numbering and the [execution contract](tombstone-import-history-execution-contract.md) for frozen semantics and verified progress.
+The original 50-step decomposition below remains the architectural work breakdown, but its execution order has been superseded by the convergence sequence actually being used. Steps 1–26 of the convergence/integration sequence are accepted on the isolated integration branch; **step 27 is next**. Use the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) for authoritative step numbering and the [execution contract](tombstone-import-history-execution-contract.md) for frozen semantics and verified progress.
 
 ## Related docs
 
@@ -645,7 +645,7 @@ Each phase must still run the coherent targeted tests for the completed subgraph
 
 ## 6. Original architectural work breakdown
 
-> **Execution status:** this 50-step table is no longer the authoritative execution order. It is retained as the original architectural decomposition. Lifecycle convergence is committed through step 12; isolated integration has accepted steps 13–25 and continues at **step 26** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
+> **Execution status:** this 50-step table is no longer the authoritative execution order. It is retained as the original architectural decomposition. Lifecycle convergence is committed through step 12; isolated integration has accepted steps 13–26 and continues at **step 27** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
 
 ### Model assignment
 

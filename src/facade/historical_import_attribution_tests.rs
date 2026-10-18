@@ -7,6 +7,9 @@ use crate::{
 };
 use serde_json::{Map, json};
 
+#[path = "historical_import_accepted_use_tests.rs"]
+mod accepted_use_tests;
+
 fn imported_snapshot(id: &str) -> NativeImport {
     let mut messages = Vec::new();
     let mut parent = None;

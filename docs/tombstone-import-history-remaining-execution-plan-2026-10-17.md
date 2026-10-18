@@ -3,8 +3,8 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** authoritative continuation; isolated integration accepted through step 25; authenticated incremental settlement publication/replay is complete
-**Next step:** 26
+**Status:** authoritative continuation; isolated integration accepted through step 26; later-import accepted-use preservation is verified
+**Next step:** 27
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
 ## Purpose
@@ -59,7 +59,7 @@ Source/worktree inspection against current `main` changes the interpretation of 
 - Compatibility/profile activation hardening is farther along than the old plan states but **not complete**. Current `main` rejects obvious incomplete Archive row counts, treats unversioned generation payload as inert on reopen, and requires complete current Memory-body coverage before a Memory profile is considered active. However, the current Archive coverage predicate proves row count rather than exact fragment identity; the dedicated incomplete-coverage fixture still exposes this gap. Step 51 remains a real hardening task, narrowed to exact identity/coverage and historical-fill activation boundaries.
 - `impl/compatibility-v3-retirement` is patch-equivalent to `main` (`git cherry main ...` reports both commits already applied). It is not a remaining integration lane.
 
-Steps 13–25 are integrated and accepted on the isolated lifecycle-converged branch. Step 24 separates epoch source/birth evidence, authenticated pre-start recipient context and born/affected result IDs; step 25 adds authenticated sparse CVAFRS05 publication/replay from the physical ImportStart base. The next executable action is step 26; main promotion remains step 36. [Step 24 acceptance](import-step24-attribution-acceptance-2026-10-17.md) remains the attribution baseline; step-25 settlement/replay verification is recorded below.
+Steps 13–26 are integrated and accepted on the isolated lifecycle-converged branch. Step 24 separates epoch source/birth evidence, authenticated pre-start recipient context and born/affected result IDs; step 25 adds authenticated sparse CVAFRS05 publication/replay from the physical ImportStart base. The next executable action is step 27; main promotion remains step 36. [Step 24 acceptance](import-step24-attribution-acceptance-2026-10-17.md) remains the attribution baseline; step-25 settlement/replay verification is recorded below.
 
 ### Known broader failures mapped to remaining work
 
@@ -119,7 +119,7 @@ These are explicit acceptance items for the named steps. They must not be 'fixed
 
 Add a versioned settlement/replay representation authenticating physical start/base and exact source/cohort evidence while preserving CVAFRS03/CVAFRS04 compatibility. Persist affected sparse replacements and authenticated zero-result/zero-activity no-ops. Distinguish same-cut effects by accepted identity/order, preserve generating-Episode/publication-cohort exclusions for existing recipients and reused/grounding sources, and keep conversion/reconciliation closed until ordered settlement boundaries are retained.
 
-**26 — Luna — Later-import accepted-use fixture.** Prove pre-import accepted-use/live Freshness events survive later import settlement unchanged.
+**26 — Luna — Later-import accepted-use fixture (complete on the isolated integration branch).** Prove pre-import accepted-use/live Freshness events survive later import settlement unchanged.
 
 **27 — Luna — Existing-Memory affected fixture.** Prove imported historical semantic/Dream evidence can legitimately update an eligible pre-existing Memory while unrelated Memories remain untouched.
 
@@ -238,7 +238,7 @@ integrate existing Freshness settlements
 -> final docs/audit/tests/cleanup
 ```
 
-The next executable action is **step 26**: add the later-import accepted-use fixture on the accepted step 25 settlement/replay base. Step 27 then proves legitimate existing-Memory effects while unrelated Memories remain untouched. Main promotion remains step 36; ordinary scoped worker admission and completion coordination remain later work.
+The next executable action is **step 27**: prove legitimate imported historical effects on an existing Memory while unrelated Memories remain untouched, building on the accepted step 26 receipt-preservation fixture. Main promotion remains step 36; ordinary scoped worker admission and completion coordination remain later work.
 
 ## Related docs
 
@@ -359,3 +359,21 @@ Architecture impact:
 - Known architectural gaps: completion/readiness, scoped worker admission, scoped embedding fill, sequential completed-epoch acceptance and physical-boundary conversion remain later work. Equal-cut identity lookup is bounded-memory prefix scanning, without a new production performance claim. An expanded source-terminal fixture exposed an existing Insomnia reopen dependency on current-only Episodes (`Insomnia(MissingEpisode)`); scope authentication now uses retained paths, while end-to-end completed-work/source-tombstone lifecycle acceptance remains open before promotion.
 
 Final step-25 repository gates: `cargo fmt --all -- --check` and `git diff --check` pass; the multiplexing coverage guard passes 92 fixtures and classifies 166 public APIs; the external-owner guard passes 11 fixtures plus production boundaries. Both documentation-policy modes report the same five pre-existing Ego-document findings (one broken index link and four missing inventory sections) and no step-25-specific finding. A fresh CLI rebuild was attempted but failed in rustc 1.97.1 with an internal compiler error while compiling Lore's multi-crate-type library; no Reliquary CLI test executed, and the unchanged accepted step-24 CLI baseline remains 22/22 without being misreported as a fresh step-25 pass.
+
+
+## Step 26 later-import accepted-use fixture (2026-10-18)
+
+`src/facade/historical_import_accepted_use_tests.rs` isolates a live Memory from a later nonempty native import. Three hundred accepted live turns lower its score before a real accepted-use receipt, keeping the award below saturation. The fixture reopens before import, checks the canonical ImportStart base, finishes import generation through existing test-only scopes, and publishes through the native freeze/prepare/commit path. The imported birth is present, while the original Memory is absent from the sparse replacement map.
+
+Assertions compare the full pre-import and settlement-cut records against an independently decayed expected record, and against a no-use counterfactual that must differ. The original live byte prefix remains intact. Reopen, an accepted reconstruction retry (`committed: false`) and an exact accepted-use retry preserve the same score/anchors; the final byte comparison proves these retries append no bytes. Normal open-epoch admission remains fenced; this fixture does not claim completed-import sequencing (step 32) or affected-existing-Memory scoring (step 27).
+
+Luna independently reviewed fixture assertions and continuation-document ownership. The fresh repository-local build passed all 7 selected tests: the dedicated accepted-use fixture, three adjacent attribution cases and three epoch-scope cases. The first attempt failed in the old cache with a missing `prost` dependency artifact; a clean target completed successfully. `cargo fmt --check` and `git diff --check` pass. Both documentation-policy modes retain only the five existing Ego-document findings. No fresh full-suite or CLI pass is claimed for this test-only step; their prior limitations remain recorded under step 25. Step 26 is accepted; step 27 is next.
+
+Documentation impact:
+- Inspected: the active execution plan, execution contract, parent architectural plan, repository guidance and existing step-25 acceptance.
+- Updated: this acceptance record and current continuation pointers after verification.
+- Not affected: public API/CLI, storage format, production ownership, retained fixtures and prior acceptance records.
+- Compliance check: formatting/whitespace pass; both documentation-policy modes report the same five existing Ego findings.
+- Known documentation gaps: the existing Ego index link and four missing inventory sections remain outside this change.
+
+Architecture impact: no production implementation, ownership, format, standard or Pitlord policy changes; this step adds regression evidence only. Completion/readiness, sequential completed imports, scoped worker admission and the existing structural/CLI build gaps remain under their existing acceptance records.

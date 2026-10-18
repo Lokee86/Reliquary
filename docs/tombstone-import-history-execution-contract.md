@@ -10,7 +10,7 @@ Record the frozen implementation seams and distinguish verified progress from ac
 
 ## Overview
 
-The original 50-step decomposition remains the architectural breakdown, but execution has been rebaselined around convergence. Steps 1–12 are complete and committed on `main`; authoritative continuation is accepted through step 25 and resumes at step 26 in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md). Settlement, epoch admission, scoped attribution and authenticated incremental settlement publication/replay are accepted on the isolated integration branch; import completion remains open. Retained-fixture promotion still requires direct verification.
+The original 50-step decomposition remains the architectural breakdown, but execution has been rebaselined around convergence. Steps 1–12 are complete and committed on `main`; authoritative continuation is accepted through step 26 and resumes at step 27 in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md). Settlement, epoch admission, scoped attribution and authenticated incremental settlement publication/replay are accepted on the isolated integration branch; import completion remains open. Retained-fixture promotion still requires direct verification.
 
 ## Frozen lifecycle contract
 
@@ -71,7 +71,7 @@ The authoritative remaining sequence is [steps 13–68](tombstone-import-history
 10. repair retained RELs without re-embedding, rerun the Ellis benchmark that exposed the multi-profile ambiguity, and only then promote fixtures;
 11. remove obsolete architecture, refresh structural evidence, run final gates and clean implementation worktrees.
 
-The immediate next executable action is **step 26: later-import accepted-use verification** on the isolated integration branch. Steps 13–25 are accepted there; main promotion remains step 36. The [step 24 acceptance record](import-step24-attribution-acceptance-2026-10-17.md) remains the attribution checkpoint; the remaining execution plan records step-25 settlement/replay acceptance.
+The immediate next executable action is **step 27: existing-Memory affected fixture** on the isolated integration branch. Steps 13–26 are accepted there; main promotion remains step 36. The [step 24 acceptance record](import-step24-attribution-acceptance-2026-10-17.md) remains the attribution checkpoint; the remaining execution plan records step-25 settlement/replay acceptance.
 
 ### Known non-lifecycle red mapped forward
 
