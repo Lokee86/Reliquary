@@ -1,5 +1,6 @@
 use super::*;
 use crate::{Cva, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
+use sha2::Digest;
 use std::{collections::BTreeSet, fs, path::PathBuf};
 
 struct Fixture(PathBuf);
@@ -797,11 +798,51 @@ fn current_watermarks(cva: &Cva) -> ImportWatermarks {
 }
 
 fn completion_for(
-    cva: &Cva,
+    cva: &mut Cva,
     start: &ImportStart,
     receipt: &ImportReceipt,
     completed_at_ns: i64,
 ) -> ImportComplete {
+    // Production completion now requires an accepted scoped CVAFRS05
+    // settlement. Accept durable zero-output Insomnia completions,
+    // then derive that settlement through the public owner operation.
+    // These low-level store tests do not establish nonempty import readiness.
+    let episodes = cva.episodes();
+    cva.with_import_write_scope(|cva| {
+        for episode in episodes {
+            cva.queue_insomnia_episode(episode.id, InsomniaPriority::Import, completed_at_ns)
+                .unwrap();
+            let claim = cva
+                .claim_insomnia_episode("completion-test", completed_at_ns + 1, 1_000)
+                .unwrap()
+                .unwrap();
+            cva.complete_insomnia_episode(
+                episode.id,
+                claim.lease_token.unwrap(),
+                completed_at_ns + 1,
+                completed_at_ns + 2,
+                "completion-test".into(),
+                "empty-output".into(),
+                Vec::new(),
+                0,
+            )
+            .unwrap();
+        }
+    });
+    cva.reconstruct_historical_freshness(crate::HistoricalReconstructionOptions::default())
+        .unwrap();
+    let import_id = start
+        .import_id
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+        .collect::<Vec<_>>();
+    let import_id: [u8; 32] = import_id.try_into().unwrap();
+    let settlement = cva.freshness.import_settlement(import_id).unwrap();
+    let historical_freshness_settlement_digest = sha2::Sha256::digest(settlement.encode())
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect();
     ImportComplete {
         owner_uuid: start.owner_uuid,
         import_id: start.import_id.clone(),
@@ -809,7 +850,7 @@ fn completion_for(
         receipt_digest: super::prepare::digest(receipt).unwrap(),
         completed_at_ns,
         post: current_watermarks(cva),
-        historical_freshness_settlement_digest: "test-settlement-digest".into(),
+        historical_freshness_settlement_digest,
     }
 }
 
@@ -874,7 +915,7 @@ fn completed_epoch_rebuilds_and_completion_retry_is_exact() {
     let mut cva = Cva::create(&path).unwrap();
     let receipt = cva.import_native(&input(), 100).unwrap();
     let start = cva.open_import_epoch().unwrap().clone();
-    let complete = completion_for(&cva, &start, &receipt, 200);
+    let complete = completion_for(&mut cva, &start, &receipt, 200);
 
     cva.container.set_owner_write_scope(true);
     cva.import_epochs
@@ -915,8 +956,9 @@ fn invalid_source_revision_does_not_open_or_poison_an_epoch() {
     let mut cva = Cva::create(&path).unwrap();
     let receipt = cva.import_native(&input(), 100).unwrap();
     let start = cva.open_import_epoch().unwrap();
-    // Storage-only completion fixture; this does not prove production readiness.
-    let complete = completion_for(&cva, &start, &receipt, 200);
+    // This directly appends a store-level completion marker. It validates
+    // receipt retry behavior, not the production readiness coordinator.
+    let complete = completion_for(&mut cva, &start, &receipt, 200);
     cva.with_import_write_scope(|cva| {
         cva.import_epochs
             .append_complete(&mut cva.container, complete)

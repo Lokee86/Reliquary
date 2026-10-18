@@ -30,9 +30,9 @@ Rebuild applies only Archive-versioned receipt records. Reconciliation republish
 
 Start admission and replay require a canonical 64-byte lowercase hexadecimal import key, bounded nonempty NUL-free source text, and an owner-bound deterministic ID. Admission validates before appending or closing the fence.
 
-Rebuild permits at most one open epoch, requires start-before-completion ordering, validates owner and deterministic identity before store mutation, validates start and receipt digests, and requires monotone cuts and times. A normal REL has no epoch records. Current code writes starts but intentionally exposes no completion mutation path until attributed derived-work and Freshness settlement authority exists.
+Rebuild permits at most one open epoch, requires start-before-completion ordering, validates owner and deterministic identity before store mutation, validates start and receipt digests, and requires monotone cuts and times. A normal REL has no epoch records. `Cva::complete_native_import(import_id, now_ns)` is the exclusive normal completion path. It derives exact receipt and accepted scoped-settlement evidence, records the SHA-256 of the raw `CVAFRS05` payload, and syncs the completion frame before reopening ordinary write admission. Reopen checks that the bound settlement frame physically precedes the completion frame. Existing record layouts and semantic clock allocation are unchanged.
 
-Completion storage currently requires a nonempty settlement digest; it does not establish import-attributed readiness or verify that digest against a real Freshness settlement. The pending coordinator and completed-epoch verification must supply that authority before production completion is enabled.
+The store codec's nonempty-digest check is only structural; coordinator and reopen validation bind the digest to the exact real settlement payload. Step 28 supports only a receipt with no conversations and a matching accepted empty-effect scoped settlement. Nonempty imports remain Pending until step 29 implements import-attributed readiness. On uncertain append/sync errors, the next attempt rescans physical markers before retrying. This adds no readiness proof to the record format.
 
 ## C8 embedding retention
 

@@ -142,6 +142,25 @@ pub enum ImportEpochStatus {
     },
 }
 
+/// An inspectable reason an exclusive completion attempt left its epoch open.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ImportCompletionPending {
+    MissingReceipt,
+    MissingFreshnessSettlement,
+    /// Nonempty imports require the attributed readiness integration.
+    AttributedReadinessUnavailable,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ImportCompletionOutcome {
+    Pending(ImportCompletionPending),
+    Completed {
+        complete: ImportComplete,
+        /// False when an already accepted marker was synchronized and reused.
+        committed: bool,
+    },
+}
+
 #[derive(Debug)]
 pub enum ImportError {
     Invalid(&'static str),

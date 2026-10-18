@@ -4,7 +4,7 @@ use crate::Container;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct ImportEpochStore {
     starts: BTreeMap<String, ImportStart>,
     completions: BTreeMap<String, ImportComplete>,

@@ -1,5 +1,6 @@
 //! Versioned native historical import. Adapters normalize; Archive remains authoritative.
 mod commit;
+mod completion;
 mod contract;
 mod epoch_codec;
 mod epoch_scope;

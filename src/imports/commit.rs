@@ -140,7 +140,7 @@ impl Cva {
         self.import_epochs.statuses()
     }
 
-    fn import_watermarks(&self) -> ImportWatermarks {
+    pub(super) fn import_watermarks(&self) -> ImportWatermarks {
         ImportWatermarks {
             global_version: self.latest_global_version(),
             archive_version: self.archive_version(),

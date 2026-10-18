@@ -120,7 +120,7 @@
     },
     {
       "id": "native-import",
-      "description": "Versioned provider-neutral historical normalization and exclusive Cva import composition; Archive retains all source/receipt authority",
+      "description": "Versioned historical normalization, exclusive Cva import composition and completion coordination; Archive retains source/receipt authority and Freshness owns settlement replay",
       "paths": [
         "src/imports"
       ]
