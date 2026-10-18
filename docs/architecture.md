@@ -645,3 +645,5 @@ Historical representative resolution remains in Dream's canonical authority owne
 ## Historical production scope
 
 The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.
+
+The private Historical Freshness freeze binds one open import to its persisted start payload and physical prefix, exact receipt source Nodes, complete Import Episodes, and first-publication births. Recipient eligibility comes from authenticated pre-start Freshness records plus those births. Graph/community/vector target context may cover that full recipient population; source proofs and result recipients are scoped separately. Result recipients are births plus import-attributed provisional effects and planned propagation effects. This ephemeral evidence does not grant worker writes or new-epoch settlement publication.

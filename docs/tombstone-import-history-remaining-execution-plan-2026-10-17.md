@@ -3,8 +3,8 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** authoritative continuation; isolated integration accepted through step 23; step 24 attribution groundwork in progress
-**Next step:** 24
+**Status:** authoritative continuation; isolated integration accepted through step 24; incremental settlement publication/replay remains open
+**Next step:** 25
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
 ## Purpose
@@ -59,7 +59,7 @@ Source/worktree inspection against current `main` changes the interpretation of 
 - Compatibility/profile activation hardening is farther along than the old plan states but **not complete**. Current `main` rejects obvious incomplete Archive row counts, treats unversioned generation payload as inert on reopen, and requires complete current Memory-body coverage before a Memory profile is considered active. However, the current Archive coverage predicate proves row count rather than exact fragment identity; the dedicated incomplete-coverage fixture still exposes this gap. Step 51 remains a real hardening task, narrowed to exact identity/coverage and historical-fill activation boundaries.
 - `impl/compatibility-v3-retirement` is patch-equivalent to `main` (`git cherry main ...` reports both commits already applied). It is not a remaining integration lane.
 
-Steps 13–23 are now integrated and verified on the isolated lifecycle-converged branch. Settlement acceptance is recorded below, and durable epoch admission/storage/fencing/crash recovery passed its final acceptance matrix. The next executable action is step 24; main promotion remains step 36.
+Steps 13–24 are integrated and accepted on the isolated lifecycle-converged branch. Step 24 separates epoch source/birth evidence, authenticated pre-start recipient context and born/affected result IDs; its final 20-test focused matrix passes. The next executable action is step 25; main promotion remains step 36. [Step 24 acceptance](import-step24-attribution-acceptance-2026-10-17.md) records verification limits and deferred publication authority.
 
 ### Known broader failures mapped to remaining work
 
@@ -113,9 +113,11 @@ These are explicit acceptance items for the named steps. They must not be 'fixed
 
 ### Repeated-import Historical Freshness
 
-**24 — Sol — Finish the partial epoch-scoped cohort/evidence WIP.** The dirty epoch worktree already derives source nodes, Import Episodes and born-Memory cohort from the open epoch. Remove the remaining whole-owner `self.memory_ids()` use from import-result proof/reconstruction surfaces and make all superseded/affected evidence import-attributable.
+**24 — Sol — Finish the partial epoch-scoped cohort/evidence WIP (complete on the isolated integration branch).** Source Nodes, complete Import Episodes and first-publication births are bound to the current persisted ImportStart. Proof targets derive from canonical pre-start Freshness plus epoch births; result IDs contain only births and import-attributed provisional/planned effects. Terminal history remains exclusion proof through Memory retention descriptors. Event selection uses finite physical boundaries and candidate identities rather than whole-prefix identity sets. The final 20-test focused attribution/base/legacy/accepted-use matrix passes; new-epoch publication remains closed.
 
 **25 — Sol — Finish incremental reconstruction from `ImportStart` on top of the partial WIP.** The current WIP isolates import-attributable provisional events but is not yet a verified complete before→after reconstruction. Canonical Freshness at the start marker is the base; prior accepted-use/live history remains authoritative; unaffected records are not rewritten.
+
+Add a versioned settlement/replay representation authenticating physical start/base and exact source/cohort evidence while preserving CVAFRS03/CVAFRS04 compatibility. Persist affected sparse replacements and authenticated zero-result/zero-activity no-ops. Distinguish same-cut effects by accepted identity/order, preserve generating-Episode/publication-cohort exclusions for existing recipients and reused/grounding sources, and keep conversion/reconciliation closed until ordered settlement boundaries are retained.
 
 **26 — Luna — Later-import accepted-use fixture.** Prove pre-import accepted-use/live Freshness events survive later import settlement unchanged.
 
@@ -236,7 +238,7 @@ integrate existing Freshness settlements
 -> final docs/audit/tests/cleanup
 ```
 
-The next executable action is **step 24**: finish epoch-scoped cohort/evidence attribution and repeated-import Historical Freshness on the accepted epoch-admission base. Do not copy the old dirty epoch-scope WIP wholesale; merge only the audited attributable pieces.
+The next executable action is **step 25**: implement authenticated incremental settlement publication/replay on the accepted step 24 attribution base. Main promotion remains step 36; ordinary scoped worker admission and completion coordination remain later work.
 
 ## Related docs
 
@@ -248,7 +250,9 @@ The next executable action is **step 24**: finish epoch-scoped cohort/evidence a
 
 Do not advance a verification step on compilation alone. Preserve unrelated dirty work and authoritative fixtures throughout convergence.
 
-### Step 24 attribution groundwork checkpoint
+### Historical step 24 attribution groundwork checkpoint
+
+This records the earlier partial checkpoint at `fb0da91`; the acceptance below supersedes its attribution-specific pending items. Publication/replay and completion items remain open under step 25 onward.
 
 Work continues on `integrate/import-freshness-settlements-20261017`, following the accepted epoch admission head `d259433`. Main and authoritative retained fixtures remain unchanged. Three Luna lanes implemented and reviewed epoch scope derivation, physical-prefix provisional-event selection and pre-start Freshness base replay.
 
@@ -275,6 +279,12 @@ Checkpoint verification:
 - A pre-final-guard broad library run completed with **1,386 passed, 31 failed and 5 ignored**. Subsequent outside-sandbox reruns resolved eleven environment-only failures (mock HTTP, hard links and Lore project operations). The two accepted-use failures were repaired and their focused tests passed. The remaining observed failures are seven historical-fill/semantic/profile/migration cases (steps 51–52), eight incomplete import completion/continuation/reconciliation cases (steps 28–35), and three external-source `Storage` cases that still reproduce outside the sandbox. No final full-suite acceptance is claimed.
 - Both documentation-policy checks report the same five pre-existing Ego findings: one broken index link and four missing inventory sections; no new changed-document findings were reported.
 - Architecture refresh passed the 92-fixture/166-API multiplexing guard and eleven-fixture external ownership guard, then stalled in Lexicon Rust analysis and was stopped after approximately ten minutes. Arcana/Pitlord refresh acceptance remains open.
+
+## Step 24 attribution acceptance (2026-10-17)
+
+The final 20-test focused matrix passes, including the three new native attribution/empty-import/tombstone fixtures, finite same-cut event selection, exact retry/reopen scope identity, physical pre-start/prior-settlement replay, legacy compatibility and accepted-use protections. Library/test compilation, both formatting checks and all 22 CLI tests pass. New-epoch publication and provider work remain closed before legacy preparation; no persisted codec or completion authority changed.
+
+The broad library run passed 1,404 tests with 17 failures and 5 ignored before two step 24 fixture corrections. Both corrected fixtures pass in the final focused matrix. The other 15 failures map to the existing seven activation/historical-fill/migration and eight completion/continuation/reconciliation cases. No final full-suite acceptance is claimed. Documentation policy retains five existing Ego findings; architecture source guards pass, while refreshed Lexicon analysis stalled and was stopped after about ten minutes. Full details and CLI verification status belong to the [acceptance record](import-step24-attribution-acceptance-2026-10-17.md).
 
 ## Settlement integration checkpoint (2026-10-17)
 

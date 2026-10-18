@@ -10,6 +10,8 @@ The controller/decision modules, REL-local candidate pool and runtime agentic pr
 
 ## Native historical import coverage
 
+The private epoch freeze in `historical_epoch_input.rs` and `historical_manifest.rs` separates authenticated recipient context from born/affected result attribution. The [step 24 acceptance record](import-step24-attribution-acceptance-2026-10-17.md) records focused verification; persisted settlement representation remains unchanged.
+
 `src/imports/` maps to [Native historical import](native-import.md) and [API](api.md); Archive receipt/branch-aware import Episodes map to [Architecture](architecture.md), [Invariants](invariants.md) and [Storage format](storage-format.md). [Maintainer map](maintainer-map.md) routes ownership and [Behavioral contracts](behavioral-contracts.md) maps recovery/profile fixtures. Current source/format limitations are explicit in [Current limitations](current-limitations.md). The G specification remains the owner of unimplemented ACP/external-derived/host-specific work.
 
 ## C8 owner/provider coverage

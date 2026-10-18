@@ -1,7 +1,7 @@
 //! Import-epoch-scoped provisional Freshness event attribution.
 use super::{FreshnessStore, JournalEntry, for_each_event};
 use crate::MemoryId;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Physical and semantic boundary for provisional events attributed to one import.
 /// The byte coordinates are accepted Container prefixes captured at ImportStart
@@ -13,13 +13,20 @@ pub(crate) struct ImportEventScope {
     pub start_evidence_digest: [u8; 32],
     /// Memories born in this ImportEpoch; only these authorize initial-pass IDs.
     pub born_memories: BTreeSet<MemoryId>,
-    /// Full sparse replacement/effect recipient set, including pre-existing Memories.
+    /// Authenticated eligible effect population, including pre-existing Memories.
+    /// Selection derives the smaller affected set from actual event effects.
     pub affected_recipients: BTreeSet<MemoryId>,
     pub source_nodes: BTreeSet<(String, String)>,
     pub start_prefix: u64,
     pub freeze_prefix: u64,
     pub base_cut: u64,
     pub freeze_cut: u64,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(crate) struct ImportEventEvidence {
+    pub event_ids: BTreeSet<String>,
+    pub affected_recipients: BTreeSet<MemoryId>,
 }
 
 impl FreshnessStore {
@@ -34,6 +41,13 @@ impl FreshnessStore {
         &self,
         scope: &ImportEventScope,
     ) -> Result<BTreeSet<String>, String> {
+        Ok(self.import_event_evidence_in_scope(scope)?.event_ids)
+    }
+
+    pub(crate) fn import_event_evidence_in_scope(
+        &self,
+        scope: &ImportEventScope,
+    ) -> Result<ImportEventEvidence, String> {
         if scope.owner == [0; 16]
             || scope.import_id == [0; 32]
             || scope.start_evidence_digest == [0; 32]
@@ -47,116 +61,110 @@ impl FreshnessStore {
         if self.owner_uuid != Some(scope.owner) {
             return Err("import event scope owner mismatch".into());
         }
-        let before = self.event_ids_before_prefix(scope.start_prefix)?;
-        let through_freeze = self.event_ids_before_prefix(scope.freeze_prefix)?;
-        if scope.start_prefix == scope.freeze_prefix {
-            return Ok(BTreeSet::new());
-        }
         let imported_passes: BTreeSet<_> = scope
             .born_memories
             .iter()
             .map(|id| crate::dream_freshness::initial_pass_id(scope.owner, *id))
             .collect();
-        let mut selected = BTreeSet::new();
-        self.scan_entries_through_prefix(scope.freeze_prefix, |entry| {
-            for_each_event(&entry, &mut |event| {
-                let JournalEntry::Event {
-                    event_id,
-                    turn,
-                    provenance,
-                    effects,
-                    semantic,
-                    ..
-                } = event
-                else {
-                    return Ok(());
-                };
-                if before.contains(event_id)
-                    || !through_freeze.contains(event_id)
-                    || *turn < scope.base_cut
-                    || *turn > scope.freeze_cut
-                {
-                    return Ok(());
-                }
-                let import_birth = imported_passes.contains(event_id)
-                    && provenance.producer_kind == 1
-                    && provenance.source_id == *event_id
-                    && provenance.origin_owner == scope.owner;
-                let import_source = if let Some(evidence) = semantic {
-                    if evidence.owner_uuid != scope.owner {
-                        false
-                    } else if let Some(fragment) = &evidence.fragment {
-                        let has_import_source = fragment
-                            .sources
-                            .iter()
-                            .any(|source| scope.source_nodes.contains(source));
-                        if has_import_source
-                            && fragment
-                                .sources
-                                .iter()
-                                .any(|source| !scope.source_nodes.contains(source))
-                        {
-                            return Err(
-                                "provisional import fragment mixes import and external sources"
-                                    .into(),
-                            );
-                        }
-                        has_import_source && !fragment.sources.is_empty()
-                    } else {
-                        scope
-                            .source_nodes
-                            .contains(&(evidence.conversation_id.clone(), evidence.node_id.clone()))
-                    }
-                } else {
-                    false
-                };
-                if import_birth || import_source {
-                    if effects
-                        .keys()
-                        .any(|id| !scope.affected_recipients.contains(id))
-                    {
-                        return Err("provisional import event crosses the import cohort".into());
-                    }
-                    selected.insert(event_id.clone());
-                }
-                Ok(())
-            })
-        })?;
-        Ok(selected)
-    }
-    /// Read event identities from the accepted physical Container prefix.
-    /// This intentionally bypasses `recent`, whose entries may lie beyond a
-    /// requested historical prefix.
-    pub(crate) fn event_ids_before_prefix(&self, prefix: u64) -> Result<BTreeSet<String>, String> {
-        let mut ids = BTreeSet::new();
-        self.scan_entries_through_prefix(prefix, |entry| {
-            for_each_event(&entry, &mut |event| {
-                if let JournalEntry::Event { event_id, .. } = event {
-                    ids.insert(event_id.clone());
-                }
-                Ok(())
-            })
-        })?;
-        Ok(ids)
-    }
-    fn scan_entries_through_prefix(
-        &self,
-        prefix: u64,
-        mut visitor: impl FnMut(JournalEntry) -> Result<(), String>,
-    ) -> Result<(), String> {
-        if prefix == u64::MAX || prefix > self.history_limit {
-            return Err("Freshness event prefix is outside the accepted history".into());
-        }
+        let mut selected = BTreeMap::<String, BTreeSet<MemoryId>>::new();
         let path = self
             .history_path
             .as_ref()
             .ok_or("physical Freshness history is unavailable")?;
-        let expected = self.owner_uuid;
-        super::stream::scan_entries(path, prefix, |owner, entry| {
-            if expected.is_some_and(|id| id != owner) {
-                return Err("Freshness durable scan owner mismatch".into());
-            }
-            visitor(entry)
+        super::stream::scan_entries_in_interval(
+            path,
+            scope.start_prefix,
+            scope.freeze_prefix,
+            |owner, _frame_end, entry| {
+                if owner != scope.owner {
+                    return Err("Freshness durable scan owner mismatch".into());
+                }
+                for_each_event(&entry, &mut |event| {
+                    let JournalEntry::Event {
+                        event_id,
+                        turn,
+                        provenance,
+                        effects,
+                        semantic,
+                        ..
+                    } = event
+                    else {
+                        return Ok(());
+                    };
+                    if *turn < scope.base_cut || *turn > scope.freeze_cut {
+                        return Ok(());
+                    }
+                    let import_birth = imported_passes.contains(event_id)
+                        && provenance.producer_kind == 1
+                        && provenance.source_id == *event_id
+                        && provenance.origin_owner == scope.owner;
+                    let import_source = if let Some(evidence) = semantic {
+                        if evidence.owner_uuid != scope.owner {
+                            false
+                        } else if let Some(fragment) = &evidence.fragment {
+                            let has_import_source = fragment
+                                .sources
+                                .iter()
+                                .any(|source| scope.source_nodes.contains(source));
+                            if has_import_source
+                                && fragment
+                                    .sources
+                                    .iter()
+                                    .any(|source| !scope.source_nodes.contains(source))
+                            {
+                                return Err(
+                                    "provisional import fragment mixes import and external sources"
+                                        .into(),
+                                );
+                            }
+                            has_import_source && !fragment.sources.is_empty()
+                        } else {
+                            scope.source_nodes.contains(&(
+                                evidence.conversation_id.clone(),
+                                evidence.node_id.clone(),
+                            ))
+                        }
+                    } else {
+                        false
+                    };
+                    if import_birth || import_source {
+                        if effects
+                            .keys()
+                            .any(|id| !scope.affected_recipients.contains(id))
+                        {
+                            return Err("provisional import event crosses the import cohort".into());
+                        }
+                        let recipients = effects.keys().copied().collect::<BTreeSet<_>>();
+                        if selected
+                            .insert(event_id.clone(), recipients.clone())
+                            .is_some_and(|old| old != recipients)
+                        {
+                            return Err("conflicting provisional import event identity".into());
+                        }
+                    }
+                    Ok(())
+                })
+            },
+        )?;
+
+        if !selected.is_empty() {
+            super::stream::scan_entries(path, scope.start_prefix, |owner, entry| {
+                if owner != scope.owner {
+                    return Err("Freshness durable scan owner mismatch".into());
+                }
+                for_each_event(&entry, &mut |event| {
+                    if let JournalEntry::Event { event_id, .. } = event {
+                        selected.remove(event_id);
+                    }
+                    Ok(())
+                })
+            })?;
+        }
+        let event_ids = selected.keys().cloned().collect();
+        let affected_recipients = selected.values().flatten().copied().collect();
+        Ok(ImportEventEvidence {
+            event_ids,
+            affected_recipients,
         })
     }
 }
@@ -216,13 +224,14 @@ mod tests {
         let imported = MemoryId([32; 32]);
         let existing_recipient = MemoryId([35; 32]);
         let unrelated_born = MemoryId([36; 32]);
+        let later_recipient = MemoryId([37; 32]);
         let mut container = Container::create(&path).unwrap();
         let mut store = FreshnessStore::new(Some(owner));
         store.bind_history_path(&path, 0);
 
         let policy = super::super::encode_policy(owner, FreshnessPolicy::default_v1());
         append_accepted(&mut container, &mut store, &policy);
-        for id in [existing_recipient, unrelated_born] {
+        for id in [existing_recipient, unrelated_born, later_recipient] {
             let payload = store.encode_initialize(owner, id, 1, admitted(1));
             append_accepted(&mut container, &mut store, &payload);
         }
@@ -238,6 +247,10 @@ mod tests {
             .unwrap();
         append_accepted(&mut container, &mut store, &pre_start_semantic);
         let start_prefix = std::fs::metadata(&path).unwrap().len();
+
+        // The same accepted identity is replayed inside the physical epoch.
+        // It must not be attributed again because it already existed at start.
+        append_accepted(&mut container, &mut store, &pre_start_semantic);
 
         let imported_birth = store.encode_initialize(owner, imported, 100, admitted(100));
         append_accepted(&mut container, &mut store, &imported_birth);
@@ -273,21 +286,51 @@ mod tests {
         append_accepted(&mut container, &mut store, &import_event);
         let freeze_prefix = std::fs::metadata(&path).unwrap().len();
 
+        let later_source = ("import-conversation".into(), "later-import-node".into());
+        let later_semantic = store
+            .encode_semantic_event(
+                owner,
+                semantic_evidence(owner, later_source.clone(), None, 100),
+                BTreeMap::from([(later_recipient, 3)]),
+            )
+            .unwrap();
+        append_accepted(&mut container, &mut store, &later_semantic);
+
         let scope = ImportEventScope {
             owner,
             import_id: [33; 32],
             start_evidence_digest: [34; 32],
             born_memories: BTreeSet::from([imported]),
-            affected_recipients: BTreeSet::from([existing_recipient]),
-            source_nodes: BTreeSet::from([import_source]),
+            affected_recipients: BTreeSet::from([existing_recipient, later_recipient]),
+            source_nodes: BTreeSet::from([import_source, later_source]),
             start_prefix,
             freeze_prefix,
             base_cut: 100,
             freeze_cut: 100,
         };
+        let evidence = store.import_event_evidence_in_scope(&scope).unwrap();
+        assert_eq!(evidence.event_ids, BTreeSet::from([import_event_id]));
         assert_eq!(
-            store.import_events_in_scope(&scope).unwrap(),
-            BTreeSet::from([import_event_id])
+            evidence.affected_recipients,
+            BTreeSet::from([existing_recipient])
+        );
+        assert!(
+            store
+                .import_event_evidence_in_scope(&ImportEventScope {
+                    start_prefix: start_prefix + 1,
+                    ..scope.clone()
+                })
+                .unwrap_err()
+                .contains("physical frame boundary")
+        );
+        assert_eq!(
+            store
+                .import_event_evidence_in_scope(&ImportEventScope {
+                    start_prefix: freeze_prefix,
+                    ..scope.clone()
+                })
+                .unwrap(),
+            ImportEventEvidence::default()
         );
         assert!(
             store

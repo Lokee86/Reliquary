@@ -645,7 +645,7 @@ Each phase must still run the coherent targeted tests for the completed subgraph
 
 ## 6. Original architectural work breakdown
 
-> **Execution status:** this 50-step table is no longer the authoritative execution order. It is retained as the original architectural decomposition. Lifecycle convergence is committed through step 12; current execution has accepted steps 13–23 and continues at **step 24** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
+> **Execution status:** this 50-step table is no longer the authoritative execution order. It is retained as the original architectural decomposition. Lifecycle convergence is committed through step 12; isolated integration has accepted steps 13–24 and continues at **step 25** in the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
 
 ### Model assignment
 

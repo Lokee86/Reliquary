@@ -8,7 +8,9 @@ use crate::{
     freshness::{FreshnessPolicy, FreshnessRecord},
 };
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+#[cfg(test)]
+use std::collections::BTreeSet;
 use std::io::Read;
 #[path = "historical_embedding.rs"]
 mod embedding;
@@ -35,6 +37,7 @@ mod transform;
 
 #[derive(Clone, Debug)]
 struct FrozenHistoricalImport {
+    epoch: bool,
     events: Option<events::NativeHistoricalEvents>,
     propagation: Option<manifest::PropagationInputs>,
     settlement: HistoricalImportFreshnessSettlement,
@@ -42,15 +45,23 @@ struct FrozenHistoricalImport {
 }
 #[derive(Clone, Debug)]
 struct PreparedHistoricalImport {
+    epoch: bool,
     settlement: HistoricalImportFreshnessSettlement,
 }
 impl FrozenHistoricalImport {
     /// Only the owner-derived batch can enter production scoring.
     fn prepare_native(&self) -> Result<PreparedHistoricalImport, CvaError> {
-        let Some(batch) = &self.events else {
+        let Some(_) = &self.events else {
             return Ok(PreparedHistoricalImport {
+                epoch: self.epoch,
                 settlement: self.settlement.clone(),
             });
+        };
+        self.prepare(&self.native_scores()?)
+    }
+    fn native_scores(&self) -> Result<Vec<HistoricalScoreEvent>, CvaError> {
+        let Some(batch) = &self.events else {
+            return Ok(Vec::new());
         };
         let inputs = self
             .propagation
@@ -96,7 +107,7 @@ impl FrozenHistoricalImport {
                     })
             })
             .collect();
-        self.prepare(&scores)
+        Ok(scores)
     }
     fn import_id(&self) -> [u8; 32] {
         self.settlement.import_id
@@ -144,7 +155,10 @@ impl FrozenHistoricalImport {
         )
         .map_err(|e| CvaError::Freshness(e.to_string()))?;
         settlement.validate().map_err(CvaError::Freshness)?;
-        Ok(PreparedHistoricalImport { settlement })
+        Ok(PreparedHistoricalImport {
+            epoch: self.epoch,
+            settlement,
+        })
     }
 }
 impl PreparedHistoricalImport {
@@ -211,28 +225,26 @@ impl Cva {
                 initial.insert(*id, birth);
             }
             return Ok(FrozenHistoricalImport {
+                epoch: false,
                 events: None,
                 propagation: None,
                 settlement,
                 initial,
             });
         }
-        if self.open_import_epoch().is_some() {
-            return Err(fail(
-                "epoch reconstruction requires authenticated physical-boundary settlement replay",
-            ));
-        }
-        let owner = self.historical_reconstruction_owner()?;
         let manifest = manifest::build_with_fill(self, requested_complete)?;
+        let owner = self
+            .owner_uuid()
+            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
         let events = events::build(self, &manifest)?;
-        let cohort: BTreeSet<_> = self.memory_ids().into_iter().collect();
+        let cohort = manifest.cohort.clone();
         self.container.sync()?;
         let settlement = HistoricalImportFreshnessSettlement::from_import_scope(
             HistoricalImportFreshnessScope {
                 owner,
                 import_id: manifest.import_id,
-                start_evidence_digest: manifest.input_digest,
-                base_cut: 0,
+                start_evidence_digest: manifest.start_evidence_digest,
+                base_cut: manifest.base_cut,
                 settlement_cut: self.rel_turn_count(),
             },
             manifest.corpus_digest,
@@ -247,12 +259,33 @@ impl Cva {
             BTreeMap::new(),
             manifest.superseded,
         );
-        Ok(FrozenHistoricalImport {
+        let mut frozen = FrozenHistoricalImport {
+            epoch: manifest.epoch,
             events: Some(events),
             propagation: Some(manifest.propagation),
             settlement,
             initial: manifest.initial,
-        })
+        };
+        if frozen.epoch {
+            // The manifest binds provisional attribution and the full recipient proof.
+            // Bind planned propagation recipients separately before retaining result records.
+            let affected = frozen
+                .native_scores()?
+                .into_iter()
+                .map(|event| event.recipient);
+            frozen.settlement.cohort.extend(affected);
+            frozen
+                .initial
+                .retain(|id, _| frozen.settlement.cohort.contains(id));
+            let mut binding = Sha256::new();
+            binding.update(b"import-epoch-result-cohort-v1");
+            binding.update(frozen.settlement.manifest_digest);
+            for id in &frozen.settlement.cohort {
+                binding.update(id.0);
+            }
+            frozen.settlement.manifest_digest = binding.finalize().into();
+        }
+        Ok(frozen)
     }
     /// Atomically replace provisional scoring. Exact accepted retries resolve before
     /// input drift checks and never erase legitimate post-checkpoint live events.
@@ -260,6 +293,11 @@ impl Cva {
         &mut self,
         prepared: &PreparedHistoricalImport,
     ) -> Result<bool, CvaError> {
+        if prepared.epoch {
+            return Err(fail(
+                "epoch reconstruction requires authenticated physical-boundary settlement replay",
+            ));
+        }
         let settlement = &prepared.settlement;
         if self.owner_uuid() != Some(settlement.owner) {
             return Err(fail("import settlement owner mismatch"));
@@ -350,3 +388,7 @@ impl Cva {
         Ok(owner)
     }
 }
+
+#[cfg(test)]
+#[path = "historical_import_attribution_tests.rs"]
+mod attribution_tests;

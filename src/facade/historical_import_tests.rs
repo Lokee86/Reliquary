@@ -171,7 +171,17 @@ fn open_epoch_never_retries_an_earlier_import_settlement() {
     .unwrap();
     cva.container.sync().unwrap();
     let before = fs::read(&path).unwrap();
-    let error = cva.freeze_historical_import().unwrap_err();
+    // Step 24 may freeze the new empty epoch's evidence, but cannot treat
+    // the earlier accepted settlement as this epoch's successful retry.
+    let scope = cva.import_epoch_scope().unwrap();
+    let frozen = cva.freeze_historical_import().unwrap();
+    assert!(frozen.epoch);
+    assert_ne!(frozen.import_id(), prepared.settlement.import_id);
+    assert_eq!(frozen.settlement.start_evidence_digest, scope.start_digest);
+    assert!(frozen.settlement.cohort.is_empty());
+    let error = cva
+        .reconstruct_historical_freshness(Default::default())
+        .unwrap_err();
     assert!(
         error
             .to_string()

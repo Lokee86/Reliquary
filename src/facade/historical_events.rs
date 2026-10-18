@@ -41,6 +41,13 @@ pub(super) fn build(
     let owner_id = cva
         .owner_id()
         .ok_or_else(|| fail("missing historical event owner identity"))?;
+    // Historical import planning is constrained to the physical import epoch.
+    // Keep the old all-history behavior for ordinary (non-import) manifests.
+    let epoch_scope = if cva.open_import_epoch().is_some() {
+        Some(cva.import_epoch_scope()?)
+    } else {
+        None
+    };
     let generation = cva
         .vector_generations
         .generations()
@@ -66,11 +73,37 @@ pub(super) fn build(
             generation: 0,
         });
     for fragment in cva.fragments() {
-        if cva.semantic_fragment_position(fragment.id)?.is_none() {
+        let Some(fragment_position) = cva.semantic_fragment_position(fragment.id)? else {
+            continue;
+        };
+        if epoch_scope
+            .as_ref()
+            .is_some_and(|scope| fragment_position <= scope.base_cut)
+        {
             continue;
         }
-        let source_keys: BTreeSet<_> = cva
+        let raw_source_keys: BTreeSet<_> = cva
             .semantic_fragment_sources(fragment.id)?
+            .into_iter()
+            .collect();
+        if let Some(scope) = &epoch_scope {
+            let overlaps = raw_source_keys
+                .iter()
+                .any(|key| scope.source_nodes.contains(key));
+            let fully_scoped = !raw_source_keys.is_empty()
+                && raw_source_keys
+                    .iter()
+                    .all(|key| scope.source_nodes.contains(key));
+            if overlaps && !fully_scoped {
+                return Err(fail(
+                    "semantic fragment mixes import and external source nodes",
+                ));
+            }
+            if !fully_scoped {
+                continue;
+            }
+        }
+        let source_keys: BTreeSet<_> = raw_source_keys
             .into_iter()
             .map(
                 |(conversation_id, node_id)| crate::freshness::historical_planner::SourceKey {
@@ -184,10 +217,25 @@ pub(super) fn build(
     )
     .map_err(|e| fail(&e.to_string()))?;
     let completed = cva.historical_completed_initial_dream_passes()?;
-    let memories: Vec<_> = manifest
-        .memory_inputs
+    // The Dream planner needs descriptors for every possible root endpoint, while
+    // only epoch-born memories may be event sources. Unsupported proofs suppress
+    // source events for preexisting recipients without removing them as roots.
+    let dream_ids: BTreeSet<_> = manifest.memory_inputs.keys().copied().collect();
+    let dream_sources: BTreeSet<_> = epoch_scope
+        .as_ref()
+        .map_or_else(|| dream_ids.clone(), |scope| scope.cohort.clone());
+    if dream_sources
         .iter()
-        .map(|(&id, input)| HistoricalDreamMemory {
+        .any(|id| !manifest.memory_inputs.contains_key(id))
+    {
+        return Err(fail(
+            "epoch-born Dream source is outside the recipient population",
+        ));
+    }
+    let memories: Vec<_> = dream_ids
+        .iter()
+        .filter_map(|id| manifest.memory_inputs.get(id).map(|input| (*id, input)))
+        .map(|(id, input)| HistoricalDreamMemory {
             id,
             cohort: input
                 .cohort_key
@@ -200,7 +248,11 @@ pub(super) fn build(
         .collect();
     let mut proofs = BTreeMap::new();
     let mut representatives = BTreeMap::new();
-    for &id in manifest.memory_inputs.keys() {
+    for &id in &dream_ids {
+        if !dream_sources.contains(&id) {
+            proofs.insert(id, HistoricalFirstCycleProof::Unsupported);
+            continue;
+        }
         let Some(pass) = completed.get(&id) else {
             // A transformed/legacy settled marker cannot prove direct publication,
             // empty roots or a final-graph approximation.

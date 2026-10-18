@@ -350,3 +350,7 @@ Accepted duplicate components and supersession chains compose without changing M
 ## Historical production scope
 
 The [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) marks H1–H8 complete and merge-ready as supported explicit, offline/exclusive single-owner REL reconstruction. Historical reconstruction intentionally remains an offline/backfill operation rather than automatic or mounted migration. Live F8 is intrinsic REL behavior with no activation switch. PHY Freshness remains outside this release.
+
+Import result attribution must not derive from the owner Memory inventory. An epoch result contains only proven epoch births and recipients of exact import-attributed events or planned propagation. Existing recipient proof records retain the physical pre-start Freshness base. Event attribution uses exact source identities and finite physical start/freeze prefixes; replayed pre-start identities and later frames cannot enter the superseded set. Empty epoch evidence is valid even when the legacy settlement codec cannot publish it.
+
+Pre-start terminal Memory history remains authenticated exclusion evidence, using the Memory owner's retention descriptors. A tombstoned Memory is never reintroduced as an active recipient by historical import reconstruction.

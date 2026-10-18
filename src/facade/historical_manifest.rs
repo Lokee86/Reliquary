@@ -25,6 +25,14 @@ pub(super) struct Manifest {
     pub import_id: [u8; 32],
     pub initial: BTreeMap<MemoryId, FreshnessRecord>,
     pub superseded: BTreeSet<String>,
+    /// Whether this proof is bound to one authenticated import epoch.
+    pub epoch: bool,
+    /// Born and provisionally affected recipients; legacy retains the owner set.
+    pub cohort: BTreeSet<MemoryId>,
+    /// Pre-start activity watermark for an epoch.
+    pub base_cut: u64,
+    /// Digest of the durable ImportStart evidence for an epoch.
+    pub start_evidence_digest: [u8; 32],
     #[cfg(test)]
     pub value: Value,
 }
@@ -145,6 +153,8 @@ pub(super) fn community_proof(
 fn graph_proof(
     cva: &mut Cva,
     ids: &BTreeSet<MemoryId>,
+    cohort: &BTreeSet<MemoryId>,
+    scoped: bool,
 ) -> Result<(Value, crate::freshness::MemoryAdjacency), CvaError> {
     let mut relations = cva.graph.active_semantic_relations();
     relations.sort_by_key(|r| (r.source, r.target, r.kind.code()));
@@ -153,22 +163,42 @@ fn graph_proof(
     let mut duplicates = BTreeSet::new();
     let mut excluded = BTreeMap::<u8, u64>::new();
     for relation in relations {
+        let incident = [relation.source, relation.target]
+            .iter()
+            .filter_map(|node| node.as_memory())
+            .any(|id| ids.contains(&id));
+        if scoped && !incident {
+            continue;
+        }
         for node in [relation.source, relation.target] {
             if let Some(id) = node.as_memory() {
-                if !ids.contains(&id) {
+                if !cva.memories.contains_memory(id) {
                     return Err(fail("dangling/foreign historical graph endpoint"));
                 }
             } else {
                 *excluded.entry(node.kind.code()).or_default() += 1;
             }
         }
+        if scoped
+            && !matches!(
+                (relation.source.as_memory(), relation.target.as_memory()),
+                (Some(a), Some(b)) if ids.contains(&a) && ids.contains(&b)
+            )
+        {
+            continue;
+        }
         if let (Some(a), Some(b)) = (relation.source.as_memory(), relation.target.as_memory()) {
-            neighbors.entry(a).or_default().insert(b);
-            neighbors.entry(b).or_default().insert(a);
-            if relation.kind.code() == crate::GraphRelationKind::DuplicateOf.code() {
-                duplicates.insert(a);
-                duplicates.insert(b);
+            if !scoped || (ids.contains(&a) && ids.contains(&b)) {
+                neighbors.entry(a).or_default().insert(b);
+                neighbors.entry(b).or_default().insert(a);
+                if relation.kind.code() == crate::GraphRelationKind::DuplicateOf.code() {
+                    duplicates.insert(a);
+                    duplicates.insert(b);
+                }
             }
+        } else if scoped {
+            // Non-memory graph endpoints are not recipient evidence in the scoped proof.
+            continue;
         }
         typed.push(Value::map([
             (
@@ -189,11 +219,13 @@ fn graph_proof(
     }
     for &id in ids {
         if let Some(target) = cva.memory(id)?.superseded_by {
-            if !ids.contains(&target) {
+            if !cva.memories.contains_memory(target) {
                 return Err(fail("dangling/foreign supersession authority"));
             }
-            duplicates.insert(id);
-            duplicates.insert(target);
+            if !scoped || ids.contains(&target) {
+                duplicates.insert(id);
+                duplicates.insert(target);
+            }
         }
     }
     let mut authorities = Vec::new();
@@ -241,8 +273,11 @@ fn graph_proof(
     let passes = cva.historical_completed_initial_dream_passes()?;
     let mut dream = Vec::new();
     for (id, pass) in passes {
+        if !cohort.contains(&id) {
+            continue;
+        }
         if id != pass.source_id
-            || !ids.contains(&id)
+            || !cohort.contains(&id)
             || pass.first_revision != 1
             || pass.turn > cva.rel_turn_count()
             || pass
@@ -360,6 +395,9 @@ fn vector_proof(
     cva: &mut Cva,
     order: &[crate::freshness::historical_planner::SourceKey],
     requested_complete: bool,
+    target_ids: &BTreeSet<MemoryId>,
+    scoped_nodes: Option<&BTreeSet<(String, String)>>,
+    scoped_base_cut: Option<u64>,
 ) -> Result<(Value, Vec<Value>), CvaError> {
     use crate::cva_semantic_source::SemanticSourceReadiness;
     let generation = cva
@@ -370,6 +408,13 @@ fn vector_proof(
         .copied();
     let mut sources = Vec::new();
     for (index, key) in order.iter().enumerate() {
+        let position = index as u64 + 1;
+        if scoped_nodes.is_some_and(|nodes| {
+            !nodes.contains(&(key.conversation_id.clone(), key.node_id.clone()))
+        }) || scoped_base_cut.is_some_and(|base_cut| position <= base_cut)
+        {
+            continue;
+        }
         let node = cva
             .archive
             .nodes
@@ -377,7 +422,7 @@ fn vector_proof(
             .ok_or_else(|| fail("missing historical source"))?;
         sources.push(Value::map([
             ("node", input::node_binding(node)),
-            ("position", Value::Unsigned(index as u64 + 1)),
+            ("position", Value::Unsigned(position)),
         ]));
     }
     let mut fragments = Vec::new();
@@ -386,7 +431,27 @@ fn vector_proof(
     let mut mixed = 0u64;
     for fragment in cva.fragments() {
         let nodes = cva.archive.fragment_nodes_for(&fragment)?;
+        if let Some(scope) = scoped_nodes {
+            let overlaps = nodes
+                .iter()
+                .any(|node| scope.contains(&(node.conversation_id.clone(), node.id.clone())));
+            let fully_scoped = !nodes.is_empty()
+                && nodes
+                    .iter()
+                    .all(|node| scope.contains(&(node.conversation_id.clone(), node.id.clone())));
+            if overlaps && !fully_scoped {
+                return Err(fail(
+                    "vector fragment mixes import and external source nodes",
+                ));
+            }
+            if !fully_scoped {
+                continue;
+            }
+        }
         let position = cva.semantic_fragment_position(fragment.id)?;
+        if scoped_base_cut.is_some_and(|base_cut| position.is_some_and(|at| at <= base_cut)) {
+            continue;
+        }
         let activity_nodes = nodes
             .iter()
             .filter(|n| {
@@ -481,7 +546,7 @@ fn vector_proof(
         ]));
     }
     let mut targets = Vec::new();
-    let mut ids = cva.memory_ids();
+    let mut ids: Vec<_> = target_ids.iter().copied().collect();
     ids.sort();
     for id in ids {
         let body = cva.memory_body_id(id)?;
@@ -553,6 +618,8 @@ fn vector_proof(
     } else {
         Value::text("not-requested")
     };
+    let source_count = sources.len() as u64;
+    let fragment_count = fragments.len() as u64;
     Ok((
         Value::map([
             ("profiles", Value::Array(profiles)),
@@ -562,11 +629,8 @@ fn vector_proof(
             (
                 "coverage",
                 Value::map([
-                    ("activity_sources", Value::Unsigned(order.len() as u64)),
-                    (
-                        "fragments",
-                        Value::Unsigned(cva.archive.fragments.len() as u64),
-                    ),
+                    ("activity_sources", Value::Unsigned(source_count)),
+                    ("fragments", Value::Unsigned(fragment_count)),
                     ("unavailable_fragments", Value::Unsigned(unavailable)),
                     ("invalid_source_rows", Value::Unsigned(invalid)),
                     ("mixed_source_fragments", Value::Unsigned(mixed)),
@@ -590,13 +654,29 @@ pub(super) fn build_with_fill(
     } else {
         None
     };
-    let owner = cva.historical_reconstruction_owner()?;
+    let owner = if let Some(scope) = &scope {
+        let owner = cva
+            .owner_uuid()
+            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
+        if owner != scope.start.owner_uuid
+            || cva.freshness_policy() != crate::freshness::FreshnessPolicy::default_v1()
+        {
+            return Err(fail("unsupported import owner or policy"));
+        }
+        owner
+    } else {
+        cva.historical_reconstruction_owner()?
+    };
     // Validate ancestry before the timeline planner follows parent chains.
     input::required_nodes(cva, cva.rel_turn_count())?;
     let timeline = cva
         .historical_freshness_timeline()
         .map_err(|e| fail(&e.to_string()))?;
-    let corpus_digest = input::corpus_digest(cva, cva.rel_turn_count())?;
+    let corpus_digest = if let Some(scope) = &scope {
+        input::scoped_corpus_digest(cva, &scope.source_nodes)?
+    } else {
+        input::corpus_digest(cva, cva.rel_turn_count())?
+    };
     let import_id = scope.as_ref().map_or_else(
         || historical_import_id(owner, corpus_digest),
         |scope| decode_import_id(&scope.start.import_id),
@@ -615,85 +695,140 @@ pub(super) fn build_with_fill(
             ));
         }
     }
-    if admission.initial.is_empty() {
+    if admission.initial.is_empty() && scope.is_none() {
         return Err(fail("import has no supported active cohort"));
     }
-    let ids: BTreeSet<_> = cva.memory_ids().into_iter().collect();
-    let replacement_ids = admission.initial.keys().copied().collect();
-    let superseded = if let Some(scope) = &scope {
+    let owner_ids: BTreeSet<_> = if scope.is_none() {
+        cva.memory_ids().into_iter().collect()
+    } else {
+        BTreeSet::new()
+    };
+    let ids: BTreeSet<_> = admission.memory_inputs.keys().copied().collect();
+    let replacement_ids: BTreeSet<_> = admission.initial.keys().copied().collect();
+    let scoped_event_evidence = if let Some(scope) = &scope {
         let freeze_prefix = std::fs::metadata(cva.container.path())
             .map_err(|error| fail(&error.to_string()))?
             .len();
         let mut frozen = cva.freshness.clone();
         frozen.bind_history_path(cva.container.path(), freeze_prefix);
-        frozen.import_events_in_scope(&crate::freshness_storage::ImportEventScope {
-            owner,
-            import_id,
-            start_evidence_digest: scope.start_digest,
-            born_memories: scope.cohort.clone(),
-            affected_recipients: replacement_ids,
-            source_nodes: scope.source_nodes.clone(),
-            start_prefix: scope.marker_end,
-            freeze_prefix,
-            base_cut: scope.base_cut,
-            freeze_cut: cva.rel_turn_count(),
-        })
+        Some(
+            frozen
+                .import_event_evidence_in_scope(&crate::freshness_storage::ImportEventScope {
+                    owner,
+                    import_id,
+                    start_evidence_digest: scope.start_digest,
+                    born_memories: scope.cohort.clone(),
+                    affected_recipients: replacement_ids.clone(),
+                    source_nodes: scope.source_nodes.clone(),
+                    start_prefix: scope.marker_end,
+                    freeze_prefix,
+                    base_cut: scope.base_cut,
+                    freeze_cut: cva.rel_turn_count(),
+                })
+                .map_err(CvaError::Freshness)?,
+        )
+    } else {
+        None
+    };
+    let superseded = if let Some(evidence) = &scoped_event_evidence {
+        evidence.event_ids.clone()
     } else {
         cva.freshness
             .provisional_import_events(&replacement_ids, 0, cva.rel_turn_count())
+            .map_err(CvaError::Freshness)?
+    };
+    let mut manifest_cohort = if scope.is_some() {
+        born_ids.clone()
+    } else {
+        owner_ids.clone()
+    };
+    if let Some(evidence) = &scoped_event_evidence {
+        manifest_cohort.extend(evidence.affected_recipients.iter().copied());
     }
-    .map_err(CvaError::Freshness)?;
     let mut untouched = Vec::new();
-    for entry in cva
-        .freshness
-        .replay_entries()
-        .map_err(CvaError::Freshness)?
-    {
-        if scope.is_none()
-            && matches!(
+    let base_recipient_records = if scope.is_some() {
+        ids.difference(&born_ids)
+            .map(|id| {
+                let record = admission.initial.get(id).ok_or_else(|| {
+                    fail("scoped pre-start recipient lacks its authenticated base record")
+                })?;
+                Ok(Value::map([
+                    ("memory_id", Value::bytes(id.0)),
+                    ("base_record", record_value(*record)),
+                ]))
+            })
+            .collect::<Result<Vec<_>, CvaError>>()?
+    } else {
+        for entry in cva
+            .freshness
+            .replay_entries()
+            .map_err(CvaError::Freshness)?
+        {
+            if matches!(
                 &entry,
                 crate::freshness_storage::FreshnessReplayEntry::AcceptedUseReceipt { .. }
-            )
-        {
-            return Err(fail(
-                "legacy reconstruction cannot replace retained accepted use without an import base",
-            ));
+            ) {
+                return Err(fail(
+                    "legacy reconstruction cannot replace retained accepted use without an import base",
+                ));
+            }
+            if let crate::freshness_storage::FreshnessReplayEntry::Event {
+                event_id, effects, ..
+            } = entry
+                && !superseded.contains(&event_id)
+            {
+                untouched.push(Value::map([
+                    ("event_id", Value::text(event_id)),
+                    (
+                        "recipients",
+                        Value::Array(effects.keys().map(|id| Value::bytes(id.0)).collect()),
+                    ),
+                ]));
+            }
         }
-        if let crate::freshness_storage::FreshnessReplayEntry::Event {
-            event_id, effects, ..
-        } = entry
-            && !superseded.contains(&event_id)
-        {
-            untouched.push(Value::map([
-                ("event_id", Value::text(event_id)),
-                (
-                    "recipients",
-                    Value::Array(effects.keys().map(|id| Value::bytes(id.0)).collect()),
-                ),
-            ]));
-        }
-    }
-    let replacement = Value::map([
+        Vec::new()
+    };
+    let reconstructed_memories: BTreeSet<_> = if scope.is_some() {
+        manifest_cohort.clone()
+    } else {
+        admission.initial.keys().copied().collect()
+    };
+    let untouched_memory_ids: BTreeSet<_> = if scope.is_some() {
+        ids.difference(&reconstructed_memories).copied().collect()
+    } else {
+        owner_ids
+            .difference(&reconstructed_memories)
+            .copied()
+            .collect()
+    };
+    let mut replacement = Value::map([
         (
             "superseded_event_ids",
             Value::Array(superseded.iter().map(Value::text).collect()),
         ),
         ("untouched_events", sorted(untouched)?),
         (
-            "reconstructed_memories",
+            if scope.is_some() {
+                "born_and_provisionally_affected_memories"
+            } else {
+                "reconstructed_memories"
+            },
             Value::Array(
-                admission
-                    .initial
-                    .keys()
+                reconstructed_memories
+                    .iter()
                     .map(|id| Value::bytes(id.0))
                     .collect(),
             ),
         ),
         (
-            "untouched_memories",
+            if scope.is_some() {
+                "recipients_without_provisional_effects"
+            } else {
+                "untouched_memories"
+            },
             Value::Array(
-                ids.iter()
-                    .filter(|id| !admission.initial.contains_key(id))
+                untouched_memory_ids
+                    .iter()
                     .map(|id| Value::bytes(id.0))
                     .collect(),
             ),
@@ -703,10 +838,32 @@ pub(super) fn build_with_fill(
             Value::text("verified-disjoint-provisional-dream-effects-v1"),
         ),
     ]);
-    let (graph, adjacency) = graph_proof(cva, &ids)?;
+    if scope.is_some() {
+        let Value::Map(fields) = &mut replacement else {
+            unreachable!("historical replacement proof root is a map");
+        };
+        fields.push((
+            "base_recipient_records".to_owned(),
+            Value::Array(base_recipient_records),
+        ));
+    }
+    let (graph, adjacency) = graph_proof(cva, &ids, &born_ids, scope.is_some())?;
     let snapshot = cva.community_snapshot();
-    let community = community_proof(snapshot.clone(), cva.memory_graph_version(), &ids)?;
-    let memberships = snapshot
+    let scoped_snapshot = if scope.is_some() {
+        snapshot.clone().map(|mut snapshot| {
+            for community in &mut snapshot.communities {
+                community.members.retain(|id| ids.contains(id));
+            }
+            snapshot
+                .communities
+                .retain(|community| !community.members.is_empty());
+            snapshot
+        })
+    } else {
+        snapshot.clone()
+    };
+    let community = community_proof(scoped_snapshot.clone(), cva.memory_graph_version(), &ids)?;
+    let memberships = scoped_snapshot
         .filter(|s| s.derived_graph_version == cva.memory_graph_version())
         .into_iter()
         .flat_map(|s| s.communities)
@@ -733,7 +890,14 @@ pub(super) fn build_with_fill(
         authorized: ids.clone(),
         availability,
     };
-    let (vectors, sources) = vector_proof(cva, &timeline.activity_order, requested_complete)?;
+    let (vectors, sources) = vector_proof(
+        cva,
+        &timeline.activity_order,
+        requested_complete,
+        &ids,
+        scope.as_ref().map(|scope| &scope.source_nodes),
+        scope.as_ref().map(|scope| scope.base_cut),
+    )?;
     let order = Value::Array(
         timeline
             .activity_order
@@ -925,6 +1089,15 @@ pub(super) fn build_with_fill(
                 "import_episode_ids".to_owned(),
                 Value::Array(scope.episodes.iter().map(Value::bytes).collect()),
             ),
+            (
+                "import_recipient_cohort".to_owned(),
+                Value::Array(
+                    manifest_cohort
+                        .iter()
+                        .map(|id| Value::bytes(id.0))
+                        .collect(),
+                ),
+            ),
         ]);
     }
     let digest = value.digest("reliquary:historical-manifest:v1")?;
@@ -939,6 +1112,10 @@ pub(super) fn build_with_fill(
         import_id,
         initial: admission.initial,
         superseded,
+        epoch: scope.is_some(),
+        cohort: manifest_cohort,
+        base_cut: scope.as_ref().map_or(0, |scope| scope.base_cut),
+        start_evidence_digest: scope.as_ref().map_or(prefix, |scope| scope.start_digest),
         #[cfg(test)]
         value,
     })

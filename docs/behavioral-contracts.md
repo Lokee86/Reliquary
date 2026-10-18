@@ -4,6 +4,10 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Native import contracts
 
+`historical_import_attribution_tests.rs` exercises the private owner freeze with a live pre-start accepted-use base, actual imported Insomnia births, unrelated post-start Memory/Graph/Community state, import-only fragment proofs and empty imports. A provisional semantic effect adds an existing recipient to the result without classifying it as a birth; its initial record remains the pre-start base. Attempted epoch publication remains byte-neutral until step 25 supplies authenticated settlement replay.
+
+The tombstoned-prestart fixture verifies authenticated exclusion, empty result attribution, byte-neutral publication refusal and terminal lifecycle after reopen while retained revision payload stays readable.
+
 Epoch attribution coverage in `src/imports/epoch_scope_tests.rs` exercises exact retry/reopen identity, pre-existing Memory exclusion, whole-path Episode source membership and empty source sets. Freshness scoped-event tests cover pre-start same-cut semantic receipts, exact epoch-born Dream events affecting existing recipients, unrelated receipts and mixed-source fragment rejection. `historical_import_base.rs` covers physical base replay, while `open_epoch_never_retries_an_earlier_import_settlement` protects the transitional publication refusal and byte neutrality. This coverage does not establish completed repeated-import settlement.
 
 | Contract | Focused evidence |

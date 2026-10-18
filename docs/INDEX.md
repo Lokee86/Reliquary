@@ -33,6 +33,7 @@
 - [Documentation procedure](documentation-procedure.md) — required documentation workflow.
 - [Documentation coverage](documentation-coverage.md) — implementation-to-document mapping.
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
+- [Import step 24 attribution acceptance](import-step24-attribution-acceptance-2026-10-17.md) — scoped cohort/source proofs and validation record.
 - [Native historical import](native-import.md) — current provider-normalized offline import API and durability.
 - [Multiplexing implementation plan](multiplexing-implementation-plan.md) — single current cross-repository execution/status plan for Reliquary, Warlock and Hermes multiplexing.
 - [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.

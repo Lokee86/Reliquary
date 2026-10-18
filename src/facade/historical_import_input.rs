@@ -74,6 +74,13 @@ pub(super) fn corpus_digest(cva: &mut Cva, through: u64) -> Result<[u8; 32], Cva
     Value::Array(nodes.values().map(node_binding).collect())
         .digest("reliquary:historical-corpus:v1")
 }
+pub(super) fn scoped_corpus_digest(
+    cva: &mut Cva,
+    source_nodes: &BTreeSet<(String, String)>,
+) -> Result<[u8; 32], CvaError> {
+    epoch::scoped_corpus_digest(cva, source_nodes)
+}
+
 #[derive(Clone, Debug)]
 pub(super) struct HistoricalMemoryInput {
     pub body_id: crate::MemoryBodyId,
@@ -89,13 +96,20 @@ pub(super) struct AdmissionProof {
     pub cohorts: Vec<Value>,
 }
 pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
-    admission_proof_scoped(cva, None)
+    admission_proof_legacy(cva)
 }
 
 pub(super) fn admission_proof_scoped(
     cva: &mut Cva,
     scope: Option<&crate::imports::ImportEpochScope>,
 ) -> Result<AdmissionProof, CvaError> {
+    match scope {
+        Some(scope) => epoch::admission_proof_for_scope(cva, scope),
+        None => admission_proof_legacy(cva),
+    }
+}
+
+fn admission_proof_legacy(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
     let owner = cva
         .owner_uuid()
         .ok_or_else(|| fail("missing import owner"))?;
@@ -142,17 +156,6 @@ pub(super) fn admission_proof_scoped(
     })?;
     if ids.is_empty() || birth_episodes.keys().any(|id| !ids.contains(id)) {
         return Err(fail("incomplete native import birth cohort"));
-    }
-    if scope.is_some_and(|scope| {
-        !scope
-            .cohort
-            .iter()
-            .all(|id| birth_episodes.contains_key(id))
-            || !scope.episodes.iter().all(|id| completed.contains(id))
-    }) {
-        return Err(fail(
-            "open epoch attribution conflicts with retained publication evidence",
-        ));
     }
     let mut covered = BTreeSet::new();
     let mut episode_keys = BTreeMap::new();
@@ -604,3 +607,6 @@ pub(super) fn validate_settlement(
     }
     Ok(())
 }
+
+#[path = "historical_epoch_input.rs"]
+mod epoch;
