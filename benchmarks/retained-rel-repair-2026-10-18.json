@@ -1,0 +1,79 @@
+[
+  {
+    "keep_profile": "38b2c3d1ded65fdbc2a76086f1d2875c03eb4470afa63de8bbd0689cbf51c266",
+    "legacy_import_migrated": true,
+    "output": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\retained-repair-20261018\\chatgpt-first14d.rel",
+    "output_bytes": 31853182,
+    "reclaimed": false,
+    "retired_profiles": [
+      "69aa8cff0441f35faa3494898b14d406620864bbd6da5e905ccb30cb58b25e71"
+    ],
+    "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first14d\\project.prj.rel",
+    "source_bytes": 31852615,
+    "verified": true,
+    "source_sha256": "800d98cc09081901ffdc8e37b6c4dab60579e6356ac710a810bd37508343c851",
+    "output_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+    "promotion_form": "retired-only",
+    "prune_reason": "legacy authenticated source prefix retains all original payload authority",
+    "original_physical_prefix_sha256": "800d98cc09081901ffdc8e37b6c4dab60579e6356ac710a810bd37508343c851",
+    "all_original_bytes_retained": true,
+    "phy_sha256_before": null,
+    "phy_files": {
+      "user.phy": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130"
+    },
+    "promoted": true,
+    "recovered_bytes": 0
+  },
+  {
+    "keep_profile": "e012fa5173c94058e83749208bd3250628a4d533d01d96fe711c86a813c14258",
+    "legacy_import_migrated": true,
+    "output": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\retained-repair-20261018\\chatgpt-first28d.rel",
+    "output_bytes": 80056100,
+    "reclaimed": false,
+    "retired_profiles": [
+      "69aa8cff0441f35faa3494898b14d406620864bbd6da5e905ccb30cb58b25e71",
+      "8241829850543532329fda348b2365c84b80f401af5ed4a2ab571a3c234d05d8",
+      "f8a5ba9f1c470340b67d9cf7c1cf28d8e23500901eef397ac375c3c217531338"
+    ],
+    "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first28d\\project.prj.rel",
+    "source_bytes": 80055438,
+    "verified": true,
+    "source_sha256": "3816e5a83c73a0c30465536402bab07a938c97cfaabf2b0be1a672ba2cc02c2b",
+    "output_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+    "promotion_form": "retired-only",
+    "prune_reason": "legacy authenticated source prefix retains all original payload authority",
+    "original_physical_prefix_sha256": "3816e5a83c73a0c30465536402bab07a938c97cfaabf2b0be1a672ba2cc02c2b",
+    "all_original_bytes_retained": true,
+    "phy_sha256_before": null,
+    "phy_files": {
+      "user.phy": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e"
+    },
+    "promoted": true,
+    "recovered_bytes": 0
+  },
+  {
+    "keep_profile": "3aad70f4c0083a74be98cc41b51515559c7ed26669597641e562299424ddcd82",
+    "legacy_import_migrated": true,
+    "output": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\retained-repair-20261018\\rhelm-david-r-ellis-pre-relationship.rel",
+    "output_bytes": 19561460,
+    "reclaimed": false,
+    "retired_profiles": [
+      "2f404c70725ad1162653bf2762c0f5590d0c3f7a1b83c4b9bf87e39091138fa5"
+    ],
+    "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\rhelm-david-r-ellis-pre-relationship\\project.prj.rel",
+    "source_bytes": 19560898,
+    "verified": true,
+    "source_sha256": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+    "output_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+    "promotion_form": "retired-only",
+    "prune_reason": "legacy authenticated source prefix retains all original payload authority",
+    "original_physical_prefix_sha256": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+    "all_original_bytes_retained": true,
+    "phy_sha256_before": null,
+    "phy_files": {
+      "user.phy": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937"
+    },
+    "promoted": true,
+    "recovered_bytes": 0
+  }
+]

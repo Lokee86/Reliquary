@@ -3,8 +3,8 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** steps 13–33 accepted; step 34 source-only replay slice accepted on the isolated branch; derived-owner reconciliation/transform work remains open; main promotion remains step 36
-**Next step:** 34 — grouped Memory publication and accepted Freshness interval replay
+**Status:** implementation and fixture repair/promotion accepted through step 66; final structural acceptance and main integration/cleanup in progress
+**Current gate:** final structural refresh and source integration. See [final verification](tombstone-import-history-final-verification-2026-10-18.md).
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
 ## Purpose
@@ -137,7 +137,7 @@ Add a versioned settlement/replay representation authenticating physical start/b
 
 **33 — Luna — Native-only REL test (complete on the isolated integration branch).** A REL with no imports has zero import markers and otherwise behaves normally.
 
-**34 — Sol — Import-epoch reconciliation (source-only slice complete; derived-owner replay open).** Same ID + exact evidence dedupes; conflicting same ID rejects; one-sided complete imports replay as one complete epoch with destination watermarks.
+**34 — Sol — Import-epoch reconciliation (complete; explicit unsupported owner boundaries retained).** Same ID + exact evidence dedupes; conflicting same ID rejects; one-sided complete imports replay as one complete epoch with destination watermarks.
 
 **35 — Luna — Transform preservation tests.** Reopen, migration/repack and ordinary reclamation preserve completed import epochs and Freshness settlements exactly.
 
@@ -494,3 +494,8 @@ The generic `cva_reconcile_memory` helper currently decomposes completion record
 
 
 Local verification encountered a cache-maintenance race: the background cleanup log confirms deletion of this worktree's verification files during the run, causing missing executable, library and metadata errors before test execution. Cache-only fingerprint repair was limited to missing artifacts. For the final 56-case rerun, only the verified cache maintenance service was temporarily stopped and automatically restarted in a `finally` block with its original configuration. No service configuration, source fixture or main code was changed by that repair.
+
+
+## Final execution acceptance (2026-10-18)
+
+Steps 29–35 and 37–66 now have implementation and verification evidence in the [final verification record](tombstone-import-history-final-verification-2026-10-18.md). This supersedes the earlier bounded source-only checkpoint and its next implementation seam. Ordered concrete-owner replay includes nonzero grouped Memory publication, initial Dream/Perception evidence, accepted effects, attachments and retry journals. Exact transform authority is retained. REL pruning, exact activation coverage and explicit legacy framing are implemented. All three retained RELs are repaired and promoted in retired-only form with original bytes intact; the 27-case Ellis comparison is identical before/after repair. Optional destructive cleanup was declined to preserve authenticated original prefixes. Full library acceptance separates three existing external-host failures; integration and CLI suites pass. Final structural acceptance, source main integration (steps 36/50) and cleanup (67–68) are recorded in the linked record when complete.

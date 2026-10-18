@@ -29,9 +29,17 @@ pub(crate) fn read_entity_tail(
     cva: &mut Cva,
     start_chunk: usize,
 ) -> Result<EntityTail, CvaReconcileError> {
+    read_entity_range(cva, start_chunk, usize::MAX)
+}
+
+pub(crate) fn read_entity_range(
+    cva: &mut Cva,
+    start_chunk: usize,
+    end_chunk: usize,
+) -> Result<EntityTail, CvaReconcileError> {
     let chunks = cva.container.chunks()?;
     let mut revisions = Vec::new();
-    for chunk in chunks.iter().skip(start_chunk) {
+    for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
         let Some(version) = decode_version(&payload)? else {
             continue;

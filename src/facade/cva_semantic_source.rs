@@ -103,12 +103,19 @@ impl Cva {
                 "conflicting accepted semantic source".into(),
             ));
         }
-        let Some(generation) = self
+        let Some(candidate) = self
             .vector_generations
             .generations()
             .iter()
             .max_by_key(|g| g.vector_version)
             .copied()
+        else {
+            return Ok(0);
+        };
+        // Historical/offline fill may retain a partial generation so retries
+        // can reuse rows. Such evidence cannot drive live scoring before it is
+        // exact, complete current coverage for its profile.
+        let Some(generation) = self.current_vector_generation(candidate.compatibility_profile_id)
         else {
             return Ok(0);
         };

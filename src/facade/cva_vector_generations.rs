@@ -82,6 +82,7 @@ impl Cva {
             archive_vector_id,
             source_archive_version,
             true,
+            true,
         )
     }
 
@@ -96,6 +97,7 @@ impl Cva {
             archive_vector_id,
             source_archive_version,
             false,
+            false,
         )
     }
 
@@ -105,7 +107,13 @@ impl Cva {
         archive_vector_id: crate::ArchiveVectorId,
         source_archive_version: u64,
         process_live_semantic: bool,
+        require_current_coverage: bool,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        if process_live_semantic && self.open_import_epoch().is_some() {
+            return Err(VectorGenerationError::Freshness(
+                "live vector publication requires a completed import boundary".into(),
+            ));
+        }
         self.compatibility_profiles
             .get_active(compatibility_profile_id)
             .ok_or(VectorGenerationError::MissingProfile)?;
@@ -128,7 +136,9 @@ impl Cva {
             &self.compatibility_profiles,
             &candidate,
         )?;
-        if !has_complete_current_coverage(&self.archive, &self.archive_vectors, &candidate) {
+        if require_current_coverage
+            && !has_complete_current_coverage(&self.archive, &self.archive_vectors, &candidate)
+        {
             return Err(VectorGenerationError::IncompleteCoverage);
         }
         let generation = self.vector_generations.publish(
@@ -137,7 +147,7 @@ impl Cva {
             archive_vector_id,
             source_archive_version,
         )?;
-        if process_live_semantic {
+        if process_live_semantic && self.owner_uuid().is_some() {
             self.process_semantic_freshness(generation.id, 64)
                 .map_err(|error| VectorGenerationError::Freshness(error.to_string()))?;
         }
@@ -157,6 +167,9 @@ impl Cva {
         &self,
         compatibility_profile_id: CompatibilityProfileId,
     ) -> Option<VectorGeneration> {
+        if self.owner_uuid().is_none() || self.open_import_epoch().is_some() {
+            return None;
+        }
         self.compatibility_profiles
             .get_active(compatibility_profile_id)?;
         let generation = self

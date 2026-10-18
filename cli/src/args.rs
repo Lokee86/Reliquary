@@ -75,6 +75,15 @@ pub enum RelCommand {
     Verify {
         path: PathBuf,
     },
+    /// Repair a disposable copy and retain one complete operational profile.
+    Repair {
+        source: PathBuf,
+        output: PathBuf,
+        #[arg(long)]
+        keep_profile: String,
+        #[arg(long)]
+        reclaim: bool,
+    },
     #[command(visible_alias = "vacuum")]
     Reclaim {
         path: PathBuf,

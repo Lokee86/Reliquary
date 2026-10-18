@@ -1,18 +1,46 @@
 use super::epoch_codec::{ImportEpochRecord, decode, encode_complete, encode_start};
 use super::{ImportComplete, ImportEpochStatus, ImportError, ImportStart};
 use crate::Container;
+use crate::ObjectRef;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
+use std::io::Read;
 
 #[derive(Clone, Default)]
 pub(crate) struct ImportEpochStore {
     starts: BTreeMap<String, ImportStart>,
     completions: BTreeMap<String, ImportComplete>,
+    legacy_frames: Vec<(super::LegacyImportEpoch, ObjectRef)>,
     open: Option<String>,
 }
 
 impl ImportEpochStore {
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), ImportError> {
+        self.ingest_at(None, payload)
+    }
+
+    pub(crate) fn ingest_at(
+        &mut self,
+        position: Option<ObjectRef>,
+        payload: &[u8],
+    ) -> Result<(), ImportError> {
+        if let Some(frame) = super::legacy_epoch::decode(payload)? {
+            if !self.starts.is_empty()
+                || !self.completions.is_empty()
+                || !self.legacy_frames.is_empty()
+            {
+                return Err(ImportError::Epoch(
+                    "duplicate or out-of-order legacy epoch frame",
+                ));
+            }
+            let position =
+                position.ok_or(ImportError::Epoch("legacy frame lacks physical position"))?;
+            if frame.source_prefix_len != position.offset() {
+                return Err(ImportError::Epoch("legacy frame prefix boundary mismatch"));
+            }
+            self.legacy_frames.push((frame, position));
+            return Ok(());
+        }
         let Some(record) = decode(payload)? else {
             return Ok(());
         };
@@ -33,6 +61,50 @@ impl ImportEpochStore {
                 self.completions
                     .insert(complete.import_id.clone(), complete);
                 self.open = None;
+            }
+        }
+        Ok(())
+    }
+
+    pub(crate) fn legacy_epochs(&self) -> Vec<super::LegacyImportEpoch> {
+        self.legacy_frames
+            .iter()
+            .map(|(frame, _)| frame.clone())
+            .collect()
+    }
+
+    pub(crate) fn validate_legacy_frames(
+        &self,
+        container: &mut Container,
+    ) -> Result<(), ImportError> {
+        for (frame, marker) in &self.legacy_frames {
+            if Some(frame.owner_uuid) != container.owner_uuid() {
+                return Err(ImportError::Epoch("legacy epoch owner mismatch"));
+            }
+            let prefix = hash_file_prefix(container.path(), frame.source_prefix_len)?;
+            if prefix != frame.source_prefix_digest {
+                return Err(ImportError::Epoch("legacy source prefix digest mismatch"));
+            }
+            let mut matches = 0;
+            container.visit_payloads_through::<ImportError>(
+                frame.source_prefix_len,
+                |_, payload| {
+                    if payload.starts_with(b"CVAFRS03") {
+                        let digest = format!("{:x}", Sha256::digest(payload));
+                        if digest == frame.source_settlement_digest {
+                            let settlement = crate::freshness_storage::HistoricalImportFreshnessSettlement::decode_legacy_frame(payload)
+                                .map_err(|_|ImportError::Epoch("invalid legacy settlement frame"))?;
+                            if settlement.owner != frame.owner_uuid || settlement.import_id != frame.import_id {
+                                return Err(ImportError::Epoch("legacy epoch settlement identity mismatch"));
+                            }
+                            matches += 1;
+                        }
+                    }
+                    Ok(())
+                },
+            )?;
+            if matches != 1 || marker.offset() != frame.source_prefix_len {
+                return Err(ImportError::Epoch("legacy settlement binding mismatch"));
             }
         }
         Ok(())
@@ -224,4 +296,19 @@ fn watermarks_monotone(pre: super::ImportWatermarks, post: super::ImportWatermar
         && post.graph_version >= pre.graph_version
         && post.memory_graph_version >= pre.memory_graph_version
         && post.vector_version >= pre.vector_version
+}
+
+pub(crate) fn hash_file_prefix(path: &std::path::Path, len: u64) -> Result<String, ImportError> {
+    let mut file = std::fs::File::open(path).map_err(crate::ContainerError::Io)?;
+    let mut remaining = len;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    while remaining > 0 {
+        let take = usize::try_from(remaining.min(buffer.len() as u64)).unwrap();
+        file.read_exact(&mut buffer[..take])
+            .map_err(crate::ContainerError::Io)?;
+        hasher.update(&buffer[..take]);
+        remaining -= take as u64;
+    }
+    Ok(format!("{:x}", hasher.finalize()))
 }

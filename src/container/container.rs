@@ -91,6 +91,10 @@ impl ObjectRef {
         self.into_chunk().offset < later.into_chunk().offset
     }
 
+    pub(crate) fn offset(self) -> u64 {
+        self.into_chunk().offset
+    }
+
     #[cfg(test)]
     pub(crate) fn legacy_offset(self) -> u64 {
         self.into_chunk().offset

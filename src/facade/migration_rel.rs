@@ -186,7 +186,9 @@ fn copy_vectors(
         output
             .container
             .set_next_transaction_time_override(transaction_time_ns);
-        let result = output.publish_vector_generation(
+        // Migration preserves historical vector evidence. It must not run the
+        // live semantic freshness path while the destination is being built.
+        let result = output.publish_vector_generation_without_live_semantic(
             generation.compatibility_profile_id,
             generation.archive_vector_id,
             generation.source_archive_version,

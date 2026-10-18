@@ -19,6 +19,7 @@ use validation::{normalize_draft, validate_record};
 
 pub(crate) struct RelationshipStore {
     records: Vec<RelationshipRecord>,
+    pub(crate) pruned_revisions: BTreeSet<(RelationshipId, u64)>,
     current: HashMap<RelationshipId, usize>,
     by_mutation: HashMap<String, usize>,
     by_participant: HashMap<EntityRef, BTreeSet<RelationshipId>>,
@@ -31,6 +32,7 @@ impl RelationshipStore {
     pub(crate) fn empty() -> Self {
         Self {
             records: Vec::new(),
+            pruned_revisions: BTreeSet::new(),
             current: HashMap::new(),
             by_mutation: HashMap::new(),
             by_participant: HashMap::new(),

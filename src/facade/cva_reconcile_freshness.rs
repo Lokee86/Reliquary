@@ -135,48 +135,7 @@ pub(crate) fn replay_freshness(
             CvaReconcileError::UnsupportedSemanticOwner("divergent Freshness owner policy")
         })?;
     for rebased in entries {
-        match rebased.entry {
-            FreshnessReplayEntry::Initialize {
-                memory_id,
-                admitted_at_birth,
-                ..
-            } => output.freshness_replay_initialize(memory_id, rebased.turn, admitted_at_birth)?,
-            FreshnessReplayEntry::Admit { memory_id, .. } => {
-                output.freshness_replay_admit(memory_id, rebased.turn)?
-            }
-            FreshnessReplayEntry::Event {
-                event_id,
-                effects,
-                proof,
-                provenance,
-                semantic,
-                ..
-            } => {
-                if let Some(mut evidence) = semantic {
-                    evidence.accepted_turn = rebased.turn;
-                    output.freshness_replay_semantic_event(event_id, evidence, effects)?;
-                } else {
-                    output.freshness_replay_event(
-                        event_id,
-                        rebased.turn,
-                        proof,
-                        effects,
-                        provenance,
-                    )?;
-                }
-            }
-            FreshnessReplayEntry::AcceptedUseReceipt {
-                use_id,
-                sources,
-                policy_version,
-                ..
-            } => output.freshness_replay_accepted_use_receipt(
-                use_id,
-                rebased.turn,
-                sources,
-                policy_version,
-            )?,
-        }
+        replay_entry(output, rebased.entry, rebased.turn)?;
     }
 
     let publication_births: BTreeSet<_> = left
@@ -595,4 +554,88 @@ fn rebase_entry_turn(
         }
     }
     rebase_turn(entry.source_turn(), turns, merged)
+}
+
+/// Replay one validated source frame at its physical position. Settlements are
+/// reconstructed separately through the destination import owner.
+pub(crate) fn replay_freshness_payload(
+    source: &Cva,
+    output: &mut Cva,
+    payload: &[u8],
+    map_proof: impl Fn(
+        crate::FreshnessEventProof,
+    ) -> Result<crate::FreshnessEventProof, CvaReconcileError>,
+) -> Result<(), CvaReconcileError> {
+    let turns = activity_turns(source);
+    let merged = merged_activity_turns(output, output);
+    for mut entry in
+        FreshnessReplayEntry::from_payload(payload).map_err(crate::CvaError::Freshness)?
+    {
+        validate_semantic_source(source, &entry)?;
+        if let FreshnessReplayEntry::Event {
+            event_id, proof, ..
+        } = &entry
+        {
+            ensure_event_proof_preserved(source, event_id, *proof)?;
+        }
+        let destination_turn = rebase_entry_turn(source, &entry, &turns, &merged)?;
+        if let FreshnessReplayEntry::Event { proof, .. } = &mut entry {
+            *proof = map_proof(*proof)?;
+        }
+        replay_entry(output, entry, destination_turn)?;
+    }
+    Ok(())
+}
+
+fn replay_entry(
+    output: &mut Cva,
+    entry: FreshnessReplayEntry,
+    destination_turn: u64,
+) -> Result<(), CvaReconcileError> {
+    match entry {
+        FreshnessReplayEntry::Initialize {
+            memory_id,
+            admitted_at_birth,
+            ..
+        } => output.freshness_replay_initialize(memory_id, destination_turn, admitted_at_birth)?,
+        FreshnessReplayEntry::Admit { memory_id, .. } => {
+            output.freshness_replay_admit(memory_id, destination_turn)?
+        }
+        FreshnessReplayEntry::Event {
+            event_id,
+            effects,
+            proof,
+            mut provenance,
+            semantic,
+            ..
+        } => {
+            if let Some(provenance) = provenance.as_mut() {
+                provenance.accepted_turn = destination_turn;
+            }
+            if let Some(mut evidence) = semantic {
+                evidence.accepted_turn = destination_turn;
+                output.freshness_replay_semantic_event(event_id, evidence, effects)?;
+            } else {
+                output.freshness_replay_event(
+                    event_id,
+                    destination_turn,
+                    proof,
+                    effects,
+                    provenance,
+                )?;
+            }
+        }
+        FreshnessReplayEntry::AcceptedUseReceipt {
+            use_id,
+            sources,
+            policy_version,
+            ..
+        } => output.freshness_replay_accepted_use_receipt(
+            use_id,
+            destination_turn,
+            sources,
+            policy_version,
+        )?,
+    }
+    Ok(())
 }

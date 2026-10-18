@@ -6,13 +6,16 @@ mod epoch_codec;
 mod epoch_scope;
 mod epoch_store;
 mod hermes;
+pub(crate) mod legacy_epoch;
 mod prepare;
 mod providers;
 mod readiness;
 mod reconciliation;
+mod reconciliation_interval;
 mod reconciliation_replay;
 pub use contract::*;
 pub use hermes::normalize_hermes_jsonl;
+pub use legacy_epoch::{LegacyImportEpoch, LegacyImportEpochOrigin, LegacyImportEpochStatus};
 pub(crate) use reconciliation::reconcile_import_epochs;
 #[cfg(test)]
 mod reconcile_tests;

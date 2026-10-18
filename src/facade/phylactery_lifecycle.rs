@@ -124,6 +124,19 @@ impl Phylactery {
 
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
             reject_rel_only_payload(payload)?;
+            if [
+                b"CVAMPRN1".as_slice(),
+                b"CVAEPRN1",
+                b"CVARPRN1",
+                b"CVAPVRN1",
+            ]
+            .iter()
+            .any(|magic| payload.starts_with(magic))
+            {
+                return Err(PhylacteryError::Repack(
+                    "pruned PHY payload requires validated PHY maintenance evidence".into(),
+                ));
+            }
             memory_state.ingest(chunk, payload, latest_global)?;
             graph_state.ingest(chunk, payload, latest_global)?;
             entity_state.ingest(chunk, payload, latest_global)?;

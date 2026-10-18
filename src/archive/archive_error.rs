@@ -16,6 +16,7 @@ pub enum ArchiveError {
     ConflictingConversationTombstone,
     MissingNode,
     MissingContent,
+    PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable),
     ConflictingNode,
     InvalidBranchRevision,
     MissingFragment,

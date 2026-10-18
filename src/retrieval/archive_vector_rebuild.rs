@@ -71,7 +71,7 @@ impl ArchiveVectorOpenState {
                 info.packed_vector_id,
                 &record.fragment_ids,
             )?;
-            store.insert_rebuilt(info, record.chunk)?;
+            store.insert_rebuilt(info, record.chunk, record.fragment_ids)?;
         }
         Ok(store)
     }

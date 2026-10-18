@@ -47,6 +47,9 @@ impl Cva {
         &self,
         id: CompatibilityProfileId,
     ) -> Option<CompatibilityProfile> {
+        if self.owner_uuid().is_none() || self.open_import_epoch().is_some() {
+            return None;
+        }
         let profile = self.compatibility_profiles.get_active(id)?;
         self.memory_vectors
             .has_complete_coverage(id, &self.memories.current_body_ids())

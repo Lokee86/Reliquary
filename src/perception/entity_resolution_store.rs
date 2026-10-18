@@ -16,7 +16,7 @@ use crate::{
 };
 use std::collections::{HashMap, HashSet};
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct EntityResolutionStore {
     current: HashMap<MemoryEntityMentionKey, MemoryEntityResolution>,
     revisions: HashMap<MemoryEntityMentionKey, u32>,

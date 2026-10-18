@@ -10,6 +10,11 @@ impl EntityStore {
         id: EntityId,
         revision: u64,
     ) -> Result<Entity, EntityError> {
+        if self.pruned_revisions.contains(&(id, revision)) {
+            return Err(EntityError::PayloadUnavailable(
+                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+            ));
+        }
         self.records
             .iter()
             .find(|record| record.id == id && record.revision == revision)

@@ -15,6 +15,7 @@ use validation::{normalize_draft, validate_record};
 
 pub(crate) struct EntityStore {
     records: Vec<EntityRecord>,
+    pub(crate) pruned_revisions: BTreeSet<(EntityId, u64)>,
     current: HashMap<EntityId, usize>,
     by_mutation: HashMap<String, usize>,
     by_surface: HashMap<String, BTreeSet<EntityId>>,
@@ -30,6 +31,7 @@ impl EntityStore {
     pub(crate) fn empty() -> Self {
         Self {
             records: Vec::new(),
+            pruned_revisions: BTreeSet::new(),
             current: HashMap::new(),
             by_mutation: HashMap::new(),
             by_surface: HashMap::new(),

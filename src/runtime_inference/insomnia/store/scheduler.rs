@@ -65,6 +65,9 @@ impl Scheduler {
         self.retry_at.clear();
         self.lease_expires.clear();
         for item in work.values() {
+            if archive.episode(item.episode_id).is_none() {
+                continue;
+            }
             let key = ScheduleKey::new(archive, item)?;
             self.keys.insert(item.episode_id, key.clone());
             self.index(item, key);

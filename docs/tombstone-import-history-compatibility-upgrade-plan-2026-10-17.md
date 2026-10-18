@@ -3,7 +3,7 @@
 Parent: [Documentation index](INDEX.md).
 
 **Date:** 2026-10-17  
-**Status:** active execution; convergence steps 1–12 are complete on `main`. The authoritative continuation is the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md).
+**Status:** implementation and retained fixture promotion accepted; final source integration and structural closure in progress. See [final verification](tombstone-import-history-final-verification-2026-10-18.md).
 **Scope:** generalized REL/PHY tombstoning, Archive conversation deletion, import epoch markers, repeated-import Historical Freshness reconstruction, explicit destructive historical pruning/repack, compatibility-policy v3/profile retirement, and retained-REL normalization.  
 **Migration policy:** staged hard cut internally, with compatibility isolated only at persisted REL/PHY format boundaries that must continue to open.
 
@@ -13,7 +13,7 @@ Implement the lifecycle, repeated-import history and compatibility upgrades defi
 
 ## Overview
 
-The original 50-step decomposition below remains the architectural work breakdown; the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) owns execution order. Steps 1–28 are historically accepted on the isolated integration branch, with step 28 limited to exclusive empty-import completion. Steps 29–33 are accepted on the isolated branch for owner-derived readiness, private completion authority, pending/failed recovery and sequential/native-only coverage. Step 34 destination-aware reconciliation is next. The [execution contract](tombstone-import-history-execution-contract.md) records frozen semantics and verification status.
+The original 50-step decomposition below remains the architectural work breakdown; the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) records execution and historical checkpoints. The [final verification record](tombstone-import-history-final-verification-2026-10-18.md) owns current acceptance, retained artifact hashes, retrieval parity and explicit limitations.
 
 ## Related docs
 

@@ -11,6 +11,7 @@ pub enum MemoryError {
     MissingFormat,
     ConflictingFormat,
     MissingBody,
+    PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable),
     CorruptBody,
     HashCollision,
     RevisionConflict,

@@ -1,9 +1,10 @@
-use crate::ContainerError;
+use crate::{ContainerError, PackedVectorError};
 use std::fmt;
 
 #[derive(Debug)]
 pub enum ArchiveVectorError {
     Container(ContainerError),
+    PackedVector(PackedVectorError),
     CorruptRecord(&'static str),
     MissingFormat,
     ConflictingFormat,
@@ -27,5 +28,11 @@ impl std::error::Error for ArchiveVectorError {}
 impl From<ContainerError> for ArchiveVectorError {
     fn from(value: ContainerError) -> Self {
         Self::Container(value)
+    }
+}
+
+impl From<PackedVectorError> for ArchiveVectorError {
+    fn from(value: PackedVectorError) -> Self {
+        Self::PackedVector(value)
     }
 }

@@ -38,6 +38,11 @@ impl EntityOpenState {
             return Ok(());
         }
         if let Some(record) = decode_record(payload)? {
+            if payload.starts_with(b"CVAEPRN1") {
+                self.store
+                    .pruned_revisions
+                    .insert((record.id, record.revision));
+            }
             self.pending_records.insert(chunk, record);
             return Ok(());
         }

@@ -30,6 +30,7 @@ pub(crate) struct ArchiveOpenState {
     versioned_records: HashSet<ObjectRef>,
     next_archive_version: u64,
     format_seen: bool,
+    prune: crate::archive::history_prune::ArchivePruneState,
 }
 
 impl ArchiveOpenState {
@@ -53,6 +54,7 @@ impl ArchiveOpenState {
             versioned_records: HashSet::new(),
             next_archive_version: 1,
             format_seen: false,
+            prune: Default::default(),
         }
     }
 
@@ -62,6 +64,9 @@ impl ArchiveOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), ArchiveError> {
+        if self.prune.ingest(payload)? {
+            return Ok(());
+        }
         if decode_archive_format(payload)? {
             if self.format_seen {
                 return Err(ArchiveError::ConflictingArchiveFormat);
@@ -101,7 +106,9 @@ impl ArchiveOpenState {
         if !self.format_seen {
             return Err(ArchiveError::MissingArchiveFormat);
         }
+        self.prune.validate_markers()?;
         Ok(Archive {
+            prune: self.prune,
             import_receipts: self.import_receipts,
             contents: self.contents,
             nodes: self.nodes,

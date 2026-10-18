@@ -164,7 +164,7 @@ fn missing_fragment_row_stays_pending_independently_of_a_valid_sibling() {
     let source_archive_version = f.cva().archive_version();
     let newer = f
         .cva()
-        .publish_vector_generation(
+        .publish_vector_generation_without_live_semantic(
             old.compatibility_profile_id,
             old.archive_vector_id,
             source_archive_version,
@@ -653,12 +653,13 @@ fn semantic_live_is_intrinsic_from_rel_origin() {
     f.turn("new", Some("old"), "assistant");
     f.fragments("new", 1);
     assert_eq!(f.cva().semantic_freshness_pending_fragments().unwrap(), 1);
-    let report = f
-        .cva()
-        .process_semantic_freshness(generation.id, 64)
-        .unwrap();
-    assert_eq!(report.completed_fragments, 0);
-    assert_eq!(report.pending_fragments, 1);
+    assert!(
+        f.cva()
+            .process_semantic_freshness(generation.id, 64)
+            .is_err(),
+        "a generation that no longer covers the current Archive stays inactive"
+    );
+    assert_eq!(f.cva().semantic_freshness_pending_fragments().unwrap(), 1);
 
     let newer = f.generation();
     assert_ne!(newer.id, generation.id);

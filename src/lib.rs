@@ -742,6 +742,10 @@ pub use multiplexing_journal::{
     PostCommitReceipt as GatewayPostCommitReceipt, SubmissionId as GatewaySubmissionId,
     SubmissionState as GatewaySubmissionState, SubmissionStatus as GatewaySubmissionStatus,
 };
+#[path = "facade/cva_description_prune.rs"]
+mod cva_description_prune;
+#[path = "facade/cva_history_prune.rs"]
+mod cva_history_prune;
 #[path = "runtime_inference/openai_codex_device_auth.rs"]
 mod openai_codex_device_auth;
 #[path = "runtime_inference/openai_codex_general.rs"]
@@ -934,6 +938,7 @@ pub use conversation_metadata_model::{ConversationMetadata, ConversationPolicy};
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
+pub use cva_history_prune::{HistoryPruneReport, HistoryPruneRequest};
 pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
 pub use runtime_config::RuntimeConfig;
 pub use storage_reclamation::StorageReclamationReport;

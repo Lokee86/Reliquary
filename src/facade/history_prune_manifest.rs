@@ -140,6 +140,104 @@ impl HistoryPruneManifest {
     }
 }
 
+/// Fingerprint semantic publications through a frozen global watermark while
+/// normalizing relocatable references. Unpublished payload chunks do not enter
+/// this digest; domain descriptors bind any payload selected for removal.
+pub(crate) fn owner_history_digest(
+    container: &mut crate::Container,
+    watermark: u64,
+) -> Result<[u8; 32], String> {
+    if watermark > container.latest_version() {
+        return Err("history watermark exceeds owner clock".into());
+    }
+    let mut hash = Sha256::new();
+    hash.update(watermark.to_le_bytes());
+    for global in 1..=watermark {
+        hash.update(global.to_le_bytes());
+        match container.transaction_time_ns(global) {
+            Some(time) => {
+                hash.update([1]);
+                hash.update(time.to_le_bytes());
+            }
+            None => hash.update([0]),
+        }
+    }
+    let objects = container.chunks().map_err(|error| error.to_string())?;
+    let normalized = objects
+        .iter()
+        .map(|object| (*object, crate::ObjectRef::from_legacy_bytes([0; 16])))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    for object in objects {
+        let raw = container.read(object).map_err(|error| error.to_string())?;
+        let publication = if let Some(version) =
+            crate::archive_history_codec::decode_record_version(&raw)
+                .map_err(|error| error.to_string())?
+        {
+            Some((version.global_version, version.record))
+        } else if let Some(version) =
+            crate::memory_codec::decode_version(&raw).map_err(|error| error.to_string())?
+        {
+            Some((version.global_version, version.record))
+        } else if let Some(version) =
+            crate::entity_codec::decode_version(&raw).map_err(|error| error.to_string())?
+        {
+            Some((version.global_version, version.record))
+        } else if let Some(version) =
+            crate::relationship_codec::decode_version(&raw).map_err(|error| error.to_string())?
+        {
+            Some((version.global_version, version.record))
+        } else if let Some(version) =
+            crate::graph_codec::decode_version(&raw).map_err(|error| error.to_string())?
+        {
+            Some((version.global_version, version.mutation))
+        } else {
+            crate::vector_generation_codec::decode_version(&raw)
+                .map_err(|error| error.to_string())?
+                .map(|version| (version.global_version, version.record))
+        };
+        if let Some((global, record)) = publication {
+            if global <= watermark {
+                let normalized = crate::storage_reclamation::relocate_payload(&raw, &normalized)?;
+                digest_bytes(&mut hash, &normalized);
+                let bytes = container.read(record).map_err(|error| error.to_string())?;
+                let digest: [u8; 32] =
+                    if bytes.starts_with(b"CVAEPRN1") || bytes.starts_with(b"CVARPRN1") {
+                        bytes
+                            .get(8..40)
+                            .ok_or("truncated description marker")?
+                            .try_into()
+                            .unwrap()
+                    } else {
+                        Sha256::digest(&bytes).into()
+                    };
+                digest_bytes(&mut hash, &digest);
+            }
+            continue;
+        }
+        let range = crate::insomnia::completion::decode_embedded_version_range(&raw)
+            .map_err(str::to_owned)?
+            .or(
+                crate::external_source::publication::decode_embedded_version_range(&raw)
+                    .map_err(|error| error.to_string())?
+                    .map(|(start, count, time)| (start, count, Some(time))),
+            );
+        if let Some((start, count, _)) = range
+            && count > 0
+            && start
+                .checked_add(u64::from(count) - 1)
+                .is_some_and(|last| last <= watermark)
+        {
+            digest_bytes(&mut hash, &raw);
+        }
+    }
+    Ok(hash.finalize().into())
+}
+
+fn digest_bytes(hash: &mut Sha256, bytes: &[u8]) {
+    hash.update((bytes.len() as u64).to_le_bytes());
+    hash.update(bytes);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

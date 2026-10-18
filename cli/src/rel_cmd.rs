@@ -20,6 +20,12 @@ pub fn run(command: RelCommand) -> Result<()> {
             );
         }
         RelCommand::Info { path } => info(&path)?,
+        RelCommand::Repair {
+            source,
+            output,
+            keep_profile,
+            reclaim,
+        } => crate::repair_cmd::run(&source, &output, &keep_profile, reclaim)?,
         RelCommand::Verify { path } => {
             let rel = Reliquary::open(&path)?;
             let metadata = rel.rel_metadata();

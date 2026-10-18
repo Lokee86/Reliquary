@@ -91,12 +91,13 @@ impl Archive {
         container: &mut Container,
         node: crate::Node,
     ) -> Result<ResolvedTurn, ArchiveError> {
+        let content = self.node_content(container, &node)?;
         Ok(ResolvedTurn {
             node_id: node.id,
             role: node.role,
             principal_id: node.principal_id,
             timestamp_ns: node.timestamp_ns,
-            content: self.content(container, node.content_id)?,
+            content,
         })
     }
 

@@ -1,0 +1,74 @@
+[
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary\\.workingtrees\\import-epoch-convergence-20261017",
+    "old_head": "5d9544afc8cc87288323a3d4d1e5d6e3d1233d6f",
+    "snapshot": "8dc2a7c7272bb46e52b5d65514d0a9255e37088f",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-.workingtrees-import-epoch-convergence-20261017",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-.workingtrees-import-epoch-convergence-20261017-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary\\.workingtrees\\import-settlement-convergence-20261017",
+    "old_head": "5d9544afc8cc87288323a3d4d1e5d6e3d1233d6f",
+    "snapshot": "7fce09e852c6ecf0ec9243b163790d3a45c44174",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-.workingtrees-import-settlement-convergence-20261017",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-.workingtrees-import-settlement-convergence-20261017-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary-conversation-tombstones",
+    "old_head": "7c06b5906b24af5c0e56dbaded08e9229b3dd9b6",
+    "snapshot": "59ddde939d7c47f1bcfe714fcc9811978a20e5a9",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-conversation-tombstones",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-conversation-tombstones-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary-domain-tombstones",
+    "old_head": "127119239601718ebb0dc95d38075d30fbf07804",
+    "snapshot": "b892bb2f403c001245afb8edb471504bb35cb51e",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-domain-tombstones",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-domain-tombstones-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary-history-prune",
+    "old_head": "1acd1337e8bce0973cd140f7465c42c4acf470f9",
+    "snapshot": "d2ddceab55b3420c8c9d77b3b764a8e9e6a8777d",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-history-prune",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-history-prune-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary-import-epochs",
+    "old_head": "582fd0c49cd1dad755d65e9d853e4ec694eda17f",
+    "snapshot": "70cf37f45c75cd98dcc35433c0791cd88b6c6c07",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-import-epochs",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-import-epochs-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary-import-settlements",
+    "old_head": "10a2aafc25299f18d3c4f95944006ffae869c172",
+    "snapshot": "fd78ee5106efcd5ae856e9e42e03fa09d2a2261c",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-import-settlements",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-import-settlements-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary-profile-upgrade",
+    "old_head": "ad7026606b01e849b0e12e3122838ec3652a7853",
+    "snapshot": "d651403cb1e250309766a5bb9100a647db4ff38d",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-profile-upgrade",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-profile-upgrade-staged.patch",
+    "removed": true
+  },
+  {
+    "path": "C:\\!bin\\workspace\\Reliquary-tombstone-characterization",
+    "old_head": "c1299c852b5c400bc661de074461b2cd4ab98c15",
+    "snapshot": "c6022649b658a9dedd2ea470f79d15c2a0e1712f",
+    "ref": "refs/archive/tombstone-import-20261018/reliquary-tombstone-characterization",
+    "staged_patch": "C:\\!bin\\workspace\\Reliquary-settlement-integration-20261017\\.verification-tmp\\obsolete-worktree-archive\\reliquary-tombstone-characterization-staged.patch",
+    "removed": true
+  }
+]

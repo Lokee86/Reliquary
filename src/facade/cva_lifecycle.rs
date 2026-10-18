@@ -259,7 +259,7 @@ impl Cva {
                 }
                 OpenRecordRoute::ContainerVersion => {}
                 OpenRecordRoute::Fallback => {
-                    import_epochs.ingest(payload)?;
+                    import_epochs.ingest_at(Some(chunk), payload)?;
                     external_index.ingest(payload);
                     archive_state.ingest(chunk, payload, latest_global)?;
                     memory_state.ingest(chunk, payload, latest_global)?;
@@ -309,6 +309,7 @@ impl Cva {
             }
             Ok::<(), CvaError>(())
         })?;
+        import_epochs.validate_legacy_frames(&mut container)?;
         if let Some(identity) = container.identity()
             && identity.file_kind != crate::FileKind::Reliquary
         {
@@ -326,7 +327,9 @@ impl Cva {
             .map_err(CvaError::Freshness)?;
         let archive = archive_state.finish()?;
         archive.validate_references(&project_files)?;
+        archive.validate_prune_history(&mut container)?;
         let memories = memory_state.finish(&mut container)?;
+        memories.validate_prune_history(&mut container, archive.prune.manifests())?;
         let entities = entity_state.finish()?;
         let relationships = relationship_state.finish();
         relationships.validate_local_references(
@@ -564,6 +567,8 @@ impl Cva {
         };
         result.validate_historical_import_settlements()?;
         result.validate_import_completion_settlements()?;
+        result.validate_pruned_packed_vectors()?;
+        result.validate_pruned_descriptions()?;
         Ok(result)
     }
 }

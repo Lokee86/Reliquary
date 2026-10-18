@@ -102,7 +102,22 @@ macro_rules! impl_owner {
                 crate::owner_lifecycle::HistoricalPayload<Entity, crate::EntityRetainedRevision>,
                 EntityError,
             > {
-                let value = self.entity_revision(id, revision)?;
+                let value = match self.entity_revision(id, revision) {
+                    Ok(value) => value,
+                    Err(EntityError::PayloadUnavailable(reason)) => {
+                        let structure = self
+                            .entity_retention_descriptor(id)?
+                            .revisions
+                            .into_iter()
+                            .find(|r| r.revision == revision)
+                            .ok_or(EntityError::MissingEntity)?;
+                        return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
+                            structural_history: structure,
+                            reason,
+                        });
+                    }
+                    Err(error) => return Err(error),
+                };
                 Ok(match self.entity_lifecycle_state(id)? {
                     crate::owner_lifecycle::LifecycleState::Active => {
                         crate::owner_lifecycle::HistoricalPayload::Available(value)

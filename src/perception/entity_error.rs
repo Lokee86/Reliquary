@@ -12,6 +12,7 @@ pub enum EntityError {
     MissingEntity,
     TerminalTombstone,
     PayloadRequiredByLiveTarget,
+    PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable),
     RevisionConflict,
     MutationConflict,
     InvalidVersion,

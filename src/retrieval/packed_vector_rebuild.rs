@@ -1,4 +1,4 @@
-use crate::packed_vector_codec::{decode_format, decode_object};
+use crate::packed_vector_codec::{decode_format, decode_object, decode_pruned_marker};
 use crate::packed_vector_store::{PackedVectorStore, packed_vector_id};
 use crate::{ObjectRef, PackedVectorError, PackedVectorInfo};
 
@@ -25,6 +25,11 @@ impl PackedVectorOpenState {
                 return Err(PackedVectorError::ConflictingFormat);
             }
             self.format_seen = true;
+            return Ok(());
+        }
+        if let Some(marker) = decode_pruned_marker(payload)? {
+            self.store
+                .insert_pruned(marker.info, chunk, marker.manifest_digest)?;
             return Ok(());
         }
         let Some(decoded) = decode_object(payload)? else {

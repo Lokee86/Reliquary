@@ -44,15 +44,26 @@ pub(crate) struct GraphReplayResult {
     pub(crate) transactions: usize,
     pub(crate) mutations: usize,
     pub(crate) duplicate_mutations: usize,
+    /// True when the source interval contains a Memory relation mutation,
+    /// even if the destination already had the exact relation.
+    pub(crate) source_memory_graph_changed: bool,
 }
 
 pub(crate) fn read_graph_tail(
     cva: &mut Cva,
     start_chunk: usize,
 ) -> Result<GraphTail, CvaReconcileError> {
+    read_graph_range(cva, start_chunk, usize::MAX)
+}
+
+pub(crate) fn read_graph_range(
+    cva: &mut Cva,
+    start_chunk: usize,
+    end_chunk: usize,
+) -> Result<GraphTail, CvaReconcileError> {
     let chunks = cva.container.chunks()?;
     let mut transactions = Vec::new();
-    for chunk in chunks.iter().skip(start_chunk) {
+    for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
         let Some(version) = decode_version(&payload)? else {
             continue;
@@ -113,6 +124,13 @@ pub(crate) fn validate_prefix_for_test(
     replay_skips(left, right).map(|_| ())
 }
 
+pub(crate) fn validate_graph_tails(
+    left: &GraphTail,
+    right: &GraphTail,
+) -> Result<(), CvaReconcileError> {
+    replay_skips(left, right).map(|_| ())
+}
+
 fn replay_skips(
     left: &GraphTail,
     right: &GraphTail,
@@ -152,7 +170,12 @@ fn replay_with_skips(
     let mut transactions = 0;
     let mut mutations = 0;
     let mut duplicate_mutations = 0;
+    let mut source_memory_graph_changed = false;
     for transaction in &tail.transactions {
+        source_memory_graph_changed |= transaction
+            .changes
+            .iter()
+            .any(|change| matches!(change.kind, SemanticGraphRelationKind::Memory(_)));
         let mut changes = Vec::with_capacity(transaction.changes.len());
         for change in &transaction.changes {
             let key = key(*change);
@@ -189,6 +212,7 @@ fn replay_with_skips(
         transactions,
         mutations,
         duplicate_mutations,
+        source_memory_graph_changed,
     })
 }
 

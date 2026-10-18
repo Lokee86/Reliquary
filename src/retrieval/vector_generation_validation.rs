@@ -48,9 +48,14 @@ pub(crate) fn has_complete_current_coverage(
     generation: &VectorGeneration,
 ) -> bool {
     generation.source_archive_version == archive.archive_version()
-        && archive_vectors
-            .info(generation.archive_vector_id)
-            .is_some_and(|vectors| vectors.rows == archive.fragments().len() as u64)
+        && archive_vectors.has_exact_fragment_coverage(
+            generation.archive_vector_id,
+            &archive
+                .fragments()
+                .iter()
+                .map(|fragment| fragment.id)
+                .collect::<Vec<_>>(),
+        )
 }
 
 pub(crate) fn vector_generation_id(

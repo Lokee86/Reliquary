@@ -1,5 +1,6 @@
 use super::*;
-use crate::{Branch, Cva, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
+use crate::{Branch, Cva, CvaError, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
+use sha2::{Digest, Sha256};
 
 impl Cva {
     /// Offline/exclusive native import. Mounted management must compose this through
@@ -111,7 +112,7 @@ impl Cva {
         Ok(prepared.receipt)
     }
 
-    pub(super) fn with_import_write_scope<T>(
+    pub(crate) fn with_import_write_scope<T>(
         &mut self,
         operation: impl FnOnce(&mut Self) -> T,
     ) -> T {
@@ -138,6 +139,81 @@ impl Cva {
 
     pub fn import_epoch_statuses(&self) -> Vec<ImportEpochStatus> {
         self.import_epochs.statuses()
+    }
+
+    /// Append an explicit compatibility frame for one accepted legacy CVAFRS03
+    /// settlement. The frame binds the complete pre-frame physical prefix; it
+    /// does not manufacture native ImportStart/ImportComplete authority.
+    pub fn migrate_legacy_import_framing(&mut self) -> Result<bool, CvaError> {
+        if !self.import_epochs.legacy_epochs().is_empty() {
+            return Ok(false);
+        }
+        if self
+            .freshness
+            .import_settlements()
+            .iter()
+            .all(|settlement| settlement.epoch.is_some())
+        {
+            return Ok(false);
+        }
+        self.container.sync()?;
+        if self.import_epochs.open().is_some() || !self.import_epochs.statuses().is_empty() {
+            return Err(
+                ImportError::Epoch("legacy framing requires no native import epochs").into(),
+            );
+        }
+        let owner_uuid = self.owner_uuid().ok_or(ImportError::Epoch(
+            "legacy framing requires a durable owner UUID",
+        ))?;
+        let settlements = self.freshness.import_settlements();
+        if settlements.len() != 1
+            || settlements[0].epoch.is_some()
+            || settlements[0].owner != owner_uuid
+        {
+            return Err(ImportError::Epoch(
+                "legacy framing requires exactly one unscoped owner settlement",
+            )
+            .into());
+        }
+        let mut legacy_payloads = Vec::new();
+        let objects = self.container.chunks()?;
+        for object in objects {
+            let payload = self.container.read(object)?;
+            if payload.starts_with(b"CVAFRS03") {
+                legacy_payloads.push(payload);
+            }
+        }
+        if legacy_payloads.len() != 1 {
+            return Err(ImportError::Epoch(
+                "legacy framing requires exactly one physical CVAFRS03 record",
+            )
+            .into());
+        }
+        let settlement_payload = &legacy_payloads[0];
+        let settlement_digest = format!("{:x}", Sha256::digest(settlement_payload));
+        let source_prefix_len = std::fs::metadata(self.container.path())
+            .map_err(crate::ContainerError::Io)?
+            .len();
+        let source_prefix_digest =
+            super::epoch_store::hash_file_prefix(self.container.path(), source_prefix_len)?;
+        let frame = super::LegacyImportEpoch {
+            origin: super::LegacyImportEpochOrigin::LegacyCvafrs03,
+            status: super::LegacyImportEpochStatus::CompletedInitial,
+            owner_uuid,
+            import_id: settlements[0].import_id,
+            source_settlement_digest: settlement_digest,
+            source_prefix_len,
+            source_prefix_digest,
+        };
+        let bytes = super::legacy_epoch::encode(&frame)?;
+        let position = self.container.append(&bytes)?;
+        self.container.sync()?;
+        self.import_epochs.ingest_at(Some(position), &bytes)?;
+        Ok(true)
+    }
+
+    pub fn legacy_import_epochs(&self) -> Vec<LegacyImportEpoch> {
+        self.import_epochs.legacy_epochs()
     }
 
     pub(super) fn import_watermarks(&self) -> ImportWatermarks {

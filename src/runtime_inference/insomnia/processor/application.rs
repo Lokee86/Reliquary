@@ -8,10 +8,145 @@ use crate::insomnia::store::InsomniaStore;
 use crate::memory_model::{memory_body_id, memory_id};
 use crate::memory_store::MemoryStore;
 use crate::{
-    Archive, Container, Episode, INSOMNIA_EXTRACTOR_CONTRACT_VERSION, InsomniaExtraction,
-    InsomniaOwnership, InsomniaRejection, InsomniaWork, Memory, MemoryDraft, MemoryRef,
-    MemoryRoutingMetadata, MemorySourceRef, Phylactery,
+    Archive, Container, Cva, CvaError, Episode, INSOMNIA_EXTRACTOR_CONTRACT_VERSION,
+    InsomniaExtraction, InsomniaOwnership, InsomniaRejection, InsomniaWork, Memory, MemoryDraft,
+    MemoryRef, MemoryRoutingMetadata, MemorySourceRef, Phylactery,
 };
+
+impl Cva {
+    pub(crate) fn hydrate_grouped_import_completion_bodies(
+        &mut self,
+        completion: &mut InsomniaCompletion,
+    ) -> Result<(), CvaError> {
+        self.memories
+            .complete_grouped_replay_bodies(&mut self.container, completion)
+            .map_err(CvaError::Memories)
+    }
+
+    /// Re-publish one accepted grouped Insomnia first publication into a REL
+    /// import interval. The source completion is the retained owner proof; only
+    /// destination global/local version coordinates and the destination birth cut
+    /// are recomputed.
+    pub(crate) fn replay_grouped_import_completion(
+        &mut self,
+        mut completion: InsomniaCompletion,
+    ) -> Result<bool, CvaError> {
+        if !completion.external_memory_refs.is_empty() {
+            return Err(CvaError::Freshness(
+                "grouped import replay requires a shared REL owner and first-publication records"
+                    .into(),
+            ));
+        }
+        self.episode(completion.episode_id).ok_or_else(|| {
+            CvaError::Freshness("destination grouped completion Episode is missing".into())
+        })?;
+        if completion.records.iter().any(|record| {
+            record.revision != 1 || record.source_episode_id != Some(completion.episode_id)
+        }) {
+            return Err(CvaError::Freshness(
+                "grouped import completion does not prove same-Episode first publications".into(),
+            ));
+        }
+        let birth_ids: std::collections::BTreeSet<_> =
+            completion.records.iter().map(|record| record.id).collect();
+        let recorded_births: std::collections::BTreeSet<_> = completion
+            .freshness_birth_memory_ids
+            .iter()
+            .copied()
+            .collect();
+        let has_owner = self.owner_uuid().is_some();
+        if (has_owner
+            && (completion.freshness_birth_turn.is_none()
+                || completion.freshness_policy_version
+                    != Some(crate::freshness::FRESHNESS_POLICY_VERSION as u64)
+                || recorded_births != birth_ids))
+            || (!has_owner
+                && (completion.freshness_birth_turn.is_some()
+                    || completion.freshness_policy_version.is_some()
+                    || !recorded_births.is_empty()))
+            || completion.freshness_birth_memory_ids.len() != recorded_births.len()
+            || completion
+                .memory_ids
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>()
+                .len()
+                != completion.memory_ids.len()
+            || !birth_ids
+                .iter()
+                .all(|id| completion.memory_ids.contains(id))
+        {
+            return Err(CvaError::Freshness(
+                "grouped import completion lacks exact first-publication birth evidence".into(),
+            ));
+        }
+        if completion
+            .memory_ids
+            .iter()
+            .filter(|id| !birth_ids.contains(id))
+            .any(|id| !self.memories.contains_memory(*id))
+        {
+            return Err(CvaError::Memories(crate::MemoryError::MutationConflict));
+        }
+        if completion.attempt == 0
+            || self
+                .insomnia_work(completion.episode_id)
+                .is_none_or(|work| {
+                    work.state == crate::InsomniaWorkState::Complete
+                        || completion.attempt < work.attempt_count
+                })
+        {
+            return Err(CvaError::Insomnia(crate::InsomniaError::InvalidTransition));
+        }
+
+        self.memories
+            .rebase_grouped_replay_versions(&self.container, &mut completion)
+            .map_err(CvaError::Memories)?;
+
+        let accepted_turn = self.rel_turn_count();
+        let owner = self.owner_uuid();
+        completion.freshness_birth_turn = owner.map(|_| accepted_turn);
+        let mut freshness_after = self.freshness.clone();
+        if let Some(owner) = owner {
+            for record in &completion.records {
+                freshness_after
+                    .derive_birth(owner, record.id, accepted_turn, false)
+                    .map_err(CvaError::Freshness)?;
+            }
+        }
+
+        let payload = encode_completion(&completion).map_err(|_| {
+            CvaError::Insomnia(crate::InsomniaError::InvalidField("completion record"))
+        })?;
+        let completion_chunk = self.container.append(&payload)?;
+        self.container.commit_embedded_version_range_at(
+            completion.global_version_start,
+            completion.records.len(),
+            Some(completion.transaction_time_ns),
+        )?;
+        self.container.sync()?;
+
+        self.memories
+            .apply_grouped_bodies(completion_chunk, &completion.bodies)
+            .map_err(CvaError::Memories)?;
+        self.memories
+            .apply_grouped_records(&mut self.container, &completion.records)
+            .map_err(CvaError::Memories)?;
+        self.memories
+            .apply_grouped_routing_metadata(&completion.routing_metadata)
+            .map_err(CvaError::Memories)?;
+        self.insomnia
+            .apply_completion(&completion)
+            .map_err(CvaError::Insomnia)?;
+        self.freshness = freshness_after;
+        if owner.is_some() {
+            for record in &completion.records {
+                self.dream_freshness.derive_publication_birth(record.id);
+            }
+        }
+        Ok(true)
+    }
+}
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn prepare_application(

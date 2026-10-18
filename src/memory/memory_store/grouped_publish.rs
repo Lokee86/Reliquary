@@ -11,6 +11,92 @@ pub(crate) struct PreparedMemoryBatch {
 }
 
 impl MemoryStore {
+    /// Make a grouped completion self-contained for replay from its source
+    /// owner. Native publication can omit body bytes retained by the source
+    /// MemoryStore, while the destination branch may not have that body.
+    pub(crate) fn complete_grouped_replay_bodies(
+        &self,
+        container: &mut Container,
+        completion: &mut crate::insomnia::completion::InsomniaCompletion,
+    ) -> Result<(), MemoryError> {
+        let mut present = completion
+            .bodies
+            .iter()
+            .map(|body| body.id)
+            .collect::<HashSet<_>>();
+        if present.len() != completion.bodies.len() {
+            return Err(MemoryError::CorruptRecord(
+                "duplicate grouped completion body identity",
+            ));
+        }
+        for body in &completion.bodies {
+            let (title, content) = decode_memory_body(&body.bytes)?;
+            if memory_body_id(&title, &content) != body.id {
+                return Err(MemoryError::CorruptBody);
+            }
+        }
+        for record in &completion.records {
+            if present.contains(&record.body_id) {
+                continue;
+            }
+            let bytes = self.body_bytes(container, record.body_id)?;
+            let (title, content) = decode_memory_body(&bytes)?;
+            if memory_body_id(&title, &content) != record.body_id {
+                return Err(MemoryError::CorruptBody);
+            }
+            present.insert(record.body_id);
+            completion.bodies.push(InsomniaCompletionBody {
+                id: record.body_id,
+                bytes,
+            });
+        }
+        Ok(())
+    }
+
+    /// Rebase only the storage coordinates of an accepted grouped first
+    /// publication. Semantic Memory fields and proof identities remain exact.
+    pub(crate) fn rebase_grouped_replay_versions(
+        &self,
+        container: &Container,
+        completion: &mut crate::insomnia::completion::InsomniaCompletion,
+    ) -> Result<(), MemoryError> {
+        if completion.records.is_empty() {
+            completion.global_version_start = container.next_version_candidate();
+            return Ok(());
+        }
+        let mut memory_ids = HashSet::new();
+        let mut mutation_ids = HashSet::new();
+        let global_start = container.next_version_candidate();
+        let memory_start = self.next_memory_version;
+        for (index, record) in completion.records.iter_mut().enumerate() {
+            if record.revision != 1
+                || !memory_ids.insert(record.id)
+                || !mutation_ids.insert(record.mutation_id.clone())
+                || self.current.contains_key(&record.id)
+                || self.tombstones.contains_key(&record.id)
+                || self.by_mutation.contains_key(&record.mutation_id)
+                || memory_id(&record.mutation_id) != record.id
+            {
+                return Err(MemoryError::MutationConflict);
+            }
+            if !completion
+                .bodies
+                .iter()
+                .any(|body| body.id == record.body_id)
+            {
+                return Err(MemoryError::MissingBody);
+            }
+            record.global_version = global_start
+                .checked_add(u64::try_from(index).map_err(|_| MemoryError::VersionExhausted)?)
+                .ok_or(MemoryError::VersionExhausted)?;
+            record.memory_version = memory_start
+                .checked_add(u64::try_from(index).map_err(|_| MemoryError::VersionExhausted)?)
+                .ok_or(MemoryError::VersionExhausted)?;
+        }
+        completion.global_version_start = global_start;
+        Ok(())
+    }
+
     pub(crate) fn stage_grouped_insomnia(
         &mut self,
         container: &mut Container,

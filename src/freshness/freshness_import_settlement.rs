@@ -798,6 +798,12 @@ impl HistoricalImportFreshnessSettlement {
     }
 }
 
+impl HistoricalImportFreshnessSettlement {
+    pub(crate) fn decode_legacy_frame(payload: &[u8]) -> Result<Self, String> {
+        decode_legacy_checkpoint(payload)
+    }
+}
+
 fn decode_legacy_checkpoint(payload: &[u8]) -> Result<HistoricalImportFreshnessSettlement, String> {
     if payload.len() < 32 || payload.get(..8) != Some(LEGACY_CHECKPOINT_MAGIC.as_slice()) {
         return Err("invalid legacy import checkpoint framing".into());

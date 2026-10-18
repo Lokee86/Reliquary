@@ -127,3 +127,35 @@ fn corrupt_packed_vector_bytes_are_rejected_on_reopen() {
         Err(CvaError::PackedVectors(PackedVectorError::HashCollision))
     ));
 }
+
+#[test]
+fn packed_vector_prune_marker_preserves_identity_and_reports_explicit_unavailability() {
+    use crate::packed_vector_codec::{encode_format, encode_pruned_marker};
+    use crate::packed_vector_rebuild::PackedVectorOpenState;
+    use crate::packed_vector_store::info;
+
+    let path = test_path("pruned-marker.cva");
+    let mut container = Container::create(&path).unwrap();
+    let schema = VectorSchema::new(4, ScalarType::I8).unwrap();
+    let id = crate::packed_vector_store::packed_vector_id(schema, &[1, 2, 3, 4]);
+    let info = info(id, schema, 1, 4).unwrap();
+    let marker = encode_pruned_marker(info, [9; 32]).unwrap();
+
+    let mut state = PackedVectorOpenState::new();
+    let format = encode_format();
+    let format_chunk = container.append(&format).unwrap();
+    state.ingest(format_chunk, &format).unwrap();
+    let marker_chunk = container.append(&marker).unwrap();
+    state.ingest(marker_chunk, &marker).unwrap();
+    let store = state.finish().unwrap();
+
+    assert_eq!(store.info(id), Some(info));
+    assert!(store.is_pruned(id));
+    assert_eq!(store.prune_manifest_digest(id), Some([9; 32]));
+    assert!(matches!(
+        store.get(&mut container, id),
+        Err(PackedVectorError::PayloadUnavailable(
+            crate::owner_lifecycle::PayloadUnavailable::Pruned
+        ))
+    ));
+}

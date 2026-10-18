@@ -1,10 +1,19 @@
 use crate::{PackedVectorError, PackedVectorId};
 use lodestone_packed::{PackedVectors, ScalarType, VectorSchema};
+use sha2::{Digest, Sha256};
 
 const FORMAT_MAGIC: &[u8; 8] = b"CVAPVFM1";
 const FORMAT_SCHEMA: u32 = 1;
 const OBJECT_MAGIC: &[u8; 8] = b"CVAPVEC1";
 const OBJECT_HEADER_LEN: usize = 64;
+const PRUNED_MAGIC: &[u8; 8] = b"CVAPVRN1";
+const PRUNED_LEN: usize = 128;
+
+#[derive(Clone, Copy)]
+pub(crate) struct DecodedPrunedPackedVector {
+    pub info: crate::PackedVectorInfo,
+    pub manifest_digest: [u8; 32],
+}
 
 pub(crate) struct DecodedPackedVector<'a> {
     pub id: PackedVectorId,
@@ -30,6 +39,78 @@ pub(crate) fn decode_format(bytes: &[u8]) -> Result<bool, PackedVectorError> {
         ));
     }
     Ok(true)
+}
+
+pub(crate) fn encode_pruned_marker(
+    info: crate::PackedVectorInfo,
+    manifest_digest: [u8; 32],
+) -> Result<Vec<u8>, PackedVectorError> {
+    let expected = u64::try_from(
+        info.schema
+            .row_bytes()
+            .map_err(|_| PackedVectorError::SizeOverflow)?,
+    )
+    .map_err(|_| PackedVectorError::SizeOverflow)?
+    .checked_mul(info.count)
+    .ok_or(PackedVectorError::SizeOverflow)?;
+    if expected != info.byte_len || manifest_digest == [0; 32] {
+        return Err(PackedVectorError::CorruptRecord("pruned payload marker"));
+    }
+    let mut bytes = Vec::with_capacity(PRUNED_LEN);
+    bytes.extend_from_slice(PRUNED_MAGIC);
+    bytes.extend_from_slice(&info.id.0);
+    bytes.extend_from_slice(&info.schema.dimensions.to_le_bytes());
+    bytes.push(info.schema.scalar.tag());
+    bytes.extend_from_slice(&[0; 3]);
+    bytes.extend_from_slice(&info.count.to_le_bytes());
+    bytes.extend_from_slice(&info.byte_len.to_le_bytes());
+    bytes.extend_from_slice(&manifest_digest);
+    bytes.extend_from_slice(&Sha256::digest(&bytes));
+    Ok(bytes)
+}
+
+pub(crate) fn decode_pruned_marker(
+    bytes: &[u8],
+) -> Result<Option<DecodedPrunedPackedVector>, PackedVectorError> {
+    if !bytes.starts_with(PRUNED_MAGIC) {
+        return Ok(None);
+    }
+    if bytes.len() != PRUNED_LEN || bytes[45..48] != [0; 3] {
+        return Err(PackedVectorError::CorruptRecord("pruned payload marker"));
+    }
+    let checksum_at = bytes.len() - 32;
+    if Sha256::digest(&bytes[..checksum_at]).as_slice() != &bytes[checksum_at..] {
+        return Err(PackedVectorError::CorruptRecord("pruned payload checksum"));
+    }
+    let id = PackedVectorId(bytes[8..40].try_into().expect("fixed packed-vector id"));
+    let dimensions = read_u32(bytes, 40)?;
+    let scalar = ScalarType::from_tag(bytes[44])
+        .map_err(|_| PackedVectorError::CorruptRecord("pruned packed-vector scalar"))?;
+    let schema = VectorSchema::new(dimensions, scalar)
+        .map_err(|_| PackedVectorError::CorruptRecord("pruned packed-vector schema"))?;
+    let count = read_u64(bytes, 48)?;
+    let byte_len = read_u64(bytes, 56)?;
+    let expected = u64::try_from(
+        schema
+            .row_bytes()
+            .map_err(|_| PackedVectorError::SizeOverflow)?,
+    )
+    .map_err(|_| PackedVectorError::SizeOverflow)?
+    .checked_mul(count)
+    .ok_or(PackedVectorError::SizeOverflow)?;
+    let manifest_digest: [u8; 32] = bytes[64..96].try_into().expect("fixed manifest digest");
+    if byte_len != expected || manifest_digest == [0; 32] {
+        return Err(PackedVectorError::CorruptRecord("pruned payload shape"));
+    }
+    Ok(Some(DecodedPrunedPackedVector {
+        info: crate::PackedVectorInfo {
+            id,
+            schema,
+            count,
+            byte_len,
+        },
+        manifest_digest,
+    }))
 }
 
 pub(crate) fn encode_object(

@@ -473,7 +473,22 @@ impl Cva {
         crate::owner_lifecycle::HistoricalPayload<Memory, crate::MemoryRetainedRevision>,
         MemoryError,
     > {
-        let value = self.memory_revision(id, revision)?;
+        let value = match self.memory_revision(id, revision) {
+            Ok(value) => value,
+            Err(MemoryError::PayloadUnavailable(reason)) => {
+                let structure = self
+                    .memory_retention_descriptor(id)?
+                    .revisions
+                    .into_iter()
+                    .find(|r| r.revision == revision)
+                    .ok_or(MemoryError::MissingMemory)?;
+                return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
+                    structural_history: structure,
+                    reason,
+                });
+            }
+            Err(error) => return Err(error),
+        };
         Ok(match self.memory_lifecycle_state(id)? {
             crate::owner_lifecycle::LifecycleState::Active => {
                 crate::owner_lifecycle::HistoricalPayload::Available(value)

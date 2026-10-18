@@ -12,6 +12,8 @@ impl Cva {
             return Ok(());
         }
         if self.freshness.import_settlements() != copy.freshness.import_settlements()
+            || self.import_epoch_statuses() != copy.import_epoch_statuses()
+            || self.legacy_import_epochs() != copy.legacy_import_epochs()
             || self.freshness_policy() != copy.freshness_policy()
             || self.rel_turn_count() != copy.rel_turn_count()
             || self.latest_global_version() != copy.latest_global_version()
@@ -66,6 +68,9 @@ fn authority_digest(container: &Container) -> Result<[u8; 32], CvaError> {
             || payload.starts_with(b"CVAFSA")
             || payload.starts_with(b"CVDREAM")
             || payload.starts_with(b"CVAINSC")
+            || payload.starts_with(b"CVAIEPS1")
+            || payload.starts_with(b"CVAIEPC1")
+            || payload.starts_with(b"CVAILEG1")
         {
             hash.update((payload.len() as u64).to_le_bytes());
             hash.update(payload);

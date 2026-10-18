@@ -39,6 +39,9 @@ impl MemoryVectorStore {
         packed_vector_id: PackedVectorId,
         memory_body_ids: Vec<MemoryBodyId>,
     ) -> Result<MemoryVectorId, MemoryVectorError> {
+        profiles
+            .get_active(compatibility_profile_id)
+            .ok_or(MemoryVectorError::MissingProfile)?;
         validate_mapping(
             memories,
             profiles,
@@ -47,6 +50,12 @@ impl MemoryVectorStore {
             packed_vector_id,
             &memory_body_ids,
         )?;
+        if packed_vectors.is_pruned(packed_vector_id) {
+            return Err(crate::PackedVectorError::PayloadUnavailable(
+                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+            )
+            .into());
+        }
         let id = memory_vector_id(compatibility_profile_id, packed_vector_id, &memory_body_ids);
         if let Some(existing) = self.objects.get(&id).copied() {
             let payload = container.read(existing.chunk)?;
@@ -221,7 +230,7 @@ pub(crate) fn validate_mapping(
     memory_body_ids: &[MemoryBodyId],
 ) -> Result<(), MemoryVectorError> {
     let profile = profiles
-        .get_active(compatibility_profile_id)
+        .get(compatibility_profile_id)
         .ok_or(MemoryVectorError::MissingProfile)?;
     let packed = packed_vectors
         .info(packed_vector_id)

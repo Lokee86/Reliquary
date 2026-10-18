@@ -74,7 +74,22 @@ macro_rules! impl_owner {
                 >,
                 RelationshipError,
             > {
-                let value = self.relationship_revision(id, revision)?;
+                let value = match self.relationship_revision(id, revision) {
+                    Ok(value) => value,
+                    Err(RelationshipError::PayloadUnavailable(reason)) => {
+                        let structure = self
+                            .relationship_retention_descriptor(id)?
+                            .revisions
+                            .into_iter()
+                            .find(|r| r.revision == revision)
+                            .ok_or(RelationshipError::MissingRelationship)?;
+                        return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
+                            structural_history: structure,
+                            reason,
+                        });
+                    }
+                    Err(error) => return Err(error),
+                };
                 Ok(match self.relationship_lifecycle_state(id)? {
                     crate::owner_lifecycle::LifecycleState::Active => {
                         crate::owner_lifecycle::HistoricalPayload::Available(value)

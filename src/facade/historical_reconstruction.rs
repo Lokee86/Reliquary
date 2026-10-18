@@ -106,14 +106,32 @@ impl Cva {
         if !options.fill_missing_embeddings {
             return self.reconstruct_historical_freshness(options);
         }
-        if self.open_import_epoch().is_some() {
+        let accepted = match self.open_import_epoch() {
+            Some(start) => self
+                .freshness
+                .import_settlements()
+                .iter()
+                .any(|settlement| {
+                    settlement
+                        .import_id
+                        .iter()
+                        .map(|byte| format!("{byte:02x}"))
+                        .collect::<String>()
+                        == start.import_id
+                }),
+            None => !self.freshness.import_settlements().is_empty(),
+        };
+        if accepted {
             return self.reconstruct_historical_freshness(options);
         }
-        if !self.freshness.import_settlements().is_empty() || !options.fill_missing_embeddings {
-            return self.reconstruct_historical_freshness(options);
+        // This is the explicit exclusive historical owner operation. Scope only
+        // its bounded publication work; ordinary live mutation remains fenced.
+        let report = if self.open_import_epoch().is_some() {
+            self.with_import_write_scope(|owner| embedding::fill(owner, endpoint, limits, cancel))
+        } else {
+            embedding::fill(self, endpoint, limits, cancel)
         }
-        let report = embedding::fill(self, endpoint, limits, cancel)
-            .map_err(|e| HistoricalReconstructionError::EmbeddingFill(Box::new(e)))?;
+        .map_err(|e| HistoricalReconstructionError::EmbeddingFill(Box::new(e)))?;
         if embedding::check_cancel(cancel).is_err() {
             return Err(embedding::cancelled_error(report));
         }

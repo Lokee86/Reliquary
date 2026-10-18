@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "name": "ellis-memory-retrieval-gold-v1",
+  "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+  "fixture_sha256": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+  "methodology": "Manual gold labels from active Ellis REL Memory text. Each case uses a natural-language query and a distinct related Memory's stored vector as an inference-free semantic query surrogate. Gold Memories were chosen for directly answering the query; surrogate Memories are related but intentionally not the complete answer.",
+  "cases": [
+    {
+      "id": "phone-spill",
+      "query": "Who knocked over a glass at breakfast, and what spilled onto the user's phone?",
+      "gold_memory_id": "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+      "query_vector_source_id": "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e"
+    },
+    {
+      "id": "debussy-dinner",
+      "query": "What music did Monica play while the family prepared dinner on July 2?",
+      "gold_memory_id": "3dca6df2680b21eae4a966d646e0c73362a4cf1f072f5cc3fc592fad996fc86a",
+      "query_vector_source_id": "c9ea1487e95522adacebd973ff79d9ce350bf3dd5d185f21e4a16cbccf3fd1b2"
+    },
+    {
+      "id": "storm-garden",
+      "query": "What happened to the tomato plants and marigolds during the garden setback?",
+      "gold_memory_id": "8291bb0a531edbc5547fb6ef1b3e4e40ad336c1d89fadea0aa13ea0f4df0f673",
+      "query_vector_source_id": "ca9fb18ab19cec1d0e802a4d793b5ab2f705c52f0104eb3be3f6ac46a2e2ba83"
+    },
+    {
+      "id": "compost-trowel",
+      "query": "What gardening purchases involved a 20-pound bag and Jasper's hand tool?",
+      "gold_memory_id": "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+      "query_vector_source_id": "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c"
+    },
+    {
+      "id": "eastwood-welcome",
+      "query": "Who welcomed the user outside the eighth-grade wing at Eastwood Middle School?",
+      "gold_memory_id": "1c5a9905ed6ba9bc8755ee8a9d507a03870bcbb22d88c78373939eb5d914def6",
+      "query_vector_source_id": "d5cf0136ffa363e2d3ac835b98b53197e96bfc53688026c1222d3c4c87c0986d"
+    },
+    {
+      "id": "materials-feedback",
+      "query": "What did Ms. Ramirez say about the new layout of the updated workshop materials?",
+      "gold_memory_id": "c79323811f876993883eab3fe4b67010392768689ebfb290b266546c1981b267",
+      "query_vector_source_id": "a7fefadb84e76c26cc827ff000ddc46d3556cf175bdc2ab7e38d591db05fe41e"
+    },
+    {
+      "id": "budgeting-game",
+      "query": "What interactive activity did Dr. Greene suggest for middle schoolers?",
+      "gold_memory_id": "862fe515fbe664efc933543b2c7200044705908d1ae2b04a3a1d96c82df582d7",
+      "query_vector_source_id": "6a4e2db7d186306b000d4ea3ea71eeac2fa8079e51259ec31512f8f98696b888"
+    },
+    {
+      "id": "activity-log",
+      "query": "What fields and Fitbit data are included in the activity log?",
+      "gold_memory_id": "0e8eb12f4a7bbe5ee44d1308cb3e3dfb64ca4156221b8b03abef30d60ee47c96",
+      "query_vector_source_id": "f8b8ae34c69a36cb5e71ce880cdc6956b74caacbb2087793bcf2c492d71837bf"
+    },
+    {
+      "id": "recovery-pace",
+      "query": "Why does the slower pace feel beneficial to the user?",
+      "gold_memory_id": "54d32d3afc3eabc4f9bcd8d17645e0da613834d120acf87a7f53e526dfac6ee7",
+      "query_vector_source_id": "d8f44709910245fbc7689d01e9f00c6de76188c0704c1da6692965a9b68e3538"
+    },
+    {
+      "id": "fog-trail",
+      "query": "How did the fog affect the trail conditions?",
+      "gold_memory_id": "f803f2abb96e8b748ebbf2dd964f3bb5f2ecaafd60b38fa11c9220e8e4dd34b0",
+      "query_vector_source_id": "5224d2e83fe1c334c2975a40b27b60e7a3b94c86d3e60641f9b27e041b54d7c4"
+    },
+    {
+      "id": "asheville-walk",
+      "query": "What two feelings did the art-filled Asheville walk leave the user with?",
+      "gold_memory_id": "6f636309e754a10a6d50b264ecf08e6a67605dd012c6cc7326e6c9fe73d2b25c",
+      "query_vector_source_id": "4d2bd816f66f4535b57c87eff144df9a9c1142c40621bd2dd2e4e029e971a96e"
+    },
+    {
+      "id": "market-list",
+      "query": "How should the farmers' market shopping list be formatted?",
+      "gold_memory_id": "08370204be2f1c7a5f1522c0e66459f7ad8bb4aa76aad57ad882289b9fcafa6c",
+      "query_vector_source_id": "3c4702cc75a0ce5a0d74b9232cdde893e7c3985a8b5b15fa411751b2674c1038"
+    },
+    {
+      "id": "meal-prep-plan",
+      "query": "What details should the sweet-potato-and-kale meal-prep plan include?",
+      "gold_memory_id": "b9bc337680ebd2ac204e671aee1e8dd966ab23d5681c5ee20a507a3c1673dcdd",
+      "query_vector_source_id": "11966b1447c3dced8d1d76593b6f90151a3eef054c5ab433dcad0abafc32f2bd"
+    },
+    {
+      "id": "iphone-backup",
+      "query": "What iPhone problem does the user plan to address later in the week?",
+      "gold_memory_id": "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+      "query_vector_source_id": "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e"
+    },
+    {
+      "id": "cake-reaction",
+      "query": "How did the guests react when the homemade cake collapsed?",
+      "gold_memory_id": "f11aaa0a63ff5da0721465c8640a66b6cc1d4e7cf40df9edfa7b8de17f4d98bf",
+      "query_vector_source_id": "d268cf2863032b52c315da38ccaef0883f150a7aba5471db7d2eb3b648ef0cfe"
+    },
+    {
+      "id": "math-worksheet",
+      "query": "How did the user and Monica resolve Jasper's difficult math worksheet before the trip?",
+      "gold_memory_id": "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+      "query_vector_source_id": "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335"
+    },
+    {
+      "id": "lentil-lemon",
+      "query": "What was planned to be added to Sunday's lentil soup?",
+      "gold_memory_id": "936af7fa3f81c11446123c474ab8faf4db9d72ca620060d050500a7e2026cf78",
+      "query_vector_source_id": "1ef574437c7c465eae9f702ba70916c6848b0433173471681cf815122bc40366"
+    },
+    {
+      "id": "jan31-breakfast",
+      "query": "What replaced the planned healthy breakfast on January 31?",
+      "gold_memory_id": "0a08059713697d405fbcf93acf5e666214fd4511f3faa655ffb6e7fab9560dcb",
+      "query_vector_source_id": "aad88258d9ed15e5837633b13a336a8104b825a07042eb60ecb2d3db22d51fb1"
+    },
+    {
+      "id": "trellis-help",
+      "query": "What did the user and Jasper help Mrs. Patel with after gardening on May 19?",
+      "gold_memory_id": "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+      "query_vector_source_id": "182d4bc7fe961c6daa82bbceb6e63e9bc4ff0220a7a85b0b34674bca612cc2d6"
+    },
+    {
+      "id": "mammoth-sunflowers",
+      "query": "What variety of sunflower seeds did Jasper select at the Home & Garden Center?",
+      "gold_memory_id": "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+      "query_vector_source_id": "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c"
+    },
+    {
+      "id": "curriculum-drawings",
+      "query": "Where were Jasper's drawings used for the national financial literacy course launch?",
+      "gold_memory_id": "d533e618df57b93bf95c8569daa67bd0bac6b5c3f12f12abd4a28dc2d183c5d2",
+      "query_vector_source_id": "b228d7dcf41a59dee14156977550effa9dcf48a428533a6db764c4a8c44bb5ca"
+    },
+    {
+      "id": "neighbor-budgeting",
+      "query": "What features did Mrs. Patel's neighbors want in the budgeting challenge?",
+      "gold_memory_id": "e6a953251bc7651d09fd45d86f5d3a960c1e92cae876b1b40e85a45ff2df7b4b",
+      "query_vector_source_id": "481fa99af37764ac27b5efcc684243cd96f8b29466f74dab6a0334104363bdfa"
+    },
+    {
+      "id": "packet-revision",
+      "query": "Why was the digital workshop packet revised?",
+      "gold_memory_id": "36b5a5bca372871d405a1e17410c83cfd75b2993efbf9008dee9a716788b300d",
+      "query_vector_source_id": "e666e6e855611cd80e8728e3f3ce18713b6f3bbcdff3a604a990d10b4973f332"
+    },
+    {
+      "id": "return-school",
+      "query": "Who confirmed Jasper's gradual return-to-school plan?",
+      "gold_memory_id": "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+      "query_vector_source_id": "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335"
+    },
+    {
+      "id": "bus-prep",
+      "query": "How did quiet preparation time on the bus affect the user during the school session?",
+      "gold_memory_id": "2bb89c52d04a4d838ee4702986afeaa5d894388e67b964d0f3cc6e0b7f541644",
+      "query_vector_source_id": "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3"
+    },
+    {
+      "id": "education-board",
+      "query": "What financial-literacy idea did the user share with the education board?",
+      "gold_memory_id": "1ae18e66bf4a6d1d986a41bc4c63d9753cb63391410933eb73500e1989e66342",
+      "query_vector_source_id": "15132e06c39dce7d9ee14c63914080ffe2ee58fb503495bf404efb2302ccde94"
+    },
+    {
+      "id": "market-seeds",
+      "query": "What seeds did the user and Jasper obtain for their garden?",
+      "gold_memory_id": "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+      "query_vector_source_id": "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0"
+    }
+  ]
+}

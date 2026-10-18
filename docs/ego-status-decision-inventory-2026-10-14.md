@@ -2,6 +2,14 @@
 
 Parent: [Documentation index](INDEX.md). This is the entry point for **implementation state, decisions, and remaining work**, not an alternative behavioral specification.
 
+## Purpose
+
+Track Ego implementation status, accepted decisions, and remaining work against the canonical behavior documents.
+
+## Overview
+
+The capability matrix distinguishes implemented storage/runtime support from planned Ego consumers and calibration work.
+
 ## Evidence and scope
 
 - Baseline: consolidated `main`, including agentic Memory retrieval, live semantic Freshness (F8), and explicit offline historical Freshness reconstruction.
@@ -80,3 +88,13 @@ Parent: [Documentation index](INDEX.md). This is the entry point for **implement
 6. Implement authorized Cross-REL summary selection and final host-facing Ego assembly/projection after summary persistence and source visibility contracts exist.
 
 **Not part of this step:** new behavioral decisions, implementation code, or a claim that feature-branch Freshness work is merged/released. [Roadmap](roadmap.md) tracks scheduling; the three linked Ego plans own their behavioral designs.
+
+
+## Notes
+
+Implementation classifications summarize the cited evidence; they do not claim fresh verification beyond the runs recorded above.
+
+## Related docs
+
+- [Documentation index](INDEX.md).
+- [Ego Web synthesis plan](ego-web-synthesis-plan.md).

@@ -15,7 +15,7 @@ impl ConfiguredRuntime {
         limits: HistoricalEmbeddingLimits,
         cancel: &AtomicBool,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        if !options.fill_missing_embeddings || !rel.freshness.import_settlements().is_empty() {
+        if !options.fill_missing_embeddings {
             return rel.reconstruct_historical_freshness(options);
         }
         let endpoint = self.embedding_endpoint(16, 1).map_err(|e| {

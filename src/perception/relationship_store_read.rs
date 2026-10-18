@@ -8,6 +8,11 @@ impl RelationshipStore {
         id: RelationshipId,
         revision: u64,
     ) -> Result<Relationship, RelationshipError> {
+        if self.pruned_revisions.contains(&(id, revision)) {
+            return Err(RelationshipError::PayloadUnavailable(
+                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+            ));
+        }
         self.records
             .iter()
             .find(|record| record.id == id && record.revision == revision)

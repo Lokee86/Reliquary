@@ -8,6 +8,7 @@ pub enum PackedVectorError {
     MissingFormat,
     ConflictingFormat,
     MissingObject,
+    PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable),
     HashCollision,
     SizeOverflow,
 }

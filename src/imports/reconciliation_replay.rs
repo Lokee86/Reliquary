@@ -17,9 +17,15 @@ pub(super) fn replay(
     crate::cva_reconcile::copy_and_validate(left_path, output_path)?;
     let mut output = Cva::open(output_path)?;
     let mut cursor = boundary;
+    let mut coordinates = super::reconciliation_interval::Coordinates::shared(right, boundary)?;
     let before_archive = output.archive_version();
     let mut completions = 0;
     let mut changed = false;
+    for (id, epoch) in &epochs {
+        if let Some(retained) = known.get(id) {
+            coordinates.retained_epoch(right, &mut output, epoch, retained)?;
+        }
+    }
     let mut ordered: Vec<_> = epochs.into_values().collect();
     ordered.sort_by_key(|epoch| epoch.first);
     for epoch in ordered {
@@ -33,7 +39,7 @@ pub(super) fn replay(
             }
             return Err(unsupported("partial import replay interval"));
         }
-        completions += replay_interval(right, &mut output, cursor, epoch.first)?;
+        completions += replay_interval(right, &mut output, cursor, epoch.first, &mut coordinates)?;
         if known.contains_key(&epoch.start.import_id) {
             cursor = epoch.end;
             continue;
@@ -45,7 +51,13 @@ pub(super) fn replay(
             .append_start(&mut output.container, start.clone())
             .map_err(crate::CvaError::Import)?;
         completions += output.with_import_write_scope(|output| {
-            replay_interval(right, output, epoch.first + 1, epoch.end - 1)
+            replay_interval(
+                right,
+                output,
+                epoch.first + 1,
+                epoch.end - 1,
+                &mut coordinates,
+            )
         })?;
         // Native reconstruction freezes the destination input and derives its
         // start binding, byte-prefix digest and canonical pre-start base. Source
@@ -62,8 +74,13 @@ pub(super) fn replay(
         changed = true;
         cursor = epoch.end;
     }
-    completions += replay_interval(right, &mut output, cursor, usize::MAX)?;
-    changed |= output.archive_version() != before_archive || completions != 0;
+    completions += replay_interval(right, &mut output, cursor, usize::MAX, &mut coordinates)?;
+    changed |= output.archive_version() != before_archive
+        || completions != 0
+        || coordinates.memory_revisions != 0
+        || coordinates.entity_revisions != 0
+        || coordinates.relationship_revisions != 0
+        || coordinates.graph_transactions != 0;
     output.sync()?;
     let reopened = Cva::open(output_path)?;
     if !output.archive.activity_history_matches(&reopened.archive)
@@ -83,17 +100,17 @@ pub(super) fn replay(
     Ok(CvaReconcileResult {
         comparison,
         replayed_archive_records: output.archive_version().saturating_sub(before_archive) as usize,
-        replayed_memory_revisions: 0,
-        duplicate_memory_revisions: 0,
-        replayed_entity_revisions: 0,
-        duplicate_entity_revisions: 0,
-        replayed_relationship_revisions: 0,
-        duplicate_relationship_revisions: 0,
+        replayed_memory_revisions: coordinates.memory_revisions,
+        duplicate_memory_revisions: coordinates.duplicate_memory_revisions,
+        replayed_entity_revisions: coordinates.entity_revisions,
+        duplicate_entity_revisions: coordinates.duplicate_entity_revisions,
+        replayed_relationship_revisions: coordinates.relationship_revisions,
+        duplicate_relationship_revisions: coordinates.duplicate_relationship_revisions,
         replayed_insomnia_completions: completions,
-        replayed_graph_transactions: 0,
-        replayed_graph_mutations: 0,
-        duplicate_graph_mutations: 0,
-        replayed_file_memory_links: 0,
+        replayed_graph_transactions: coordinates.graph_transactions,
+        replayed_graph_mutations: coordinates.graph_mutations,
+        duplicate_graph_mutations: coordinates.duplicate_graph_mutations,
+        replayed_file_memory_links: coordinates.file_memory_links,
         canonical_change_required: changed,
         vector_rebuild_required: changed
             && (left.archive_vector_stats().objects > 0
@@ -107,28 +124,47 @@ fn replay_interval(
     output: &mut Cva,
     first: usize,
     end: usize,
+    coordinates: &mut super::reconciliation_interval::Coordinates,
 ) -> Result<usize, CvaReconcileError> {
-    let existing_episodes: std::collections::BTreeSet<_> =
-        output.archive.episodes.iter().map(|e| e.id.0).collect();
-    let archive = crate::cva_reconcile_archive::read_archive_range(source, first, end)?;
-    let memory = crate::cva_reconcile_memory::read_memory_range(source, first, end)?;
-    crate::cva_reconcile_archive::replay_archive_tail(output, &archive)?;
-    // Archive replay retains the immutable Episode. Admit its owner work before
-    // replaying the accepted completion; do not claim/run an extractor again.
-    let episodes: Vec<_> = output.archive.episodes.iter().cloned().collect();
-    for episode in episodes {
-        if !existing_episodes.contains(&episode.id.0) && output.insomnia_work(episode.id).is_none()
-        {
-            output.queue_insomnia_episode(
-                episode.id,
-                if episode.origin == crate::EpisodeOrigin::Import {
-                    crate::InsomniaPriority::Import
-                } else {
-                    crate::InsomniaPriority::Live
-                },
-                episode.finalized_at_ns,
-            )?;
+    let chunks = source.container.chunks()?;
+    let mut completions = 0;
+    for (index, chunk) in chunks.into_iter().enumerate().take(end).skip(first) {
+        let payload = source.container.read(chunk)?;
+        let known_episodes: std::collections::HashSet<_> = output
+            .archive
+            .episodes
+            .iter()
+            .map(|episode| episode.id)
+            .collect();
+        completions += super::reconciliation_interval::replay_frame(
+            source,
+            output,
+            index,
+            &payload,
+            coordinates,
+        )?;
+        // Admit newly accepted Episodes at their physical position. Later
+        // Archive activity must not move a grouped publication's birth cut.
+        let episodes: Vec<_> = output
+            .archive
+            .episodes
+            .iter()
+            .filter(|episode| !known_episodes.contains(&episode.id))
+            .cloned()
+            .collect();
+        for episode in episodes {
+            if output.insomnia_work(episode.id).is_none() {
+                output.queue_insomnia_episode(
+                    episode.id,
+                    if episode.origin == crate::EpisodeOrigin::Import {
+                        crate::InsomniaPriority::Import
+                    } else {
+                        crate::InsomniaPriority::Live
+                    },
+                    episode.finalized_at_ns,
+                )?;
+            }
         }
     }
-    Ok(crate::cva_reconcile_memory::replay_memory_tail(output, memory)?.completions)
+    Ok(completions)
 }

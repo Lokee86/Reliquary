@@ -118,6 +118,80 @@ fn hex_id(id: &MemoryId) -> String {
 }
 
 impl FreshnessReplayEntry {
+    /// Decode one accepted journal frame without consulting the current
+    /// projection or flattening an import settlement into live events.
+    pub(crate) fn from_payload(payload: &[u8]) -> Result<Vec<Self>, String> {
+        if payload.get(..8) != Some(MAGIC.as_slice()) {
+            return Ok(Vec::new());
+        }
+        fn collect(entry: JournalEntry, out: &mut Vec<FreshnessReplayEntry>) {
+            match entry {
+                JournalEntry::Initialize {
+                    memory_id,
+                    turn,
+                    record,
+                } => out.push(FreshnessReplayEntry::Initialize {
+                    memory_id,
+                    source_turn: turn,
+                    admitted_at_birth: record.admitted_at_turn.is_some(),
+                }),
+                JournalEntry::Admit { memory_id, record } => {
+                    out.push(FreshnessReplayEntry::Admit {
+                        memory_id,
+                        source_turn: record.admitted_at_turn.expect("validated admission"),
+                    })
+                }
+                JournalEntry::Event {
+                    event_id,
+                    turn,
+                    provenance,
+                    proof,
+                    effects,
+                    semantic,
+                    ..
+                } => out.push(FreshnessReplayEntry::Event {
+                    event_id,
+                    source_turn: turn,
+                    effects,
+                    proof,
+                    provenance: Some(provenance),
+                    semantic,
+                }),
+                JournalEntry::AcceptedUseReceipt {
+                    use_id,
+                    turn,
+                    sources,
+                    policy_version,
+                } => out.push(FreshnessReplayEntry::AcceptedUseReceipt {
+                    use_id,
+                    source_turn: turn,
+                    sources,
+                    policy_version,
+                }),
+                JournalEntry::AcceptedUseBatch {
+                    use_id,
+                    turn,
+                    sources,
+                    policy_version,
+                    events,
+                } => {
+                    for event in events {
+                        collect(event, out);
+                    }
+                    out.push(FreshnessReplayEntry::AcceptedUseReceipt {
+                        use_id,
+                        source_turn: turn,
+                        sources,
+                        policy_version,
+                    });
+                }
+            }
+        }
+        let (_, entry) = decode(payload)?;
+        let mut out = Vec::new();
+        collect(entry, &mut out);
+        Ok(out)
+    }
     pub(crate) fn source_turn(&self) -> u64 {
         match self {
             Self::Initialize { source_turn, .. }

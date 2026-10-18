@@ -132,11 +132,68 @@ fn reclaim_container(
     let objects = container.chunks().map_err(|error| error.to_string())?;
 
     let mut scan = ReclamationScan::default();
+    let mut protected_prefix = 0;
     for object in &objects {
         let payload = container.read(*object).map_err(|error| error.to_string())?;
         scan.ingest(*object, &payload)?;
+        if let Some(frame) =
+            crate::imports::legacy_epoch::decode(&payload).map_err(|e| e.to_string())?
+        {
+            protected_prefix = protected_prefix.max(frame.source_prefix_len);
+        }
+        if payload.starts_with(b"CVAFRS05") {
+            let settlement =
+                crate::freshness_storage::HistoricalImportFreshnessSettlement::decode(&payload)?;
+            if let Some(scope) = settlement.epoch {
+                protected_prefix = protected_prefix.max(scope.freeze_prefix);
+            }
+        }
     }
-    let plan = scan.finish();
+    let mut plan = scan.finish();
+    if plan
+        .drop
+        .iter()
+        .any(|object| object.offset() < protected_prefix)
+    {
+        // A physical prefix is authenticated authority. Conservative maintenance
+        // retains every candidate in that prefix, including unpublished bytes.
+        plan.drop
+            .retain(|object| object.offset() >= protected_prefix);
+        plan.unpublished_backing_chunks = 0;
+        plan.orphan_content_chunks = 0;
+        plan.orphan_memory_body_chunks = 0;
+        plan.unactivated_archive_vector_chunks = 0;
+        plan.unreferenced_packed_vector_chunks = 0;
+        plan.free_compaction_chunks = 0;
+        for object in &plan.drop {
+            let raw = container.read(*object).map_err(|e| e.to_string())?;
+            if matches!(
+                crate::archive_codec::decode_record(&raw).map_err(|e| e.to_string())?,
+                crate::archive_codec::ArchiveRecord::Content(..)
+            ) {
+                plan.orphan_content_chunks += 1;
+            } else if crate::memory_codec::decode_body(&raw)
+                .map_err(|e| e.to_string())?
+                .is_some()
+            {
+                plan.orphan_memory_body_chunks += 1;
+            } else if crate::packed_vector_codec::decode_object(&raw)
+                .map_err(|e| e.to_string())?
+                .is_some()
+            {
+                plan.unreferenced_packed_vector_chunks += 1;
+            } else if crate::archive_vector_codec::decode_object(&raw)
+                .map_err(|e| e.to_string())?
+                .is_some()
+            {
+                plan.unactivated_archive_vector_chunks += 1;
+            } else if crate::conversation_compaction_codec::is_compaction_payload(&raw) {
+                plan.free_compaction_chunks += 1;
+            } else {
+                plan.unpublished_backing_chunks += 1;
+            }
+        }
+    }
 
     let mut output = container
         .create_empty_like(output_path)

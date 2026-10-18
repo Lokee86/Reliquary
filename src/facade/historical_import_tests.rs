@@ -230,6 +230,136 @@ fn legacy_cvafrs03_settlement_reopens_with_real_import_birth_evidence() {
 }
 
 #[test]
+fn legacy_framing_migration_is_explicit_prefix_bound_and_idempotent() {
+    use sha2::{Digest, Sha256};
+
+    let (path, mut cva, _) = historical_import_fixture("legacy-framing-migration.rel");
+    let prepared = cva
+        .freeze_historical_import()
+        .unwrap()
+        .prepare(&[])
+        .unwrap();
+    let legacy = crate::freshness_storage::encode_legacy_test_fixture(&prepared.settlement);
+    cva.container.append(&legacy).unwrap();
+    cva.sync().unwrap();
+    drop(cva);
+
+    let mut migrated = Cva::open(&path).unwrap();
+    let original_prefix = fs::read(&path).unwrap();
+    assert!(migrated.migrate_legacy_import_framing().unwrap());
+    let accepted = fs::read(&path).unwrap();
+    assert!(accepted.starts_with(&original_prefix));
+    let projection = migrated.legacy_import_epochs();
+    assert_eq!(projection.len(), 1);
+    assert_eq!(
+        projection[0].origin,
+        crate::imports::LegacyImportEpochOrigin::LegacyCvafrs03
+    );
+    assert_eq!(
+        projection[0].status,
+        crate::imports::LegacyImportEpochStatus::CompletedInitial
+    );
+    assert_eq!(
+        projection[0].source_prefix_digest,
+        format!("{:x}", Sha256::digest(&original_prefix))
+    );
+    assert!(!migrated.migrate_legacy_import_framing().unwrap());
+    assert_eq!(fs::read(&path).unwrap(), accepted);
+    drop(migrated);
+    assert_eq!(Cva::open(&path).unwrap().legacy_import_epochs().len(), 1);
+
+    // Keep the record checksum valid while changing only its claimed prefix hash.
+    let prefix_len = projection[0].source_prefix_len as usize;
+    let mut corrupted = accepted.clone();
+    let length =
+        u64::from_le_bytes(corrupted[prefix_len..prefix_len + 8].try_into().unwrap()) as usize;
+    let payload_start = prefix_len + 8;
+    let payload_end = payload_start + length;
+    let digest_at = corrupted[payload_start..payload_end]
+        .windows(64)
+        .position(|window| window == projection[0].source_prefix_digest.as_bytes())
+        .unwrap()
+        + payload_start;
+    corrupted[digest_at] = if corrupted[digest_at] == b'0' {
+        b'1'
+    } else {
+        b'0'
+    };
+    let checksum_at = payload_end - 32;
+    let checksum = Sha256::digest(&corrupted[payload_start..checksum_at]);
+    corrupted[checksum_at..payload_end].copy_from_slice(&checksum);
+    let bad_path = path.with_file_name("legacy-framing-bad-prefix.rel");
+    fs::write(&bad_path, corrupted).unwrap();
+    assert!(Cva::open(&bad_path).is_err());
+    fs::remove_file(bad_path).unwrap();
+
+    let mut bad_cutoff = accepted.clone();
+    let cutoff_at = bad_cutoff[payload_start..payload_end]
+        .windows(b"\"source_prefix_len\":".len())
+        .position(|window| window == b"\"source_prefix_len\":")
+        .map(|at| payload_start + at + b"\"source_prefix_len\":".len())
+        .unwrap();
+    // Change only the claimed prefix boundary while preserving the frame checksum.
+    bad_cutoff[cutoff_at] = if bad_cutoff[cutoff_at] == b'1' {
+        b'2'
+    } else {
+        b'1'
+    };
+    let checksum_at = payload_end - 32;
+    let checksum = Sha256::digest(&bad_cutoff[payload_start..checksum_at]);
+    bad_cutoff[checksum_at..payload_end].copy_from_slice(&checksum);
+    let bad_cutoff_path = path.with_file_name("legacy-framing-bad-cutoff.rel");
+    fs::write(&bad_cutoff_path, bad_cutoff).unwrap();
+    assert!(Cva::open(&bad_cutoff_path).is_err());
+    fs::remove_file(bad_cutoff_path).unwrap();
+
+    let duplicate_path = path.with_file_name("legacy-framing-duplicate.rel");
+    fs::write(&duplicate_path, &accepted).unwrap();
+    let marker = &accepted[payload_start..payload_end];
+    use std::io::Write;
+    let mut duplicate_file = fs::OpenOptions::new()
+        .append(true)
+        .open(&duplicate_path)
+        .unwrap();
+    duplicate_file
+        .write_all(&(marker.len() as u64).to_le_bytes())
+        .unwrap();
+    duplicate_file.write_all(marker).unwrap();
+    drop(duplicate_file);
+    assert!(Cva::open(&duplicate_path).is_err());
+    fs::remove_file(duplicate_path).unwrap();
+
+    let conflict_path = path.with_file_name("legacy-framing-conflict.rel");
+    let mut conflict = accepted.clone();
+    let conflict_digest = conflict[payload_start..payload_end]
+        .windows(b"\"source_settlement_digest\":\"".len())
+        .position(|window| window == b"\"source_settlement_digest\":\"")
+        .map(|at| payload_start + at + b"\"source_settlement_digest\":\"".len())
+        .unwrap();
+    conflict[conflict_digest] = if conflict[conflict_digest] == b'0' {
+        b'1'
+    } else {
+        b'0'
+    };
+    let checksum = Sha256::digest(&conflict[payload_start..checksum_at]);
+    conflict[checksum_at..payload_end].copy_from_slice(&checksum);
+    fs::write(&conflict_path, &conflict).unwrap();
+    let marker = &conflict[payload_start..payload_end];
+    let mut conflict_file = fs::OpenOptions::new()
+        .append(true)
+        .open(&conflict_path)
+        .unwrap();
+    conflict_file
+        .write_all(&(marker.len() as u64).to_le_bytes())
+        .unwrap();
+    conflict_file.write_all(marker).unwrap();
+    drop(conflict_file);
+    assert!(Cva::open(&conflict_path).is_err());
+    fs::remove_file(conflict_path).unwrap();
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
 fn historical_import_settlement_reopens_and_retries_without_erasing_live_use() {
     let (path, mut cva, id) = historical_import_fixture("historical-checkpoint.cva");
     let original_revision = cva.memory(id).unwrap().revision;

@@ -2,7 +2,7 @@
 
 Parent: [Architectural decisions](INDEX.md).
 
-Status: Accepted, 2026-10-17. Implementation is staged under the [execution plan](../tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md); acceptance of this decision does not claim completed runtime support.
+Status: Accepted, 2026-10-17. Implemented for exclusive REL import completion, ordered owner replay and transformed-copy REL pruning. See the [final verification](../tombstone-import-history-final-verification-2026-10-18.md) for acceptance and explicit boundaries, including unsupported external PHY completion and PHY pruning.
 
 ## Context
 
@@ -14,9 +14,9 @@ Tombstones are terminal and domain-owned on existing clocks. Direct ownership cl
 
 Current projection and historical payload availability are separate. Tombstoning retains historical payload. Explicit transformed-copy pruning may destroy selected tombstoned payload only after owner retention proofs; stable identity, ancestry, topology, transaction time, semantic versions and provenance remain. Ordinary reclamation remains conservative.
 
-Every actual import uses owner-local ImportStart and ImportComplete metadata with exact pre/post semantic watermarks. Normal operation needs no markers and no InitialBaseline. An open epoch durably fences unrelated writes. Only import-attributed derived completion and sparse Historical Freshness settlement authorize completion. Import identity belongs to import/CVA ownership; Freshness consumes it. Repeated imports start from the current pre-import projection and never replace pre-existing live history. Legacy CVAFRS03 is decoded at the persisted compatibility boundary only.
+Every actual import uses owner-local ImportStart and ImportComplete metadata with exact pre/post semantic watermarks. Normal operation needs no markers and no InitialBaseline. An open epoch durably fences unrelated writes. Only import-attributed derived completion and sparse Historical Freshness settlement authorize completion. Import identity belongs to import/CVA ownership; Freshness consumes it. Repeated imports start from the current pre-import projection and never replace pre-existing live history. Legacy CVAFRS03 is decoded at the persisted compatibility boundary only. Explicit repair may append one prefix-bound `CVAILEG1` completed-initial compatibility frame through the same import owner; passive open adds no markers. Native start/completion authority is never fabricated for historical bytes.
 
-New endpoint verification uses compatibility policy 3 and cosine 0.99. Stored policy-2 artifact identity remains immutable. Retirement excludes a profile operationally while retaining historical evidence; numeric destruction requires explicit pruning.
+New endpoint verification uses compatibility policy 3 and cosine 0.99. Stored policy-2 artifact identity remains immutable. Retirement excludes a profile operationally while retaining historical evidence; numeric destruction requires explicit pruning. Active, shared or unknown references and authenticated import prefixes block payload destruction. Exact current FragmentId coverage, owner identity and a completed native import boundary are prerequisites for operational vector selection.
 
 ## Consequences
 

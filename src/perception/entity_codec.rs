@@ -1,5 +1,6 @@
 use crate::entity_model::EntityRecord;
 use crate::{EntityError, EntityGlobalId, EntityId, ObjectRef};
+use sha2::Digest;
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVAENTF1";
 const RECORD_MAGIC_V1: [u8; 8] = *b"CVAENTR1";
@@ -56,6 +57,16 @@ pub(crate) fn encode_record(record: &EntityRecord) -> Result<Vec<u8>, EntityErro
 }
 
 pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<EntityRecord>, EntityError> {
+    if bytes.starts_with(b"CVAEPRN1") {
+        if bytes.len() < 104
+            || sha2::Sha256::digest(&bytes[..bytes.len() - 32]).as_slice()
+                != &bytes[bytes.len() - 32..]
+        {
+            return Err(EntityError::CorruptRecord("pruned description checksum"));
+        }
+        return decode_record(&bytes[72..bytes.len() - 32]);
+    }
+
     if bytes.len() < 8 {
         return Ok(None);
     }
@@ -238,4 +249,24 @@ fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, EntityError> {
         .ok_or(EntityError::CorruptRecord("truncated Entity u32"))?;
     *cursor = end;
     Ok(u32::from_le_bytes(raw.try_into().unwrap()))
+}
+
+pub(crate) fn encode_pruned_description(
+    raw: &[u8],
+    manifest: [u8; 32],
+) -> Result<Vec<u8>, EntityError> {
+    let mut record =
+        decode_record(raw)?.ok_or(EntityError::CorruptRecord("missing prune record"))?;
+    if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+        return Err(EntityError::PayloadRequiredByLiveTarget);
+    }
+    record.canonical_name = "[pruned]".into();
+    record.aliases.clear();
+    record.summary.clear();
+    let mut out = b"CVAEPRN1".to_vec();
+    out.extend_from_slice(&sha2::Sha256::digest(raw));
+    out.extend_from_slice(&manifest);
+    out.extend(encode_record(&record)?);
+    out.extend_from_slice(&sha2::Sha256::digest(&out));
+    Ok(out)
 }

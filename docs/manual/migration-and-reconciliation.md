@@ -94,3 +94,8 @@ Open the output normally. Derived acceleration state may need rebuilding accordi
 ## Notes
 
 Current reconciliation is a REL operation. Do not generalize it into cross-owner Graph composition; cross-owner composition is a separate higher-level problem.
+
+
+## Repair a retained REL copy
+
+`reliquary rel repair SOURCE OUTPUT --keep-profile PROFILE_ID` creates a new disposable copy, explicitly frames legacy import evidence where present, retires other profiles, and verifies unchanged semantic/version/profile identity state after reopen. `--reclaim` performs conservative maintenance on a further temporary copy. It does not re-embed data. The selected profile must have complete current Archive and Memory coverage. Existing outputs are rejected; authoritative fixtures are promoted only after separate retrieval and provenance verification.

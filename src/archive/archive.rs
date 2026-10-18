@@ -10,7 +10,11 @@ use crate::{
     ArchiveError, ArchiveRecordVersion, ArchiveStats, Branch, Container, Node, ResolvedTurn,
 };
 
+#[path = "archive_history_prune.rs"]
+pub(crate) mod history_prune;
+
 pub struct Archive {
+    pub(crate) prune: history_prune::ArchivePruneState,
     pub(crate) import_receipts: std::collections::BTreeMap<String, crate::imports::ImportReceipt>,
     pub(crate) contents: ContentIndex,
     pub(crate) nodes: NodeIndex,
@@ -127,7 +131,7 @@ impl Archive {
         nodes
             .into_iter()
             .map(|node| {
-                let content = self.content(container, node.content_id)?;
+                let content = self.node_content(container, &node)?;
                 Ok(ResolvedTurn {
                     node_id: node.id,
                     role: node.role,

@@ -14,7 +14,9 @@ pub(crate) struct PackedVectorStore {
 #[derive(Clone, Copy)]
 struct PackedVectorEntry {
     info: PackedVectorInfo,
-    chunk: ObjectRef,
+    chunk: Option<ObjectRef>,
+    marker_chunk: Option<ObjectRef>,
+    manifest_digest: Option<[u8; 32]>,
 }
 
 impl PackedVectorStore {
@@ -30,7 +32,12 @@ impl PackedVectorStore {
     ) -> Result<PackedVectorId, PackedVectorError> {
         let id = packed_vector_id(packed.schema(), packed.bytes());
         if let Some(existing) = self.objects.get(&id).copied() {
-            let payload = container.read(existing.chunk)?;
+            let Some(chunk) = existing.chunk else {
+                return Err(PackedVectorError::PayloadUnavailable(
+                    crate::owner_lifecycle::PayloadUnavailable::Pruned,
+                ));
+            };
+            let payload = container.read(chunk)?;
             let decoded = decode_object(&payload)?.ok_or(PackedVectorError::MissingObject)?;
             if decoded.id != id
                 || decoded.schema != packed.schema()
@@ -43,7 +50,15 @@ impl PackedVectorStore {
         let payload = encode_object(id, &packed)?;
         let chunk = container.append(&payload)?;
         let info = info(id, packed.schema(), packed.count(), packed.bytes().len())?;
-        self.objects.insert(id, PackedVectorEntry { info, chunk });
+        self.objects.insert(
+            id,
+            PackedVectorEntry {
+                info,
+                chunk: Some(chunk),
+                marker_chunk: None,
+                manifest_digest: None,
+            },
+        );
         Ok(id)
     }
 
@@ -56,7 +71,12 @@ impl PackedVectorStore {
             .objects
             .get(&id)
             .ok_or(PackedVectorError::MissingObject)?;
-        let payload = container.read(entry.chunk)?;
+        let Some(chunk) = entry.chunk else {
+            return Err(PackedVectorError::PayloadUnavailable(
+                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+            ));
+        };
+        let payload = container.read(chunk)?;
         let decoded = decode_object(&payload)?.ok_or(PackedVectorError::MissingObject)?;
         if decoded.id != id || packed_vector_id(decoded.schema, decoded.bytes) != id {
             return Err(PackedVectorError::HashCollision);
@@ -71,14 +91,93 @@ impl PackedVectorStore {
         chunk: ObjectRef,
     ) -> Result<(), PackedVectorError> {
         if let Some(existing) = self.objects.get(&info.id) {
-            if existing.info != info {
+            if existing.info != info || existing.chunk.is_none() {
                 return Err(PackedVectorError::HashCollision);
             }
             return Ok(());
         }
-        self.objects
-            .insert(info.id, PackedVectorEntry { info, chunk });
+        self.objects.insert(
+            info.id,
+            PackedVectorEntry {
+                info,
+                chunk: Some(chunk),
+                marker_chunk: None,
+                manifest_digest: None,
+            },
+        );
         Ok(())
+    }
+
+    pub(crate) fn insert_pruned(
+        &mut self,
+        info: PackedVectorInfo,
+        marker_chunk: ObjectRef,
+        manifest_digest: [u8; 32],
+    ) -> Result<(), PackedVectorError> {
+        if manifest_digest == [0; 32] {
+            return Err(PackedVectorError::CorruptRecord("pruned payload marker"));
+        }
+        if let Some(existing) = self.objects.get(&info.id) {
+            return if existing.info == info && existing.manifest_digest == Some(manifest_digest) {
+                Ok(())
+            } else {
+                Err(PackedVectorError::HashCollision)
+            };
+        }
+        self.objects.insert(
+            info.id,
+            PackedVectorEntry {
+                info,
+                chunk: None,
+                marker_chunk: Some(marker_chunk),
+                manifest_digest: Some(manifest_digest),
+            },
+        );
+        Ok(())
+    }
+
+    pub(crate) fn is_pruned(&self, id: PackedVectorId) -> bool {
+        self.objects
+            .get(&id)
+            .is_some_and(|entry| entry.chunk.is_none())
+    }
+
+    pub(crate) fn prune_manifest_digest(&self, id: PackedVectorId) -> Option<[u8; 32]> {
+        self.objects
+            .get(&id)
+            .and_then(|entry| entry.manifest_digest)
+    }
+
+    pub(crate) fn marker_chunk(&self, id: PackedVectorId) -> Option<ObjectRef> {
+        self.objects.get(&id).and_then(|entry| entry.marker_chunk)
+    }
+
+    pub(crate) fn marker_bytes(
+        &self,
+        id: PackedVectorId,
+        manifest_digest: [u8; 32],
+    ) -> Result<Vec<u8>, PackedVectorError> {
+        let entry = self
+            .objects
+            .get(&id)
+            .ok_or(PackedVectorError::MissingObject)?;
+        crate::packed_vector_codec::encode_pruned_marker(entry.info, manifest_digest)
+    }
+
+    pub(crate) fn marker_matches(&self, id: PackedVectorId, manifest_digest: [u8; 32]) -> bool {
+        self.objects.get(&id).is_some_and(|entry| {
+            self.is_pruned(id) && entry.manifest_digest == Some(manifest_digest)
+        })
+    }
+
+    pub(crate) fn pruned_ids(&self) -> Vec<PackedVectorId> {
+        let mut ids: Vec<_> = self
+            .objects
+            .iter()
+            .filter_map(|(id, entry)| entry.chunk.is_none().then_some(*id))
+            .collect();
+        ids.sort_by_key(|id| id.0);
+        ids
     }
 
     pub(crate) fn info(&self, id: PackedVectorId) -> Option<PackedVectorInfo> {
@@ -95,7 +194,12 @@ impl PackedVectorStore {
         PackedVectorStats {
             objects: self.objects.len(),
             rows: self.objects.values().map(|entry| entry.info.count).sum(),
-            matrix_bytes: self.objects.values().map(|entry| entry.info.byte_len).sum(),
+            matrix_bytes: self
+                .objects
+                .values()
+                .filter(|entry| entry.chunk.is_some())
+                .map(|entry| entry.info.byte_len)
+                .sum(),
         }
     }
 }

@@ -72,42 +72,44 @@ fn historical_embedding_native_import_configured_runtime_and_intrinsic_live_f8()
             json!({"groups":{"g000":{"title":"Native import invariant","content":"Keep the native import invariant."}}}),
         ],
     ));
-    let claim = cva
-        .claim_insomnia_episode("worker", 110, 1000)
-        .unwrap()
-        .unwrap();
-    let generated = cva
-        .process_claimed_insomnia_episode(&claim, &extractor, "private", 110, 111)
-        .unwrap();
-    let id = generated.created[0].id;
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
-    cva.begin_initial_dream_pass(
-        pass.clone(),
-        id,
-        1,
-        cva.rel_turn_count(),
-        Default::default(),
-        cva.graph_version(),
-    )
-    .unwrap();
-    cva.reconcile_dream_lifecycle(id).unwrap();
-    cva.accept_initial_dream_settlement(&pass, cva.rel_turn_count())
-        .unwrap();
-    crate::dream_freshness::settle_initial_pass(&mut cva, id, true, 300).unwrap();
     let cancel = AtomicBool::new(false);
-    let endpoint = super::historical_embedding::Endpoint::new(&cancel);
-    cva.establish_compatibility_profile(&endpoint).unwrap();
-
-    cva.materialize_path_fragments(
-        &episode.conversation_id,
-        &episode.end_node_id,
-        crate::FragmentConfig {
-            turns: 2,
-            overlap: 0,
-        },
-        true,
-    )
-    .unwrap();
+    let (_id, _endpoint) = cva.with_import_write_scope(|cva| {
+        let claim = cva
+            .claim_insomnia_episode("worker", 110, 1000)
+            .unwrap()
+            .unwrap();
+        let generated = cva
+            .process_claimed_insomnia_episode(&claim, &extractor, "private", 110, 111)
+            .unwrap();
+        let id = generated.created[0].id;
+        let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
+        cva.begin_initial_dream_pass(
+            pass.clone(),
+            id,
+            1,
+            cva.rel_turn_count(),
+            Default::default(),
+            cva.graph_version(),
+        )
+        .unwrap();
+        cva.reconcile_dream_lifecycle(id).unwrap();
+        cva.accept_initial_dream_settlement(&pass, cva.rel_turn_count())
+            .unwrap();
+        crate::dream_freshness::settle_initial_pass(cva, id, true, 300).unwrap();
+        let endpoint = super::historical_embedding::Endpoint::new(&cancel);
+        cva.establish_compatibility_profile(&endpoint).unwrap();
+        cva.materialize_path_fragments(
+            &episode.conversation_id,
+            &episode.end_node_id,
+            crate::FragmentConfig {
+                turns: 2,
+                overlap: 0,
+            },
+            true,
+        )
+        .unwrap();
+        (id, endpoint)
+    });
 
     // Real configured HTTP transport; no external provider/account is used.
     let listener = TcpListener::bind("127.0.0.1:0").unwrap();
@@ -204,6 +206,10 @@ fn historical_embedding_native_import_configured_runtime_and_intrinsic_live_f8()
     assert_eq!(*observed.lock().unwrap(), [2, 2, 8]);
     assert_eq!(report.embedding.as_ref().unwrap().unavailable_fragments, 0);
     assert!(report.committed);
+    assert!(
+        cva.active_archive_compatibility_profiles().is_empty(),
+        "open import historical fill cannot activate live vectors"
+    );
     assert_eq!(receipt, cva.import_native(&incoming, 400).unwrap());
     drop(cva);
     let mut cva = Cva::open(&path).unwrap();

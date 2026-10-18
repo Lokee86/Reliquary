@@ -9,7 +9,10 @@ use std::path::PathBuf;
 
 fn test_path(name: &str) -> PathBuf {
     let unique = uuid::Uuid::new_v4();
-    let dir = std::env::temp_dir().join(format!("continuity-generation-validation-{unique}"));
+    let dir = std::env::current_dir()
+        .unwrap()
+        .join(".verification-tmp")
+        .join(format!("continuity-generation-validation-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)
 }
@@ -165,7 +168,7 @@ fn incomplete_current_archive_coverage_cannot_be_published_or_activated() {
         "additional turn",
     )
     .unwrap();
-    cva.materialize_path_fragments("c1", "n8", FragmentConfig::default(), false)
+    cva.materialize_path_fragments("c1", "n8", FragmentConfig::default(), true)
         .unwrap();
     let profile = cva.establish_compatibility_profile(&endpoint()).unwrap();
     let fragment_id = cva.fragments()[0].id;
@@ -176,6 +179,54 @@ fn incomplete_current_archive_coverage_cannot_be_published_or_activated() {
     let archive_vector_id = cva
         .put_archive_vectors(packed_id, vec![fragment_id])
         .unwrap();
+    assert!(matches!(
+        cva.publish_vector_generation(profile.id, archive_vector_id, cva.archive_version()),
+        Err(VectorGenerationError::IncompleteCoverage)
+    ));
+    assert!(cva.current_vector_generation(profile.id).is_none());
+}
+
+#[test]
+fn equal_row_count_with_only_tombstoned_fragment_ids_is_not_current_coverage() {
+    let path = test_path("wrong-fragment-identities.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    populate(&mut cva);
+    let live_ids: Vec<_> = cva.fragments().iter().map(|fragment| fragment.id).collect();
+    assert!(!live_ids.is_empty());
+
+    for index in 0..8 {
+        cva.append_node(
+            format!("old{index}"),
+            "old-conversation".into(),
+            (index > 0).then(|| format!("old{}", index - 1)),
+            if index % 2 == 0 { "user" } else { "assistant" }.into(),
+            100 + index as i64,
+            "tombstoned source text",
+        )
+        .unwrap();
+    }
+    cva.materialize_path_fragments("old-conversation", "old7", FragmentConfig::default(), false)
+        .unwrap();
+    let tombstoned_ids: Vec<_> = cva
+        .fragments()
+        .into_iter()
+        .filter(|fragment| fragment.conversation_id == "old-conversation")
+        .map(|fragment| fragment.id)
+        .collect();
+    assert_eq!(tombstoned_ids.len(), live_ids.len());
+    cva.tombstone_conversation("old-conversation").unwrap();
+    assert_eq!(cva.fragments().len(), live_ids.len());
+
+    let profile = cva.establish_compatibility_profile(&endpoint()).unwrap();
+    let schema = VectorSchema::new(profile.dimensions, ScalarType::F32).unwrap();
+    let packed = PackedVectors::from_bytes(
+        schema,
+        vec![0; tombstoned_ids.len() * profile.dimensions as usize * 4],
+    )
+    .unwrap();
+    let packed_id = cva.put_packed_vectors(packed).unwrap();
+    let archive_vector_id = cva.put_archive_vectors(packed_id, tombstoned_ids).unwrap();
+
     assert!(matches!(
         cva.publish_vector_generation(profile.id, archive_vector_id, cva.archive_version()),
         Err(VectorGenerationError::IncompleteCoverage)

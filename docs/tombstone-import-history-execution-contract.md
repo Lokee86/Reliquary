@@ -10,7 +10,7 @@ Record the frozen implementation seams and distinguish verified progress from ac
 
 ## Overview
 
-The original 50-step decomposition remains the architectural breakdown. Steps 1–12 are committed on `main`; steps 13–28 remain historically accepted on the isolated integration branch, with step 28 bounded to exclusive empty-import completion. Steps 29–33 are accepted on the isolated branch for owner-derived readiness, private completion authority, pending/failed recovery and sequential/native-only coverage. Step 34 destination-aware reconciliation is next. The [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) owns execution order and open verification gates. Main promotion remains step 36.
+The implementation and retained fixture promotion are accepted through the final library/integration/CLI gates. The [final verification record](tombstone-import-history-final-verification-2026-10-18.md) owns final structural acceptance, main integration and cleanup. Earlier progress sections below retain their historical meaning.
 
 ## Frozen lifecycle contract
 
@@ -32,7 +32,7 @@ Current endpoint verification uses policy 3 and cosine 0.99. Persisted policy-2 
 
 ## Progress
 
-Implementation in progress. No step is marked complete until repository evidence and its acceptance checks pass.
+Historical checkpoints follow. Current results are in the final verification record; no green full-library claim is made for the three existing external-host failures.
 
 ### Completed execution through step 12
 

@@ -196,11 +196,11 @@ impl InsomniaStore {
         if !self
             .work
             .keys()
-            .all(|episode_id| archive.episode(*episode_id).is_some())
+            .all(|episode_id| archive.historical_episode(*episode_id).is_some())
             || !self
                 .attempts
                 .iter()
-                .all(|attempt| archive.episode(attempt.episode_id).is_some())
+                .all(|attempt| archive.historical_episode(attempt.episode_id).is_some())
         {
             return Err(InsomniaError::MissingEpisode);
         }

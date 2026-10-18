@@ -12,10 +12,11 @@ pub(crate) struct ArchiveVectorStore {
     objects: HashMap<ArchiveVectorId, ArchiveVectorEntry>,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 struct ArchiveVectorEntry {
     info: ArchiveVectorInfo,
     chunk: ObjectRef,
+    fragment_ids: Vec<FragmentId>,
 }
 
 impl ArchiveVectorStore {
@@ -34,13 +35,20 @@ impl ArchiveVectorStore {
     ) -> Result<ArchiveVectorId, ArchiveVectorError> {
         let max_fragment_archive_version =
             validate_mapping(archive, packed_vectors, packed_vector_id, &fragment_ids)?;
+        if packed_vectors.is_pruned(packed_vector_id) {
+            return Err(crate::PackedVectorError::PayloadUnavailable(
+                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+            )
+            .into());
+        }
         let id = archive_vector_id(packed_vector_id, &fragment_ids);
-        if let Some(existing) = self.objects.get(&id).copied() {
+        if let Some(existing) = self.objects.get(&id) {
             let payload = container.read(existing.chunk)?;
             let decoded = decode_object(&payload)?.ok_or(ArchiveVectorError::MissingObject)?;
             if decoded.id != id
                 || decoded.packed_vector_id != packed_vector_id
                 || decoded.fragment_ids != fragment_ids
+                || existing.fragment_ids != fragment_ids
             {
                 return Err(ArchiveVectorError::HashCollision);
             }
@@ -55,7 +63,14 @@ impl ArchiveVectorStore {
                 .map_err(|_| ArchiveVectorError::SizeOverflow)?,
             max_fragment_archive_version,
         };
-        self.objects.insert(id, ArchiveVectorEntry { info, chunk });
+        self.objects.insert(
+            id,
+            ArchiveVectorEntry {
+                info,
+                chunk,
+                fragment_ids,
+            },
+        );
         Ok(id)
     }
 
@@ -72,6 +87,7 @@ impl ArchiveVectorStore {
         let decoded = decode_object(&payload)?.ok_or(ArchiveVectorError::MissingObject)?;
         if decoded.id != id
             || archive_vector_id(decoded.packed_vector_id, &decoded.fragment_ids) != id
+            || decoded.fragment_ids != entry.fragment_ids
         {
             return Err(ArchiveVectorError::HashCollision);
         }
@@ -86,20 +102,51 @@ impl ArchiveVectorStore {
         &mut self,
         info: ArchiveVectorInfo,
         chunk: ObjectRef,
+        fragment_ids: Vec<FragmentId>,
     ) -> Result<(), ArchiveVectorError> {
+        if info.rows != fragment_ids.len() as u64
+            || archive_vector_id(info.packed_vector_id, &fragment_ids) != info.id
+        {
+            return Err(ArchiveVectorError::HashCollision);
+        }
         if let Some(existing) = self.objects.get(&info.id) {
-            if existing.info != info {
+            if existing.info != info || existing.fragment_ids != fragment_ids {
                 return Err(ArchiveVectorError::HashCollision);
             }
             return Ok(());
         }
-        self.objects
-            .insert(info.id, ArchiveVectorEntry { info, chunk });
+        self.objects.insert(
+            info.id,
+            ArchiveVectorEntry {
+                info,
+                chunk,
+                fragment_ids,
+            },
+        );
         Ok(())
     }
 
     pub(crate) fn info(&self, id: ArchiveVectorId) -> Option<ArchiveVectorInfo> {
         self.objects.get(&id).map(|entry| entry.info)
+    }
+
+    pub(crate) fn has_exact_fragment_coverage(
+        &self,
+        id: ArchiveVectorId,
+        expected: &[FragmentId],
+    ) -> bool {
+        let Some(entry) = self.objects.get(&id) else {
+            return false;
+        };
+        if entry.fragment_ids.len() != expected.len() {
+            return false;
+        }
+        let expected: HashSet<_> = expected.iter().copied().collect();
+        expected.len() == entry.fragment_ids.len()
+            && entry
+                .fragment_ids
+                .iter()
+                .all(|fragment| expected.contains(fragment))
     }
 
     pub(crate) fn infos(&self) -> Vec<ArchiveVectorInfo> {

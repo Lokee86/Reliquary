@@ -195,9 +195,15 @@ fn historical_embedding_native_partial_provider_failure_reopen_reuses_rows() {
     );
     assert_eq!(stopped.report.new_rows, 8);
     assert_unaccepted(&cva, &path, id, before);
-    let g = cva
-        .current_vector_generation(stopped.report.profile_id.unwrap())
-        .unwrap();
+    let profile_id = stopped.report.profile_id.unwrap();
+    assert!(
+        cva.current_vector_generation(profile_id).is_none(),
+        "partial historical rows must remain operationally inert"
+    );
+    let g = cva.historical_vector_generation(profile_id).unwrap();
+    let partial_bytes = fs::read(&path).unwrap();
+    assert!(cva.process_semantic_freshness(g.id, 64).is_err());
+    assert_eq!(fs::read(&path).unwrap(), partial_bytes);
     let old = cva.archive_vectors(g.archive_vector_id).unwrap();
     let packed = cva.packed_vectors(old.packed_vector_id).unwrap();
     let old_rows: BTreeMap<_, _> = old

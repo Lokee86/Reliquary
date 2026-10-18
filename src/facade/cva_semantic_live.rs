@@ -71,7 +71,12 @@ impl Cva {
         limit: usize,
     ) -> Result<SemanticFreshnessReport, CvaError> {
         let mut report = SemanticFreshnessReport::default();
-        self.vector_generation(generation)?;
+        let selected = self.vector_generation(generation)?;
+        if self.current_vector_generation(selected.compatibility_profile_id) != Some(selected) {
+            return Err(CvaError::Freshness(
+                "semantic Freshness requires complete current Archive coverage".into(),
+            ));
+        }
         for (_, fragment) in self.pending_semantic_fragments()?.into_iter().take(limit) {
             let source = match self.prepare_semantic_fragment(fragment, generation)? {
                 crate::cva_semantic_source::SemanticSourceReadiness::Pending => {

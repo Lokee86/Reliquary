@@ -26,6 +26,62 @@ pub(crate) struct DreamFreshnessJournal {
 }
 
 impl DreamFreshnessJournal {
+    /// Re-encode accepted evidence through this owner at destination coordinates.
+    /// The caller supplies mappings derived from already replayed owner records.
+    pub(crate) fn replay_payload(
+        &self,
+        payload: &[u8],
+        mut turn: impl FnMut(u64) -> Result<u64, String>,
+        mut graph: impl FnMut(u64) -> Result<u64, String>,
+        mut proof: impl FnMut(crate::FreshnessEventProof) -> Result<crate::FreshnessEventProof, String>,
+    ) -> Result<Vec<u8>, String> {
+        if payload.get(..8) != Some(MAGIC.as_slice()) {
+            return Ok(Vec::new());
+        }
+        let mut reader = Reader {
+            bytes: payload,
+            at: 8,
+        };
+        let owner = reader.array::<16>()?;
+        if self.owner_uuid != Some(owner) {
+            return Err("Dream replay owner mismatch".into());
+        }
+        let entry = decode_entry(&mut reader)?;
+        if reader.at != payload.len() {
+            return Err("trailing Dream replay bytes".into());
+        }
+        let result = match entry {
+            DreamEntry::Begin(mut pass) => {
+                pass.turn = turn(pass.turn)?;
+                pass.graph_version_before = graph(pass.graph_version_before)?;
+                self.begin_payload(&pass)?
+            }
+            DreamEntry::Roots(id, roots) => self.roots_payload(&id, &roots)?,
+            DreamEntry::Settled(id) => self.settled_payload(&id)?,
+            DreamEntry::Accept(id, cut) => self.accept_payload(&id, turn(cut)?)?,
+            DreamEntry::AcceptGraph(id, cut, version, pinned) => {
+                self.accept_graph_payload(&id, turn(cut)?, graph(version)?, proof(pinned)?)?
+            }
+            DreamEntry::Intent(id, mutation, cut, admitted) => {
+                self.publication_intent_payload(id, &mutation, turn(cut)?, admitted)?
+            }
+            DreamEntry::Consume(id, mutation) => {
+                if self
+                    .pending_initialization(id)
+                    .is_some_and(|(known, _, _)| known != mutation)
+                {
+                    return Err("Dream replay intent mutation mismatch".into());
+                }
+                self.consume_publication_intent_payload(id)?
+                    .unwrap_or_default()
+            }
+            DreamEntry::ReplaySettled(id) => self.replay_settled_payload(&id)?,
+            DreamEntry::ReplayBirth(id) => self.replay_publication_birth_payload(id)?,
+        };
+        let mut staged = self.clone();
+        staged.ingest(&result)?;
+        Ok(result)
+    }
     /// Read-only import evidence projection. Completed roots are retained in the
     /// journal bytes even though the normal resident projection drops settled passes.
     pub(crate) fn retained_completed_passes(

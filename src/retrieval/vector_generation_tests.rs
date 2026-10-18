@@ -42,6 +42,7 @@ fn simulated_endpoint_builds_and_reopens_active_generation() {
     materialize(&mut cva, 7);
     let source = cva.archive_version();
     let profile = cva.establish_compatibility_profile(&endpoint(1)).unwrap();
+    assert!(cva.active_archive_compatibility_profiles().is_empty());
     let generation = cva
         .build_archive_vector_generation(profile.id, &endpoint(1))
         .unwrap();

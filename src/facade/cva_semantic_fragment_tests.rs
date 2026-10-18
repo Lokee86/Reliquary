@@ -272,7 +272,7 @@ fn semantic_fragment_waits_for_its_own_row_and_selected_archive_cut() {
     let archive_version = f.cva().archive_version();
     let incomplete = f
         .cva()
-        .publish_vector_generation(
+        .publish_vector_generation_without_live_semantic(
             old.compatibility_profile_id,
             old.archive_vector_id,
             archive_version,

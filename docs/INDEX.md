@@ -1,6 +1,7 @@
 # Reliquary Memory v2 Documentation
 
 - [Tombstone/import execution contract](tombstone-import-history-execution-contract.md) — frozen boundaries and staged implementation record.
+- [Tombstone/import final verification](tombstone-import-history-final-verification-2026-10-18.md) — implementation, retained fixture promotion, retrieval parity and final acceptance.
 - [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) — terminal lifecycle, owner import identity, explicit pruning and policy v3 decisions.
 
 - [Operator and integration manual](manual/INDEX.md) — task-oriented workflows for users, operators, and product integrators.
@@ -16,7 +17,7 @@
 - [Agentic Memory retrieval Luna baseline — 2026-10-16](agentic-memory-retrieval-baseline-2026-10-16.md) — Step 1 snapshot, ownership inspection, commands, and truthful blockers.
 - [Freshness retrieval boundary implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md) — ordered F1–F5 scope and gates.
 - [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade — 2026-10-17](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md) — canonical architectural specification for terminal direct-only tombstones, repeated-import epoch reconstruction, destructive historical pruning/repack, policy v3/profile retirement and retained-REL normalization.
-- [Tombstone/import/history/compatibility remaining execution plan — 2026-10-17](tombstone-import-history-remaining-execution-plan-2026-10-17.md) — authoritative continuation from completed convergence step 8 through final integration, fixture repair, benchmark rerun and cleanup.
+- [Tombstone/import/history/compatibility remaining execution plan — 2026-10-17](tombstone-import-history-remaining-execution-plan-2026-10-17.md) — execution sequence and historical acceptance checkpoints; final results are linked at the top.
 - [Freshness retrieval boundary execution record](freshness-retrieval-boundary-verification-2026-10-15.md) — caller map, regression evidence and external-host wiring disposition.
 - [External Memory consumption and Freshness](freshness-external-consumption-contract.md) — passive internal retrieval, existing receipts and planned successful-host-handoff integration.
 - [Rust API](api.md) — current public library surface and behavior.
@@ -77,7 +78,7 @@
 - [Freshness semantic + historical baseline — 2026-10-11](freshness-semantic-historical-baseline-2026-10-11.md) — Step 1 code ownership map and test baseline on the implementation branch.
 - [F8 semantic Freshness release verification — 2026-10-12](freshness-semantic-release-verification-2026-10-12.md) — Step 12 activation/readiness closure, release-gate evidence, synthetic timing and bounded receipt checks.
 - [Ego status and decision inventory — 2026-10-14](ego-status-decision-inventory-2026-10-14.md) — implementation-versus-design matrix, accepted decisions, explicit non-decisions, calibration and dependency order.
-- [Ego Memory-Web Summary implementation plan](ego-memory-web-summary-implementation-plan.md) — authoritative execution specification for population construction, full-Web audit search, candidate resolution, exact-source summarization, reconciliation, persisted tiers, failure/retry behavior, and refresh scheduling.
+- [Ego Web synthesis plan](ego-web-synthesis-plan.md) — design and remaining work for Web synthesis.
 - [Ego Memory-Web summary plan](ego-web-synthesis-plan.md) — design rationale and calibration record for user-relative working-Web selection, mandatory broad audit, candidate selection, summary generation, refresh policy, measurements, and Personality boundary.
 - [Ego Cross-chat context plan](ego-cross-chat-context-plan.md) — deterministic selection of recent active REL conversation compactions within the Ego context budget.
 - [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md) — future selection of existing user-relative summaries across explicitly authorized REL dependency and reverse/dependent scopes; no default combined synthesis.

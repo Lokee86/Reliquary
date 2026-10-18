@@ -12,6 +12,8 @@ use std::collections::{HashMap, HashSet};
 
 #[path = "memory_store/grouped_publish.rs"]
 mod grouped_publish;
+#[path = "memory_store/history_prune.rs"]
+pub(crate) mod history_prune;
 
 pub(crate) struct MemoryStore {
     pub(crate) external_evidence:
@@ -25,6 +27,7 @@ pub(crate) struct MemoryStore {
     by_mutation: HashMap<String, usize>,
     revisions: HashMap<MemoryId, u64>,
     tombstones: HashMap<MemoryId, crate::owner_lifecycle::TombstoneCoordinates>,
+    pub(crate) prune: history_prune::MemoryPruneState,
     next_memory_version: u64,
 }
 
@@ -50,6 +53,7 @@ impl MemoryStore {
             by_mutation: HashMap::new(),
             revisions: HashMap::new(),
             tombstones: HashMap::new(),
+            prune: history_prune::MemoryPruneState::default(),
             next_memory_version: 1,
         }
     }
@@ -430,6 +434,21 @@ impl MemoryStore {
         })
     }
 
+    pub(crate) fn prune_body_chunk(&self, id: crate::MemoryBodyId) -> Option<ObjectRef> {
+        self.bodies.get(&id).copied()
+    }
+
+    pub(crate) fn validate_prune_history(
+        &self,
+        container: &mut Container,
+        manifests: &std::collections::BTreeMap<
+            [u8; 32],
+            crate::history_prune_manifest::HistoryPruneManifest,
+        >,
+    ) -> Result<(), MemoryError> {
+        self.prune.validate(self, container, manifests)
+    }
+
     pub(crate) fn records(&self) -> &[MemoryRecord] {
         &self.records
     }
@@ -666,7 +685,9 @@ impl MemoryStore {
 
     pub(crate) fn validate_bodies(&self) -> Result<(), MemoryError> {
         for record in &self.records {
-            if !self.bodies.contains_key(&record.body_id) {
+            if !self.bodies.contains_key(&record.body_id)
+                && self.prune.get(record.body_id).is_none()
+            {
                 return Err(MemoryError::MissingBody);
             }
             if let Some(inference) = &record.temporal_inference {
@@ -760,6 +781,11 @@ impl MemoryStore {
         container: &mut Container,
         id: MemoryBodyId,
     ) -> Result<Vec<u8>, MemoryError> {
+        if self.prune.get(id).is_some() {
+            return Err(MemoryError::PayloadUnavailable(
+                crate::owner_lifecycle::PayloadUnavailable::Pruned,
+            ));
+        }
         let chunk = self.bodies.get(&id).ok_or(MemoryError::MissingBody)?;
         let payload = container.read(*chunk)?;
         if let Some((stored_id, body)) = decode_body(&payload)? {

@@ -30,6 +30,9 @@ impl MemoryOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), MemoryError> {
+        if self.store.prune.ingest(chunk, payload)? {
+            return Ok(());
+        }
         if let Some(publication) = crate::external_source::publication::decode(payload)? {
             self.store
                 .apply_grouped_bodies(chunk, &publication.bodies)?;

@@ -6,6 +6,7 @@ use std::collections::HashSet;
 impl Archive {
     pub(crate) fn empty() -> Self {
         Self {
+            prune: Default::default(),
             import_receipts: Default::default(),
             contents: Default::default(),
             nodes: Default::default(),
@@ -97,7 +98,7 @@ impl Archive {
         project_files: &crate::project_file_binding_store::ProjectFileStore,
     ) -> Result<(), ArchiveError> {
         for node in self.nodes.iter() {
-            if !self.contents.contains(node.content_id) {
+            if !self.contents.contains(node.content_id) && !self.prune.node_is_pruned(node) {
                 return Err(ArchiveError::MissingContent);
             }
             self.validate_parent(&node.conversation_id, node.parent_id.as_deref())?;

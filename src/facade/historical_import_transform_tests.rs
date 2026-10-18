@@ -1,8 +1,92 @@
 //! H7 exercises the real native import/checkpoint owner, not a shadow store.
 use super::super::PreparedHistoricalImport;
 use super::*;
+use crate::imports::{
+    ImportBranch, ImportConversation, ImportEpochStatus, ImportMessage, NativeImport,
+};
 use crate::{AcceptedMemoryUseReceipt, CvaRelation, MemoryId};
 use sha2::{Digest, Sha256};
+use std::{fs, path::PathBuf};
+
+struct ImportTransformFixture(PathBuf);
+
+impl ImportTransformFixture {
+    fn new() -> Self {
+        let path = std::env::current_dir()
+            .unwrap()
+            .join(".test-tmp")
+            .join(uuid::Uuid::new_v4().to_string());
+        fs::create_dir_all(&path).unwrap();
+        Self(path)
+    }
+}
+
+impl Drop for ImportTransformFixture {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.0);
+    }
+}
+
+fn native_import() -> NativeImport {
+    NativeImport {
+        schema_version: 1,
+        source_namespace: "transform/native-account".into(),
+        source_format: "transform-test-v1".into(),
+        conversations: vec![ImportConversation {
+            id: "session".into(),
+            title: Some("Transform epoch".into()),
+            messages: vec![
+                ImportMessage {
+                    id: "user".into(),
+                    revision: Some("1".into()),
+                    parent_id: None,
+                    replaces: None,
+                    deleted: false,
+                    role: "user".into(),
+                    timestamp_ns: 10,
+                    content: "A source turn.".into(),
+                    artifacts: Vec::new(),
+                },
+                ImportMessage {
+                    id: "assistant".into(),
+                    revision: Some("1".into()),
+                    parent_id: Some("user".into()),
+                    replaces: None,
+                    deleted: false,
+                    role: "assistant".into(),
+                    timestamp_ns: 11,
+                    content: "An answer.".into(),
+                    artifacts: Vec::new(),
+                },
+            ],
+            branches: vec![ImportBranch {
+                id: "main".into(),
+                leaf_message_id: "assistant".into(),
+                canonical: true,
+            }],
+        }],
+    }
+}
+
+fn import_epoch_payloads(cva: &mut Cva) -> Vec<Vec<u8>> {
+    cva.container
+        .chunks()
+        .unwrap()
+        .into_iter()
+        .map(|chunk| cva.container.read(chunk).unwrap())
+        .filter(|payload| payload.starts_with(b"CVAIEPS1") || payload.starts_with(b"CVAIEPC1"))
+        .collect()
+}
+
+fn assert_import_epoch_preserved(source: &mut Cva, copy: &mut Cva) {
+    assert_eq!(source.import_epoch_statuses(), copy.import_epoch_statuses());
+    assert_eq!(
+        source.freshness.import_settlements(),
+        copy.freshness.import_settlements()
+    );
+    assert_eq!(import_epoch_payloads(source), import_epoch_payloads(copy));
+    source.validate_historical_import_copy(copy).unwrap();
+}
 
 fn checkpoint(cva: &mut Cva) -> PreparedHistoricalImport {
     checkpoint_with_fill(cva, false)
@@ -468,4 +552,67 @@ fn historical_transform_principal_conversion_rejects_but_unchanged_repack_preser
     assert_eq!(result.rewritten_user_turns, 0);
     assert_eq!(result.preserved_user_turns, 16);
     assert_preserved(&mut cva, &mut Cva::open(&output).unwrap(), id, &prepared);
+}
+
+#[test]
+fn native_import_epoch_markers_and_settlement_survive_reopen_reclaim_and_repack() {
+    let fixture = ImportTransformFixture::new();
+    let path = fixture.0.join("native-epoch.rel");
+    let mut cva = Cva::create(&path).unwrap();
+    cva.import_native(&native_import(), 100).unwrap();
+    crate::imports::tests::finish_current_import(&mut cva, 110);
+    assert!(matches!(
+        cva.import_epoch_statuses().as_slice(),
+        [ImportEpochStatus::Completed { .. }]
+    ));
+    assert_eq!(cva.freshness.import_settlements().len(), 1);
+
+    let attached = vec![7; 64 * 1024];
+    let file = cva.store_file("old.bin".into(), None, &attached).unwrap();
+    cva.bind_legacy_project_file(
+        file.id,
+        crate::ProjectFileRef {
+            revision: crate::ProjectRevisionRef {
+                repository: crate::ProjectRepositoryRef {
+                    kind: crate::ProjectRepositoryKind::Lore,
+                    repository_id: "epoch-transform-repository".into(),
+                    project_path: ".".into(),
+                },
+                revision: "verified-revision".into(),
+            },
+            path: "uploads/old.bin".into(),
+            content_hash: Some(Sha256::digest(&attached).into()),
+        },
+    )
+    .unwrap();
+    let orphan = vec![9; 128 * 1024];
+    cva.container
+        .append(
+            &crate::archive_codec::encode_content(
+                crate::archive_store::hash_content(&orphan),
+                &orphan,
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    cva.sync().unwrap();
+    let source_bytes = fs::read(&path).unwrap();
+
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_import_epoch_preserved(&mut cva, &mut reopened);
+
+    let reclaimed_path = fixture.0.join("reclaimed.rel");
+    let reclaimed = cva.reclaim_storage(&reclaimed_path).unwrap();
+    assert_eq!(reclaimed.orphan_content_chunks, 1);
+    let mut reclaimed_cva = Cva::open(&reclaimed_path).unwrap();
+    assert_import_epoch_preserved(&mut cva, &mut reclaimed_cva);
+
+    let repacked_path = fixture.0.join("repacked.rel");
+    let repacked = cva
+        .repack_project_backed_attachments(&repacked_path)
+        .unwrap();
+    assert_eq!(repacked.dropped_content_objects, 1);
+    let mut repacked_cva = Cva::open(&repacked_path).unwrap();
+    assert_import_epoch_preserved(&mut cva, &mut repacked_cva);
+    assert_eq!(fs::read(&path).unwrap(), source_bytes);
 }

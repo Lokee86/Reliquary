@@ -12,6 +12,7 @@ pub enum RelationshipError {
     MissingRelationship,
     TerminalTombstone,
     PayloadRequiredByLiveTarget,
+    PayloadUnavailable(crate::owner_lifecycle::PayloadUnavailable),
     MissingLocalEntity(EntityId),
     MissingLocalMemory(MemoryId),
     MissingOwnerIdentity,

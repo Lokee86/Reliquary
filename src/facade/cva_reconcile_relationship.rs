@@ -20,9 +20,17 @@ pub(crate) fn read_relationship_tail(
     cva: &mut Cva,
     start_chunk: usize,
 ) -> Result<RelationshipTail, CvaReconcileError> {
+    read_relationship_range(cva, start_chunk, usize::MAX)
+}
+
+pub(crate) fn read_relationship_range(
+    cva: &mut Cva,
+    start_chunk: usize,
+    end_chunk: usize,
+) -> Result<RelationshipTail, CvaReconcileError> {
     let chunks = cva.container.chunks()?;
     let mut revisions = Vec::new();
-    for chunk in chunks.iter().skip(start_chunk) {
+    for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
         let Some(version) = decode_version(&payload)? else {
             continue;
