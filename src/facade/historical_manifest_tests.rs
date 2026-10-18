@@ -65,6 +65,31 @@ fn historical_manifest_pins_mixed_fragment_bindings_availability_and_generation(
 }
 
 #[test]
+fn legacy_manifest_without_open_epoch_keeps_its_original_map_shape() {
+    use encoding::Value;
+    let (_, mut cva, _) = historical_import_fixture("legacy-manifest-shape.rel");
+    assert!(cva.open_import_epoch().is_none());
+    let manifest = manifest::build_with_fill(&mut cva, false).unwrap();
+    let Value::Map(fields) = &manifest.value else {
+        panic!("manifest root is not a map");
+    };
+    for name in [
+        "import_start_digest",
+        "import_start_offset",
+        "import_start_marker_end",
+        "base_activity_cut",
+        "import_key",
+        "import_source_nodes",
+        "import_episode_ids",
+    ] {
+        assert!(
+            fields.iter().all(|(key, _)| key != name),
+            "unexpected legacy manifest field {name}"
+        );
+    }
+}
+
+#[test]
 fn historical_generation_refresh_changes_proof_but_never_fragment_event_identity() {
     let (_, mut cva, _) = historical_import_fixture("n3-generation-proof.rel");
     historical_events::vectors(&mut cva);

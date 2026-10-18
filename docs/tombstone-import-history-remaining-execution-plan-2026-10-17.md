@@ -3,7 +3,7 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** authoritative continuation; isolated integration accepted through step 23; repeated-import attribution is next
+**Status:** authoritative continuation; isolated integration accepted through step 23; step 24 attribution groundwork in progress
 **Next step:** 24
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
@@ -247,6 +247,34 @@ The next executable action is **step 24**: finish epoch-scoped cohort/evidence a
 ## Notes
 
 Do not advance a verification step on compilation alone. Preserve unrelated dirty work and authoritative fixtures throughout convergence.
+
+### Step 24 attribution groundwork checkpoint
+
+Work continues on `integrate/import-freshness-settlements-20261017`, following the accepted epoch admission head `d259433`. Main and authoritative retained fixtures remain unchanged. Three Luna lanes implemented and reviewed epoch scope derivation, physical-prefix provisional-event selection and pre-start Freshness base replay.
+
+The private scope binds the exact persisted ImportStart payload/offset, base Archive activity cut, receipt source Nodes, complete Import Episode paths and first-publication born-Memory evidence. Existing Memories remain a separate recipient/proof population. Provisional-event selection uses finite physical start/freeze prefixes and exact born-source or semantic-source identity, including same-cut receipts; mixed import/external fragment evidence rejects. The base replay reads only frames physically before ImportStart, including accepted birth evidence and prior settlements. Legacy manifests retain their original map shape and import identity when no epoch exists.
+
+This is **partial step 24 and a step 25 prerequisite**, not completed repeated-import reconstruction. The production new-epoch path explicitly refuses publication rather than returning an earlier import's settlement or feeding owner-wide replacements into the existing settlement codec. CVAFRS03/CVAFRS04 persisted bytes are unchanged. No normal completion caller or worker-admission bypass was added.
+
+The broader run additionally exposed missing legacy accepted-use refusal in initial manifest construction. The source now refuses that unsupported path before publication, retaining the existing accepted-use protection fixtures rather than relaxing their contract. Accepted settlement retries still resolve before this construction guard and preserve subsequent live use.
+
+Remaining acceptance work before advancing:
+
+- Introduce a versioned settlement/replay representation that authenticates the physical start/base and import source/cohort evidence while retaining existing codec compatibility.
+- Preserve pre-start accepted effects already included in a replacement base without replaying same-cut effects twice; retain post-settlement same-cut live effects by accepted identity/order.
+- Hash the full existing recipient proof population, then persist only import-born/affected sparse replacements; remove whole-owner result attribution.
+- Permit authenticated no-op settlements for no births, no eligible recipients and zero activity without inventing admission anchors.
+- Wire the pre-start base into native event planning and prove the later-import accepted-use and existing-Memory affected fixtures (steps 26–27).
+- Replace full-prefix event-ID materialization with bounded physical-interval selection before enabling the new epoch path on large retained histories; the current helper is preparatory and no bounded-residency acceptance is claimed for it.
+- Keep conversion/reconciliation refusal until ordered settlement boundaries are preserved by their replay representation.
+
+Checkpoint verification:
+
+- All **nine new attribution/base/identity regressions** pass on the final library test binary, including prior settlement frames after their frozen input prefix. Both existing accepted-use protection fixtures now pass after the legacy construction guard was restored.
+- Library/test compilation, library formatting, CLI formatting, CLI check and all **22 CLI tests** passed. The normal build output remained locked, so checks used repository-local `target-step24`; scratch output remained repository-local.
+- A pre-final-guard broad library run completed with **1,386 passed, 31 failed and 5 ignored**. Subsequent outside-sandbox reruns resolved eleven environment-only failures (mock HTTP, hard links and Lore project operations). The two accepted-use failures were repaired and their focused tests passed. The remaining observed failures are seven historical-fill/semantic/profile/migration cases (steps 51–52), eight incomplete import completion/continuation/reconciliation cases (steps 28–35), and three external-source `Storage` cases that still reproduce outside the sandbox. No final full-suite acceptance is claimed.
+- Both documentation-policy checks report the same five pre-existing Ego findings: one broken index link and four missing inventory sections; no new changed-document findings were reported.
+- Architecture refresh passed the 92-fixture/166-API multiplexing guard and eleven-fixture external ownership guard, then stalled in Lexicon Rust analysis and was stopped after approximately ten minutes. Arcana/Pitlord refresh acceptance remains open.
 
 ## Settlement integration checkpoint (2026-10-17)
 

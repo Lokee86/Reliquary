@@ -24,6 +24,8 @@ pub use embedding_model::{
     HistoricalEmbeddingCoverage, HistoricalEmbeddingDisposition, HistoricalEmbeddingFailure,
     HistoricalEmbeddingLimits, HistoricalEmbeddingReport,
 };
+#[path = "historical_import_base.rs"]
+mod historical_base;
 #[path = "historical_import_input.rs"]
 mod input;
 #[path = "historical_manifest.rs"]
@@ -176,8 +178,30 @@ impl Cva {
         &mut self,
         requested_complete: bool,
     ) -> Result<FrozenHistoricalImport, CvaError> {
-        if let Some(settlement) = self.freshness.latest_import_settlement() {
+        // An earlier import's settlement is not a retry of the open epoch.
+        // Resolve the durable epoch identity before considering accepted evidence.
+        let accepted = if let Some(start) = self.open_import_epoch() {
+            self.freshness
+                .import_settlements()
+                .iter()
+                .find(|settlement| {
+                    settlement
+                        .import_id
+                        .iter()
+                        .map(|byte| format!("{byte:02x}"))
+                        .collect::<String>()
+                        == start.import_id
+                })
+        } else {
+            self.freshness.latest_import_settlement()
+        };
+        if let Some(settlement) = accepted {
             let settlement = settlement.clone();
+            if self.open_import_epoch().is_some()
+                && self.import_epoch_scope()?.start_digest != settlement.start_evidence_digest
+            {
+                return Err(fail("import settlement start evidence mismatch"));
+            }
             let mut initial = BTreeMap::new();
             for (id, record) in &settlement.records {
                 let mut birth = FreshnessRecord::created();
@@ -192,6 +216,11 @@ impl Cva {
                 settlement,
                 initial,
             });
+        }
+        if self.open_import_epoch().is_some() {
+            return Err(fail(
+                "epoch reconstruction requires authenticated physical-boundary settlement replay",
+            ));
         }
         let owner = self.historical_reconstruction_owner()?;
         let manifest = manifest::build_with_fill(self, requested_complete)?;

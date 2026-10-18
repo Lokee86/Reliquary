@@ -2,6 +2,8 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+Epoch source/cohort derivation, physical-prefix event attribution and pre-start Freshness base replay map to [Native import](native-import.md), [Maintainer map](maintainer-map.md), [Invariants](invariants.md) and [Behavioral contracts](behavioral-contracts.md). [Current limitations](current-limitations.md) records the closed new-epoch settlement path; [remaining execution](tombstone-import-history-remaining-execution-plan-2026-10-17.md) tracks incomplete incremental reconstruction and completion coordination.
+
 ## Agentic Memory retrieval coverage
 
 The controller/decision modules, REL-local candidate pool and runtime agentic preparation/completion modules map to [Architecture](architecture.md), [API](api.md) and [Maintainer map](maintainer-map.md). [Behavioral contracts](behavioral-contracts.md) owns passive preparation and exact-confirmed coordinated receipt coverage. The [verification record](agentic-memory-retrieval-verification-2026-10-16.md) owns frozen fixture hashes, native-reader format limitations, real Warlock receiver/restart evidence and final gates. The evaluation harness is not a runtime compatibility mode; deployment and unmeasured frozen-corpus fidelity remain explicit release qualifications.

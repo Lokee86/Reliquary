@@ -1020,6 +1020,8 @@ The observation builder adds no persisted record, journal event, CVA format or m
 
 ## Atomic historical import settlements (`CVAFRS04`)
 
+The physical-boundary attribution helpers do not alter this persisted layout. In particular, `input_bytes` is the frozen input prefix, not the physical position of ImportStart or the accepted settlement frame. New-epoch reconstruction cannot publish until a versioned settlement/replay contract authenticates its start prefix and preserves prior same-cut receipts. Existing CVAFRS03/CVAFRS04 remain readable under their original contracts.
+
 Each payload is an authoritative sparse Freshness settlement; ordinary receipts remain `CVAFRS02`. Exact decoded retries are no-ops. Conflicting same-ID evidence and reversed/overlapping cuts reject.
 
 All integers are little endian. Layout: eight-byte magic; 16-byte owner UUID; seven 32-byte digests (import ID, start evidence, source corpus, manifest, frozen input bytes, H1 policy, F8 policy); seven u64 values (base cut, settlement cut, global version, input byte length, Archive version, full Graph version, Memory Graph version); u32 cohort count and sorted unique Memory IDs; u32 sparse replacement count and sorted unique Memory IDs with existing Freshness records; u32 superseded-event count and sorted unique length-prefixed UTF-8 event IDs; SHA-256 over all preceding bytes. Unsupported policies, trailing bytes, missing accepted birth proof and noncanonical replacements reject.

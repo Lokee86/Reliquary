@@ -4,6 +4,8 @@ Parent index: [Documentation index](INDEX.md)
 
 Import/CVA owns epoch metadata and identity in `src/imports/epoch_store.rs` and `epoch_codec.rs`; `commit.rs` owns construction admission and private write scope. Container supplies generic write-admission mechanics without importing epoch semantics. The production completion/readiness owner remains pending.
 
+`src/imports/epoch_scope.rs` derives the open epoch's physical start boundary, receipt source Nodes, complete Import Episode paths and born-Memory cohort. `src/facade/historical_import_base.rs` rebuilds the pre-start Freshness base. `ImportEventScope` in `src/freshness/freshness_import_events.rs` selects provisional event identities inside finite physical prefixes with separate born-source and affected-recipient sets. These private seams prepare incremental reconstruction; they do not authorize epoch completion or change the persisted settlement layout.
+
 ## Shared lifecycle vocabulary
 
 `src/owner_lifecycle.rs` owns only typed lifecycle identities, terminal-state/idempotency checks, explicit target selection and historical payload availability. It has no storage, clock or provenance traversal authority. Domain stores retain persistence and validation. [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) records the direction; the [execution contract](tombstone-import-history-execution-contract.md) distinguishes staged work from current behavior.

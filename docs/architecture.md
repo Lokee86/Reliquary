@@ -1,5 +1,7 @@
 # Architecture
 Parent index: [Documentation index](INDEX.md)
+
+Import/CVA derives an open epoch's attribution from its exact physical ImportStart marker and Archive receipt. Source Nodes, complete Import Episode paths and born-Memory identity remain distinct from the eligible existing recipient population. Freshness selects provisional events using finite physical prefixes and exact source identities; the Cva historical adapter can reconstruct the pre-start base without later same-cut receipts. New-epoch settlement publication remains closed until persisted replay preserves those boundaries.
 ## Ordered Historical Freshness settlements
 
 FreshnessStore owns ordered sparse `HistoricalImportFreshnessSettlement` records in `CVAFRS04`, with no singleton ImportCheckpoint. The codec alone reads persisted `CVAFRS03` into one synthetic initial settlement at base cut zero. New writes use `CVAFRS04`; passive reopen preserves legacy bytes. Birth, Dream and accepted-use receipts remain durable. Exact settlement retries preserve later live effects, including accepted use appended at the same activity cut.

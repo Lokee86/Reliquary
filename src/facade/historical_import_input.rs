@@ -89,6 +89,13 @@ pub(super) struct AdmissionProof {
     pub cohorts: Vec<Value>,
 }
 pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError> {
+    admission_proof_scoped(cva, None)
+}
+
+pub(super) fn admission_proof_scoped(
+    cva: &mut Cva,
+    scope: Option<&crate::imports::ImportEpochScope>,
+) -> Result<AdmissionProof, CvaError> {
     let owner = cva
         .owner_uuid()
         .ok_or_else(|| fail("missing import owner"))?;
@@ -136,12 +143,23 @@ pub(super) fn admission_proof(cva: &mut Cva) -> Result<AdmissionProof, CvaError>
     if ids.is_empty() || birth_episodes.keys().any(|id| !ids.contains(id)) {
         return Err(fail("incomplete native import birth cohort"));
     }
+    if scope.is_some_and(|scope| {
+        !scope
+            .cohort
+            .iter()
+            .all(|id| birth_episodes.contains_key(id))
+            || !scope.episodes.iter().all(|id| completed.contains(id))
+    }) {
+        return Err(fail(
+            "open epoch attribution conflicts with retained publication evidence",
+        ));
+    }
     let mut covered = BTreeSet::new();
     let mut episode_keys = BTreeMap::new();
     let mut episode_proofs = BTreeMap::new();
     for episode in cva.episodes() {
         if episode.origin != EpisodeOrigin::Import || !completed.contains(&episode.id.0) {
-            return Err(fail("import corpus has incomplete or non-import Episodes"));
+            return Err(fail("import epoch has incomplete or non-import Episodes"));
         }
         let end = cva
             .archive

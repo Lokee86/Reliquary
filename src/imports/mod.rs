@@ -2,6 +2,7 @@
 mod commit;
 mod contract;
 mod epoch_codec;
+mod epoch_scope;
 mod epoch_store;
 mod hermes;
 mod prepare;
@@ -10,6 +11,7 @@ pub use contract::*;
 pub use hermes::normalize_hermes_jsonl;
 #[cfg(test)]
 mod tests;
+pub(crate) use epoch_scope::ImportEpochScope;
 pub(crate) use epoch_store::ImportEpochStore;
 pub(crate) use prepare::prepare;
 mod chatgpt;

@@ -1,6 +1,7 @@
 .workingtrees/
 .worktrees/
 target/
+/target-step24/
 bin/
 *.sqlite
 *.sqlite-shm

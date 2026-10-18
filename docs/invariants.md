@@ -2,6 +2,8 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+An open import epoch cannot resolve as an accepted retry of another import. Attribution uses exact receipt source identity and physical receipt order, including when activity cuts are equal. Whole-owner Memory inventory is a recipient/proof population, never evidence that every Memory was born in the current epoch. Until the persisted settlement representation authenticates its physical start/base, new-epoch Historical Freshness publication rejects without changing bytes or accepted settlements.
+
 ## Tombstones and derived Community state
 
 A Community snapshot is current only when its graph version and exact member set match the current graph projection. Memory tombstones can invalidate that membership without advancing the graph clock. Old snapshots remain historical data; current Community/Freshness reads cannot use their deleted members, and refresh must produce a new derived generation.

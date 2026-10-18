@@ -122,6 +122,68 @@ fn historical_import_fixture_clock(
 }
 
 #[test]
+fn physical_import_base_includes_prior_settlement_after_its_frozen_input_prefix() {
+    let (path, mut cva, _) = historical_import_fixture("epoch-base-prior-settlement.rel");
+    let prepared = cva
+        .freeze_historical_import()
+        .unwrap()
+        .prepare(&[])
+        .unwrap();
+    cva.commit_historical_import(&prepared).unwrap();
+    cva.import_native(
+        &crate::imports::NativeImport {
+            schema_version: 1,
+            source_namespace: "test-base".into(),
+            source_format: "test".into(),
+            conversations: Vec::new(),
+        },
+        400,
+    )
+    .unwrap();
+    let scope = cva.import_epoch_scope().unwrap();
+    assert!(scope.start_offset > prepared.settlement.input_bytes);
+    assert_eq!(
+        cva.historical_import_base(&scope).unwrap(),
+        prepared.settlement.records
+    );
+    drop(cva);
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
+fn open_epoch_never_retries_an_earlier_import_settlement() {
+    let (path, mut cva, _) = historical_import_fixture("epoch-retry-selection.rel");
+    let prepared = cva
+        .freeze_historical_import()
+        .unwrap()
+        .prepare(&[])
+        .unwrap();
+    cva.commit_historical_import(&prepared).unwrap();
+    cva.import_native(
+        &crate::imports::NativeImport {
+            schema_version: 1,
+            source_namespace: "retry-selection".into(),
+            source_format: "test".into(),
+            conversations: Vec::new(),
+        },
+        400,
+    )
+    .unwrap();
+    cva.container.sync().unwrap();
+    let before = fs::read(&path).unwrap();
+    let error = cva.freeze_historical_import().unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("physical-boundary settlement replay")
+    );
+    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(cva.freshness.import_settlements(), &[prepared.settlement]);
+    drop(cva);
+    fs::remove_file(path).unwrap();
+}
+
+#[test]
 fn legacy_cvafrs03_settlement_reopens_with_real_import_birth_evidence() {
     let (path, mut cva, id) = historical_import_fixture("legacy-settlement-reopen.rel");
     let prepared = cva

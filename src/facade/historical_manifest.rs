@@ -585,6 +585,11 @@ pub(super) fn build_with_fill(
     cva: &mut Cva,
     requested_complete: bool,
 ) -> Result<Manifest, CvaError> {
+    let scope = if cva.open_import_epoch().is_some() {
+        Some(cva.import_epoch_scope()?)
+    } else {
+        None
+    };
     let owner = cva.historical_reconstruction_owner()?;
     // Validate ancestry before the timeline planner follows parent chains.
     input::required_nodes(cva, cva.rel_turn_count())?;
@@ -592,10 +597,16 @@ pub(super) fn build_with_fill(
         .historical_freshness_timeline()
         .map_err(|e| fail(&e.to_string()))?;
     let corpus_digest = input::corpus_digest(cva, cva.rel_turn_count())?;
-    let import_id = historical_import_id(owner, corpus_digest);
-    let admission = input::admission_proof(cva)?;
-    let ids: BTreeSet<_> = cva.memory_ids().into_iter().collect();
-    for &id in &ids {
+    let import_id = scope.as_ref().map_or_else(
+        || historical_import_id(owner, corpus_digest),
+        |scope| decode_import_id(&scope.start.import_id),
+    );
+    let admission = input::admission_proof_scoped(cva, scope.as_ref())?;
+    let born_ids: BTreeSet<_> = scope.as_ref().map_or_else(
+        || cva.memory_ids().into_iter().collect(),
+        |scope| scope.cohort.clone(),
+    );
+    for &id in &born_ids {
         if !cva.freshness_is_publication_birth(id)
             || !cva.initial_dream_pass_settled(&crate::dream_freshness::initial_pass_id(owner, id))
         {
@@ -607,17 +618,47 @@ pub(super) fn build_with_fill(
     if admission.initial.is_empty() {
         return Err(fail("import has no supported active cohort"));
     }
+    let ids: BTreeSet<_> = cva.memory_ids().into_iter().collect();
     let replacement_ids = admission.initial.keys().copied().collect();
-    let superseded = cva
-        .freshness
-        .provisional_import_events(&replacement_ids, 0, cva.rel_turn_count())
-        .map_err(CvaError::Freshness)?;
+    let superseded = if let Some(scope) = &scope {
+        let freeze_prefix = std::fs::metadata(cva.container.path())
+            .map_err(|error| fail(&error.to_string()))?
+            .len();
+        let mut frozen = cva.freshness.clone();
+        frozen.bind_history_path(cva.container.path(), freeze_prefix);
+        frozen.import_events_in_scope(&crate::freshness_storage::ImportEventScope {
+            owner,
+            import_id,
+            start_evidence_digest: scope.start_digest,
+            born_memories: scope.cohort.clone(),
+            affected_recipients: replacement_ids,
+            source_nodes: scope.source_nodes.clone(),
+            start_prefix: scope.marker_end,
+            freeze_prefix,
+            base_cut: scope.base_cut,
+            freeze_cut: cva.rel_turn_count(),
+        })
+    } else {
+        cva.freshness
+            .provisional_import_events(&replacement_ids, 0, cva.rel_turn_count())
+    }
+    .map_err(CvaError::Freshness)?;
     let mut untouched = Vec::new();
     for entry in cva
         .freshness
         .replay_entries()
         .map_err(CvaError::Freshness)?
     {
+        if scope.is_none()
+            && matches!(
+                &entry,
+                crate::freshness_storage::FreshnessReplayEntry::AcceptedUseReceipt { .. }
+            )
+        {
+            return Err(fail(
+                "legacy reconstruction cannot replace retained accepted use without an import base",
+            ));
+        }
         if let crate::freshness_storage::FreshnessReplayEntry::Event {
             event_id, effects, ..
         } = entry
@@ -785,7 +826,7 @@ pub(super) fn build_with_fill(
             Value::bytes(replacement.digest("reliquary:historical-freshness-input:v1")?),
         ),
     ]);
-    let value = Value::map([
+    let mut value = Value::map([
         ("schema_version", Value::Unsigned(2)),
         ("policy_version", Value::Unsigned(3)),
         ("owner_uuid", Value::bytes(owner)),
@@ -845,6 +886,47 @@ pub(super) fn build_with_fill(
         ("replacement_proof", replacement),
         ("input_token", token),
     ]);
+    if let Some(scope) = &scope {
+        let Value::Map(fields) = &mut value else {
+            unreachable!("historical manifest root is a map");
+        };
+        fields.extend([
+            (
+                "import_start_digest".to_owned(),
+                Value::bytes(scope.start_digest),
+            ),
+            (
+                "import_start_offset".to_owned(),
+                Value::Unsigned(scope.start_offset),
+            ),
+            (
+                "import_start_marker_end".to_owned(),
+                Value::Unsigned(scope.marker_end),
+            ),
+            (
+                "base_activity_cut".to_owned(),
+                Value::Unsigned(scope.base_cut),
+            ),
+            (
+                "import_key".to_owned(),
+                Value::text(&scope.start.import_key),
+            ),
+            (
+                "import_source_nodes".to_owned(),
+                Value::Array(
+                    scope
+                        .source_nodes
+                        .iter()
+                        .map(|(conversation, node)| input::source_key(conversation, node))
+                        .collect(),
+                ),
+            ),
+            (
+                "import_episode_ids".to_owned(),
+                Value::Array(scope.episodes.iter().map(Value::bytes).collect()),
+            ),
+        ]);
+    }
     let digest = value.digest("reliquary:historical-manifest:v1")?;
     Ok(Manifest {
         propagation,
@@ -879,4 +961,13 @@ pub(super) fn historical_import_id(owner: [u8; 16], corpus: [u8; 32]) -> [u8; 32
         hash.update(value);
     }
     hash.finalize().into()
+}
+
+fn decode_import_id(value: &str) -> [u8; 32] {
+    let mut out = [0; 32];
+    for (index, byte) in out.iter_mut().enumerate() {
+        let pair = &value[index * 2..index * 2 + 2];
+        *byte = u8::from_str_radix(pair, 16).expect("validated durable import ID");
+    }
+    out
 }

@@ -157,6 +157,9 @@ const RECENT_LIMIT: usize = 128;
 const RECENT_BYTES: usize = 256 * 1024;
 #[path = "freshness/freshness_semantic_activation.rs"]
 mod activation;
+#[path = "freshness/freshness_import_events.rs"]
+mod import_events_storage;
+pub(crate) use import_events_storage::ImportEventScope;
 #[path = "freshness/freshness_import_settlement.rs"]
 mod import_settlement_storage;
 #[cfg(test)]

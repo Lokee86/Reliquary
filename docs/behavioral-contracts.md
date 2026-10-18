@@ -4,6 +4,8 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Native import contracts
 
+Epoch attribution coverage in `src/imports/epoch_scope_tests.rs` exercises exact retry/reopen identity, pre-existing Memory exclusion, whole-path Episode source membership and empty source sets. Freshness scoped-event tests cover pre-start same-cut semantic receipts, exact epoch-born Dream events affecting existing recipients, unrelated receipts and mixed-source fragment rejection. `historical_import_base.rs` covers physical base replay, while `open_epoch_never_retries_an_earlier_import_settlement` protects the transitional publication refusal and byte neutrality. This coverage does not establish completed repeated-import settlement.
+
 | Contract | Focused evidence |
 | --- | --- |
 | Ordering-independent exact re-import preserves clocks, source identity and queue state across reopen | `imports::tests::deterministic_reimport_survives_reopen_and_order_changes` |
