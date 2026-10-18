@@ -1,13 +1,20 @@
 //! Copy-only retained REL normalization. Source artifacts are never opened for mutation.
 use anyhow::{Context, Result, ensure};
-use reliquary_memory::{CompatibilityProfileId, Cva};
+use reliquary_memory::owner_lifecycle::LifecycleTarget;
+use reliquary_memory::{CompatibilityProfileId, Cva, HistoryPruneRequest};
 use std::{
     collections::BTreeSet,
     fs::{self, File, OpenOptions},
     path::Path,
 };
 
-pub fn run(source: &Path, output: &Path, keep: &str, reclaim: bool) -> Result<()> {
+pub fn run(
+    source: &Path,
+    output: &Path,
+    keep: &str,
+    prune_retired: bool,
+    reclaim: bool,
+) -> Result<()> {
     let keep = crate::util::parse_profile_id(keep)?;
     ensure!(!output.exists(), "repair output already exists");
     let mut input = File::open(source).context("open retained source")?;
@@ -60,6 +67,39 @@ pub fn run(source: &Path, output: &Path, keep: &str, reclaim: bool) -> Result<()
         );
         verify_active(&reopened, keep)?;
         drop(reopened);
+        if prune_retired {
+            let scratch = output.with_extension("repair-prune.rel");
+            ensure!(!scratch.exists(), "prune scratch path already exists");
+            let prune_result = (|| -> Result<()> {
+                let mut rel = Cva::open(output)?;
+                let targets = rel
+                    .compatibility_profiles()
+                    .into_iter()
+                    .filter(|profile| rel.compatibility_profile_is_retired(profile.id))
+                    .map(|profile| LifecycleTarget::CompatibilityProfile(profile.id))
+                    .collect::<Vec<_>>();
+                ensure!(
+                    !targets.is_empty(),
+                    "no retired profiles selected for pruning"
+                );
+                rel.prune_tombstoned_history(&scratch, HistoryPruneRequest { targets })?;
+                let mut pruned = Cva::open(&scratch)?;
+                ensure!(
+                    after == Snapshot::read(&mut pruned)?,
+                    "prune changed repaired state"
+                );
+                verify_active(&pruned, keep)?;
+                drop(pruned);
+                drop(rel);
+                fs::remove_file(output)?;
+                fs::rename(&scratch, output)?;
+                Ok(())
+            })();
+            if prune_result.is_err() {
+                let _ = fs::remove_file(&scratch);
+            }
+            prune_result?;
+        }
         if reclaim {
             let scratch = output.with_extension("repair-reclaim.rel");
             ensure!(!scratch.exists(), "reclaim scratch path already exists");
@@ -88,7 +128,7 @@ pub fn run(source: &Path, output: &Path, keep: &str, reclaim: bool) -> Result<()
             serde_json::json!({
                 "source":source, "output":output, "keep_profile":crate::util::hex32(&keep.0),
                 "retired_profiles":retired, "legacy_import_migrated":migrated,
-                "reclaimed":reclaim, "verified":true,
+                "pruned_retired":prune_retired, "reclaimed":reclaim, "verified":true,
                 "source_bytes":fs::metadata(source)?.len(), "output_bytes":fs::metadata(output)?.len(),
             })
         );
@@ -185,11 +225,12 @@ mod tests {
         .unwrap();
         rel.materialize_path_fragments("c", "n", FragmentConfig::default(), true)
             .unwrap();
-        let endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 1);
+        let endpoint = SimulatedEmbeddingEndpoint::new(1024, VectorNormalization::L2, 1);
         let canonical = rel.establish_compatibility_profile(&endpoint).unwrap();
         rel.build_archive_vector_generation(canonical.id, &endpoint)
             .unwrap();
-        let redundant_endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 999);
+        let redundant_endpoint =
+            SimulatedEmbeddingEndpoint::new(1024, VectorNormalization::L2, 999);
         let redundant = rel
             .establish_compatibility_profile(&redundant_endpoint)
             .unwrap();
@@ -204,6 +245,7 @@ mod tests {
             &output,
             &crate::util::hex32(&canonical.id.0),
             false,
+            false,
         )
         .unwrap();
         assert_eq!(fs::read(&source).unwrap(), original);
@@ -217,11 +259,27 @@ mod tests {
                 &source,
                 &output,
                 &crate::util::hex32(&canonical.id.0),
+                false,
                 false
             )
             .is_err()
         );
         assert_eq!(fs::read(&output).unwrap(), accepted);
+        let pruned_output = root.join("pruned.rel");
+        run(
+            &source,
+            &pruned_output,
+            &crate::util::hex32(&canonical.id.0),
+            true,
+            true,
+        )
+        .unwrap();
+        assert_eq!(fs::read(&source).unwrap(), original);
+        let mut pruned = Cva::open(&pruned_output).unwrap();
+        verify_active(&pruned, canonical.id).unwrap();
+        assert!(pruned.compatibility_profile_is_retired(redundant.id));
+        assert!(Snapshot::read(&mut pruned).is_ok());
+        drop(pruned);
         fs::remove_dir_all(root).unwrap();
     }
     fn uuid_suffix() -> u128 {

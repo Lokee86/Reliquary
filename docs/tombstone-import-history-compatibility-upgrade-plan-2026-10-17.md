@@ -3,7 +3,7 @@
 Parent: [Documentation index](INDEX.md).
 
 **Date:** 2026-10-17  
-**Status:** implementation and retained fixture promotion accepted; final source integration and structural closure in progress. See [final verification](tombstone-import-history-final-verification-2026-10-18.md).
+**Status:** complete: canonical source integrated, retained fixtures promoted and final structural/verification gates accepted. See [final verification](tombstone-import-history-final-verification-2026-10-18.md).
 **Scope:** generalized REL/PHY tombstoning, Archive conversation deletion, import epoch markers, repeated-import Historical Freshness reconstruction, explicit destructive historical pruning/repack, compatibility-policy v3/profile retirement, and retained-REL normalization.  
 **Migration policy:** staged hard cut internally, with compatibility isolated only at persisted REL/PHY format boundaries that must continue to open.
 

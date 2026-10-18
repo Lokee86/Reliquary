@@ -81,6 +81,9 @@ pub enum RelCommand {
         output: PathBuf,
         #[arg(long)]
         keep_profile: String,
+        /// Explicitly prune eligible numeric payload of every retired profile.
+        #[arg(long)]
+        prune_retired: bool,
         #[arg(long)]
         reclaim: bool,
     },

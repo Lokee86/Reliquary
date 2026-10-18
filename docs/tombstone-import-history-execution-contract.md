@@ -10,7 +10,7 @@ Record the frozen implementation seams and distinguish verified progress from ac
 
 ## Overview
 
-The implementation and retained fixture promotion are accepted through the final library/integration/CLI gates. The [final verification record](tombstone-import-history-final-verification-2026-10-18.md) owns final structural acceptance, main integration and cleanup. Earlier progress sections below retain their historical meaning.
+The implementation, retained fixture promotion, main integration and recoverable cleanup are complete. Final library/integration/CLI, documentation and refreshed structural gates are accepted with the recorded pre-existing external-host failures separated. The [final verification record](tombstone-import-history-final-verification-2026-10-18.md) owns current acceptance. Earlier progress sections below retain their historical meaning.
 
 ## Frozen lifecycle contract
 

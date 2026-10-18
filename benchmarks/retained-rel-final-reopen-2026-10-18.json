@@ -1,0 +1,20 @@
+[
+  {
+    "fixture": "chatgpt-first14d",
+    "verified": true,
+    "append_free_retry": true,
+    "sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055"
+  },
+  {
+    "fixture": "chatgpt-first28d",
+    "verified": true,
+    "append_free_retry": true,
+    "sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a"
+  },
+  {
+    "fixture": "rhelm-david-r-ellis-pre-relationship",
+    "verified": true,
+    "append_free_retry": true,
+    "sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e"
+  }
+]

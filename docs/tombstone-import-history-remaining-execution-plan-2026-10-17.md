@@ -3,8 +3,8 @@
 Parent: [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md).
 
 **Date:** 2026-10-17
-**Status:** implementation and fixture repair/promotion accepted through step 66; final structural acceptance and main integration/cleanup in progress
-**Current gate:** final structural refresh and source integration. See [final verification](tombstone-import-history-final-verification-2026-10-18.md).
+**Status:** complete through step 68; canonical source integrated into main, verified fixtures promoted, final gates and recoverable cleanup recorded
+**Next step:** none in this execution plan. See [final verification](tombstone-import-history-final-verification-2026-10-18.md) for results and explicit supported boundaries.
 **Current integration base:** `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` is the follow-up Memory live-mutation retry identity fix.
 
 ## Purpose
@@ -13,7 +13,7 @@ This continuation fixes the executable order after the architectural decompositi
 
 ## Overview
 
-Lifecycle convergence is complete. Integrate the already-implemented settlement and epoch foundations before finishing repeated-import attribution, completion coordination, pruning and retained-fixture repair. The numbered sequence below remains authoritative.
+Execution is complete within the final verification record's supported REL boundaries. The numbered sequence and earlier checkpoints below retain the implementation history; the final acceptance supersedes their historical next-step statements.
 
 ## Current state
 
@@ -498,4 +498,4 @@ Local verification encountered a cache-maintenance race: the background cleanup 
 
 ## Final execution acceptance (2026-10-18)
 
-Steps 29–35 and 37–66 now have implementation and verification evidence in the [final verification record](tombstone-import-history-final-verification-2026-10-18.md). This supersedes the earlier bounded source-only checkpoint and its next implementation seam. Ordered concrete-owner replay includes nonzero grouped Memory publication, initial Dream/Perception evidence, accepted effects, attachments and retry journals. Exact transform authority is retained. REL pruning, exact activation coverage and explicit legacy framing are implemented. All three retained RELs are repaired and promoted in retired-only form with original bytes intact; the 27-case Ellis comparison is identical before/after repair. Optional destructive cleanup was declined to preserve authenticated original prefixes. Full library acceptance separates three existing external-host failures; integration and CLI suites pass. Final structural acceptance, source main integration (steps 36/50) and cleanup (67–68) are recorded in the linked record when complete.
+Steps 29–35 and 37–66 now have implementation and verification evidence in the [final verification record](tombstone-import-history-final-verification-2026-10-18.md). This supersedes the earlier bounded source-only checkpoint and its next implementation seam. Ordered concrete-owner replay includes nonzero grouped Memory publication, initial Dream/Perception evidence, accepted effects, attachments and retry journals. Exact transform authority is retained. REL pruning, exact activation coverage and explicit legacy framing are implemented. All three retained RELs are repaired and promoted in retired-only form with original bytes intact; the 27-case Ellis comparison is identical before/after repair. Optional destructive cleanup was declined to preserve authenticated original prefixes. Full library acceptance separates three existing external-host failures; integration and CLI suites pass. Final structural acceptance passes all 23 Pitlord rules with refreshed Lexicon/Arcana evidence. Source main integration (steps 36/50), fixture promotion and recoverable cleanup (67–68) are complete and recorded in the linked record.
