@@ -9,6 +9,8 @@ use serde_json::{Map, json};
 
 #[path = "historical_import_accepted_use_tests.rs"]
 mod accepted_use_tests;
+#[path = "historical_import_existing_memory_tests.rs"]
+mod existing_memory_tests;
 
 fn imported_snapshot(id: &str) -> NativeImport {
     let mut messages = Vec::new();
@@ -179,7 +181,7 @@ fn unrelated_memory(cva: &mut Cva) -> crate::MemoryId {
             memory_type: "project".into(),
             authority_kind: "direct".into(),
             temporal_status: "current".into(),
-            title: "Unrelated post-start memory".into(),
+            title: "Unrelated attribution memory".into(),
             content: "This Memory is outside the current import cohort.".into(),
             scope: "private".into(),
             lifecycle_state: "knowledge".into(),
