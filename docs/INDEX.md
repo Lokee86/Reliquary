@@ -1,5 +1,8 @@
 # Reliquary Memory v2 Documentation
 
+- [Minimal lossless history storage — specification](minimal-lossless-history-storage-spec-2026-10-19.md) — proposed compact owner history and historical equivalence requirements.
+- [Minimal lossless history storage — linear execution plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) — ordered implementation steps and integration gates.
+
 - [Tombstone/import execution contract](tombstone-import-history-execution-contract.md) — frozen boundaries and staged implementation record.
 - [Tombstone/import final verification](tombstone-import-history-final-verification-2026-10-18.md) — implementation, retained fixture promotion, retrieval parity and final acceptance.
 - [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) — terminal lifecycle, owner import identity, explicit pruning and policy v3 decisions.
