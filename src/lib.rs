@@ -35,6 +35,10 @@ mod freshness_trace;
 #[path = "facade/owner_maintenance.rs"]
 mod owner_maintenance;
 
+#[cfg(test)]
+#[path = "facade/historical_fingerprint.rs"]
+mod historical_fingerprint;
+
 pub mod imports;
 pub mod owner_lifecycle;
 pub use freshness::{

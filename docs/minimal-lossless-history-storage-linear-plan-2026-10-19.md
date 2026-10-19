@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 6/243 execution steps complete
+Status: Implementation-ready; 7/243 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -66,38 +66,45 @@ Blockers: none for the baseline record; fresh full-suite rerun is collecting.
 
 ### Step 2 execution record
 
-Commit: pending execution-evidence commit.
+Commit: `c9c4fc3`.
 Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-2--authoritative-fixture-identity).
 Verification: two full read-only hash passes; six accepted hashes unchanged; exact byte/header inventory.
 Blockers: none.
 
 ### Step 3 execution record
 
-Commit: pending execution-evidence commit.
+Commit: `c9c4fc3`.
 Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-3--durable-writer-inventory).
 Verification: 117 record identities in 66 explicit families; direct and delegated writer audit.
 Blockers: none.
 
 ### Step 4 execution record
 
-Commit: pending execution-evidence commit.
+Commit: `c9c4fc3`.
 Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-4--semantic-owner-and-clock-map).
 Verification: all family groups mapped to concrete owner and version/admission behavior.
 Blockers: none.
 
 ### Step 5 execution record
 
-Commit: pending execution-evidence commit.
+Commit: `c9c4fc3`.
 Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-5--retained-responsibility-classification).
 Verification: 66 family names classified exactly once; set equality and uniqueness assertions pass.
 Blockers: none.
 
 ### Step 6 execution record
 
-Commit: pending execution-evidence commit.
+Commit: `c9c4fc3`.
 Files: [Structural baseline evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-6--structural-baseline-and-refresh-limitation).
 Verification: coverage/ownership guards passed; existing snapshot identity recorded; bounded refresh limitation explicitly documented.
 Blockers: fresh Lexicon/Arcana/Pitlord evidence remains required at later structural gates.
+
+### Step 7 execution record
+
+Commit: pending fingerprint implementation commit.
+Files: `src/facade/historical_fingerprint.rs`, `src/facade/historical_fingerprint_tests.rs`, `src/lib.rs`; [contract](minimal-lossless-history-storage-execution-2026-10-19.md#step-7--canonical-fingerprint-contract).
+Verification: all six focused tests pass in the real crate test binary and an independent source-module harness; Python SHA-256 golden agrees.
+Blockers: none.
 
 ### Integration Gate A — Historical oracle
 
