@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 14/243 execution steps complete
+Status: Implementation-ready; 15/243 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -150,10 +150,17 @@ Blockers: none.
 
 ### Step 14 execution record
 
-Commit: pending Ego oracle implementation commit.
+Commit: `a1134bf`.
 Files: `src/facade/historical_ego_fingerprint*.rs`, test-only crate wiring, maintainer/evidence docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-14--ego-historical-fingerprint).
 Verification: 4/4 checks pass; PHY/REL synthetic history/current getter/reopen comparisons, no-op clock stability, legacy identity equivalence and all six empty fixture owners; source hashes unchanged.
 Blockers: none; nonempty evidence is synthetic because fixture Ego heads are all zero.
+
+### Step 15 execution record
+
+Commit: pending Freshness oracle implementation commit.
+Files: Freshness oracle adapter/serializers, owner test-only cut seam, shared pure import-scope reconstruction, normalization regression, test-only crate wiring and maintainer/evidence docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-15--freshness-activity-and-exact-event-fingerprints).
+Verification: authoritative fixture gate 1/1; final exact-cut synthetic 1/1; strengthened authentic normalization/reopen/reclaim/proof-rejection regression 1/1; normal library check and formatting pass; source hashes unchanged.
+Blockers: none. Full public score-map parity is checked; single-record public API sampling is bounded on large fixtures.
 
 ### Integration Gate A — Historical oracle
 

@@ -234,6 +234,26 @@ Luna implemented the bounded synthetic/fixture tests, and a separate Luna review
 
 Verification passes **4/4** (29.50 seconds): PHY identity revision/activation/legal deletion, anchor revisions/priorities/deletion, Personality/Synthesis, no-op version stability and historical getters; REL anchor/synthesis cuts; legacy carrier equivalence; and repeated independent reads/current getter comparisons on all six fixture copies. All authoritative Ego heads are **zero**; meaningful nonempty history coverage is supplied explicitly by the synthetic cases. All six source hashes remain unchanged. Luna wrote bounded tests and independently reviewed the adapter without finding a concrete correctness defect. An initial test-only moved-value compile error was corrected before this passing run.
 
+## Step 15 — Freshness activity and exact-event fingerprints
+
+`historical_freshness_fingerprint.rs` binds either an activity-turn query or the exact inclusive stable event ID plus MemoryGraph bound. Schema 1's numeric event slot stays absent: the exact string/graph cut is an explicit canonical row, not an invented ordinal. Score settlement and event selection reuse `FreshnessStore::records_at_cut` and `ordering::ordered_events` through a test-only owner seam. Numerical policy and current activation/explicit-marker state are clock-neutral metadata across cuts; no unsupported historical activation clock is invented.
+
+Exhaustive serializers retain enrollment/admission, rewrite baselines and carry, accepted event identity/effects/provenance/Graph/Community/semantic evidence, accepted-use receipts and semantic import settlements. Accepted-use receipt identity is activity-bounded because it has no independent event subclock. Derived event postimages, physical prefixes, current object locations and physical compatibility bindings are excluded. Import settlements are reconstructed into the same semantic scope using a read-only helper extracted from existing normalization; normalization still persists and validates the predecessor proof as before. The oracle canonicalizes the representation without appending and excludes the carrier predecessor from semantic hashing.
+
+Verification gates pass separately:
+
+- Authoritative fixture gate **1/1** (137.29 seconds): repeated activity cuts 0/first/middle/head, full-map agreement with public historical reads, repeated exact head cuts and bounded public single-record API comparisons. A single-record read replays the complete owner, so large fixtures sample five deterministic IDs after comparing the full map; synthetic exact cuts compare every ID. An initial unbounded single-record fixture pass was cancelled and replaced with this bounded API-boundary check.
+- Final exact-cut synthetic **1/1** (0.92 seconds): an authentically admitted target decays to -50 at turn 1,500, then two valid first-link principals produce 0 and 50 at same-turn cuts; stable IDs and Graph proof bounds select the right state. Distinct query points bind distinct fingerprints even when their records agree. Later-turn append, invalid cuts and reopen are covered. Fixture setup was corrected to meet existing publication-provenance/principal admission; production validation was unchanged.
+- Strengthened existing normalization regression **1/1** (0.33 seconds): fingerprints/records agree before normalization, after normalization, after reopen and after reclamation; the oracle leaves source bytes unchanged, and the forged predecessor is still rejected. Luna review identified the initial carrier-dependent parity defect and confirmed the shared reconstruction preserves existing runtime normalization behavior.
+
+| REL | Activity head | MemoryGraph head | Retained event/proof rows |
+| --- | ---: | ---: | ---: |
+| first 14 days | 5,857 | 7,913 | 36 |
+| first 28 days | 16,465 | 25,337 | 30 |
+| Ellis | 2,972 | 6,309 | 45 |
+
+Normal `cargo check --locked` passes after the helper extraction. All six authoritative hashes remain unchanged. PHY has no Freshness activity owner. Exhaustive cut enumeration and persisted baseline artifacts remain Steps 17–19.
+
 ## Fresh baseline observations
 
 The completed root baseline reports **1,515 passed / 5 failed / 5 ignored**, in 419.85 seconds of test execution. Both exhaustive import byte-prefix recovery tests and the long finite-receipt/reopen test pass. Failures were three external-publication tests, one Lore file-lock test and one decision-endpoint test-server socket race. All seven `runtime_host::gateway::external_tests` pass in isolation with `TEMP=TMP=<repository>/.test-tmp`. The initial longer `.test-tmp/lossless-baseline` scratch path exceeds the Win32 rename path limit in frozen external-plan installation; the shorter path retains all scratch inside the repository. The Lore test passes in isolation, matching the previously recorded transient Windows file-lock behavior. The exact decision-endpoint failure passes through Workspace command execution (1/1); a sandboxed direct loopback retry cannot reach its local server, so that restricted retry is not authoritative network-test evidence. No production fix or test weakening was needed. This is a qualified baseline, not an all-green full-suite claim; integration binaries were not reached after the library failure.

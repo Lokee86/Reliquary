@@ -290,6 +290,14 @@ fn legacy_settlement_normalization_is_semantic_idempotent_and_predecessor_bound(
     let mut cva = Cva::open(&path).unwrap();
     let before = fs::read(&path).unwrap();
     let freshness = cva.freshness.records_at(cva.rel_turn_count()).unwrap();
+    let fingerprint_before =
+        crate::historical_freshness_fingerprint::freshness_at_turn(&cva, cva.rel_turn_count())
+            .unwrap();
+    assert_eq!(
+        fs::read(&path).unwrap(),
+        before,
+        "oracle projection must not append normalization"
+    );
     assert_eq!(cva.normalize_import_settlements().unwrap(), 1);
     let accepted = fs::read(&path).unwrap();
     assert!(accepted.starts_with(&before));
@@ -307,6 +315,14 @@ fn legacy_settlement_normalization_is_semantic_idempotent_and_predecessor_bound(
         cva.freshness.records_at(cva.rel_turn_count()).unwrap(),
         freshness
     );
+    let fingerprint_after =
+        crate::historical_freshness_fingerprint::freshness_at_turn(&cva, cva.rel_turn_count())
+            .unwrap();
+    assert_eq!(
+        fingerprint_after.fingerprint,
+        fingerprint_before.fingerprint
+    );
+    assert_eq!(fingerprint_after.records, fingerprint_before.records);
     assert_eq!(cva.normalize_import_settlements().unwrap(), 0);
     assert_eq!(fs::read(&path).unwrap(), accepted);
     drop(cva);
@@ -318,6 +334,16 @@ fn legacy_settlement_normalization_is_semantic_idempotent_and_predecessor_bound(
             .unwrap(),
         freshness
     );
+    let reopened_fingerprint = crate::historical_freshness_fingerprint::freshness_at_turn(
+        &reopened,
+        reopened.rel_turn_count(),
+    )
+    .unwrap();
+    assert_eq!(
+        reopened_fingerprint.fingerprint,
+        fingerprint_before.fingerprint
+    );
+    assert_eq!(reopened_fingerprint.records, fingerprint_before.records);
     let reclaimed = path.with_file_name("normalized-reclaimed.rel");
     reopened.reclaim_storage(&reclaimed).unwrap();
     assert_eq!(
@@ -328,6 +354,17 @@ fn legacy_settlement_normalization_is_semantic_idempotent_and_predecessor_bound(
             .unwrap(),
         freshness
     );
+    let reclaimed_cva = Cva::open(&reclaimed).unwrap();
+    let reclaimed_fingerprint = crate::historical_freshness_fingerprint::freshness_at_turn(
+        &reclaimed_cva,
+        reclaimed_cva.rel_turn_count(),
+    )
+    .unwrap();
+    assert_eq!(
+        reclaimed_fingerprint.fingerprint,
+        fingerprint_before.fingerprint
+    );
+    assert_eq!(reclaimed_fingerprint.records, fingerprint_before.records);
     drop(reopened);
 
     // A rechecksummed forged predecessor cannot authorize bypassing legacy proof.

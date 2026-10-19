@@ -477,6 +477,39 @@ impl Cva {
 }
 
 impl Cva {
+    /// Reconstruct accepted semantic scope without appending a normalization.
+    pub(crate) fn semantic_scope_for_import_settlement(
+        &self,
+        old: &HistoricalImportFreshnessSettlement,
+    ) -> Result<crate::freshness_storage::ImportSemanticScope, CvaError> {
+        if let Some(scope) = &old.semantic {
+            return Ok(scope.clone());
+        }
+        let physical = if let Some(scope) = &old.epoch {
+            scope.clone()
+        } else {
+            crate::freshness_storage::ImportEventScope {
+                owner: old.owner,
+                import_id: old.import_id,
+                start_evidence_digest: old.start_evidence_digest,
+                born_memories: old.cohort.clone(),
+                affected_recipients: old.cohort.clone(),
+                source_nodes: input::required_nodes(self, old.settlement_cut)?
+                    .into_keys()
+                    .collect(),
+                start_prefix: 0,
+                freeze_prefix: old.input_bytes,
+                base_cut: old.base_cut,
+                freeze_cut: old.settlement_cut,
+            }
+        };
+        let mut history = self.freshness.clone();
+        history.bind_history_path(self.container.path(), physical.freeze_prefix);
+        history
+            .semantic_import_evidence(&physical, &old.cohort, &old.superseded)
+            .map_err(CvaError::Freshness)
+    }
+
     /// Normalize persisted physical import proof once. Callers performing repair
     /// use this on a disposable copy; ordinary open never appends.
     pub fn normalize_import_settlements(&mut self) -> Result<usize, CvaError> {
@@ -519,29 +552,7 @@ impl Cva {
             })?;
             let predecessor =
                 predecessor.ok_or_else(|| fail("legacy settlement bytes unavailable"))?;
-            let physical = if let Some(scope) = &old.epoch {
-                scope.clone()
-            } else {
-                crate::freshness_storage::ImportEventScope {
-                    owner: old.owner,
-                    import_id: old.import_id,
-                    start_evidence_digest: old.start_evidence_digest,
-                    born_memories: old.cohort.clone(),
-                    affected_recipients: old.cohort.clone(),
-                    source_nodes: input::required_nodes(self, old.settlement_cut)?
-                        .into_keys()
-                        .collect(),
-                    start_prefix: 0,
-                    freeze_prefix: old.input_bytes,
-                    base_cut: old.base_cut,
-                    freeze_cut: old.settlement_cut,
-                }
-            };
-            let mut history = self.freshness.clone();
-            history.bind_history_path(self.container.path(), physical.freeze_prefix);
-            let mut scope = history
-                .semantic_import_evidence(&physical, &old.cohort, &old.superseded)
-                .map_err(CvaError::Freshness)?;
+            let mut scope = self.semantic_scope_for_import_settlement(&old)?;
             scope.predecessor_digest = Some(predecessor);
             let settlement =
                 HistoricalImportFreshnessSettlement::from_semantic(old.as_semantic(scope));

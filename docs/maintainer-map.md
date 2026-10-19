@@ -41,7 +41,7 @@ Retained-REL diagnosis uses `historical_retained_corpus_tests.rs` / `historical_
 
 ## Purpose
 
-The internal historical-oracle schema is `src/facade/historical_fingerprint.rs`; Archive, Memory, Entity, Relationship, Graph, Vector Generation and Ego adapters and their tests use `historical_{archive,memory,entity,relationship,graph,vector_generation,ego}_fingerprint*.rs` in that directory. They compile only for tests. [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md) owns the frozen schema and verification record; [Development](development.md#verification-commands) owns opt-in fixture invocation. The oracle has no runtime semantic authority or persisted manifest.
+The internal historical-oracle schema is `src/facade/historical_fingerprint.rs`; Archive, Memory, Entity, Relationship, Graph, Vector Generation, Ego and Freshness adapters and their tests use `historical_{archive,memory,entity,relationship,graph,vector_generation,ego,freshness}_fingerprint*.rs` in that directory. They compile only for tests. Freshness uses `historical_freshness_values.rs` for exhaustive semantic rows and the test-only `src/freshness/historical_oracle.rs` owner seam for existing cut selection. Import scope reconstruction remains with `cva_historical_import.rs`; normalization and the oracle share its read-only helper. [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md) owns the frozen schema and verification record; [Development](development.md#verification-commands) owns opt-in fixture invocation. The oracle has no runtime semantic authority or persisted manifest.
 
 This map routes common change intents to canonical documentation, implementation boundaries, and verification surfaces.
 

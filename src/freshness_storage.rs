@@ -7,6 +7,12 @@ const MAGIC: &[u8; 8] = b"CVAFRS02";
 const POLICY_MAGIC: &[u8; 8] = b"CVAFRP01";
 
 #[cfg(test)]
+#[path = "freshness/historical_oracle.rs"]
+mod historical_oracle;
+#[cfg(test)]
+pub(crate) use historical_oracle::FreshnessOracleState;
+
+#[cfg(test)]
 #[path = "freshness_storage_tests.rs"]
 mod tests;
 
