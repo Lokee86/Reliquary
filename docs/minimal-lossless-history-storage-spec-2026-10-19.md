@@ -230,6 +230,83 @@ Target:
 
 The migration oracle must compare every revision of every fixture Memory, not only current state.
 
+#### Memory field inventory (Step 42)
+
+This table classifies the actual V1 `MemoryRecord` and hydrated `Memory` fields. “Mutable” means a later accepted V1 record may differ; it does not bypass existing draft, provenance or replay validation. In particular `created_at_ns` is not currently enforced as immutable, so migration must retain its per-revision value.
+
+| Field | Classification | Compact responsibility |
+| --- | --- | --- |
+| `id` | Immutable semantic identity | Creation identity; delta target |
+| `revision` | Required revision coordinate | Exact successor and predecessor binding |
+| `body_id` | Immutable payload identity across revisions | Creation only; later body replacement rejects |
+| `title` | Immutable body payload, hydrated | Retain exact content-addressed bytes separately |
+| `content` | Immutable body payload, hydrated | Retain exact content-addressed bytes separately |
+| `category` | Mutable scalar | Changed field only |
+| `memory_type` | Mutable scalar | Changed field only |
+| `authority_kind` | Mutable scalar | Changed field only |
+| `temporal_status` | Mutable scalar | Changed field only |
+| `scope` | Mutable scalar | Changed field only |
+| `lifecycle_state` | Mutable scalar | Changed field only; terminal tombstone stays separate |
+| `archived` | Mutable scalar | Changed field only |
+| `superseded_by` | Mutable optional identity | Explicit set/clear or unchanged |
+| `parent_id` | Mutable optional identity | Explicit set/clear or unchanged |
+| `source_node_id` | Mutable optional provenance | Explicit set/clear or unchanged |
+| `content_source_conversation_id` | Mutable optional provenance | Explicit set/clear or unchanged |
+| `content_source_node_id` | Mutable optional provenance | Explicit set/clear or unchanged |
+| `grounding_source_conversation_id` | Mutable optional provenance | Explicit set/clear or unchanged |
+| `grounding_source_node_id` | Mutable optional provenance | Explicit set/clear or unchanged |
+| `source_episode_id` | Mutable optional provenance | Explicit set/clear or unchanged |
+| `source_time_ns` | Mutable optional temporal value | Explicit set/clear or unchanged |
+| `source_ref` | Mutable optional structured provenance | Whole-value set/clear or unchanged; retain owner/principal/Episode/Node/content/grounding identities |
+| `temporal_inference` | Mutable optional structured proof | Whole-value set/clear or unchanged; retain body/time binding, model, contract and ordered resolutions |
+| `mutation_id` | Required per-publication retry identity | Retain exact value on every creation/delta |
+| `created_at_ns` | Mutable V1 scalar | Changed field only; no new immutability restriction |
+| `updated_at_ns` | Mutable scalar | Changed field only |
+| `global_version` | Required global publication coordinate | Preserve exact accepted coordinate, including grouped carriers |
+| `memory_version` | Required owner-local publication coordinate | Preserve exact accepted coordinate |
+| `routing_metadata` | Hydrated independent immutable owner record | Not a revision delta field; retain separate body-bound routing publication |
+
+`MemoryDraft` has no additional durable revision fields: its title/content map to the immutable body, its mutation and times map to the fields above, and optional source/inference values are supplied through existing owner seams. Public `MemoryRef`, `MemoryRevisionId`, retention descriptors and statistics are references/projections of these records, not additional mutable revision authority. Separate terminal tombstones, body-prune proof, routing metadata and external/grouped publication evidence retain their own record contracts.
+
+The V1 publication API treats absent supplied `source_ref` as inherit and absent supplied inference as inherit only while its body/time binding remains valid. Delta construction must compare the **resolved accepted records**, not reinterpret absent caller arguments as clear operations. The replay codec must still represent explicit `None` postimages found in retained legal records.
+
+#### Memory creation/delta contract (Steps 43-47)
+
+The private owner contract lives in `src/memory/memory_compact_contract.rs`. `MemoryFieldChange<T>::Unchanged` inherits the prior accepted value; `Set(value)` replaces it. For optional fields, `Set(None)` explicitly clears and `Set(Some(value))` explicitly sets. Absence of a caller-supplied source reference or inference retains the existing API meaning; diff construction runs after those API defaults have resolved to an accepted record.
+
+A creation retains the complete first `MemoryRecord`, including its immutable ID/body reference and exact mutation, revision, owner-local/global coordinates and times. Revision must be one, publication coordinates nonzero and mutation identity present. Body bytes remain in their separate content-addressed carrier; creation does not redefine ID derivation, routing, provenance validation or grouped atomicity. The creation envelope guard is not a substitute for full codec/body/provenance validation.
+
+A delta retains target ID, explicit previous revision, successor revision, global coordinate, Memory coordinate and exact new mutation ID. Target identity and immutable body cannot change. Revision must be the exact nonzero successor; owner-local/global coordinates must advance relative to that Memory's prior record (other Memory publications may occupy the intervening versions). A repeated/empty mutation ID is not a new delta; existing owner retry/conflict handling remains responsible for accepted retries. A new publication with identical metadata remains representable with an empty change mask and a distinct required envelope.
+
+The mask is an unsigned 64-bit value. Bits 0-19 identify fields in this fixed order:
+
+| Bit | Changed field |
+| ---: | --- |
+| 0 | `category` |
+| 1 | `memory_type` |
+| 2 | `authority_kind` |
+| 3 | `temporal_status` |
+| 4 | `scope` |
+| 5 | `lifecycle_state` |
+| 6 | `archived` |
+| 7 | `superseded_by` |
+| 8 | `parent_id` |
+| 9 | `source_node_id` |
+| 10 | `content_source_conversation_id` |
+| 11 | `content_source_node_id` |
+| 12 | `grounding_source_conversation_id` |
+| 13 | `grounding_source_node_id` |
+| 14 | `source_episode_id` |
+| 15 | `source_time_ns` |
+| 16 | `source_ref` |
+| 17 | `temporal_inference` |
+| 18 | `created_at_ns` |
+| 19 | `updated_at_ns` |
+
+Changed values follow ascending bit order; unchanged/equal values are omitted. Bits 20-63 are reserved and reject. Mutation/version/revision fields belong to the mandatory envelope, not this mask. An exhaustive `MemoryRecord` pattern makes added record fields a compile-time contract decision.
+
+There are no independently mutable collection fields in the Memory revision record. Structured `source_ref` and `temporal_inference` use whole-value replacement/clear. The inference resolution vector retains exact accepted element order and duplicates; it is not silently sorted or converted into a set. Routing mention collections belong to the independent body-bound immutable routing record and are not delta operations. Pure replay application, full decoder validation, redundant-operation rejection and wire bytes remain the next codec/replay phase; this contract does not enable compact writers.
+
 ### Entities
 
 Entity creation retains full initial semantic state.

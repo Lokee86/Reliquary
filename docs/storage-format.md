@@ -10,6 +10,18 @@ V1 semantic mutation attempts, including retries and no-ops, return typed `Stora
 
 This boundary stage changes header/open/admission behavior only. Semantic record families retain their current codecs until the owner-specific compact codec and lossless-upgrader steps are implemented; it does not claim storage-size reduction yet. Explicit owner-ID migration and fresh-history rewrite remain separate operations with their existing identity/history policies.
 
+## Internal lossless-upgrade shell
+
+`src/storage_upgrade/` owns the internal request, frozen plan, staging result and typed failure contract. Planning requires an exactly V1.0, complete physical stream with retained owner identity and UUID, and refuses any existing destination entry (including directories and aliases). Identityless legacy inputs are rejected rather than assigned a new identity. A SHA-256 digest and byte length bind the accepted source; staging checks both the retained handle and the current source path again before returning. This shell validates physical framing, not all semantic owner payloads.
+
+The shell exclusively creates a disposable directory beside the requested destination and a V2 owner inside it, preserving kind, scope and UUID. Container transports the bounded accepted frames in their original physical order without issuing versions, timestamps or semantic writes. Normalizing only the version header for byte comparison must reproduce the complete frozen source digest; physical reopen also checks identity and the global head. This mechanical carrier is an implementation seam for subsequent owner-specific transformations, not the completed compact migration.
+
+The staging guard removes its owned file and directory on error, abort or drop, after writable handles close. Existing outputs and late output collisions are retained. There is no public upgrader or promotion method yet: owner codec migration, full historical equivalence and final output acceptance remain required before a destination can be published. Fresh-history rewrite and conservative reclaim remain separate operations.
+
+## Internal Memory compact contract
+
+`memory_compact_contract.rs` defines the private creation/delta envelope and twenty ordered mutable fields. Creation retains the exact first accepted record and body reference; later records bind the previous revision and preserve publication coordinates while carrying only changed metadata. Explicit optional clear differs from unchanged. Inference collections use whole-value ordered replacement; separate immutable routing remains outside the revision delta. The [field inventory and contract](minimal-lossless-history-storage-spec-2026-10-19.md#memory-field-inventory-step-42) track codec implementation. This contract is not a persisted encoding yet; ordinary writers and replay still use existing codecs.
+
 ## Domain tombstone records
 
 `CVAMEMT1`, `CVAENTT2` and `CVARELT1` encode direct Memory, Entity and Relationship deletion, respectively. Each stores the target identity, terminal revision and owner domain version; the existing container semantic publication supplies the global version. `CVAENTT1` remains the Entity merge/retirement record with a replacement identity. Rebuild rejects later publication for either terminal Entity form, reconstructs current exclusions, and retains earlier revisions and references. These records do not authorize payload destruction.

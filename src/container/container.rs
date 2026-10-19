@@ -1,5 +1,7 @@
 #[path = "container_scan.rs"]
 mod scan;
+#[path = "container_upgrade.rs"]
+mod upgrade;
 
 use std::collections::BTreeMap;
 use std::fmt;

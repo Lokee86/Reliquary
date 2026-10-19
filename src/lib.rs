@@ -34,6 +34,8 @@ pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
 mod freshness_trace;
 #[path = "facade/owner_maintenance.rs"]
 mod owner_maintenance;
+#[path = "storage_upgrade/mod.rs"]
+mod storage_upgrade;
 
 #[cfg(test)]
 #[path = "facade/historical_archive_fingerprint.rs"]
@@ -739,6 +741,8 @@ mod memory_candidate_pool;
 mod memory_codec;
 #[path = "memory/memory_codec_scalar.rs"]
 mod memory_codec_scalar;
+#[path = "memory/memory_compact_contract.rs"]
+mod memory_compact_contract;
 #[path = "memory/memory_error.rs"]
 mod memory_error;
 #[path = "memory/memory_model.rs"]

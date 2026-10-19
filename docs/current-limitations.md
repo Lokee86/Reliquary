@@ -8,6 +8,9 @@ Completed native import reconciliation may retain the left physical prefix as an
 
 ## Compact-history rollout boundary
 
+The internal transformed-copy shell can freeze and stage identity-preserving physical carriers with drift detection and abort cleanup. It has no public execution/promotion API and does not yet convert owner codecs or certify historical equivalence. Identityless legacy headers require separate explicit identity handling; the shell refuses them.
+
+
 New owners use the V2.0 container header. Existing V1.0 REL/PHY files can be inspected read-only; ordinary mutation, including retries, requires an explicit lossless format upgrade. The lossless upgrader and compact semantic owner codecs are still being implemented under the dated storage plan. This header/admission stage does not yet reduce history size or provide transparent upgrade. Damaged V1 tails are rejected without modifying the source. V1 Entity-resolution reads preserve stored historical references and revisions; they do not append canonical-reference repair records on open.
 
 ## Ordered Historical Freshness settlements

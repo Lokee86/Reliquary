@@ -10,6 +10,14 @@ Import/CVA owns epoch metadata and identity in `src/imports/epoch_store.rs` and 
 
 `src/freshness/freshness_semantic_settlement.rs` owns the CVAFRS06 model and strict binary codec, with tests in `freshness_semantic_settlement_tests.rs`. This boundary excludes physical coordinates and derived event postimages. `facade/cva_historical_import.rs` constructs semantic evidence and provides explicit legacy normalization; `freshness_import_compatibility.rs`, Freshness replay and import readiness/reconciliation resolve semantic event identities during open and transformation. Legacy physical fields remain confined to persisted compatibility handling. See [Storage format](storage-format.md#cvafrs06-semantic-settlement-and-legacy-compatibility-boundary) and [execution evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md).
 
+## Memory compact contract
+
+`src/memory/memory_compact_contract.rs` owns private creation/delta types, changed-field order and envelope checks; `memory_compact_contract_tests.rs` verifies optional clears, ordered proof replacement, identity/clock guards and V1 record compatibility. See the [contract](storage-format.md#internal-memory-compact-contract). Wire codec, replay and writer cutover remain separate subsequent steps.
+
+## Lossless format-upgrade shell
+
+`src/storage_upgrade/{model,shell}.rs` owns internal planning, source-drift checks and staged-copy lifecycle; `src/container/container_upgrade.rs` owns physical frame transport only. Regression coverage lives in `src/storage_upgrade/tests.rs`. The [storage contract](storage-format.md#internal-lossless-upgrade-shell) distinguishes shell staging from future semantic migration and promotion.
+
 ## Owner maintenance and rewrite routing
 
 `facade/owner_maintenance.rs` owns shared prune-manifest ingestion, lookup and source-history validation. REL and PHY facades reconstruct that store on open; `cva_history_prune.rs` and `phylactery_history_prune.rs` coordinate transformed-copy emission while each domain retains its payload-retention proof. `facade/storage_reclamation.rs` remains conservative and separate. `src/rewrite/` owns policy types, planning, frozen source identity and semantic emission; facade entrypoints are in the REL/PHY modules. CLI conversion, policy-file validation and output dispatch live in `cli/src/rewrite_cmd.rs`; repeated profile repair is in `cli/src/repair_cmd.rs`. See [Rust API](api.md), [CLI](cli.md), and [behavioral contracts](behavioral-contracts.md#fresh-history-rewrite-contracts).
