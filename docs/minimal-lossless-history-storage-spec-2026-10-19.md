@@ -497,6 +497,8 @@ For a CVA-global version G, the whole-owner oracle resolves each semantic owner 
 
 The oracle is a verification tool, not a new persisted manifest.
 
+For clock-neutral records, the test seam fixes an accepted source snapshot and uses the existing replay scanner's post-observation global high-water mark: frames are visible through the last frame whose observed high-water is at most G. This boundary is a mechanical replay prefix, never a new ticket assigned to Ego, Dream, processing or Freshness. Later clock-neutral appends at the same global head change that head's snapshot; pre-ticket recovery writes for a subsequent publication can also extend the earlier prefix. The source must therefore be fixed before recording historical fingerprints; G alone does not freeze an evolving file. Within a grouped publication whose embedded version range crosses G, individually clocked records are selected by their own retained global/local coordinates, while the clock-neutral prefix stops before the grouped frame. Prefix byte offsets and disposable copies are excluded from semantic fingerprints. Validated rewrite-generation, genesis and Graph baseline identities are included as semantic proof state.
+
 ## Migration Strategy
 
 ### Persisted-data compatibility boundary

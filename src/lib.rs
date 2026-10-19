@@ -38,6 +38,9 @@ mod owner_maintenance;
 #[cfg(test)]
 #[path = "facade/historical_archive_fingerprint.rs"]
 mod historical_archive_fingerprint;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+#[path = "facade/historical_baseline_artifacts.rs"]
+mod historical_baseline_artifacts;
 #[cfg(test)]
 #[path = "facade/historical_cut_enumeration.rs"]
 mod historical_cut_enumeration;
@@ -63,6 +66,12 @@ mod historical_fingerprint;
 #[path = "facade/historical_freshness_fingerprint.rs"]
 mod historical_freshness_fingerprint;
 #[cfg(test)]
+#[path = "facade/historical_global_cuts.rs"]
+mod historical_global_cuts;
+#[cfg(test)]
+#[path = "facade/historical_global_frontier.rs"]
+mod historical_global_frontier;
+#[cfg(test)]
 #[path = "facade/historical_graph_fingerprint.rs"]
 mod historical_graph_fingerprint;
 #[cfg(test)]
@@ -74,6 +83,12 @@ mod historical_relationship_fingerprint;
 #[cfg(test)]
 #[path = "facade/historical_vector_generation_fingerprint.rs"]
 mod historical_vector_generation_fingerprint;
+#[cfg(test)]
+#[path = "facade/historical_whole_owner_fingerprint.rs"]
+mod historical_whole_owner_fingerprint;
+#[cfg(test)]
+#[path = "facade/historical_whole_phy_fingerprint.rs"]
+mod historical_whole_phy_fingerprint;
 
 pub mod imports;
 pub mod owner_lifecycle;

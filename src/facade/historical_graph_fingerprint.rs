@@ -25,6 +25,13 @@ pub(crate) struct GraphCut {
 }
 
 impl GraphHistory {
+    pub(crate) fn use_baseline_from(&mut self, store: &GraphStore) {
+        self.baseline_memories = store
+            .rewrite_baseline_memories()
+            .unwrap_or_default()
+            .to_vec();
+        self.baseline_memories.sort();
+    }
     pub(crate) fn read(container: &Container, store: &GraphStore) -> Result<Self, String> {
         let mut scan =
             Container::open_read_only_for_scan(container.path()).map_err(|e| e.to_string())?;

@@ -4,6 +4,12 @@ use crate::{Container, GraphError, HistoryGenerationId, MemoryId, SemanticNodeRe
 use sha2::{Digest, Sha256};
 const MAGIC: &[u8; 8] = b"CVAGBL01";
 impl GraphStore {
+    #[cfg(test)]
+    pub(crate) fn historical_baseline_identity(
+        &self,
+    ) -> Option<([u8; 16], crate::HistoryGenerationId, [u8; 32])> {
+        self.rewrite_baseline
+    }
     pub(crate) fn publish_rewrite_baseline(
         &mut self,
         container: &mut Container,
