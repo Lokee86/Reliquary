@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 55/251 execution steps complete
+Status: Implementation-ready; 62/251 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -526,6 +526,55 @@ Files: src/memory/memory_compact_retry_tests.rs; neighboring compact codec/appli
 Verification: Creation/latest-revision exact retries, mutation conflict, stale new revision and terminal retry preserve existing bytes, coordinates and retained revisions. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
 Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
 
+### Step 56 execution record
+
+Commit: `a7a485d`.
+Files: src/memory/memory_store.rs; src/memory/memory_compact_writer_tests.rs.
+Verification: Ordinary REL/PHY creation writes only compact creation carriers and reopens with identical coordinates. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
+Blockers: none for this item; grouped/external publication and migration remain pending.
+
+### Step 57 execution record
+
+Commit: `a7a485d`.
+Files: src/memory/memory_store.rs; src/memory/memory_compact_writer_tests.rs.
+Verification: Ordinary revisions write only canonical changed fields; exact retry and conflict semantics survive reopen. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
+Blockers: none for this item; grouped/external publication and migration remain pending.
+
+### Step 58 execution record
+
+Commit: `a7a485d`.
+Files: src/memory/memory_compact_maintenance_tests.rs.
+Verification: Existing tombstone markers remain terminal and retain publication coordinates through maintenance. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
+Blockers: none for this item; grouped/external publication and migration remain pending.
+
+### Step 59 execution record
+
+Commit: `a7a485d`.
+Files: src/facade/cva_reconcile_memory.rs.
+Verification: REL reconciliation resolves accepted owner publications instead of decoding legacy carrier bytes. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
+Blockers: none for this item; grouped/external publication and migration remain pending.
+
+### Step 60 execution record
+
+Commit: `a7a485d`.
+Files: src/imports/reconciliation.rs; src/imports/reconciliation_compact_memory_tests.rs.
+Verification: Completed-import evidence is normalized from accepted records; V1 and compact V2 evidence matches. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
+Blockers: none for this item; grouped/external publication and migration remain pending.
+
+### Step 61 execution record
+
+Commit: `a7a485d`.
+Files: src/imports/reconciliation.rs; src/imports/reconciliation_compact_memory_tests.rs.
+Verification: Import interval admission recognizes strictly validated compact carriers and rejects malformed or unknown variants. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
+Blockers: none for this item; grouped/external publication and migration remain pending.
+
+### Step 62 execution record
+
+Commit: `a7a485d`.
+Files: src/facade/storage_reclamation_scan.rs; src/memory/memory_compact_maintenance_tests.rs.
+Verification: REL/PHY reclamation preserves linked compact history and body closure while removing unversioned carriers and orphan bodies. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
+Blockers: none for this item; grouped/external publication and migration remain pending.
+
 ## Phase F — Memory Writer Cutover and Migration
 
 | Step | Owner | Work | Gate |
@@ -970,6 +1019,6 @@ Standalone Memory writer cutover exposed four legacy-carrier readers with separa
 
 The number is not a target or an estimate of required work sessions. It is the consequence of making acceptance/failure domains explicit.
 
-A healthy execution run is expected to close several adjacent items when they share one implementation seam. The plan should therefore be read as **251 acceptance checks grouped into phases**, not 247 isolated mini-projects.
+A healthy execution run is expected to close several adjacent items when they share one implementation seam. The plan should therefore be read as **251 acceptance checks grouped into phases**, not 251 isolated mini-projects.
 
 If any one item still requires multiple independent implementation passes, split it before starting. If several adjacent items are naturally one coherent implementation pass, execute them together and mark each gate independently. Do not preserve numbering conventions at the expense of efficient, bounded execution.

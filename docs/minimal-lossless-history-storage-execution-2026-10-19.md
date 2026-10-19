@@ -383,3 +383,17 @@ Fresh root and CLI `cargo check --locked` pass. CLI tests pass **32/32**. Root/C
 Authoritative fixtures are read through read-only file handles. Any owner API that can repair on open must operate on a disposable repository-local copy.
 
 Batch compliance: formatting, normal library check, documentation structural/change-impact checks, 23 retained-snapshot architecture policy rules and current ownership guards pass. No production semantic owner, public API, ordinary writer or persisted format changed in Steps 16–21.
+
+
+## Standalone Memory writer and reader cutover
+
+Steps 56-62 accepted against implementation `a7a485d`. Discovery inserted four explicit reader responsibilities (59-62), increasing the plan from 247 to 251 steps.
+
+- Compact standalone tests: **36/36**, `.test-tmp/lossless-memory-standalone-tests-final.log`.
+- Import evidence/admission tests: **3/3**, `.test-tmp/lossless-memory-import-readers-tests-final.log`.
+- Existing boundary, upgrade, Memory, reconciliation, reclamation and import regressions: **61/61**, `.test-tmp/lossless-memory-standalone-regressions.log`.
+- Root and CLI checks passed; CLI **32/32**; formatting passed.
+- Current ownership guards and all 23 Pitlord rules passed using the retained architecture snapshot (`.test-tmp/lossless-memory-standalone-policy.log`). The previously recorded refresh stall remains an evidence-freshness gap; this is not a fresh graph claim.
+
+Documentation impact: inspected storage-format, current-limitations and maintainer-map; updated standalone writer/readers and remaining grouped/external/migration limits. No end-to-end migration or measured-savings claim is made. Broad Memory integration remains Gate C.
+Architecture impact: Memory remains semantic publication authority; reconciliation reads validated publications, import evidence retains its established normalized representation, and physical reclamation recognizes compact backing carriers. No standards or policy changes.
