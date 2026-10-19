@@ -1,5 +1,6 @@
 use super::{
-    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header, truncated_or_io,
+    CHUNK_HEADER_LEN, COMPACT_VERSION, CURRENT_VERSION, ChunkRef, Container, ContainerError,
+    FormatVersion, ObjectRef, read_header, read_header_for_version, truncated_or_io,
 };
 use crate::container_version::observe_version_payload_state;
 use std::collections::BTreeMap;
@@ -37,6 +38,32 @@ impl Container {
 
     pub(crate) fn open_scanned<E>(
         path: impl AsRef<Path>,
+        visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
+    ) -> Result<Self, E>
+    where
+        E: From<ContainerError>,
+    {
+        Self::open_scanned_version(path, CURRENT_VERSION, visitor)
+    }
+
+    /// Opens the compact physical format explicitly. The legacy route rejects it.
+    pub(crate) fn open_compact(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
+        Self::open_compact_scanned(path, |_, _, _| Ok(()))
+    }
+
+    pub(crate) fn open_compact_scanned<E>(
+        path: impl AsRef<Path>,
+        visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
+    ) -> Result<Self, E>
+    where
+        E: From<ContainerError>,
+    {
+        Self::open_scanned_version(path, COMPACT_VERSION, visitor)
+    }
+
+    fn open_scanned_version<E>(
+        path: impl AsRef<Path>,
+        expected_version: FormatVersion,
         mut visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
     ) -> Result<Self, E>
     where
@@ -49,7 +76,7 @@ impl Container {
             .open(path)
             .map_err(ContainerError::Io)?;
         let (version, identity, owner_uuid, header_len) =
-            read_header(&mut file).map_err(E::from)?;
+            read_header_for_version(&mut file, expected_version).map_err(E::from)?;
         let mut container = Self {
             file,
             path: path.to_path_buf(),

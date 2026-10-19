@@ -1,5 +1,11 @@
 # Reliquary Storage Format
 Parent index: [Documentation index](INDEX.md)
+## Compact container version boundary — staged
+
+Compact ordinary history reserves container version **2.0**. The existing 40-byte identity header retains its magic, length, file-kind/scope discriminator and owner UUID; the little-endian major/minor fields encode `2` and `0`. Container's explicit internal compact-open route accepts exactly 2.0. The existing V1 route still accepts exactly 1.0 and rejects 2.0 with `ContainerError::UnsupportedVersion` before identity or payload dispatch. Unknown minor versions are rejected rather than interpreted as compatible.
+
+This first boundary stage adds physical header encoding and explicit reader selection only. Ordinary REL/PHY creation and owner lifecycle routing still use V1 pending the read-only inspection and mutation-admission cutover in the implementation plan. No compact semantic record codec is enabled by this stage.
+
 ## Domain tombstone records
 
 `CVAMEMT1`, `CVAENTT2` and `CVARELT1` encode direct Memory, Entity and Relationship deletion, respectively. Each stores the target identity, terminal revision and owner domain version; the existing container semantic publication supplies the global version. `CVAENTT1` remains the Entity merge/retirement record with a replacement identity. Rebuild rejects later publication for either terminal Entity form, reconstructs current exclusions, and retains earlier revisions and references. These records do not authorize payload destruction.

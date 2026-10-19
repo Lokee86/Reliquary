@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 21/245 execution steps complete
+Status: Implementation-ready; 23/245 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -201,14 +201,14 @@ Blockers: none for this item; whole-owner visibility remains Step 20.
 
 ### Step 20 execution record
 
-Commit: pending shared whole-owner/baseline batch commit.
+Commit: `85ade1b`.
 Files: `src/facade/historical_global_{cuts,frontier}*.rs`, `historical_whole_{owner,phy}_fingerprint*.rs`, test-only Graph baseline seam and crate wiring; [evidence](minimal-lossless-history-storage-execution-2026-10-19.md#whole-owner-and-baseline-batch--steps-2021).
 Verification: final focused checks **7/7**; hand-authored REL/PHY interleaving, lifecycle visibility, actual grouped-publication interior cuts, fixed-source repeat/reopen, authentic rewrite identity and checksum-valid forgery rejection, typed missing-reference rejection.
 Blockers: none. A global number alone does not freeze clock-neutral recovery appends; historical projections bind a fixed source. Incomplete reference closure is unavailable, not an invented historical state.
 
 ### Step 21 execution record
 
-Commit: pending shared whole-owner/baseline batch commit.
+Commit: `85ade1b`.
 Files: `src/facade/historical_baseline_artifacts.rs`, `benchmarks/historical-owner-baseline-2026-10-19.json`, test wiring and shared documentation.
 Verification: generation gate **1/1** (278.72 seconds); all six source hashes unchanged; all **12,414** retained Memory revisions included in ordered digests; complete cut counts and explicitly sampled per-domain/global fingerprints persisted. Baseline contains 12 sampled unavailable Freshness event cuts and two unavailable REL global cuts, with explicit source reasons; all unexpected errors remain failures.
 Blockers: none. Sampled cut fingerprints are not an exhaustive all-cut parity claim; exhaustive differential checks remain later acceptance items.
@@ -233,6 +233,21 @@ Verification: **passed**. The library/integration run passes **1,714 tests acros
 | 27 | Sol | Add typed `StorageFormatUpgradeRequired` mutation failure for V1.0 PHY. | PHY mutation fails before append. |
 | 28 | Sol | Make new REL creation use the compact format version. | New REL reopens through compact path. |
 | 29 | Sol | Make new PHY creation use the compact format version. | New PHY reopens through compact path. |
+
+
+### Step 22 execution record
+
+Commit: pending shared container-header boundary commit.
+Files: `src/container/container.rs`, `src/container/container_format_boundary_tests.rs`, [Storage format](storage-format.md#compact-container-version-boundary--staged).
+Verification: V2.0 identity headers round-trip for REL and PHY, including exact header bytes and owner UUID; shared focused container verification recorded in execution evidence.
+Blockers: none for header encoding. Ordinary creation remains V1 until the read-only/admission cutover in Steps 24–29.
+
+### Step 23 execution record
+
+Commit: pending shared container-header boundary commit.
+Files: `src/container/container_scan.rs`, `src/container/container_format_boundary_tests.rs`.
+Verification: V1 route rejects V2 with typed `UnsupportedVersion` before identity/payload dispatch; explicit internal compact route accepts exactly V2.0 and rejects V1/unknown minor versions. Luna review found no actionable defect.
+Blockers: none for strict route selection. Owner-level compact dispatch and version-preserving maintenance copies remain later cutover work.
 
 ---
 

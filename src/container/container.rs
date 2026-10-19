@@ -14,6 +14,7 @@ const LEGACY_TYPED_HEADER_LEN: u64 = 24;
 const IDENTITY_HEADER_LEN: u64 = 40;
 const CHUNK_HEADER_LEN: u64 = 8;
 const CURRENT_VERSION: FormatVersion = FormatVersion { major: 1, minor: 0 };
+pub(super) const COMPACT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 0 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FormatVersion {
@@ -604,10 +605,18 @@ fn encode_identity_header(
     identity: ContainerIdentity,
     owner_uuid: [u8; 16],
 ) -> [u8; IDENTITY_HEADER_LEN as usize] {
+    encode_identity_header_for_version(identity, owner_uuid, CURRENT_VERSION)
+}
+
+fn encode_identity_header_for_version(
+    identity: ContainerIdentity,
+    owner_uuid: [u8; 16],
+    version: FormatVersion,
+) -> [u8; IDENTITY_HEADER_LEN as usize] {
     let mut header = [0_u8; IDENTITY_HEADER_LEN as usize];
     header[..8].copy_from_slice(&MAGIC);
-    header[8..10].copy_from_slice(&CURRENT_VERSION.major.to_le_bytes());
-    header[10..12].copy_from_slice(&CURRENT_VERSION.minor.to_le_bytes());
+    header[8..10].copy_from_slice(&version.major.to_le_bytes());
+    header[10..12].copy_from_slice(&version.minor.to_le_bytes());
     header[12..16].copy_from_slice(&(IDENTITY_HEADER_LEN as u32).to_le_bytes());
     header[16] = match identity.file_kind {
         FileKind::Reliquary => 1,
@@ -634,6 +643,21 @@ fn read_header(
     ),
     ContainerError,
 > {
+    read_header_for_version(file, CURRENT_VERSION)
+}
+
+fn read_header_for_version(
+    file: &mut File,
+    expected_version: FormatVersion,
+) -> Result<
+    (
+        FormatVersion,
+        Option<ContainerIdentity>,
+        Option<[u8; 16]>,
+        u64,
+    ),
+    ContainerError,
+> {
     let mut header = [0_u8; LEGACY_HEADER_LEN as usize];
     file.read_exact(&mut header).map_err(|error| {
         if error.kind() == io::ErrorKind::UnexpectedEof {
@@ -649,7 +673,7 @@ fn read_header(
         major: u16::from_le_bytes([header[8], header[9]]),
         minor: u16::from_le_bytes([header[10], header[11]]),
     };
-    if version != CURRENT_VERSION {
+    if version != expected_version {
         return Err(ContainerError::UnsupportedVersion(version));
     }
     let length = u32::from_le_bytes([header[12], header[13], header[14], header[15]]);
@@ -727,3 +751,7 @@ fn truncated_or_io(error: io::Error, offset: u64) -> ContainerError {
         ContainerError::Io(error)
     }
 }
+
+#[cfg(test)]
+#[path = "container_format_boundary_tests.rs"]
+mod format_boundary_tests;
