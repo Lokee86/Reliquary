@@ -2,10 +2,11 @@ use crate::archive_history_codec::encode_archive_format;
 use crate::compatibility_profile_codec::encode_format as encode_profile_format;
 use crate::insomnia::codec::encode_format as encode_insomnia_format;
 use crate::memory_codec::encode_format as encode_memory_format;
+use crate::owner_lifecycle::LifecycleTarget;
 use crate::packed_vector_codec::encode_format as encode_packed_format;
 use crate::{
-    Cva, CvaError, MemoryDraft, MemoryError, MemoryVectorError, SimulatedEmbeddingEndpoint,
-    VectorNormalization,
+    Cva, CvaError, HistoryPruneRequest, MemoryDraft, MemoryError, MemoryVectorError, Phylactery,
+    SimulatedEmbeddingEndpoint, VectorNormalization,
 };
 use std::fs;
 use std::path::PathBuf;
@@ -18,6 +19,111 @@ fn test_path(name: &str) -> PathBuf {
         .join(format!("reliquary-memory-vectors-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)
+}
+
+#[test]
+fn phy_retired_profile_prune_preserves_memory_vector_structure() {
+    let path = test_path("phy-retired-profile-prune.phy");
+    let output = test_path("phy-retired-profile-pruned.phy");
+    let mut phy = Phylactery::create(&path).unwrap();
+    let memory = phy
+        .publish_memory(
+            None,
+            0,
+            draft("phy-prune-profile", "extracted", "Rule", "Keep A."),
+        )
+        .unwrap()
+        .0;
+    let body = phy.memory_body_id(memory.id).unwrap();
+    let endpoint = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 23);
+    let profile = phy.establish_compatibility_profile(&endpoint).unwrap();
+    let matrix = crate::PackedVectors::from_bytes(
+        crate::VectorSchema::new(8, crate::ScalarType::F32).unwrap(),
+        vec![7; 8 * 4],
+    )
+    .unwrap();
+    let packed = phy.put_packed_vectors(matrix).unwrap();
+    let set = phy
+        .put_memory_vectors(profile.id, packed, vec![body])
+        .unwrap();
+    phy.retire_compatibility_profile(profile.id).unwrap();
+
+    let report = phy
+        .prune_tombstoned_history(
+            &output,
+            HistoryPruneRequest {
+                targets: vec![LifecycleTarget::CompatibilityProfile(profile.id)],
+            },
+        )
+        .unwrap();
+    assert_eq!(report.pruned_packed_vectors, 1);
+    drop(phy);
+
+    let mut reopened = Phylactery::open(&output).unwrap();
+    assert!(matches!(
+        reopened.packed_vectors(packed),
+        Err(crate::PackedVectorError::PayloadUnavailable(
+            crate::owner_lifecycle::PayloadUnavailable::Pruned
+        ))
+    ));
+    assert_eq!(
+        reopened.memory_vectors(set).unwrap().memory_body_ids,
+        vec![body]
+    );
+    drop(reopened);
+    let _ = fs::remove_file(path);
+    let _ = fs::remove_file(output);
+}
+
+#[test]
+fn phy_retired_profile_prune_rejects_active_and_shared_packed_references() {
+    let path = test_path("phy-shared-profile-source.phy");
+    let output = test_path("phy-shared-profile-output.phy");
+    let mut phy = Phylactery::create(&path).unwrap();
+    let memory = phy
+        .publish_memory(
+            None,
+            0,
+            draft("phy-shared-profile", "extracted", "Rule", "Keep A."),
+        )
+        .unwrap()
+        .0;
+    let body = phy.memory_body_id(memory.id).unwrap();
+    let endpoint_a = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 7);
+    let endpoint_b = SimulatedEmbeddingEndpoint::new(8, VectorNormalization::L2, 9001);
+    let profile_a = phy.establish_compatibility_profile(&endpoint_a).unwrap();
+    let profile_b = phy.establish_compatibility_profile(&endpoint_b).unwrap();
+    let packed = crate::PackedVectors::from_bytes(
+        crate::VectorSchema::new(8, crate::ScalarType::F32).unwrap(),
+        vec![0; 8 * 4],
+    )
+    .unwrap();
+    let packed_id = phy.put_packed_vectors(packed.clone()).unwrap();
+    phy.put_memory_vectors(profile_a.id, packed_id, vec![body])
+        .unwrap();
+    phy.put_memory_vectors(profile_b.id, packed_id, vec![body])
+        .unwrap();
+    assert!(
+        phy.prune_tombstoned_history(
+            &output,
+            HistoryPruneRequest {
+                targets: vec![LifecycleTarget::CompatibilityProfile(profile_a.id)],
+            },
+        )
+        .is_err()
+    );
+    phy.retire_compatibility_profile(profile_a.id).unwrap();
+    assert!(
+        phy.prune_tombstoned_history(
+            &output,
+            HistoryPruneRequest {
+                targets: vec![LifecycleTarget::CompatibilityProfile(profile_a.id)],
+            },
+        )
+        .is_err()
+    );
+    assert_eq!(phy.packed_vectors(packed_id).unwrap(), packed);
+    let _ = fs::remove_file(path);
 }
 
 fn draft(mutation_id: &str, lifecycle: &str, title: &str, content: &str) -> MemoryDraft {
@@ -286,7 +392,7 @@ fn packed_vector_prune_requires_every_mapping_profile_retired_and_retirement_kee
     assert_eq!(descriptor.target.identity, anchor.0.to_vec());
     assert_eq!(
         descriptor.payloads,
-        vec![crate::history_prune_manifest::PrunedPayload::PackedVectors(
+        vec![crate::owner_maintenance::PrunedPayload::PackedVectors(
             packed_id.0
         )]
     );

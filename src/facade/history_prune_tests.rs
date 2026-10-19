@@ -153,13 +153,12 @@ fn shared_live_body_and_nonterminal_targets_are_rejected_before_output() {
 }
 
 #[test]
-fn settled_import_prefix_content_is_blocked_but_later_native_body_is_prunable() {
+fn semantic_import_allows_eligible_payload_before_and_after_settlement() {
     let (source, output) = paths();
     let mut cva = Cva::create_project(&source).unwrap();
     cva.import_native(&import_input(), 100).unwrap();
     crate::imports::tests::finish_current_import(&mut cva, 110);
 
-    // The imported node's content is inside the authenticated source prefix.
     let imported_conversation = cva
         .archive
         .nodes
@@ -169,14 +168,13 @@ fn settled_import_prefix_content_is_blocked_but_later_native_body_is_prunable() 
         .conversation_id
         .clone();
     cva.tombstone_conversation(&imported_conversation).unwrap();
-    assert!(
-        cva.prune_tombstoned_history(&output, request(&[&imported_conversation]))
-            .is_err()
-    );
-    assert!(!output.exists());
+    cva.prune_tombstoned_history(&output, request(&[&imported_conversation]))
+        .unwrap();
+    let reopened = Cva::open(&output).unwrap();
+    assert_eq!(reopened.native_import_receipts().len(), 1);
+    drop(reopened);
+    fs::remove_file(&output).unwrap();
 
-    // A later, unrelated tombstoned Archive body is outside every settled
-    // source prefix and can be removed while the original import authority stays fixed.
     append(
         &mut cva,
         "later-native",

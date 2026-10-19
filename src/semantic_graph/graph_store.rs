@@ -11,6 +11,8 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 #[path = "graph_store_read.rs"]
 mod read;
+#[path = "graph_rewrite_baseline.rs"]
+mod rewrite_baseline;
 #[path = "graph_store_validation.rs"]
 mod validation;
 #[path = "graph_store_write.rs"]
@@ -24,6 +26,8 @@ struct RelationKey {
 }
 
 pub(crate) struct GraphStore {
+    rewrite_baseline_memories: Vec<MemoryId>,
+    rewrite_baseline: Option<([u8; 16], crate::HistoryGenerationId, [u8; 32])>,
     nodes: Vec<GraphNodeRecord>,
     node_by_semantic: HashMap<SemanticNodeRef, NodeId>,
     states: HashMap<RelationKey, SemanticGraphRelation>,
@@ -48,6 +52,8 @@ pub(crate) struct GraphStore {
 impl GraphStore {
     pub(crate) fn empty() -> Self {
         Self {
+            rewrite_baseline_memories: Vec::new(),
+            rewrite_baseline: None,
             nodes: Vec::new(),
             node_by_semantic: HashMap::new(),
             states: HashMap::new(),

@@ -75,10 +75,10 @@ impl MemoryPruneState {
         container: &mut crate::Container,
         manifests: &std::collections::BTreeMap<
             [u8; 32],
-            crate::history_prune_manifest::HistoryPruneManifest,
+            crate::owner_maintenance::HistoryPruneManifest,
         >,
     ) -> Result<(), MemoryError> {
-        use crate::history_prune_manifest::{PrunedPayload, RetentionDomain};
+        use crate::owner_maintenance::{PrunedPayload, RetentionDomain};
         let invalid = || MemoryError::CorruptRecord("Memory prune evidence mismatch");
         let mut authorized = std::collections::HashSet::new();
         for (digest, manifest) in manifests {
@@ -131,8 +131,8 @@ pub(crate) fn descriptor(
     store: &super::MemoryStore,
     id: crate::MemoryId,
     bodies: &[MemoryBodyId],
-) -> Result<crate::history_prune_manifest::HistoryRetentionDescriptor, MemoryError> {
-    use crate::history_prune_manifest::*;
+) -> Result<crate::owner_maintenance::HistoryRetentionDescriptor, MemoryError> {
+    use crate::owner_maintenance::*;
     let retained = store.retention_descriptor(id)?;
     if bodies.is_empty()
         || bodies

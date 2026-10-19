@@ -115,11 +115,27 @@ pub(crate) fn reconcile_diverged(
     let freshness_change_required =
         crate::cva_reconcile_freshness::right_changes_freshness(&left, &right)?;
 
+    if left.graph.rewrite_baseline_memories() != right.graph.rewrite_baseline_memories() {
+        return Err(CvaReconcileError::UnsupportedSemanticOwner(
+            "conflicting rewrite Graph baseline",
+        ));
+    }
     let merge_result = (|| {
         let mut output = match legacy_scope {
             Some(scope) => Cva::create_legacy_scope_with_uuid(output_path, scope, owner_uuid)?,
             None => Cva::create_rel_with_uuid(output_path, owner_uuid, None)?,
         };
+        if let Some(genesis) = left.rewrite_genesis().cloned() {
+            let payload = genesis.encode();
+            output
+                .container
+                .append(&payload)
+                .map_err(crate::CvaError::from)?;
+            output
+                .rewrite_lineage
+                .ingest(&payload, owner_uuid)
+                .map_err(crate::CvaError::Freshness)?;
+        }
         output.set_rel_metadata(
             left_rel_metadata.type_label.clone(),
             left_rel_metadata.dependencies.clone(),
@@ -132,6 +148,20 @@ pub(crate) fn reconcile_diverged(
         replay_relationship_tail(&mut output, left_relationships)?;
         for resolution in left_entity_resolutions.clone() {
             output.import_entity_resolution(resolution)?;
+        }
+        if let Some(memories) = left.graph.rewrite_baseline_memories() {
+            let genesis =
+                left.rewrite_genesis()
+                    .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                        "Graph baseline lacks lineage",
+                    ))?;
+            output.graph.publish_rewrite_baseline(
+                &mut output.container,
+                owner_uuid,
+                genesis.generation,
+                genesis.policy_digest,
+                memories,
+            )?;
         }
         replay_graph_tail(&mut output, &left_graph)?;
         replay_file_memory_links(&mut output, &left_archive.file_memory_links)?;

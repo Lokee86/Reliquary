@@ -28,7 +28,8 @@ impl Cva {
                     .freshness
                     .records_at(copy.rel_turn_count())
                     .map_err(CvaError::Freshness)?
-            || authority_digest(&self.container)? != authority_digest(&copy.container)?
+            || historical_owner_evidence_digest(&self.container)?
+                != historical_owner_evidence_digest(&copy.container)?
         {
             return Err(CvaError::Repack(
                 "physical transformation changed historical checkpoint scoring or receipt/proof authority".into(),
@@ -56,10 +57,10 @@ impl Cva {
     }
 }
 
-fn authority_digest(container: &Container) -> Result<[u8; 32], CvaError> {
+fn historical_owner_evidence_digest(container: &Container) -> Result<[u8; 32], CvaError> {
     let mut scan = Container::open_read_only_for_scan(container.path())?;
     let mut hash = Sha256::new();
-    hash.update(b"reliquary:historical-physical-authority:v1\0");
+    hash.update(b"reliquary:historical-owner-evidence:v1\0");
     scan.visit_payloads::<CvaError>(|_, payload| {
         // These concrete owner families have no relocatable ObjectRef fields.
         // Insomnia completion includes the native grouped publication proof;

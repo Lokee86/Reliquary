@@ -441,12 +441,10 @@ impl MemoryStore {
     pub(crate) fn validate_prune_history(
         &self,
         container: &mut Container,
-        manifests: &std::collections::BTreeMap<
-            [u8; 32],
-            crate::history_prune_manifest::HistoryPruneManifest,
-        >,
+        maintenance: &crate::owner_maintenance::OwnerMaintenanceStore,
     ) -> Result<(), MemoryError> {
-        self.prune.validate(self, container, manifests)
+        self.prune
+            .validate(self, container, maintenance.manifests())
     }
 
     pub(crate) fn records(&self) -> &[MemoryRecord] {
@@ -493,6 +491,12 @@ impl MemoryStore {
 
     pub(crate) fn current_ids(&self) -> Vec<MemoryId> {
         let mut ids: Vec<_> = self.current.keys().copied().collect();
+        ids.sort_by_key(|id| id.0);
+        ids
+    }
+
+    pub(crate) fn tombstoned_ids(&self) -> Vec<MemoryId> {
+        let mut ids: Vec<_> = self.tombstones.keys().copied().collect();
         ids.sort_by_key(|id| id.0);
         ids
     }

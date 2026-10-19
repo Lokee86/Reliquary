@@ -53,8 +53,7 @@ fn validate_binding(
     settlement: &HistoricalImportFreshnessSettlement,
 ) -> Result<(), CvaError> {
     let scope = settlement
-        .epoch
-        .as_ref()
+        .scope_identity()
         .ok_or_else(|| epoch_error("completion requires an epoch-scoped settlement"))?;
     let start_digest: [u8; 32] = Sha256::digest(epoch_codec::encode_start(start)?).into();
     if settlement.owner != start.owner_uuid
@@ -176,13 +175,14 @@ impl Cva {
         let mut settlements = BTreeMap::new();
         let mut scan = Container::open_read_only_for_scan(self.container.path())?;
         scan.visit_payloads::<CvaError>(|_, payload| {
-            if payload.starts_with(b"CVAFRS05") {
+            if payload.starts_with(b"CVAFRS05") || payload.starts_with(b"CVAFRS06") {
                 let settlement = HistoricalImportFreshnessSettlement::decode(payload)
                     .map_err(CvaError::Freshness)?;
                 let id = id_text(&settlement.import_id);
                 let start = match epochs.status(&id) {
                     Some(ImportEpochStatus::Open(start))
                     | Some(ImportEpochStatus::Completed { start, .. }) => start,
+                    None if settlement.semantic.is_some() => return Ok(()),
                     None => return Err(epoch_error("scoped settlement lacks its import start")),
                 };
                 validate_binding(&start, &settlement)?;
@@ -196,7 +196,13 @@ impl Cva {
                     memory_graph: settlement.memory_graph_version,
                 };
                 if let Some(previous) = settlements.get(&id) {
-                    if previous != &evidence {
+                    if previous != &evidence
+                        && settlement
+                            .semantic
+                            .as_ref()
+                            .and_then(|s| s.predecessor_digest)
+                            .is_none()
+                    {
                         return Err(epoch_error("conflicting physical import settlements"));
                     }
                 } else {

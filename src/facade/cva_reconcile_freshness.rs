@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 enum ReplayKind {
+    RewriteBaseline(crate::MemoryId),
     Initialize(crate::MemoryId),
     Admit(crate::MemoryId),
     Event(String),
@@ -87,6 +88,9 @@ pub(crate) fn replay_freshness(
             validate_semantic_source(source, &entry)?;
             let destination_turn = rebase_entry_turn(source, &entry, turns, &merged_turns)?;
             let kind = match &entry {
+                FreshnessReplayEntry::RewriteBaseline { baseline } => {
+                    ReplayKind::RewriteBaseline(baseline.memory_id)
+                }
                 FreshnessReplayEntry::Initialize { memory_id, .. } => {
                     ReplayKind::Initialize(*memory_id)
                 }
@@ -102,6 +106,7 @@ pub(crate) fn replay_freshness(
                 }
             };
             let stable_key = match &kind {
+                ReplayKind::RewriteBaseline(id) => format!("B:{}", hex_id(*id)),
                 ReplayKind::Initialize(id) => format!("I:{}", hex_id(*id)),
                 ReplayKind::Admit(id) => format!("A:{}", hex_id(*id)),
                 ReplayKind::Event(id) => format!("E:{id}"),
@@ -205,6 +210,9 @@ pub(crate) fn validate_freshness(left: &Cva, right: &Cva) -> Result<(), CvaRecon
             validate_semantic_source(source, &entry)?;
             let destination_turn = rebase_entry_turn(source, &entry, turns, &merged)?;
             let identity = match &entry {
+                FreshnessReplayEntry::RewriteBaseline { baseline } => {
+                    format!("B:{}", hex_id(baseline.memory_id))
+                }
                 FreshnessReplayEntry::Initialize { memory_id, .. } => {
                     format!("I:{}", hex_id(*memory_id))
                 }
@@ -277,6 +285,10 @@ fn same_rebased_provenance(
 
 fn same_rebased_identity(a: &FreshnessReplayEntry, b: &FreshnessReplayEntry) -> bool {
     match (a, b) {
+        (
+            FreshnessReplayEntry::RewriteBaseline { baseline: a },
+            FreshnessReplayEntry::RewriteBaseline { baseline: b },
+        ) => a == b,
         (
             FreshnessReplayEntry::Initialize {
                 memory_id: a,
@@ -451,6 +463,9 @@ pub(crate) fn right_changes_freshness(left: &Cva, right: &Cva) -> Result<bool, C
         return Ok(true);
     }
     let identity = |entry: &FreshnessReplayEntry| match entry {
+        FreshnessReplayEntry::RewriteBaseline { baseline } => {
+            format!("B:{}", hex_id(baseline.memory_id))
+        }
         FreshnessReplayEntry::Initialize { memory_id, .. } => format!("I:{}", hex_id(*memory_id)),
         FreshnessReplayEntry::Admit { memory_id, .. } => format!("A:{}", hex_id(*memory_id)),
         FreshnessReplayEntry::Event { event_id, .. } => format!("E:{event_id}"),
@@ -568,6 +583,20 @@ pub(crate) fn replay_freshness_payload(
 ) -> Result<(), CvaReconcileError> {
     let turns = activity_turns(source);
     let merged = merged_activity_turns(output, output);
+    if payload.starts_with(crate::freshness_storage::REWRITE_BASELINE_MAGIC) {
+        let baseline = source
+            .freshness
+            .rewrite_baselines
+            .values()
+            .find(|baseline| baseline.encode().ok().as_deref() == Some(payload))
+            .ok_or(CvaReconcileError::UnsupportedSemanticOwner(
+                "unvalidated rewrite baseline",
+            ))?
+            .clone();
+        let entry = FreshnessReplayEntry::RewriteBaseline { baseline };
+        let destination_turn = rebase_entry_turn(source, &entry, &turns, &merged)?;
+        return replay_entry(output, entry, destination_turn);
+    }
     for mut entry in
         FreshnessReplayEntry::from_payload(payload).map_err(crate::CvaError::Freshness)?
     {
@@ -593,6 +622,33 @@ fn replay_entry(
     destination_turn: u64,
 ) -> Result<(), CvaReconcileError> {
     match entry {
+        FreshnessReplayEntry::RewriteBaseline { baseline } => {
+            if baseline.destination_cut != destination_turn {
+                return Err(CvaReconcileError::UnsupportedSemanticOwner(
+                    "rewrite baseline activity prefix changed",
+                ));
+            }
+            let payload = baseline.encode().map_err(crate::CvaError::Freshness)?;
+            if !output
+                .freshness
+                .rewrite_baselines
+                .contains_key(&baseline.memory_id)
+            {
+                output
+                    .container
+                    .append(&payload)
+                    .map_err(crate::CvaError::from)?;
+                output
+                    .freshness
+                    .ingest_rewrite_baseline(&payload)
+                    .map_err(crate::CvaError::Freshness)?;
+            } else {
+                output
+                    .freshness
+                    .ingest_rewrite_baseline(&payload)
+                    .map_err(crate::CvaError::Freshness)?;
+            }
+        }
         FreshnessReplayEntry::Initialize {
             memory_id,
             admitted_at_birth,

@@ -88,6 +88,9 @@ enum JournalEntry {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum FreshnessReplayEntry {
+    RewriteBaseline {
+        baseline: FreshnessRewriteBaseline,
+    },
     Initialize {
         memory_id: MemoryId,
         source_turn: u64,
@@ -194,6 +197,7 @@ impl FreshnessReplayEntry {
     }
     pub(crate) fn source_turn(&self) -> u64 {
         match self {
+            Self::RewriteBaseline { baseline } => baseline.destination_cut,
             Self::Initialize { source_turn, .. }
             | Self::Admit { source_turn, .. }
             | Self::Event { source_turn, .. }
@@ -205,6 +209,7 @@ impl FreshnessReplayEntry {
 #[derive(Clone, Debug, Default)]
 pub(crate) struct FreshnessStore {
     import_settlements: Vec<HistoricalImportFreshnessSettlement>,
+    pub(crate) rewrite_baselines: BTreeMap<MemoryId, rewrite_baseline::FreshnessRewriteBaseline>,
     owner_uuid: Option<[u8; 16]>,
     policy: FreshnessPolicy,
     policy_persisted: bool,
@@ -234,12 +239,22 @@ mod activation;
 #[path = "freshness/freshness_import_events.rs"]
 mod import_events_storage;
 pub(crate) use import_events_storage::ImportEventScope;
+#[path = "freshness/freshness_import_compatibility.rs"]
+mod import_compatibility;
 #[path = "freshness/freshness_import_settlement.rs"]
 mod import_settlement_storage;
+#[path = "freshness/freshness_semantic_settlement.rs"]
+mod semantic_settlement;
+pub(crate) use semantic_settlement::{AcceptedImportEventEvidence, ImportSemanticScope};
+#[path = "freshness/freshness_rewrite_baseline.rs"]
+mod rewrite_baseline;
 #[cfg(test)]
 pub(crate) use import_settlement_storage::encode_legacy_test_fixture;
 pub(crate) use import_settlement_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
+};
+pub(crate) use rewrite_baseline::{
+    BASELINE_MAGIC as REWRITE_BASELINE_MAGIC, FreshnessRewriteBaseline,
 };
 #[path = "freshness/freshness_storage_membership.rs"]
 mod membership;
@@ -497,7 +512,11 @@ impl FreshnessStore {
     }
 
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), String> {
-        if payload.starts_with(import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
+        if payload.starts_with(rewrite_baseline::BASELINE_MAGIC) {
+            return self.ingest_rewrite_baseline(payload);
+        }
+        if payload.starts_with(semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC)
+            || payload.starts_with(import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
             || payload.starts_with(import_settlement_storage::SETTLEMENT_MAGIC)
             || payload.starts_with(import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
         {
@@ -754,6 +773,55 @@ impl FreshnessStore {
         self.owner_uuid.get_or_insert(owner);
         Ok(())
     }
+
+    pub(crate) fn ingest_rewrite_baseline(&mut self, payload: &[u8]) -> Result<(), String> {
+        if !self.policy_persisted {
+            return Err(
+                "Freshness rewrite baseline appeared before its pinned owner policy".into(),
+            );
+        }
+        let baseline = FreshnessRewriteBaseline::decode(payload, &self.policy)?;
+        if self
+            .owner_uuid
+            .is_some_and(|owner| owner != baseline.owner_uuid)
+        {
+            return Err("Freshness rewrite baseline belongs to another owner".into());
+        }
+        if let Some(old) = self.rewrite_baselines.get(&baseline.memory_id) {
+            return if old == &baseline {
+                Ok(())
+            } else {
+                Err("conflicting Freshness rewrite baseline for Memory".into())
+            };
+        }
+        if self.rewrite_baselines.values().any(|old| {
+            old.history_generation != baseline.history_generation
+                || old.source_cut != baseline.source_cut
+                || old.destination_cut != baseline.destination_cut
+                || old.policy_digest != baseline.policy_digest
+        }) {
+            return Err(
+                "Freshness rewrite baselines disagree on generation or rewrite scope".into(),
+            );
+        }
+        if self.records.contains_key(&baseline.memory_id)
+            || self.births.contains_key(&baseline.memory_id)
+        {
+            return Err("Freshness rewrite baseline conflicts with existing enrollment".into());
+        }
+        self.owner_uuid.get_or_insert(baseline.owner_uuid);
+        self.policy_persisted = true;
+        // Birth metadata is needed for event validation, but this is not added
+        // to the journal as a fabricated Initialize event.
+        self.births.insert(
+            baseline.memory_id,
+            (baseline.destination_cut, baseline.destination_record),
+        );
+        self.records
+            .insert(baseline.memory_id, baseline.destination_record);
+        self.rewrite_baselines.insert(baseline.memory_id, baseline);
+        Ok(())
+    }
     fn validate_event_entry(&self, owner: [u8; 16], event: &JournalEntry) -> Result<(), String> {
         crate::freshness_trace::measure("freshness.event.validation", || {
             let JournalEntry::Event {
@@ -916,9 +984,11 @@ impl FreshnessStore {
                         unreachable!()
                     };
                     for (id, amount) in effects {
-                        records
+                        let record = records
                             .get_mut(id)
-                            .ok_or("Freshness event references unenrolled Memory")?
+                            .ok_or("Freshness event references unenrolled Memory")?;
+                        self.settle_record_for(*id, record, *turn)?;
+                        record
                             .reinforce_with_policy(*amount, *turn, &self.policy)
                             .map_err(|e| e.to_string())?;
                     }
@@ -941,7 +1011,13 @@ impl FreshnessStore {
                     && through >= settlement.settlement_cut
                     && (graph < settlement.memory_graph_version
                         || (through == settlement.settlement_cut
-                            && before.is_some_and(|(id, _)| settlement.superseded.contains(id))))
+                            && before.is_some_and(|(id, _)| {
+                                settlement.superseded.contains(id)
+                                    || settlement
+                                        .semantic
+                                        .as_ref()
+                                        .is_some_and(|scope| scope.accepted_events.contains_key(id))
+                            })))
             }) {
                 return Err(
                     "import settlement cut does not retain an intra-settlement trajectory".into(),
@@ -1000,7 +1076,7 @@ impl FreshnessStore {
                         .map_err(|e| e.to_string())?;
                     admit_index += 1;
                 }
-                let mut accepted_prefixes = BTreeMap::new();
+                let mut absorbed_imports = BTreeMap::new();
                 for (id, amount) in effects {
                     if let Some(settlement) = settled_at.get(id) {
                         // Earlier-cut new receipts are refused at admission.
@@ -1008,17 +1084,15 @@ impl FreshnessStore {
                         if *turn < settlement.settlement_cut {
                             continue;
                         }
-                        if settlement.epoch.is_some() && *turn == settlement.settlement_cut {
-                            let absorbed = if let Some(value) =
-                                accepted_prefixes.get(&settlement.input_bytes)
-                            {
-                                *value
-                            } else {
-                                let value =
-                                    self.event_accepted_through(event_id, settlement.input_bytes)?;
-                                accepted_prefixes.insert(settlement.input_bytes, value);
-                                value
-                            };
+                        if *turn == settlement.settlement_cut {
+                            let absorbed =
+                                if let Some(value) = absorbed_imports.get(&settlement.import_id) {
+                                    *value
+                                } else {
+                                    let value = self.settlement_absorbs_event(settlement, event)?;
+                                    absorbed_imports.insert(settlement.import_id, value);
+                                    value
+                                };
                             if absorbed {
                                 continue;
                             }
@@ -1027,9 +1101,11 @@ impl FreshnessStore {
                     if !self.births.get(id).is_some_and(|(birth, _)| birth <= turn) {
                         return Err("Freshness event precedes accepted Memory birth".into());
                     }
-                    projected
+                    let record = projected
                         .get_mut(id)
-                        .ok_or("Freshness event references unenrolled Memory at cut")?
+                        .ok_or("Freshness event references unenrolled Memory at cut")?;
+                    self.settle_record_for(*id, record, *turn)?;
+                    record
                         .reinforce_with_policy(*amount, *turn, &self.policy)
                         .map_err(|e| e.to_string())?;
                 }
@@ -1077,6 +1153,7 @@ impl FreshnessStore {
             let mut record = *before
                 .get(memory)
                 .ok_or("Freshness event references unenrolled Memory at accepted cut")?;
+            self.settle_record_for(*memory, &mut record, turn)?;
             record
                 .reinforce_with_policy(*amount, turn, &self.policy)
                 .map_err(|e| e.to_string())?;
@@ -1269,6 +1346,49 @@ impl FreshnessStore {
     ) -> Result<Option<FreshnessRecord>, String> {
         Ok(self.records_at_cut(cut)?.get(&id).copied())
     }
+    pub(crate) fn initial_decay_carries(&self) -> Vec<(MemoryId, u64)> {
+        self.rewrite_baselines
+            .keys()
+            .copied()
+            .map(|id| (id, self.initial_decay_carry(id)))
+            .filter(|(_, c)| *c != 0)
+            .collect()
+    }
+    pub(crate) fn initial_decay_carry(&self, id: MemoryId) -> u64 {
+        self.rewrite_baselines
+            .get(&id)
+            .filter(|_| {
+                self.records
+                    .get(&id)
+                    .is_some_and(|r| r.accounted_turn == Some(0))
+            })
+            .map_or(0, |b| b.decay_remainder.saturating_sub(b.destination_cut))
+    }
+    fn settle_record_for(
+        &self,
+        id: MemoryId,
+        record: &mut FreshnessRecord,
+        turn: u64,
+    ) -> Result<(), String> {
+        let carry = self
+            .rewrite_baselines
+            .get(&id)
+            .map_or(0, |b| b.decay_remainder.saturating_sub(b.destination_cut));
+        crate::freshness::settle_with_initial_decay_carry(record, turn, carry, &self.policy)
+            .map(|_| ())
+            .map_err(|e| e.to_string())
+    }
+    pub(crate) fn current_rewrite_record(
+        &self,
+        id: MemoryId,
+        turn: u64,
+    ) -> Option<FreshnessRecord> {
+        let mut record = *self.records.get(&id)?;
+        if self.rewrite_baselines.contains_key(&id) {
+            self.settle_record_for(id, &mut record, turn).ok()?;
+        }
+        Some(record)
+    }
     pub(crate) fn records_at(
         &self,
         turn: u64,
@@ -1289,12 +1409,8 @@ impl FreshnessStore {
             cut.graph_version,
             &[],
         )?;
-        for record in out.values_mut() {
-            if record.admitted_at_turn.is_some() {
-                record
-                    .settle_with_policy(cut.rel_turn, &self.policy)
-                    .map_err(|e| e.to_string())?;
-            }
+        for (id, record) in &mut out {
+            self.settle_record_for(*id, record, cut.rel_turn)?;
         }
         Ok(out)
     }
@@ -1304,8 +1420,21 @@ impl FreshnessStore {
                 "historical import settlement conversion/reconciliation is unsupported".into(),
             );
         }
+        self.retained_history_entries()
+    }
+    /// Accepted enrollment and journal evidence, without flattening settled
+    /// historical projections into invented events.
+    pub(crate) fn retained_history_entries(&self) -> Result<Vec<FreshnessReplayEntry>, String> {
         let mut out = Vec::new();
+        for baseline in self.rewrite_baselines.values() {
+            out.push(FreshnessReplayEntry::RewriteBaseline {
+                baseline: baseline.clone(),
+            });
+        }
         for (id, (turn, record)) in &self.births {
+            if self.rewrite_baselines.contains_key(id) {
+                continue;
+            }
             out.push(FreshnessReplayEntry::Initialize {
                 memory_id: *id,
                 source_turn: *turn,

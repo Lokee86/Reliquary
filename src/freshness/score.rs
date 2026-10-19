@@ -195,6 +195,32 @@ impl FreshnessRecord {
     }
 }
 
+/// Apply a rewrite's inherited partial first interval without negative clock
+/// anchors. Once materialized, ordinary unsigned anchors resume.
+pub(crate) fn settle_with_initial_decay_carry(
+    record: &mut FreshnessRecord,
+    turn: u64,
+    carry: u64,
+    policy: &FreshnessPolicy,
+) -> Result<i16, FreshnessError> {
+    if carry != 0 && record.accounted_turn == Some(0) {
+        let virtual_turn = turn
+            .checked_add(carry)
+            .ok_or(FreshnessError::ArithmeticOverflow)?;
+        record.settle_with_policy(virtual_turn, policy)?;
+        if let Some(accounted) = record.accounted_turn.filter(|at| *at > 0) {
+            record.accounted_turn = Some(
+                accounted
+                    .checked_sub(carry)
+                    .ok_or(FreshnessError::ArithmeticOverflow)?,
+            );
+        }
+        Ok(record.score)
+    } else {
+        record.settle_with_policy(turn, policy)
+    }
+}
+
 const fn state_for(score: i16) -> FreshnessState {
     match score {
         1..=100 => FreshnessState::Fresh,
@@ -255,6 +281,13 @@ pub struct FreshnessBoundaryIndex {
 }
 
 impl FreshnessBoundaryIndex {
+    pub(crate) fn replace_boundary(&mut self, memory: crate::MemoryId, boundary: Option<u64>) {
+        self.remove(memory);
+        if let Some(turn) = boundary {
+            self.due.entry(turn).or_default().insert(memory);
+            self.by_memory.insert(memory, turn);
+        }
+    }
     pub fn insert(
         &mut self,
         memory: crate::MemoryId,

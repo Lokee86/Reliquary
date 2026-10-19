@@ -35,9 +35,6 @@ impl ImportEpochStore {
             }
             let position =
                 position.ok_or(ImportError::Epoch("legacy frame lacks physical position"))?;
-            if frame.source_prefix_len != position.offset() {
-                return Err(ImportError::Epoch("legacy frame prefix boundary mismatch"));
-            }
             self.legacy_frames.push((frame, position));
             return Ok(());
         }
@@ -80,6 +77,36 @@ impl ImportEpochStore {
         for (frame, marker) in &self.legacy_frames {
             if Some(frame.owner_uuid) != container.owner_uuid() {
                 return Err(ImportError::Epoch("legacy epoch owner mismatch"));
+            }
+            let mut normalized = false;
+            container.visit_payloads::<ImportError>(|_, payload| {
+                if payload.starts_with(b"CVAFRS06") {
+                    let value =
+                        crate::freshness_storage::HistoricalImportFreshnessSettlement::decode(
+                            payload,
+                        )
+                        .map_err(|_| ImportError::Epoch("invalid semantic successor"))?;
+                    if value.owner == frame.owner_uuid
+                        && value.import_id == frame.import_id
+                        && value
+                            .semantic
+                            .as_ref()
+                            .and_then(|scope| scope.predecessor_digest)
+                            .is_some_and(|digest| {
+                                digest
+                                    .iter()
+                                    .map(|b| format!("{b:02x}"))
+                                    .collect::<String>()
+                                    == frame.source_settlement_digest
+                            })
+                    {
+                        normalized = true;
+                    }
+                }
+                Ok(())
+            })?;
+            if normalized {
+                continue;
             }
             let prefix = hash_file_prefix(container.path(), frame.source_prefix_len)?;
             if prefix != frame.source_prefix_digest {

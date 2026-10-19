@@ -26,7 +26,26 @@ pub fn run(command: RelCommand) -> Result<()> {
             keep_profile,
             prune_retired,
             reclaim,
-        } => crate::repair_cmd::run(&source, &output, &keep_profile, prune_retired, reclaim)?,
+        } => crate::repair_cmd::run_rel(&source, &output, &keep_profile, prune_retired, reclaim)?,
+        RelCommand::Rewrite {
+            source,
+            output,
+            dry_run,
+            policy_file,
+            profiles,
+            include_memories,
+            exclude_memories,
+        } => {
+            crate::rewrite_cmd::run_rel(
+                &source,
+                &output,
+                dry_run,
+                policy_file.as_deref(),
+                &profiles,
+                &include_memories,
+                &exclude_memories,
+            )?;
+        }
         RelCommand::Verify { path } => {
             let rel = Reliquary::open(&path)?;
             let metadata = rel.rel_metadata();
@@ -123,6 +142,13 @@ fn info(path: &std::path::Path) -> Result<()> {
         bindings.objects, bindings.rows
     );
     println!("compatibility_profiles: {}", profiles.profiles);
+    for profile in rel.active_memory_compatibility_profiles() {
+        println!(
+            "active_memory: profile={} dimensions={}",
+            hex32(&profile.id.0),
+            profile.dimensions
+        );
+    }
     println!(
         "vector_generations: total={} active_profiles={}",
         generations.generations, generations.active_profiles

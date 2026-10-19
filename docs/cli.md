@@ -30,11 +30,15 @@ reliquary
 │   ├── create [--type LABEL]
 │   ├── info
 │   ├── verify
+│   ├── repair <source> <output> --keep-profile ID [--keep-profile ID ...]
+│   ├── rewrite <source> <output> [--dry-run] [--policy-file JSON]
 │   └── reclaim <path> <output>  (alias: vacuum)
 ├── phy
 │   ├── create
 │   ├── info
 │   ├── verify
+│   ├── repair <source> <output> --keep-profile ID [--keep-profile ID ...]
+│   ├── rewrite <source> <output> [--dry-run] [--policy-file JSON]
 │   └── reclaim <path> <output>  (alias: vacuum)
 ├── migrate <source> <output>
 ├── migrate-conversation-titles <canonical_conversations.csv[.gz]> <rel>
@@ -83,6 +87,10 @@ The global `--config` option defaults to `reliquary.cfg` in the current director
 
 `phy create <path>` creates a user-global Phylactery, which remains a distinct file kind from Reliquary. `phy info` reports `kind: phylactery` plus Memory, Graph, packed-vector, Memory-vector, and compatibility-profile state. `phy verify` performs a normal `Phylactery::open`, including exact file-kind validation, rejection of REL-local Memory provenance, structural validation of optional external `MemorySourceRef`, Graph endpoint/global-version validation, and vector/profile reference validation. PHY has no `--scope` option.
 
+`rel repair <source> <output> --keep-profile ID` and its PHY counterpart build and validate a disposable copy. Repeat `--keep-profile` to retain multiple profiles; every requested profile must exist, remain active and cover the current owner data. Other profiles are retired. REL repair normalizes supported legacy import settlements on the working copy before pruning. `--prune-retired` asks the owner to authenticate and remove eligible retired packed-vector payload through a transformed copy, and `--reclaim` then compacts ordinary unreachable storage. Both commands refuse an existing output and never mutate the source.
+
+`rel rewrite <source> <output>` and `phy rewrite <source> <output>` plan or execute an intentional fresh-history rebuild. `--dry-run` is read-only and prints the resolved plan; execution requires a new output path and revalidates the source snapshot before publishing. `--policy-file` loads a strict JSON `RewriteRequest` using `identity`, `memories`, `profiles`, `freshness`, `archive`, `provenance`, and optional `include_rel_ego_synthesis` fields. Memory and profile IDs use 64 hexadecimal characters. Repeated `--profile`, `--include-memory`, and `--exclude-memory` options replace those respective policy selections. REL accepts Archive/provenance policy; PHY rejects Archive-only settings. The library planner reports selection reasons, profile coverage and source/policy digests before execution; unsupported policy combinations fail before output creation.
+
 `rel reclaim <path> <output>` and `phy reclaim <path> <output>` (also exposed as `vacuum`) write a separate compacted file and never replace the source. The library computes conservative reachability over never-published/staged backing data and explicit compaction free extents, relocates physical version references, syncs the output, and reopens it through normal REL/PHY validation before reporting success. Published semantic history is not retention-pruned by this command.
 
 `migrate <source> <output>` auto-detects a legacy 16-byte Project CVA or earlier 24-byte typed REL/PHY and semantically repacks it into a new 40-byte identified file. The source is never replaced in place. When an old REL contains `WorkspaceMetadata.id`, migration derives the new UUID deterministically from that ID so independently diverged copies retain the same logical owner identity; otherwise a new UUID is generated. Legacy WorkspaceMetadata itself is not copied into the output.
@@ -108,6 +116,12 @@ cargo test --manifest-path cli/Cargo.toml --locked
 ```
 
 Repository verification also performs command-level smoke tests for REL create/info/verify and PHY create/info/verify, graph import/archive inspection, simulated profile/vector/search execution, and config show/verify without installing the binary.
+
+## Decision model configuration
+
+`config model set-general-decision --model MODEL --url URL --credential ID` sets the shared decision-service route. `config model clear-general-decision` removes it; `config show` displays its model, URL and credential ID without secrets. The credential must already exist as an API key.
+
+`set-entity-resolution-decision` / `clear-entity-resolution-decision` and `set-memory-retrieval-decision` / `clear-memory-retrieval-decision` use the same flags and control specialized overrides. Each decision consumer selects specialized → shared `general_decision` → adapted `general`. This is configuration precedence; a failed selected endpoint does not cause another tier to be tried. General-model choice output supplies no calibrated probabilities, so Entity Resolution retains its separate resolver fallback and its existing resolver-route prerequisite. See [Local configuration](configuration.md#modelsgeneral_decision).
 
 ## Related docs
 

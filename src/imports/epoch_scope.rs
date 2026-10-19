@@ -25,6 +25,99 @@ pub(crate) struct ImportEpochScope {
 }
 
 impl Cva {
+    pub(crate) fn validate_semantic_import_scope(
+        &mut self,
+        settlement: &crate::freshness_storage::HistoricalImportFreshnessSettlement,
+        scope: &crate::freshness_storage::ImportSemanticScope,
+    ) -> Result<(), CvaError> {
+        let fail = |message: &str| CvaError::Freshness(message.into());
+        if self.owner_uuid() != Some(scope.owner) {
+            return Err(fail("semantic import owner mismatch"));
+        }
+        let id: String = scope.import_id.iter().map(|b| format!("{b:02x}")).collect();
+        let start = match self.import_epoch_status(&id) {
+            Some(super::ImportEpochStatus::Open(start))
+            | Some(super::ImportEpochStatus::Completed { start, .. }) => start,
+            None => {
+                // Explicit initial-history settlement, including a normalized
+                // legacy predecessor. It cannot impersonate a later epoch.
+                if scope.base_cut != 0 || scope.born_memories != settlement.cohort {
+                    return Err(fail(
+                        "unframed semantic settlement is not an initial history",
+                    ));
+                }
+                return Ok(());
+            }
+        };
+        let digest: [u8; 32] = Sha256::digest(super::epoch_codec::encode_start(&start)?).into();
+        let base = self
+            .activity_cut_at_archive_version(start.pre.archive_version)
+            .map_err(|e| fail(&e.to_string()))?;
+        let receipt = self
+            .archive
+            .import_receipts
+            .get(&start.import_key)
+            .ok_or_else(|| fail("semantic settlement import receipt missing"))?;
+        let sources: BTreeSet<_> = receipt
+            .conversations
+            .iter()
+            .flat_map(|c| {
+                c.messages.iter().filter_map(|m| {
+                    m.node_id
+                        .as_ref()
+                        .map(|n| (c.conversation_id.clone(), n.clone()))
+                })
+            })
+            .collect();
+        if scope.start_evidence_digest != digest
+            || scope.base_cut != base
+            || scope.source_nodes != sources
+        {
+            return Err(fail("semantic import start/source evidence mismatch"));
+        }
+        let mut births = BTreeSet::new();
+        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
+        scan.visit_payloads::<CvaError>(|_, payload| {
+            if let Some(completion) =
+                crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
+            {
+                let Some(episode) = self.archive.episodes.get(completion.episode_id).cloned()
+                else {
+                    return Ok(());
+                };
+                if episode.origin != EpisodeOrigin::Import
+                    || !episode_matches_source(self, &episode, &sources)?
+                {
+                    return Ok(());
+                }
+                for id in completion.freshness_birth_memory_ids {
+                    let record = completion
+                        .records
+                        .iter()
+                        .find(|r| r.id == id)
+                        .ok_or_else(|| fail("semantic import birth lacks publication record"))?;
+                    if record.global_version > start.pre.global_version
+                        && record.global_version <= settlement.global_version
+                    {
+                        if record.revision != 1
+                            || record.source_episode_id != Some(episode.id)
+                            || self.memories.first_mutation_id(id)
+                                != Some(record.mutation_id.as_str())
+                        {
+                            return Err(fail("semantic import birth publication conflicts"));
+                        }
+                        births.insert(id);
+                    }
+                }
+            }
+            Ok(())
+        })?;
+        if births != scope.born_memories {
+            return Err(fail("semantic import birth cohort mismatch"));
+        }
+        Ok(())
+    }
+
     pub(crate) fn validate_import_settlement_scope(
         &mut self,
         replay: &crate::freshness_storage::ImportEventScope,

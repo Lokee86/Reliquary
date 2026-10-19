@@ -1,0 +1,320 @@
+{
+  "schema": 1,
+  "step": 62,
+  "date": "2026-10-18",
+  "fixture_root": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative",
+  "authoritative_sources_unchanged": true,
+  "authoritative_hashes": {
+    "chatgpt-first14d/project.prj.rel": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+    "chatgpt-first14d/user.phy": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+    "chatgpt-first28d/project.prj.rel": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+    "chatgpt-first28d/user.phy": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+    "rhelm-david-r-ellis-pre-relationship/project.prj.rel": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+    "rhelm-david-r-ellis-pre-relationship/user.phy": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937"
+  },
+  "zero_profile_all_current": {
+    "total_source_bytes": 138196316,
+    "total_destination_bytes": 53058468,
+    "total_reduction_percent": 61.606,
+    "records": [
+      {
+        "fixture": "chatgpt-first14d",
+        "kind": "rel",
+        "source_bytes": 31853182,
+        "destination_bytes": 13426230,
+        "reduction_percent": 57.85,
+        "current_memories": [
+          1123,
+          1123
+        ],
+        "memory_revisions": [
+          3348,
+          1123
+        ],
+        "memory_bodies": [
+          1120,
+          1120
+        ],
+        "active_graph_relations": [
+          11670,
+          11670
+        ],
+        "packed_vector_rows": [
+          3260,
+          0
+        ],
+        "compatibility_profiles": [
+          2,
+          0
+        ],
+        "verified": true
+      },
+      {
+        "fixture": "chatgpt-first14d",
+        "kind": "phy",
+        "source_bytes": 814287,
+        "destination_bytes": 156355,
+        "reduction_percent": 80.799,
+        "current_memories": [
+          108,
+          108
+        ],
+        "memory_revisions": [
+          421,
+          108
+        ],
+        "memory_bodies": [
+          108,
+          108
+        ],
+        "active_graph_relations": [
+          1101,
+          1101
+        ],
+        "packed_vector_rows": [
+          107,
+          0
+        ],
+        "compatibility_profiles": [
+          1,
+          0
+        ],
+        "verified": true
+      },
+      {
+        "fixture": "chatgpt-first28d",
+        "kind": "rel",
+        "source_bytes": 80056100,
+        "destination_bytes": 32743366,
+        "reduction_percent": 59.099,
+        "current_memories": [
+          2847,
+          2847
+        ],
+        "memory_revisions": [
+          5727,
+          2847
+        ],
+        "memory_bodies": [
+          2803,
+          2803
+        ],
+        "active_graph_relations": [
+          36405,
+          36405
+        ],
+        "packed_vector_rows": [
+          8457,
+          0
+        ],
+        "compatibility_profiles": [
+          4,
+          0
+        ],
+        "verified": true
+      },
+      {
+        "fixture": "chatgpt-first28d",
+        "kind": "phy",
+        "source_bytes": 1840755,
+        "destination_bytes": 394655,
+        "reduction_percent": 78.56,
+        "current_memories": [
+          246,
+          246
+        ],
+        "memory_revisions": [
+          490,
+          246
+        ],
+        "memory_bodies": [
+          243,
+          243
+        ],
+        "active_graph_relations": [
+          2569,
+          2569
+        ],
+        "packed_vector_rows": [
+          241,
+          0
+        ],
+        "compatibility_profiles": [
+          1,
+          0
+        ],
+        "verified": true
+      },
+      {
+        "fixture": "rhelm-david-r-ellis-pre-relationship",
+        "kind": "rel",
+        "source_bytes": 19561460,
+        "destination_bytes": 5410735,
+        "reduction_percent": 72.34,
+        "current_memories": [
+          725,
+          725
+        ],
+        "memory_revisions": [
+          1452,
+          725
+        ],
+        "memory_bodies": [
+          725,
+          725
+        ],
+        "active_graph_relations": [
+          10044,
+          10044
+        ],
+        "packed_vector_rows": [
+          2399,
+          0
+        ],
+        "compatibility_profiles": [
+          2,
+          0
+        ],
+        "verified": true
+      },
+      {
+        "fixture": "rhelm-david-r-ellis-pre-relationship",
+        "kind": "phy",
+        "source_bytes": 4070532,
+        "destination_bytes": 927127,
+        "reduction_percent": 77.223,
+        "current_memories": [
+          511,
+          511
+        ],
+        "memory_revisions": [
+          976,
+          511
+        ],
+        "memory_bodies": [
+          510,
+          510
+        ],
+        "active_graph_relations": [
+          6855,
+          6855
+        ],
+        "packed_vector_rows": [
+          463,
+          0
+        ],
+        "compatibility_profiles": [
+          1,
+          0
+        ],
+        "verified": true
+      }
+    ]
+  },
+  "profile_preserving_rel": {
+    "total_source_bytes": 131470742,
+    "total_destination_bytes": 88861871,
+    "total_reduction_percent": 32.409,
+    "records": [
+      {
+        "fixture": "chatgpt-first14d",
+        "profile": "38b2c3d1ded65fdbc2a76086f1d2875c03eb4470afa63de8bbd0689cbf51c266",
+        "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+        "destination_sha256": "dcef4eb6d9ff7f4b87249a3c67697f3b89c53d64b066cad8a1b8cfd7db5559e3",
+        "source_bytes": 31853182,
+        "destination_bytes": 22380386,
+        "reduction_percent": 29.739,
+        "current_memories": [
+          1123,
+          1123
+        ],
+        "memory_revisions": [
+          3348,
+          1123
+        ],
+        "source_all_profile_packed_rows": 3260,
+        "destination_packed_rows": 2165,
+        "destination_memory_vector_rows": 1120,
+        "destination_archive_vector_rows": 1045,
+        "destination_matrix_bytes": 8867840,
+        "destination_profiles": 1,
+        "verified": true
+      },
+      {
+        "fixture": "chatgpt-first28d",
+        "profile": "e012fa5173c94058e83749208bd3250628a4d533d01d96fe711c86a813c14258",
+        "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+        "destination_sha256": "f12d8faba2c1c21cfc304f327574741a7614b084a5c76c35db8598fb3815a8b1",
+        "source_bytes": 80056100,
+        "destination_bytes": 56005170,
+        "reduction_percent": 30.043,
+        "current_memories": [
+          2847,
+          2847
+        ],
+        "memory_revisions": [
+          5727,
+          2847
+        ],
+        "source_all_profile_packed_rows": 8457,
+        "destination_packed_rows": 5631,
+        "destination_memory_vector_rows": 2803,
+        "destination_archive_vector_rows": 2828,
+        "destination_matrix_bytes": 23064576,
+        "destination_profiles": 1,
+        "verified": true
+      },
+      {
+        "fixture": "rhelm-david-r-ellis-pre-relationship",
+        "profile": "3aad70f4c0083a74be98cc41b51515559c7ed26669597641e562299424ddcd82",
+        "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+        "destination_sha256": "d08a66b9e42f258ea9bd39dd52cc0817daf9bedb27fd3fc692bef825c00915c5",
+        "source_bytes": 19561460,
+        "destination_bytes": 10476315,
+        "reduction_percent": 46.444,
+        "current_memories": [
+          725,
+          725
+        ],
+        "memory_revisions": [
+          1452,
+          725
+        ],
+        "source_all_profile_packed_rows": 2399,
+        "destination_packed_rows": 1223,
+        "destination_memory_vector_rows": 725,
+        "destination_archive_vector_rows": 498,
+        "destination_matrix_bytes": 5009408,
+        "destination_profiles": 1,
+        "verified": true
+      }
+    ]
+  },
+  "retrieval": {
+    "rhelm-david-r-ellis-pre-relationship": {
+      "gold_cases": 27,
+      "exact_case_results_identical": true,
+      "community_count_identical": true,
+      "hybrid": {
+        "source_mrr_at_10": 0.39150499706055264,
+        "destination_mrr_at_10": 0.39150499706055264,
+        "delta": 0
+      },
+      "community_routed": {
+        "source_mrr_at_10": 0.1781305114638448,
+        "destination_mrr_at_10": 0.1781305114638448,
+        "delta": 0
+      }
+    },
+    "chatgpt-first14d": {
+      "measured": false,
+      "reason": "No maintained gold retrieval oracle exists for this authoritative fixture."
+    },
+    "chatgpt-first28d": {
+      "measured": false,
+      "reason": "No maintained gold retrieval oracle exists for this authoritative fixture."
+    }
+  },
+  "phy_profile_note": "The three authoritative PHY fixtures contain compatibility profile/vector state but expose no complete active_memory profile. Step 62 therefore records their supported zero-profile all-current rewrites rather than claiming profile-preserving retrieval parity.",
+  "interpretation": "All-current fresh-history rewrite preserved current Memory counts and active Graph relation counts. Current-only history collapsed Memory revision history. Zero-profile rewrites intentionally omitted all vector/profile state. REL profile-preserving rewrites retained exactly one selected active profile and compacted vector rows to retained current Memory bodies plus retained Archive fragments."
+}

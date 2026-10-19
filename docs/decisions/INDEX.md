@@ -1,5 +1,6 @@
 # Architectural Decisions
 
+- [ADR 0041: Semantic import boundaries, owner-neutral pruning, and explicit history rewrite](0041-semantic-import-boundaries-owner-pruning-history-rewrite.md) — **Accepted direction; staged implementation**, 2026-10-18.
 - [ADR 0040: Terminal tombstones, import epochs and explicit history pruning](0040-terminal-tombstones-and-import-epochs.md) — **Accepted direction; staged implementation**, 2026-10-17.
 
 - [ADR 0001: Purpose-built database ownership](0001-purpose-built-database-ownership.md) — **Accepted**, 2026-08-14.

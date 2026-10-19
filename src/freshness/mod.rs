@@ -20,6 +20,7 @@ pub use propagation::{
     PropagationStats, default_worker_count, propagate, propagate_events_with_policy,
     propagate_with_policy, propagate_with_policy_and_stats, propagate_with_stats,
 };
+pub(crate) use score::settle_with_initial_decay_carry;
 pub use score::{
     FreshnessBoundaryIndex, FreshnessError, FreshnessRecord, FreshnessState, next_state_boundary,
     next_state_boundary_with_policy,

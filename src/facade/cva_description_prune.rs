@@ -1,6 +1,6 @@
 //! Retention proofs for terminal Entity and Relationship descriptions.
-use crate::history_prune_manifest::*;
 use crate::owner_lifecycle::LifecycleTarget;
+use crate::owner_maintenance::*;
 use crate::{Cva, CvaError};
 use sha2::{Digest, Sha256};
 impl Cva {
@@ -122,7 +122,7 @@ impl Cva {
         let invalid =
             || CvaError::Repack("pruned description lacks exact terminal owner evidence".into());
         let mut authorized = std::collections::BTreeSet::new();
-        for (digest, manifest) in self.archive.prune.manifests() {
+        for (digest, manifest) in self.owner_maintenance.manifests() {
             for descriptor in &manifest.descriptors {
                 let id: [u8; 32] = match descriptor.target.domain {
                     RetentionDomain::Entity | RetentionDomain::Relationship => descriptor

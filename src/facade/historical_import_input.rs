@@ -508,10 +508,27 @@ pub(super) fn validate_settlement(
     {
         return Err(fail("import checkpoint input cut is unavailable"));
     }
+    if let Some(scope) = &cp.semantic {
+        cp.validate().map_err(CvaError::Freshness)?;
+        cva.validate_semantic_import_scope(cp, scope)?;
+        cva.freshness
+            .validate_semantic_import_evidence(scope)
+            .map_err(CvaError::Freshness)?;
+        let import_id: String = cp
+            .import_id
+            .iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect();
+        if cva.import_epoch_status(&import_id).is_some() {
+            return Ok(());
+        }
+        // An initial unframed V6 settlement retains the same exact publication
+        // cohort and birth-proof requirements as its persisted predecessors.
+    }
     if let Some(scope) = &cp.epoch {
         cp.validate().map_err(CvaError::Freshness)?;
         cva.validate_import_settlement_scope(scope)?;
-        if super::immutable_prefix_digest(cva.container.path(), cp.input_bytes)?
+        if super::legacy_immutable_prefix_digest(cva.container.path(), cp.input_bytes)?
             != cp.epoch_prefix_digest
         {
             return Err(fail("import settlement immutable prefix evidence mismatch"));

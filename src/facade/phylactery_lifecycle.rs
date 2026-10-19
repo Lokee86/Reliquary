@@ -63,6 +63,8 @@ impl Phylactery {
     }
 
     fn initialize(mut container: Container) -> Result<Self, PhylacteryError> {
+        let owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
+        let rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let memories = MemoryStore::empty();
         let lexical_index = LexicalIndex::default();
         let mut graph = GraphStore::empty();
@@ -88,6 +90,8 @@ impl Phylactery {
         container.sync()?;
 
         Ok(Self {
+            owner_maintenance,
+            rewrite_lineage,
             container,
             memories,
             lexical_index,
@@ -108,6 +112,9 @@ impl Phylactery {
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
+        let lineage_owner = Container::open_read_only_for_scan(path.as_ref())?.owner_uuid();
+        let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
+        let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut memory_state = MemoryOpenState::new();
         let mut graph_state = GraphOpenState::new();
         let mut community_state = CommunityOpenState::new();
@@ -123,20 +130,19 @@ impl Phylactery {
         let mut relationship_state = RelationshipOpenState::new();
 
         let container = Container::open_scanned(path, |chunk, payload, latest_global| {
-            reject_rel_only_payload(payload)?;
-            if [
-                b"CVAMPRN1".as_slice(),
-                b"CVAEPRN1",
-                b"CVARPRN1",
-                b"CVAPVRN1",
-            ]
-            .iter()
-            .any(|magic| payload.starts_with(magic))
-            {
+            if let Some(owner_uuid) = lineage_owner {
+                rewrite_lineage
+                    .ingest(payload, owner_uuid)
+                    .map_err(PhylacteryError::Repack)?;
+            } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
                 return Err(PhylacteryError::Repack(
-                    "pruned PHY payload requires validated PHY maintenance evidence".into(),
+                    "RewriteGenesis requires a versioned owner identity".into(),
                 ));
             }
+            reject_rel_only_payload(payload)?;
+            owner_maintenance
+                .ingest(payload)
+                .map_err(PhylacteryError::Repack)?;
             memory_state.ingest(chunk, payload, latest_global)?;
             graph_state.ingest(chunk, payload, latest_global)?;
             entity_state.ingest(chunk, payload, latest_global)?;
@@ -187,6 +193,8 @@ impl Phylactery {
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         let graph = graph_state.finish(&memories, &entities)?;
+        graph
+            .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
         validate_global_versions(&memories, &entities, &relationships, &graph)?;
         let packed_vectors = packed_state.finish()?;
@@ -203,7 +211,9 @@ impl Phylactery {
             container.sync()?;
         }
 
-        Ok(Self {
+        let mut result = Self {
+            owner_maintenance,
+            rewrite_lineage,
             container,
             memories,
             lexical_index,
@@ -220,7 +230,9 @@ impl Phylactery {
             entities,
             entity_resolutions,
             relationships,
-        })
+        };
+        result.validate_prune_evidence()?;
+        Ok(result)
     }
 }
 

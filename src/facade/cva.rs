@@ -30,6 +30,8 @@ use crate::{
 };
 
 pub struct Cva {
+    pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
+    pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
     pub(crate) external_index: crate::external_source::store::ExternalIndexStore,
     pub(crate) container: Container,
     pub(crate) archive: Archive,

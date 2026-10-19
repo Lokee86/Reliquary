@@ -222,7 +222,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     if digest(fixture)? != *expected_hash {
         return Err("fixture hash mismatch".into());
     }
-    let scratch = std::env::temp_dir().join(format!("ellis-retrieval-{}", uuid::Uuid::new_v4()));
+    let scratch_root = std::env::var_os("RELIQUARY_EXPERIMENT_TEMP")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| Path::new(".test-tmp").to_path_buf());
+    fs::create_dir_all(&scratch_root)?;
+    let scratch = scratch_root.join(format!("ellis-retrieval-{}", uuid::Uuid::new_v4()));
     fs::create_dir(&scratch)?;
     let copy = scratch.join("owner.rel");
     fs::copy(fixture, &copy)?;

@@ -203,6 +203,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             {
                 use crate::freshness_storage::FreshnessReplayEntry as E;
                 match &mut event {
+                    E::RewriteBaseline { .. } => {}
                     E::Initialize { source_turn, .. }
                     | E::Admit { source_turn, .. }
                     | E::AcceptedUseReceipt { source_turn, .. } => *source_turn = 0,
@@ -305,7 +306,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             }
             continue;
         }
-        if payload.starts_with(b"CVAFRS05") {
+        if payload.starts_with(b"CVAFRS05") || payload.starts_with(b"CVAFRS06") {
             HistoricalImportFreshnessSettlement::decode(&payload)
                 .map_err(crate::CvaError::Freshness)?;
             continue;
@@ -422,16 +423,16 @@ fn same_authority(a: &CompletedEpoch, b: &CompletedEpoch) -> bool {
     a.settlement.cohort == b.settlement.cohort
         && a.settlement.superseded == b.settlement.superseded
         && records(&a.settlement) == records(&b.settlement)
-        && a.settlement.epoch.as_ref().unwrap().affected_recipients
-            == b.settlement.epoch.as_ref().unwrap().affected_recipients
+        && a.settlement.scope_identity().unwrap().affected_recipients
+            == b.settlement.scope_identity().unwrap().affected_recipients
         && a.complete.owner_uuid == b.complete.owner_uuid
         && a.complete.import_id == b.complete.import_id
         && a.complete.receipt_digest == b.complete.receipt_digest
         && a.complete.completed_at_ns == b.complete.completed_at_ns
-        && a.settlement.epoch.as_ref().unwrap().source_nodes
-            == b.settlement.epoch.as_ref().unwrap().source_nodes
-        && a.settlement.epoch.as_ref().unwrap().born_memories
-            == b.settlement.epoch.as_ref().unwrap().born_memories
+        && a.settlement.scope_identity().unwrap().source_nodes
+            == b.settlement.scope_identity().unwrap().source_nodes
+        && a.settlement.scope_identity().unwrap().born_memories
+            == b.settlement.scope_identity().unwrap().born_memories
 }
 
 fn physical_boundary(cva: &mut Cva, common: usize) -> Result<usize, CvaReconcileError> {

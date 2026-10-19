@@ -19,8 +19,20 @@ pub(crate) struct HistoricalImportFreshnessScope {
     pub settlement_cut: u64,
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ImportScopeIdentity {
+    pub owner: [u8; 16],
+    pub import_id: [u8; 32],
+    pub start_evidence_digest: [u8; 32],
+    pub base_cut: u64,
+    pub born_memories: BTreeSet<MemoryId>,
+    pub affected_recipients: BTreeSet<MemoryId>,
+    pub source_nodes: BTreeSet<(String, String)>,
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct HistoricalImportFreshnessSettlement {
+    /// Physical scope is read-only persisted-format compatibility evidence.
     pub epoch: Option<super::ImportEventScope>,
+    pub semantic: Option<super::semantic_settlement::ImportSemanticScope>,
     pub epoch_prefix_digest: [u8; 32],
     pub owner: [u8; 16],
     pub import_id: [u8; 32],
@@ -125,6 +137,7 @@ mod tests {
         let corpus_digest = [3; 32];
         let cp = HistoricalImportFreshnessSettlement {
             epoch: None,
+            semantic: None,
             epoch_prefix_digest: [0; 32],
             owner,
             import_id: [6; 32],
@@ -233,6 +246,7 @@ mod tests {
             .unwrap();
         let second = HistoricalImportFreshnessSettlement {
             epoch: None,
+            semantic: None,
             epoch_prefix_digest: [0; 32],
             owner: first.owner,
             import_id: [9; 32],
@@ -332,6 +346,7 @@ mod tests {
             .unwrap();
         let first = HistoricalImportFreshnessSettlement {
             epoch: None,
+            semantic: None,
             epoch_prefix_digest: [0; 32],
             owner,
             import_id: [24; 32],
@@ -360,6 +375,7 @@ mod tests {
             .unwrap();
         let second = HistoricalImportFreshnessSettlement {
             epoch: None,
+            semantic: None,
             epoch_prefix_digest: [0; 32],
             owner,
             import_id: [29; 32],
@@ -541,6 +557,74 @@ mod tests {
     }
 }
 impl HistoricalImportFreshnessSettlement {
+    pub(crate) fn as_semantic(
+        &self,
+        scope: super::semantic_settlement::ImportSemanticScope,
+    ) -> super::semantic_settlement::SemanticImportFreshnessSettlement {
+        super::semantic_settlement::SemanticImportFreshnessSettlement {
+            scope,
+            corpus_digest: self.corpus_digest,
+            manifest_digest: self.manifest_digest,
+            input_digest: self.input_digest,
+            global_version: self.global_version,
+            archive_version: self.archive_version,
+            graph_version: self.graph_version,
+            memory_graph_version: self.memory_graph_version,
+            cohort: self.cohort.clone(),
+            records: self.records.clone(),
+        }
+    }
+    pub(crate) fn from_semantic(
+        value: super::semantic_settlement::SemanticImportFreshnessSettlement,
+    ) -> Self {
+        let scope = value.scope;
+        Self {
+            owner: scope.owner,
+            import_id: scope.import_id,
+            start_evidence_digest: scope.start_evidence_digest,
+            base_cut: scope.base_cut,
+            settlement_cut: scope.settlement_cut,
+            superseded: scope.superseded.clone(),
+            epoch: None,
+            epoch_prefix_digest: [0; 32],
+            input_bytes: 0,
+            semantic: Some(scope),
+            corpus_digest: value.corpus_digest,
+            manifest_digest: value.manifest_digest,
+            input_digest: value.input_digest,
+            global_version: value.global_version,
+            archive_version: value.archive_version,
+            graph_version: value.graph_version,
+            memory_graph_version: value.memory_graph_version,
+            cohort: value.cohort,
+            records: value.records,
+        }
+    }
+    pub(crate) fn scope_identity(&self) -> Option<ImportScopeIdentity> {
+        if let Some(scope) = &self.semantic {
+            return Some(ImportScopeIdentity {
+                owner: scope.owner,
+                import_id: scope.import_id,
+                start_evidence_digest: scope.start_evidence_digest,
+                base_cut: scope.base_cut,
+                born_memories: scope.born_memories.clone(),
+                affected_recipients: scope.affected_recipients.clone(),
+                source_nodes: scope.source_nodes.clone(),
+            });
+        }
+        self.epoch.as_ref().map(|scope| ImportScopeIdentity {
+            owner: scope.owner,
+            import_id: scope.import_id,
+            start_evidence_digest: scope.start_evidence_digest,
+            base_cut: scope.base_cut,
+            born_memories: scope.born_memories.clone(),
+            affected_recipients: scope.affected_recipients.clone(),
+            source_nodes: scope.source_nodes.clone(),
+        })
+    }
+    pub(crate) fn is_scoped(&self) -> bool {
+        self.semantic.is_some() || self.epoch.is_some()
+    }
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn from_import_scope(
         scope: HistoricalImportFreshnessScope,
@@ -558,6 +642,7 @@ impl HistoricalImportFreshnessSettlement {
     ) -> Self {
         Self {
             epoch: None,
+            semantic: None,
             epoch_prefix_digest: [0; 32],
             owner: scope.owner,
             import_id: scope.import_id,
@@ -579,6 +664,15 @@ impl HistoricalImportFreshnessSettlement {
     }
 
     pub(crate) fn encode(&self) -> Vec<u8> {
+        if let Some(scope) = &self.semantic {
+            return self
+                .as_semantic(scope.clone())
+                .encode()
+                .expect("validated semantic settlement");
+        }
+        self.encode_compatibility()
+    }
+    fn encode_compatibility(&self) -> Vec<u8> {
         let mut out = if self.epoch.is_some() {
             EPOCH_SETTLEMENT_MAGIC
         } else {
@@ -635,6 +729,11 @@ impl HistoricalImportFreshnessSettlement {
         out
     }
     pub(crate) fn decode(payload: &[u8]) -> Result<Self, String> {
+        if payload.starts_with(super::semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC) {
+            let value =
+                super::semantic_settlement::SemanticImportFreshnessSettlement::decode(payload)?;
+            return Ok(Self::from_semantic(value));
+        }
         let epoch_format = payload.starts_with(EPOCH_SETTLEMENT_MAGIC);
         if payload.len() < 32 || (!epoch_format && !payload.starts_with(SETTLEMENT_MAGIC)) {
             return Err("invalid import settlement framing".into());
@@ -716,6 +815,7 @@ impl HistoricalImportFreshnessSettlement {
         let cp = Self {
             epoch,
             epoch_prefix_digest,
+            semantic: None,
             owner,
             import_id,
             start_evidence_digest,
@@ -737,6 +837,23 @@ impl HistoricalImportFreshnessSettlement {
         Ok(cp)
     }
     pub(crate) fn validate(&self) -> Result<(), String> {
+        if let Some(scope) = &self.semantic {
+            if self.epoch.is_some()
+                || self.epoch_prefix_digest != [0; 32]
+                || self.input_bytes != 0
+                || scope.owner != self.owner
+                || scope.import_id != self.import_id
+                || scope.start_evidence_digest != self.start_evidence_digest
+                || scope.base_cut != self.base_cut
+                || scope.settlement_cut != self.settlement_cut
+                || scope.superseded != self.superseded
+            {
+                return Err(
+                    "semantic settlement contains conflicting compatibility evidence".into(),
+                );
+            }
+            return self.as_semantic(scope.clone()).validate();
+        }
         if (self.epoch.is_none()
             && (self.settlement_cut == 0
                 || self.base_cut >= self.settlement_cut
@@ -878,6 +995,7 @@ fn decode_legacy_checkpoint(payload: &[u8]) -> Result<HistoricalImportFreshnessS
     .into();
     let settlement = HistoricalImportFreshnessSettlement {
         epoch: None,
+        semantic: None,
         epoch_prefix_digest: [0; 32],
         owner,
         import_id,
@@ -900,6 +1018,25 @@ fn decode_legacy_checkpoint(payload: &[u8]) -> Result<HistoricalImportFreshnessS
     Ok(settlement)
 }
 impl FreshnessStore {
+    pub(crate) fn settlement_absorbs_event(
+        &self,
+        settlement: &HistoricalImportFreshnessSettlement,
+        event: &JournalEntry,
+    ) -> Result<bool, String> {
+        let JournalEntry::Event { event_id, .. } = event else {
+            return Ok(false);
+        };
+        if let Some(scope) = &settlement.semantic {
+            let Some(expected) = scope.accepted_events.get(event_id) else {
+                return Ok(false);
+            };
+            if super::AcceptedImportEventEvidence::from_event(scope.owner, event)? != *expected {
+                return Err("accepted semantic import event changed".into());
+            }
+            return Ok(true);
+        }
+        self.compatibility_absorbs_event(settlement, event_id)
+    }
     pub(crate) fn import_settlements(&self) -> &[HistoricalImportFreshnessSettlement] {
         &self.import_settlements
     }
@@ -951,6 +1088,9 @@ impl FreshnessStore {
         Ok(ids)
     }
     pub(crate) fn ingest_import_settlement(&mut self, payload: &[u8]) -> Result<(), String> {
+        if self.has_semantic_successor(payload)? {
+            return Ok(());
+        }
         let settlement = if payload.starts_with(LEGACY_CHECKPOINT_MAGIC) {
             decode_legacy_checkpoint(payload)?
         } else {
@@ -962,7 +1102,25 @@ impl FreshnessStore {
         {
             return Err("import settlement owner/base policy mismatch".into());
         }
+        if let Some(scope) = &settlement.semantic {
+            self.validate_semantic_predecessor(&settlement)?;
+            self.validate_semantic_import_evidence(scope)?;
+        }
         if let Some(old) = self.import_settlement(settlement.import_id) {
+            if settlement
+                .semantic
+                .as_ref()
+                .is_some_and(|scope| scope.predecessor_digest.is_some())
+                && old.semantic.is_none()
+            {
+                let slot = self
+                    .import_settlements
+                    .iter_mut()
+                    .find(|s| s.import_id == settlement.import_id)
+                    .unwrap();
+                *slot = settlement;
+                return Ok(());
+            }
             return if old == &settlement {
                 Ok(())
             } else {
@@ -970,7 +1128,7 @@ impl FreshnessStore {
             };
         }
         if self.import_settlements.last().is_some_and(|previous| {
-            (settlement.epoch.is_none()
+            (!settlement.is_scoped()
                 && (previous.settlement_cut, previous.import_id)
                     >= (settlement.settlement_cut, settlement.import_id))
                 || settlement.base_cut < previous.settlement_cut
@@ -987,7 +1145,9 @@ impl FreshnessStore {
         }) {
             return Err("import settlement cohort lacks accepted birth proof".into());
         }
-        let provisional = if let Some(scope) = &settlement.epoch {
+        let provisional = if settlement.semantic.is_some() {
+            settlement.superseded.clone()
+        } else if let Some(scope) = &settlement.epoch {
             let evidence = self.import_event_evidence_in_scope(scope)?;
             if !evidence.affected_recipients.is_subset(&settlement.cohort) {
                 return Err("import settlement omits an affected provisional recipient".into());

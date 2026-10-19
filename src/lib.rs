@@ -27,10 +27,14 @@ mod archive_import;
 mod episode_import;
 #[path = "freshness/mod.rs"]
 pub mod freshness;
+#[path = "rewrite.rs"]
+pub mod rewrite;
+pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
-#[path = "facade/history_prune_manifest.rs"]
-mod history_prune_manifest;
+#[path = "facade/owner_maintenance.rs"]
+mod owner_maintenance;
+
 pub mod imports;
 pub mod owner_lifecycle;
 pub use freshness::{
@@ -46,7 +50,11 @@ pub use freshness_due::{
 mod freshness_dream_journal;
 #[path = "freshness_storage.rs"]
 mod freshness_storage;
+#[path = "rewrite_lineage.rs"]
+mod rewrite_lineage;
 pub use freshness_dream_journal::InitialDreamPass;
+pub use rewrite_lineage::HistoryGenerationId;
+pub use rewrite_lineage::RewriteGenesis;
 #[path = "archive/archive_activity.rs"]
 mod archive_activity;
 #[path = "archive/archive_codec.rs"]
@@ -788,6 +796,8 @@ mod phylactery_ego;
 mod phylactery_error;
 #[path = "facade/phylactery_graph.rs"]
 mod phylactery_graph;
+#[path = "facade/phylactery_history_prune.rs"]
+mod phylactery_history_prune;
 #[path = "facade/phylactery_lifecycle.rs"]
 mod phylactery_lifecycle;
 #[path = "facade/phylactery_memory_retrieval.rs"]

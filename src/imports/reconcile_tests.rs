@@ -289,7 +289,7 @@ fn divergent_completed_zero_output_epochs_replay_with_destination_watermarks() {
         .find(|settlement| hex_id(&settlement.import_id) == right_id)
         .cloned()
         .unwrap();
-    let source_scope = source_settlement.epoch.as_ref().unwrap().clone();
+    let source_scope = source_settlement.semantic.as_ref().unwrap().clone();
     right.sync().unwrap();
     drop(right);
 
@@ -328,15 +328,18 @@ fn divergent_completed_zero_output_epochs_replay_with_destination_watermarks() {
         .find(|settlement| hex_id(&settlement.import_id) == right_id)
         .cloned()
         .unwrap();
-    let destination_scope = destination_settlement.epoch.as_ref().unwrap();
-    assert_ne!(destination_scope.start_prefix, source_scope.start_prefix);
-    assert_ne!(destination_scope.freeze_prefix, source_scope.freeze_prefix);
+    let destination_scope = destination_settlement.semantic.as_ref().unwrap();
+    assert_ne!(
+        destination_scope.start_evidence_digest,
+        source_scope.start_evidence_digest
+    );
+    assert_eq!(destination_scope.source_nodes, source_scope.source_nodes);
     assert_eq!(
         destination_scope.start_evidence_digest,
         destination_settlement.start_evidence_digest
     );
     merged
-        .validate_import_settlement_scope(destination_scope)
+        .validate_semantic_import_scope(&destination_settlement, destination_scope)
         .unwrap();
 
     let bytes_before_retry = fs::read(&merged_path).unwrap();

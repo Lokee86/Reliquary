@@ -39,11 +39,71 @@ pub struct FreshnessRefresh {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct FreshnessDueDispatcher {
     index: FreshnessBoundaryIndex,
+    initial_decay_carries: std::collections::BTreeMap<MemoryId, u64>,
     records: std::collections::BTreeMap<MemoryId, FreshnessRecord>,
     policy: FreshnessPolicy,
 }
 
 impl FreshnessDueDispatcher {
+    pub(crate) fn configure_initial_decay_carries(
+        &mut self,
+        carries: impl IntoIterator<Item = (MemoryId, u64)>,
+    ) -> Result<(), FreshnessError> {
+        self.initial_decay_carries = carries
+            .into_iter()
+            .filter(|(_, carry)| *carry != 0)
+            .collect();
+        if self
+            .initial_decay_carries
+            .values()
+            .any(|carry| *carry >= self.policy.decay_turns_per_point)
+        {
+            return Err(FreshnessError::InvalidScore);
+        }
+        for (id, record) in &self.records {
+            let boundary = self.boundary_for(*id, record, record.accounted_turn.unwrap_or(0))?;
+            self.index.replace_boundary(*id, boundary);
+        }
+        Ok(())
+    }
+    fn carry_for(&self, id: MemoryId, record: &FreshnessRecord) -> u64 {
+        if record.accounted_turn == Some(0) {
+            self.initial_decay_carries.get(&id).copied().unwrap_or(0)
+        } else {
+            0
+        }
+    }
+    fn boundary_for(
+        &self,
+        id: MemoryId,
+        record: &FreshnessRecord,
+        at: u64,
+    ) -> Result<Option<u64>, FreshnessError> {
+        let carry = self.carry_for(id, record);
+        crate::freshness::next_state_boundary_with_policy(
+            record,
+            at.checked_add(carry)
+                .ok_or(FreshnessError::ArithmeticOverflow)?,
+            &self.policy,
+        )?
+        .map(|value| {
+            value
+                .checked_sub(carry)
+                .ok_or(FreshnessError::ArithmeticOverflow)
+        })
+        .transpose()
+    }
+    fn state_for(
+        &self,
+        id: MemoryId,
+        record: &FreshnessRecord,
+        at: u64,
+    ) -> Result<FreshnessState, FreshnessError> {
+        let mut record = *record;
+        let carry = self.carry_for(id, &record);
+        crate::freshness::settle_with_initial_decay_carry(&mut record, at, carry, &self.policy)?;
+        record.state_at_with_policy(at, &self.policy)
+    }
     /// Rebuilds all scheduled boundaries from the owner's current durable records.
     pub fn rebuild<I>(
         &mut self,
@@ -60,6 +120,7 @@ impl FreshnessDueDispatcher {
             rebuilt.insert_with_policy(memory, &record, as_of_turn, policy)?;
             snapshots.insert(memory, record);
         }
+        self.initial_decay_carries.clear();
         self.index = rebuilt;
         self.records = snapshots;
         self.policy = policy.clone();
@@ -80,12 +141,10 @@ impl FreshnessDueDispatcher {
         } else if policy != &self.policy {
             return Err(FreshnessError::InvalidPolicy);
         }
-        self.index
-            .insert_with_policy(memory, record, as_of_turn, policy)
-            .map(|boundary| {
-                self.records.insert(memory, *record);
-                boundary
-            })
+        let boundary = self.boundary_for(memory, record, as_of_turn)?;
+        self.index.replace_boundary(memory, boundary);
+        self.records.insert(memory, *record);
+        Ok(boundary)
     }
 
     /// Refreshes a schedule and reports a state reversal caused by the latest mutation.
@@ -99,8 +158,8 @@ impl FreshnessDueDispatcher {
         let prior = self.records.get(&memory).copied();
         let next_boundary = self.refresh(memory, record, accepted_turn, policy)?;
         let reversal = if let Some(previous) = prior {
-            let from_state = previous.state_at_with_policy(accepted_turn, policy)?;
-            let to_state = record.state_at_with_policy(accepted_turn, policy)?;
+            let from_state = self.state_for(memory, &previous, accepted_turn)?;
+            let to_state = self.state_for(memory, record, accepted_turn)?;
             (from_state != to_state).then_some(FreshnessReversal {
                 memory,
                 at_turn: accepted_turn,
@@ -133,16 +192,10 @@ impl FreshnessDueDispatcher {
             .into_iter()
             .filter_map(|(boundary_turn, memory)| {
                 let record = self.records.get(&memory)?;
-                let from_state = if boundary_turn == 0 {
-                    record.state_at_with_policy(0, &self.policy).ok()?
-                } else {
-                    record
-                        .state_at_with_policy(boundary_turn - 1, &self.policy)
-                        .ok()?
-                };
-                let to_state = record
-                    .state_at_with_policy(boundary_turn, &self.policy)
+                let from_state = self
+                    .state_for(memory, record, boundary_turn.saturating_sub(1))
                     .ok()?;
+                let to_state = self.state_for(memory, record, boundary_turn).ok()?;
                 Some(FreshnessDue {
                     boundary_turn,
                     memory,
@@ -166,16 +219,16 @@ impl FreshnessDueDispatcher {
             let Some(record) = self.records.get(&memory).copied() else {
                 break;
             };
-            let boundary = crate::freshness::next_state_boundary_with_policy(
+            let boundary = self.boundary_for(
+                memory,
                 &record,
                 through_turn.max(record.accounted_turn.unwrap_or(through_turn)),
-                &self.policy,
             )?;
             let Some(boundary_turn) = boundary.filter(|boundary| *boundary <= through_turn) else {
                 break;
             };
-            let from_state = record.state_at_with_policy(boundary_turn - 1, &self.policy)?;
-            let to_state = record.state_at_with_policy(boundary_turn, &self.policy)?;
+            let from_state = self.state_for(memory, &record, boundary_turn - 1)?;
+            let to_state = self.state_for(memory, &record, boundary_turn)?;
             let due = FreshnessDue {
                 boundary_turn,
                 memory,
@@ -194,19 +247,29 @@ impl FreshnessDueDispatcher {
             .records
             .get(&due.memory)
             .ok_or(FreshnessError::InvalidScore)?;
-        self.index
-            .insert_with_policy(due.memory, &record, due.boundary_turn, &self.policy)?;
+        let boundary = self.boundary_for(due.memory, &record, due.boundary_turn)?;
+        self.index.replace_boundary(due.memory, boundary);
         Ok(())
     }
 
     /// Advances the dispatcher's derived snapshot exactly to the boundary just emitted.
     /// Durable score records remain owned by FreshnessStore and are never changed here.
     pub(crate) fn advance(&mut self, due: FreshnessDue) -> Result<Option<u64>, FreshnessError> {
+        let carry = self
+            .records
+            .get(&due.memory)
+            .map(|r| self.carry_for(due.memory, r))
+            .ok_or(FreshnessError::InvalidScore)?;
         let record = self
             .records
             .get_mut(&due.memory)
             .ok_or(FreshnessError::InvalidScore)?;
-        record.settle_with_policy(due.boundary_turn, &self.policy)?;
+        crate::freshness::settle_with_initial_decay_carry(
+            record,
+            due.boundary_turn,
+            carry,
+            &self.policy,
+        )?;
         self.index
             .insert_with_policy(due.memory, record, due.boundary_turn, &self.policy)
     }
@@ -423,6 +486,28 @@ mod tests {
         let next = dispatcher.drain_due(3100, 1).pop().unwrap();
         assert_eq!(next.boundary_turn, 3100);
         assert_eq!(dispatcher.advance(next).unwrap(), Some(3610));
+    }
+
+    #[test]
+    fn rewritten_partial_decay_crosses_at_the_remaining_interval() {
+        let memory = MemoryId([91; 32]);
+        let policy = FreshnessPolicy::default();
+        let record = FreshnessRecord {
+            score: 1,
+            admitted_at_turn: Some(0),
+            accounted_turn: Some(0),
+        };
+        let mut dispatcher = FreshnessDueDispatcher::default();
+        dispatcher.rebuild([(memory, record)], 0, &policy).unwrap();
+        dispatcher
+            .configure_initial_decay_carries([(memory, 3)])
+            .unwrap();
+        assert!(dispatcher.drain_due(6, 1).is_empty());
+        let crossing = dispatcher.drain_due(7, 1).pop().unwrap();
+        assert_eq!(crossing.boundary_turn, 7);
+        assert_eq!(crossing.from_state, FreshnessState::Fresh);
+        assert_eq!(crossing.to_state, FreshnessState::Stale);
+        assert_eq!(dispatcher.advance(crossing).unwrap(), Some(517));
     }
 
     fn admitted_at(turn: u64) -> FreshnessRecord {

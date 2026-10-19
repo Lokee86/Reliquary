@@ -202,18 +202,22 @@ mod tests {
             subcentroids: vec![
                 CommunitySubcentroid {
                     community_id,
+                    routing_key: members[0],
                     vector: vec![1.0, 0.0],
                 },
                 CommunitySubcentroid {
                     community_id,
+                    routing_key: members[0],
                     vector: vec![0.0, 1.0],
                 },
                 CommunitySubcentroid {
                     community_id,
+                    routing_key: members[0],
                     vector: vec![-1.0, 0.0],
                 },
                 CommunitySubcentroid {
                     community_id,
+                    routing_key: members[0],
                     vector: vec![0.0, -1.0],
                 },
             ],

@@ -46,6 +46,11 @@ fn scan_entries_impl(
     prefix_end: u64,
     mut visitor: impl FnMut([u8; 16], u64, JournalEntry) -> Result<(), String>,
 ) -> Result<(), String> {
+    // A rebuilding store starts with no accepted frames, before its first
+    // scanned payload advances the durable journal boundary.
+    if prefix_end == 0 && prefix_start.is_none() {
+        return Ok(());
+    }
     #[cfg(feature = "freshness-performance-trace")]
     let started = std::time::Instant::now();
     #[cfg(feature = "freshness-performance-trace")]
@@ -83,7 +88,8 @@ fn scan_entries_impl(
                 return Ok(());
             }
 
-            if payload.starts_with(super::import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
+            if payload.starts_with(super::semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC)
+                || payload.starts_with(super::import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
                 || payload.starts_with(super::import_settlement_storage::SETTLEMENT_MAGIC)
                 || payload.starts_with(super::import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
             {

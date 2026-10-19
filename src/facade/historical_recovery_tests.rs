@@ -48,7 +48,7 @@ fn historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries(
         assert_ne!(old, accepted);
         let accepted_due = cva.freshness_due.clone();
         let complete = fs::read(&path).unwrap();
-        let append_len = assert_one_frame(&before, &complete, b"CVAFRS04");
+        let append_len = assert_one_frame(&before, &complete, b"CVAFRS06");
         drop(cva);
         let crashed_path = path.with_file_name("checkpoint-prefix.rel");
 
@@ -270,4 +270,63 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
         "C6 post-checkpoint multi-recipient use: {} native byte prefixes passed",
         append_len + 1
     );
+}
+
+#[test]
+fn historical_native_v6_with_preexisting_vectors_can_prune_and_reclaim() {
+    let (path, mut cva, _) = historical_import_fixture_count("h6-vector-prune.rel", 2);
+    // Materialize archive and memory vector payloads before accepting the
+    // historical settlement. V6 must bind semantic evidence to the settled
+    // import without treating those later physical chunks as a bad prefix.
+    let endpoint = crate::SimulatedEmbeddingEndpoint::new(512, crate::VectorNormalization::L2, 91);
+    let profile = cva.establish_compatibility_profile(&endpoint).unwrap();
+    super::historical_events::archive_generation_without_live(&mut cva, profile.id, &endpoint);
+    cva.build_missing_memory_vectors(profile.id, &endpoint)
+        .unwrap();
+    cva.sync().unwrap();
+
+    let report = reconstruct(&mut cva);
+    assert!(report.committed);
+    let cut = cva.rel_turn_count();
+    let expected = cva.freshness.records_at(cut).unwrap();
+    let profile = cva.compatibility_profiles()[0].id;
+    cva.retire_compatibility_profile(profile).unwrap();
+    cva.sync().unwrap();
+
+    let pruned = path.with_file_name("h6-vector-pruned.rel");
+    let prune_report = cva
+        .prune_tombstoned_history(
+            &pruned,
+            crate::HistoryPruneRequest {
+                targets: vec![
+                    crate::owner_lifecycle::LifecycleTarget::CompatibilityProfile(profile),
+                ],
+            },
+        )
+        .unwrap();
+    assert!(prune_report.pruned_packed_vectors > 0);
+    drop(cva);
+
+    let reclaimed = path.with_file_name("h6-vector-pruned-reclaimed.rel");
+    let mut reopened = Cva::open(&pruned).unwrap();
+    assert_eq!(reopened.freshness.records_at(cut).unwrap(), expected);
+    assert!(reopened.compatibility_profile_is_retired(profile));
+    reopened.reclaim_storage(&reclaimed).unwrap();
+    drop(reopened);
+
+    let reopened = Cva::open(&reclaimed).unwrap();
+    assert_eq!(reopened.freshness.records_at(cut).unwrap(), expected);
+    assert!(reopened.compatibility_profile_is_retired(profile));
+    assert!(
+        reopened
+            .freshness
+            .latest_import_settlement()
+            .unwrap()
+            .encode()
+            .starts_with(b"CVAFRS06")
+    );
+    drop(reopened);
+    fs::remove_file(&path).unwrap();
+    fs::remove_file(&pruned).unwrap();
+    fs::remove_file(&reclaimed).unwrap();
 }

@@ -58,6 +58,180 @@ pub(crate) struct ImportEventEvidence {
 }
 
 impl FreshnessStore {
+    pub(crate) fn refresh_projection_at(&mut self, cut: u64) -> Result<(), String> {
+        self.records = self.records_at(cut)?;
+        Ok(())
+    }
+
+    /// Freeze exact immutable receipts once. Physical coordinates never enter
+    /// the returned semantic authority.
+    pub(crate) fn semantic_import_evidence(
+        &self,
+        scope: &ImportEventScope,
+        cohort: &BTreeSet<MemoryId>,
+        superseded: &BTreeSet<String>,
+    ) -> Result<super::ImportSemanticScope, String> {
+        let path = self
+            .history_path
+            .as_ref()
+            .ok_or("Freshness history unavailable")?;
+        let start_prefix = if scope.start_prefix == 0 {
+            crate::Container::open_read_only_for_scan(path)
+                .map_err(|e| e.to_string())?
+                .header_len
+        } else {
+            scope.start_prefix
+        };
+        let mut accepted = BTreeMap::new();
+        super::stream::scan_entries_in_interval(
+            path,
+            start_prefix,
+            scope.freeze_prefix,
+            |owner, _, entry| {
+                if owner != scope.owner {
+                    return Err("semantic import event owner mismatch".into());
+                }
+                for_each_event(&entry, &mut |event| {
+                    if let JournalEntry::Event {
+                        event_id,
+                        turn,
+                        effects,
+                        ..
+                    } = event
+                    {
+                        if superseded.contains(event_id)
+                            || effects.keys().any(|id| cohort.contains(id))
+                        {
+                            if *turn < scope.base_cut || *turn > scope.freeze_cut {
+                                return Err(
+                                    "semantic import event outside activity interval".into()
+                                );
+                            }
+                            let evidence =
+                                super::AcceptedImportEventEvidence::from_event(owner, event)?;
+                            if accepted
+                                .insert(event_id.clone(), evidence.clone())
+                                .is_some_and(|old| old != evidence)
+                            {
+                                return Err("conflicting accepted import event".into());
+                            }
+                        }
+                    }
+                    Ok(())
+                })
+            },
+        )?;
+        super::stream::scan_entries(path, start_prefix, |owner, entry| {
+            if owner != scope.owner {
+                return Err("semantic import base owner mismatch".into());
+            }
+            for_each_event(&entry, &mut |event| {
+                if let JournalEntry::Event { event_id, .. } = event {
+                    accepted.remove(event_id);
+                }
+                Ok(())
+            })
+        })?;
+        if superseded.iter().any(|id| !accepted.contains_key(id)) {
+            return Err("superseded import receipt absent from frozen interval".into());
+        }
+        let mut affected = scope.affected_recipients.clone();
+        affected.extend(
+            accepted
+                .values()
+                .flat_map(|event| event.affected_recipients.iter().copied()),
+        );
+        Ok(super::ImportSemanticScope {
+            owner: scope.owner,
+            import_id: scope.import_id,
+            start_evidence_digest: scope.start_evidence_digest,
+            born_memories: scope.born_memories.clone(),
+            affected_recipients: affected,
+            source_nodes: scope.source_nodes.clone(),
+            base_cut: scope.base_cut,
+            settlement_cut: scope.freeze_cut,
+            accepted_events: accepted,
+            superseded: superseded.clone(),
+            predecessor_digest: None,
+        })
+    }
+
+    pub(crate) fn validate_semantic_import_evidence(
+        &self,
+        scope: &super::ImportSemanticScope,
+    ) -> Result<(), String> {
+        if self.owner_uuid != Some(scope.owner) {
+            return Err("semantic import owner mismatch".into());
+        }
+        let mut missing: BTreeSet<_> = scope.accepted_events.keys().cloned().collect();
+        self.scan_entries(|entry| {
+            for_each_event(&entry, &mut |event| {
+                if let JournalEntry::Event { event_id, .. } = event
+                    && let Some(expected) = scope.accepted_events.get(event_id)
+                {
+                    if super::AcceptedImportEventEvidence::from_event(scope.owner, event)?
+                        != *expected
+                    {
+                        return Err(
+                            "accepted import event digest/effects/provenance mismatch".into()
+                        );
+                    }
+                    missing.remove(event_id);
+                }
+                Ok(())
+            })
+        })?;
+        if !missing.is_empty() {
+            return Err("accepted import event is missing".into());
+        }
+        // Supersession is limited to exact import births/source receipts, never
+        // arbitrary accepted-use identities.
+        let passes: BTreeSet<_> = scope
+            .born_memories
+            .iter()
+            .map(|id| crate::dream_freshness::initial_pass_id(scope.owner, *id))
+            .collect();
+        self.scan_entries(|entry| {
+            for_each_event(&entry, &mut |event| {
+                if let JournalEntry::Event {
+                    event_id,
+                    provenance,
+                    semantic,
+                    ..
+                } = event
+                    && scope.superseded.contains(event_id)
+                {
+                    let birth = passes.contains(event_id)
+                        && provenance.producer_kind == 1
+                        && provenance.source_id == *event_id
+                        && provenance.origin_owner == scope.owner;
+                    let source = semantic.as_ref().is_some_and(|e| {
+                        e.owner_uuid == scope.owner
+                            && e.fragment.as_ref().map_or_else(
+                                || {
+                                    scope
+                                        .source_nodes
+                                        .contains(&(e.conversation_id.clone(), e.node_id.clone()))
+                                },
+                                |f| {
+                                    !f.sources.is_empty()
+                                        && f.sources
+                                            .iter()
+                                            .all(|key| scope.source_nodes.contains(key))
+                                },
+                            )
+                    });
+                    if !birth && !source {
+                        return Err(
+                            "superseded event is outside import semantic source/cohort".into()
+                        );
+                    }
+                }
+                Ok(())
+            })
+        })
+    }
+
     /// Exact accepted identity lookup against a finite physical prefix. This
     /// trades a scan for bounded memory rather than retaining every old ID.
     pub(crate) fn event_accepted_through(&self, id: &str, prefix: u64) -> Result<bool, String> {
@@ -425,7 +599,70 @@ mod tests {
             freeze_cut: 100,
         };
         let evidence = store.import_event_evidence_in_scope(&scope).unwrap();
-        assert_eq!(evidence.event_ids, BTreeSet::from([import_event_id]));
+        assert_eq!(
+            evidence.event_ids,
+            BTreeSet::from([import_event_id.clone()])
+        );
+        let semantic = store
+            .semantic_import_evidence(
+                &scope,
+                &BTreeSet::from([imported, existing_recipient]),
+                &evidence.event_ids,
+            )
+            .unwrap();
+        assert_eq!(
+            semantic.accepted_events.len(),
+            2,
+            "include retained live and provisional, exclude pre-start replay"
+        );
+        store.validate_semantic_import_evidence(&semantic).unwrap();
+        let mut changed = semantic.clone();
+        changed
+            .accepted_events
+            .values_mut()
+            .next()
+            .unwrap()
+            .payload_digest[0] ^= 1;
+        assert!(
+            store
+                .validate_semantic_import_evidence(&changed)
+                .unwrap_err()
+                .contains("mismatch")
+        );
+        let mut missing = semantic.clone();
+        let mut item = missing.accepted_events.values().next().unwrap().clone();
+        item.event_id = "missing-accepted-receipt".into();
+        missing.accepted_events.insert(item.event_id.clone(), item);
+        assert!(
+            store
+                .validate_semantic_import_evidence(&missing)
+                .unwrap_err()
+                .contains("missing")
+        );
+        let mut wrong_cohort = semantic.clone();
+        wrong_cohort.born_memories.clear();
+        assert!(
+            store
+                .validate_semantic_import_evidence(&wrong_cohort)
+                .unwrap_err()
+                .contains("source/cohort")
+        );
+
+        let relocated_path = path.with_extension("relocated.rel");
+        let mut relocated = container.create_empty_like(&relocated_path).unwrap();
+        relocated.append(b"relocation-padding").unwrap();
+        for object in container.chunks().unwrap() {
+            relocated.append(&container.read(object).unwrap()).unwrap();
+        }
+        relocated.sync().unwrap();
+        let mut moved = FreshnessStore::new(Some(owner));
+        moved.bind_history_path(
+            &relocated_path,
+            std::fs::metadata(&relocated_path).unwrap().len(),
+        );
+        moved.validate_semantic_import_evidence(&semantic).unwrap();
+        drop(relocated);
+        std::fs::remove_file(&relocated_path).unwrap();
         assert_eq!(
             evidence.affected_recipients,
             BTreeSet::from([existing_recipient])

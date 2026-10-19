@@ -19,6 +19,8 @@ use crate::{
 };
 
 pub struct Phylactery {
+    pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
+    pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
     pub(crate) container: Container,
     pub(crate) memories: MemoryStore,
     pub(crate) lexical_index: LexicalIndex,
@@ -125,7 +127,23 @@ impl Phylactery {
         crate::owner_lifecycle::HistoricalPayload<Memory, crate::MemoryRetainedRevision>,
         MemoryError,
     > {
-        let value = self.memory_revision(id, revision)?;
+        let value = match self.memory_revision(id, revision) {
+            Ok(value) => value,
+            Err(MemoryError::PayloadUnavailable(reason)) => {
+                let structure = self
+                    .memory_retention_descriptor(id)?
+                    .revisions
+                    .into_iter()
+                    .find(|r| r.revision == revision)
+                    .ok_or(MemoryError::MissingMemory)?;
+                return Ok(crate::owner_lifecycle::HistoricalPayload::Pruned {
+                    structural_history: structure,
+                    reason,
+                });
+            }
+            Err(error) => return Err(error),
+        };
+
         Ok(match self.memory_lifecycle_state(id)? {
             crate::owner_lifecycle::LifecycleState::Active => {
                 crate::owner_lifecycle::HistoricalPayload::Available(value)

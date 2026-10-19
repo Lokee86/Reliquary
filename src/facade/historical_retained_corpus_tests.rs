@@ -37,7 +37,9 @@ fn historical_retained_corpus_native_acceptance() {
         "embedding_fill": "not requested; retained evidence only", "measurement_kind":"native retained-corpus gate"});
     if let Ok(mut cva) = opened {
         if std::env::var("RELIQUARY_HISTORICAL_REPLAY_ACCEPTED_PREFIX").as_deref() == Ok("1") {
-            if let Some(checkpoint) = cva.freshness.latest_import_settlement().cloned() {
+            if let Some(checkpoint) = cva.freshness.latest_import_settlement().cloned()
+                && checkpoint.semantic.is_none()
+            {
                 let mut stored = BTreeMap::<String, usize>::new();
                 for record in cva
                     .freshness_records_at(cva.rel_turn_count())

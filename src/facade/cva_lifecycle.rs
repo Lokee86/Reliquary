@@ -143,6 +143,8 @@ impl Cva {
     }
 
     fn initialize(mut container: Container) -> Result<Self, CvaError> {
+        let owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
+        let rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let archive = Archive::empty();
         let memories = MemoryStore::empty();
         let mut graph = GraphStore::empty();
@@ -184,6 +186,8 @@ impl Cva {
         vector_generations.initialize(&mut container)?;
         container.sync()?;
         Ok(Self {
+            owner_maintenance,
+            rewrite_lineage,
             external_index: crate::external_source::store::ExternalIndexStore::default(),
             container,
             archive,
@@ -219,6 +223,9 @@ impl Cva {
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        let lineage_owner = Container::open_read_only_for_scan(path.as_ref())?.owner_uuid();
+        let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
+        let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut archive_state = ArchiveOpenState::new();
         let mut memory_state = MemoryOpenState::new();
         let mut graph_state = GraphOpenState::new();
@@ -247,6 +254,15 @@ impl Cva {
         let mut dream_pairs = DreamPairStore::default();
         let mut external_index = crate::external_source::store::ExternalIndexStore::default();
         let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
+            if let Some(owner_uuid) = lineage_owner {
+                rewrite_lineage
+                    .ingest(payload, owner_uuid)
+                    .map_err(CvaError::Repack)?;
+            } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
+                return Err(CvaError::Repack(
+                    "RewriteGenesis requires a versioned owner identity".into(),
+                ));
+            }
             match classify_open_record(payload) {
                 OpenRecordRoute::Archive => {
                     archive_state.ingest(chunk, payload, latest_global)?;
@@ -259,6 +275,9 @@ impl Cva {
                 }
                 OpenRecordRoute::ContainerVersion => {}
                 OpenRecordRoute::Fallback => {
+                    owner_maintenance
+                        .ingest(payload)
+                        .map_err(CvaError::Repack)?;
                     import_epochs.ingest_at(Some(chunk), payload)?;
                     external_index.ingest(payload);
                     archive_state.ingest(chunk, payload, latest_global)?;
@@ -317,19 +336,41 @@ impl Cva {
                 "file is not a Reliquary",
             ));
         }
+        owner_maintenance
+            .validate_source_history(&mut container)
+            .map_err(CvaError::Repack)?;
         let import_open = import_epochs.open().is_some();
         container.set_write_admission_closed(import_open);
         freshness
             .bind_owner(container.owner_uuid())
             .map_err(CvaError::Freshness)?;
+        if !freshness.rewrite_baselines.is_empty() {
+            let genesis = rewrite_lineage.rewrite_genesis().ok_or_else(|| {
+                CvaError::Freshness(
+                    "Freshness rewrite baselines require a RewriteGenesis record".into(),
+                )
+            })?;
+            for baseline in freshness.rewrite_baselines.values() {
+                if baseline.owner_uuid != genesis.destination_owner
+                    || baseline.history_generation != genesis.generation
+                    || baseline.policy_digest != genesis.policy_digest
+                    || Some(baseline.owner_uuid) != container.owner_uuid()
+                {
+                    return Err(CvaError::Freshness(
+                        "Freshness rewrite baseline does not match RewriteGenesis".into(),
+                    ));
+                }
+            }
+        }
         dream_freshness
             .bind_owner(container.owner_uuid())
             .map_err(CvaError::Freshness)?;
         let archive = archive_state.finish()?;
         archive.validate_references(&project_files)?;
-        archive.validate_prune_history(&mut container)?;
+        archive.prune.validate_markers(&owner_maintenance)?;
+        archive.validate_prune_history(&mut container, &owner_maintenance)?;
         let memories = memory_state.finish(&mut container)?;
-        memories.validate_prune_history(&mut container, archive.prune.manifests())?;
+        memories.validate_prune_history(&mut container, &owner_maintenance)?;
         let entities = entity_state.finish()?;
         let relationships = relationship_state.finish();
         relationships.validate_local_references(
@@ -343,6 +384,8 @@ impl Cva {
         dream_pairs.validate(&memories)?;
         validate_file_memory_targets(&archive, &memories)?;
         let graph = graph_state.finish(&memories, &entities)?;
+        graph
+            .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
         let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
@@ -499,6 +542,9 @@ impl Cva {
                 &freshness.policy(),
             )
             .map_err(|error| CvaError::Freshness(error.to_string()))?;
+        freshness_due
+            .configure_initial_decay_carries(freshness.initial_decay_carries())
+            .map_err(|error| CvaError::Freshness(error.to_string()))?;
         let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
@@ -533,6 +579,8 @@ impl Cva {
         import_epochs.validate_owner(container.owner_uuid())?;
         import_epochs.validate_receipts(&archive.import_receipts)?;
         let mut result = Self {
+            owner_maintenance,
+            rewrite_lineage,
             external_index,
             container,
             archive,

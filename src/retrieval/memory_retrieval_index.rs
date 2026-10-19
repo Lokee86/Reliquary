@@ -5,6 +5,7 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct CommunitySubcentroid {
     pub(crate) community_id: CommunityId,
+    pub(crate) routing_key: MemoryId,
     pub(crate) vector: Vec<f32>,
 }
 
@@ -26,6 +27,11 @@ pub(crate) fn build_subcentroids(
                 .into_iter()
                 .map(|vector| CommunitySubcentroid {
                     community_id: community.id,
+                    routing_key: *community
+                        .members
+                        .iter()
+                        .min()
+                        .expect("Community is nonempty"),
                     vector,
                 })
                 .collect::<Vec<_>>()
@@ -38,20 +44,21 @@ pub(crate) fn route_communities(
     query: &[f32],
     limit: usize,
 ) -> Vec<CommunityId> {
-    let mut best = HashMap::<CommunityId, f64>::new();
+    let mut best = HashMap::<CommunityId, (f64, MemoryId)>::new();
     for entry in entries {
         if let Some(score) = cosine(query, &entry.vector) {
             best.entry(entry.community_id)
-                .and_modify(|current| *current = current.max(score))
-                .or_insert(score);
+                .and_modify(|current| current.0 = current.0.max(score))
+                .or_insert((score, entry.routing_key));
         }
     }
     let mut ranked: Vec<_> = best.into_iter().collect();
     ranked.sort_by(|left, right| {
         right
             .1
-            .total_cmp(&left.1)
-            .then_with(|| left.0.cmp(&right.0))
+            .0
+            .total_cmp(&left.1.0)
+            .then_with(|| left.1.1.cmp(&right.1.1))
     });
     ranked.truncate(limit.min(ranked.len()));
     ranked.into_iter().map(|(community, _)| community).collect()
@@ -128,4 +135,44 @@ fn mean_vector<'a>(vectors: impl Iterator<Item = &'a Vec<f32>>) -> Option<Vec<f3
         *value *= scale;
     }
     Some(output)
+}
+
+#[cfg(test)]
+mod rewrite_tests {
+    use super::*;
+    #[test]
+    fn equal_similarity_routing_uses_membership_identity_across_owner_changes() {
+        let first = MemoryId([1; 32]);
+        let second = MemoryId([2; 32]);
+        let before = [
+            CommunitySubcentroid {
+                community_id: CommunityId([8; 32]),
+                routing_key: first,
+                vector: vec![1.0, 0.0],
+            },
+            CommunitySubcentroid {
+                community_id: CommunityId([3; 32]),
+                routing_key: second,
+                vector: vec![1.0, 0.0],
+            },
+        ];
+        let after = [
+            CommunitySubcentroid {
+                community_id: CommunityId([2; 32]),
+                ..before[0].clone()
+            },
+            CommunitySubcentroid {
+                community_id: CommunityId([9; 32]),
+                ..before[1].clone()
+            },
+        ];
+        assert_eq!(
+            route_communities(&before, &[1.0, 0.0], 1),
+            vec![before[0].community_id]
+        );
+        assert_eq!(
+            route_communities(&after, &[1.0, 0.0], 1),
+            vec![after[0].community_id]
+        );
+    }
 }

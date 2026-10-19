@@ -4,16 +4,14 @@
 //! responsible for validating the manifest against the source history before
 //! publishing a transformed copy.
 use crate::archive_codec::{ArchiveRecord, decode_record, encode_conversation_tombstone};
-use crate::history_prune_manifest::{
-    HistoryPruneManifest, HistoryRetentionDescriptor, PrunedPayload, RetentionDomain,
-    RetentionTarget,
+use crate::owner_maintenance::{
+    HistoryRetentionDescriptor, PrunedPayload, RetentionDomain, RetentionTarget,
 };
 use crate::{Archive, ArchiveError, Container, ContentId, Node};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 const MARKER_MAGIC: &[u8; 8] = b"CVAPRND1";
-const MANIFEST_MAGIC: &[u8; 8] = b"CVAHPR01";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PrunedArchiveContent {
@@ -49,7 +47,6 @@ impl PrunedArchiveContent {
 #[derive(Default)]
 pub(crate) struct ArchivePruneState {
     markers: HashMap<ContentId, PrunedArchiveContent>,
-    manifests: BTreeMap<[u8; 32], HistoryPruneManifest>,
 }
 
 impl ArchivePruneState {
@@ -63,41 +60,19 @@ impl ArchivePruneState {
             }
             return Ok(true);
         }
-        if payload.starts_with(MANIFEST_MAGIC) {
-            let manifest = HistoryPruneManifest::decode(payload)
-                .map_err(|_| ArchiveError::CorruptRecord("invalid prune manifest"))?;
-            let digest = manifest
-                .digest()
-                .map_err(|_| ArchiveError::CorruptRecord("invalid prune manifest digest"))?;
-            if self.manifests.insert(digest, manifest).is_some() {
-                return Err(ArchiveError::CorruptRecord("duplicate prune manifest"));
-            }
-            return Ok(true);
-        }
         Ok(false)
     }
 
     pub(crate) fn node_is_pruned(&self, node: &Node) -> bool {
-        let Some(marker) = self.markers.get(&node.content_id) else {
-            return false;
-        };
-        self.manifests
-            .get(&marker.manifest_digest)
-            .is_some_and(|manifest| {
-                manifest.authorizes(
-                    &RetentionTarget {
-                        domain: RetentionDomain::Archive,
-                        identity: node.conversation_id.as_bytes().to_vec(),
-                    },
-                    &PrunedPayload::ArchiveContent(node.content_id.0),
-                )
-            })
+        self.markers.contains_key(&node.content_id)
     }
 
-    pub(crate) fn validate_markers(&self) -> Result<(), ArchiveError> {
+    pub(crate) fn validate_markers(
+        &self,
+        maintenance: &crate::owner_maintenance::OwnerMaintenanceStore,
+    ) -> Result<(), ArchiveError> {
         for marker in self.markers.values() {
-            if !self
-                .manifests
+            if !maintenance
                 .get(&marker.manifest_digest)
                 .is_some_and(|manifest| {
                     manifest.descriptors.iter().any(|descriptor| {
@@ -114,12 +89,8 @@ impl ArchivePruneState {
         Ok(())
     }
 
-    pub(crate) fn manifest(&self, digest: &[u8; 32]) -> Option<&HistoryPruneManifest> {
-        self.manifests.get(digest)
-    }
-
-    pub(crate) fn manifests(&self) -> &BTreeMap<[u8; 32], HistoryPruneManifest> {
-        &self.manifests
+    pub(crate) fn markers(&self) -> &HashMap<ContentId, PrunedArchiveContent> {
+        &self.markers
     }
 }
 
@@ -198,25 +169,19 @@ impl Archive {
         container: &mut Container,
         watermark: u64,
     ) -> Result<[u8; 32], ArchiveError> {
-        crate::history_prune_manifest::owner_history_digest(container, watermark)
+        crate::owner_maintenance::owner_history_digest(container, watermark)
             .map_err(|_| ArchiveError::CorruptRecord("invalid source history fingerprint"))
     }
 
     pub(crate) fn validate_prune_history(
         &self,
         container: &mut Container,
+        maintenance: &crate::owner_maintenance::OwnerMaintenanceStore,
     ) -> Result<(), ArchiveError> {
         let invalid =
             || ArchiveError::CorruptRecord("prune evidence does not match source history");
         let mut all_authorized = std::collections::HashSet::<ContentId>::new();
-        for (digest, manifest) in &self.prune.manifests {
-            if Some(manifest.owner_uuid) != container.owner_uuid()
-                || manifest.source_global_version > container.latest_version()
-                || self.prune_history_digest(container, manifest.source_global_version)?
-                    != manifest.source_history_digest
-            {
-                return Err(invalid());
-            }
+        for (digest, manifest) in maintenance.manifests() {
             let mut lengths = HashMap::new();
             let mut selected = std::collections::BTreeSet::new();
             for descriptor in &manifest.descriptors {
@@ -315,7 +280,7 @@ fn hash_bytes(hash: &mut Sha256, bytes: &[u8]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::history_prune_manifest::HistoryRetentionDescriptor;
+    use crate::owner_maintenance::{HistoryPruneManifest, HistoryRetentionDescriptor};
 
     #[test]
     fn content_marker_is_checksummed_and_requires_manifest_binding() {
@@ -350,8 +315,9 @@ mod tests {
 
         let mut state = ArchivePruneState::default();
         assert!(state.ingest(&marker.encode()).unwrap());
-        assert!(state.validate_markers().is_err());
-        assert!(state.ingest(&manifest.encode().unwrap()).unwrap());
-        assert!(state.validate_markers().is_ok());
+        let mut maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
+        assert!(state.validate_markers(&maintenance).is_err());
+        maintenance.ingest(&manifest.encode().unwrap()).unwrap();
+        assert!(state.validate_markers(&maintenance).is_ok());
     }
 }

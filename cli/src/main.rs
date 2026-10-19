@@ -18,6 +18,7 @@ mod migration_cmd;
 mod phy_cmd;
 mod rel_cmd;
 mod repair_cmd;
+mod rewrite_cmd;
 mod util;
 mod vectors_cmd;
 

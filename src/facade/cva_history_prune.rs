@@ -1,8 +1,8 @@
 //! Explicit destructive pruning of terminal Archive conversation bodies.
 use crate::archive::history_prune::PrunedArchiveContent;
 use crate::archive_codec::{ArchiveRecord, decode_record};
-use crate::history_prune_manifest::HistoryPruneManifest;
 use crate::owner_lifecycle::LifecycleTarget;
+use crate::owner_maintenance::HistoryPruneManifest;
 use crate::{ContentId, Cva, CvaError, ObjectRef};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
@@ -39,21 +39,23 @@ impl Cva {
         if self.open_import_epoch().is_some() {
             return Err(prune_error("cannot prune while an import epoch is open"));
         }
-        let settled_scopes = self
+        if self
             .freshness
             .import_settlements()
             .iter()
-            .filter_map(|settlement| settlement.epoch.clone())
-            .collect::<Vec<_>>();
-        for scope in &settled_scopes {
-            self.validate_import_settlement_scope(scope)?;
+            .any(|s| s.semantic.is_none())
+        {
+            return Err(prune_error(
+                "normalize legacy import settlements on a disposable copy before pruning",
+            ));
         }
+        self.validate_historical_import_settlements()?;
         let source = Cva::open(self.container.path())?;
         if source.latest_global_version() != self.latest_global_version() {
             return Err(prune_error("source changed before prune admission"));
         }
         drop(source);
-        if !self.archive.prune.manifests().is_empty() {
+        if !self.owner_maintenance.is_empty() {
             return Err(prune_error(
                 "additional pruning of an already pruned owner is unsupported",
             ));
@@ -161,30 +163,11 @@ impl Cva {
         let objects = self.container.chunks()?;
         let mut lengths = HashMap::<ContentId, u64>::new();
         let mut occurrences = HashMap::<ContentId, usize>::new();
-        let latest_import_freeze_prefix = self
-            .freshness
-            .import_settlements()
-            .iter()
-            .filter_map(|settlement| settlement.epoch.as_ref())
-            .map(|scope| scope.freeze_prefix)
-            .chain(
-                self.legacy_import_epochs()
-                    .into_iter()
-                    .map(|epoch| epoch.source_prefix_len),
-            )
-            .max();
         for object in &objects {
             let payload = self.container.read(*object)?;
             if let ArchiveRecord::Content(id, bytes) = decode_record(&payload)?
                 && selected_content.contains(&id)
             {
-                let location = object.legacy_bytes();
-                let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
-                if latest_import_freeze_prefix.is_some_and(|freeze| offset < freeze) {
-                    return Err(prune_error(
-                        "selected content precedes an authenticated import freeze prefix",
-                    ));
-                }
                 let length = bytes.len() as u64;
                 if lengths.insert(id, length).is_some_and(|old| old != length) {
                     return Err(prune_error("conflicting selected content lengths"));
@@ -222,12 +205,8 @@ impl Cva {
                         "Memory body is retained inside grouped publication evidence",
                     ));
                 };
-                if body_id != body
-                    || latest_import_freeze_prefix.is_some_and(|cut| object.offset() < cut)
-                {
-                    return Err(prune_error(
-                        "Memory body belongs to authenticated import prefix",
-                    ));
+                if body_id != body {
+                    return Err(prune_error("Memory body identity mismatch"));
                 }
                 selected_bodies.insert(object, (body, bytes.len() as u64));
                 bodies.push(body);
@@ -256,7 +235,7 @@ impl Cva {
                 watermark,
             )?);
         }
-        descriptors.sort_by(|left, right| left.target.cmp(&right.target));
+        descriptors.sort_by(|a, b| (&a.target, &a.payloads).cmp(&(&b.target, &b.payloads)));
         let manifest = HistoryPruneManifest {
             owner_uuid,
             source_global_version: watermark,
@@ -332,11 +311,6 @@ impl Cva {
                 None
             };
             if let Some(bytes) = replacement {
-                if latest_import_freeze_prefix.is_some_and(|cut| object.offset() < cut) {
-                    return Err(prune_error(
-                        "description belongs to authenticated import prefix",
-                    ));
-                }
                 description_objects.insert(*object, bytes);
             }
         }
@@ -365,13 +339,6 @@ impl Cva {
                     continue;
                 }
                 if let Some(id) = packed_objects_by_ref.get(object) {
-                    let location = object.legacy_bytes();
-                    let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
-                    if latest_import_freeze_prefix.is_some_and(|freeze| offset < freeze) {
-                        return Err(prune_error(
-                            "selected packed payload precedes an authenticated import freeze prefix",
-                        ));
-                    }
                     let destination = output.append(&packed_markers[id])?;
                     relocated.insert(*object, destination);
                     continue;

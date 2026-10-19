@@ -458,7 +458,7 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     assert!(!cva.import_epoch_scope().unwrap().cohort.contains(&old));
     let untouched = cva.freshness_record(unrelated).unwrap();
     let prepared = affected.prepare_native().unwrap();
-    assert!(prepared.settlement.encode().starts_with(b"CVAFRS05"));
+    assert!(prepared.settlement.encode().starts_with(b"CVAFRS06"));
     let mut expected_old = base[&old];
     expected_old
         .reinforce_with_policy(
@@ -505,10 +505,9 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     )
     .unwrap();
     cva.container.set_owner_write_scope(false);
-    assert_eq!(
-        immutable_prefix_digest(&path, prepared.settlement.input_bytes).unwrap(),
-        prepared.settlement.epoch_prefix_digest
-    );
+    cva.freshness
+        .validate_semantic_import_evidence(prepared.settlement.semantic.as_ref().unwrap())
+        .unwrap();
     let after_use = cva.freshness.records_at(cva.rel_turn_count()).unwrap();
     drop(cva);
     let mut cva = Cva::open(&path).unwrap();
@@ -533,8 +532,11 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     cva.tombstone_conversation(&imported_conversation).unwrap();
     cva.container.sync().unwrap();
     cva.container.set_owner_write_scope(false);
-    cva.validate_import_settlement_scope(prepared.settlement.epoch.as_ref().unwrap())
-        .unwrap();
+    cva.validate_semantic_import_scope(
+        &prepared.settlement,
+        prepared.settlement.semantic.as_ref().unwrap(),
+    )
+    .unwrap();
     drop(cva);
     std::fs::remove_file(path).unwrap();
 }
@@ -571,7 +573,12 @@ fn zero_result_import_has_empty_scoped_birth_and_source_sets() {
     assert_eq!(prepared.settlement.settlement_cut, 0);
     let before = std::fs::read(&path).unwrap();
     let mut forged = prepared.clone();
-    forged.settlement.epoch.as_mut().unwrap().start_prefix += 1;
+    forged
+        .settlement
+        .semantic
+        .as_mut()
+        .unwrap()
+        .start_evidence_digest[0] ^= 1;
     assert!(cva.commit_historical_import(&forged).is_err());
     assert_eq!(std::fs::read(&path).unwrap(), before);
     let encoded = prepared.settlement.encode();

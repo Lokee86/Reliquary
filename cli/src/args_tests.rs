@@ -25,6 +25,84 @@ fn parses_phy_command() {
 }
 
 #[test]
+fn repair_commands_accept_repeated_retained_profiles() {
+    let rel = Cli::try_parse_from([
+        "reliquary",
+        "rel",
+        "repair",
+        "source.rel",
+        "copy.rel",
+        "--keep-profile",
+        &"a".repeat(64),
+        "--keep-profile",
+        &"b".repeat(64),
+    ])
+    .unwrap();
+    assert!(
+        matches!(rel.command, Command::Rel { command: RelCommand::Repair { keep_profile, .. } } if keep_profile.len() == 2)
+    );
+
+    let phy = Cli::try_parse_from([
+        "reliquary",
+        "phy",
+        "repair",
+        "source.phy",
+        "copy.phy",
+        "--keep-profile",
+        &"a".repeat(64),
+        "--keep-profile",
+        &"b".repeat(64),
+    ])
+    .unwrap();
+    assert!(
+        matches!(phy.command, Command::Phy { command: PhyCommand::Repair { keep_profile, .. } } if keep_profile.len() == 2)
+    );
+}
+
+#[test]
+fn rewrite_commands_accept_policy_and_repeated_selection_overrides() {
+    let args = [
+        "reliquary",
+        "rel",
+        "rewrite",
+        "source.rel",
+        "copy.rel",
+        "--dry-run",
+        "--policy-file",
+        "selection.json",
+        "--profile",
+        &"a".repeat(64),
+        "--profile",
+        &"b".repeat(64),
+        "--include-memory",
+        &"c".repeat(64),
+        "--exclude-memory",
+        &"d".repeat(64),
+    ];
+    let rel = Cli::try_parse_from(args).unwrap();
+    assert!(
+        matches!(rel.command, Command::Rel { command: RelCommand::Rewrite { dry_run: true, profiles, include_memories, exclude_memories, policy_file: Some(path), .. } }
+        if profiles.len() == 2 && include_memories.len() == 1 && exclude_memories.len() == 1 && path.to_string_lossy() == "selection.json")
+    );
+
+    let phy = Cli::try_parse_from([
+        "reliquary",
+        "phy",
+        "rewrite",
+        "source.phy",
+        "copy.phy",
+        "--dry-run",
+    ])
+    .unwrap();
+    assert!(matches!(
+        phy.command,
+        Command::Phy {
+            command: PhyCommand::Rewrite { dry_run: true, .. }
+        }
+    ));
+}
+
+#[test]
 fn legacy_cva_command_remains_an_alias() {
     let cli = Cli::try_parse_from(["reliquary", "cva", "info", "sample.cva"]).unwrap();
     assert!(matches!(
@@ -252,6 +330,31 @@ fn codex_general_route_accepts_low_reasoning() {
                     reasoning: Some(ReasoningArg::Low),
                     ..
                 }
+            }
+        }
+    ));
+}
+
+#[test]
+fn config_model_set_general_decision_parses_endpoint_fields() {
+    let cli = Cli::try_parse_from([
+        "reliquary",
+        "config",
+        "model",
+        "set-general-decision",
+        "--model",
+        "shared-decider",
+        "--credential",
+        "shared-key",
+        "--url",
+        "https://example.test/decisions",
+    ])
+    .unwrap();
+    assert!(matches!(
+        cli.command,
+        Command::Config {
+            command: ConfigCommand::Model {
+                command: ModelCommand::SetGeneralDecision { .. }
             }
         }
     ));

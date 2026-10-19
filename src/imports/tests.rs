@@ -143,8 +143,8 @@ pub(crate) fn finish_current_import(cva: &mut Cva, now_ns: i64) {
             .freshness
             .import_settlement(report.import_id)
             .expect("current import's accepted settlement");
-        assert!(settlement.epoch.is_some());
-        assert!(settlement.encode().starts_with(b"CVAFRS05"));
+        assert!(settlement.semantic.is_some());
+        assert!(settlement.encode().starts_with(b"CVAFRS06"));
         assert!(matches!(
             cva.complete_native_import(&start.import_id, now_ns + 2)
                 .unwrap(),

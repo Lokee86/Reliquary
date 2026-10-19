@@ -18,7 +18,14 @@ pub enum CvaReconcileError {
     CompatibilityProfile(CompatibilityProfileError),
     Io(io::Error),
     MissingOwnerId(&'static str),
-    OwnerMismatch { left: String, right: String },
+    OwnerMismatch {
+        left: String,
+        right: String,
+    },
+    HistoryGenerationConflict {
+        left: crate::HistoryGenerationId,
+        right: crate::HistoryGenerationId,
+    },
     OutputExists,
     UnsupportedSemanticOwner(&'static str),
     InvalidInsomniaCompletion(&'static str),
@@ -29,7 +36,10 @@ pub enum CvaReconcileError {
     PromotionPathsMustDiffer,
     CanonicalChangedDuringPromotion,
     PromotionFinalizationFailed(String),
-    PromotionRecoveryFailed { failure: String, recovery: String },
+    PromotionRecoveryFailed {
+        failure: String,
+        recovery: String,
+    },
 }
 
 impl fmt::Display for CvaReconcileError {
@@ -50,6 +60,9 @@ impl fmt::Display for CvaReconcileError {
             }
             Self::OwnerMismatch { left, right } => {
                 write!(f, "owner mismatch: left={left} right={right}")
+            }
+            Self::HistoryGenerationConflict { left, right } => {
+                write!(f, "history generation conflict: left={left} right={right}")
             }
             Self::OutputExists => write!(f, "reconciliation output already exists"),
             Self::UnsupportedSemanticOwner(owner) => {

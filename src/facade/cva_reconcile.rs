@@ -55,6 +55,14 @@ impl Cva {
                 right: right_id,
             });
         }
+        let left_generation = left.history_generation();
+        let right_generation = right.history_generation();
+        if left_generation != right_generation {
+            return Err(CvaReconcileError::HistoryGenerationConflict {
+                left: left_generation,
+                right: right_generation,
+            });
+        }
 
         let left_chunks = semantic_chunk_payloads(&mut left)?;
         let right_chunks = semantic_chunk_payloads(&mut right)?;

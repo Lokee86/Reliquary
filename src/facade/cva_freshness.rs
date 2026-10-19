@@ -111,7 +111,8 @@ impl Cva {
 
     /// Returns the owner-local durable record, including an explicit Web-admission anchor.
     pub fn freshness_record(&self, id: MemoryId) -> Option<FreshnessRecord> {
-        self.freshness.records().get(&id).copied()
+        self.freshness
+            .current_rewrite_record(id, self.rel_turn_count())
     }
 
     pub fn freshness_record_at_cut(

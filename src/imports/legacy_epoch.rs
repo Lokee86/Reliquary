@@ -26,18 +26,6 @@ pub struct LegacyImportEpoch {
     pub source_prefix_digest: String,
 }
 
-pub(crate) fn encode(frame: &LegacyImportEpoch) -> Result<Vec<u8>, ImportError> {
-    let body = serde_json::to_vec(frame)?;
-    let len =
-        u32::try_from(body.len()).map_err(|_| ImportError::Epoch("legacy frame too large"))?;
-    let mut bytes = MAGIC.to_vec();
-    bytes.extend(len.to_le_bytes());
-    bytes.extend(body);
-    let checksum = Sha256::digest(&bytes);
-    bytes.extend(checksum);
-    Ok(bytes)
-}
-
 pub(crate) fn decode(payload: &[u8]) -> Result<Option<LegacyImportEpoch>, ImportError> {
     if payload.get(..8) != Some(MAGIC.as_slice()) {
         return Ok(None);

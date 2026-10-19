@@ -14,6 +14,10 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 Development uses deterministic local tests plus optional live provider execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, direct OpenAI-ready embedding/General HTTP transport, ChatGPT/Codex device-code acquisition, and provider-native Codex Responses execution are implemented. Codex OAuth token refresh remains outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
+## Retained-owner maintenance and history rewrite
+
+Use `rel repair` or `phy repair` on a disposable source copy to select one or more complete active embedding profiles. `--prune-retired` applies authenticated owner-level payload pruning, and `--reclaim` compacts remaining unreachable storage. Both operations preserve the source file. Use `rel rewrite` or `phy rewrite --dry-run` to inspect a fresh-history selection before execution; the planner binds its result to the frozen source state, and execution refuses source drift or an existing destination. Keep policy JSON with the development fixture or script that produced it so a selective corpus can be recreated deterministically.
+
 ## Repository boundary
 
 ```text

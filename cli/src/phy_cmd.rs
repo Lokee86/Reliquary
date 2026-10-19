@@ -1,5 +1,5 @@
 use crate::args::PhyCommand;
-use crate::util::file_len;
+use crate::util::{file_len, hex32};
 use anyhow::Result;
 use reliquary_memory::Phylactery;
 
@@ -24,6 +24,34 @@ pub fn run(command: PhyCommand) -> Result<()> {
                 phy.relationship_version(),
                 phy.graph_version()
             );
+        }
+        PhyCommand::Repair {
+            source,
+            output,
+            keep_profile,
+            prune_retired,
+            reclaim,
+        } => {
+            crate::repair_cmd::run_phy(&source, &output, &keep_profile, prune_retired, reclaim)?;
+        }
+        PhyCommand::Rewrite {
+            source,
+            output,
+            dry_run,
+            policy_file,
+            profiles,
+            include_memories,
+            exclude_memories,
+        } => {
+            crate::rewrite_cmd::run_phy(
+                &source,
+                &output,
+                dry_run,
+                policy_file.as_deref(),
+                &profiles,
+                &include_memories,
+                &exclude_memories,
+            )?;
         }
         PhyCommand::Reclaim { path, output } => {
             let mut phy = Phylactery::open(&path)?;
@@ -82,5 +110,12 @@ fn info(path: &std::path::Path) -> Result<()> {
     );
     println!("memory_vectors: bindings={}", vectors.bindings);
     println!("compatibility_profiles: {}", profiles.profiles);
+    for profile in phy.active_memory_compatibility_profiles() {
+        println!(
+            "active_memory: profile={} dimensions={}",
+            hex32(&profile.id.0),
+            profile.dimensions
+        );
+    }
     Ok(())
 }

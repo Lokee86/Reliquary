@@ -443,6 +443,7 @@ fn historical_transform_unverified_corpus_owner_or_policy_cannot_transplant_nume
         }
         if case == 1 {
             altered.owner = [9; 16];
+            altered.semantic.as_mut().unwrap().owner = [9; 16];
         }
         altered.import_id =
             super::manifest::historical_import_id(altered.owner, altered.corpus_digest);
@@ -463,7 +464,7 @@ fn historical_transform_unverified_corpus_owner_or_policy_cannot_transplant_nume
             error.contains(match case {
                 0 => "corpus identity",
                 1 => "owner/base policy",
-                _ => "reconstruction policy",
+                _ => "import policy",
             }),
             "{error}"
         );

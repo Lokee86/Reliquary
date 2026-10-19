@@ -34,6 +34,180 @@ pub(crate) struct ArchiveTail {
     pub(crate) file_memory_links: Vec<FileMemoryLinkReplay>,
 }
 
+pub(crate) fn rewrite_archive_conversations(
+    source: &mut Cva,
+    memories: &[crate::Memory],
+    selection: &crate::rewrite::ArchiveSelection,
+) -> Result<std::collections::BTreeSet<String>, CvaReconcileError> {
+    use std::collections::BTreeSet;
+
+    let mut conversations = BTreeSet::new();
+    for memory in memories {
+        for conversation in [
+            memory.content_source_conversation_id.as_deref(),
+            memory.grounding_source_conversation_id.as_deref(),
+            memory
+                .source_ref
+                .as_ref()
+                .and_then(|source| source.content_source_conversation_id.as_deref()),
+            memory
+                .source_ref
+                .as_ref()
+                .and_then(|source| source.grounding_source_conversation_id.as_deref()),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            conversations.insert(conversation.to_owned());
+        }
+        if let Some(episode_id) = memory.source_episode_id {
+            let episode = source.historical_episode(episode_id).ok_or(
+                CvaReconcileError::UnsupportedSemanticOwner(
+                    "retained Memory source Episode is unavailable",
+                ),
+            )?;
+            conversations.insert(episode.conversation_id.clone());
+        }
+        if let Some(source_ref) = &memory.source_ref {
+            if let Some(episode) = source.historical_episode(source_ref.source_episode_id) {
+                conversations.insert(episode.conversation_id.clone());
+            }
+        }
+    }
+    match selection {
+        crate::rewrite::ArchiveSelection::ProvenanceClosureOnly => {}
+        crate::rewrite::ArchiveSelection::AllRetained => {
+            conversations.extend(
+                source
+                    .historical_episodes()
+                    .into_iter()
+                    .map(|episode| episode.conversation_id),
+            );
+            conversations.extend(
+                source
+                    .historical_branches()
+                    .into_iter()
+                    .map(|branch| branch.conversation_id),
+            );
+            conversations.extend(
+                source
+                    .conversation_summaries()
+                    .into_iter()
+                    .map(|summary| summary.conversation_id),
+            );
+        }
+        crate::rewrite::ArchiveSelection::CurrentFromActivity(cut) => {
+            for summary in source.conversation_summaries() {
+                let mut has_recent = false;
+                for leaf in &summary.leaf_node_ids {
+                    let turns = source
+                        .historical_conversation_turns(&summary.conversation_id, leaf)
+                        .map_err(CvaReconcileError::from)?;
+                    if turns.iter().any(|turn| {
+                        source
+                            .activity_position_for_turn(&summary.conversation_id, &turn.node_id)
+                            .is_some_and(|position| position >= *cut)
+                    }) {
+                        has_recent = true;
+                        break;
+                    }
+                }
+                if has_recent {
+                    conversations.insert(summary.conversation_id);
+                }
+            }
+        }
+        crate::rewrite::ArchiveSelection::Conversations(ids) => {
+            conversations.extend(ids.iter().cloned());
+        }
+    }
+
+    Ok(conversations)
+}
+
+/// Copy only the Archive history selected by a rewrite and the conversations
+/// needed to support retained Memory provenance. This lives beside the replay
+/// representation so filtering can happen before any source history is emitted.
+pub(crate) fn replay_rewrite_archive(
+    source: &mut Cva,
+    destination: &mut Cva,
+    memories: &[crate::Memory],
+    selection: &crate::rewrite::ArchiveSelection,
+) -> Result<usize, CvaReconcileError> {
+    use std::collections::{BTreeSet, HashSet};
+    let retained_ids: BTreeSet<_> = memories.iter().map(|memory| memory.id).collect();
+    let conversations = rewrite_archive_conversations(source, memories, selection)?;
+    let mut tail = read_archive_tail(source, 0)?;
+    let mut selected_file_ids = HashSet::new();
+    for entry in &tail.records {
+        if let ArchiveReplayRecord::IngestedTurn(turn) = &entry.record
+            && conversations.contains(&turn.conversation_id)
+        {
+            selected_file_ids.extend(turn.project_attachments.iter().map(|file| file.id));
+        }
+    }
+    tail.file_memory_links.retain(|entry| {
+        let keep = retained_ids.contains(&entry.link.memory_id);
+        if keep {
+            selected_file_ids.insert(entry.link.file_id);
+        }
+        keep
+    });
+    let mut file_ids: Vec<_> = selected_file_ids.iter().copied().collect();
+    file_ids.sort_by_key(|id| id.0);
+    for id in file_ids {
+        let file = source.file(id).cloned().ok_or(ArchiveError::MissingFile)?;
+        if let Some(reference) = source.project_file_ref(id) {
+            replay_project_file(destination, &file, reference)?;
+        } else {
+            let bytes = source.file_bytes(id)?;
+            destination.store_file(file.filename, file.mime_type, &bytes)?;
+        }
+    }
+    tail.records.retain(|entry| match &entry.record {
+        ArchiveReplayRecord::Node(turn) | ArchiveReplayRecord::IngestedTurn(turn) => {
+            conversations.contains(&turn.conversation_id)
+        }
+        ArchiveReplayRecord::Branch(branch) => conversations.contains(&branch.conversation_id),
+        ArchiveReplayRecord::ConversationMetadata(metadata) => {
+            conversations.contains(&metadata.conversation_id)
+        }
+        ArchiveReplayRecord::ConversationTombstone(tombstone) => {
+            conversations.contains(&tombstone.conversation_id)
+        }
+        ArchiveReplayRecord::Episode(episode) => conversations.contains(&episode.conversation_id),
+        ArchiveReplayRecord::Fragment(fragment) => {
+            conversations.contains(&fragment.conversation_id)
+        }
+        ArchiveReplayRecord::File(file, ..) => {
+            selected_file_ids.contains(&file.id)
+                || matches!(selection, crate::rewrite::ArchiveSelection::AllRetained)
+        }
+        ArchiveReplayRecord::ImportReceipt(_) => false,
+    });
+    let count = replay_archive_tail(destination, &tail)?;
+    Ok(count)
+}
+
+pub(crate) fn replay_rewrite_file_links(
+    source: &Cva,
+    destination: &mut Cva,
+    retained: &std::collections::BTreeSet<crate::MemoryId>,
+) -> Result<(), CvaReconcileError> {
+    for file in source.files() {
+        for link in source.file_memory_links(file.id) {
+            if retained.contains(&link.memory_id) {
+                destination.archive.link_file_to_memory(
+                    &mut destination.container,
+                    link.file_id,
+                    link.memory_id,
+                )?;
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn read_archive_tail(
     cva: &mut Cva,
     start_chunk: usize,
@@ -229,19 +403,27 @@ fn replay_archive_record(
             .store_file(file.filename.clone(), file.mime_type.clone(), bytes)
             .map(|_| ()),
         ArchiveReplayRecord::File(file, None, Some(reference)) => {
-            return destination
-                .register_project_file(
-                    file.filename.clone(),
-                    file.mime_type.clone(),
-                    file.byte_length,
-                    reference.clone(),
-                )
-                .map(|_| ())
-                .map_err(CvaReconcileError::from);
+            return replay_project_file(destination, file, reference.clone());
         }
         ArchiveReplayRecord::File(_, _, _) => Err(ArchiveError::InvalidArchiveRecordVersion),
     };
     archive_result.map_err(|error| archive_replay_error(destination, record, error))
+}
+
+fn replay_project_file(
+    destination: &mut Cva,
+    file: &StoredFile,
+    reference: ProjectFileRef,
+) -> Result<(), CvaReconcileError> {
+    // Historical embedded FileIds can later acquire a repository binding.
+    // Keep that accepted identity instead of allocating a native project FileId.
+    destination
+        .project_files
+        .put(&mut destination.container, file.id, reference)?;
+    destination
+        .archive
+        .register_file(&mut destination.container, file.clone())?;
+    Ok(())
 }
 
 pub(crate) fn replay_file_memory_links(

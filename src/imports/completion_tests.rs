@@ -155,9 +155,9 @@ fn empty_receipt_completes_only_with_real_freshness_settlement_and_exact_retry()
         .freshness
         .import_settlement(reconstructed.import_id)
         .expect("accepted scoped freshness settlement");
-    assert!(settlement.epoch.is_some());
+    assert!(settlement.semantic.is_some());
     let settlement_bytes = settlement.encode();
-    assert!(settlement_bytes.starts_with(b"CVAFRS05"));
+    assert!(settlement_bytes.starts_with(b"CVAFRS06"));
     let settlement_digest = Sha256::digest(&settlement_bytes)
         .iter()
         .map(|byte| format!("{byte:02x}"))
@@ -467,7 +467,7 @@ fn reopen_rejects_completion_physically_before_its_settlement() {
     let mut scan = Container::open_read_only_for_scan(&path).unwrap();
     let mut settlement_offset = None;
     scan.visit_payloads::<crate::ContainerError>(|object, payload| {
-        if payload.starts_with(b"CVAFRS05") {
+        if payload.starts_with(b"CVAFRS06") {
             settlement_offset = Some(u64::from_le_bytes(
                 object.legacy_bytes()[..8].try_into().unwrap(),
             ));
@@ -502,3 +502,81 @@ fn reopen_rejects_completion_physically_before_its_settlement() {
 mod readiness_recovery_tests;
 #[path = "readiness_tests.rs"]
 mod readiness_tests;
+#[test]
+fn v5_native_settlement_normalizes_once_and_survives_relocation() {
+    let fixture = Fixture::new();
+    let path = fixture.rel();
+    let mut cva = Cva::create_project(&path).unwrap();
+    cva.import_native(&empty_import("v5-normalization"), 100)
+        .unwrap();
+    let physical = cva.import_epoch_scope().unwrap();
+    cva.reconstruct_historical_freshness(Default::default())
+        .unwrap();
+    let mut old = cva.freshness.latest_import_settlement().unwrap().clone();
+    let mut prefix = None;
+    cva.container
+        .visit_payloads::<crate::CvaError>(|object, payload| {
+            if payload.starts_with(b"CVAFRS06") {
+                prefix = Some(u64::from_le_bytes(
+                    object.legacy_bytes()[..8].try_into().unwrap(),
+                ));
+            }
+            Ok(())
+        })
+        .unwrap();
+    let prefix = prefix.unwrap();
+    drop(cva);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&path)
+        .unwrap()
+        .set_len(prefix)
+        .unwrap();
+    let semantic = old.semantic.take().unwrap();
+    old.input_bytes = prefix;
+    old.epoch = Some(crate::freshness_storage::ImportEventScope {
+        owner: old.owner,
+        import_id: old.import_id,
+        start_evidence_digest: old.start_evidence_digest,
+        born_memories: semantic.born_memories,
+        affected_recipients: semantic.affected_recipients,
+        source_nodes: semantic.source_nodes,
+        start_prefix: physical.start_offset,
+        freeze_prefix: prefix,
+        base_cut: old.base_cut,
+        freeze_cut: old.settlement_cut,
+    });
+    let mut hash = Sha256::new();
+    hash.update(b"reliquary:import-immutable-prefix:v1");
+    let mut scan = Container::open_read_only_for_scan(&path).unwrap();
+    scan.visit_payloads::<crate::CvaError>(|object, payload| {
+        if !crate::conversation_compaction_codec::is_compaction_payload(payload) {
+            hash.update(object.legacy_bytes());
+            hash.update(payload);
+        }
+        Ok(())
+    })
+    .unwrap();
+    old.epoch_prefix_digest = hash.finalize().into();
+    let payload = old.encode();
+    assert!(payload.starts_with(b"CVAFRS05"));
+    let mut cva = Cva::open(&path).unwrap();
+    cva.container.set_owner_write_scope(true);
+    cva.container.append(&payload).unwrap();
+    cva.sync().unwrap();
+    drop(cva);
+    let mut cva = Cva::open(&path).unwrap();
+    assert_eq!(cva.normalize_import_settlements().unwrap(), 1);
+    assert_eq!(cva.normalize_import_settlements().unwrap(), 0);
+    let relocated = fixture.0.join("normalized.rel");
+    cva.reclaim_storage(&relocated).unwrap();
+    assert!(
+        Cva::open(relocated)
+            .unwrap()
+            .freshness
+            .latest_import_settlement()
+            .unwrap()
+            .semantic
+            .is_some()
+    );
+}

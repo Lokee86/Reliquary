@@ -166,8 +166,8 @@ fn commit_scoped_settlement(cva: &mut Cva) -> crate::HistoricalReconstructionRep
         .freshness
         .import_settlement(report.import_id)
         .expect("accepted import settlement");
-    assert!(settlement.epoch.is_some());
-    assert!(settlement.encode().starts_with(b"CVAFRS05"));
+    assert!(settlement.semantic.is_some());
+    assert!(settlement.encode().starts_with(b"CVAFRS06"));
     report
 }
 
@@ -282,7 +282,7 @@ fn nonempty_zero_output_import_completes_with_exact_scoped_settlement() {
     let settlement = cva.freshness.import_settlement(report.import_id).unwrap();
     assert_eq!(settlement.cohort, scope.cohort);
     assert_eq!(
-        settlement.epoch.as_ref().unwrap().source_nodes,
+        settlement.semantic.as_ref().unwrap().source_nodes,
         scope.source_nodes
     );
 

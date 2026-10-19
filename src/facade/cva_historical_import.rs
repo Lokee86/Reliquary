@@ -37,6 +37,8 @@ mod transform;
 
 #[derive(Clone, Debug)]
 struct FrozenHistoricalImport {
+    source_bytes: u64,
+    source_digest: [u8; 32],
     retained: Vec<HistoricalScoreEvent>,
     epoch: bool,
     events: Option<events::NativeHistoricalEvents>,
@@ -46,6 +48,8 @@ struct FrozenHistoricalImport {
 }
 #[derive(Clone, Debug)]
 struct PreparedHistoricalImport {
+    source_bytes: u64,
+    source_digest: [u8; 32],
     epoch: bool,
     settlement: HistoricalImportFreshnessSettlement,
 }
@@ -54,6 +58,8 @@ impl FrozenHistoricalImport {
     fn prepare_native(&self) -> Result<PreparedHistoricalImport, CvaError> {
         let Some(_) = &self.events else {
             return Ok(PreparedHistoricalImport {
+                source_bytes: self.source_bytes,
+                source_digest: self.source_digest,
                 epoch: self.epoch,
                 settlement: self.settlement.clone(),
             });
@@ -163,6 +169,8 @@ impl FrozenHistoricalImport {
         };
         settlement.validate().map_err(CvaError::Freshness)?;
         Ok(PreparedHistoricalImport {
+            source_bytes: self.source_bytes,
+            source_digest: self.source_digest,
             epoch: self.epoch,
             settlement,
         })
@@ -192,7 +200,10 @@ fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
 // All ordinary backing records are immutable except Archive conversation
 // compaction allocations. Bind physical coordinates as well as payloads so
 // relocation cannot silently preserve an invalid epoch boundary.
-fn immutable_prefix_digest(path: &std::path::Path, through: u64) -> Result<[u8; 32], CvaError> {
+fn legacy_immutable_prefix_digest(
+    path: &std::path::Path,
+    through: u64,
+) -> Result<[u8; 32], CvaError> {
     let mut scan = crate::Container::open_read_only_for_scan(path)?;
     let mut hash = Sha256::new();
     hash.update(b"reliquary:import-immutable-prefix:v1");
@@ -249,6 +260,8 @@ impl Cva {
                 initial.insert(*id, birth);
             }
             return Ok(FrozenHistoricalImport {
+                source_bytes: 0,
+                source_digest: [0; 32],
                 retained: Vec::new(),
                 epoch: false,
                 events: None,
@@ -274,7 +287,7 @@ impl Cva {
             },
             manifest.corpus_digest,
             manifest.digest,
-            manifest.input_digest,
+            manifest.digest,
             cohort,
             self.latest_global_version(),
             manifest.input_bytes,
@@ -285,6 +298,8 @@ impl Cva {
             manifest.superseded,
         );
         let mut frozen = FrozenHistoricalImport {
+            source_bytes: manifest.input_bytes,
+            source_digest: manifest.input_digest,
             retained: Vec::new(),
             epoch: manifest.epoch,
             events: Some(events),
@@ -339,10 +354,44 @@ impl Cva {
                     &frozen.settlement.superseded,
                 )
                 .map_err(CvaError::Freshness)?;
-            frozen.settlement.epoch_prefix_digest =
-                immutable_prefix_digest(self.container.path(), replay.freeze_prefix)?;
-            frozen.settlement.epoch = Some(replay);
+            frozen.settlement.semantic = Some(
+                history
+                    .semantic_import_evidence(
+                        &replay,
+                        &frozen.settlement.cohort,
+                        &frozen.settlement.superseded,
+                    )
+                    .map_err(CvaError::Freshness)?,
+            );
+        } else {
+            let source_nodes = input::required_nodes(self, frozen.cut())?
+                .into_keys()
+                .collect();
+            let replay = crate::freshness_storage::ImportEventScope {
+                owner,
+                import_id: frozen.settlement.import_id,
+                start_evidence_digest: frozen.settlement.start_evidence_digest,
+                born_memories: frozen.settlement.cohort.clone(),
+                affected_recipients: frozen.settlement.cohort.clone(),
+                source_nodes,
+                start_prefix: 0,
+                freeze_prefix: frozen.source_bytes,
+                base_cut: frozen.settlement.base_cut,
+                freeze_cut: frozen.cut(),
+            };
+            let mut history = self.freshness.clone();
+            history.bind_history_path(self.container.path(), frozen.source_bytes);
+            frozen.settlement.semantic = Some(
+                history
+                    .semantic_import_evidence(
+                        &replay,
+                        &frozen.settlement.cohort,
+                        &frozen.settlement.superseded,
+                    )
+                    .map_err(CvaError::Freshness)?,
+            );
         }
+        frozen.settlement.input_bytes = 0;
         Ok(frozen)
     }
     /// Atomically replace provisional scoring. Exact accepted retries resolve before
@@ -362,7 +411,7 @@ impl Cva {
                 Err(fail("ImportManifestConflict"))
             };
         }
-        if prepared.epoch != settlement.epoch.is_some() {
+        if settlement.semantic.is_none() {
             return Err(fail("historical settlement representation/scope mismatch"));
         }
         if self.latest_global_version() != settlement.global_version
@@ -373,8 +422,8 @@ impl Cva {
             || std::fs::metadata(self.container.path())
                 .map_err(|e| fail(&e.to_string()))?
                 .len()
-                != settlement.input_bytes
-            || file_digest(self.container.path())? != settlement.input_digest
+                != prepared.source_bytes
+            || file_digest(self.container.path())? != prepared.source_digest
         {
             return Err(fail("ImportInputDrift: discard and refreeze the attempt"));
         }
@@ -390,7 +439,7 @@ impl Cva {
         let payload = settlement.encode();
         let mut staged = self.freshness.clone();
         if prepared.epoch {
-            staged.bind_history_path(self.container.path(), settlement.input_bytes);
+            staged.bind_history_path(self.container.path(), prepared.source_bytes);
             staged.freeze_derived_birth_policy();
         }
         staged
@@ -403,6 +452,8 @@ impl Cva {
             &self.freshness_policy(),
         )
         .map_err(|e| fail(&e.to_string()))?;
+        due.configure_initial_decay_carries(staged.initial_decay_carries())
+            .map_err(|e| fail(&e.to_string()))?;
         // Admit only the authenticated settlement append; no worker or completion authority.
         self.container.set_owner_write_scope(prepared.epoch);
         let append_result = (|| {
@@ -426,6 +477,104 @@ impl Cva {
 }
 
 impl Cva {
+    /// Normalize persisted physical import proof once. Callers performing repair
+    /// use this on a disposable copy; ordinary open never appends.
+    pub fn normalize_import_settlements(&mut self) -> Result<usize, CvaError> {
+        self.validate_historical_import_settlements()?;
+        let before = self
+            .freshness
+            .records_at(self.rel_turn_count())
+            .map_err(CvaError::Freshness)?;
+        let mut normalized = 0;
+        for old in self.freshness.import_settlements().to_vec() {
+            if old.semantic.is_some() {
+                continue;
+            }
+            let mut predecessor = None;
+            let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
+            scan.visit_payloads::<CvaError>(|_, payload| {
+                let decoded = if payload.starts_with(b"CVAFRS03") {
+                    Some(
+                        HistoricalImportFreshnessSettlement::decode_legacy_frame(payload)
+                            .map_err(CvaError::Freshness)?,
+                    )
+                } else if payload.starts_with(b"CVAFRS04") || payload.starts_with(b"CVAFRS05") {
+                    Some(
+                        HistoricalImportFreshnessSettlement::decode(payload)
+                            .map_err(CvaError::Freshness)?,
+                    )
+                } else {
+                    None
+                };
+                if decoded
+                    .as_ref()
+                    .is_some_and(|value| value.import_id == old.import_id)
+                {
+                    let digest: [u8; 32] = Sha256::digest(payload).into();
+                    if predecessor.replace(digest).is_some() {
+                        return Err(fail("ambiguous legacy settlement predecessor"));
+                    }
+                }
+                Ok(())
+            })?;
+            let predecessor =
+                predecessor.ok_or_else(|| fail("legacy settlement bytes unavailable"))?;
+            let physical = if let Some(scope) = &old.epoch {
+                scope.clone()
+            } else {
+                crate::freshness_storage::ImportEventScope {
+                    owner: old.owner,
+                    import_id: old.import_id,
+                    start_evidence_digest: old.start_evidence_digest,
+                    born_memories: old.cohort.clone(),
+                    affected_recipients: old.cohort.clone(),
+                    source_nodes: input::required_nodes(self, old.settlement_cut)?
+                        .into_keys()
+                        .collect(),
+                    start_prefix: 0,
+                    freeze_prefix: old.input_bytes,
+                    base_cut: old.base_cut,
+                    freeze_cut: old.settlement_cut,
+                }
+            };
+            let mut history = self.freshness.clone();
+            history.bind_history_path(self.container.path(), physical.freeze_prefix);
+            let mut scope = history
+                .semantic_import_evidence(&physical, &old.cohort, &old.superseded)
+                .map_err(CvaError::Freshness)?;
+            scope.predecessor_digest = Some(predecessor);
+            let settlement =
+                HistoricalImportFreshnessSettlement::from_semantic(old.as_semantic(scope));
+            let payload = settlement.encode();
+            let open = self.open_import_epoch().is_some();
+            self.container.set_owner_write_scope(open);
+            let appended = (|| {
+                self.container.append(&payload)?;
+                self.container.sync()?;
+                Ok::<(), CvaError>(())
+            })();
+            self.container.set_owner_write_scope(false);
+            appended?;
+            self.freshness
+                .ingest_appended(&payload)
+                .map_err(CvaError::Freshness)?;
+            normalized += 1;
+        }
+        self.freshness
+            .refresh_projection_at(self.rel_turn_count())
+            .map_err(CvaError::Freshness)?;
+        if before
+            != self
+                .freshness
+                .records_at(self.rel_turn_count())
+                .map_err(CvaError::Freshness)?
+        {
+            return Err(fail("semantic normalization changed effective Freshness"));
+        }
+        self.validate_historical_import_settlements()?;
+        Ok(normalized)
+    }
+
     pub(crate) fn validate_historical_import_settlements(&mut self) -> Result<(), CvaError> {
         for settlement in self.freshness.import_settlements().to_vec() {
             input::validate_settlement(self, &settlement)?;

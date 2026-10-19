@@ -38,6 +38,10 @@ impl GraphOpenState {
             self.store.mark_format_initialized();
             return Ok(());
         }
+        if self.store.ingest_rewrite_baseline(payload)? {
+            self.data_seen = true;
+            return Ok(());
+        }
         if let Some(node) = decode_node(payload)? {
             self.data_seen = true;
             self.store.insert_node_rebuilt(GraphNodeRecord {

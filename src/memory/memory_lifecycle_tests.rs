@@ -1,7 +1,9 @@
-use crate::owner_lifecycle::{HistoricalPayload, LifecycleState, TombstoneOutcome};
+use crate::owner_lifecycle::{
+    HistoricalPayload, LifecycleState, LifecycleTarget, TombstoneOutcome,
+};
 use crate::{
-    Cva, EntityRef, GraphRelationKind, MemoryDraft, MemoryError, MemoryRef, Phylactery,
-    RelationshipDraft, RelationshipError, RelationshipParticipant,
+    Cva, EntityRef, GraphRelationKind, HistoryPruneRequest, MemoryDraft, MemoryError, MemoryRef,
+    Phylactery, RelationshipDraft, RelationshipError, RelationshipParticipant,
 };
 
 fn path(name: &str) -> std::path::PathBuf {
@@ -9,6 +11,124 @@ fn path(name: &str) -> std::path::PathBuf {
         "reliquary-memory-lifecycle-{}-{name}",
         uuid::Uuid::new_v4()
     ))
+}
+
+#[test]
+fn phy_prune_writes_authenticated_copy_and_preserves_terminal_structure() {
+    let temp_dir = std::env::current_dir().unwrap().join(".test-tmp");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let suffix = uuid::Uuid::new_v4();
+    let file = temp_dir.join(format!("prune-source-{suffix}.phy"));
+    let output = temp_dir.join(format!("prune-output-{suffix}.phy"));
+    let mut phy = Phylactery::create(&file).unwrap();
+    let memory = phy
+        .publish_memory(
+            None,
+            0,
+            memory_draft("prune-me", "Private title", "Private body payload"),
+        )
+        .unwrap()
+        .0;
+    phy.tombstone_memory(memory.id, memory.revision).unwrap();
+    let retained = phy.memory_retention_descriptor(memory.id).unwrap();
+
+    let report = phy
+        .prune_tombstoned_history(
+            &output,
+            HistoryPruneRequest {
+                targets: vec![LifecycleTarget::Memory(memory.id)],
+            },
+        )
+        .unwrap();
+    assert_eq!(report.pruned_memory_bodies, 1);
+    drop(phy);
+
+    let mut reopened = Phylactery::open(&output).unwrap();
+    assert_eq!(
+        reopened.memory_retention_descriptor(memory.id).unwrap(),
+        retained
+    );
+    assert!(matches!(
+        reopened.historical_memory_revision(memory.id, memory.revision).unwrap(),
+        HistoricalPayload::Pruned { structural_history, reason: crate::owner_lifecycle::PayloadUnavailable::Pruned }
+            if structural_history.revision == memory.revision
+    ));
+    drop(reopened);
+    let _ = std::fs::remove_file(output);
+    let _ = std::fs::remove_file(file);
+}
+
+#[test]
+fn phy_open_rejects_malformed_manifest_and_unbound_prune_marker() {
+    let temp_dir = std::env::current_dir().unwrap().join(".test-tmp");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let malformed = temp_dir.join(format!("malformed-{}.phy", uuid::Uuid::new_v4()));
+    let mut phy = Phylactery::create(&malformed).unwrap();
+    phy.container.append(b"CVAHPR01malformed").unwrap();
+    phy.sync().unwrap();
+    drop(phy);
+    assert!(Phylactery::open(&malformed).is_err());
+    let _ = std::fs::remove_file(malformed);
+
+    let unbound = temp_dir.join(format!("unbound-{}.phy", uuid::Uuid::new_v4()));
+    let mut phy = Phylactery::create(&unbound).unwrap();
+    let marker = crate::memory_store::history_prune::PrunedMemoryBody::encode(
+        crate::MemoryBodyId([0x91; 32]),
+        17,
+        [0x92; 32],
+    );
+    phy.container.append(&marker).unwrap();
+    phy.sync().unwrap();
+    drop(phy);
+    assert!(Phylactery::open(&unbound).is_err());
+    let _ = std::fs::remove_file(unbound);
+}
+
+#[test]
+fn phy_open_rejects_checksummed_but_unauthorized_prune_manifest_marker() {
+    use crate::owner_maintenance::{
+        HistoryPruneManifest, HistoryRetentionDescriptor, PrunedPayload, RetentionDomain,
+        RetentionTarget,
+    };
+    let temp_dir = std::env::current_dir().unwrap().join(".test-tmp");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let file = temp_dir.join(format!("unauthorized-{}.phy", uuid::Uuid::new_v4()));
+    let mut phy = Phylactery::create(&file).unwrap();
+    let fake_body = crate::MemoryBodyId([0x51; 32]);
+    let fake_memory = crate::MemoryId([0x52; 32]);
+    let watermark = phy.latest_global_version();
+    let source_history_digest =
+        crate::owner_maintenance::owner_history_digest(&mut phy.container, watermark).unwrap();
+    let manifest = HistoryPruneManifest {
+        owner_uuid: phy.owner_uuid().unwrap(),
+        source_global_version: watermark,
+        source_history_digest,
+        descriptors: vec![HistoryRetentionDescriptor {
+            target: RetentionTarget {
+                domain: RetentionDomain::Memory,
+                identity: fake_memory.0.to_vec(),
+            },
+            tombstone_global_version: None,
+            tombstone_domain_version: None,
+            tombstone_digest: [0x53; 32],
+            retained_structure_digest: [0x54; 32],
+            payloads: vec![PrunedPayload::MemoryBody(fake_body.0)],
+        }],
+    };
+    let digest = manifest.digest().unwrap();
+    phy.container
+        .append(
+            &crate::memory_store::history_prune::PrunedMemoryBody::encode(fake_body, 17, digest),
+        )
+        .unwrap();
+    phy.container.append(&manifest.encode().unwrap()).unwrap();
+    phy.sync().unwrap();
+    drop(phy);
+
+    // The manifest is valid, checksummed, and bound to this exact source file;
+    // its owner descriptor is still unauthorized because no such Memory exists.
+    assert!(Phylactery::open(&file).is_err());
+    let _ = std::fs::remove_file(file);
 }
 
 fn memory_draft(mutation: &str, title: &str, content: &str) -> MemoryDraft {

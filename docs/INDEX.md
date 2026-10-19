@@ -3,6 +3,10 @@
 - [Tombstone/import execution contract](tombstone-import-history-execution-contract.md) — frozen boundaries and staged implementation record.
 - [Tombstone/import final verification](tombstone-import-history-final-verification-2026-10-18.md) — implementation, retained fixture promotion, retrieval parity and final acceptance.
 - [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) — terminal lifecycle, owner import identity, explicit pruning and policy v3 decisions.
+- [ADR 0041](decisions/0041-semantic-import-boundaries-owner-pruning-history-rewrite.md) — semantic import boundaries, owner-neutral pruning, and explicit fresh-history rewrite.
+- [Semantic import boundaries, owner-neutral pruning, and history rewrite — implementation plan](semantic-import-pruning-history-rewrite-implementation-plan-2026-10-18.md) — staged hard-cut plan for removing physical-prefix authority, adding PHY pruning/multi-profile repair, and adding REL/PHY rewrite.
+- [Semantic import, pruning and history rewrite — baseline evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) — ongoing baseline fixture hashes, Arcana snapshot limits, source dependency audit and planned focused checks.
+- [Development-format compatibility retirement audit (2026-10-19)](development-format-compatibility-retirement-audit-2026-10-19.md) — canonical-format policy, confirmed legacy authoritative fixture inventory, and outstanding migration/retirement gates.
 
 - [Operator and integration manual](manual/INDEX.md) — task-oriented workflows for users, operators, and product integrators.
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
@@ -104,3 +108,7 @@
 - [C12 production disposition](freshness-historical-production-disposition-2026-10-13.md) — H1–H8 complete/merge-ready as explicit offline REL opt-in; defaults off and PHY deferred.
 
 - [Domain tombstone convergence inventory](domain-tombstone-convergence-split-2026-10-17.md)
+
+- [Decision endpoint inheritance execution](decision-endpoint-inheritance-linear-plan-2026-10-19.md) — configured decision precedence, adapter safety and verification.
+
+- [Decision endpoint inheritance specification](decision-endpoint-inheritance-spec-2026-10-19.md) — configured decision precedence, adapter safety and verification.

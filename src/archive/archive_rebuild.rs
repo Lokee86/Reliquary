@@ -106,7 +106,6 @@ impl ArchiveOpenState {
         if !self.format_seen {
             return Err(ArchiveError::MissingArchiveFormat);
         }
-        self.prune.validate_markers()?;
         Ok(Archive {
             prune: self.prune,
             import_receipts: self.import_receipts,

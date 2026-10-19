@@ -930,27 +930,6 @@ pub(super) fn build_with_fill(
         .map_err(|e| fail(&e.to_string()))?
         .len();
     let prefix = file_digest(cva.container.path())?;
-    // Each retained payload family has an ordered accepted-prefix commitment.
-    let mut prefixes = BTreeMap::<Vec<u8>, Vec<Value>>::new();
-    let mut scan = crate::Container::open_read_only_for_scan(cva.container.path())?;
-    scan.visit_payloads::<CvaError>(|_, payload| {
-        prefixes
-            .entry(payload.iter().take(8).copied().collect())
-            .or_default()
-            .push(Value::bytes(Sha256::digest(payload)));
-        Ok(())
-    })?;
-    let families = Value::Array(
-        prefixes
-            .into_iter()
-            .map(|(family, payloads)| {
-                Value::map([
-                    ("family", Value::bytes(family)),
-                    ("payload_digests", Value::Array(payloads)),
-                ])
-            })
-            .collect(),
-    );
     if std::fs::metadata(cva.container.path())
         .map_err(|e| fail(&e.to_string()))?
         .len()
@@ -978,9 +957,6 @@ pub(super) fn build_with_fill(
             cva.community_snapshot()
                 .map_or(Value::Null, |s| Value::Unsigned(s.generation)),
         ),
-        ("accepted_prefix_digest", Value::bytes(prefix)),
-        ("accepted_prefix_bytes", Value::Unsigned(input_bytes)),
-        ("accepted_payload_families", families),
         (
             "dream_proof_digest",
             Value::bytes(graph.digest("reliquary:historical-dream-input:v1")?),
@@ -1058,14 +1034,6 @@ pub(super) fn build_with_fill(
             (
                 "import_start_digest".to_owned(),
                 Value::bytes(scope.start_digest),
-            ),
-            (
-                "import_start_offset".to_owned(),
-                Value::Unsigned(scope.start_offset),
-            ),
-            (
-                "import_start_marker_end".to_owned(),
-                Value::Unsigned(scope.marker_end),
             ),
             (
                 "base_activity_cut".to_owned(),

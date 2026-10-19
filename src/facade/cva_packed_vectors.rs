@@ -100,8 +100,8 @@ impl Cva {
         profile_id: CompatibilityProfileId,
         packed_id: PackedVectorId,
         watermark: u64,
-    ) -> Result<crate::history_prune_manifest::HistoryRetentionDescriptor, CvaError> {
-        use crate::history_prune_manifest::{
+    ) -> Result<crate::owner_maintenance::HistoryRetentionDescriptor, CvaError> {
+        use crate::owner_maintenance::{
             HistoryRetentionDescriptor, PrunedPayload, RetentionDomain, RetentionTarget,
         };
         use sha2::{Digest, Sha256};
@@ -228,7 +228,7 @@ impl Cva {
     }
 
     pub(crate) fn validate_pruned_packed_vectors(&mut self) -> Result<(), CvaError> {
-        use crate::history_prune_manifest::{PrunedPayload, RetentionDomain};
+        use crate::owner_maintenance::{PrunedPayload, RetentionDomain};
         let ids = self.packed_vectors.pruned_ids();
         let candidates = self.prunable_packed_vector_profiles();
         let mut authorized = HashSet::new();
@@ -249,9 +249,8 @@ impl Cva {
                     CvaError::Repack("pruned packed vector lacks manifest digest".into())
                 })?;
             let manifest = self
-                .archive
-                .prune
-                .manifest(&digest)
+                .owner_maintenance
+                .get(&digest)
                 .cloned()
                 .ok_or_else(|| {
                     CvaError::Repack("pruned packed vector references missing manifest".into())
@@ -273,8 +272,7 @@ impl Cva {
             }
         }
         let manifests = self
-            .archive
-            .prune
+            .owner_maintenance
             .manifests()
             .iter()
             .map(|(digest, manifest)| (*digest, manifest.clone()))

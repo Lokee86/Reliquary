@@ -325,7 +325,7 @@ impl Cva {
         }
 
         if let Some(settlement) = settlement {
-            let Some(epoch) = settlement.epoch.as_ref() else {
+            let Some(epoch) = settlement.scope_identity() else {
                 return Ok(Some(blocker(
                     Owner::Freshness,
                     start.import_id.clone(),

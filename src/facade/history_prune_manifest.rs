@@ -61,10 +61,11 @@ impl HistoryPruneManifest {
         if self.descriptors.is_empty() || self.source_history_digest == [0; 32] {
             return Err("prune manifest lacks retention evidence".into());
         }
-        let mut previous: Option<&RetentionTarget> = None;
+        let mut previous: Option<(&RetentionTarget, &Vec<PrunedPayload>)> = None;
+        let mut seen_payloads = std::collections::BTreeSet::new();
         for descriptor in &self.descriptors {
             if descriptor.target.identity.is_empty()
-                || previous.is_some_and(|target| target >= &descriptor.target)
+                || previous.is_some_and(|key| key >= (&descriptor.target, &descriptor.payloads))
                 || descriptor.tombstone_digest == [0; 32]
                 || descriptor.retained_structure_digest == [0; 32]
                 || descriptor.payloads.is_empty()
@@ -80,7 +81,12 @@ impl HistoryPruneManifest {
             {
                 return Err("invalid or noncanonical prune retention descriptor".into());
             }
-            previous = Some(&descriptor.target);
+            for payload in &descriptor.payloads {
+                if !seen_payloads.insert(payload) {
+                    return Err("duplicate prune payload authority".into());
+                }
+            }
+            previous = Some((&descriptor.target, &descriptor.payloads));
         }
         Ok(())
     }
@@ -128,15 +134,9 @@ impl HistoryPruneManifest {
     }
 
     pub(crate) fn authorizes(&self, target: &RetentionTarget, payload: &PrunedPayload) -> bool {
-        self.descriptors
-            .binary_search_by(|descriptor| descriptor.target.cmp(target))
-            .ok()
-            .is_some_and(|index| {
-                self.descriptors[index]
-                    .payloads
-                    .binary_search(payload)
-                    .is_ok()
-            })
+        self.descriptors.iter().any(|descriptor| {
+            &descriptor.target == target && descriptor.payloads.binary_search(payload).is_ok()
+        })
     }
 }
 

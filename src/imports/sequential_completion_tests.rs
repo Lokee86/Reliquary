@@ -144,8 +144,8 @@ fn settle_and_complete(cva: &mut Cva, import_id: &str, now_ns: i64) -> ImportCom
         .freshness
         .import_settlement(report.import_id)
         .expect("accepted settlement for current import");
-    assert!(settlement.epoch.is_some());
-    assert!(settlement.encode().starts_with(b"CVAFRS05"));
+    assert!(settlement.semantic.is_some());
+    assert!(settlement.encode().starts_with(b"CVAFRS06"));
     assert_eq!(
         settlement
             .import_id

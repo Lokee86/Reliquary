@@ -1,7 +1,9 @@
-use crate::owner_lifecycle::{HistoricalPayload, LifecycleState, TombstoneOutcome};
+use crate::owner_lifecycle::{
+    HistoricalPayload, LifecycleState, LifecycleTarget, TombstoneOutcome,
+};
 use crate::{
-    Cva, EntityDraft, EntityRef, MemoryDraft, MemoryRef, Phylactery, RelationshipDraft,
-    RelationshipError, RelationshipParticipant,
+    Cva, EntityDraft, EntityRef, HistoryPruneRequest, MemoryDraft, MemoryRef, Phylactery,
+    RelationshipDraft, RelationshipError, RelationshipParticipant,
 };
 
 fn path(name: &str) -> std::path::PathBuf {
@@ -9,6 +11,65 @@ fn path(name: &str) -> std::path::PathBuf {
         "reliquary-relationship-lifecycle-{}-{name}",
         uuid::Uuid::new_v4()
     ))
+}
+
+#[test]
+fn phy_prunes_terminal_entity_and_relationship_descriptions_with_memory_copy() {
+    let temp_dir = std::env::current_dir().unwrap().join(".test-tmp");
+    std::fs::create_dir_all(&temp_dir).unwrap();
+    let suffix = uuid::Uuid::new_v4();
+    let file = temp_dir.join(format!("semantic-prune-source-{suffix}.phy"));
+    let output = temp_dir.join(format!("semantic-prune-output-{suffix}.phy"));
+    let mut phy = Phylactery::create(&file).unwrap();
+    let memory = phy
+        .publish_memory(None, 0, memory_draft("prune-link-memory"))
+        .unwrap()
+        .0;
+    let entity = phy
+        .publish_entity(None, 0, entity_draft("prune-link-entity"))
+        .unwrap()
+        .0;
+    let owner_id = phy.owner_id().unwrap();
+    let relationship = phy
+        .publish_relationship(None, 0, relationship_draft(owner_id, entity.id, memory.id))
+        .unwrap()
+        .0;
+    phy.tombstone_relationship(relationship.id, relationship.revision)
+        .unwrap();
+    phy.tombstone_entity(entity.id, entity.revision).unwrap();
+    phy.tombstone_memory(memory.id, memory.revision).unwrap();
+
+    let report = phy
+        .prune_tombstoned_history(
+            &output,
+            HistoryPruneRequest {
+                targets: vec![
+                    LifecycleTarget::Memory(memory.id),
+                    LifecycleTarget::Entity(entity.id),
+                    LifecycleTarget::Relationship(relationship.id),
+                ],
+            },
+        )
+        .unwrap();
+    assert_eq!(report.pruned_memory_bodies, 1);
+    drop(phy);
+
+    let mut reopened = Phylactery::open(&output).unwrap();
+    assert!(matches!(
+        reopened
+            .historical_entity_revision(entity.id, entity.revision)
+            .unwrap(),
+        crate::owner_lifecycle::HistoricalPayload::Pruned { .. }
+    ));
+    assert!(matches!(
+        reopened
+            .historical_relationship_revision(relationship.id, relationship.revision)
+            .unwrap(),
+        crate::owner_lifecycle::HistoricalPayload::Pruned { .. }
+    ));
+    drop(reopened);
+    let _ = std::fs::remove_file(output);
+    let _ = std::fs::remove_file(file);
 }
 
 fn memory_draft(mutation: &str) -> MemoryDraft {

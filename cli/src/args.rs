@@ -75,17 +75,36 @@ pub enum RelCommand {
     Verify {
         path: PathBuf,
     },
-    /// Repair a disposable copy and retain one complete operational profile.
+    /// Repair a disposable copy and retain one or more complete operational profiles.
     Repair {
         source: PathBuf,
         output: PathBuf,
-        #[arg(long)]
-        keep_profile: String,
+        #[arg(long = "keep-profile", required = true, action = clap::ArgAction::Append)]
+        keep_profile: Vec<String>,
         /// Explicitly prune eligible numeric payload of every retired profile.
         #[arg(long)]
         prune_retired: bool,
         #[arg(long)]
         reclaim: bool,
+    },
+    Rewrite {
+        source: PathBuf,
+        output: PathBuf,
+        /// Print the resolved selection plan without creating output.
+        #[arg(long)]
+        dry_run: bool,
+        /// JSON RewriteRequest policy file.
+        #[arg(long, value_name = "JSON")]
+        policy_file: Option<PathBuf>,
+        /// Replace the policy's retained profiles (repeatable).
+        #[arg(long = "profile", action = clap::ArgAction::Append)]
+        profiles: Vec<String>,
+        /// Replace the policy's explicit included Memories (repeatable).
+        #[arg(long = "include-memory", action = clap::ArgAction::Append)]
+        include_memories: Vec<String>,
+        /// Replace the policy's explicit excluded Memories (repeatable).
+        #[arg(long = "exclude-memory", action = clap::ArgAction::Append)]
+        exclude_memories: Vec<String>,
     },
     #[command(visible_alias = "vacuum")]
     Reclaim {
@@ -104,6 +123,37 @@ pub enum PhyCommand {
     },
     Verify {
         path: PathBuf,
+    },
+    /// Repair a disposable copy and retain one or more complete operational profiles.
+    Repair {
+        source: PathBuf,
+        output: PathBuf,
+        #[arg(long = "keep-profile", required = true, action = clap::ArgAction::Append)]
+        keep_profile: Vec<String>,
+        /// Explicitly prune eligible numeric payload of every retired profile.
+        #[arg(long)]
+        prune_retired: bool,
+        #[arg(long)]
+        reclaim: bool,
+    },
+    Rewrite {
+        source: PathBuf,
+        output: PathBuf,
+        /// Print the resolved selection plan without creating output.
+        #[arg(long)]
+        dry_run: bool,
+        /// JSON RewriteRequest policy file.
+        #[arg(long, value_name = "JSON")]
+        policy_file: Option<PathBuf>,
+        /// Replace the policy's retained profiles (repeatable).
+        #[arg(long = "profile", action = clap::ArgAction::Append)]
+        profiles: Vec<String>,
+        /// Replace the policy's explicit included Memories (repeatable).
+        #[arg(long = "include-memory", action = clap::ArgAction::Append)]
+        include_memories: Vec<String>,
+        /// Replace the policy's explicit excluded Memories (repeatable).
+        #[arg(long = "exclude-memory", action = clap::ArgAction::Append)]
+        exclude_memories: Vec<String>,
     },
     #[command(visible_alias = "vacuum")]
     Reclaim {
