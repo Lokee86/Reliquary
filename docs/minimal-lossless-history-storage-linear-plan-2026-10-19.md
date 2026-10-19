@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 7/243 execution steps complete
+Status: Implementation-ready; 8/243 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -101,9 +101,16 @@ Blockers: fresh Lexicon/Arcana/Pitlord evidence remains required at later struct
 
 ### Step 7 execution record
 
-Commit: pending fingerprint implementation commit.
+Commit: `c7380c8`.
 Files: `src/facade/historical_fingerprint.rs`, `src/facade/historical_fingerprint_tests.rs`, `src/lib.rs`; [contract](minimal-lossless-history-storage-execution-2026-10-19.md#step-7--canonical-fingerprint-contract).
 Verification: all six focused tests pass in the real crate test binary and an independent source-module harness; Python SHA-256 golden agrees.
+Blockers: none.
+
+### Step 8 execution record
+
+Commit: pending Archive oracle implementation commit.
+Files: `src/facade/historical_archive_fingerprint*.rs`, test-only crate wiring, fixture feature, development/maintainer docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-8--archive-historical-fingerprint).
+Verification: three strengthened synthetic tests pass; authoritative fixture gate passes on all three RELs at four cuts each; all six source hashes unchanged.
 Blockers: none.
 
 ### Integration Gate A — Historical oracle

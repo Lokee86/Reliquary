@@ -36,6 +36,9 @@ mod freshness_trace;
 mod owner_maintenance;
 
 #[cfg(test)]
+#[path = "facade/historical_archive_fingerprint.rs"]
+mod historical_archive_fingerprint;
+#[cfg(test)]
 #[path = "facade/historical_fingerprint.rs"]
 mod historical_fingerprint;
 

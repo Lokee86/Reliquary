@@ -90,7 +90,7 @@ The following maps every Step 3 family group to its authority. A shared physical
 | Transitional Relationship | Relationship owns dense Relationship version, per-ID revision and global version. Canonical-target decision remains Step 76 |
 | Graph | Graph owns dense full-Graph version and accepted global version; Memory-Graph cut advances only for qualifying Memory topology. Catalogue ordinals are physical owner-local references |
 | Graph rewrite baseline | Graph owns explicit rewritten topology/counters; ordinary compact migration must not reissue it as a new semantic history |
-| Community membership/name | Community owns generation, source graph cut and naming revision; records allocate no global ticket |
+| Community membership/name | Community owns generation and source graph cut; names bind Community/baseline identity, naming contract and source, without an independent revision clock or global ticket |
 | Processing epoch | Processing owner records per-Memory lane epoch; clock-neutral to Memory/Graph/global semantic versions |
 | Dream pairs/cooldown/Freshness pass | Dream owns accepted pair facts and pass lifecycle/proofs; no new global clock. Legacy cooldown decoding remains migration-local |
 | Freshness policy/events/settlements/activation/baseline | Freshness owns policy, activity/event cuts, exact receipt identity and ordered settlement linkage. Archive supplies REL activity; equal activity cuts do not erase physical acceptance order |
@@ -151,6 +151,24 @@ Digest preimage, in order:
 JSON objects sort keys recursively; array order and exact Unicode/byte representation remain meaningful. Null, absent fields and empty strings differ. Signed/unsigned exact 64-bit integers remain exact; floating-point values must be supplied as integer bit patterns. Duplicate row keys or invalid nested values reject before changing the projection. Owner adapters must sort set-valued semantic collections themselves and may not supply storage offsets, encoded record bytes or Debug strings as semantic values.
 
 An independently calculated empty Memory-cut-3 digest for owner UUID `[7; 16]` is `8d713b0e9efa2ef12fb9eef2878e7bdfba1c217a3b738f284c7edcf4e0ee000a`. Six focused tests cover canonical ordering, collision-resistant framing, identity/cut binding, exact semantic differences, invalid-input atomicity and this golden vector. Verification: all six tests pass both in the integrated crate test executable and in a standalone compilation of the exact source module with the same dependency libraries. The integrated executable uses a separate repository-local output name because the baseline suite held the ordinary Windows test executable open during linking.
+
+## Step 8 — Archive historical fingerprint
+
+`historical_archive_fingerprint.rs` selects only accepted `ArchiveRecordVersion` publications through the requested Archive cut. It canonicalizes decoded semantic fields for every Archive variant, preserves publication/global/time coordinates, and includes the exact referenced content bytes once per ContentId. Pruned content remains explicit evidence; Project-backed files preserve exact repository references. Physical ObjectRef locations, unpublished records and unreferenced content are excluded. Retained accepted revisions are part of the oracle, so both current and historical reconstruction errors remain observable.
+
+The branch projection agrees with existing `branch_at` at every cut of a synthetic history. Dedicated tests cover terminal closure, reopen, inert backing, and reclaim with a proven change in published ObjectRef location. The fixture feature runs only on newly created writable byte copies; using `fs::copy` incorrectly preserved authoritative Windows read-only attributes and was corrected in the harness without changing sources.
+
+The authoritative fixture run passes **3/3** (62.22 seconds), including repeated empty/first/middle/head cuts for all three RELs:
+
+| REL | Archive head | Tested cuts |
+| --- | ---: | --- |
+| first 14 days | 7,526 | 0, 1, 3,763, 7,526 |
+| first 28 days | 21,068 | 0, 1, 10,534, 21,068 |
+| Ellis | 3,763 | 0, 1, 1,881, 3,763 |
+
+Final strengthened synthetic checks pass **3/3**: public historical API agreement/inert backing, terminal closure across reopen, and authenticated reclamation that actually relocates published objects.
+
+These sampled determinism checks do not claim exhaustive cross-format parity; exhaustive cut enumeration and baseline artifacts remain Steps 17–19. All six authoritative hashes were re-read afterward and still match the accepted baseline. Opt-in fixture checks use the `history-oracle-fixtures` Cargo feature and add no ignored tests to the ordinary suite.
 
 ## Fresh baseline observations
 

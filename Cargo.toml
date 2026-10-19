@@ -6,6 +6,7 @@ publish = false
 license-file = "LICENSE.md"
 
 [features]
+history-oracle-fixtures = []
 community-benchmarks = []
 entity-calibration = []
 freshness-performance-trace = []

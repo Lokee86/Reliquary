@@ -57,6 +57,14 @@ Do not copy large portions of previous Reliquary implementations as a migration 
 
 ## Verification commands
 
+Historical oracle fixture checks are opt-in and use disposable copies inside the repository:
+
+```text
+cargo test --lib --features history-oracle-fixtures historical_archive_fingerprint
+```
+
+Set `RELIQUARY_HISTORY_FIXTURES` to the authoritative fixture root. Set `TEMP` and `TMP` to the repository's `.test-tmp` directory; longer nested scratch paths can exceed the Windows frozen-plan rename limit. The fixture feature does not add ignored tests to the ordinary suite.
+
 The `freshness_calibration` example’s 1/2/4/8 worker settings invoke single-event propagation and do not measure the P2 batch event pool. P2 scheduling thresholds, caps, counter behavior and verification status are described in the [P2 verification report](freshness-performance-p2-verification-2026-10-03.md); P2 acceptance and its propagation-stage scope are recorded there.
 
 ```text

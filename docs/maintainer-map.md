@@ -41,6 +41,8 @@ Retained-REL diagnosis uses `historical_retained_corpus_tests.rs` / `historical_
 
 ## Purpose
 
+The internal historical-oracle schema is `src/facade/historical_fingerprint.rs`; the Archive adapter and its tests are `historical_archive_fingerprint*.rs` in that directory. They compile only for tests. [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md) owns the frozen schema and verification record; [Development](development.md#verification-commands) owns opt-in fixture invocation. The oracle has no runtime semantic authority or persisted manifest.
+
 This map routes common change intents to canonical documentation, implementation boundaries, and verification surfaces.
 
 ## Overview
