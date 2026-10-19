@@ -45,6 +45,9 @@ mod historical_entity_fingerprint;
 #[path = "facade/historical_fingerprint.rs"]
 mod historical_fingerprint;
 #[cfg(test)]
+#[path = "facade/historical_graph_fingerprint.rs"]
+mod historical_graph_fingerprint;
+#[cfg(test)]
 #[path = "facade/historical_memory_fingerprint.rs"]
 mod historical_memory_fingerprint;
 #[cfg(test)]

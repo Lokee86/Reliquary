@@ -204,6 +204,22 @@ The corpus contains **1,129 payload revisions** and **12 terminal version positi
 
 Verification passes **3/3** (23.18 seconds): synthetic qualified participant/evidence revisions, every local cut through tombstone and reopen, and pruning with structural evidence retained and public unavailable-summary agreement. All six authoritative Relationship owners have head zero and zero revisions; their empty projections are deterministic. Nonempty behavior is established by the synthetic cases, not by those fixtures. All six authoritative source hashes remain unchanged.
 
+## Step 12 — Graph historical fingerprint
+
+`historical_graph_fingerprint.rs` reads accepted Graph version publications and their decoded semantic changes. It preserves typed endpoint identities, relation kind/active/origin, transaction/global/local coordinates, exact publication time, inactive revisions and the isolated Memory population admitted by a fresh-history baseline. Physical node ordinals, chunk references and unpublished backing are excluded. MemoryGraph uses the last qualifying full-Graph version, not a separately dense counter; nonqualifying local cuts are rejected for its projection.
+
+Graph history is independent of current Memory/Entity lifecycle exclusions. Verification applies the existing owner visibility rule when comparing current topology, and checks that a Memory terminal does not fabricate a Graph publication or alter an earlier Graph fingerprint. Whole-owner historical visibility remains Step 18. The baseline owner/generation/policy tuple is validated against RewriteGenesis on open and belongs to that cross-owner lineage proof comparison; Step 18 explicitly owns it, while this Graph fingerprint records the admitted node population.
+
+The initial fixture run passed both tests (57.85 seconds). Its latest projections agree with replayed active full-Graph relations, MemoryGraph relations and clock:
+
+| Fixture | REL Graph / MemoryGraph | PHY Graph / MemoryGraph |
+| --- | --- | --- |
+| first 14 days | 7,913 / 7,913 | 667 / 667 |
+| first 28 days | 25,337 / 25,337 | 1,690 / 1,637 |
+| Ellis | 6,309 / 6,309 | 4,159 / 3,889 |
+
+Luna review strengthened cached determinism checks into comparisons across independent file scans and added a hand-authored first-publication fingerprint. Additional synthetic cases cover typed-only clock gaps, principal associations, lifecycle exclusions, and isolated nodes after authentic fresh-history rewrite. The first strengthened run exposed invalid fixture assumptions about principal kind and source Graph population; these were corrected without changing production behavior. Final synthetic verification passes **3/3** (0.06 seconds). The strengthened authoritative fixture test passes with two independent scans and exact current full/Memory relation, Memory node population and clock agreement (the preceding combined run took 68.23 seconds and still contained the subsequently corrected principal fixture). The independent first-publication fingerprint agrees. All six source hashes remain unchanged.
+
 ## Fresh baseline observations
 
 The completed root baseline reports **1,515 passed / 5 failed / 5 ignored**, in 419.85 seconds of test execution. Both exhaustive import byte-prefix recovery tests and the long finite-receipt/reopen test pass. Failures were three external-publication tests, one Lore file-lock test and one decision-endpoint test-server socket race. All seven `runtime_host::gateway::external_tests` pass in isolation with `TEMP=TMP=<repository>/.test-tmp`. The initial longer `.test-tmp/lossless-baseline` scratch path exceeds the Win32 rename path limit in frozen external-plan installation; the shorter path retains all scratch inside the repository. The Lore test passes in isolation, matching the previously recorded transient Windows file-lock behavior. The exact decision-endpoint failure passes through Workspace command execution (1/1); a sandboxed direct loopback retry cannot reach its local server, so that restricted retry is not authoritative network-test evidence. No production fix or test weakening was needed. This is a qualified baseline, not an all-green full-suite claim; integration binaries were not reached after the library failure.

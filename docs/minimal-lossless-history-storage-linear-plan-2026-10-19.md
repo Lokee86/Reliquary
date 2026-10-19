@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 11/243 execution steps complete
+Status: Implementation-ready; 12/243 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -54,7 +54,7 @@ Step 1 starts only from a clean integration point containing the accepted curren
 | 15 | Sol | Implement Freshness historical fingerprinting at activity/event cuts. | `record_at` / exact event-cut projections fingerprint deterministically. |
 | 16 | Sol | Implement Dream proof-state fingerprinting needed by historical equivalence tests. | Pending/completed accepted Dream evidence fingerprints deterministically. |
 | 17 | Luna | Build deterministic cut enumeration for authoritative fixtures. | Cut enumerator returns stable Archive/Memory/Entity/Graph/vector/Ego/Freshness/global cut sets. |
-| 18 | Sol | Implement whole-owner projection at CVA global ordering point G using existing visibility rules. | Interleaved synthetic owner fixture matches hand-authored expected state. |
+| 18 | Sol | Implement whole-owner projection at CVA global ordering point G using existing visibility rules, including validated rewrite-lineage/baseline proof identities. | Interleaved synthetic owner fixture matches hand-authored expected state. |
 | 19 | Luna | Generate baseline historical fingerprint artifacts for all authoritative fixtures. | Baseline artifacts persisted; fixture hashes unchanged. |
 
 ### Step 1 execution record
@@ -129,10 +129,17 @@ Blockers: none.
 
 ### Step 11 execution record
 
-Commit: pending Relationship oracle implementation commit.
+Commit: `89059e2`.
 Files: `src/facade/historical_relationship_fingerprint*.rs`, test-only crate wiring, maintainer/evidence docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-11--relationship-historical-fingerprint).
 Verification: 3/3 checks pass; qualified participant/evidence revisions, terminal/reopen and pruned-summary behavior agree with owner APIs; all six empty fixture owners fingerprint deterministically; source hashes unchanged.
 Blockers: none; nonempty coverage is synthetic because the authoritative corpus predates Relationship publication.
+
+### Step 12 execution record
+
+Commit: pending Graph oracle implementation commit.
+Files: `src/facade/historical_graph_fingerprint*.rs`, test-only crate wiring, maintainer/evidence docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-12--graph-historical-fingerprint).
+Verification: final synthetic checks 3/3; strengthened fixture test passes on all six files with independent scans, exact current relation/node/clock replay agreement; source hashes unchanged. Independent first-publication fingerprint agrees.
+Blockers: none; whole-owner lineage proof comparison is explicitly assigned to Step 18.
 
 ### Integration Gate A — Historical oracle
 
