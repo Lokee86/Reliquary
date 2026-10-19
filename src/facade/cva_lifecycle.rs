@@ -222,7 +222,19 @@ impl Cva {
         })
     }
 
+    /// Opens a V1 owner for inspection or lossless-upgrade planning only.
+    pub fn open_v1_read_only(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::open_with_version(path, Some(crate::FormatVersion { major: 1, minor: 0 }))
+    }
+
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
+        Self::open_with_version(path, None)
+    }
+
+    fn open_with_version(
+        path: impl AsRef<Path>,
+        required_version: Option<crate::FormatVersion>,
+    ) -> Result<Self, CvaError> {
         let lineage_owner = Container::open_read_only_for_scan(path.as_ref())?.owner_uuid();
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
@@ -253,81 +265,86 @@ impl Cva {
         let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut external_index = crate::external_source::store::ExternalIndexStore::default();
-        let mut container = Container::open_scanned(path, |chunk, payload, latest_global| {
-            if let Some(owner_uuid) = lineage_owner {
-                rewrite_lineage
-                    .ingest(payload, owner_uuid)
-                    .map_err(CvaError::Repack)?;
-            } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
-                return Err(CvaError::Repack(
-                    "RewriteGenesis requires a versioned owner identity".into(),
-                ));
-            }
-            match classify_open_record(payload) {
-                OpenRecordRoute::Archive => {
-                    archive_state.ingest(chunk, payload, latest_global)?;
-                }
-                OpenRecordRoute::Memory => {
-                    memory_state.ingest(chunk, payload, latest_global)?;
-                }
-                OpenRecordRoute::Graph => {
-                    graph_state.ingest(chunk, payload, latest_global)?;
-                }
-                OpenRecordRoute::ContainerVersion => {}
-                OpenRecordRoute::Fallback => {
-                    owner_maintenance
-                        .ingest(payload)
+        let mut container = Container::open_scanned_version(
+            path,
+            required_version,
+            |chunk, payload, latest_global| {
+                if let Some(owner_uuid) = lineage_owner {
+                    rewrite_lineage
+                        .ingest(payload, owner_uuid)
                         .map_err(CvaError::Repack)?;
-                    import_epochs.ingest_at(Some(chunk), payload)?;
-                    external_index.ingest(payload);
-                    archive_state.ingest(chunk, payload, latest_global)?;
-                    memory_state.ingest(chunk, payload, latest_global)?;
-                    graph_state.ingest(chunk, payload, latest_global)?;
-                    entity_state.ingest(chunk, payload, latest_global)?;
-                    relationship_state.ingest(chunk, payload, latest_global)?;
-                    community_state.ingest(payload)?;
-                    insomnia_state.ingest(chunk, payload)?;
-                    packed_state.ingest(chunk, payload)?;
-                    memory_vector_state.ingest(chunk, payload)?;
-                    archive_vector_state.ingest(chunk, payload)?;
-                    profile_state.ingest(chunk, payload)?;
-                    generation_state.ingest(chunk, payload, latest_global)?;
-                    interaction_streams.ingest(payload)?;
-                    compaction_state.ingest(chunk, payload)?;
-                    echo.ingest(payload)?;
-                    ego.ingest(payload)?;
-                    entity_resolutions.ingest(payload)?;
-                    project_history.ingest(payload)?;
-                    project_files.ingest(payload)?;
-                    rel_metadata
-                        .ingest(payload)
-                        .map_err(CvaError::RelMetadata)?;
-                    if let Some(completion) =
-                        crate::insomnia::completion::decode_completion(payload)
-                            .map_err(|message| CvaError::Freshness(message.into()))?
-                        && completion.freshness_birth_turn.is_some()
-                        && !completion.freshness_birth_memory_ids.is_empty()
-                    {
-                        freshness.freeze_derived_birth_policy();
-                    }
-                    if let Some(publication) = crate::external_source::publication::decode(payload)?
-                        && publication.birth_turn.is_some()
-                        && !publication.records.is_empty()
-                    {
-                        freshness.freeze_derived_birth_policy();
-                    }
-                    if payload.starts_with(b"CVAFRP01") {
-                        freshness.ingest(payload).map_err(CvaError::Freshness)?;
-                    }
-                    dream_freshness
-                        .ingest(payload)
-                        .map_err(CvaError::Freshness)?;
-                    processing_epochs.ingest(payload)?;
-                    dream_pairs.ingest(payload)?;
+                } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
+                    return Err(CvaError::Repack(
+                        "RewriteGenesis requires a versioned owner identity".into(),
+                    ));
                 }
-            }
-            Ok::<(), CvaError>(())
-        })?;
+                match classify_open_record(payload) {
+                    OpenRecordRoute::Archive => {
+                        archive_state.ingest(chunk, payload, latest_global)?;
+                    }
+                    OpenRecordRoute::Memory => {
+                        memory_state.ingest(chunk, payload, latest_global)?;
+                    }
+                    OpenRecordRoute::Graph => {
+                        graph_state.ingest(chunk, payload, latest_global)?;
+                    }
+                    OpenRecordRoute::ContainerVersion => {}
+                    OpenRecordRoute::Fallback => {
+                        owner_maintenance
+                            .ingest(payload)
+                            .map_err(CvaError::Repack)?;
+                        import_epochs.ingest_at(Some(chunk), payload)?;
+                        external_index.ingest(payload);
+                        archive_state.ingest(chunk, payload, latest_global)?;
+                        memory_state.ingest(chunk, payload, latest_global)?;
+                        graph_state.ingest(chunk, payload, latest_global)?;
+                        entity_state.ingest(chunk, payload, latest_global)?;
+                        relationship_state.ingest(chunk, payload, latest_global)?;
+                        community_state.ingest(payload)?;
+                        insomnia_state.ingest(chunk, payload)?;
+                        packed_state.ingest(chunk, payload)?;
+                        memory_vector_state.ingest(chunk, payload)?;
+                        archive_vector_state.ingest(chunk, payload)?;
+                        profile_state.ingest(chunk, payload)?;
+                        generation_state.ingest(chunk, payload, latest_global)?;
+                        interaction_streams.ingest(payload)?;
+                        compaction_state.ingest(chunk, payload)?;
+                        echo.ingest(payload)?;
+                        ego.ingest(payload)?;
+                        entity_resolutions.ingest(payload)?;
+                        project_history.ingest(payload)?;
+                        project_files.ingest(payload)?;
+                        rel_metadata
+                            .ingest(payload)
+                            .map_err(CvaError::RelMetadata)?;
+                        if let Some(completion) =
+                            crate::insomnia::completion::decode_completion(payload)
+                                .map_err(|message| CvaError::Freshness(message.into()))?
+                            && completion.freshness_birth_turn.is_some()
+                            && !completion.freshness_birth_memory_ids.is_empty()
+                        {
+                            freshness.freeze_derived_birth_policy();
+                        }
+                        if let Some(publication) =
+                            crate::external_source::publication::decode(payload)?
+                            && publication.birth_turn.is_some()
+                            && !publication.records.is_empty()
+                        {
+                            freshness.freeze_derived_birth_policy();
+                        }
+                        if payload.starts_with(b"CVAFRP01") {
+                            freshness.ingest(payload).map_err(CvaError::Freshness)?;
+                        }
+                        dream_freshness
+                            .ingest(payload)
+                            .map_err(CvaError::Freshness)?;
+                        processing_epochs.ingest(payload)?;
+                        dream_pairs.ingest(payload)?;
+                    }
+                }
+                Ok::<(), CvaError>(())
+            },
+        )?;
         import_epochs.validate_legacy_frames(&mut container)?;
         if let Some(identity) = container.identity()
             && identity.file_kind != crate::FileKind::Reliquary
@@ -566,12 +583,21 @@ impl Cva {
             &graph,
             &vector_generations,
         )?;
-        let conversation_compactions = compaction_state.finish(&mut container)?;
-        let repaired_entity_resolutions = entity_resolutions.repair_retired_entity_references(
-            &mut container,
-            &memories,
-            &entities,
-        )?;
+        let conversation_compactions = if container.version().major == 1 {
+            compaction_state.finish_without_reclaim()?
+        } else {
+            compaction_state.finish(&mut container)?
+        };
+        let repaired_entity_resolutions = if container.version().major == 1 {
+            // Inspection preserves stored revisions; historical references remain validated below.
+            0
+        } else {
+            entity_resolutions.repair_retired_entity_references(
+                &mut container,
+                &memories,
+                &entities,
+            )?
+        };
         entity_resolutions.validate(&memories, &entities)?;
         if repaired_entity_resolutions > 0 {
             container.sync()?;

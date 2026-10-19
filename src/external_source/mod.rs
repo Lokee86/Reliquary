@@ -40,6 +40,9 @@ impl Cva {
         &mut self,
         prepared: PreparedIndex,
     ) -> Result<ExternalIndexStatus, ExternalSourceError> {
+        self.container
+            .require_storage_format_writable()
+            .map_err(|_| ExternalSourceError::StorageFormatUpgradeRequired)?;
         if self
             .external_index
             .sources

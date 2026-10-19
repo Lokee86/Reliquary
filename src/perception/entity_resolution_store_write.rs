@@ -19,6 +19,7 @@ impl EntityResolutionStore {
         reason: EntityResolutionReason,
         now_ns: i64,
     ) -> Result<bool, MemoryError> {
+        container.require_storage_format_writable()?;
         self.validate_write(memories, key, expected_revision)?;
         if !entities.contains(entity_id) {
             return Err(MemoryError::InvalidField(
@@ -48,6 +49,7 @@ impl EntityResolutionStore {
         reason: EntityResolutionReason,
         now_ns: i64,
     ) -> Result<bool, MemoryError> {
+        container.require_storage_format_writable()?;
         self.validate_write(memories, key, expected_revision)?;
         if let Some(current) = self.current.get(&key) {
             if current.status == (MemoryEntityResolutionStatus::Rejected { reason }) {
@@ -77,6 +79,7 @@ impl EntityResolutionStore {
         context_fingerprint: [u8; 32],
         now_ns: i64,
     ) -> Result<bool, MemoryError> {
+        container.require_storage_format_writable()?;
         self.validate_write(memories, key, expected_revision)?;
         normalize_candidates(&mut candidate_entity_ids)?;
         if candidate_entity_ids
@@ -146,6 +149,7 @@ impl EntityResolutionStore {
         to: EntityId,
         now_ns: i64,
     ) -> Result<bool, MemoryError> {
+        container.require_storage_format_writable()?;
         memories.validate_entity_mention_key(key)?;
         if !entities.contains(to) {
             return Err(MemoryError::InvalidField(
@@ -186,6 +190,7 @@ impl EntityResolutionStore {
         to: EntityId,
         now_ns: i64,
     ) -> Result<usize, MemoryError> {
+        container.require_storage_format_writable()?;
         if !entities.contains(to) {
             return Err(MemoryError::InvalidField(
                 "Entity resolution Entity reference",
@@ -238,6 +243,7 @@ impl EntityResolutionStore {
         memories: &MemoryStore,
         entities: &EntityStore,
     ) -> Result<usize, MemoryError> {
+        container.require_storage_format_writable()?;
         let values = self.current.values().cloned().collect::<Vec<_>>();
         let mut repairs = Vec::new();
 

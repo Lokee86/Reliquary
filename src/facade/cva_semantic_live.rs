@@ -70,6 +70,7 @@ impl Cva {
         generation: VectorGenerationId,
         limit: usize,
     ) -> Result<SemanticFreshnessReport, CvaError> {
+        self.container.require_storage_format_writable()?;
         let mut report = SemanticFreshnessReport::default();
         let selected = self.vector_generation(generation)?;
         if self.current_vector_generation(selected.compatibility_profile_id) != Some(selected) {
@@ -125,6 +126,7 @@ impl Cva {
         &mut self,
         profile_id: crate::CompatibilityProfileId,
     ) -> Result<Option<SemanticArchiveBatch>, CvaError> {
+        self.container.require_storage_format_writable()?;
         if let Some(generation) = self.current_vector_generation(profile_id) {
             self.process_semantic_freshness(generation.id, 64)?;
         }
@@ -174,6 +176,7 @@ impl Cva {
         batch: SemanticArchiveBatch,
         vectors: Vec<Vec<f32>>,
     ) -> Result<(), CvaError> {
+        self.container.require_storage_format_writable()?;
         crate::compatibility_profile_probe::validate_embedding_batch(
             &batch.profile,
             &vectors,

@@ -1,6 +1,6 @@
 use super::{
-    CHUNK_HEADER_LEN, COMPACT_VERSION, CURRENT_VERSION, ChunkRef, Container, ContainerError,
-    FormatVersion, ObjectRef, read_header, read_header_for_version, truncated_or_io,
+    CHUNK_HEADER_LEN, COMPACT_VERSION, ChunkRef, Container, ContainerError, FormatVersion,
+    LEGACY_VERSION, ObjectRef, read_header, read_header_for_version, truncated_or_io,
 };
 use crate::container_version::observe_version_payload_state;
 use std::collections::BTreeMap;
@@ -36,6 +36,11 @@ impl Container {
         Self::open_scanned(path, |_, _, _| Ok(()))
     }
 
+    /// Opens a V1 source for inspection without repair or write access.
+    pub(crate) fn open_v1_read_only(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
+        Self::open_scanned_version(path, Some(LEGACY_VERSION), |_, _, _| Ok(()))
+    }
+
     pub(crate) fn open_scanned<E>(
         path: impl AsRef<Path>,
         visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
@@ -43,7 +48,7 @@ impl Container {
     where
         E: From<ContainerError>,
     {
-        Self::open_scanned_version(path, CURRENT_VERSION, visitor)
+        Self::open_scanned_version(path, None, visitor)
     }
 
     /// Opens the compact physical format explicitly. The legacy route rejects it.
@@ -58,12 +63,12 @@ impl Container {
     where
         E: From<ContainerError>,
     {
-        Self::open_scanned_version(path, COMPACT_VERSION, visitor)
+        Self::open_scanned_version(path, Some(COMPACT_VERSION), visitor)
     }
 
-    fn open_scanned_version<E>(
+    pub(crate) fn open_scanned_version<E>(
         path: impl AsRef<Path>,
-        expected_version: FormatVersion,
+        expected_version: Option<FormatVersion>,
         mut visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
     ) -> Result<Self, E>
     where
@@ -72,11 +77,26 @@ impl Container {
         let path = path.as_ref();
         let mut file = OpenOptions::new()
             .read(true)
-            .write(true)
             .open(path)
             .map_err(ContainerError::Io)?;
+        let read_selected = |file: &mut std::fs::File| match expected_version {
+            Some(version) => read_header_for_version(file, version),
+            None => read_header(file),
+        };
         let (version, identity, owner_uuid, header_len) =
-            read_header_for_version(&mut file, expected_version).map_err(E::from)?;
+            read_selected(&mut file).map_err(E::from)?;
+        if version != LEGACY_VERSION {
+            file = OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(path)
+                .map_err(ContainerError::Io)?;
+            // Validate the actual writable handle as well as the routing probe.
+            let actual = read_selected(&mut file).map_err(E::from)?;
+            if actual != (version, identity, owner_uuid, header_len) {
+                return Err(E::from(ContainerError::InvalidIdentity));
+            }
+        }
         let mut container = Self {
             file,
             path: path.to_path_buf(),
@@ -151,6 +171,9 @@ impl Container {
         }
 
         if let Some(offset) = truncate_at {
+            if self.version == LEGACY_VERSION {
+                return Err(E::from(ContainerError::TruncatedChunk(offset)));
+            }
             self.recover_truncated_tail(offset).map_err(E::from)?;
         }
         Ok(())

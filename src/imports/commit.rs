@@ -11,6 +11,7 @@ impl Cva {
         input: &NativeImport,
         now_ns: i64,
     ) -> Result<ImportReceipt, ImportError> {
+        self.container.require_storage_format_writable()?;
         let prepared = prepare(input)?;
         let owner_uuid = self.owner_uuid().ok_or(ImportError::Epoch(
             "native import requires a durable owner UUID",

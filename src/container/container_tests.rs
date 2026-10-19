@@ -14,7 +14,7 @@ fn create_then_reopen_legacy_container() {
     let path = test_path("archive.cva");
     let created = Container::create(&path).unwrap();
     let version = created.version();
-    assert_eq!((version.major, version.minor), (1, 0));
+    assert_eq!((version.major, version.minor), (2, 0));
     assert_eq!(created.identity(), None);
     drop(created);
 

@@ -6,6 +6,7 @@ impl Cva {
         file_id: FileId,
         memory_id: MemoryId,
     ) -> Result<FileMemoryLink, ArchiveError> {
+        self.container.require_storage_format_writable()?;
         self.memories
             .current_body_id(memory_id)
             .map_err(|_| ArchiveError::MissingFileMemoryTarget)?;

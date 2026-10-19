@@ -34,6 +34,7 @@ impl Cva {
         output_path: impl AsRef<Path>,
         request: HistoryPruneRequest,
     ) -> Result<HistoryPruneReport, CvaError> {
+        self.container.require_storage_format_writable()?;
         let output_path = output_path.as_ref();
         self.container.sync()?;
         if self.open_import_epoch().is_some() {

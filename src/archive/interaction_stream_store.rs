@@ -20,6 +20,7 @@ impl InteractionStreamStore {
         container: &mut Container,
         record: InteractionStreamRecord,
     ) -> Result<(), CvaError> {
+        container.require_storage_format_writable()?;
         self.validate_transition(&record)?;
         container.append(&encode(&record)?)?;
         self.records.insert(record.message_id.clone(), record);

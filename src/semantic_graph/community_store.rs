@@ -69,6 +69,7 @@ impl CommunityStore {
         owner_uuid: [u8; 16],
         snapshot: CommunitySnapshot,
     ) -> Result<(), CommunityError> {
+        container.require_storage_format_writable()?;
         self.validate_next(graph, owner_uuid, &snapshot)?;
         container.append(&encode_snapshot(&snapshot)?)?;
         self.snapshots.push(snapshot);
@@ -81,6 +82,7 @@ impl CommunityStore {
         graph: &GraphStore,
         record: CommunitySemanticName,
     ) -> Result<bool, CommunityError> {
+        container.require_storage_format_writable()?;
         let snapshot = self
             .latest()
             .filter(|snapshot| {

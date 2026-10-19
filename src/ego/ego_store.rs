@@ -103,6 +103,7 @@ impl EgoStore {
         container: &mut Container,
         record: EgoRecord,
     ) -> Result<(), EgoError> {
+        container.require_storage_format_writable()?;
         let payload = encode(&record)?;
         container.append(&payload)?;
         let version = record_ego_version(&record);

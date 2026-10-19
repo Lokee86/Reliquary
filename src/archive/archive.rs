@@ -45,6 +45,7 @@ impl Archive {
         timestamp_ns: i64,
         content: &str,
     ) -> Result<crate::archive_activity::TurnAcceptance<Node>, ArchiveError> {
+        container.require_storage_format_writable()?;
         validate_text(&id, "node id")?;
         validate_text(&conversation_id, "conversation id")?;
         self.require_current_conversation_id(&conversation_id)?;
@@ -83,6 +84,7 @@ impl Archive {
         container: &mut Container,
         branch: Branch,
     ) -> Result<(), ArchiveError> {
+        container.require_storage_format_writable()?;
         validate_text(&branch.id, "branch id")?;
         validate_text(&branch.conversation_id, "conversation id")?;
         self.require_current_conversation_id(&branch.conversation_id)?;

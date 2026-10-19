@@ -38,6 +38,7 @@ impl Cva {
         evidence: crate::freshness_storage::SemanticEventEvidence,
         effects: std::collections::BTreeMap<crate::MemoryId, i16>,
     ) -> Result<(), CvaError> {
+        self.container.require_storage_format_writable()?;
         let owner = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
             "semantic replay requires owner",
         ))?;
@@ -98,6 +99,7 @@ impl Cva {
         node: &crate::Node,
         source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
     ) -> Result<usize, CvaError> {
+        self.container.require_storage_format_writable()?;
         if self.archive.nodes.get(&node.conversation_id, &node.id) != Some(node) {
             return Err(CvaError::Freshness(
                 "conflicting accepted semantic source".into(),
@@ -152,6 +154,7 @@ impl Cva {
         source: AcceptedSemanticSource,
         source_memory_cohort: &std::collections::BTreeSet<crate::MemoryId>,
     ) -> Result<usize, CvaError> {
+        self.container.require_storage_format_writable()?;
         if source.owner_uuid
             != self
                 .owner_uuid()

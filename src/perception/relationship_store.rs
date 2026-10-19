@@ -57,6 +57,7 @@ impl RelationshipStore {
         expected_revision: u64,
         mut draft: RelationshipDraft,
     ) -> Result<(Relationship, bool), RelationshipError> {
+        container.require_storage_format_writable()?;
         normalize_draft(&mut draft)?;
         validate_live_local_refs(
             owner_id,
@@ -75,6 +76,7 @@ impl RelationshipStore {
         expected_revision: u64,
         mut draft: RelationshipDraft,
     ) -> Result<(Relationship, bool), RelationshipError> {
+        container.require_storage_format_writable()?;
         normalize_draft(&mut draft)?;
         self.publish_normalized(container, id, expected_revision, draft)
     }
@@ -86,6 +88,7 @@ impl RelationshipStore {
         expected_revision: u64,
         draft: RelationshipDraft,
     ) -> Result<(Relationship, bool), RelationshipError> {
+        container.require_storage_format_writable()?;
         let id = id.unwrap_or_else(|| relationship_id(&draft.mutation_id));
         if self.tombstones.contains_key(&id) {
             return Err(RelationshipError::TerminalTombstone);
@@ -219,6 +222,7 @@ impl RelationshipStore {
         id: RelationshipId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError> {
+        container.require_storage_format_writable()?;
         if let Some(&coordinates) = self.tombstones.get(&id) {
             if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
                 return Err(RelationshipError::RevisionConflict);

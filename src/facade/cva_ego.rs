@@ -19,6 +19,7 @@ impl Cva {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<EgoAnchor, CvaError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .create_anchor(&mut self.container, priority, text)?)
@@ -31,6 +32,7 @@ impl Cva {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<(EgoAnchor, bool), CvaError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .update_anchor(&mut self.container, id, expected_revision, priority, text)?)
@@ -41,6 +43,7 @@ impl Cva {
         id: EgoAnchorId,
         expected_revision: u64,
     ) -> Result<bool, CvaError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .delete_anchor(&mut self.container, id, expected_revision)?)
@@ -56,6 +59,7 @@ impl Cva {
         source_memory_version: u64,
         text: String,
     ) -> Result<(EgoWebSynthesis, bool), CvaError> {
+        self.container.require_storage_format_writable()?;
         validate_source_memory_version(source_memory_version, self.memory_version())?;
         Ok(self.ego.put_synthesis(
             &mut self.container,

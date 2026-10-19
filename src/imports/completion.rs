@@ -77,6 +77,7 @@ impl Cva {
         import_id: &str,
         now_ns: i64,
     ) -> Result<ImportCompletionOutcome, CvaError> {
+        self.container.require_storage_format_writable()?;
         self.validate_historical_import_settlements()?;
         // Read the accepted physical markers on every attempt. In particular,
         // append may have succeeded before an earlier synchronization failed.

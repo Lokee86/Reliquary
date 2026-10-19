@@ -107,6 +107,7 @@ impl MemoryStore {
         source_ref: Option<MemorySourceRef>,
         temporal_inference: Option<MemoryTemporalInference>,
     ) -> Result<(Memory, bool), MemoryError> {
+        container.require_storage_format_writable()?;
         let preflight = self.preflight_publish(
             container,
             id,
@@ -282,6 +283,7 @@ impl MemoryStore {
         id: MemoryId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
+        container.require_storage_format_writable()?;
         if let Some(&coordinates) = self.tombstones.get(&id) {
             if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
                 return Err(MemoryError::RevisionConflict);
@@ -595,6 +597,7 @@ impl MemoryStore {
         container: &mut Container,
         metadata: MemoryRoutingMetadata,
     ) -> Result<bool, MemoryError> {
+        container.require_storage_format_writable()?;
         self.current_body_id(metadata.memory_id)?;
         self.validate_routing_binding(&metadata)?;
         self.validate_routing_text(container, &metadata)?;

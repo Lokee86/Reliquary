@@ -1687,3 +1687,7 @@ mod vector_generation_tests;
 #[cfg(test)]
 #[path = "retrieval/vector_generation_validation_tests.rs"]
 mod vector_generation_validation_tests;
+
+#[cfg(test)]
+#[path = "facade/storage_format_boundary_tests.rs"]
+mod storage_format_boundary_tests;

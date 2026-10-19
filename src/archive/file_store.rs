@@ -11,6 +11,7 @@ impl Archive {
         mime_type: Option<String>,
         bytes: &[u8],
     ) -> Result<StoredFile, ArchiveError> {
+        container.require_storage_format_writable()?;
         let file = build_stored_file(filename, mime_type, bytes)?;
         if let Some(existing) = self.files.get(file.id) {
             return if existing == &file {
@@ -28,6 +29,7 @@ impl Archive {
         container: &mut Container,
         file: StoredFile,
     ) -> Result<StoredFile, ArchiveError> {
+        container.require_storage_format_writable()?;
         if let Some(existing) = self.files.get(file.id) {
             return if existing == &file {
                 Ok(existing.clone())

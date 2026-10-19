@@ -164,6 +164,7 @@ impl EntityResolutionStore {
         key: MemoryEntityMentionKey,
         now_ns: i64,
     ) -> Result<bool, MemoryError> {
+        container.require_storage_format_writable()?;
         let Some(current) = self.current.get(&key) else {
             return Ok(false);
         };
@@ -187,6 +188,7 @@ impl EntityResolutionStore {
         entities: &EntityStore,
         mut value: MemoryEntityResolution,
     ) -> Result<(), MemoryError> {
+        container.require_storage_format_writable()?;
         memories.validate_entity_mention_key(value.key)?;
         validate_status(&value.status)?;
         validate_live_entity_refs(&value.status, entities)?;

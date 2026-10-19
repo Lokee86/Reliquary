@@ -12,6 +12,7 @@ impl Archive {
         project_files: &ProjectFileStore,
         incoming: IncomingTurn,
     ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
+        container.require_storage_format_writable()?;
         validate_text(&incoming.id, "node id")?;
         validate_text(&incoming.conversation_id, "conversation id")?;
         self.require_current_conversation_id(&incoming.conversation_id)?;

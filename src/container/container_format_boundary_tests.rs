@@ -76,7 +76,7 @@ fn legacy_open_rejects_compact_and_compact_open_accepts_it() {
     );
 
     assert!(matches!(
-        Container::open(&path),
+        Container::open_v1_read_only(&path),
         Err(ContainerError::UnsupportedVersion(version)) if version == COMPACT_VERSION
     ));
     assert_eq!(
@@ -139,14 +139,9 @@ fn strict_version_rejection_precedes_identity_and_payload_validation() {
         read_header_for_version(&mut file, FormatVersion { major: 1, minor: 0 }),
         Err(ContainerError::UnsupportedVersion(version)) if version == COMPACT_VERSION
     ));
-    let mut visited = false;
-    let result = Container::open_scanned::<ContainerError>(&path, |_, _, _| {
-        visited = true;
-        Ok(())
-    });
+    let result = Container::open_v1_read_only(&path);
     assert!(matches!(
         result,
         Err(ContainerError::UnsupportedVersion(version)) if version == COMPACT_VERSION
     ));
-    assert!(!visited, "visitor must not run before version rejection");
 }

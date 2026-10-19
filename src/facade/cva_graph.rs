@@ -14,6 +14,7 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        self.container.require_storage_format_writable()?;
         self.graph.set_relation(
             &mut self.container,
             &self.memories,
@@ -34,6 +35,7 @@ impl Cva {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        self.container.require_storage_format_writable()?;
         self.graph.set_relation_with_origin(
             &mut self.container,
             &self.memories,
@@ -51,6 +53,7 @@ impl Cva {
         changes: &[GraphRelationChange],
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
+        self.container.require_storage_format_writable()?;
         self.graph.set_relations(
             &mut self.container,
             &self.memories,
@@ -65,6 +68,7 @@ impl Cva {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
+        self.container.require_storage_format_writable()?;
         self.graph.set_relations_with_origin(
             &mut self.container,
             &self.memories,
@@ -81,6 +85,7 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
+        self.container.require_storage_format_writable()?;
         self.graph.set_entity_association(
             &mut self.container,
             &self.memories,
@@ -99,6 +104,7 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
+        self.container.require_storage_format_writable()?;
         self.graph.set_principal_association(
             &mut self.container,
             &self.memories,
@@ -116,6 +122,7 @@ impl Cva {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
+        self.container.require_storage_format_writable()?;
         self.graph.set_semantic_relations_with_origin(
             &mut self.container,
             &self.memories,

@@ -22,6 +22,7 @@ impl GraphStore {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         self.set_relation_with_origin(
             container,
             memories,
@@ -45,6 +46,7 @@ impl GraphStore {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         Ok(self
             .set_relations_with_origin(
                 container,
@@ -69,6 +71,7 @@ impl GraphStore {
         changes: &[GraphRelationChange],
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         self.set_relations_with_origin(
             container,
             memories,
@@ -86,6 +89,7 @@ impl GraphStore {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         for change in changes {
             validation::validate_memory_change(memories, *change, origin)?;
         }
@@ -115,6 +119,7 @@ impl GraphStore {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         Ok(self
             .set_semantic_relations_with_origin(
                 container,
@@ -140,6 +145,7 @@ impl GraphStore {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         Ok(self
             .set_semantic_relations_with_origin(
                 container,
@@ -164,6 +170,7 @@ impl GraphStore {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         for change in changes {
             validation::validate_change(memories, entities, *change, origin)?;
         }
@@ -177,6 +184,7 @@ impl GraphStore {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
         let current_version = self.graph_version();
         if expected_graph_version != current_version {
             return Err(GraphError::RevisionConflict {

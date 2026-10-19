@@ -13,7 +13,8 @@ const LEGACY_HEADER_LEN: u64 = 16;
 const LEGACY_TYPED_HEADER_LEN: u64 = 24;
 const IDENTITY_HEADER_LEN: u64 = 40;
 const CHUNK_HEADER_LEN: u64 = 8;
-const CURRENT_VERSION: FormatVersion = FormatVersion { major: 1, minor: 0 };
+const LEGACY_VERSION: FormatVersion = FormatVersion { major: 1, minor: 0 };
+const CURRENT_VERSION: FormatVersion = COMPACT_VERSION;
 pub(super) const COMPACT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 0 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -232,7 +233,16 @@ impl Container {
         self.owner_write_scope = active;
     }
 
+    pub(crate) fn require_storage_format_writable(&self) -> Result<(), ContainerError> {
+        if self.version == LEGACY_VERSION {
+            Err(ContainerError::StorageFormatUpgradeRequired)
+        } else {
+            Ok(())
+        }
+    }
+
     pub(crate) fn require_write_admission(&self) -> Result<(), ContainerError> {
+        self.require_storage_format_writable()?;
         if self.write_admission_closed && !self.owner_write_scope {
             Err(ContainerError::WriteAdmissionClosed)
         } else {
@@ -477,6 +487,7 @@ impl Container {
     }
 
     pub(crate) fn create_empty_like(&self, path: impl AsRef<Path>) -> Result<Self, ContainerError> {
+        self.require_storage_format_writable()?;
         match (self.header_len, self.identity, self.owner_uuid) {
             (LEGACY_HEADER_LEN, None, None) => Self::create(path),
             (LEGACY_TYPED_HEADER_LEN, Some(identity), None) => {
@@ -555,6 +566,9 @@ impl Container {
     }
 
     pub fn sync(&self) -> Result<(), ContainerError> {
+        if self.version == LEGACY_VERSION {
+            return Ok(());
+        }
         self.file.sync_all().map_err(ContainerError::Io)
     }
 }
@@ -574,6 +588,7 @@ pub enum ContainerError {
     VersionExhausted,
     ChunkTooLarge,
     WriteAdmissionClosed,
+    StorageFormatUpgradeRequired,
 }
 
 impl From<io::Error> for ContainerError {
@@ -643,12 +658,27 @@ fn read_header(
     ),
     ContainerError,
 > {
-    read_header_for_version(file, CURRENT_VERSION)
+    read_header_for_version_selection(file, None)
 }
 
 fn read_header_for_version(
     file: &mut File,
     expected_version: FormatVersion,
+) -> Result<
+    (
+        FormatVersion,
+        Option<ContainerIdentity>,
+        Option<[u8; 16]>,
+        u64,
+    ),
+    ContainerError,
+> {
+    read_header_for_version_selection(file, Some(expected_version))
+}
+
+fn read_header_for_version_selection(
+    file: &mut File,
+    expected_version: Option<FormatVersion>,
 ) -> Result<
     (
         FormatVersion,
@@ -673,7 +703,9 @@ fn read_header_for_version(
         major: u16::from_le_bytes([header[8], header[9]]),
         minor: u16::from_le_bytes([header[10], header[11]]),
     };
-    if version != expected_version {
+    if expected_version.is_some_and(|expected| version != expected)
+        || (version != LEGACY_VERSION && version != COMPACT_VERSION)
+    {
         return Err(ContainerError::UnsupportedVersion(version));
     }
     let length = u32::from_le_bytes([header[12], header[13], header[14], header[15]]);

@@ -11,6 +11,7 @@ impl EgoStore {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<EgoAnchor, EgoError> {
+        container.require_storage_format_writable()?;
         validate_anchor_text(&text)?;
         let id = loop {
             let candidate = EgoAnchorId(*Uuid::new_v4().as_bytes());
@@ -43,6 +44,7 @@ impl EgoStore {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<(EgoAnchor, bool), EgoError> {
+        container.require_storage_format_writable()?;
         validate_anchor_text(&text)?;
         self.anchor_lifecycle(id)
             .ok_or(EgoError::NotFound("Anchor"))?
@@ -83,6 +85,7 @@ impl EgoStore {
         id: EgoAnchorId,
         expected_revision: u64,
     ) -> Result<bool, EgoError> {
+        container.require_storage_format_writable()?;
         let state = self.anchors.get(&id).ok_or(EgoError::NotFound("Anchor"))?;
         if state.deleted {
             check_revision(expected_revision, state.revision - 1)?;

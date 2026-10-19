@@ -19,6 +19,7 @@ impl Phylactery {
         output_path: impl AsRef<Path>,
         request: crate::HistoryPruneRequest,
     ) -> Result<crate::HistoryPruneReport, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         let output_path = output_path.as_ref();
         if output_path == self.container.path() || output_path.exists() {
             return Err(PhylacteryError::Repack(

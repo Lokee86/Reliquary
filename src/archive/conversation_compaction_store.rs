@@ -70,6 +70,18 @@ impl ConversationCompactionOpenState {
         store.recover(container)?;
         Ok(store)
     }
+
+    /// Builds the same visible compaction projection without reclaiming or rewriting chunks.
+    pub(crate) fn finish_without_reclaim(
+        self,
+    ) -> Result<ConversationCompactionStore, ConversationCompactionError> {
+        let mut store = ConversationCompactionStore {
+            chunks: self.chunks,
+            next_generation: self.next_generation.max(1),
+        };
+        store.remove_stale_rows();
+        Ok(store)
+    }
 }
 
 #[derive(Default)]
@@ -124,6 +136,7 @@ impl ConversationCompactionStore {
         summary: String,
         supersedes: Option<&str>,
     ) -> Result<ConversationCompaction, ConversationCompactionError> {
+        container.require_storage_format_writable()?;
         let generation = self.next_generation;
         self.next_generation = generation
             .checked_add(1)
@@ -157,6 +170,36 @@ impl ConversationCompactionStore {
     }
 
     fn recover(&mut self, container: &mut Container) -> Result<(), ConversationCompactionError> {
+        container.require_storage_format_writable()?;
+        let stale = self.stale_chunks();
+        for object in stale {
+            if self
+                .chunks
+                .get(&object)
+                .is_some_and(|chunk| !chunk.is_free())
+            {
+                self.free_and_coalesce(container, object)?;
+            }
+        }
+        if !self.chunks.is_empty() {
+            container.sync()?;
+        }
+        Ok(())
+    }
+
+    fn remove_stale_rows(&mut self) {
+        for object in self.stale_chunks() {
+            if self
+                .chunks
+                .get(&object)
+                .is_some_and(|chunk| !chunk.is_free())
+            {
+                self.chunks.remove(&object);
+            }
+        }
+    }
+
+    fn stale_chunks(&self) -> BTreeSet<ObjectRef> {
         let live = self
             .chunks
             .iter()
@@ -185,19 +228,7 @@ impl ConversationCompactionStore {
                 }
             }
         }
-        for object in stale {
-            if self
-                .chunks
-                .get(&object)
-                .is_some_and(|chunk| !chunk.is_free())
-            {
-                self.free_and_coalesce(container, object)?;
-            }
-        }
-        if !self.chunks.is_empty() {
-            container.sync()?;
-        }
-        Ok(())
+        stale
     }
 
     pub(crate) fn find_record_object(

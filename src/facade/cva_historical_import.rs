@@ -513,6 +513,7 @@ impl Cva {
     /// Normalize persisted physical import proof once. Callers performing repair
     /// use this on a disposable copy; ordinary open never appends.
     pub fn normalize_import_settlements(&mut self) -> Result<usize, CvaError> {
+        self.container.require_storage_format_writable()?;
         self.validate_historical_import_settlements()?;
         let before = self
             .freshness

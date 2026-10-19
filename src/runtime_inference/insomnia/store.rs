@@ -33,18 +33,20 @@ impl InsomniaStore {
     }
 
     pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), InsomniaError> {
+        container.require_storage_format_writable()?;
         container.append(&encode_format())?;
         Ok(())
     }
 
     pub(crate) fn queue(
         &mut self,
-        _container: &mut Container,
+        container: &mut Container,
         archive: &Archive,
         episode_id: EpisodeId,
         priority: InsomniaPriority,
         now_ns: i64,
     ) -> Result<(InsomniaWork, bool), InsomniaError> {
+        container.require_storage_format_writable()?;
         if let Some(existing) = self.work.get(&episode_id) {
             return Ok((existing.clone(), false));
         }
@@ -67,11 +69,12 @@ impl InsomniaStore {
 
     pub(crate) fn claim_next(
         &mut self,
-        _container: &mut Container,
+        container: &mut Container,
         worker_id: &str,
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<Option<InsomniaWork>, InsomniaError> {
+        container.require_storage_format_writable()?;
         if worker_id.trim().is_empty() || lease_duration_ns <= 0 {
             return Err(InsomniaError::InvalidField("worker lease"));
         }
@@ -101,12 +104,13 @@ impl InsomniaStore {
 
     pub(crate) fn renew(
         &mut self,
-        _container: &mut Container,
+        container: &mut Container,
         episode_id: EpisodeId,
         token: InsomniaLeaseToken,
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
+        container.require_storage_format_writable()?;
         if lease_duration_ns <= 0 {
             return Err(InsomniaError::InvalidField("lease duration"));
         }

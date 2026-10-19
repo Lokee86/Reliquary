@@ -32,6 +32,7 @@ impl Phylactery {
         expected_revision: u64,
         text: String,
     ) -> Result<(EgoIdentity, bool), PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .put_identity(&mut self.container, expected_revision, text)?)
@@ -42,6 +43,7 @@ impl Phylactery {
         name: String,
         text: String,
     ) -> Result<EgoIdentity, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self.ego.create_identity(&mut self.container, name, text)?)
     }
 
@@ -52,12 +54,14 @@ impl Phylactery {
         name: String,
         text: String,
     ) -> Result<(EgoIdentity, bool), PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .update_identity(&mut self.container, id, expected_revision, name, text)?)
     }
 
     pub fn activate_ego_identity(&mut self, id: EgoIdentityId) -> Result<bool, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self.ego.activate_identity(&mut self.container, id)?)
     }
 
@@ -66,6 +70,7 @@ impl Phylactery {
         id: EgoIdentityId,
         expected_revision: u64,
     ) -> Result<bool, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .delete_identity(&mut self.container, id, expected_revision)?)
@@ -81,6 +86,7 @@ impl Phylactery {
         text: String,
         source_memory_version: u64,
     ) -> Result<(EgoPersonality, bool), PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         validate_source_memory_version(source_memory_version, self.memory_version())?;
         Ok(self.ego.put_personality(
             &mut self.container,
@@ -102,6 +108,7 @@ impl Phylactery {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<EgoAnchor, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .create_anchor(&mut self.container, priority, text)?)
@@ -114,6 +121,7 @@ impl Phylactery {
         priority: EgoAnchorPriority,
         text: String,
     ) -> Result<(EgoAnchor, bool), PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .update_anchor(&mut self.container, id, expected_revision, priority, text)?)
@@ -124,6 +132,7 @@ impl Phylactery {
         id: EgoAnchorId,
         expected_revision: u64,
     ) -> Result<bool, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         Ok(self
             .ego
             .delete_anchor(&mut self.container, id, expected_revision)?)
@@ -139,6 +148,7 @@ impl Phylactery {
         source_memory_version: u64,
         text: String,
     ) -> Result<(EgoWebSynthesis, bool), PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         validate_source_memory_version(source_memory_version, self.memory_version())?;
         Ok(self.ego.put_synthesis(
             &mut self.container,

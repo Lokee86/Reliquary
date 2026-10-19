@@ -53,6 +53,7 @@ impl Phylactery {
     }
 
     pub fn set_profile(&mut self, display_name: Option<String>) -> Result<bool, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         let normalize = |value: Option<String>| {
             value.and_then(|value| {
                 let trimmed = value.trim().to_owned();
@@ -87,6 +88,7 @@ impl Phylactery {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
+        self.container.require_storage_format_writable()?;
         validate_phylactery_provenance(&draft)?;
         self.memories
             .publish(&mut self.container, id, expected_revision, draft)
@@ -103,6 +105,7 @@ impl Phylactery {
         id: MemoryId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
+        self.container.require_storage_format_writable()?;
         let result = self
             .memories
             .tombstone(&mut self.container, id, expected_revision)?;
@@ -168,6 +171,7 @@ impl Phylactery {
         temporal_status: &str,
         mutation_id: String,
     ) -> Result<(Memory, bool), MemoryError> {
+        self.container.require_storage_format_writable()?;
         if !matches!(temporal_status, "current" | "future" | "historical") {
             return Err(MemoryError::InvalidField("temporal status"));
         }
@@ -239,6 +243,7 @@ impl Phylactery {
         &mut self,
         metadata: crate::MemoryRoutingMetadata,
     ) -> Result<bool, MemoryError> {
+        self.container.require_storage_format_writable()?;
         self.memories
             .put_routing_metadata(&mut self.container, metadata)
     }

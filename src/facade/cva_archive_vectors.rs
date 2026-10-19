@@ -9,6 +9,7 @@ impl Cva {
         packed_vector_id: PackedVectorId,
         fragment_ids: Vec<FragmentId>,
     ) -> Result<ArchiveVectorId, ArchiveVectorError> {
+        self.container.require_storage_format_writable()?;
         self.archive_vectors.put(
             &mut self.container,
             &self.archive,

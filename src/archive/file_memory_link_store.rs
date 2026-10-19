@@ -9,6 +9,7 @@ impl Archive {
         file_id: FileId,
         memory_id: MemoryId,
     ) -> Result<FileMemoryLink, ArchiveError> {
+        container.require_storage_format_writable()?;
         if self.files.get(file_id).is_none() {
             return Err(ArchiveError::MissingFile);
         }

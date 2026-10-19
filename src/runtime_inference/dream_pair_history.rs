@@ -55,6 +55,7 @@ impl DreamPairStore {
         left: MemoryId,
         right: MemoryId,
     ) -> Result<bool, MemoryError> {
+        container.require_storage_format_writable()?;
         if left == right {
             return Err(MemoryError::InvalidField("Dream pair"));
         }
@@ -86,6 +87,7 @@ impl Cva {
         left: MemoryId,
         right: MemoryId,
     ) -> Result<bool, MemoryError> {
+        self.container.require_storage_format_writable()?;
         if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
             return Err(MemoryError::MissingMemory);
         }
@@ -103,6 +105,7 @@ impl Phylactery {
         left: MemoryId,
         right: MemoryId,
     ) -> Result<bool, MemoryError> {
+        self.container.require_storage_format_writable()?;
         if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
             return Err(MemoryError::MissingMemory);
         }

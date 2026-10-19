@@ -23,6 +23,7 @@ impl Cva {
         &mut self,
         output_path: impl AsRef<Path>,
     ) -> Result<ProjectAttachmentRepackResult, CvaError> {
+        self.container.require_storage_format_writable()?;
         let output_path = output_path.as_ref();
         self.container.sync()?;
         let source_file_bytes = fs::metadata(self.container.path())

@@ -6,6 +6,10 @@ The import integration writes CVAFRS06 semantic settlements from a transient phy
 
 Completed native import reconciliation may retain the left physical prefix as an output-construction optimization and replays the right divergent intervals in physical order through the Archive, grouped Insomnia/Memory, Entity, Relationship, Graph, Community, Dream, Perception and Freshness owners; the retained prefix is not semantic import authority. Grouped completions retain complete record/body/routing/birth evidence; only destination version and activity coordinates are rebased. Scoped settlements and completion markers are rebuilt through native reconstruction/completion. Exact normalized accepted source evidence deduplicates; conflicting import identity fails closed. Open epochs, external PHY publications, unsupported owner payloads and outstanding source Insomnia work remain refused. Transform validation compares exact epoch markers/statuses and settlement authority.
 
+## Compact-history rollout boundary
+
+New owners use the V2.0 container header. Existing V1.0 REL/PHY files can be inspected read-only; ordinary mutation, including retries, requires an explicit lossless format upgrade. The lossless upgrader and compact semantic owner codecs are still being implemented under the dated storage plan. This header/admission stage does not yet reduce history size or provide transparent upgrade. Damaged V1 tails are rejected without modifying the source. V1 Entity-resolution reads preserve stored historical references and revisions; they do not append canonical-reference repair records on open.
+
 ## Ordered Historical Freshness settlements
 
 The whole-owner test oracle rejects a historical replay prefix whose published Archive references cannot be resolved there, including repository-file bindings appended only later. A valid current file does not imply every earlier global cut has complete reference closure.

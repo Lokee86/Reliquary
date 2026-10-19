@@ -1,10 +1,14 @@
 # Reliquary Storage Format
 Parent index: [Documentation index](INDEX.md)
-## Compact container version boundary — staged
+## Container version boundary — implemented
 
-Compact ordinary history reserves container version **2.0**. The existing 40-byte identity header retains its magic, length, file-kind/scope discriminator and owner UUID; the little-endian major/minor fields encode `2` and `0`. Container's explicit internal compact-open route accepts exactly 2.0. The existing V1 route still accepts exactly 1.0 and rejects 2.0 with `ContainerError::UnsupportedVersion` before identity or payload dispatch. Unknown minor versions are rejected rather than interpreted as compatible.
+New REL/PHY owners use container version **2.0**. The existing 40-byte identity header retains its magic, length, file-kind/scope discriminator and owner UUID; its little-endian major/minor fields encode `2` and `0`. Ordinary open dispatches V1.0 to read-only inspection and V2.0 to writable replay. Explicit `Cva::open_v1_read_only` and `Phylactery::open_v1_read_only` require exactly V1.0; the internal compact route requires exactly V2.0. Unknown versions return `ContainerError::UnsupportedVersion` before owner payload dispatch.
 
-This first boundary stage adds physical header encoding and explicit reader selection only. Ordinary REL/PHY creation and owner lifecycle routing still use V1 pending the read-only inspection and mutation-admission cutover in the implementation plan. No compact semantic record codec is enabled by this stage.
+V1 opens use a read-only file handle. A truncated V1 tail fails with `TruncatedChunk` without repair; V2 keeps existing tail recovery. V1 conversation compactions use the existing stale-selection rules to build the visible resident projection without freeing/coalescing/truncating chunks. V1 Entity-resolution inspection preserves stored revisions and historical Entity references rather than appending canonical-reference repairs. Historical reference validation and retired-Entity replacement lookup remain available. V2 writable reopen retains both existing recovery behaviors.
+
+V1 semantic mutation attempts, including retries and no-ops, return typed `StorageFormatUpgradeRequired` before resident or durable changes. The format barrier is independent of import write admission and cannot be bypassed by owner write scope. Pruning, reclamation, repacking and ordinary reconciliation require writable-format sources before creating outputs. V1 `sync` is a read-only no-op. V2 physical maintenance copies preserve the format, identity and owner UUID. Legacy identity-header shapes remain compatibility data rather than alternate current owner kinds.
+
+This boundary stage changes header/open/admission behavior only. Semantic record families retain their current codecs until the owner-specific compact codec and lossless-upgrader steps are implemented; it does not claim storage-size reduction yet. Explicit owner-ID migration and fresh-history rewrite remain separate operations with their existing identity/history policies.
 
 ## Domain tombstone records
 
@@ -80,7 +84,7 @@ All integers and multi-byte scalar values are little-endian.
 | Offset | Size | Field | Value |
 | --- | ---: | --- | --- |
 | `0` | 8 | magic | `CVA\0\r\n\x1a\n` |
-| `8` | 2 | major | `1` |
+| `8` | 2 | major | `2` for new owners; `1` read-only compatibility |
 | `10` | 2 | minor | `0` |
 | `12` | 4 | header length | `16` for legacy CVA; `24` for earlier typed files; `40` for current typed files |
 | `16` | 1 | file kind | `1=Reliquary`; `2=Phylactery` |

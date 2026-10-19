@@ -13,6 +13,7 @@ impl Cva {
         packed_vector_id: PackedVectorId,
         memory_body_ids: Vec<MemoryBodyId>,
     ) -> Result<MemoryVectorId, MemoryVectorError> {
+        self.container.require_storage_format_writable()?;
         self.memory_vectors.put(
             &mut self.container,
             &self.memories,
@@ -53,6 +54,7 @@ impl Cva {
         compatibility_profile_id: CompatibilityProfileId,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<MemoryVectorBuildResult, MemoryVectorError> {
+        self.container.require_storage_format_writable()?;
         let profile = self
             .compatibility_profiles
             .get_active(compatibility_profile_id)

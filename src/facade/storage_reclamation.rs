@@ -24,6 +24,7 @@ impl Cva {
         &mut self,
         output_path: impl AsRef<Path>,
     ) -> Result<StorageReclamationReport, CvaError> {
+        self.container.require_storage_format_writable()?;
         if self
             .freshness
             .import_settlements()
@@ -82,6 +83,7 @@ impl Phylactery {
         &mut self,
         output_path: impl AsRef<Path>,
     ) -> Result<StorageReclamationReport, PhylacteryError> {
+        self.container.require_storage_format_writable()?;
         let expected = SemanticState {
             owner_uuid: self.owner_uuid(),
             global_version: self.latest_global_version(),

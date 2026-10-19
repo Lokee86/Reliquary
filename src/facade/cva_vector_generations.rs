@@ -14,6 +14,7 @@ impl Cva {
         compatibility_profile_id: CompatibilityProfileId,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.container.require_storage_format_writable()?;
         let profile = self
             .compatibility_profiles
             .get_active(compatibility_profile_id)
@@ -31,6 +32,7 @@ impl Cva {
         profile: CompatibilityProfile,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.container.require_storage_format_writable()?;
         let compatibility_profile_id = profile.id;
         let fragments = self.fragments();
         if fragments.is_empty() {
@@ -77,6 +79,7 @@ impl Cva {
         archive_vector_id: crate::ArchiveVectorId,
         source_archive_version: u64,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.container.require_storage_format_writable()?;
         self.publish_vector_generation_inner(
             compatibility_profile_id,
             archive_vector_id,
@@ -92,6 +95,7 @@ impl Cva {
         archive_vector_id: crate::ArchiveVectorId,
         source_archive_version: u64,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.container.require_storage_format_writable()?;
         self.publish_vector_generation_inner(
             compatibility_profile_id,
             archive_vector_id,
@@ -109,6 +113,7 @@ impl Cva {
         process_live_semantic: bool,
         require_current_coverage: bool,
     ) -> Result<VectorGeneration, VectorGenerationError> {
+        self.container.require_storage_format_writable()?;
         if process_live_semantic && self.open_import_epoch().is_some() {
             return Err(VectorGenerationError::Freshness(
                 "live vector publication requires a completed import boundary".into(),

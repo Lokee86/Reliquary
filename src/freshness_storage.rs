@@ -345,6 +345,9 @@ impl FreshnessStore {
         container: &mut crate::Container,
         owner: [u8; 16],
     ) -> Result<(), String> {
+        container
+            .require_storage_format_writable()
+            .map_err(|error| error.to_string())?;
         if self.durable_policy_seen {
             return Ok(());
         }

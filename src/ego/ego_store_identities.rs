@@ -11,6 +11,7 @@ impl EgoStore {
         expected_revision: u64,
         text: String,
     ) -> Result<(EgoIdentity, bool), EgoError> {
+        container.require_storage_format_writable()?;
         self.require_phylactery("Identity is PHY-owned")?;
         if let Some(id) = self.active_identity_id {
             let current = self.identity(id).ok_or(EgoError::NotFound("Identity"))?;
@@ -27,6 +28,7 @@ impl EgoStore {
         name: String,
         text: String,
     ) -> Result<EgoIdentity, EgoError> {
+        container.require_storage_format_writable()?;
         self.require_phylactery("Identity is PHY-owned")?;
         validate_text("identity name", &name)?;
         validate_text("identity", &text)?;
@@ -65,6 +67,7 @@ impl EgoStore {
         name: String,
         text: String,
     ) -> Result<(EgoIdentity, bool), EgoError> {
+        container.require_storage_format_writable()?;
         self.require_phylactery("Identity is PHY-owned")?;
         validate_text("identity name", &name)?;
         validate_text("identity", &text)?;
@@ -109,6 +112,7 @@ impl EgoStore {
         container: &mut Container,
         id: EgoIdentityId,
     ) -> Result<bool, EgoError> {
+        container.require_storage_format_writable()?;
         self.require_phylactery("Identity is PHY-owned")?;
         self.require_live_identity(id)?;
         if self.active_identity_id == Some(id) {
@@ -130,6 +134,7 @@ impl EgoStore {
         id: EgoIdentityId,
         expected_revision: u64,
     ) -> Result<bool, EgoError> {
+        container.require_storage_format_writable()?;
         self.require_phylactery("Identity is PHY-owned")?;
         let state = self
             .identities

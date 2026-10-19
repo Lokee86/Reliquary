@@ -136,6 +136,9 @@ impl ExternalIndexStore {
         state: SourceState,
         expected_revision: Option<u64>,
     ) -> Result<(), ExternalSourceError> {
+        container
+            .require_storage_format_writable()
+            .map_err(|_| ExternalSourceError::StorageFormatUpgradeRequired)?;
         if self.sources.get(&state.namespace).map(|s| s.revision) != expected_revision {
             return Err(ExternalSourceError::Conflict);
         }
