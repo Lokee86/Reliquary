@@ -184,6 +184,20 @@ Two synthetic checks pass: historical revisions/current membership across archiv
 
 Total: **12,414 revisions**. All six source hashes remain unchanged. The strengthened final run passes **3/3** (40.20 seconds), including latest oracle membership equality with `MemoryStore::current_ids` for all six files.
 
+## Step 10 — Entity historical fingerprint
+
+`historical_entity_fingerprint.rs` projects all accepted Entity revisions through a local cut, including stable global identity, exact name/aliases/summary, mutation/timing coordinates, current membership, direct terminal facts and merge replacement references. Exhaustive EntityRecord destructuring prevents silent field omission. Pruned descriptions use explicit unavailable payload rather than interpreting decoder placeholders as authored empty text.
+
+Verification passes **3/3** (25.48 seconds): every cut of a synthetic revision/merge/direct-tombstone history survives reopen; public historical pruned-description behavior agrees; and all six authoritative fixtures have deterministic sampled cuts and exact latest membership agreement.
+
+| Fixture | REL head / revisions | PHY head / revisions |
+| --- | --- | --- |
+| first 14 days | 150 / 150 | 0 / 0 |
+| first 28 days | 671 / 668 | 35 / 35 |
+| Ellis | 199 / 192 | 86 / 84 |
+
+The corpus contains **1,129 payload revisions** and **12 terminal version positions**. The first-14-day PHY Entity owner is empty; nonempty lifecycle, merge and prune behavior is covered explicitly by the synthetic cases rather than attributed to that empty fixture.
+
 ## Fresh baseline observations
 
 The completed root baseline reports **1,515 passed / 5 failed / 5 ignored**, in 419.85 seconds of test execution. Both exhaustive import byte-prefix recovery tests and the long finite-receipt/reopen test pass. Failures were three external-publication tests, one Lore file-lock test and one decision-endpoint test-server socket race. All seven `runtime_host::gateway::external_tests` pass in isolation with `TEMP=TMP=<repository>/.test-tmp`. The initial longer `.test-tmp/lossless-baseline` scratch path exceeds the Win32 rename path limit in frozen external-plan installation; the shorter path retains all scratch inside the repository. The Lore test passes in isolation, matching the previously recorded transient Windows file-lock behavior. The exact decision-endpoint failure passes through Workspace command execution (1/1); a sandboxed direct loopback retry cannot reach its local server, so that restricted retry is not authoritative network-test evidence. No production fix or test weakening was needed. This is a qualified baseline, not an all-green full-suite claim; integration binaries were not reached after the library failure.

@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 9/243 execution steps complete
+Status: Implementation-ready; 10/243 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -115,9 +115,16 @@ Blockers: none.
 
 ### Step 9 execution record
 
-Commit: pending Memory oracle implementation commit.
+Commit: `7a86dac`.
 Files: `src/facade/historical_memory_fingerprint*.rs`, test-only crate wiring, development/maintainer docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-9--memory-historical-fingerprint).
 Verification: 3/3 checks pass; every one of 12,414 retained revisions across all six files fingerprints twice; latest memberships equal owner inventories; terminal/pruned/reopen synthetic checks pass; source hashes unchanged.
+Blockers: none.
+
+### Step 10 execution record
+
+Commit: pending Entity oracle implementation commit.
+Files: `src/facade/historical_entity_fingerprint*.rs`, test-only crate wiring, maintainer/evidence docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-10--entity-historical-fingerprint).
+Verification: 3/3 checks pass; six fixture cut/membership comparisons, revision/merge/direct terminal/reopen and explicit pruned descriptions; 1,129 retained revisions and 12 terminal positions represented.
 Blockers: none.
 
 ### Integration Gate A — Historical oracle
