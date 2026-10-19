@@ -1,0 +1,1196 @@
+{
+  "schema": 1,
+  "families": {
+    "container_header": [
+      "CVA\\0\\r\\n\\x1a\\n"
+    ],
+    "global_ticket": [
+      "CVAVERS1",
+      "CVAVERS2"
+    ],
+    "archive_publication": [
+      "CVAAFMT2",
+      "CVAAREC1"
+    ],
+    "archive_content": [
+      "CVACONT1"
+    ],
+    "archive_node": [
+      "CVANODE1",
+      "CVANODE2"
+    ],
+    "archive_branch": [
+      "CVABRCH1"
+    ],
+    "archive_conversation": [
+      "CVACONV1",
+      "CVACONV2",
+      "CVACONV3"
+    ],
+    "archive_terminal": [
+      "CVACTMB1"
+    ],
+    "archive_fragment": [
+      "CVAFRAG1"
+    ],
+    "archive_episode": [
+      "CVAEPIS1"
+    ],
+    "archive_file": [
+      "CVAFILE1"
+    ],
+    "archive_turn_attachment": [
+      "CVATURN1",
+      "CVATURN2"
+    ],
+    "archive_file_memory_link": [
+      "CVAFMEM1"
+    ],
+    "archive_import_receipt": [
+      "CVAIMPT1"
+    ],
+    "archive_prune": [
+      "CVAPRND1"
+    ],
+    "conversation_compaction": [
+      "CVACMP1\\0"
+    ],
+    "interaction_stream": [
+      "CVAISTR1"
+    ],
+    "echo": [
+      "CVAECHO1"
+    ],
+    "project_correlation": [
+      "PRJCOR01",
+      "PRJCOR02"
+    ],
+    "project_file_binding": [
+      "PRJFILE1"
+    ],
+    "memory_format": [
+      "CVAMEMF2"
+    ],
+    "memory_body": [
+      "CVAMBDY1"
+    ],
+    "memory_revision": [
+      "CVAMEMR2",
+      "CVAMEMR3",
+      "CVAMEMR4",
+      "CVAMEMR5",
+      "CVAMEMR6",
+      "CVAMEMR7",
+      "CVAMEMR8"
+    ],
+    "memory_publication": [
+      "CVAMEMV1"
+    ],
+    "memory_terminal": [
+      "CVAMEMT1"
+    ],
+    "memory_routing": [
+      "CVAMRTE1",
+      "CVAMRTE2"
+    ],
+    "memory_prune": [
+      "CVAMPRN1"
+    ],
+    "processing_epoch": [
+      "CVAPEP01"
+    ],
+    "entity": [
+      "CVAENTF1",
+      "CVAENTR1",
+      "CVAENTR2",
+      "CVAENTV1",
+      "CVAENTT1",
+      "CVAENTT2"
+    ],
+    "entity_prune": [
+      "CVAEPRN1"
+    ],
+    "entity_resolution": [
+      "CVAERS01"
+    ],
+    "relationship": [
+      "CVARELF1",
+      "CVARELR1",
+      "CVARELV1",
+      "CVARELT1"
+    ],
+    "relationship_prune": [
+      "CVARPRN1"
+    ],
+    "graph": [
+      "CVAGFMT1",
+      "CVAGNODE",
+      "CVAGNOD2",
+      "CVAGMUT1",
+      "CVAGMUT2",
+      "CVAGBAT1",
+      "CVAGBAT2",
+      "CVAGVER1"
+    ],
+    "graph_rewrite_baseline": [
+      "CVAGBL01"
+    ],
+    "community_membership": [
+      "CVACOMM1"
+    ],
+    "community_name": [
+      "CVACNAM1"
+    ],
+    "dream_pairs": [
+      "CVADRP01"
+    ],
+    "dream_freshness": [
+      "CVDREAM1"
+    ],
+    "legacy_dream_cooldown": [
+      "CVADREM1",
+      "CVADREM2"
+    ],
+    "freshness_policy": [
+      "CVAFRP01"
+    ],
+    "freshness_events": [
+      "CVAFRS02"
+    ],
+    "freshness_import_settlement": [
+      "CVAFRS03",
+      "CVAFRS04",
+      "CVAFRS05",
+      "CVAFRS06"
+    ],
+    "freshness_legacy_activation": [
+      "CVAFSA01"
+    ],
+    "freshness_rewrite_baseline": [
+      "CVAFRB01"
+    ],
+    "import_epoch": [
+      "CVAIEPS1",
+      "CVAIEPC1"
+    ],
+    "import_legacy_epoch": [
+      "CVAILEG1"
+    ],
+    "insomnia_format": [
+      "CVAINSF1"
+    ],
+    "insomnia_work": [
+      "CVAINSW1",
+      "CVAINSA1"
+    ],
+    "insomnia_completion": [
+      "CVAINSC1",
+      "CVAINSC2",
+      "CVAINSC3",
+      "CVAINSC4",
+      "CVAINSC5",
+      "CVAINSC6"
+    ],
+    "external_index": [
+      "CVAXIDX1"
+    ],
+    "external_publication": [
+      "CVAXMEM1"
+    ],
+    "ego_identity": [
+      "CVAEIDN1",
+      "CVAEIDN2",
+      "CVAEIDA1"
+    ],
+    "ego_personality": [
+      "CVAEPER1"
+    ],
+    "ego_anchor": [
+      "CVAEANC1"
+    ],
+    "ego_synthesis": [
+      "CVAESYN1"
+    ],
+    "packed_vectors": [
+      "CVAPVFM1",
+      "CVAPVEC1",
+      "CVAPVRN1"
+    ],
+    "memory_vectors": [
+      "CVAMVFM1",
+      "CVAMVEC1"
+    ],
+    "archive_vectors": [
+      "CVAAVFM1",
+      "CVAAVEC1"
+    ],
+    "compatibility_profile": [
+      "CVACPFM1",
+      "CVACPRO1",
+      "CVACPRT1"
+    ],
+    "vector_generation": [
+      "CVAVGFM2",
+      "CVAVGEN2",
+      "CVAVGRC2"
+    ],
+    "rel_metadata": [
+      "CVARELM1"
+    ],
+    "phy_profile": [
+      "CVAPHYP1"
+    ],
+    "owner_maintenance": [
+      "CVAHPR01"
+    ],
+    "rewrite_lineage": [
+      "CVARGN01"
+    ],
+    "legacy_workspace": [
+      "CVAWKFM1",
+      "CVAWKSP1"
+    ]
+  },
+  "occurrences": {
+    "CVAAFMT2": [
+      "src/archive/archive_history_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs",
+      "src/imports/reconciliation.rs"
+    ],
+    "CVAAREC1": [
+      "src/archive/archive_history_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs",
+      "src/imports/reconciliation.rs"
+    ],
+    "CVAAVEC1": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/retrieval/archive_vector_codec.rs"
+    ],
+    "CVAAVFM1": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/retrieval/archive_vector_codec.rs"
+    ],
+    "CVABRCH1": [
+      "src/archive/archive_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVACMP1\\0": [
+      "src/archive/conversation_compaction_codec.rs"
+    ],
+    "CVACNAM1": [
+      "src/semantic_graph/community_codec.rs"
+    ],
+    "CVACOMM1": [
+      "src/semantic_graph/community_codec.rs"
+    ],
+    "CVACONT1": [
+      "src/archive/archive_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVACONV1": [
+      "src/archive/conversation_metadata_codec.rs",
+      "src/facade/cva_open_route.rs"
+    ],
+    "CVACONV2": [
+      "src/archive/conversation_metadata_codec.rs",
+      "src/facade/cva_open_route.rs"
+    ],
+    "CVACONV3": [
+      "src/archive/conversation_metadata_codec.rs"
+    ],
+    "CVACPFM1": [
+      "src/retrieval/compatibility_profile_codec.rs"
+    ],
+    "CVACPRO1": [
+      "src/retrieval/compatibility_profile_codec.rs"
+    ],
+    "CVACPRT1": [
+      "src/retrieval/compatibility_profile_codec.rs"
+    ],
+    "CVACTMB1": [
+      "src/archive/archive_codec.rs"
+    ],
+    "CVADREM1": [
+      "src/facade/migration_dream_cooldown.rs"
+    ],
+    "CVADREM2": [
+      "src/facade/migration_dream_cooldown.rs"
+    ],
+    "CVADRP01": [
+      "src/runtime_inference/dream_pair_history.rs"
+    ],
+    "CVAEANC1": [
+      "src/ego/ego_codec.rs"
+    ],
+    "CVAECHO1": [
+      "src/archive/echo_codec.rs"
+    ],
+    "CVAEIDA1": [
+      "src/ego/ego_codec.rs"
+    ],
+    "CVAEIDN1": [
+      "src/ego/ego_codec.rs"
+    ],
+    "CVAEIDN2": [
+      "src/ego/ego_codec.rs"
+    ],
+    "CVAENTF1": [
+      "src/imports/reconciliation.rs",
+      "src/perception/entity_codec.rs"
+    ],
+    "CVAENTR1": [
+      "src/perception/entity_codec.rs"
+    ],
+    "CVAENTR2": [
+      "src/perception/entity_codec.rs"
+    ],
+    "CVAENTT1": [
+      "src/perception/entity_codec.rs"
+    ],
+    "CVAENTT2": [
+      "src/perception/entity_codec.rs"
+    ],
+    "CVAENTV1": [
+      "src/perception/entity_codec.rs"
+    ],
+    "CVAEPER1": [
+      "src/ego/ego_codec.rs"
+    ],
+    "CVAEPIS1": [
+      "src/archive/episode_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVAEPRN1": [
+      "src/facade/cva_description_prune.rs",
+      "src/facade/history_prune_manifest.rs",
+      "src/facade/phylactery_history_prune.rs",
+      "src/perception/entity_codec.rs",
+      "src/perception/entity_rebuild.rs"
+    ],
+    "CVAERS01": [
+      "src/perception/entity_resolution_codec.rs"
+    ],
+    "CVAESYN1": [
+      "src/ego/ego_codec.rs"
+    ],
+    "CVAFILE1": [
+      "src/archive/archive_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVAFMEM1": [
+      "src/archive/file_memory_link_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVAFRAG1": [
+      "src/archive/archive_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVAFRB01": [
+      "src/freshness/freshness_rewrite_baseline.rs"
+    ],
+    "CVAFRP01": [
+      "src/facade/cva_lifecycle.rs",
+      "src/freshness_storage.rs",
+      "src/imports/reconciliation.rs"
+    ],
+    "CVAFRS02": [
+      "src/freshness_storage.rs"
+    ],
+    "CVAFRS03": [
+      "src/facade/cva_historical_import.rs",
+      "src/freshness/freshness_import_compatibility.rs",
+      "src/freshness/freshness_import_settlement.rs",
+      "src/imports/epoch_store.rs"
+    ],
+    "CVAFRS04": [
+      "src/facade/cva_historical_import.rs",
+      "src/freshness/freshness_import_compatibility.rs",
+      "src/freshness/freshness_import_settlement.rs"
+    ],
+    "CVAFRS05": [
+      "src/facade/cva_historical_import.rs",
+      "src/freshness/freshness_import_compatibility.rs",
+      "src/freshness/freshness_import_settlement.rs",
+      "src/imports/completion.rs",
+      "src/imports/reconciliation.rs"
+    ],
+    "CVAFRS06": [
+      "src/freshness/freshness_import_compatibility.rs",
+      "src/freshness/freshness_semantic_settlement.rs",
+      "src/imports/completion.rs",
+      "src/imports/epoch_store.rs",
+      "src/imports/reconciliation.rs"
+    ],
+    "CVAFSA01": [
+      "src/freshness/freshness_semantic_activation.rs"
+    ],
+    "CVAGBAT1": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_codec_mutation.rs"
+    ],
+    "CVAGBAT2": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_codec_mutation.rs"
+    ],
+    "CVAGBL01": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_rewrite_baseline.rs"
+    ],
+    "CVAGFMT1": [
+      "src/facade/cva_open_route.rs",
+      "src/imports/reconciliation.rs",
+      "src/semantic_graph/graph_codec.rs"
+    ],
+    "CVAGMUT1": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_codec_mutation.rs"
+    ],
+    "CVAGMUT2": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_codec_mutation.rs"
+    ],
+    "CVAGNOD2": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_codec.rs"
+    ],
+    "CVAGNODE": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_codec.rs"
+    ],
+    "CVAGVER1": [
+      "src/facade/cva_open_route.rs",
+      "src/semantic_graph/graph_codec.rs"
+    ],
+    "CVAHPR01": [
+      "src/facade/history_prune_manifest.rs",
+      "src/facade/owner_maintenance.rs"
+    ],
+    "CVAIEPC1": [
+      "src/facade/historical_import_transform.rs",
+      "src/imports/epoch_codec.rs"
+    ],
+    "CVAIEPS1": [
+      "src/facade/historical_import_transform.rs",
+      "src/imports/epoch_codec.rs"
+    ],
+    "CVAILEG1": [
+      "src/facade/historical_import_transform.rs",
+      "src/imports/legacy_epoch.rs"
+    ],
+    "CVAIMPT1": [
+      "src/archive/archive_import.rs",
+      "src/facade/cva_open_route.rs"
+    ],
+    "CVAINSA1": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/runtime_inference/insomnia/codec.rs"
+    ],
+    "CVAINSC1": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/runtime_inference/insomnia/completion.rs"
+    ],
+    "CVAINSC2": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/runtime_inference/insomnia/completion.rs"
+    ],
+    "CVAINSC3": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/runtime_inference/insomnia/completion.rs"
+    ],
+    "CVAINSC4": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/runtime_inference/insomnia/completion.rs"
+    ],
+    "CVAINSC5": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/runtime_inference/insomnia/completion.rs"
+    ],
+    "CVAINSC6": [
+      "src/runtime_inference/insomnia/completion.rs"
+    ],
+    "CVAINSF1": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/imports/reconciliation.rs",
+      "src/runtime_inference/insomnia/codec.rs"
+    ],
+    "CVAINSW1": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/runtime_inference/insomnia/codec.rs"
+    ],
+    "CVAISTR1": [
+      "src/archive/interaction_stream_codec.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVAMBDY1": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMF2": [
+      "src/facade/cva_open_route.rs",
+      "src/imports/reconciliation.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMR2": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMR3": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMR4": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMR5": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMR6": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMR7": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMR8": [
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMT1": [
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMEMV1": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_codec.rs"
+    ],
+    "CVAMPRN1": [
+      "src/memory/memory_store/history_prune.rs"
+    ],
+    "CVAMRTE1": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_routing_codec.rs"
+    ],
+    "CVAMRTE2": [
+      "src/facade/cva_open_route.rs",
+      "src/memory/memory_routing_codec.rs"
+    ],
+    "CVAMVEC1": [
+      "src/retrieval/memory_vector_codec.rs"
+    ],
+    "CVAMVFM1": [
+      "src/retrieval/memory_vector_codec.rs"
+    ],
+    "CVANODE1": [
+      "src/archive/archive_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVANODE2": [
+      "src/archive/archive_codec.rs"
+    ],
+    "CVAPEP01": [
+      "src/imports/reconciliation.rs",
+      "src/imports/reconciliation_interval.rs",
+      "src/memory/processing_epoch_store.rs"
+    ],
+    "CVAPHYP1": [
+      "src/facade/phylactery_profile_codec.rs"
+    ],
+    "CVAPRND1": [
+      "src/archive/archive_history_prune.rs"
+    ],
+    "CVAPVEC1": [
+      "src/retrieval/packed_vector_codec.rs"
+    ],
+    "CVAPVFM1": [
+      "src/retrieval/packed_vector_codec.rs"
+    ],
+    "CVAPVRN1": [
+      "src/retrieval/packed_vector_codec.rs"
+    ],
+    "CVARELF1": [
+      "src/imports/reconciliation.rs",
+      "src/perception/relationship_codec.rs"
+    ],
+    "CVARELM1": [
+      "src/facade/rel_metadata_codec.rs"
+    ],
+    "CVARELR1": [
+      "src/perception/relationship_codec.rs"
+    ],
+    "CVARELT1": [
+      "src/perception/relationship_codec.rs"
+    ],
+    "CVARELV1": [
+      "src/perception/relationship_codec.rs"
+    ],
+    "CVARGN01": [
+      "src/rewrite_lineage.rs"
+    ],
+    "CVARPRN1": [
+      "src/facade/cva_description_prune.rs",
+      "src/facade/history_prune_manifest.rs",
+      "src/facade/phylactery_history_prune.rs",
+      "src/perception/relationship_codec.rs",
+      "src/perception/relationship_rebuild.rs"
+    ],
+    "CVATURN1": [
+      "src/archive/turn_ingest_codec.rs",
+      "src/facade/cva_open_route.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVATURN2": [
+      "src/archive/turn_ingest_codec.rs"
+    ],
+    "CVAVERS1": [
+      "src/container/container_version.rs",
+      "src/facade/cva_open_route.rs",
+      "src/imports/reconciliation.rs"
+    ],
+    "CVAVERS2": [
+      "src/container/container_version.rs",
+      "src/facade/cva_open_route.rs",
+      "src/imports/reconciliation.rs"
+    ],
+    "CVAVGEN2": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/retrieval/vector_generation_codec.rs"
+    ],
+    "CVAVGFM2": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/retrieval/vector_generation_codec.rs"
+    ],
+    "CVAVGRC2": [
+      "src/facade/phylactery_lifecycle.rs",
+      "src/retrieval/vector_generation_codec.rs"
+    ],
+    "CVAWKFM1": [
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVAWKSP1": [
+      "src/facade/migration.rs",
+      "src/facade/phylactery_lifecycle.rs"
+    ],
+    "CVAXIDX1": [
+      "src/external_source/store.rs"
+    ],
+    "CVAXMEM1": [
+      "src/external_source/publication.rs"
+    ],
+    "CVAXPLN1": [
+      "src/runtime_inference/runtime_host_gateway_external_plan.rs"
+    ],
+    "CVA\\0\\r\\n\\x1a\\n": [
+      "src/container/container.rs"
+    ],
+    "CVDREAM1": [
+      "src/freshness_dream_journal.rs",
+      "src/imports/reconciliation.rs",
+      "src/imports/reconciliation_interval.rs"
+    ],
+    "PRJCOR01": [
+      "src/archive/project_history_codec.rs"
+    ],
+    "PRJCOR02": [
+      "src/archive/project_history_codec.rs"
+    ],
+    "PRJFILE1": [
+      "src/archive/project_file_binding_codec.rs"
+    ]
+  },
+  "direct_container_append_sites": [
+    {
+      "path": "src/archive/archive.rs",
+      "line": 74
+    },
+    {
+      "path": "src/archive/archive.rs",
+      "line": 103
+    },
+    {
+      "path": "src/archive/archive_conversation_metadata.rs",
+      "line": 22
+    },
+    {
+      "path": "src/archive/archive_conversation_tombstone.rs",
+      "line": 31
+    },
+    {
+      "path": "src/archive/archive_history.rs",
+      "line": 10
+    },
+    {
+      "path": "src/archive/archive_history.rs",
+      "line": 64
+    },
+    {
+      "path": "src/archive/archive_import.rs",
+      "line": 39
+    },
+    {
+      "path": "src/archive/archive_store.rs",
+      "line": 49
+    },
+    {
+      "path": "src/archive/conversation_compaction_allocator.rs",
+      "line": 31
+    },
+    {
+      "path": "src/archive/echo_store.rs",
+      "line": 31
+    },
+    {
+      "path": "src/archive/episode_store.rs",
+      "line": 26
+    },
+    {
+      "path": "src/archive/file_memory_link_store.rs",
+      "line": 19
+    },
+    {
+      "path": "src/archive/file_store.rs",
+      "line": 38
+    },
+    {
+      "path": "src/archive/fragment_store.rs",
+      "line": 21
+    },
+    {
+      "path": "src/archive/interaction_stream_store.rs",
+      "line": 24
+    },
+    {
+      "path": "src/archive/project_file_binding_store.rs",
+      "line": 44
+    },
+    {
+      "path": "src/archive/project_history_store.rs",
+      "line": 67
+    },
+    {
+      "path": "src/archive/turn_ingest_store.rs",
+      "line": 118
+    },
+    {
+      "path": "src/ego/ego_store.rs",
+      "line": 107
+    },
+    {
+      "path": "src/external_source/publication.rs",
+      "line": 270
+    },
+    {
+      "path": "src/external_source/store.rs",
+      "line": 143
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 78
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 200
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 276
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 289
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 327
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 454
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 544
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 599
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 616
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 692
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 1018
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 1056
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 1141
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 1175
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 1198
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "line": 1223
+    },
+    {
+      "path": "src/facade/cva_historical_import.rs",
+      "line": 463
+    },
+    {
+      "path": "src/facade/cva_historical_import.rs",
+      "line": 552
+    },
+    {
+      "path": "src/facade/cva_history_prune.rs",
+      "line": 327
+    },
+    {
+      "path": "src/facade/cva_history_prune.rs",
+      "line": 337
+    },
+    {
+      "path": "src/facade/cva_history_prune.rs",
+      "line": 342
+    },
+    {
+      "path": "src/facade/cva_history_prune.rs",
+      "line": 357
+    },
+    {
+      "path": "src/facade/cva_history_prune.rs",
+      "line": 360
+    },
+    {
+      "path": "src/facade/cva_principal_repack.rs",
+      "line": 53
+    },
+    {
+      "path": "src/facade/cva_reconcile_freshness.rs",
+      "line": 638
+    },
+    {
+      "path": "src/facade/cva_reconcile_memory.rs",
+      "line": 203
+    },
+    {
+      "path": "src/facade/cva_reconcile_repack.rs",
+      "line": 131
+    },
+    {
+      "path": "src/facade/cva_repack.rs",
+      "line": 62
+    },
+    {
+      "path": "src/facade/cva_semantic_source.rs",
+      "line": 85
+    },
+    {
+      "path": "src/facade/cva_semantic_source.rs",
+      "line": 220
+    },
+    {
+      "path": "src/facade/phylactery_history_prune.rs",
+      "line": 229
+    },
+    {
+      "path": "src/facade/phylactery_history_prune.rs",
+      "line": 232
+    },
+    {
+      "path": "src/facade/phylactery_profile_store.rs",
+      "line": 29
+    },
+    {
+      "path": "src/facade/rel_metadata_store.rs",
+      "line": 30
+    },
+    {
+      "path": "src/facade/storage_reclamation.rs",
+      "line": 167
+    },
+    {
+      "path": "src/freshness/freshness_semantic_activation.rs",
+      "line": 80
+    },
+    {
+      "path": "src/freshness_storage.rs",
+      "line": 346
+    },
+    {
+      "path": "src/imports/epoch_store.rs",
+      "line": 155
+    },
+    {
+      "path": "src/imports/epoch_store.rs",
+      "line": 195
+    },
+    {
+      "path": "src/imports/reconciliation_interval.rs",
+      "line": 267
+    },
+    {
+      "path": "src/imports/reconciliation_interval.rs",
+      "line": 289
+    },
+    {
+      "path": "src/imports/reconciliation_interval.rs",
+      "line": 293
+    },
+    {
+      "path": "src/imports/reconciliation_interval.rs",
+      "line": 301
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "line": 62
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "line": 127
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "line": 129
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "line": 310
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "line": 313
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "line": 608
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "line": 890
+    },
+    {
+      "path": "src/memory/processing_epoch_store.rs",
+      "line": 104
+    },
+    {
+      "path": "src/perception/entity_resolution_store.rs",
+      "line": 150
+    },
+    {
+      "path": "src/perception/entity_resolution_store.rs",
+      "line": 175
+    },
+    {
+      "path": "src/perception/entity_resolution_store.rs",
+      "line": 201
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "line": 48
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "line": 140
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "line": 142
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "line": 262
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "line": 268
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "line": 371
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "line": 374
+    },
+    {
+      "path": "src/perception/relationship_store.rs",
+      "line": 46
+    },
+    {
+      "path": "src/perception/relationship_store.rs",
+      "line": 133
+    },
+    {
+      "path": "src/perception/relationship_store.rs",
+      "line": 135
+    },
+    {
+      "path": "src/perception/relationship_store.rs",
+      "line": 249
+    },
+    {
+      "path": "src/perception/relationship_store.rs",
+      "line": 252
+    },
+    {
+      "path": "src/retrieval/archive_vector_store.rs",
+      "line": 24
+    },
+    {
+      "path": "src/retrieval/archive_vector_store.rs",
+      "line": 58
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_store.rs",
+      "line": 22
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_store.rs",
+      "line": 44
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_store.rs",
+      "line": 101
+    },
+    {
+      "path": "src/retrieval/memory_vector_store.rs",
+      "line": 28
+    },
+    {
+      "path": "src/retrieval/memory_vector_store.rs",
+      "line": 86
+    },
+    {
+      "path": "src/retrieval/packed_vector_store.rs",
+      "line": 24
+    },
+    {
+      "path": "src/retrieval/packed_vector_store.rs",
+      "line": 51
+    },
+    {
+      "path": "src/retrieval/vector_generation_store.rs",
+      "line": 33
+    },
+    {
+      "path": "src/retrieval/vector_generation_store.rs",
+      "line": 63
+    },
+    {
+      "path": "src/retrieval/vector_generation_store.rs",
+      "line": 69
+    },
+    {
+      "path": "src/rewrite/file.rs",
+      "line": 735
+    },
+    {
+      "path": "src/rewrite/file.rs",
+      "line": 778
+    },
+    {
+      "path": "src/rewrite/semantic_state.rs",
+      "line": 578
+    },
+    {
+      "path": "src/rewrite/semantic_state.rs",
+      "line": 588
+    },
+    {
+      "path": "src/runtime_inference/dream_pair_history.rs",
+      "line": 69
+    },
+    {
+      "path": "src/runtime_inference/freshness_access.rs",
+      "line": 193
+    },
+    {
+      "path": "src/runtime_inference/insomnia/cva.rs",
+      "line": 233
+    },
+    {
+      "path": "src/runtime_inference/insomnia/processor/application.rs",
+      "line": 121
+    },
+    {
+      "path": "src/runtime_inference/insomnia/processor/application.rs",
+      "line": 431
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/transitions.rs",
+      "line": 49
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/transitions.rs",
+      "line": 74
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store.rs",
+      "line": 36
+    },
+    {
+      "path": "src/semantic_graph/community_scan_merge_workers.rs",
+      "line": 37
+    },
+    {
+      "path": "src/semantic_graph/community_store.rs",
+      "line": 73
+    },
+    {
+      "path": "src/semantic_graph/community_store.rs",
+      "line": 98
+    },
+    {
+      "path": "src/semantic_graph/graph_rewrite_baseline.rs",
+      "line": 36
+    },
+    {
+      "path": "src/semantic_graph/graph_store.rs",
+      "line": 166
+    },
+    {
+      "path": "src/semantic_graph/graph_store.rs",
+      "line": 182
+    },
+    {
+      "path": "src/semantic_graph/graph_store_write.rs",
+      "line": 241
+    },
+    {
+      "path": "src/semantic_graph/graph_store_write.rs",
+      "line": 244
+    }
+  ],
+  "excluded": {
+    "CVAXPLN1": "repository-external operational frozen plan, not REL/PHY storage"
+  },
+  "limitations": [
+    "Lexical direct-call evidence supplements the reviewed writer table; it is not a Rust call graph.",
+    "Delegating methods, multiline receiver chains and in-place compaction writes are covered by the execution evidence writer table.",
+    "Config, master-key files, gateway journals and frozen external plans are outside REL/PHY history."
+  ]
+}

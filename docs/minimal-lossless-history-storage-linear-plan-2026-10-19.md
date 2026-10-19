@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
-Date: 2026-10-19  
-Status: Implementation-ready; 0/243 execution steps complete at creation  
+Date: 2026-10-19
+Status: Implementation-ready; 6/243 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -56,6 +56,48 @@ Step 1 starts only from a clean integration point containing the accepted curren
 | 17 | Luna | Build deterministic cut enumeration for authoritative fixtures. | Cut enumerator returns stable Archive/Memory/Entity/Graph/vector/Ego/Freshness/global cut sets. |
 | 18 | Sol | Implement whole-owner projection at CVA global ordering point G using existing visibility rules. | Interleaved synthetic owner fixture matches hand-authored expected state. |
 | 19 | Luna | Generate baseline historical fingerprint artifacts for all authoritative fixtures. | Baseline artifacts persisted; fixture hashes unchanged. |
+
+### Step 1 execution record
+
+Commit: `a2c9a2d` (clean baseline).
+Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-1--execution-baseline).
+Verification: clean status, V1.0 source/header contract, accepted Step 65 test baseline; fresh format and documentation checks pass.
+Blockers: none for the baseline record; fresh full-suite rerun is collecting.
+
+### Step 2 execution record
+
+Commit: pending execution-evidence commit.
+Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-2--authoritative-fixture-identity).
+Verification: two full read-only hash passes; six accepted hashes unchanged; exact byte/header inventory.
+Blockers: none.
+
+### Step 3 execution record
+
+Commit: pending execution-evidence commit.
+Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-3--durable-writer-inventory).
+Verification: 117 record identities in 66 explicit families; direct and delegated writer audit.
+Blockers: none.
+
+### Step 4 execution record
+
+Commit: pending execution-evidence commit.
+Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-4--semantic-owner-and-clock-map).
+Verification: all family groups mapped to concrete owner and version/admission behavior.
+Blockers: none.
+
+### Step 5 execution record
+
+Commit: pending execution-evidence commit.
+Files: [Execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-5--retained-responsibility-classification).
+Verification: 66 family names classified exactly once; set equality and uniqueness assertions pass.
+Blockers: none.
+
+### Step 6 execution record
+
+Commit: pending execution-evidence commit.
+Files: [Structural baseline evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-6--structural-baseline-and-refresh-limitation).
+Verification: coverage/ownership guards passed; existing snapshot identity recorded; bounded refresh limitation explicitly documented.
+Blockers: fresh Lexicon/Arcana/Pitlord evidence remains required at later structural gates.
 
 ### Integration Gate A — Historical oracle
 

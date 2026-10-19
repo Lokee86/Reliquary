@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Minimal lossless history storage — execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md) — frozen baseline, fixture identity and per-step verification.
+
 - [Minimal lossless history storage — specification](minimal-lossless-history-storage-spec-2026-10-19.md) — proposed compact owner history and historical equivalence requirements.
 - [Minimal lossless history storage — linear execution plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) — ordered implementation steps and integration gates.
 
