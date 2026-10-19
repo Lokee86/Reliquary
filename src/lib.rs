@@ -624,6 +624,8 @@ mod fragment_model;
 mod fragment_store;
 #[path = "archive/fragmenter.rs"]
 mod fragmenter;
+#[path = "runtime_inference/general_decision.rs"]
+mod general_decision;
 #[path = "runtime_inference/general_endpoint.rs"]
 mod general_endpoint;
 #[path = "semantic_graph/graph_codec.rs"]

@@ -520,3 +520,7 @@ fn retry_delay(attempt: usize) -> Duration {
 fn truncate(value: &str, max: usize) -> &str {
     value.get(..value.len().min(max)).unwrap_or(value)
 }
+
+#[cfg(test)]
+#[path = "openai_ready_general_seam_tests.rs"]
+mod seam_tests;

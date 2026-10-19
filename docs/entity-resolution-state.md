@@ -59,6 +59,10 @@ The REL/PHY container is append-only, so old state records remain historical byt
 
 The resolution-state owner itself does not invoke a model; it stores and deterministically governs lifecycle. The Perception runtime scheduler owns *when* mention keys are reconsidered. Its wake sources are bounded deterministic events: post-Dream source/affected Memories, same-surface mention evidence, and changes to evidence associated with previously considered candidate Entities. The scheduler then prepares a fresh snapshot. Obvious historical/transient occurrences are rejected before either decision endpoint or generative fallback. With existing candidates, the configured decision endpoint may resolve an existing Entity only when the selected candidate probability is at least 0.95 and exceeds the second-highest choice by at least 0.15; `create_new`, `unresolved`, and `reject` are never terminal decision-endpoint outcomes. Otherwise the engine invokes the generative fallback. Decision-endpoint errors also fail open to that fallback rather than deferring resolution. Commit still occurs only if the durable owner identity and Memory/Entity/Graph/resolution versions match the prepared snapshot.
 
+## Configured decision inheritance
+
+Runtime composition selects `entity_resolution_decision`, then `general_decision`, then adapted `general`. The engine remains unaware of the selected tier. The General adapter rejects probability fields because text completions do not establish calibrated likelihoods; its choices therefore proceed through the existing generative resolver. This operation-level fallback is independent of switchboard selection and does not retry another decision tier. Hosted processing still requires the separate `entity_resolution` resolver route.
+
 ## Related docs
 
 - [Perception subsystem plan](perception-subsystem-plan.md)

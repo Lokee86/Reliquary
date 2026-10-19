@@ -90,6 +90,15 @@ pub enum ModelCommand {
         reasoning: Option<ReasoningArg>,
     },
     ClearEntityExtraction,
+    SetGeneralDecision {
+        #[arg(long)]
+        model: String,
+        #[arg(long)]
+        credential: String,
+        #[arg(long)]
+        url: String,
+    },
+    ClearGeneralDecision,
     SetEntityResolutionDecision {
         #[arg(long)]
         model: String,

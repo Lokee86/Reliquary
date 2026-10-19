@@ -78,9 +78,7 @@ impl GatewayRuntime {
             .read()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?
             .memory_retrieval_decision()
-            .ok_or_else(|| {
-                operation("agentic Memory requires the dedicated retrieval decision route")
-            })
+            .ok_or_else(|| operation("agentic Memory requires a decision endpoint"))
     }
 
     /// No external I/O belongs inside this final short read-delivery closure.

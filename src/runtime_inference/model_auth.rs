@@ -76,6 +76,16 @@ pub(crate) fn validate_credentials(
     config: &ModelSwitchboardConfig,
     credentials: &CredentialsConfig,
 ) -> Result<(), CredentialError> {
+    if let Some(endpoint) = &config.general_decision {
+        let credential = credentials.get(&endpoint.credential_id).ok_or_else(|| {
+            CredentialError::MissingCredential(endpoint.credential_id.as_str().into())
+        })?;
+        if credential.auth_kind() != crate::ModelAuthKind::ApiKey {
+            return Err(CredentialError::WrongAuthKind(
+                endpoint.credential_id.as_str().into(),
+            ));
+        }
+    }
     if let Some(endpoint) = &config.entity_resolution_decision {
         let credential = credentials.get(&endpoint.credential_id).ok_or_else(|| {
             CredentialError::MissingCredential(endpoint.credential_id.as_str().into())

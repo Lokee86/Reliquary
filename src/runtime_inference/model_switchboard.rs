@@ -163,6 +163,7 @@ pub struct ModelSwitchboardConfig {
     pub insomnia: Option<GeneralModelEndpoint>,
     pub insomnia_metadata: Option<GeneralModelEndpoint>,
     pub entity_extraction: Option<GeneralModelEndpoint>,
+    pub general_decision: Option<DecisionModelEndpoint>,
     pub entity_resolution_decision: Option<DecisionModelEndpoint>,
     pub memory_retrieval_decision: Option<DecisionModelEndpoint>,
     pub entity_resolution: Option<GeneralModelEndpoint>,
@@ -211,6 +212,10 @@ impl ModelSwitchboard {
 
     pub fn entity_resolution_decision(&self) -> Option<&DecisionModelEndpoint> {
         self.config.entity_resolution_decision.as_ref()
+    }
+
+    pub fn general_decision(&self) -> Option<&DecisionModelEndpoint> {
+        self.config.general_decision.as_ref()
     }
 
     pub fn memory_retrieval_decision(&self) -> Option<&DecisionModelEndpoint> {
@@ -274,6 +279,11 @@ impl ModelSwitchboard {
 
     pub fn entity_resolution_decision_auth(&self) -> Option<ModelRequestAuth> {
         self.entity_resolution_decision()
+            .map(|e| resolve_api_key_auth(&e.credential_id, &self.credentials))
+    }
+
+    pub fn general_decision_auth(&self) -> Option<ModelRequestAuth> {
+        self.general_decision()
             .map(|e| resolve_api_key_auth(&e.credential_id, &self.credentials))
     }
 
@@ -344,6 +354,11 @@ pub(crate) fn validate_switchboard(config: &ModelSwitchboardConfig) -> Result<()
     }
     if let Some(endpoint) = &config.entity_extraction {
         validate_general_endpoint(endpoint)?;
+    }
+    if let Some(endpoint) = &config.general_decision {
+        if endpoint.model.trim().is_empty() || !valid_http_endpoint_url(&endpoint.url) {
+            return Err(ConfigError::InvalidModelSwitchboard);
+        }
     }
     if let Some(endpoint) = &config.entity_resolution_decision {
         if endpoint.model.trim().is_empty() || !valid_url(&endpoint.url) {

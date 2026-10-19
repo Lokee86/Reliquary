@@ -377,3 +377,7 @@ fn retry_after_body(body: &str) -> Option<Duration> {
 fn truncate(value: &str, max: usize) -> &str {
     value.get(..value.len().min(max)).unwrap_or(value)
 }
+
+#[cfg(test)]
+#[path = "openai_codex_general_seam_tests.rs"]
+mod seam_tests;

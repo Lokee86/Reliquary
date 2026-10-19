@@ -138,12 +138,108 @@ fn clearing_model_routes_removes_them_from_current_config() {
 }
 
 #[test]
+fn general_decision_config_round_trips_and_old_configs_leave_it_unset() {
+    let path = test_path("general-decision.cfg");
+    let mut config = ReliquaryConfig::new(&path);
+    config.credentials = configured_credentials();
+    let endpoint = DecisionModelEndpoint {
+        model: "shared-decider".into(),
+        url: "https://example.test/decisions".into(),
+        credential_id: id("ready"),
+    };
+    config.models.general_decision = Some(endpoint.clone());
+    config.save().unwrap();
+
+    let reopened = ReliquaryConfig::open(&path).unwrap();
+    assert_eq!(reopened.models.general_decision.as_ref(), Some(&endpoint));
+
+    let old_path = test_path("old-config.cfg");
+    ReliquaryConfig::new(&old_path).save().unwrap();
+    let old = ReliquaryConfig::open(&old_path).unwrap();
+    assert!(old.models.general_decision.is_none());
+}
+
+#[test]
+fn general_decision_route_validation_matches_existing_decision_routes() {
+    let endpoint = DecisionModelEndpoint {
+        model: "shared-decider".into(),
+        url: "https://example.test/decisions".into(),
+        credential_id: id("ready"),
+    };
+    let mut models = ModelSwitchboardConfig {
+        general_decision: Some(endpoint.clone()),
+        ..Default::default()
+    };
+    assert!(ModelSwitchboard::new(models.clone(), configured_credentials()).is_ok());
+
+    models.general_decision.as_mut().unwrap().model = "  ".into();
+    assert!(ModelSwitchboard::new(models, configured_credentials()).is_err());
+
+    for url in ["ftp://example.test/decisions", "https://", "https://["] {
+        let models = ModelSwitchboardConfig {
+            general_decision: Some(DecisionModelEndpoint {
+                url: url.into(),
+                ..endpoint.clone()
+            }),
+            ..Default::default()
+        };
+        assert!(
+            ModelSwitchboard::new(models, configured_credentials()).is_err(),
+            "{url}"
+        );
+    }
+    let valid = ModelSwitchboardConfig {
+        general_decision: Some(endpoint),
+        ..Default::default()
+    };
+    assert!(ModelSwitchboard::new(valid, configured_credentials()).is_ok());
+}
+
+#[test]
+fn general_decision_requires_api_key_and_resolves_its_authentication() {
+    let models = ModelSwitchboardConfig {
+        general_decision: Some(DecisionModelEndpoint {
+            model: "shared-decider".into(),
+            url: "https://example.test/decisions".into(),
+            credential_id: id("shared"),
+        }),
+        ..Default::default()
+    };
+
+    assert!(ModelSwitchboard::new(models.clone(), CredentialsConfig::default()).is_err());
+
+    let mut wrong_kind = CredentialsConfig::default();
+    wrong_kind
+        .insert_chatgpt_oauth(
+            id("shared"),
+            "device",
+            "access",
+            "refresh",
+            Some("account".into()),
+        )
+        .unwrap();
+    assert!(ModelSwitchboard::new(models.clone(), wrong_kind).is_err());
+
+    let mut valid = CredentialsConfig::default();
+    valid.insert_api_key(id("shared"), "shared-key").unwrap();
+    let switchboard = ModelSwitchboard::new(models, valid).unwrap();
+    let mut headers = BTreeMap::new();
+    switchboard
+        .general_decision_auth()
+        .unwrap()
+        .apply_to(&mut headers);
+    assert_eq!(headers["Authorization"], "Bearer shared-key");
+    assert!(!headers.contains_key("ChatGPT-Account-ID"));
+}
+
+#[test]
 fn invalid_provider_routes_are_rejected() {
     let codex_embedding = ModelSwitchboardConfig {
         general: None,
         insomnia: None,
         insomnia_metadata: None,
         entity_extraction: None,
+        general_decision: None,
         entity_resolution_decision: None,
         memory_retrieval_decision: None,
         entity_resolution: None,
@@ -171,6 +267,7 @@ fn invalid_provider_routes_are_rejected() {
         insomnia: None,
         insomnia_metadata: None,
         entity_extraction: None,
+        general_decision: None,
         entity_resolution_decision: None,
         memory_retrieval_decision: None,
         entity_resolution: None,
@@ -224,10 +321,12 @@ fn entity_routes_are_explicit_and_do_not_fall_back() {
     let mut models = configured_models();
     models.entity_extraction = None;
     models.entity_resolution_decision = None;
+    models.general_decision = None;
     models.entity_resolution = None;
     let switchboard = ModelSwitchboard::new(models, configured_credentials()).unwrap();
     assert!(switchboard.entity_extraction().is_none());
     assert!(switchboard.entity_resolution_decision().is_none());
+    assert!(switchboard.general_decision().is_none());
     assert!(switchboard.entity_resolution().is_none());
 }
 
@@ -489,6 +588,7 @@ fn configured_models() -> ModelSwitchboardConfig {
             credential_id: id("ready"),
             reasoning_effort: Some(crate::ModelReasoningEffort::Low),
         }),
+        general_decision: None,
         entity_resolution_decision: Some(DecisionModelEndpoint {
             model: "typesafe/jev-1.13".into(),
             url: "https://openrouter.ai/api/alpha/decisions".into(),

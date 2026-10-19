@@ -1,10 +1,12 @@
 use crate::{
-    ConfigError, ConfiguredDecisionEndpoint, ConfiguredGeneralEndpoint, ModelSwitchboard,
-    OpenAiReadyEmbeddingEndpoint, ReliquaryConfig, ReliquaryRuntimeRoutes,
+    ConfigError, ConfiguredGeneralEndpoint, ModelSwitchboard, OpenAiReadyEmbeddingEndpoint,
+    ReliquaryConfig, ReliquaryRuntimeRoutes,
 };
 use std::path::Path;
 use std::sync::Arc;
 
+#[path = "configured_runtime_decision.rs"]
+mod decision;
 #[path = "configured_runtime_historical.rs"]
 mod historical;
 #[path = "configured_runtime_insomnia.rs"]
@@ -77,28 +79,24 @@ impl ConfiguredRuntime {
             .transpose()
             .map_err(operation)?
             .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::GeneralEndpoint>);
-        let entity_resolution_decision = config
-            .entity_resolution_decision
-            .as_ref()
-            .map(|_| {
-                ConfiguredDecisionEndpoint::from_entity_resolution_decision_switchboard(
-                    &self.switchboard,
-                )
-            })
-            .transpose()
-            .map_err(operation)?
-            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::DecisionEndpoint>);
-        let memory_retrieval_decision = config
-            .memory_retrieval_decision
-            .as_ref()
-            .map(|_| {
-                ConfiguredDecisionEndpoint::from_memory_retrieval_decision_switchboard(
-                    &self.switchboard,
-                )
-            })
-            .transpose()
-            .map_err(operation)?
-            .map(|endpoint| Arc::new(endpoint) as Arc<dyn crate::DecisionEndpoint>);
+        let entity_resolution_selection =
+            decision::select_route(config, decision::DecisionConsumer::EntityResolution);
+        let entity_resolution_decision = decision::construct_decision_endpoint(
+            &self.switchboard,
+            entity_resolution_selection,
+            decision::DecisionConsumer::EntityResolution,
+            general.clone(),
+        )
+        .map_err(operation)?;
+        let memory_retrieval_selection =
+            decision::select_route(config, decision::DecisionConsumer::MemoryRetrieval);
+        let memory_retrieval_decision = decision::construct_decision_endpoint(
+            &self.switchboard,
+            memory_retrieval_selection,
+            decision::DecisionConsumer::MemoryRetrieval,
+            general.clone(),
+        )
+        .map_err(operation)?;
         let entity_resolution = config
             .entity_resolution
             .as_ref()
@@ -138,6 +136,10 @@ impl ConfiguredRuntime {
         )
     }
 }
+
+#[cfg(test)]
+#[path = "configured_runtime_decision_integration_tests.rs"]
+mod decision_integration_tests;
 
 pub(super) fn operation(error: impl std::fmt::Display) -> ConfiguredRuntimeError {
     ConfiguredRuntimeError(error.to_string())

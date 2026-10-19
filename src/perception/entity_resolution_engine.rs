@@ -367,6 +367,39 @@ mod tests {
         assert_eq!(outcome.entity_id, Some(entity_id));
     }
 
+    #[test]
+    fn general_model_choice_without_calibrated_confidence_uses_existing_resolver() {
+        let (mut rel, key, entity_id) =
+            rel_with_candidate("engine-general-decision-no-confidence.rel");
+        let general: Arc<dyn GeneralEndpoint> = Arc::new(SimulatedGeneralEndpoint::new(
+            "general-decision",
+            vec![json!({
+                "answers": {"resolution": {"type": "choice", "choice": "candidate_0"}}
+            })],
+        ));
+        let decision: Arc<dyn DecisionEndpoint> = Arc::new(
+            crate::general_decision::GeneralDecisionEndpoint::new(general),
+        );
+        let fallback = SimulatedGeneralEndpoint::new(
+            "entity-resolver",
+            vec![json!({
+                "decision": "unresolved",
+                "reason": "insufficient_evidence",
+                "target_candidate_index": -1
+            })],
+        );
+        let engine = EntityResolutionEngine::new(fallback).with_decision_endpoint(Some(decision));
+
+        let outcome = rel
+            .resolve_entity_mention_with_engine(&engine, key, EntityCandidateConfig::default(), 118)
+            .unwrap();
+
+        assert_eq!(outcome.decision, EntityResolutionDecision::Unresolved);
+        assert_eq!(outcome.entity_id, None);
+        assert_eq!(rel.entities().len(), 1);
+        assert_eq!(rel.entities()[0].id, entity_id);
+    }
+
     fn publish_typed_entity(rel: &mut Cva, name: &str, kind: &str, mutation: &str) -> EntityId {
         let mut draft = entity_draft(name, &[], mutation, 1);
         draft.kind = kind.into();

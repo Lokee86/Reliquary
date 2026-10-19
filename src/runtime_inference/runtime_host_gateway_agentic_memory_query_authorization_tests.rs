@@ -210,9 +210,9 @@ fn assert_query_error_preserves_controller(fixture: &QueryFixture, expected_erro
 }
 
 #[test]
-fn missing_dedicated_decision_route_preserves_controller() {
+fn missing_decision_endpoint_preserves_controller() {
     let fixture = query_fixture(true, false, true, DuringDecision::Revoke);
-    assert_query_error_preserves_controller(&fixture, "dedicated retrieval decision route");
+    assert_query_error_preserves_controller(&fixture, "requires a decision endpoint");
 }
 
 #[test]

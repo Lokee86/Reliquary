@@ -7,6 +7,7 @@ pub(crate) const GENERAL_MODEL_KEY: &str = "models.general";
 pub(crate) const INSOMNIA_MODEL_KEY: &str = "models.insomnia";
 pub(crate) const INSOMNIA_METADATA_MODEL_KEY: &str = "models.insomnia_metadata";
 pub(crate) const ENTITY_EXTRACTION_MODEL_KEY: &str = "models.entity_extraction";
+pub(crate) const GENERAL_DECISION_MODEL_KEY: &str = "models.general_decision";
 pub(crate) const ENTITY_RESOLUTION_DECISION_MODEL_KEY: &str = "models.entity_resolution_decision";
 pub(crate) const MEMORY_RETRIEVAL_DECISION_MODEL_KEY: &str = "models.memory_retrieval_decision";
 pub(crate) const ENTITY_RESOLUTION_MODEL_KEY: &str = "models.entity_resolution";

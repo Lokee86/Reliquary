@@ -38,6 +38,7 @@ fn show(path: &Path) -> Result<()> {
     show_insomnia(config.models.insomnia.as_ref());
     show_insomnia_metadata(config.models.insomnia_metadata.as_ref());
     show_entity_extraction(config.models.entity_extraction.as_ref());
+    show_general_decision(config.models.general_decision.as_ref());
     show_entity_resolution_decision(config.models.entity_resolution_decision.as_ref());
     show_memory_retrieval_decision(config.models.memory_retrieval_decision.as_ref());
     show_entity_resolution(config.models.entity_resolution.as_ref());
@@ -178,6 +179,19 @@ fn model(path: &Path, command: ModelCommand) -> Result<()> {
             validate_runtime(&config)?;
         }
         ModelCommand::ClearEntityExtraction => config.models.entity_extraction = None,
+        ModelCommand::SetGeneralDecision {
+            model,
+            credential,
+            url,
+        } => {
+            config.models.general_decision = Some(DecisionModelEndpoint {
+                model,
+                url,
+                credential_id: credential_id(credential)?,
+            });
+            validate_runtime(&config)?;
+        }
+        ModelCommand::ClearGeneralDecision => config.models.general_decision = None,
         ModelCommand::SetEntityResolutionDecision {
             model,
             credential,
@@ -357,6 +371,18 @@ fn show_entity_resolution_decision(value: Option<&DecisionModelEndpoint>) {
             endpoint.credential_id.as_str()
         ),
         None => println!("entity_resolution_decision: <unset>"),
+    }
+}
+
+fn show_general_decision(value: Option<&DecisionModelEndpoint>) {
+    match value {
+        Some(endpoint) => println!(
+            "general_decision: model={} url={} credential={}",
+            endpoint.model,
+            endpoint.url,
+            endpoint.credential_id.as_str()
+        ),
+        None => println!("general_decision: <unset>"),
     }
 }
 

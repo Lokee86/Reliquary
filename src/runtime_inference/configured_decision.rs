@@ -14,7 +14,7 @@ pub struct ConfiguredDecisionEndpoint {
 }
 
 impl ConfiguredDecisionEndpoint {
-    fn from_route(
+    pub(crate) fn from_route(
         endpoint: Option<&crate::DecisionModelEndpoint>,
         auth: Option<ModelRequestAuth>,
         route: &'static str,

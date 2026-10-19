@@ -122,9 +122,29 @@ Schema `3`, flags `0`, with the same payload shape and schema-2 read compatibili
 
 This route is optional. When configured, Dream pair classification and independent verification use it. When absent, `ModelSwitchboard::dream()` and `dream_auth()` fall back to the configured `models.general` route and credential. Dream and Insomnia routing are independent; configuring one does not affect the other.
 
+### `models.general_decision`
+
+Optional schema `1`, flags `0`, using the existing decision-endpoint payload:
+
+```text
+string    model
+string    explicit HTTP/HTTPS URL
+string    credential ID
+```
+
+The model must be nonempty and the URL must parse as HTTP/HTTPS with a host. The credential must reference an API key. Old configs without this object load with `general_decision = None`; the config header and decision schema versions are unchanged.
+
+`ConfiguredRuntime::runtime_routes()` selects each decision consumer once: its specialized decision route, then `models.general_decision`, then `models.general` through a structured-completion adapter. If all are absent, the decision route is unavailable. Specialized/shared routes retain the `{model,state,questions}` decision-service protocol and their selected API key. General inheritance uses the existing provider transport, credential and reasoning settings. Inference failures do not trigger selection of a lower tier.
+
+The general adapter preserves question IDs, choice types and allowed choices, and rejects unknown/malformed answers. It requests no probabilities and rejects unsolicited probability fields: JSON text contains no calibrated choice-likelihood evidence. Entity Resolution therefore continues through its existing separate generative resolver when a general-derived choice lacks confidence. Hosted Entity workers still require `models.entity_resolution`; decision inheritance does not configure that resolver. Memory Retrieval preserves its supplied top-level approval/rewrite schemas and existing controller validation and error behavior.
+
+### `models.entity_resolution_decision`
+
+Optional decision schema `1`, flags `0`, with the same model/URL/credential payload as `models.general_decision`. This route overrides shared and general decision inheritance for Entity Resolution. It remains distinct from the general resolver configuration `models.entity_resolution`.
+
 ### `models.memory_retrieval_decision`
 
-This optional route uses decision-endpoint schema `1`, flags `0`, with the same payload encoding as `models.entity_resolution_decision`: model, explicit `http://` or `https://` URL, and credential ID. It is reserved for Memory-retrieval decision evaluation; the controller operations remain tracked separately by the agentic retrieval implementation plan. When unset, it is absent and does not fall back to `models.general` or another route. Its credential must be an API-key credential; missing or wrong-kind credentials, empty models, and invalid URLs are rejected during runtime validation. The CLI commands are `config model set-memory-retrieval-decision`, `clear-memory-retrieval-decision`, and `config show`.
+This optional route uses decision-endpoint schema `1`, flags `0`, with the same payload encoding as `models.entity_resolution_decision`: model, explicit `http://` or `https://` URL, and credential ID. It is reserved for Memory-retrieval decision evaluation; the controller operations remain tracked separately by the agentic retrieval implementation plan. The stored field remains absent when unset; configured runtime composition then inherits `models.general_decision`, followed by adapted `models.general`. Its credential must be an API-key credential; missing or wrong-kind credentials, empty models, and invalid URLs are rejected during runtime validation. The CLI commands are `config model set-memory-retrieval-decision`, `clear-memory-retrieval-decision`, and `config show`.
 
 ### `models.embedding`
 
