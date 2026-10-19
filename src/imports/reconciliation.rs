@@ -150,14 +150,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 archive_records.push(cva.container.read(version.record)?);
             }
             if let Some(version) = crate::memory_codec::decode_version(&payload)? {
-                let bytes = cva.container.read(version.record)?;
-                if let Some(mut record) = crate::memory_codec::decode_record(&bytes)? {
-                    record.global_version = 0;
-                    record.memory_version = 0;
-                    owner_evidence.push(crate::memory_codec::encode_record(&record)?);
-                } else {
-                    owner_evidence.push(bytes);
-                }
+                owner_evidence.push(canonical_memory_publication(cva, version)?);
             }
             if let Some(version) = crate::entity_codec::decode_version(&payload)? {
                 let bytes = cva.container.read(version.record)?;
@@ -328,6 +321,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
         if crate::insomnia::codec::decode_record(&payload)?.is_some()
             || crate::memory_codec::decode_body(&payload)?.is_some()
             || crate::memory_codec::decode_record(&payload)?.is_some()
+            || crate::memory_compact_codec::is_compact_record(&payload)?
             || crate::memory_codec::decode_version(&payload)?.is_some()
             || crate::memory_routing_codec::decode(&payload)?.is_some()
             || crate::entity_codec::decode_record(&payload)?.is_some()
@@ -382,9 +376,32 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
     Ok(())
 }
 
+fn canonical_memory_publication(
+    cva: &mut Cva,
+    version: crate::memory_codec::MemoryVersion,
+) -> Result<Vec<u8>, CvaReconcileError> {
+    if let Some(record) = cva
+        .memories
+        .record_at_publication(version.global_version, version.memory_version)
+    {
+        let mut normalized = record.clone();
+        normalized.global_version = 0;
+        normalized.memory_version = 0;
+        // This is the established semantic evidence representation, never a
+        // second persisted Memory history carrier or an ordinary legacy write.
+        return Ok(crate::memory_codec::encode_record(&normalized)?);
+    }
+    // Terminal publications retain their independent tombstone evidence.
+    Ok(cva.container.read(version.record)?)
+}
+
 pub(super) fn unsupported(reason: &'static str) -> CvaReconcileError {
     CvaReconcileError::UnsupportedSemanticOwner(reason)
 }
+
+#[cfg(test)]
+#[path = "reconciliation_compact_memory_tests.rs"]
+mod compact_memory_tests;
 fn hex(id: &[u8; 32]) -> String {
     id.iter().map(|byte| format!("{byte:02x}")).collect()
 }

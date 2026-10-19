@@ -750,6 +750,9 @@ mod memory_compact_codec;
 #[path = "memory/memory_compact_contract.rs"]
 mod memory_compact_contract;
 #[cfg(test)]
+#[path = "memory/memory_compact_maintenance_tests.rs"]
+mod memory_compact_maintenance_tests;
+#[cfg(test)]
 #[path = "memory/memory_compact_replay_tests.rs"]
 mod memory_compact_replay_tests;
 #[cfg(test)]
@@ -757,6 +760,9 @@ mod memory_compact_replay_tests;
 mod memory_compact_retry_tests;
 #[path = "memory/memory_compact_values.rs"]
 mod memory_compact_values;
+#[cfg(test)]
+#[path = "memory/memory_compact_writer_tests.rs"]
+mod memory_compact_writer_tests;
 #[path = "memory/memory_error.rs"]
 mod memory_error;
 #[path = "memory/memory_model.rs"]

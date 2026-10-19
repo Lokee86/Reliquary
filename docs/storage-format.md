@@ -8,7 +8,7 @@ V1 opens use a read-only file handle. A truncated V1 tail fails with `TruncatedC
 
 V1 semantic mutation attempts, including retries and no-ops, return typed `StorageFormatUpgradeRequired` before resident or durable changes. The format barrier is independent of import write admission and cannot be bypassed by owner write scope. Pruning, reclamation, repacking and ordinary reconciliation require writable-format sources before creating outputs. V1 `sync` is a read-only no-op. V2 physical maintenance copies preserve the format, identity and owner UUID. Legacy identity-header shapes remain compatibility data rather than alternate current owner kinds.
 
-This boundary stage changes header/open/admission behavior only. Semantic record families retain their current codecs until the owner-specific compact codec and lossless-upgrader steps are implemented; it does not claim storage-size reduction yet. Explicit owner-ID migration and fresh-history rewrite remain separate operations with their existing identity/history policies.
+The container boundary preserves header/open/admission ownership. Standalone Memory now uses compact creation/delta records as described below; grouped/external Memory and the remaining semantic owners retain their existing carriers until their explicit cutover steps. End-to-end upgrade and storage-size measurements remain pending. Explicit owner-ID migration and fresh-history rewrite remain separate operations with their existing identity/history policies.
 
 ## Internal lossless-upgrade shell
 
@@ -20,7 +20,7 @@ The staging guard removes its owned file and directory on error, abort or drop, 
 
 ## Internal Memory compact contract
 
-`memory_compact_contract.rs` defines the private creation/delta envelope and twenty ordered mutable fields. Creation retains the exact first accepted record and body reference; later records bind the previous revision and preserve publication coordinates while carrying only changed metadata. Explicit optional clear differs from unchanged. Inference collections use whole-value ordered replacement; separate immutable routing remains outside the revision delta. The [field inventory and contract](minimal-lossless-history-storage-spec-2026-10-19.md#memory-field-inventory-step-42) track codec implementation. The compact wire codec and pure delta application are implemented; ordinary writers still use existing codecs. The following compact carrier contract is staged for owner replay and writer cutover.
+`memory_compact_contract.rs` defines the private creation/delta envelope and twenty ordered mutable fields. Creation retains the exact first accepted record and body reference; later records bind the previous revision and preserve publication coordinates while carrying only changed metadata. Explicit optional clear differs from unchanged. Inference collections use whole-value ordered replacement; separate immutable routing remains outside the revision delta. The [field inventory and contract](minimal-lossless-history-storage-spec-2026-10-19.md#memory-field-inventory-step-42) track codec implementation. The compact wire codec and pure delta application are implemented; ordinary standalone publication uses this format on V2. Grouped/external publication and lossless migration have their own remaining cutover steps.
 
 ## Compact Memory wire carriers
 
@@ -37,6 +37,12 @@ The pure applier in `memory_compact_apply.rs` reconstructs a separate candidate,
 ## Compact Memory replay admission
 
 Compact records retain the existing `CVAMEMV1` publication binding. `MemoryOpenState` queues creation/delta carriers by their exact object reference and does not materialize an unversioned carrier. The marker must name that carrier and match its embedded global and Memory coordinates exactly. The existing nonzero/at-or-before-observed-global-head rule remains unchanged: an accepted late binding to an earlier allocated ticket is not reinterpreted as a publication at the physical head. Legacy/compact parity tests protect that visibility behavior. Creation installs revision one; delta resolves the current accepted revision through MemoryStore's existing index, validates/applies a separate candidate and inserts only after success. Existing tombstone admission remains terminal on the original clocks, and full body/routing/provenance validation remains part of owner open. Unknown compact carrier versions fail closed. A V1 owner containing any compact Memory carrier is rejected rather than exposing a partial legacy view.
+
+## Standalone Memory writer and consumer cutover
+
+New standalone V2 Memory publications emit exactly one compact creation or delta carrier plus the existing publication ticket/MemoryVersion binding. The owner assigns the imminent global coordinate before encoding while retaining the prior physical publication sequence. Preflight validates compact field values; ordinary publication never appends a legacy full Memory record. Exact mutation retries return before append and terminal tombstones retain their existing carrier and coordinates. Explicit legacy fixture construction is compiled only for tests and is not a production writer mode.
+
+Reconciliation and completed-import semantic evidence resolve records through the validated Memory owner's exact global/local publication lookup rather than decoding legacy carrier bytes. Local record ordering permits bounded binary search even across terminal-version gaps. Import evidence retains its established normalized full-postimage proof representation; this is an evidence encoding, not another persisted Memory history writer. Import interval admission recognizes and validates compact carriers explicitly. Shared REL/PHY reclamation classifies compact creation/delta backing frames, retains published immutable body closure through creation/grouped records, and can discard inert unversioned carriers without discarding accepted predecessor history. Existing MemoryVersion reference relocation remains unchanged.
 
 ## Domain tombstone records
 

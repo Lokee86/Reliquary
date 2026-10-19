@@ -9,6 +9,19 @@ use crate::{MemoryBodyId, MemoryError, MemoryId};
 const CREATION_MAGIC: &[u8; 8] = b"CVAMC001";
 const DELTA_MAGIC: &[u8; 8] = b"CVAMD001";
 
+/// Recognize and structurally validate only this owner's compact carriers.
+pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, MemoryError> {
+    if bytes.starts_with(b"CVAMC") {
+        decode_creation(bytes)?;
+        return Ok(true);
+    }
+    if bytes.starts_with(b"CVAMD") {
+        decode_delta(bytes)?;
+        return Ok(true);
+    }
+    Ok(false)
+}
+
 macro_rules! field_codecs {
     ($($bit:literal => $field:ident),+ $(,)?) => {
         fn write_fields(fields: &MemoryDeltaFields,out: &mut Vec<u8>) -> Result<(),MemoryError> {
@@ -51,6 +64,12 @@ fn require_end(bytes: &[u8], cursor: usize) -> Result<(), MemoryError> {
         return Err(MemoryError::CorruptRecord("compact Memory trailing bytes"));
     }
     Ok(())
+}
+
+pub(crate) fn validate_record_values(record: &MemoryRecord) -> Result<(), MemoryError> {
+    let mut scratch = Vec::new();
+    record.mutation_id.write(&mut scratch)?;
+    write_record_fields(record, &mut scratch)
 }
 
 pub(crate) fn encode_creation(creation: &MemoryCreation) -> Result<Vec<u8>, MemoryError> {

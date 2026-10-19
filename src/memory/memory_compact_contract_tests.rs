@@ -142,13 +142,30 @@ fn contracts_accept_retained_v1_creation_and_revision_without_reinterpreting_fie
     std::fs::create_dir_all(&directory).unwrap();
     let path = directory.join("owner.rel");
     let mut rel = crate::Cva::create(&path).unwrap();
-    let id = crate::entity_candidate_test_support::publish_rel_memory(
-        &mut rel,
-        "contract-v1-birth",
+    let (memory, changed) = rel
+        .memories
+        .publish_legacy_fixture(
+            &mut rel.container,
+            None,
+            0,
+            crate::entity_candidate_test_support::memory_draft(
+                "contract-v1-birth",
+                "Server",
+                "The server accepts requests.",
+            ),
+        )
+        .unwrap();
+    assert!(changed);
+    let id = memory.id;
+    let mut later = crate::entity_candidate_test_support::memory_draft(
+        "contract-v1-later",
         "Server",
         "The server accepts requests.",
     );
-    rel.set_memory_temporal_status(id, 1, "historical", "contract-v1-later".into())
+    later.temporal_status = "historical".into();
+    later.updated_at_ns = 2;
+    rel.memories
+        .publish_legacy_fixture(&mut rel.container, Some(id), 1, later)
         .unwrap();
     let accepted = rel.memories.records().to_vec();
     drop(rel);

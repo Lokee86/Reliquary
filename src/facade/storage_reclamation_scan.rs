@@ -121,6 +121,22 @@ impl ReclamationScan {
             self.memory_body_chunks.push((object, id));
             return Ok(());
         }
+        if payload.starts_with(b"CVAMC") {
+            let creation = crate::memory_compact_codec::decode_creation(payload)
+                .map_err(|error| error.to_string())?;
+            self.backing_candidates.insert(object);
+            self.memory_body_refs
+                .insert(object, creation.record.body_id);
+            return Ok(());
+        }
+        if payload.starts_with(b"CVAMD") {
+            crate::memory_compact_codec::decode_delta(payload)
+                .map_err(|error| error.to_string())?;
+            self.backing_candidates.insert(object);
+            // The immutable body remains reachable through its retained
+            // accepted creation/grouped publication; a delta cannot replace it.
+            return Ok(());
+        }
         if let Some(record) =
             crate::memory_codec::decode_record(payload).map_err(|error| error.to_string())?
         {

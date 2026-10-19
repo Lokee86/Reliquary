@@ -8,7 +8,7 @@ Completed native import reconciliation may retain the left physical prefix as an
 
 ## Compact-history rollout boundary
 
-Memory creation/delta wire values and pure application are staged, with compact replay acceptance under V2. Ordinary standalone/grouped/external Memory writers and the lossless transformer have not yet cut over; no completed Memory storage savings or migration is claimed at this stage.
+Standalone Memory publication now emits compact creation/delta history under V2, with existing retry and terminal behavior. Grouped Insomnia/external publication and the lossless transformer have not yet cut over; no completed Memory migration or end-to-end storage-savings measurement is claimed at this stage.
 
 
 The internal transformed-copy shell can freeze and stage identity-preserving physical carriers with drift detection and abort cleanup. It has no public execution/promotion API and does not yet convert owner codecs or certify historical equivalence. Identityless legacy headers require separate explicit identity handling; the shell refuses them.

@@ -76,7 +76,7 @@ pub(crate) fn temp_path(name: &str) -> PathBuf {
     ))
 }
 
-fn memory_draft(key: &str, title: &str, content: &str) -> MemoryDraft {
+pub(crate) fn memory_draft(key: &str, title: &str, content: &str) -> MemoryDraft {
     MemoryDraft {
         category: "fact".into(),
         memory_type: "project".into(),

@@ -283,12 +283,21 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
         )
         .unwrap()
         .0;
-    let memory_id = crate::entity_candidate_test_support::publish_rel_memory(
-        &mut rel,
-        "storage-boundary-memory",
-        "Server",
-        "The Retired Server handles requests.",
-    );
+    let (memory, changed) = rel
+        .memories
+        .publish_legacy_fixture(
+            &mut rel.container,
+            None,
+            0,
+            crate::entity_candidate_test_support::memory_draft(
+                "storage-boundary-memory",
+                "Server",
+                "The Retired Server handles requests.",
+            ),
+        )
+        .unwrap();
+    assert!(changed);
+    let memory_id = memory.id;
     let key = crate::entity_candidate_test_support::install_rel_mention(
         &mut rel,
         memory_id,
@@ -380,7 +389,10 @@ fn v1_rejects_exact_memory_retry_and_empty_graph_batch_before_state_change() {
         updated_at_ns: 10,
     };
     let mut rel = Cva::create(&source).unwrap();
-    let (memory, changed) = rel.publish_memory(None, 0, draft.clone()).unwrap();
+    let (memory, changed) = rel
+        .memories
+        .publish_legacy_fixture(&mut rel.container, None, 0, draft.clone())
+        .unwrap();
     assert!(changed);
     drop(rel);
 

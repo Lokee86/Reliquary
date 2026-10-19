@@ -2,9 +2,7 @@ use crate::cva_memory_publish::publish_memory_parts_with_state;
 use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::cva_reconcile_conflict_map::memory_replay_error;
 use crate::insomnia::completion::{InsomniaCompletion, decode_completion, encode_completion};
-use crate::memory_codec::{
-    decode_record as decode_memory_record, decode_version as decode_memory_version,
-};
+use crate::memory_codec::decode_version as decode_memory_version;
 use crate::{
     Cva, CvaReconcileConflict, CvaReconcileError, InsomniaAttempt, InsomniaWorkState, Memory,
     MemoryDraft,
@@ -59,10 +57,12 @@ pub(crate) fn read_memory_range(
         let Some(version) = decode_memory_version(&payload)? else {
             continue;
         };
-        let record_payload = cva.container.read(version.record)?;
-        let record = decode_memory_record(&record_payload)?
+        let record = cva
+            .memories
+            .record_at_publication(version.global_version, version.memory_version)
             .ok_or(CvaReconcileError::InvalidMemoryVersionRecord)?;
-        push_revision(cva, record.id, record.revision, &mut seen, &mut revisions)?;
+        let (id, revision) = (record.id, record.revision);
+        push_revision(cva, id, revision, &mut seen, &mut revisions)?;
     }
 
     Ok(MemoryTail {

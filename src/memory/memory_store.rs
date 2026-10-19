@@ -1,6 +1,6 @@
 use crate::memory_codec::{
-    MemoryTombstone, MemoryVersion, decode_body, encode_body, encode_format, encode_record,
-    encode_tombstone, encode_version,
+    MemoryTombstone, MemoryVersion, decode_body, encode_body, encode_format, encode_tombstone,
+    encode_version,
 };
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
@@ -41,6 +41,41 @@ pub(crate) enum PublishPreflight {
 }
 
 impl MemoryStore {
+    /// Explicit V1 fixture construction only. Production publication has one
+    /// compact writer; compatibility tests must not disguise compact bytes by
+    /// merely changing their container header.
+    #[cfg(test)]
+    pub(crate) fn publish_legacy_fixture(
+        &mut self,
+        container: &mut Container,
+        id: Option<MemoryId>,
+        expected_revision: u64,
+        draft: MemoryDraft,
+    ) -> Result<(Memory, bool), MemoryError> {
+        let preflight =
+            self.preflight_publish(container, id, expected_revision, &draft, None, None)?;
+        let (mut record, next_memory_version) = match preflight {
+            PublishPreflight::Retry(existing) => return Ok((existing, false)),
+            PublishPreflight::New {
+                record,
+                next_memory_version,
+                ..
+            } => (record, next_memory_version),
+        };
+        self.put_body(container, &draft.title, &draft.content)?;
+        let chunk = container.append(&crate::memory_codec::encode_record(&record)?)?;
+        record.global_version = container.allocate_version()?;
+        container.append(&encode_version(MemoryVersion {
+            global_version: record.global_version,
+            memory_version: record.memory_version,
+            record: chunk,
+        }))?;
+        self.insert(record.clone())?;
+        self.next_memory_version = next_memory_version;
+        self.resolve_record(container, &record)
+            .map(|memory| (memory, true))
+    }
+
     pub(crate) fn empty() -> Self {
         Self {
             external_evidence: HashMap::new(),
@@ -125,7 +160,19 @@ impl MemoryStore {
             } => (record, next_memory_version),
         };
         self.put_body(container, &draft.title, &draft.content)?;
-        let record_chunk = container.append(&encode_record(&record)?)?;
+        record.global_version = container.next_version_candidate();
+        let encoded = if let Some(index) = self.current.get(&record.id) {
+            let delta = crate::memory_compact_contract::MemoryDelta::between(
+                &self.records[*index],
+                &record,
+            )?;
+            crate::memory_compact_codec::encode_delta(&delta)?
+        } else {
+            crate::memory_compact_codec::encode_creation(
+                &crate::memory_compact_contract::MemoryCreation::new(record.clone())?,
+            )?
+        };
+        let record_chunk = container.append(&encoded)?;
         let global_version = container.allocate_version()?;
         container.append(&encode_version(MemoryVersion {
             global_version,
@@ -243,7 +290,7 @@ impl MemoryStore {
             memory_version,
         };
         encode_body(body_id, &bytes)?;
-        encode_record(&record)?;
+        crate::memory_compact_codec::validate_record_values(&record)?;
         if container.next_version_candidate().checked_add(1).is_none() {
             return Err(MemoryError::VersionExhausted);
         }
@@ -451,6 +498,22 @@ impl MemoryStore {
 
     pub(crate) fn records(&self) -> &[MemoryRecord] {
         &self.records
+    }
+
+    /// Resolve an already validated owner publication independently of its
+    /// physical legacy/creation/delta carrier. Local versions are ordered even
+    /// when terminal records leave gaps in the retained revision array.
+    pub(crate) fn record_at_publication(
+        &self,
+        global_version: u64,
+        memory_version: u64,
+    ) -> Option<&MemoryRecord> {
+        let index = self
+            .records
+            .binary_search_by_key(&memory_version, |record| record.memory_version)
+            .ok()?;
+        let record = &self.records[index];
+        (record.global_version == global_version).then_some(record)
     }
 
     pub(crate) fn current_record_for_replay(

@@ -129,25 +129,42 @@ fn interleaved_owner_cuts_and_historical_fingerprints_survive_shell_copy() {
     let fixture = Fixture::new();
     let request = fixture.request();
     let mut rel = Cva::create(&request.source).unwrap();
-    let memory = crate::entity_candidate_test_support::publish_rel_memory(
-        &mut rel,
-        "upgrade-memory-one",
-        "Server",
-        "The server accepts requests.",
-    );
+    let (memory, changed) = rel
+        .memories
+        .publish_legacy_fixture(
+            &mut rel.container,
+            None,
+            0,
+            crate::entity_candidate_test_support::memory_draft(
+                "upgrade-memory-one",
+                "Server",
+                "The server accepts requests.",
+            ),
+        )
+        .unwrap();
+    assert!(changed);
     rel.publish_entity(
         None,
         0,
         crate::entity_candidate_test_support::entity_draft("Server", &[], "upgrade-entity", 1),
     )
     .unwrap();
-    crate::entity_candidate_test_support::publish_rel_memory(
-        &mut rel,
-        "upgrade-memory-two",
-        "Client",
-        "The client sends requests.",
-    );
-    assert!(rel.memory(memory).is_ok());
+    let (second_memory, changed) = rel
+        .memories
+        .publish_legacy_fixture(
+            &mut rel.container,
+            None,
+            0,
+            crate::entity_candidate_test_support::memory_draft(
+                "upgrade-memory-two",
+                "Client",
+                "The client sends requests.",
+            ),
+        )
+        .unwrap();
+    assert!(changed);
+    assert!(rel.memory(memory.id).is_ok());
+    assert!(rel.memory(second_memory.id).is_ok());
     drop(rel);
     legacy(&request.source);
     let before = fs::read(&request.source).unwrap();
