@@ -41,6 +41,9 @@ mod historical_archive_fingerprint;
 #[cfg(test)]
 #[path = "facade/historical_fingerprint.rs"]
 mod historical_fingerprint;
+#[cfg(test)]
+#[path = "facade/historical_memory_fingerprint.rs"]
+mod historical_memory_fingerprint;
 
 pub mod imports;
 pub mod owner_lifecycle;

@@ -170,6 +170,20 @@ Final strengthened synthetic checks pass **3/3**: public historical API agreemen
 
 These sampled determinism checks do not claim exhaustive cross-format parity; exhaustive cut enumeration and baseline artifacts remain Steps 17–19. All six authoritative hashes were re-read afterward and still match the accepted baseline. Opt-in fixture checks use the `history-oracle-fixtures` Cargo feature and add no ignored tests to the ordinary suite.
 
+## Step 9 — Memory historical fingerprint
+
+`historical_memory_fingerprint.rs` reads accepted MemoryStore revisions independent of the standalone/grouped/external carrier. It materializes canonical revisions, immutable bodies, body-bound routing and external evidence, explicit terminal coordinates and current membership at a Memory version. Every MemoryRecord, MemorySourceRef and temporal-inference field is destructured exhaustively: adding a field requires updating the oracle rather than silently omitting it. Pruned bodies remain explicit unavailable evidence instead of invented payload. Existing historical getters expose current body-bound routing attachments across revisions; this adapter follows that rule and does not invent an independent routing clock.
+
+Two synthetic checks pass: historical revisions/current membership across archive metadata changes, terminal publication and reopen; and explicitly pruned PHY payload matched against the public historical unavailable result. The first authoritative run passes **3/3**, fingerprinting every retained Memory revision twice and stable empty/middle/head owner cuts across all six fixtures (36.73 seconds):
+
+| Fixture | REL revisions | PHY revisions |
+| --- | ---: | ---: |
+| first 14 days | 3,348 | 421 |
+| first 28 days | 5,727 | 490 |
+| Ellis | 1,452 | 976 |
+
+Total: **12,414 revisions**. All six source hashes remain unchanged. The strengthened final run passes **3/3** (40.20 seconds), including latest oracle membership equality with `MemoryStore::current_ids` for all six files.
+
 ## Fresh baseline observations
 
 The completed root baseline reports **1,515 passed / 5 failed / 5 ignored**, in 419.85 seconds of test execution. Both exhaustive import byte-prefix recovery tests and the long finite-receipt/reopen test pass. Failures were three external-publication tests, one Lore file-lock test and one decision-endpoint test-server socket race. All seven `runtime_host::gateway::external_tests` pass in isolation with `TEMP=TMP=<repository>/.test-tmp`. The initial longer `.test-tmp/lossless-baseline` scratch path exceeds the Win32 rename path limit in frozen external-plan installation; the shorter path retains all scratch inside the repository. The Lore test passes in isolation, matching the previously recorded transient Windows file-lock behavior. The exact decision-endpoint failure passes through Workspace command execution (1/1); a sandboxed direct loopback retry cannot reach its local server, so that restricted retry is not authoritative network-test evidence. No production fix or test weakening was needed. This is a qualified baseline, not an all-green full-suite claim; integration binaries were not reached after the library failure.

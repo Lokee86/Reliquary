@@ -60,7 +60,7 @@ Do not copy large portions of previous Reliquary implementations as a migration 
 Historical oracle fixture checks are opt-in and use disposable copies inside the repository:
 
 ```text
-cargo test --lib --features history-oracle-fixtures historical_archive_fingerprint
+cargo test --lib --features history-oracle-fixtures fingerprint -- --test-threads=1
 ```
 
 Set `RELIQUARY_HISTORY_FIXTURES` to the authoritative fixture root. Set `TEMP` and `TMP` to the repository's `.test-tmp` directory; longer nested scratch paths can exceed the Windows frozen-plan rename limit. The fixture feature does not add ignored tests to the ordinary suite.
