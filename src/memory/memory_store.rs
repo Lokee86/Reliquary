@@ -453,6 +453,26 @@ impl MemoryStore {
         &self.records
     }
 
+    pub(crate) fn current_record_for_replay(
+        &self,
+        id: MemoryId,
+    ) -> Result<&MemoryRecord, MemoryError> {
+        if self.tombstones.contains_key(&id) {
+            return Err(MemoryError::TerminalTombstone);
+        }
+        self.current
+            .get(&id)
+            .map(|index| &self.records[*index])
+            .ok_or(MemoryError::MissingMemory)
+    }
+
+    pub(crate) fn validate_compact_record(record: &MemoryRecord) -> Result<(), MemoryError> {
+        if let Some(inference) = &record.temporal_inference {
+            validate_temporal_inference_binding(record.body_id, record.source_time_ns, inference)?;
+        }
+        Ok(())
+    }
+
     pub(crate) fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
         self.tombstones
             .values()

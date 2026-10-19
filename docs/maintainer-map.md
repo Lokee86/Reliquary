@@ -12,7 +12,7 @@ Import/CVA owns epoch metadata and identity in `src/imports/epoch_store.rs` and 
 
 ## Memory compact contract
 
-`src/memory/memory_compact_contract.rs` owns private creation/delta types, changed-field order and envelope checks; `memory_compact_contract_tests.rs` verifies optional clears, ordered proof replacement, identity/clock guards and V1 record compatibility. See the [contract](storage-format.md#internal-memory-compact-contract). Wire codec, replay and writer cutover remain separate subsequent steps.
+`src/memory/memory_compact_contract.rs` owns private creation/delta types, changed-field order and envelope checks; `memory_compact_contract_tests.rs` verifies optional clears, ordered proof replacement, identity/clock guards and V1 record compatibility. See the [contract](storage-format.md#internal-memory-compact-contract). `memory_compact_codec.rs`, `memory_compact_values.rs` and `memory_compact_apply.rs` own the staged wire codec, typed values and pure validate-before-apply seam; their neighboring tests protect golden bytes and malformed input. `memory_rebuild.rs` owns compact carrier admission through existing version markers; `memory_compact_replay_tests.rs` and `memory_compact_retry_tests.rs` verify inert unversioned carriers, legacy visibility, terminal/retry semantics and validation atomicity. Writer cutover has its own subsequent gate.
 
 ## Lossless format-upgrade shell
 

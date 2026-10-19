@@ -72,6 +72,13 @@ pub(crate) struct MemoryCreation {
 }
 impl MemoryCreation {
     pub(crate) fn new(record: MemoryRecord) -> Result<Self, MemoryError> {
+        let creation = Self { record };
+        creation.validate()?;
+        Ok(creation)
+    }
+
+    pub(crate) fn validate(&self) -> Result<(), MemoryError> {
+        let record = &self.record;
         if record.revision != 1 {
             return Err(MemoryError::RevisionConflict);
         }
@@ -83,7 +90,7 @@ impl MemoryCreation {
         if record.mutation_id.is_empty() {
             return Err(MemoryError::InvalidField("mutation_id"));
         }
-        Ok(Self { record })
+        Ok(())
     }
 }
 

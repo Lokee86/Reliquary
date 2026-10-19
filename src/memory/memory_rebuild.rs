@@ -5,12 +5,19 @@ use crate::memory_model::{MemoryRecord, memory_body_id};
 use crate::{Container, MemoryError, MemoryRoutingMetadata, ObjectRef};
 use std::collections::HashMap;
 
+enum PendingMemoryRecord {
+    Legacy(MemoryRecord),
+    Creation(MemoryRecord),
+    Delta(crate::memory_compact_contract::MemoryDelta),
+}
+
 pub(crate) struct MemoryOpenState {
     store: crate::memory_store::MemoryStore,
-    pending_records: HashMap<ObjectRef, MemoryRecord>,
+    pending_records: HashMap<ObjectRef, PendingMemoryRecord>,
     pending_tombstones: HashMap<ObjectRef, crate::memory_codec::MemoryTombstone>,
     pending_routing_metadata: Vec<MemoryRoutingMetadata>,
     format_seen: bool,
+    compact_seen: bool,
 }
 
 impl MemoryOpenState {
@@ -21,6 +28,7 @@ impl MemoryOpenState {
             pending_tombstones: HashMap::new(),
             pending_routing_metadata: Vec::new(),
             format_seen: false,
+            compact_seen: false,
         }
     }
 
@@ -82,8 +90,23 @@ impl MemoryOpenState {
             self.store.insert_body(id, chunk);
             return Ok(());
         }
+        if payload.starts_with(b"CVAMC") {
+            let creation = crate::memory_compact_codec::decode_creation(payload)?;
+            self.compact_seen = true;
+            self.pending_records
+                .insert(chunk, PendingMemoryRecord::Creation(creation.record));
+            return Ok(());
+        }
+        if payload.starts_with(b"CVAMD") {
+            let delta = crate::memory_compact_codec::decode_delta(payload)?;
+            self.compact_seen = true;
+            self.pending_records
+                .insert(chunk, PendingMemoryRecord::Delta(delta));
+            return Ok(());
+        }
         if let Some(record) = decode_record(payload)? {
-            self.pending_records.insert(chunk, record);
+            self.pending_records
+                .insert(chunk, PendingMemoryRecord::Legacy(record));
             return Ok(());
         }
         if let Some(tombstone) = decode_tombstone(payload)? {
@@ -106,15 +129,40 @@ impl MemoryOpenState {
                 )?;
                 return Ok(());
             }
-            let mut record = self
+            let pending = self
                 .pending_records
                 .remove(&version.record)
                 .ok_or(MemoryError::InvalidVersion)?;
             if version.memory_version != self.store.memory_version() + 1 {
                 return Err(MemoryError::InvalidVersion);
             }
-            record.global_version = version.global_version;
-            record.memory_version = version.memory_version;
+            let record = match pending {
+                PendingMemoryRecord::Legacy(mut record) => {
+                    record.global_version = version.global_version;
+                    record.memory_version = version.memory_version;
+                    record
+                }
+                PendingMemoryRecord::Creation(record) => {
+                    if record.global_version != version.global_version
+                        || record.memory_version != version.memory_version
+                    {
+                        return Err(MemoryError::InvalidVersion);
+                    }
+                    crate::memory_store::MemoryStore::validate_compact_record(&record)?;
+                    record
+                }
+                PendingMemoryRecord::Delta(delta) => {
+                    if delta.global_version != version.global_version
+                        || delta.memory_version != version.memory_version
+                    {
+                        return Err(MemoryError::InvalidVersion);
+                    }
+                    let previous = self.store.current_record_for_replay(delta.id)?;
+                    let record = crate::memory_compact_apply::apply_delta(previous, &delta)?;
+                    crate::memory_store::MemoryStore::validate_compact_record(&record)?;
+                    record
+                }
+            };
             self.store.insert_rebuilt(record)?;
         }
         Ok(())
@@ -126,6 +174,10 @@ impl MemoryOpenState {
     ) -> Result<crate::memory_store::MemoryStore, MemoryError> {
         if !self.format_seen {
             return Err(MemoryError::MissingFormat);
+        }
+        if self.compact_seen && container.version() != (crate::FormatVersion { major: 2, minor: 0 })
+        {
+            return Err(MemoryError::ConflictingFormat);
         }
         if !self.pending_records.is_empty() {
             // Unversioned records are intentionally inert and may be left behind by an interrupted write.

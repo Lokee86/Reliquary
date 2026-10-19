@@ -305,7 +305,7 @@ The mask is an unsigned 64-bit value. Bits 0-19 identify fields in this fixed or
 
 Changed values follow ascending bit order; unchanged/equal values are omitted. Bits 20-63 are reserved and reject. Mutation/version/revision fields belong to the mandatory envelope, not this mask. An exhaustive `MemoryRecord` pattern makes added record fields a compile-time contract decision.
 
-There are no independently mutable collection fields in the Memory revision record. Structured `source_ref` and `temporal_inference` use whole-value replacement/clear. The inference resolution vector retains exact accepted element order and duplicates; it is not silently sorted or converted into a set. Routing mention collections belong to the independent body-bound immutable routing record and are not delta operations. Pure replay application, full decoder validation, redundant-operation rejection and wire bytes remain the next codec/replay phase; this contract does not enable compact writers.
+There are no independently mutable collection fields in the Memory revision record. Structured `source_ref` and `temporal_inference` use whole-value replacement/clear. The inference resolution vector retains exact accepted element order and duplicates; it is not silently sorted or converted into a set. Routing mention collections belong to the independent body-bound immutable routing record and are not delta operations. The codec/replay phase supplies pure application, structural decoder validation, redundant-operation rejection and exact wire bytes; current implementation acceptance is tracked in the linear plan. This contract does not itself enable compact writers.
 
 ### Entities
 

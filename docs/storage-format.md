@@ -20,7 +20,23 @@ The staging guard removes its owned file and directory on error, abort or drop, 
 
 ## Internal Memory compact contract
 
-`memory_compact_contract.rs` defines the private creation/delta envelope and twenty ordered mutable fields. Creation retains the exact first accepted record and body reference; later records bind the previous revision and preserve publication coordinates while carrying only changed metadata. Explicit optional clear differs from unchanged. Inference collections use whole-value ordered replacement; separate immutable routing remains outside the revision delta. The [field inventory and contract](minimal-lossless-history-storage-spec-2026-10-19.md#memory-field-inventory-step-42) track codec implementation. This contract is not a persisted encoding yet; ordinary writers and replay still use existing codecs.
+`memory_compact_contract.rs` defines the private creation/delta envelope and twenty ordered mutable fields. Creation retains the exact first accepted record and body reference; later records bind the previous revision and preserve publication coordinates while carrying only changed metadata. Explicit optional clear differs from unchanged. Inference collections use whole-value ordered replacement; separate immutable routing remains outside the revision delta. The [field inventory and contract](minimal-lossless-history-storage-spec-2026-10-19.md#memory-field-inventory-step-42) track codec implementation. The compact wire codec and pure delta application are implemented; ordinary writers still use existing codecs. The following compact carrier contract is staged for owner replay and writer cutover.
+
+## Compact Memory wire carriers
+
+`src/memory/memory_compact_codec.rs` owns `CVAMC001` creation and `CVAMD001` delta records. Shared Memory-owned value encodings live in `memory_codec_values.rs`; extracting them from the legacy carrier does not change legacy bytes. `memory_compact_values.rs` supplies typed value dispatch only within Memory.
+
+All integers are little-endian. A creation contains magic (8 bytes), Memory ID (32), immutable body ID (32), global version (u64), Memory version (u64), mutation ID (u32 byte length plus exact UTF-8), then all twenty contract fields in ascending field order. Revision one is implied; no field mask or repeated revision number is stored. Immutable body bytes remain separate.
+
+A delta contains magic (8), Memory ID (32), previous revision (u64), successor revision (u64), global version (u64), Memory version (u64), mutation ID string, field mask (u64), then only changed values in ascending bit order. A zero mask represents a legitimate new publication with no metadata changes. Body ID is inherited from the accepted prior revision and cannot be changed by this record.
+
+Strings use u32 byte lengths and exact UTF-8. Booleans and optional values use strict 0/1 tags. IDs and Episode IDs are 32 bytes; signed times are i64. Structured provenance/inference use the existing owner value codecs with exact vector ordering. Every read checks slice bounds before allocation; unknown field bits, invalid tags, invalid UTF-8, truncated values, extra bytes and invalid publication envelopes reject. Creation revision is implicit and delta revision must be the checked successor of a nonzero prior revision. Reference/body/time and external provenance checks still belong to the semantic owner.
+
+The pure applier in `memory_compact_apply.rs` reconstructs a separate candidate, inherits immutable identity/body, and derives its canonical difference against the prior accepted record. A mismatched base, invalid coordinates/mutation, or redundant equal-value operation rejects without changing the prior record. Equality-dependent canonical validation occurs with the prior record available; the standalone decoder cannot infer an unchanged value from wire bytes alone.
+
+## Compact Memory replay admission
+
+Compact records retain the existing `CVAMEMV1` publication binding. `MemoryOpenState` queues creation/delta carriers by their exact object reference and does not materialize an unversioned carrier. The marker must name that carrier and match its embedded global and Memory coordinates exactly. The existing nonzero/at-or-before-observed-global-head rule remains unchanged: an accepted late binding to an earlier allocated ticket is not reinterpreted as a publication at the physical head. Legacy/compact parity tests protect that visibility behavior. Creation installs revision one; delta resolves the current accepted revision through MemoryStore's existing index, validates/applies a separate candidate and inserts only after success. Existing tombstone admission remains terminal on the original clocks, and full body/routing/provenance validation remains part of owner open. Unknown compact carrier versions fail closed. A V1 owner containing any compact Memory carrier is rejected rather than exposing a partial legacy view.
 
 ## Domain tombstone records
 

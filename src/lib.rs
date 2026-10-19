@@ -741,8 +741,22 @@ mod memory_candidate_pool;
 mod memory_codec;
 #[path = "memory/memory_codec_scalar.rs"]
 mod memory_codec_scalar;
+#[path = "memory/memory_codec_values.rs"]
+mod memory_codec_values;
+#[path = "memory/memory_compact_apply.rs"]
+mod memory_compact_apply;
+#[path = "memory/memory_compact_codec.rs"]
+mod memory_compact_codec;
 #[path = "memory/memory_compact_contract.rs"]
 mod memory_compact_contract;
+#[cfg(test)]
+#[path = "memory/memory_compact_replay_tests.rs"]
+mod memory_compact_replay_tests;
+#[cfg(test)]
+#[path = "memory/memory_compact_retry_tests.rs"]
+mod memory_compact_retry_tests;
+#[path = "memory/memory_compact_values.rs"]
+mod memory_compact_values;
 #[path = "memory/memory_error.rs"]
 mod memory_error;
 #[path = "memory/memory_model.rs"]
