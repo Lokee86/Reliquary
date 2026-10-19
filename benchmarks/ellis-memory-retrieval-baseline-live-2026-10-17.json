@@ -1,0 +1,501 @@
+{
+  "baseline": {
+    "hits_at_1_5_10": [
+      22,
+      26,
+      26
+    ],
+    "mrr_at_10": 0.9230769230769231,
+    "rates_at_1_5_10": [
+      0.8461538461538461,
+      1.0,
+      1.0
+    ]
+  },
+  "embedding": {
+    "compatibility_min_cosine": 0.9973405139455787,
+    "compatibility_passed": false,
+    "configured_dimensions": 1024,
+    "model": "qwen/qwen3-embedding-8b",
+    "profile_dimensions": 1024,
+    "profile_id": "2f404c70725ad1162653bf2762c0f5590d0c3f7a1b83c4b9bf87e39091138fa5"
+  },
+  "evaluated_cases": 26,
+  "fixture_sha256": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+  "gold_cases": 27,
+  "method": "Live production Query embeddings against canonical retained Ellis profile 2f404c...; original reconstructed Memory hybrid baseline: top-30 lexical + top-30 GlobalExact semantic, 0.45/0.55 fusion with undiluted single-lane scores, top-10. Current endpoint compatibility is recorded but not used as an acceptance gate for this diagnostic because the route is currently drifting below policy threshold.",
+  "results": [
+    {
+      "gold_memory_id": "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+      "id": "phone-spill",
+      "query": "Who knocked over a glass at breakfast, and what spilled onto the user's phone?",
+      "rank": 1,
+      "top10": [
+        "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+        "6f9ef38d4c157469648e81710f7b328e7798f20d69f3492ef59bdab7bbd186b7",
+        "58324cfd6002809a4bcc19264195d3145e588cbc60831afbd00c98c29baed68a",
+        "946b957ac2e0510c5c179bbafc5519ea38275558b1ff7fbb969ab1ff73fe7026",
+        "7d5a8405a7097a7c87ac601e6202d7a82828129793ccd9df257fdb2525c83171",
+        "b0308b866e14cc05feab8ecac22408422e964b78a8e2012092d087c344e0bdb2",
+        "643634d548a3e84de0b2493b5974ff98cdbf311cee2eb161b5df7cabac8bab53",
+        "8c4a762ff049bb049fae4c7b2b505d28648d3d445b004775b19ea143e8b1c743",
+        "51fe6a9eda85e5ed737ff69766b41e55ab8e0f44c219f938fa6c272734817937",
+        "0616e6acb5cb1a02c886413c16cca8438f631a5ed63a944ff3187bf7a6c038d4"
+      ]
+    },
+    {
+      "gold_memory_id": "3dca6df2680b21eae4a966d646e0c73362a4cf1f072f5cc3fc592fad996fc86a",
+      "id": "debussy-dinner",
+      "query": "What music did Monica play while the family prepared dinner on July 2?",
+      "rank": 1,
+      "top10": [
+        "3dca6df2680b21eae4a966d646e0c73362a4cf1f072f5cc3fc592fad996fc86a",
+        "05c2055d034e98fd6dc023a9d5b8c79664c915e86daa6488c8f8d9bfdd2e3929",
+        "56528675ba7227e750eb1a30d851b9a471cf447788cb939f41a26bdf9d4f4157",
+        "f3bae69102014641e0d0d039b923f30ef437a3e14b9d628a457bf83663a0f322",
+        "ffe9f2e17782453980d733f16250ef940c2a821843c3bec48695fe0a7c97debe",
+        "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+        "070511a39b8220b750e6191ddf8e0e406abec76c32d615653964ba38c4c1e405",
+        "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+        "75972c2d25f1a4093df4d717c535f3f94593a5dfeece334fc25617bd292646be",
+        "833223a136f3c26f3505420bc0b882270ba5798dfbcbee208e6b8f689fb974ba"
+      ]
+    },
+    {
+      "gold_memory_id": "8291bb0a531edbc5547fb6ef1b3e4e40ad336c1d89fadea0aa13ea0f4df0f673",
+      "id": "storm-garden",
+      "query": "What happened to the tomato plants and marigolds during the garden setback?",
+      "rank": 1,
+      "top10": [
+        "8291bb0a531edbc5547fb6ef1b3e4e40ad336c1d89fadea0aa13ea0f4df0f673",
+        "0bb99f2500240f3e2b48b10fb029aedce68eb6a9c44bb28f2560950873eca5ae",
+        "8fad28efc677205dd5ec6d92aba0547a8fdfba2a7ab39f6cf51aafd660805305",
+        "495df7779ffc6234c7b4e73f7cd151c79ae2d3d995206072e1109b7775f2594f",
+        "dd1ca35cc71ccda579320d053e0aec1a49f7ee24dd6c8d3d9723050400395702",
+        "ca9fb18ab19cec1d0e802a4d793b5ab2f705c52f0104eb3be3f6ac46a2e2ba83",
+        "a2a9e2f3f44021a359a7bf4d9a565dbf084b432fa56aee732d69d3cfea91576d",
+        "7067550570533abc2f0213040a7855140379248e9b49dd5c0db4656699bdb7c2",
+        "a8b4e230cd74c00852bc762cc541bd43d4a0f2c7bd5f3d76c4713122d37477a5",
+        "9842b4018556712c1e27c9b70bef582ce3e244f0d07bc43cbac056c5096d1284"
+      ]
+    },
+    {
+      "gold_memory_id": "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+      "id": "compost-trowel",
+      "query": "What gardening purchases involved a 20-pound bag and Jasper's hand tool?",
+      "rank": 1,
+      "top10": [
+        "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+        "b90df0891f2e5040f280f961b39196b25d547acbcc1fae29f2cda653b4b101d0",
+        "b2d717ee82ee68188580ae19bd059fbb5b13f9192c933a12583a8ef13e25f772",
+        "9c752f51dd3e062bac3fa687f2ee3e818b37bd66ecc13d36884f33499d1a6935",
+        "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+        "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+        "f7e12dff38299e8569101f4a7c6a2cc886e875578616dfc467c40881a284b001",
+        "946b957ac2e0510c5c179bbafc5519ea38275558b1ff7fbb969ab1ff73fe7026",
+        "224043799ec2aee4005e4ac7e9ebf8bb660837fbf2d63799c91bf59a06fd23b3",
+        "08e01e9023fa9cdef236880c5240c75088056d166b74145c66dc1eaf9b47a830"
+      ]
+    },
+    {
+      "gold_memory_id": "1c5a9905ed6ba9bc8755ee8a9d507a03870bcbb22d88c78373939eb5d914def6",
+      "id": "eastwood-welcome",
+      "query": "Who welcomed the user outside the eighth-grade wing at Eastwood Middle School?",
+      "rank": 1,
+      "top10": [
+        "1c5a9905ed6ba9bc8755ee8a9d507a03870bcbb22d88c78373939eb5d914def6",
+        "29a801dec8f6eebce2de9e4302611ef55d22b27e7db78590489fb01a4ed41e1f",
+        "429723ad5c3fb5560be717978a736641e9ad0eaf01b98df42aa1124fcd90292e",
+        "e9881a125da4145612dfba8def0bc9d0c665f3fc3e3b693a3a9f3fb49762afa0",
+        "202385f4e27dd69d27dbd03c71f0645f0f1ee33f5edd0e77e1e451cbd050b55c",
+        "b9b6ecc03325e709aec20ac5a1431285c49c2e4b2d0a3bbeb9147565bebb047e",
+        "a6533fb5fc324f5bd33e7d04b3e43deb263cf92a71dba4b5e39cddf368a3583b",
+        "6502d4dc5b91b52793d2b2a7366e2837a6bde8028611a5199f268c8b17427a63",
+        "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+        "542d01e3a4acce7e3cdac834a4afbe309c858e9c4c9a0a9018b4ffd3e2518b96"
+      ]
+    },
+    {
+      "gold_memory_id": "c79323811f876993883eab3fe4b67010392768689ebfb290b266546c1981b267",
+      "id": "materials-feedback",
+      "query": "What did Ms. Ramirez say about the new layout of the updated workshop materials?",
+      "rank": 1,
+      "top10": [
+        "c79323811f876993883eab3fe4b67010392768689ebfb290b266546c1981b267",
+        "c9a019b1f612d632dd61a6867de4a9a1f5848acedbc17b3a23e623b59c89376d",
+        "81225ec7e7e2fd9eb352f261384fb6f2770e9723be638ea42d979daf48cb9f66",
+        "01dd92cc47da1fde895f3c5b3558d21454bd9821f2ccb3d56e435a95cb073cff",
+        "a01c5262629bdc4143beee3cd77940048366fc3400aa81375266ae67e97bb04c",
+        "024023343ee2e5ef57df84600a47875d81fabaac99731c0ff07828d8da5c1ed9",
+        "db59866e5a2187d18bde7dc8ef3a3b9f62a03be61ec013a80264078be3ec40a9",
+        "855ede28ed5b1e72eaee1086cd2111673f84bf27015634cfe37bdb032ee3415c",
+        "da3efc0349d61555340fa094f7fb008fd3da49f04c5959663ec7ec4c4d273fae",
+        "83ed7e5ccd727536964342a2b116b5709e5f0cbfa9506633df285d16a7fe5a8e"
+      ]
+    },
+    {
+      "gold_memory_id": "862fe515fbe664efc933543b2c7200044705908d1ae2b04a3a1d96c82df582d7",
+      "id": "budgeting-game",
+      "query": "What interactive activity did Dr. Greene suggest for middle schoolers?",
+      "rank": 1,
+      "top10": [
+        "862fe515fbe664efc933543b2c7200044705908d1ae2b04a3a1d96c82df582d7",
+        "5e703481cabb6554da4fba8e230060db5ba5be50ab689e84ace54288d8948861",
+        "855ede28ed5b1e72eaee1086cd2111673f84bf27015634cfe37bdb032ee3415c",
+        "18319855f1b4d8d574a2984377ca653df6b266f8a6c409e1a7f7b5a04c341d1a",
+        "6a4e2db7d186306b000d4ea3ea71eeac2fa8079e51259ec31512f8f98696b888",
+        "a6533fb5fc324f5bd33e7d04b3e43deb263cf92a71dba4b5e39cddf368a3583b",
+        "d560421c5a9ffefe3da2a2648df439d2c7e6b620515495fc43e16aebb3c2886f",
+        "bf55b6e9e8a636392b72129f82d1462652b6f72ed778687eb7e45aa82410b479",
+        "de27b8c496de850088f3c8ae70a79941952db0dba2509fa76e9ebe72e79b0d18",
+        "732de3ae9d7b574bec8502b3879f270cff135c5dda4b2152870440776757eba5"
+      ]
+    },
+    {
+      "gold_memory_id": "0e8eb12f4a7bbe5ee44d1308cb3e3dfb64ca4156221b8b03abef30d60ee47c96",
+      "id": "activity-log",
+      "query": "What fields and Fitbit data are included in the activity log?",
+      "rank": 2,
+      "top10": [
+        "f8b8ae34c69a36cb5e71ce880cdc6956b74caacbb2087793bcf2c492d71837bf",
+        "0e8eb12f4a7bbe5ee44d1308cb3e3dfb64ca4156221b8b03abef30d60ee47c96",
+        "ff4fb98b47000528c4437e150483f676ef87ae7ccbcf28a1804bb62826547d91",
+        "8eadabdccb93dc9d851b167da8e5df078af12d05c77b5c5170a8ff787a896770",
+        "3fa71372137424240496df3f9e22c2f54bf87b48987aa138125e3db2ce83e1a3",
+        "7a4c2085a279aabb320fc9ca8d25757c65e80c604ac3a9ff90c08584ecf8ca38",
+        "d7f39191a3b57187cb59a9631fb8b41e1bce9bdaf82f53d430eb6c568213dad1",
+        "60dcead8f2736885fee6280f7de6c27397fc039573a2040771b903caac4ccd92",
+        "a6559e6dd9c1b69b40b9ee16e564b8e1c85773c6bcf1516a3c4863217b1bc0be",
+        "58324cfd6002809a4bcc19264195d3145e588cbc60831afbd00c98c29baed68a"
+      ]
+    },
+    {
+      "gold_memory_id": "54d32d3afc3eabc4f9bcd8d17645e0da613834d120acf87a7f53e526dfac6ee7",
+      "id": "recovery-pace",
+      "query": "Why does the slower pace feel beneficial to the user?",
+      "rank": 1,
+      "top10": [
+        "54d32d3afc3eabc4f9bcd8d17645e0da613834d120acf87a7f53e526dfac6ee7",
+        "56836c5cd9aace5790aa52abd859cb6073b069b12822b1d75d5da810273c384d",
+        "948ffe63f93a1dc94d05832db19e52c6cab41908b88c5c4e7b926ddfd096d394",
+        "29ab7c5ee50cbf4e85cf9548d1d962c38210e2e30db8e05811ce97e3f804901d",
+        "b2388af0cb66f47beea021e4fceb6209db4589c961f143e5df46784908b5dbe9",
+        "f8b8ae34c69a36cb5e71ce880cdc6956b74caacbb2087793bcf2c492d71837bf",
+        "b1ed2f9482894bf8f1067724ff711573bb1c94ef0f9045c714e8883a6852fcc3",
+        "15b6dac84bd88260a22afd85492aacfd2f2d6ace91603fcfedbd48275ad7e77b",
+        "2bb89c52d04a4d838ee4702986afeaa5d894388e67b964d0f3cc6e0b7f541644",
+        "60afe30d7c33a67348ccec0422b4a9378b8ef6ab56069dd699af09f27a373e07"
+      ]
+    },
+    {
+      "gold_memory_id": "f803f2abb96e8b748ebbf2dd964f3bb5f2ecaafd60b38fa11c9220e8e4dd34b0",
+      "id": "fog-trail",
+      "query": "How did the fog affect the trail conditions?",
+      "rank": 1,
+      "top10": [
+        "f803f2abb96e8b748ebbf2dd964f3bb5f2ecaafd60b38fa11c9220e8e4dd34b0",
+        "5224d2e83fe1c334c2975a40b27b60e7a3b94c86d3e60641f9b27e041b54d7c4",
+        "b0308b866e14cc05feab8ecac22408422e964b78a8e2012092d087c344e0bdb2",
+        "f5cfd3b5663e1cffaa94d3ba409709bf88d1bb31da10942422bc059c06e5bfca",
+        "b206e252624a2feb634b2c4ffece68df8271f0be9f013b1a94687db43a6006b3",
+        "a3ae4a5faeedfc7065b1835547dcd8621d12070532ab507cd70b5164ccee1263",
+        "b90df0891f2e5040f280f961b39196b25d547acbcc1fae29f2cda653b4b101d0",
+        "58324cfd6002809a4bcc19264195d3145e588cbc60831afbd00c98c29baed68a",
+        "2e42a23a69d2590a4c2eeaff4ffa6798c0ecf0d26f22d9b9f089702a05bd3ace",
+        "b51aab112ae0f33a01bb11f6f02355d237b1008cea2418ba192d09408c345581"
+      ]
+    },
+    {
+      "gold_memory_id": "6f636309e754a10a6d50b264ecf08e6a67605dd012c6cc7326e6c9fe73d2b25c",
+      "id": "asheville-walk",
+      "query": "What two feelings did the art-filled Asheville walk leave the user with?",
+      "rank": 2,
+      "top10": [
+        "cfc7f9f6fb05e19b77ce65a5880c07e4106bcf930ecc999093a481f571f132d8",
+        "6f636309e754a10a6d50b264ecf08e6a67605dd012c6cc7326e6c9fe73d2b25c",
+        "58e8ab46df5ac1aeef7796a1837b55fedea8e32becccc973faed180dd41936fe",
+        "4d2bd816f66f4535b57c87eff144df9a9c1142c40621bd2dd2e4e029e971a96e",
+        "53691fa7b4b5337934466a9db5b6a531b849b99f82fc03ace7c2f51b0b16a221",
+        "2e42a23a69d2590a4c2eeaff4ffa6798c0ecf0d26f22d9b9f089702a05bd3ace",
+        "ea2a880df4ea91deec28391083141a98974b47f279621ebb9bd82695def6d1c1",
+        "fbc62bc1543d76bc94575f5e90d1706292bb874ef62c88ba599d232b31183f4f",
+        "73039815753903d7ef1d95e5380b092170d4a83e98a22449f701eb021941c1bd",
+        "3875fe030a07c97706884248f276d73caa210b938a287f5b0aff9adea50bc40a"
+      ]
+    },
+    {
+      "gold_memory_id": "08370204be2f1c7a5f1522c0e66459f7ad8bb4aa76aad57ad882289b9fcafa6c",
+      "id": "market-list",
+      "query": "How should the farmers' market shopping list be formatted?",
+      "rank": 1,
+      "top10": [
+        "08370204be2f1c7a5f1522c0e66459f7ad8bb4aa76aad57ad882289b9fcafa6c",
+        "80a20163faeef0af7e33e51f73d0f66fe35c611d16e0ee940875b300fae07ded",
+        "1480a1072d6cd24a8a54a997727cd47266ff116c0f95ba8146a8a1cee270c610",
+        "42f2ce149fed8d48ada14f1b989e9e6dd98c2f7b76d6ef9a86b7acd3fe599911",
+        "4fb33f6e11216612db5810dcb177bce9553bddbac0423b6defc17ccc34693927",
+        "611eec1923cd0cc3ee80e242d70f60e13b18bc870c6e419af27508810a08623e",
+        "833223a136f3c26f3505420bc0b882270ba5798dfbcbee208e6b8f689fb974ba",
+        "b457fe73d355cfe7f029c9060a11b59b39d4b03c917daadd4f9e1d24ff2c0f65",
+        "7a6e7304cbe190b82533cece87bc3f2d65ee4dc7684596468af0b207cf71be34",
+        "962cee08d2b3153f3c77c9b508f97811bb8c33135a050399ff376597d74699b2"
+      ]
+    },
+    {
+      "gold_memory_id": "b9bc337680ebd2ac204e671aee1e8dd966ab23d5681c5ee20a507a3c1673dcdd",
+      "id": "meal-prep-plan",
+      "query": "What details should the sweet-potato-and-kale meal-prep plan include?",
+      "rank": 1,
+      "top10": [
+        "b9bc337680ebd2ac204e671aee1e8dd966ab23d5681c5ee20a507a3c1673dcdd",
+        "42f2ce149fed8d48ada14f1b989e9e6dd98c2f7b76d6ef9a86b7acd3fe599911",
+        "4a1a95fc41ed1fe427f0ea1d3d23db4c3ecefb66f9b96203d737e08e3b8bb38c",
+        "afa80774c29205615cac57692114bafa979b6eb434f398fc1f4787e80dab7b99",
+        "e26124b2fab60b97118b9fe67f861683b4f3deac8a5f147addc218dccd61410e",
+        "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+        "b457fe73d355cfe7f029c9060a11b59b39d4b03c917daadd4f9e1d24ff2c0f65",
+        "11966b1447c3dced8d1d76593b6f90151a3eef054c5ab433dcad0abafc32f2bd",
+        "b05d09a5393413cfbe84fddcdb622ba277e0a414d7a4f6ba85e413f2c5a0ec3e",
+        "5c97eb474e36d16bd1904e800debf49839191d3059b4f47cbd5fc48d878ce2b1"
+      ]
+    },
+    {
+      "gold_memory_id": "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+      "id": "iphone-backup",
+      "query": "What iPhone problem does the user plan to address later in the week?",
+      "rank": 2,
+      "top10": [
+        "b3e7fc30ac38fae2d09601caaa01608c08901bc8c2cedda06b512ac58b68a005",
+        "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+        "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e",
+        "0616e6acb5cb1a02c886413c16cca8438f631a5ed63a944ff3187bf7a6c038d4",
+        "5da1591c29dfdda261b466e3bc77798a4581061a3e2cd2a6c405d39c5ec2830b",
+        "fca496952735f9d157a1d104653dba2481186f0740046c24da9ff1906f050ee2",
+        "51fe6a9eda85e5ed737ff69766b41e55ab8e0f44c219f938fa6c272734817937",
+        "d088576a79f475fc8c0b096534c66da854a13e44beb3c2ecd56b463b7f969c08",
+        "9d81fb982bd3dfa58342be3c06d77c57b7e5c2e034c00a4555c1897b4cd7e77b",
+        "70f5e93eefbb04ffa0bbc14c2a4455593c25607b90a79dbb52757fa1336e5232"
+      ]
+    },
+    {
+      "gold_memory_id": "f11aaa0a63ff5da0721465c8640a66b6cc1d4e7cf40df9edfa7b8de17f4d98bf",
+      "id": "cake-reaction",
+      "query": "How did the guests react when the homemade cake collapsed?",
+      "rank": 1,
+      "top10": [
+        "f11aaa0a63ff5da0721465c8640a66b6cc1d4e7cf40df9edfa7b8de17f4d98bf",
+        "d268cf2863032b52c315da38ccaef0883f150a7aba5471db7d2eb3b648ef0cfe",
+        "e3c06f130dbe05178251eb72011cff998ae2eb666243af7bbc22f5a514d01bb1",
+        "643634d548a3e84de0b2493b5974ff98cdbf311cee2eb161b5df7cabac8bab53",
+        "58324cfd6002809a4bcc19264195d3145e588cbc60831afbd00c98c29baed68a",
+        "dd6e4e8f2fedcfd690b93eb227a9aa41dc69fc2007b3b4b79e2bf3d19fb47658",
+        "d90376d3da028b959b16f36b5897c1606cdbe19bf5bee1a0c0d02b486938d22b",
+        "ffe9f2e17782453980d733f16250ef940c2a821843c3bec48695fe0a7c97debe",
+        "6b547e66666cf0051a999fc8be59052831f5c04205fe17c4d49090cb89dc23ac",
+        "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4"
+      ]
+    },
+    {
+      "gold_memory_id": "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+      "id": "math-worksheet",
+      "query": "How did the user and Monica resolve Jasper's difficult math worksheet before the trip?",
+      "rank": 1,
+      "top10": [
+        "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+        "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335",
+        "e2be9d22943150f86ee558cabbf22e1da840f5e3acf20ef1a99e804ca064d59f",
+        "946b957ac2e0510c5c179bbafc5519ea38275558b1ff7fbb969ab1ff73fe7026",
+        "045d419870d0a880de5233c55a461f523ccc40b813a24ba56e461c66a8b69095",
+        "957a6ba69981f7188da0b41bc22aa40843ef342fae2b367d73669e23c97872e8",
+        "642771f16598f7bc9f03f84809ac1c5a0ba28986cd94799ec6e843acc25b31c4",
+        "fc5e7cb4b1afa4af82d5a1be51f99187af0a1c4325e4e915bc8243f2d42b50af",
+        "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+        "5a2abc2bb7735f08fb169056d03fa8452ca626f2e0010ca333334baa8d8ac249"
+      ]
+    },
+    {
+      "gold_memory_id": "936af7fa3f81c11446123c474ab8faf4db9d72ca620060d050500a7e2026cf78",
+      "id": "lentil-lemon",
+      "query": "What was planned to be added to Sunday's lentil soup?",
+      "rank": 2,
+      "top10": [
+        "b05d09a5393413cfbe84fddcdb622ba277e0a414d7a4f6ba85e413f2c5a0ec3e",
+        "936af7fa3f81c11446123c474ab8faf4db9d72ca620060d050500a7e2026cf78",
+        "05c2055d034e98fd6dc023a9d5b8c79664c915e86daa6488c8f8d9bfdd2e3929",
+        "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+        "56528675ba7227e750eb1a30d851b9a471cf447788cb939f41a26bdf9d4f4157",
+        "afa80774c29205615cac57692114bafa979b6eb434f398fc1f4787e80dab7b99",
+        "ccff9b620c0d50c5188a7f07f92663da533a99ef9622b4de2f9b9507386f9c52",
+        "905a068844ea39a11fd78da44fd58a594c9c52b9c2f4b09a5d80dd5520e40336",
+        "1ef574437c7c465eae9f702ba70916c6848b0433173471681cf815122bc40366",
+        "e8afab9af60515826f883676b628c21340fff3663073034e32eb0b8479b305d8"
+      ]
+    },
+    {
+      "gold_memory_id": "0a08059713697d405fbcf93acf5e666214fd4511f3faa655ffb6e7fab9560dcb",
+      "id": "jan31-breakfast",
+      "query": "What replaced the planned healthy breakfast on January 31?",
+      "rank": 1,
+      "top10": [
+        "0a08059713697d405fbcf93acf5e666214fd4511f3faa655ffb6e7fab9560dcb",
+        "7d5a8405a7097a7c87ac601e6202d7a82828129793ccd9df257fdb2525c83171",
+        "04eae22ebcabcd5233952a1037dd6cbf6ba52a0c47c128ab3b5accd59abc5431",
+        "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+        "7dda6dbb9054bb88086aa2a7895939032c6fba09e40684af9449a0b77a389bc7",
+        "aad88258d9ed15e5837633b13a336a8104b825a07042eb60ecb2d3db22d51fb1",
+        "a959c0d8478d14e23458016b97041770b8d2805dc8f1ef9943d8a61f8baeb27d",
+        "c9ea1487e95522adacebd973ff79d9ce350bf3dd5d185f21e4a16cbccf3fd1b2",
+        "cc3ce48fd83e8480ba68d0dad258b881557cf03b1ff02518cfb1aba97e37aa8d",
+        "ee4b7c964ad74c7bee49e672a27e38634d00f4c85f76c3b61cbee7a1f55fd359"
+      ]
+    },
+    {
+      "gold_memory_id": "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+      "id": "trellis-help",
+      "query": "What did the user and Jasper help Mrs. Patel with after gardening on May 19?",
+      "rank": 1,
+      "top10": [
+        "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+        "0d67a1fba758106e2e82c29e567da9c46b5bd5c5f502c8c7c171ccd4e785ae3a",
+        "b2d717ee82ee68188580ae19bd059fbb5b13f9192c933a12583a8ef13e25f772",
+        "946b957ac2e0510c5c179bbafc5519ea38275558b1ff7fbb969ab1ff73fe7026",
+        "059e7e55f3b9aea26b2fdf027516d3d30d6208f9da2209739daf4f553bb49a2c",
+        "be158c5af98fcb48d437e42fc0b2a757920a12a4cca8cb332f0e707233155576",
+        "6314a60b01e259d36fa4fd33a90c2a9847efbc5b6d984f81430fd98fdadb3f32",
+        "182d4bc7fe961c6daa82bbceb6e63e9bc4ff0220a7a85b0b34674bca612cc2d6",
+        "fbc62bc1543d76bc94575f5e90d1706292bb874ef62c88ba599d232b31183f4f",
+        "495df7779ffc6234c7b4e73f7cd151c79ae2d3d995206072e1109b7775f2594f"
+      ]
+    },
+    {
+      "gold_memory_id": "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+      "id": "mammoth-sunflowers",
+      "query": "What variety of sunflower seeds did Jasper select at the Home & Garden Center?",
+      "rank": 1,
+      "top10": [
+        "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+        "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+        "b2d717ee82ee68188580ae19bd059fbb5b13f9192c933a12583a8ef13e25f772",
+        "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+        "51291c9a890f0743a59e113c9ced3127c6a298d5501927ed6b17956f654f2e27",
+        "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+        "81a82ceeebb4e42f7448a913c49edc8d4c4449293b8da3873e9920f7f002cce2",
+        "cd02befab9aca7d611cce7cc9f5666b89ac1490c08b80f660c5f749964da4263",
+        "b0b638305f7f9b14af10d7752aee6cb9db06ad5a74a2df9a7c4ff5ea44a91fb9",
+        "b90df0891f2e5040f280f961b39196b25d547acbcc1fae29f2cda653b4b101d0"
+      ]
+    },
+    {
+      "gold_memory_id": "e6a953251bc7651d09fd45d86f5d3a960c1e92cae876b1b40e85a45ff2df7b4b",
+      "id": "neighbor-budgeting",
+      "query": "What features did Mrs. Patel's neighbors want in the budgeting challenge?",
+      "rank": 1,
+      "top10": [
+        "e6a953251bc7651d09fd45d86f5d3a960c1e92cae876b1b40e85a45ff2df7b4b",
+        "b536a1a0d4724f1177d0e7633acfe24f8dfc0f60232f1f82fd1e0cfc4d3d3b24",
+        "2781fbf6f98a44eb811864a97e108e4d1f7338cac95c4f50fc166f2ebb3758c5",
+        "74a211a82a285d73c10409f5c4a04202df2fac32f72d3a2dacf9a367c336969e",
+        "ecbf5172a692d921af95023f02087a1c0e1ae77394595867e05ad2b2c8d49142",
+        "6fd2697f24d0daa4504282cc0a3e9a8d1d10cc7c3016522353fcf7fcb09b48b1",
+        "31edcd2ce66fe403ac0bb51d320195a9be74d937735fdad2c05bd7e43a5b62d5",
+        "594de6bb9dd4546cb1b0deb6769690ea0d3541f13fe0a47c6268954f43158ca5",
+        "6314a60b01e259d36fa4fd33a90c2a9847efbc5b6d984f81430fd98fdadb3f32",
+        "481fa99af37764ac27b5efcc684243cd96f8b29466f74dab6a0334104363bdfa"
+      ]
+    },
+    {
+      "gold_memory_id": "36b5a5bca372871d405a1e17410c83cfd75b2993efbf9008dee9a716788b300d",
+      "id": "packet-revision",
+      "query": "Why was the digital workshop packet revised?",
+      "rank": 1,
+      "top10": [
+        "36b5a5bca372871d405a1e17410c83cfd75b2993efbf9008dee9a716788b300d",
+        "ffdf73e36f60694ee739386b63f1d6c0ff43db3ac6ebdb0e09e44c697e230b84",
+        "c9a019b1f612d632dd61a6867de4a9a1f5848acedbc17b3a23e623b59c89376d",
+        "219729fb7d119e7cba463519886e899aca53eafd7c01d77b9903a765e3f88d49",
+        "01dd92cc47da1fde895f3c5b3558d21454bd9821f2ccb3d56e435a95cb073cff",
+        "a01c5262629bdc4143beee3cd77940048366fc3400aa81375266ae67e97bb04c",
+        "db59866e5a2187d18bde7dc8ef3a3b9f62a03be61ec013a80264078be3ec40a9",
+        "b51aab112ae0f33a01bb11f6f02355d237b1008cea2418ba192d09408c345581",
+        "81225ec7e7e2fd9eb352f261384fb6f2770e9723be638ea42d979daf48cb9f66",
+        "c79323811f876993883eab3fe4b67010392768689ebfb290b266546c1981b267"
+      ]
+    },
+    {
+      "gold_memory_id": "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+      "id": "return-school",
+      "query": "Who confirmed Jasper's gradual return-to-school plan?",
+      "rank": 1,
+      "top10": [
+        "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+        "5f84e3f705b9317025732d4e0057d54b850eb1cc53aafaebf5013b43654e2e09",
+        "c880f969efcfefbd4458bb2ddb313f76128ad2caca0b406ac60b754e56c02833",
+        "948ffe63f93a1dc94d05832db19e52c6cab41908b88c5c4e7b926ddfd096d394",
+        "045d419870d0a880de5233c55a461f523ccc40b813a24ba56e461c66a8b69095",
+        "946b957ac2e0510c5c179bbafc5519ea38275558b1ff7fbb969ab1ff73fe7026",
+        "ee9fd65cdc8f0ffc4dc5f6d0c2ade0e49bf642e1ae4b32e44978c60498eb7e45",
+        "d714dc1a4aebb1f9006c942c9eec4eb5a805596b1514f6b0de8570ac8acbf6c5",
+        "eea60854d8d45b0674f94765c3f4b72f13139a35d4524ce7f7b37700e8b145c6",
+        "4af2fc1f5d54b1c7c0146992b606d43d9089e80eed74b0db5753cc69961de4a7"
+      ]
+    },
+    {
+      "gold_memory_id": "2bb89c52d04a4d838ee4702986afeaa5d894388e67b964d0f3cc6e0b7f541644",
+      "id": "bus-prep",
+      "query": "How did quiet preparation time on the bus affect the user during the school session?",
+      "rank": 1,
+      "top10": [
+        "2bb89c52d04a4d838ee4702986afeaa5d894388e67b964d0f3cc6e0b7f541644",
+        "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3",
+        "550d08fc4e69af0f57892943e81474a85ff9abc00a68b8cd2226f7f3f0e30561",
+        "b2388af0cb66f47beea021e4fceb6209db4589c961f143e5df46784908b5dbe9",
+        "fc5e7cb4b1afa4af82d5a1be51f99187af0a1c4325e4e915bc8243f2d42b50af",
+        "732de3ae9d7b574bec8502b3879f270cff135c5dda4b2152870440776757eba5",
+        "9e4a0ec3ae14d117dd54537f2bc438f5df1e77ea6fa01ace813f7c09545643c7",
+        "3971ec11e78f9cc57008a13ecf98281bb42943d41864e1b3aab8361045b4826d",
+        "03ae9f21e7592431785e72b3f450ab0f58991efa84d908a65dbd3c7930063dcc",
+        "863c7dbc5c8aff95f99a95251f9b15a71011bee3913c6587d2e6bdb216b2db78"
+      ]
+    },
+    {
+      "gold_memory_id": "1ae18e66bf4a6d1d986a41bc4c63d9753cb63391410933eb73500e1989e66342",
+      "id": "education-board",
+      "query": "What financial-literacy idea did the user share with the education board?",
+      "rank": 1,
+      "top10": [
+        "1ae18e66bf4a6d1d986a41bc4c63d9753cb63391410933eb73500e1989e66342",
+        "932351c0519e099c716fd97c50d2c9654a35f14f7adbedf6c88aeb630a983dd2",
+        "a7fefadb84e76c26cc827ff000ddc46d3556cf175bdc2ab7e38d591db05fe41e",
+        "a0edcbaa8467cf3059ee875d60016df6a58e3dccd9a11a86b7c15420f0a15c5b",
+        "d1801bd99609bba6da948ccb388afa050801517404ab5fd6d7f0328d545bf905",
+        "af9ef3d2b6bf83c467449c2a5b83192e5273213fc66f49b5ca3a5e5dde49ac74",
+        "c3b087808d3d4db0deb6b26f6046025138625b9d425177215529e1c6d6d794ad",
+        "77c99d72d2c787e4e22dc882b72a8cfe3221e24c4a5368e9074c4ec322ca3950",
+        "de27b8c496de850088f3c8ae70a79941952db0dba2509fa76e9ebe72e79b0d18",
+        "15132e06c39dce7d9ee14c63914080ffe2ee58fb503495bf404efb2302ccde94"
+      ]
+    },
+    {
+      "gold_memory_id": "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+      "id": "market-seeds",
+      "query": "What seeds did the user and Jasper obtain for their garden?",
+      "rank": 1,
+      "top10": [
+        "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+        "b2d717ee82ee68188580ae19bd059fbb5b13f9192c933a12583a8ef13e25f772",
+        "e8fe21bab260b31b79a20f4b2038a3e3500a3b784b9753b6b2fb7e8ca46bd9a5",
+        "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+        "e35e83efc8b276f8f28cb6c18d0138a6013bf87a4d26a81c5b57f2da51cd4c94",
+        "75226685717eaef0c05257894539e6426c2bf4556ecbe05734f8b1945ad16ecf",
+        "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+        "b0b638305f7f9b14af10d7752aee6cb9db06ad5a74a2df9a7c4ff5ea44a91fb9",
+        "9c752f51dd3e062bac3fa687f2ee3e818b37bd66ecc13d36884f33499d1a6935",
+        "81a82ceeebb4e42f7448a913c49edc8d4c4449293b8da3873e9920f7f002cce2"
+      ]
+    }
+  ],
+  "skipped_cases": [
+    "curriculum-drawings"
+  ],
+  "version": 1
+}

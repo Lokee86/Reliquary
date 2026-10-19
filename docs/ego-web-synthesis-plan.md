@@ -16,7 +16,9 @@ The design below supersedes premature execution detail that had been treated as 
 
 ## Overview
 
-Ego audits the whole eligible Memory Web while it fits, uses Freshness to prune mandatory audit exposure only when scale requires it, separately selects candidates, summarizes each as provenance-linked bullets, reconciles those bullets, and materializes three fixed stored summary sizes. Freshness is used twice: first as the raw-Memory overflow-pruning signal with Fresh as the final floor, then as averaged source-Memory priority for pruning summary bullets. Cold Memories remain searchable, and unresolved downstream mechanics stay explicitly open.
+Ego produces one maximum-detail, itemized Memory-Web Summary per source REL in each active PHY. The exact controller pipeline is **Candidate Selection → Candidate Audit → Summary Extraction → Summary Creation → Storage → Budgeting → Injection**. The controller owns Memory IDs, provenance, metadata, Freshness calculations, and selection; a final text-creation LLM receives extracted summary content, not raw `memoryID` identifiers. Persisted point provenance permits non-reinforcing, current-Freshness evaluation at injection time. There are no three pre-generated summary sizes.
+
+Candidate Selection applies the whole-Web-first, ordered-reduction, mandatory-coverage and batching policy below. Cold source Memories remain searchable; absence from a selected summary is not deletion or loss of source authority.
 
 ## Governing model
 
@@ -24,16 +26,17 @@ The full REL Memory Web remains the durable source of detail. The Memory-Web Sum
 
 Absence from the current summary does not mean that a Memory is false, deleted, archived, or unreachable. Cold state remains available through authorized retrieval/search.
 
-The pipeline is deliberately multi-stage:
+The pipeline has seven stages:
 
-1. build the routine working Web;
-2. broadly audit it for plausible subject areas;
-3. perform a separate candidate-selection pass;
-4. summarize each selected candidate as provenance-linked bullet points;
-5. reconcile candidate summaries into one grounded summary representation;
-6. materialize three fixed stored summary sizes.
+1. **Candidate Selection**: admit the whole Web if it fits; otherwise apply the ordered exclusion policy and generate `memoryID` sets/batches. This stage only prepares the working Web and audit batches; it does not produce a `SummaryProposal`.
+2. **Candidate Audit**: inspect selected Memories in mandatory-coverage batches, trim proposed source sets to the evidence worth carrying forward, and retain the identity/provenance mapping in the controller.
+3. **Summary Extraction**: extract content to be summarized into `SummaryCandidates` (blocks associated with their pre-existing sections); maintain precise source-`memoryID` provenance as controller metadata.
+4. **Summary Creation**: generate `SummaryPoint` text from extracted content and populate the existing `SummarySection`s from `SummaryProposal`. Do **not** recreate or re-identify sections. The final creation LLM does not need raw `memoryID`s, but the controller retains their associations.
+5. **Storage**: persist one maximum-detail itemized summary per (PHY, source REL), with sections, points, provenance, generation/source-cut metadata, and any token-cost metadata needed for budgeting.
+6. **Budgeting**: retrieve stored items and evaluate current source-Memory Freshness through non-reinforcing reads. Recalculate point and section averages and select coherent items under the *actual* runtime token budget, without summary inference.
+7. **Injection**: project the budgeted content into Ego context.
 
-Audit is discovery. Candidate selection decides what is worth summarizing. Summary generation compresses source Memories. Reconciliation assembles the result. These are distinct responsibilities.
+All downstream operations retain `memoryID` metadata even when an LLM need not see it. Subject grouping is inherited from `SummaryProposal`, not invented during Summary Creation.
 
 ## Ownership
 
@@ -49,35 +52,21 @@ The project summary is user-relative. The target persisted summary perspective b
 
 Cross-chat selection, cross-REL inclusion, Personality synthesis, and final all-layer Ego context assembly remain separate designs.
 
-## Objective lifecycle cleanup
+## Working-Web admission and ordered reduction
 
-Before Freshness is used, apply already-established objective cleanup:
+**Whole-Web-first invariant:** if the complete REL Memory Web fits the audit budget, admit and audit it unchanged. Do not perform lifecycle cleanup or Freshness pruning simply because a Memory is Archived, Historical, duplicate, superseded, Stale, or Dormant.
 
-- exclude Archived Memories from routine current-orientation input;
-- exclude explicitly Historical Memories from routine current-orientation input;
-- remove superseded copies when authoritative lifecycle state identifies a replacement;
-- collapse Dream-recognized duplicates to the appropriate active/canonical representation; and
-- do not discard Future Memories merely because their temporal status is Future.
+Only if the Web does not fit, apply the following reductions **in strict order**, checking whether the remaining Web fits after each stage and stopping reduction as soon as it does:
 
-This cleanup is semantic/lifecycle normalization, not relevance ranking.
+1. **Archived:** exclude Archived Memories.
+2. **Historical:** exclude explicitly Historical Memories.
+3. **Duplicates:** collapse Dream-recognized duplicates to the appropriate canonical representation.
+4. **Superseded:** exclude Memories superseded according to authoritative lifecycle state.
+5. **Dormant:** exclude the Dormant Freshness band in full, if further reduction is needed.
+6. **Stale:** exclude the Stale Freshness band in full, if further reduction is needed.
+7. **Batching:** if the remaining population, including **all Fresh Memories**, still exceeds one audit window, process it in multiple controlled batches. Batching is not an additional exclusion step.
 
-## Routine working-Web Freshness pruning
-
-After objective lifecycle cleanup, present the **entire eligible Memory Web** to the mandatory audit while it fits the configured audit budget. Do not prune merely because some Memories are Stale or Dormant.
-
-Only when the eligible Web exceeds the audit budget does Freshness become the pruning control. Reduce mandatory audit exposure from the coldest Memories upward until the population fits. The Fresh band is the final pruning floor: if scale still requires narrowing, only Fresh Memories remain mandatory audit input.
-
-Conceptually:
-
-```text
-eligible Web fits
-    -> audit all eligible Memories
-
-overflow
-    -> prune lowest-Freshness Memories first
-    -> continue until audit population fits
-    -> never prune below the Fresh band solely for routine scale control
-```
+Do not gradually rank and drop individual Memories within the Dormant or Stale bands to fill a single audit window. These are successive band-exclusion stages, and **Fresh Memories are never excluded merely to fit a single audit window**. Every Memory admitted after the reductions must receive mandatory audit exposure, across batches where necessary.
 
 Freshness bands remain:
 
@@ -87,135 +76,46 @@ Stale:  -50 .. 0
 Dormant: -100 .. -51
 ```
 
-Pruned Stale/Dormant Memories remain searchable through authorized full-Web `memory_search`. Freshness is contextual relevance, not factual truth or lifecycle authority.
+Excluded Memories remain available through authorized full-Web `memory_search`; that access does not count as mandatory audit coverage. Freshness controls routine exposure, not factual truth or lifecycle authority. Future Memories are not excluded solely for being Future; no generic protected keep lane is established.
 
-The current design does **not** establish a generic "protected keep lane." In particular, there is no accepted blanket rule that "current/future/required" material bypasses Freshness. Future state survives lifecycle cleanup, but whether any temporal/lifecycle class should bypass Freshness pruning is still an open design question.
+The ordering above is audit-input preparation, not the later candidate-selection stage.
 
-Every Memory retained in the working Web after any required pruning must receive mandatory audit exposure. If that retained population is still too large for one audit call, batch it rather than silently dropping additional admitted Memories.
+## Summary stages and data contracts
 
-## Broad audit
+### Candidate Selection and `SummaryProposal`
 
-The broad audit exists because the Ellis experiment showed that inspect/search/follow-thread reasoning could discover coherent subject areas, while an unconstrained run did not guarantee coverage.
+Candidate Selection forms initial Memory references and broad proposed subjects. A proposed subject becomes a `SummarySection` identity at this stage; that identity is carried forward **only if** audited/extracted `SummaryCandidates` are produced for it. The selected set is prepared with whole-Web-first admission, the ordered reductions above and mandatory batches. Batching is a processing boundary, never a forced subject boundary.
 
-The auditor's job is:
+### Candidate Audit
 
-> identify broad candidate areas that appear coherent enough to support a useful single-subject summary, and associate the relevant source Memories with those areas.
+Candidate Audit examines selected `memoryID` sets, trims them down based on suitability for summary, and may inspect/search through authorized full-Web retrieval. Every admitted Memory gets mandatory coverage; search of other Memories does not count as that coverage. Audit does not author final summary prose. Exact batch size, cross-batch context and audit decision criteria remain to be specified.
 
-The audit does **not** write the summary.
+### Summary Extraction and `SummaryCandidates`
 
-The controller owns coverage:
+Extraction transforms audited evidence into candidate content blocks for creation, retaining the association between each block, its section identity and its exact supporting `memoryID`s. Provenance metadata is maintained **outside** the final LLM's prose-input contract; the controller must be able to attach it to the resulting points without guessing. Extraction does not silently widen the audited source set.
 
-- every working-Web Memory must be shown as mandatory core material at least once;
-- larger working Webs may be processed in multiple controlled batches;
-- the auditor has bounded authorized `memory_search` over the full REL Memory Web, including Stale and Dormant state;
-- search supplements the mandatory sweep but does not make an unseen working-Web Memory count as covered; and
-- discovered candidate-area state may carry across batches.
+### Summary Creation and `SummaryPoint`s
 
-Community/graph structure may help routing or search, but Communities are not summary boundaries.
+Creation transforms the extracted blocks into grounded, independently understandable `SummaryPoint` text under the pre-existing `SummarySection` subjects. The `SummarySection` is not regenerated or renamed in this stage. Controller-side identity/provenance associations survive creation, even though the final LLM does not receive raw `memoryID` identifiers. Do not invent project conclusions unsupported by source Memories.
 
-The settled audit output is intentionally simple: broad proposed subjects/areas plus the source Memory references that led to them. Earlier speculative contracts around explicit join/split/boundary-note records are not accepted design.
+### Point and section Freshness
 
-## Candidate selection
+Both averages are **ordinary arithmetic means**, not weighting, propagation, model scores, or a new Freshness mechanism:
 
-A separate candidate-selection stage is required after the broad audit.
+- `SummaryPoint.freshness` = average of the current Freshness values of the distinct source Memories referenced by that point.
+- `SummarySection.freshness` = average of the Freshness values of its `SummaryPoint`s. Each point contributes equally, regardless of its provenance count.
 
-Its decided responsibility is to take the audit's proposed areas and determine which coherent areas should actually be summarized, with an exact source-Memory set for each accepted candidate.
+These values may be recorded as derived/cached metadata, but are not the authoritative source. During budgeting, they can be recalculated from the source REL without regenerating summary text. The retrieval path for Memory, provenance and Freshness metadata must be **non-reinforcing**: no access boost, propagation, persistent mutation, or activity-clock advancement merely from inspection. Lazy score projection is permitted. Source-Memory Freshness is a relevance signal, not truth or lifecycle authority.
 
-That stage is necessary because audit discovery and final summary membership are different judgments.
+### Storage, Budgeting and Injection
 
-The detailed mechanics are **not yet designed**. There is currently no accepted algorithm or schema for merge/split/reject policies, overlap policy, boundary repair, or a `CandidateResolver` interface. Those details must be designed and tested rather than inferred from the existence of the stage.
+Store **one maximum-detail itemized summary per source REL in each PHY**, preserving section identity, standalone points, supporting `memoryID` provenance, source-version/generation cut and enough deterministic formatting/token data for budgeting. Do not discard point provenance after publication.
 
-Candidate selection still produces no summary prose.
+At runtime Budgeting selects from these same persisted points and sections for any available budget, using their **current** Freshness; there are no fixed small/medium/large summary variants and no summary LLM call on startup. Section and point scores support prioritization, while validation of superseded/archived source state remains distinct from Freshness. Exact handling of item dependencies, ties, lifecycle invalidation, token packing and section representation is still open. Injection simply assembles selected context, without counting internal retrieval as accepted external Memory use.
 
-## Candidate summary shape
+### Reconciliation limits
 
-Each accepted candidate is summarized from its closed source-Memory set.
-
-The target summary shape is a compact bullet list rather than an opaque prose paragraph.
-
-Conceptually:
-
-```text
-CandidateArea
-  subject
-  source Memory IDs
-      |
-      v
-CandidateSummary
-  - grounded summary point 1  -> source Memory IDs
-  - grounded summary point 2  -> source Memory IDs
-  - grounded summary point 3  -> source Memory IDs
-```
-
-Each bullet point must remain linked to the Memory IDs that support it while the generation is in progress.
-
-The summarizer may compress redundant wording and state progression, but it must not invent a higher-order project fact that is not supported by the source Memories.
-
-Candidate summarization uses the candidate's closed evidence set. It does not perform open-ended retrieval to silently change that evidence set.
-
-## Summary-point Freshness
-
-Freshness is also used after summarization.
-
-For each provenance-linked summary bullet, derive a bullet Freshness value from the average Freshness of the source Memories supporting that bullet at the generation's source state:
-
-```text
-bullet_freshness = average(source Memory Freshness scores)
-```
-
-That score is a relevance/pruning signal for the summarized representation.
-
-This gives Freshness two distinct roles:
-
-1. **raw Memory level:** determine the routine mandatory audit population using the Fresh threshold;
-2. **summary-point level:** prioritize provenance-linked bullets when a smaller stored summary must omit material.
-
-Freshness still does not establish truth, correctness, supersession, or lifecycle state.
-
-Exact rounding, tie-breaking, and handling of unusual provenance sets remain calibration/implementation details.
-
-## Reconciliation
-
-Candidate summaries are reconciled into one richer project-summary representation before final size reduction.
-
-The decided purpose is narrow:
-
-- avoid obvious duplicate summary coverage;
-- preserve distinct subjects;
-- keep bullet provenance available through reconciliation; and
-- provide one grounded bullet-oriented source from which the stored summary sizes can be produced.
-
-No `Essential/Core/Context/Detail` retention taxonomy is accepted design.
-
-No general conflict-resolution algorithm has been decided. If reconciliation requires semantic conflict policy beyond existing authoritative lifecycle/chronology state, that policy must be designed explicitly rather than assumed.
-
-## Three fixed stored summary sizes
-
-The system stores **three fixed summary sizes** so runtime can select an appropriate amount of Ego context without launching summary inference when a conversation starts.
-
-Exact names and token budgets remain configuration/calibration work.
-
-For each size:
-
-- the model target is below a controller hard ceiling;
-- output at or below the ceiling is accepted;
-- an over-ceiling result may be recompressed;
-- output is never hard-truncated to satisfy the budget; and
-- an undersized grounded result is not padded merely to consume tokens.
-
-All three sizes are produced from the same reconciled provenance-linked summary state during one refresh.
-
-When reducing the summary, provenance-linked bullets are prioritized using their averaged source-Memory Freshness. The exact secondary tie-breaks and compression behavior are not yet decided.
-
-Runtime selects the largest already-stored summary size that fits the available Ego allocation. Conversation startup does not rerun audit, candidate selection, summarization, or compression.
-
-## Provenance lifetime
-
-Source provenance is required during candidate summarization, reconciliation, and summary-size construction.
-
-The current decision is **not** to persist per-bullet/per-candidate provenance indefinitely merely for Ego. Once the fixed summary bundle has been successfully produced, run-local candidate/bullet provenance may be discarded.
-
-The persisted bundle still needs the source/generation metadata required to identify what REL state it represents.
+Avoid obvious redundant coverage while preserving distinct subjects and provenance. No speculative `CandidateResolver`, general merge/split engine, mandatory per-Memory disposition taxonomy, or invented contradiction resolution is accepted. If semantic contradictions cannot be resolved from authoritative source state, their handling requires a separate design decision.
 
 ## Refresh scheduling
 
@@ -250,16 +150,16 @@ Graph measurements also showed that coherent topics can cross Community boundari
 
 The following are not settled architecture and must remain open until designed or calibrated:
 
-- whether any lifecycle/temporal class bypasses the Freshness gate;
+- whether a future explicitly defined temporal exemption is warranted beyond the currently accepted whole-Web-first and ordered-reduction rules;
 - exact audit batch sizes and overlap/context policy;
-- candidate-selection criteria and output schema beyond subject + exact source membership;
-- candidate overlap policy;
+- precise candidate audit trimming and extraction criteria, plus controller provenance-to-point association;
+- candidate/subject overlap policy and cross-batch subject continuity;
 - reconciliation behavior for unresolved contradictions;
-- secondary bullet-pruning signals/tie-breaks beyond averaged Freshness;
-- exact three-size token targets and ceilings;
+- section-versus-point budgeting priority, item dependencies, lifecycle invalidation and deterministic tie-breaks;
+- maximum-detail summary generation ceiling and actual-budget item-packing rules;
 - exact REL refresh percentage/cap values;
 - exact PHY refresh percentage/cap values; and
-- final binary persistence encoding for the PHY-owned per-REL summary bundle.
+- final binary persistence encoding for the PHY-owned, per-REL itemized summary and its persistent provenance.
 
 ## Explicit non-decisions
 

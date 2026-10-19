@@ -1,0 +1,428 @@
+{
+  "schema": 1,
+  "date": "2026-10-17",
+  "purpose": "Calibrate CompatibilityProfile cosine threshold against retrieval preservation rather than same-route repeatability.",
+  "current_policy_threshold": 0.9998,
+  "acceptance_rule": {
+    "description": "Candidate threshold must include all three known-good retained profile transitions and, under deterministic independent orthogonal query perturbation at that cosine, preserve >=95% top-1 and >=95% top-10 neighborhood agreement in every corpus and every tested seed.",
+    "top1_floor": 0.95,
+    "top10_floor": 0.95
+  },
+  "corpora": [
+    {
+      "corpus": "chatgpt-first14d",
+      "sha256": "800d98cc09081901ffdc8e37b6c4dab60579e6356ac710a810bd37508343c851",
+      "old_profile": "69aa8cff0441f35faa3494898b14d406620864bbd6da5e905ccb30cb58b25e71",
+      "new_profile": "38b2c3d1ded65fdbc2a76086f1d2875c03eb4470afa63de8bbd0689cbf51c266",
+      "overlapping_memories": 981,
+      "probe_cosines": {
+        "query": [
+          0.9965444707810883,
+          0.9964064239922852
+        ],
+        "document": [
+          0.999943522965728,
+          0.9999440920448235
+        ],
+        "minimum": 0.9964064239922852,
+        "mean": 0.9982096274459813
+      },
+      "same_memory_document_cosine": {
+        "min": 0.992201384251041,
+        "p01": 0.9958745041557415,
+        "p05": 0.9969851470424296,
+        "median": 0.9999267675374475,
+        "mean": 0.9990386512831063
+      },
+      "within_space_neighborhood_agreement": {
+        "top1_exact": 0.9592252803261978,
+        "top5_overlap_mean": 0.9592252803261978,
+        "top10_overlap_mean": 0.963914373088685
+      },
+      "cross_space_new_document_as_query_against_old_documents": {
+        "top1_exact": 0.9724770642201835,
+        "top5_overlap_mean": 0.981855249745158,
+        "top10_overlap_mean": 0.9843017329255863
+      },
+      "matching_memory_rank_cross_space": {
+        "at1": 1.0,
+        "at5": 1.0,
+        "at10": 1.0
+      },
+      "synthetic_query_perturbation": {
+        "query_count": 256,
+        "seeds": [
+          11,
+          29,
+          47
+        ],
+        "sweep": [
+          {
+            "cosine": 0.9998,
+            "top1_mean": 0.99609375,
+            "top1_min": 0.9921875,
+            "top5_mean": 0.9971354166666666,
+            "top10_mean": 0.9934895833333334,
+            "top10_min": 0.9925781250000001
+          },
+          {
+            "cosine": 0.999,
+            "top1_mean": 0.9934895833333334,
+            "top1_min": 0.98828125,
+            "top5_mean": 0.9924479166666668,
+            "top10_mean": 0.9889322916666666,
+            "top10_min": 0.9859375
+          },
+          {
+            "cosine": 0.9975,
+            "top1_mean": 0.9830729166666666,
+            "top1_min": 0.98046875,
+            "top5_mean": 0.9880208333333335,
+            "top10_mean": 0.9825520833333333,
+            "top10_min": 0.980078125
+          },
+          {
+            "cosine": 0.996,
+            "top1_mean": 0.9752604166666666,
+            "top1_min": 0.97265625,
+            "top5_mean": 0.9848958333333334,
+            "top10_mean": 0.9763020833333335,
+            "top10_min": 0.973828125
+          },
+          {
+            "cosine": 0.995,
+            "top1_mean": 0.97265625,
+            "top1_min": 0.96875,
+            "top5_mean": 0.9815104166666666,
+            "top10_mean": 0.9744791666666667,
+            "top10_min": 0.97265625
+          },
+          {
+            "cosine": 0.99,
+            "top1_mean": 0.9661458333333334,
+            "top1_min": 0.9609375,
+            "top5_mean": 0.9718750000000002,
+            "top10_mean": 0.9666666666666668,
+            "top10_min": 0.9648437500000001
+          },
+          {
+            "cosine": 0.985,
+            "top1_mean": 0.9583333333333334,
+            "top1_min": 0.953125,
+            "top5_mean": 0.9611979166666668,
+            "top10_mean": 0.9608072916666668,
+            "top10_min": 0.9578125000000002
+          },
+          {
+            "cosine": 0.98,
+            "top1_mean": 0.9466145833333334,
+            "top1_min": 0.94140625,
+            "top5_mean": 0.9552083333333335,
+            "top10_mean": 0.9554687500000001,
+            "top10_min": 0.9527343750000001
+          },
+          {
+            "cosine": 0.97,
+            "top1_mean": 0.93359375,
+            "top1_min": 0.92578125,
+            "top5_mean": 0.9416666666666668,
+            "top10_mean": 0.9462239583333334,
+            "top10_min": 0.9445312500000002
+          },
+          {
+            "cosine": 0.95,
+            "top1_mean": 0.9049479166666666,
+            "top1_min": 0.890625,
+            "top5_mean": 0.9270833333333335,
+            "top10_mean": 0.9278645833333335,
+            "top10_min": 0.9242187500000001
+          }
+        ]
+      }
+    },
+    {
+      "corpus": "chatgpt-first28d",
+      "sha256": "3816e5a83c73a0c30465536402bab07a938c97cfaabf2b0be1a672ba2cc02c2b",
+      "old_profile": "69aa8cff0441f35faa3494898b14d406620864bbd6da5e905ccb30cb58b25e71",
+      "new_profile": "e012fa5173c94058e83749208bd3250628a4d533d01d96fe711c86a813c14258",
+      "overlapping_memories": 2164,
+      "probe_cosines": {
+        "query": [
+          0.9965444707810883,
+          0.9964064239922852
+        ],
+        "document": [
+          0.9999123976924926,
+          0.9999520621957316
+        ],
+        "minimum": 0.9964064239922852,
+        "mean": 0.9982038386653995
+      },
+      "same_memory_document_cosine": {
+        "min": 0.9880908375643598,
+        "p01": 0.9956045404901578,
+        "p05": 0.996718852845782,
+        "median": 0.9999062277460173,
+        "mean": 0.998757893294898
+      },
+      "within_space_neighborhood_agreement": {
+        "top1_exact": 0.9422365988909427,
+        "top5_overlap_mean": 0.9493530499075786,
+        "top10_overlap_mean": 0.9551293900184843
+      },
+      "cross_space_new_document_as_query_against_old_documents": {
+        "top1_exact": 0.9704251386321626,
+        "top5_overlap_mean": 0.9773567467652495,
+        "top10_overlap_mean": 0.9791589648798522
+      },
+      "matching_memory_rank_cross_space": {
+        "at1": 1.0,
+        "at5": 1.0,
+        "at10": 1.0
+      },
+      "synthetic_query_perturbation": {
+        "query_count": 256,
+        "seeds": [
+          11,
+          29,
+          47
+        ],
+        "sweep": [
+          {
+            "cosine": 0.9998,
+            "top1_mean": 0.9973958333333334,
+            "top1_min": 0.9921875,
+            "top5_mean": 0.9932291666666666,
+            "top10_mean": 0.9953124999999999,
+            "top10_min": 0.994921875
+          },
+          {
+            "cosine": 0.999,
+            "top1_mean": 0.9934895833333334,
+            "top1_min": 0.9921875,
+            "top5_mean": 0.9869791666666666,
+            "top10_mean": 0.9890625000000001,
+            "top10_min": 0.987109375
+          },
+          {
+            "cosine": 0.9975,
+            "top1_mean": 0.9895833333333334,
+            "top1_min": 0.98828125,
+            "top5_mean": 0.98046875,
+            "top10_mean": 0.9829427083333334,
+            "top10_min": 0.980078125
+          },
+          {
+            "cosine": 0.996,
+            "top1_mean": 0.9856770833333334,
+            "top1_min": 0.98046875,
+            "top5_mean": 0.9752604166666666,
+            "top10_mean": 0.9783854166666668,
+            "top10_min": 0.977734375
+          },
+          {
+            "cosine": 0.995,
+            "top1_mean": 0.9830729166666666,
+            "top1_min": 0.98046875,
+            "top5_mean": 0.9734375000000001,
+            "top10_mean": 0.9757812500000002,
+            "top10_min": 0.9753906250000001
+          },
+          {
+            "cosine": 0.99,
+            "top1_mean": 0.9674479166666666,
+            "top1_min": 0.9609375,
+            "top5_mean": 0.96484375,
+            "top10_mean": 0.9680989583333334,
+            "top10_min": 0.96640625
+          },
+          {
+            "cosine": 0.985,
+            "top1_mean": 0.9609375,
+            "top1_min": 0.94921875,
+            "top5_mean": 0.9588541666666668,
+            "top10_mean": 0.9596354166666666,
+            "top10_min": 0.9582031250000002
+          },
+          {
+            "cosine": 0.98,
+            "top1_mean": 0.9479166666666666,
+            "top1_min": 0.93359375,
+            "top5_mean": 0.9536458333333334,
+            "top10_mean": 0.9537760416666669,
+            "top10_min": 0.9531250000000001
+          },
+          {
+            "cosine": 0.97,
+            "top1_mean": 0.9388020833333334,
+            "top1_min": 0.921875,
+            "top5_mean": 0.9453125,
+            "top10_mean": 0.9427083333333335,
+            "top10_min": 0.9410156250000001
+          },
+          {
+            "cosine": 0.95,
+            "top1_mean": 0.91796875,
+            "top1_min": 0.8984375,
+            "top5_mean": 0.9276041666666668,
+            "top10_mean": 0.9255208333333335,
+            "top10_min": 0.9207031250000002
+          }
+        ]
+      }
+    },
+    {
+      "corpus": "ellis",
+      "sha256": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+      "old_profile": "2f404c70725ad1162653bf2762c0f5590d0c3f7a1b83c4b9bf87e39091138fa5",
+      "new_profile": "3aad70f4c0083a74be98cc41b51515559c7ed26669597641e562299424ddcd82",
+      "overlapping_memories": 656,
+      "probe_cosines": {
+        "query": [
+          0.9966237974894616,
+          0.9963357912405209
+        ],
+        "document": [
+          0.9976302728897476,
+          0.9973405139455782
+        ],
+        "minimum": 0.9963357912405209,
+        "mean": 0.996982593891327
+      },
+      "same_memory_document_cosine": {
+        "min": 0.9926825735554554,
+        "p01": 0.9946445324010246,
+        "p05": 0.9960158826825786,
+        "median": 0.9999065353048727,
+        "mean": 0.9987240217137703
+      },
+      "within_space_neighborhood_agreement": {
+        "top1_exact": 0.9527439024390244,
+        "top5_overlap_mean": 0.9469512195121952,
+        "top10_overlap_mean": 0.958079268292683
+      },
+      "cross_space_new_document_as_query_against_old_documents": {
+        "top1_exact": 0.9710365853658537,
+        "top5_overlap_mean": 0.9710365853658537,
+        "top10_overlap_mean": 0.979420731707317
+      },
+      "matching_memory_rank_cross_space": {
+        "at1": 1.0,
+        "at5": 1.0,
+        "at10": 1.0
+      },
+      "synthetic_query_perturbation": {
+        "query_count": 256,
+        "seeds": [
+          11,
+          29,
+          47
+        ],
+        "sweep": [
+          {
+            "cosine": 0.9998,
+            "top1_mean": 0.9973958333333334,
+            "top1_min": 0.99609375,
+            "top5_mean": 0.9940104166666667,
+            "top10_mean": 0.9954427083333334,
+            "top10_min": 0.99375
+          },
+          {
+            "cosine": 0.999,
+            "top1_mean": 0.98828125,
+            "top1_min": 0.98046875,
+            "top5_mean": 0.9854166666666667,
+            "top10_mean": 0.9899739583333332,
+            "top10_min": 0.9886718750000001
+          },
+          {
+            "cosine": 0.9975,
+            "top1_mean": 0.984375,
+            "top1_min": 0.98046875,
+            "top5_mean": 0.9770833333333333,
+            "top10_mean": 0.9825520833333333,
+            "top10_min": 0.98125
+          },
+          {
+            "cosine": 0.996,
+            "top1_mean": 0.9830729166666666,
+            "top1_min": 0.98046875,
+            "top5_mean": 0.9708333333333333,
+            "top10_mean": 0.978515625,
+            "top10_min": 0.978125
+          },
+          {
+            "cosine": 0.995,
+            "top1_mean": 0.98046875,
+            "top1_min": 0.9765625,
+            "top5_mean": 0.9695312500000001,
+            "top10_mean": 0.9765625,
+            "top10_min": 0.97578125
+          },
+          {
+            "cosine": 0.99,
+            "top1_mean": 0.96484375,
+            "top1_min": 0.95703125,
+            "top5_mean": 0.9619791666666666,
+            "top10_mean": 0.9690104166666668,
+            "top10_min": 0.9656250000000001
+          },
+          {
+            "cosine": 0.985,
+            "top1_mean": 0.9609375,
+            "top1_min": 0.94921875,
+            "top5_mean": 0.9539062500000001,
+            "top10_mean": 0.9611979166666668,
+            "top10_min": 0.958984375
+          },
+          {
+            "cosine": 0.98,
+            "top1_mean": 0.95703125,
+            "top1_min": 0.94140625,
+            "top5_mean": 0.9445312499999999,
+            "top10_mean": 0.955078125,
+            "top10_min": 0.9531250000000001
+          },
+          {
+            "cosine": 0.97,
+            "top1_mean": 0.9479166666666666,
+            "top1_min": 0.9296875,
+            "top5_mean": 0.9333333333333335,
+            "top10_mean": 0.9436197916666668,
+            "top10_min": 0.9417968750000001
+          },
+          {
+            "cosine": 0.95,
+            "top1_mean": 0.9322916666666666,
+            "top1_min": 0.91796875,
+            "top5_mean": 0.9148437500000002,
+            "top10_mean": 0.9283854166666669,
+            "top10_min": 0.9277343750000001
+          }
+        ]
+      }
+    }
+  ],
+  "candidate_0_99": {
+    "known_good_pairs_pass": true,
+    "worst_synthetic_top1": 0.95703125,
+    "worst_synthetic_top10": 0.9648437500000001,
+    "passes_rule": true
+  },
+  "lower_check_0_985": {
+    "worst_synthetic_top1": 0.94921875,
+    "worst_synthetic_top10": 0.9578125000000002,
+    "passes_rule": false
+  },
+  "recommendation": {
+    "threshold": 0.99,
+    "reason": "0.99 is the lowest tested round threshold with a conservative >=95% top-1/top-10 floor across all corpora/seeds; 0.985 fails the top-1 floor. All observed known-good retained transitions have minimum probe cosine about 0.9963 and are comfortably accepted at 0.99.",
+    "requires_policy_version_bump": true
+  },
+  "limitations": [
+    "Three real retained transitions are all Qwen3/OpenRouter-family history, not independent embedding-model families.",
+    "Synthetic perturbation is independent orthogonal query noise; it is a sensitivity test, not a model of every possible provider revision.",
+    "Four fixed probes cannot guarantee uniform behavior on arbitrary inputs; threshold calibration assumes probe drift is representative.",
+    "Calibration targets semantic-neighborhood preservation; final hybrid retrieval should remain separately benchmarked."
+  ]
+}

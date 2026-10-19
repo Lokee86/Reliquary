@@ -1,0 +1,1146 @@
+{
+  "cases": 27,
+  "community_count": 9,
+  "current": {
+    "community_routed_cases": 27,
+    "global_fallback_cases": 0,
+    "hits_at_1_5_10": [
+      0,
+      11,
+      14
+    ],
+    "mrr_at_10": 0.1781305114638448,
+    "rates_at_1_5_10": [
+      0.0,
+      0.4074074074074074,
+      0.5185185185185185
+    ]
+  },
+  "dimensions": 1024,
+  "fixture_sha256": "4ab338734939e6bece41622b927648366ed7db33f91b0ec2eb49f390948d49f8",
+  "hybrid": {
+    "hits_at_1_5_10": [
+      1,
+      23,
+      27
+    ],
+    "mrr_at_10": 0.39150499706055264,
+    "rates_at_1_5_10": [
+      0.037037037037037035,
+      0.8518518518518519,
+      1.0
+    ]
+  },
+  "method": "No inference. Natural-language lexical query plus stored vector from a distinct manually selected related Memory. Hybrid = top-30 Memory lexical + top-30 global exact semantic, original 0.45/0.55 fusion with undiluted single-lane scores, top-10. Current = default MemoryRetrievalConfig community-routed semantic seeds + graph traversal, evaluated at top-10.",
+  "profile": "3aad70f4c0083a74be98cc41b51515559c7ed26669597641e562299424ddcd82",
+  "results": [
+    {
+      "current": {
+        "memory_vectors_scored": 370,
+        "mode": "CommunityRouted",
+        "rank": 7,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e",
+          "5da1591c29dfdda261b466e3bc77798a4581061a3e2cd2a6c405d39c5ec2830b",
+          "b3e7fc30ac38fae2d09601caaa01608c08901bc8c2cedda06b512ac58b68a005",
+          "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+          "38a9e6bda368ba1c077ec0cd48ba6a42b5f0c54be9e167046fc8af63e31c8a2f",
+          "601d4af68b8e7d65c6b49e4e496a1a624f37b107ac1469171b5b24e6a8d76d07",
+          "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+          "51fe6a9eda85e5ed737ff69766b41e55ab8e0f44c219f938fa6c272734817937",
+          "044b64bb083a06c8079b6f6794e9493264265e3b5dfc7039e40b14b611324b89",
+          "6f9ef38d4c157469648e81710f7b328e7798f20d69f3492ef59bdab7bbd186b7"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+      "hybrid": {
+        "rank": 5,
+        "top10": [
+          "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e",
+          "5da1591c29dfdda261b466e3bc77798a4581061a3e2cd2a6c405d39c5ec2830b",
+          "b3e7fc30ac38fae2d09601caaa01608c08901bc8c2cedda06b512ac58b68a005",
+          "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+          "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+          "0616e6acb5cb1a02c886413c16cca8438f631a5ed63a944ff3187bf7a6c038d4",
+          "8eadabdccb93dc9d851b167da8e5df078af12d05c77b5c5170a8ff787a896770",
+          "51fe6a9eda85e5ed737ff69766b41e55ab8e0f44c219f938fa6c272734817937",
+          "b1ed2f9482894bf8f1067724ff711573bb1c94ef0f9045c714e8883a6852fcc3",
+          "58324cfd6002809a4bcc19264195d3145e588cbc60831afbd00c98c29baed68a"
+        ]
+      },
+      "id": "phone-spill",
+      "query": "Who knocked over a glass at breakfast, and what spilled onto the user's phone?",
+      "query_vector_source_id": "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 251,
+        "mode": "CommunityRouted",
+        "rank": null,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "c9ea1487e95522adacebd973ff79d9ce350bf3dd5d185f21e4a16cbccf3fd1b2",
+          "c8a66768577be63ddae72a91e57808901edec02d6a8024886060bb3a01c2c7e2",
+          "42f2ce149fed8d48ada14f1b989e9e6dd98c2f7b76d6ef9a86b7acd3fe599911",
+          "4683b53b0fac9260f83804c05ef58032e3e033a3382c507b542ac426a3277ad0",
+          "01bf8a575dc590081c2f89d7f1e71e694e388ca14f2e186a7eeacdfc8f69b435",
+          "04eae22ebcabcd5233952a1037dd6cbf6ba52a0c47c128ab3b5accd59abc5431",
+          "0a08059713697d405fbcf93acf5e666214fd4511f3faa655ffb6e7fab9560dcb",
+          "17fbe438221e986b01a52876cce3d03f1eb9354dcbf791793343dda7ee5a3297",
+          "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+          "6b547e66666cf0051a999fc8be59052831f5c04205fe17c4d49090cb89dc23ac"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "3dca6df2680b21eae4a966d646e0c73362a4cf1f072f5cc3fc592fad996fc86a",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "c9ea1487e95522adacebd973ff79d9ce350bf3dd5d185f21e4a16cbccf3fd1b2",
+          "3dca6df2680b21eae4a966d646e0c73362a4cf1f072f5cc3fc592fad996fc86a",
+          "c8a66768577be63ddae72a91e57808901edec02d6a8024886060bb3a01c2c7e2",
+          "42f2ce149fed8d48ada14f1b989e9e6dd98c2f7b76d6ef9a86b7acd3fe599911",
+          "7d5a8405a7097a7c87ac601e6202d7a82828129793ccd9df257fdb2525c83171",
+          "17fbe438221e986b01a52876cce3d03f1eb9354dcbf791793343dda7ee5a3297",
+          "01bf8a575dc590081c2f89d7f1e71e694e388ca14f2e186a7eeacdfc8f69b435",
+          "04eae22ebcabcd5233952a1037dd6cbf6ba52a0c47c128ab3b5accd59abc5431",
+          "6b547e66666cf0051a999fc8be59052831f5c04205fe17c4d49090cb89dc23ac",
+          "e22ec12ea4424a94718d2593b4b28addbf4c24017c1fa8b23dc2f4123ce79d28"
+        ]
+      },
+      "id": "debussy-dinner",
+      "query": "What music did Monica play while the family prepared dinner on July 2?",
+      "query_vector_source_id": "c9ea1487e95522adacebd973ff79d9ce350bf3dd5d185f21e4a16cbccf3fd1b2"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 328,
+        "mode": "CommunityRouted",
+        "rank": 11,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "ca9fb18ab19cec1d0e802a4d793b5ab2f705c52f0104eb3be3f6ac46a2e2ba83",
+          "4fd6ce087b0fbeed956a5338b675bd6a6cca5af9ebebfaf2cf8750bfd27f34e9",
+          "0c453e1707bece0b2e2487488b5d9ffd4a240436294a3e281f5ae8c27407fcc3",
+          "aad88258d9ed15e5837633b13a336a8104b825a07042eb60ecb2d3db22d51fb1",
+          "0bb99f2500240f3e2b48b10fb029aedce68eb6a9c44bb28f2560950873eca5ae",
+          "0d67a1fba758106e2e82c29e567da9c46b5bd5c5f502c8c7c171ccd4e785ae3a",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81",
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "4e2dd0b079f71295a6c0ddf20afe382ae5d6d4589bc58971ab0591411fa7d305",
+          "7067550570533abc2f0213040a7855140379248e9b49dd5c0db4656699bdb7c2"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "8291bb0a531edbc5547fb6ef1b3e4e40ad336c1d89fadea0aa13ea0f4df0f673",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "ca9fb18ab19cec1d0e802a4d793b5ab2f705c52f0104eb3be3f6ac46a2e2ba83",
+          "8291bb0a531edbc5547fb6ef1b3e4e40ad336c1d89fadea0aa13ea0f4df0f673",
+          "4fd6ce087b0fbeed956a5338b675bd6a6cca5af9ebebfaf2cf8750bfd27f34e9",
+          "aad88258d9ed15e5837633b13a336a8104b825a07042eb60ecb2d3db22d51fb1",
+          "ef3c8a36162deb3073d95c8f12a46df76f4278eaa87be70d4dd8ee75aadbe271",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81",
+          "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+          "4e2dd0b079f71295a6c0ddf20afe382ae5d6d4589bc58971ab0591411fa7d305",
+          "08e01e9023fa9cdef236880c5240c75088056d166b74145c66dc1eaf9b47a830",
+          "a2a9e2f3f44021a359a7bf4d9a565dbf084b432fa56aee732d69d3cfea91576d"
+        ]
+      },
+      "id": "storm-garden",
+      "query": "What happened to the tomato plants and marigolds during the garden setback?",
+      "query_vector_source_id": "ca9fb18ab19cec1d0e802a4d793b5ab2f705c52f0104eb3be3f6ac46a2e2ba83"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 321,
+        "mode": "CommunityRouted",
+        "rank": 17,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+          "e8fe21bab260b31b79a20f4b2038a3e3500a3b784b9753b6b2fb7e8ca46bd9a5",
+          "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+          "0c453e1707bece0b2e2487488b5d9ffd4a240436294a3e281f5ae8c27407fcc3",
+          "0c66b0508e105c9fc98b9b8627ac46c00654987b090221148d4b36a2c5e5d76f",
+          "0d67a1fba758106e2e82c29e567da9c46b5bd5c5f502c8c7c171ccd4e785ae3a",
+          "182d4bc7fe961c6daa82bbceb6e63e9bc4ff0220a7a85b0b34674bca612cc2d6",
+          "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+      "hybrid": {
+        "rank": 7,
+        "top10": [
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+          "e8fe21bab260b31b79a20f4b2038a3e3500a3b784b9753b6b2fb7e8ca46bd9a5",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81",
+          "51291c9a890f0743a59e113c9ced3127c6a298d5501927ed6b17956f654f2e27",
+          "b2d717ee82ee68188580ae19bd059fbb5b13f9192c933a12583a8ef13e25f772",
+          "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+          "0c453e1707bece0b2e2487488b5d9ffd4a240436294a3e281f5ae8c27407fcc3",
+          "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+          "ef3c8a36162deb3073d95c8f12a46df76f4278eaa87be70d4dd8ee75aadbe271"
+        ]
+      },
+      "id": "compost-trowel",
+      "query": "What gardening purchases involved a 20-pound bag and Jasper's hand tool?",
+      "query_vector_source_id": "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 391,
+        "mode": "CommunityRouted",
+        "rank": 8,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "d5cf0136ffa363e2d3ac835b98b53197e96bfc53688026c1222d3c4c87c0986d",
+          "81225ec7e7e2fd9eb352f261384fb6f2770e9723be638ea42d979daf48cb9f66",
+          "fb47b0c0c7605fab139fcdad8268aa454b118d7ac803eb66126dd6c42beababb",
+          "b51aab112ae0f33a01bb11f6f02355d237b1008cea2418ba192d09408c345581",
+          "024023343ee2e5ef57df84600a47875d81fabaac99731c0ff07828d8da5c1ed9",
+          "0c70a48f93568fba4708850fd80697e33e6e03c52cb55f69d6daaa1c5fcef119",
+          "158e2bce3dd18e90dafef22181c1192174ef5225b898ae3566bbe84197e230d7",
+          "1c5a9905ed6ba9bc8755ee8a9d507a03870bcbb22d88c78373939eb5d914def6",
+          "1c5b86d3e0d1683fc40a2668af3dfef54886f845ce29b9f6eb55e20cb945084b",
+          "202385f4e27dd69d27dbd03c71f0645f0f1ee33f5edd0e77e1e451cbd050b55c"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "1c5a9905ed6ba9bc8755ee8a9d507a03870bcbb22d88c78373939eb5d914def6",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "d5cf0136ffa363e2d3ac835b98b53197e96bfc53688026c1222d3c4c87c0986d",
+          "1c5a9905ed6ba9bc8755ee8a9d507a03870bcbb22d88c78373939eb5d914def6",
+          "81225ec7e7e2fd9eb352f261384fb6f2770e9723be638ea42d979daf48cb9f66",
+          "fb47b0c0c7605fab139fcdad8268aa454b118d7ac803eb66126dd6c42beababb",
+          "b51aab112ae0f33a01bb11f6f02355d237b1008cea2418ba192d09408c345581",
+          "da5a17f73cf606ea8ff55f4be8e19fd25d54a7bb18241970194709cc7d2c1adf",
+          "abdf0fb44bdd3a28fb25a300d96f80e61cb990cf8c3869198c9acf83d8644817",
+          "6678d67073bd1b1d9d1d9edcc8d9f010f9029cf8249759b0b33723f29323e4b1",
+          "f06d46698c47cf03938009c33222abf61ad23737b2235d4a359fed3759cc74b5",
+          "278092c84c1083b1af3032f92c9ad789bb43abdf0c220f45006618467ba21212"
+        ]
+      },
+      "id": "eastwood-welcome",
+      "query": "Who welcomed the user outside the eighth-grade wing at Eastwood Middle School?",
+      "query_vector_source_id": "d5cf0136ffa363e2d3ac835b98b53197e96bfc53688026c1222d3c4c87c0986d"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 362,
+        "mode": "CommunityRouted",
+        "rank": null,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "a7fefadb84e76c26cc827ff000ddc46d3556cf175bdc2ab7e38d591db05fe41e",
+          "932351c0519e099c716fd97c50d2c9654a35f14f7adbedf6c88aeb630a983dd2",
+          "c3b087808d3d4db0deb6b26f6046025138625b9d425177215529e1c6d6d794ad",
+          "d533e618df57b93bf95c8569daa67bd0bac6b5c3f12f12abd4a28dc2d183c5d2",
+          "0119f6de45a1be45d6db22e137f8f00b185fa1332c8d26cebce5b664d39a9b9b",
+          "15132e06c39dce7d9ee14c63914080ffe2ee58fb503495bf404efb2302ccde94",
+          "152e82e0293495c393a90c639ea0a89802573bd81ac2fa82a3b15a9e35adc414",
+          "1ae18e66bf4a6d1d986a41bc4c63d9753cb63391410933eb73500e1989e66342",
+          "1b7e6f58ffc5644a65d6f7560350adf3a94f4dc3484bf634045bb710959c1b8f",
+          "1bcf6eeeb6fb171efc25e5c8342087c2a2e82cf624a8c0430e513c4696dcf5be"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "c79323811f876993883eab3fe4b67010392768689ebfb290b266546c1981b267",
+      "hybrid": {
+        "rank": 9,
+        "top10": [
+          "a7fefadb84e76c26cc827ff000ddc46d3556cf175bdc2ab7e38d591db05fe41e",
+          "932351c0519e099c716fd97c50d2c9654a35f14f7adbedf6c88aeb630a983dd2",
+          "c3b087808d3d4db0deb6b26f6046025138625b9d425177215529e1c6d6d794ad",
+          "d533e618df57b93bf95c8569daa67bd0bac6b5c3f12f12abd4a28dc2d183c5d2",
+          "a0edcbaa8467cf3059ee875d60016df6a58e3dccd9a11a86b7c15420f0a15c5b",
+          "f8e3ed197945df6707e2fabe97a81f2d7904aa6525018f9a30bcce063ed72f9f",
+          "21b486f23788c657e836d7c489bc7943957f88287e7ebeb9155775f6849a20a4",
+          "77988ee71bd07eb2f270520f3a5128263f435798f8c8840a22a4a1dadbabefa2",
+          "c79323811f876993883eab3fe4b67010392768689ebfb290b266546c1981b267",
+          "1bcf6eeeb6fb171efc25e5c8342087c2a2e82cf624a8c0430e513c4696dcf5be"
+        ]
+      },
+      "id": "materials-feedback",
+      "query": "What did Ms. Ramirez say about the new layout of the updated workshop materials?",
+      "query_vector_source_id": "a7fefadb84e76c26cc827ff000ddc46d3556cf175bdc2ab7e38d591db05fe41e"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 413,
+        "mode": "CommunityRouted",
+        "rank": 16,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "6a4e2db7d186306b000d4ea3ea71eeac2fa8079e51259ec31512f8f98696b888",
+          "e5f2d4d42a5baad397aa697a9b520645c138f90cee256d12d7bd48d8bd04a45e",
+          "3c9cf524b0f837d8392db0de690f8825c9e39dfc969b571279ee0db5112e8b83",
+          "536a47892a7a3b14a9f586e161cd66581283bd8551000fc2f975ce52d895f76d",
+          "2781fbf6f98a44eb811864a97e108e4d1f7338cac95c4f50fc166f2ebb3758c5",
+          "2d7abfbaf8dd26f219a499e26dd6a106991f53159f97024fcaea804653037790",
+          "426bce63b1520fab7121ba5e7fc051a40edabe4f8d9cc1110bd2a005ea47897e",
+          "481fa99af37764ac27b5efcc684243cd96f8b29466f74dab6a0334104363bdfa",
+          "4ab7004b5d2f5bbb5235cd6c58fe78b15c51a1d8aab44657755907be4cfd2ea3",
+          "594de6bb9dd4546cb1b0deb6769690ea0d3541f13fe0a47c6268954f43158ca5"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "862fe515fbe664efc933543b2c7200044705908d1ae2b04a3a1d96c82df582d7",
+      "hybrid": {
+        "rank": 5,
+        "top10": [
+          "536a47892a7a3b14a9f586e161cd66581283bd8551000fc2f975ce52d895f76d",
+          "6a4e2db7d186306b000d4ea3ea71eeac2fa8079e51259ec31512f8f98696b888",
+          "4ab7004b5d2f5bbb5235cd6c58fe78b15c51a1d8aab44657755907be4cfd2ea3",
+          "cbad4a25c19a8a713084d05b7388c0b68f80c493948180d70b37fe436093744f",
+          "862fe515fbe664efc933543b2c7200044705908d1ae2b04a3a1d96c82df582d7",
+          "d560421c5a9ffefe3da2a2648df439d2c7e6b620515495fc43e16aebb3c2886f",
+          "31edcd2ce66fe403ac0bb51d320195a9be74d937735fdad2c05bd7e43a5b62d5",
+          "6e6d1c839a6b7e046169c0e797193811d05e1e1b3ac65ba590bee7f8bc3e15e2",
+          "e5f2d4d42a5baad397aa697a9b520645c138f90cee256d12d7bd48d8bd04a45e",
+          "6072b083da9c24317effd5e96d320647d38be57133a249ceb41e86de09944d05"
+        ]
+      },
+      "id": "budgeting-game",
+      "query": "What interactive activity did Dr. Greene suggest for middle schoolers?",
+      "query_vector_source_id": "6a4e2db7d186306b000d4ea3ea71eeac2fa8079e51259ec31512f8f98696b888"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 250,
+        "mode": "CommunityRouted",
+        "rank": 4,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "f8b8ae34c69a36cb5e71ce880cdc6956b74caacbb2087793bcf2c492d71837bf",
+          "4415a0ebcfa1c8deb9ec8c56d3e8846e06126475ea93966b785a41714553a7e6",
+          "3fa71372137424240496df3f9e22c2f54bf87b48987aa138125e3db2ce83e1a3",
+          "0e8eb12f4a7bbe5ee44d1308cb3e3dfb64ca4156221b8b03abef30d60ee47c96",
+          "046f90fc78ebb388d4541d1aa28cde09197e28b013eb8a2a55ce04160b3e9dfa",
+          "180588b01d2ece2e83e03e64b03976f08f18cbaae1b5dbb62feac00ce9bf12c0",
+          "6dcc979566a4b9ae6f5ebdb195c0b5d5797e12d35c8108c6144d16d3f5eaf968",
+          "a5aea34e35fea25e0a64fbf0372c84be82f9de356c42ca2173899089038f4c0a",
+          "a7a6df371fca892278ee161c89247a3fadd40db9ced96cb4d48538633cfc1fad",
+          "b06f611976236a9e39192adcdae2e9dc4e59b39f4de0e3883757aa565d2ebaaa"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "0e8eb12f4a7bbe5ee44d1308cb3e3dfb64ca4156221b8b03abef30d60ee47c96",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "f8b8ae34c69a36cb5e71ce880cdc6956b74caacbb2087793bcf2c492d71837bf",
+          "0e8eb12f4a7bbe5ee44d1308cb3e3dfb64ca4156221b8b03abef30d60ee47c96",
+          "ff4fb98b47000528c4437e150483f676ef87ae7ccbcf28a1804bb62826547d91",
+          "a7a6df371fca892278ee161c89247a3fadd40db9ced96cb4d48538633cfc1fad",
+          "3fa71372137424240496df3f9e22c2f54bf87b48987aa138125e3db2ce83e1a3",
+          "2dda4c9f5863483dd3a0d8e4141afdf649e2fb0e53192d1176301aa34dc51dc3",
+          "8eadabdccb93dc9d851b167da8e5df078af12d05c77b5c5170a8ff787a896770",
+          "6b547e66666cf0051a999fc8be59052831f5c04205fe17c4d49090cb89dc23ac",
+          "cb37f1c232d1b6fcc2c4c05d929d5c373b1718ae6578fd6c70d00ea27935555c",
+          "646a7b8409ed8ebbb2b0c1078e5c7d5fae87129f65440e3c30274b24f270ba47"
+        ]
+      },
+      "id": "activity-log",
+      "query": "What fields and Fitbit data are included in the activity log?",
+      "query_vector_source_id": "f8b8ae34c69a36cb5e71ce880cdc6956b74caacbb2087793bcf2c492d71837bf"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 265,
+        "mode": "CommunityRouted",
+        "rank": 27,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "d8f44709910245fbc7689d01e9f00c6de76188c0704c1da6692965a9b68e3538",
+          "2dda4c9f5863483dd3a0d8e4141afdf649e2fb0e53192d1176301aa34dc51dc3",
+          "d5de5f64f66bf2d31877604f0d432c71346baa947c24228d8765fc24c3da0255",
+          "aea2354f398ee9ce86a88441406646d0126342892ab8b79e22de3b91df92c073",
+          "08d7984694e6ffcf367f8d9016f369e7710bee1b3cd52e5229a9084537d1d19a",
+          "529b7a7d451c238733f5426cdc712b6d78c193ea60a4da079659cb6ca67cd87f",
+          "75972c2d25f1a4093df4d717c535f3f94593a5dfeece334fc25617bd292646be",
+          "ee4b7c964ad74c7bee49e672a27e38634d00f4c85f76c3b61cbee7a1f55fd359",
+          "00ccde5f41632548fe6fb50b67f36099f17ab4825dac96c1ec832e61cd177ab1",
+          "393a7e59b0f0b506681b59eec91c1784d082593f4b62883c2c360e1d8abc6819"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "54d32d3afc3eabc4f9bcd8d17645e0da613834d120acf87a7f53e526dfac6ee7",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "d8f44709910245fbc7689d01e9f00c6de76188c0704c1da6692965a9b68e3538",
+          "54d32d3afc3eabc4f9bcd8d17645e0da613834d120acf87a7f53e526dfac6ee7",
+          "2dda4c9f5863483dd3a0d8e4141afdf649e2fb0e53192d1176301aa34dc51dc3",
+          "d5de5f64f66bf2d31877604f0d432c71346baa947c24228d8765fc24c3da0255",
+          "aea2354f398ee9ce86a88441406646d0126342892ab8b79e22de3b91df92c073",
+          "08d7984694e6ffcf367f8d9016f369e7710bee1b3cd52e5229a9084537d1d19a",
+          "73039815753903d7ef1d95e5380b092170d4a83e98a22449f701eb021941c1bd",
+          "b2f853c1753d356fa1ce132e97dfbb4ae010341f40ee8f45690474c271fddc04",
+          "03ae9f21e7592431785e72b3f450ab0f58991efa84d908a65dbd3c7930063dcc",
+          "ee4b7c964ad74c7bee49e672a27e38634d00f4c85f76c3b61cbee7a1f55fd359"
+        ]
+      },
+      "id": "recovery-pace",
+      "query": "Why does the slower pace feel beneficial to the user?",
+      "query_vector_source_id": "d8f44709910245fbc7689d01e9f00c6de76188c0704c1da6692965a9b68e3538"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 312,
+        "mode": "CommunityRouted",
+        "rank": 2,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "5224d2e83fe1c334c2975a40b27b60e7a3b94c86d3e60641f9b27e041b54d7c4",
+          "f803f2abb96e8b748ebbf2dd964f3bb5f2ecaafd60b38fa11c9220e8e4dd34b0",
+          "f5cfd3b5663e1cffaa94d3ba409709bf88d1bb31da10942422bc059c06e5bfca",
+          "b206e252624a2feb634b2c4ffece68df8271f0be9f013b1a94687db43a6006b3",
+          "2e42a23a69d2590a4c2eeaff4ffa6798c0ecf0d26f22d9b9f089702a05bd3ace",
+          "393a7e59b0f0b506681b59eec91c1784d082593f4b62883c2c360e1d8abc6819",
+          "4449517e1bf0d69a7a94250d5bdb1494a4b0949ddec52596a071a6f508313de6",
+          "c1100c03a518ed87d4719b3677f573ed4a0f1ccd1d9f1df416a53c6e6fa85af8",
+          "3e07aed09e7e34fae92f1ecc584ee94b939fd357542f57a493636c5ff096976c",
+          "4d2bd816f66f4535b57c87eff144df9a9c1142c40621bd2dd2e4e029e971a96e"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "f803f2abb96e8b748ebbf2dd964f3bb5f2ecaafd60b38fa11c9220e8e4dd34b0",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "5224d2e83fe1c334c2975a40b27b60e7a3b94c86d3e60641f9b27e041b54d7c4",
+          "f5cfd3b5663e1cffaa94d3ba409709bf88d1bb31da10942422bc059c06e5bfca",
+          "f803f2abb96e8b748ebbf2dd964f3bb5f2ecaafd60b38fa11c9220e8e4dd34b0",
+          "b206e252624a2feb634b2c4ffece68df8271f0be9f013b1a94687db43a6006b3",
+          "fca496952735f9d157a1d104653dba2481186f0740046c24da9ff1906f050ee2",
+          "2e42a23a69d2590a4c2eeaff4ffa6798c0ecf0d26f22d9b9f089702a05bd3ace",
+          "393a7e59b0f0b506681b59eec91c1784d082593f4b62883c2c360e1d8abc6819",
+          "b0308b866e14cc05feab8ecac22408422e964b78a8e2012092d087c344e0bdb2",
+          "8e9036e038a907746dee3fcec2f11b7c386d6bcc5358d58de8b15e6449360475",
+          "95fa2ccc18b02d1715928b71597f4b2f31e83159b9669ca64d15a0c18ee7b033"
+        ]
+      },
+      "id": "fog-trail",
+      "query": "How did the fog affect the trail conditions?",
+      "query_vector_source_id": "5224d2e83fe1c334c2975a40b27b60e7a3b94c86d3e60641f9b27e041b54d7c4"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 356,
+        "mode": "CommunityRouted",
+        "rank": 2,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "4d2bd816f66f4535b57c87eff144df9a9c1142c40621bd2dd2e4e029e971a96e",
+          "6f636309e754a10a6d50b264ecf08e6a67605dd012c6cc7326e6c9fe73d2b25c",
+          "393a7e59b0f0b506681b59eec91c1784d082593f4b62883c2c360e1d8abc6819",
+          "a3ae4a5faeedfc7065b1835547dcd8621d12070532ab507cd70b5164ccee1263",
+          "10cd8b91c725b7b779bd227010f26c3a5279f20a3ec74b831a06eca446004a90",
+          "3971ec11e78f9cc57008a13ecf98281bb42943d41864e1b3aab8361045b4826d",
+          "74c7cfe32f109429241903efc6426722a0caeb78658d89c80fc591ccd2046da6",
+          "820437184a0e586e7cece4a995a87bcdc9d6b9097c357db1b1b559341018ba9b",
+          "8dc23dd5e8da73113bb23e50e88acfd958990771b1eb35fa7e8ebb9457a34284",
+          "b206e252624a2feb634b2c4ffece68df8271f0be9f013b1a94687db43a6006b3"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "6f636309e754a10a6d50b264ecf08e6a67605dd012c6cc7326e6c9fe73d2b25c",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "4d2bd816f66f4535b57c87eff144df9a9c1142c40621bd2dd2e4e029e971a96e",
+          "8dc23dd5e8da73113bb23e50e88acfd958990771b1eb35fa7e8ebb9457a34284",
+          "6f636309e754a10a6d50b264ecf08e6a67605dd012c6cc7326e6c9fe73d2b25c",
+          "2e42a23a69d2590a4c2eeaff4ffa6798c0ecf0d26f22d9b9f089702a05bd3ace",
+          "3971ec11e78f9cc57008a13ecf98281bb42943d41864e1b3aab8361045b4826d",
+          "c7f2a9e26c4c94f5350cf41d7592ba784e853ab21d09c483670587cb7d12fd29",
+          "cfc7f9f6fb05e19b77ce65a5880c07e4106bcf930ecc999093a481f571f132d8",
+          "dd032251e94bc450ffc7aff57ed4b17eefd28dafef697da195b15b019216f3ab",
+          "d4e8602c6ae1d7f146d120188bb6ba411a5312b94dc346906b57f7c64481ef02",
+          "2d51eb4f3d64abc51bf381d0e846e564ea3d9c75fd28452fa7e6a7929779d51b"
+        ]
+      },
+      "id": "asheville-walk",
+      "query": "What two feelings did the art-filled Asheville walk leave the user with?",
+      "query_vector_source_id": "4d2bd816f66f4535b57c87eff144df9a9c1142c40621bd2dd2e4e029e971a96e"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 357,
+        "mode": "CommunityRouted",
+        "rank": null,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "3c4702cc75a0ce5a0d74b9232cdde893e7c3985a8b5b15fa411751b2674c1038",
+          "cfb0b36b2da5c7bdb26fff3b95d548809130e5f50a25da5755364318b381552e",
+          "b2388af0cb66f47beea021e4fceb6209db4589c961f143e5df46784908b5dbe9",
+          "6f9179bc385d4a85607e089f2221d5bdbfb2cab6ea91b782afbbfb202830385e",
+          "04eae22ebcabcd5233952a1037dd6cbf6ba52a0c47c128ab3b5accd59abc5431",
+          "23ed9fcfa30dcdf69742d9458b2401ce4c26a50d22e7905f09d4de15661050e6",
+          "611eec1923cd0cc3ee80e242d70f60e13b18bc870c6e419af27508810a08623e",
+          "77bdefae3e18a64564aaace16859f864f0ed53c3a4474ef1f706036eae252768",
+          "962cee08d2b3153f3c77c9b508f97811bb8c33135a050399ff376597d74699b2",
+          "bd02bf3224f6e8f686e043ddd5d6a3e864e7bf858bfbebdcc0435258d2a8f691"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "08370204be2f1c7a5f1522c0e66459f7ad8bb4aa76aad57ad882289b9fcafa6c",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "3c4702cc75a0ce5a0d74b9232cdde893e7c3985a8b5b15fa411751b2674c1038",
+          "08370204be2f1c7a5f1522c0e66459f7ad8bb4aa76aad57ad882289b9fcafa6c",
+          "cfb0b36b2da5c7bdb26fff3b95d548809130e5f50a25da5755364318b381552e",
+          "b2388af0cb66f47beea021e4fceb6209db4589c961f143e5df46784908b5dbe9",
+          "bd02bf3224f6e8f686e043ddd5d6a3e864e7bf858bfbebdcc0435258d2a8f691",
+          "04eae22ebcabcd5233952a1037dd6cbf6ba52a0c47c128ab3b5accd59abc5431",
+          "529b7a7d451c238733f5426cdc712b6d78c193ea60a4da079659cb6ca67cd87f",
+          "77bdefae3e18a64564aaace16859f864f0ed53c3a4474ef1f706036eae252768",
+          "ef3c8a36162deb3073d95c8f12a46df76f4278eaa87be70d4dd8ee75aadbe271",
+          "23ed9fcfa30dcdf69742d9458b2401ce4c26a50d22e7905f09d4de15661050e6"
+        ]
+      },
+      "id": "market-list",
+      "query": "How should the farmers' market shopping list be formatted?",
+      "query_vector_source_id": "3c4702cc75a0ce5a0d74b9232cdde893e7c3985a8b5b15fa411751b2674c1038"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 334,
+        "mode": "CommunityRouted",
+        "rank": 4,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "11966b1447c3dced8d1d76593b6f90151a3eef054c5ab433dcad0abafc32f2bd",
+          "42f2ce149fed8d48ada14f1b989e9e6dd98c2f7b76d6ef9a86b7acd3fe599911",
+          "5c97eb474e36d16bd1904e800debf49839191d3059b4f47cbd5fc48d878ce2b1",
+          "b9bc337680ebd2ac204e671aee1e8dd966ab23d5681c5ee20a507a3c1673dcdd",
+          "01bf8a575dc590081c2f89d7f1e71e694e388ca14f2e186a7eeacdfc8f69b435",
+          "17fbe438221e986b01a52876cce3d03f1eb9354dcbf791793343dda7ee5a3297",
+          "4a1a95fc41ed1fe427f0ea1d3d23db4c3ecefb66f9b96203d737e08e3b8bb38c",
+          "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+          "7a6e7304cbe190b82533cece87bc3f2d65ee4dc7684596468af0b207cf71be34",
+          "80a20163faeef0af7e33e51f73d0f66fe35c611d16e0ee940875b300fae07ded"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "b9bc337680ebd2ac204e671aee1e8dd966ab23d5681c5ee20a507a3c1673dcdd",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "11966b1447c3dced8d1d76593b6f90151a3eef054c5ab433dcad0abafc32f2bd",
+          "b9bc337680ebd2ac204e671aee1e8dd966ab23d5681c5ee20a507a3c1673dcdd",
+          "42f2ce149fed8d48ada14f1b989e9e6dd98c2f7b76d6ef9a86b7acd3fe599911",
+          "5c97eb474e36d16bd1904e800debf49839191d3059b4f47cbd5fc48d878ce2b1",
+          "b05d09a5393413cfbe84fddcdb622ba277e0a414d7a4f6ba85e413f2c5a0ec3e",
+          "a3287765bb21de2888db38badc7ea6856ad4abed207cb38d83de9d896c959c93",
+          "905a068844ea39a11fd78da44fd58a594c9c52b9c2f4b09a5d80dd5520e40336",
+          "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+          "dca1e101330d8145b6bc452e5c39dbe2a3499a957015545ece28e5c17b40a8bd",
+          "7a6e7304cbe190b82533cece87bc3f2d65ee4dc7684596468af0b207cf71be34"
+        ]
+      },
+      "id": "meal-prep-plan",
+      "query": "What details should the sweet-potato-and-kale meal-prep plan include?",
+      "query_vector_source_id": "11966b1447c3dced8d1d76593b6f90151a3eef054c5ab433dcad0abafc32f2bd"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 370,
+        "mode": "CommunityRouted",
+        "rank": 4,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e",
+          "5da1591c29dfdda261b466e3bc77798a4581061a3e2cd2a6c405d39c5ec2830b",
+          "b3e7fc30ac38fae2d09601caaa01608c08901bc8c2cedda06b512ac58b68a005",
+          "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+          "38a9e6bda368ba1c077ec0cd48ba6a42b5f0c54be9e167046fc8af63e31c8a2f",
+          "601d4af68b8e7d65c6b49e4e496a1a624f37b107ac1469171b5b24e6a8d76d07",
+          "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+          "51fe6a9eda85e5ed737ff69766b41e55ab8e0f44c219f938fa6c272734817937",
+          "044b64bb083a06c8079b6f6794e9493264265e3b5dfc7039e40b14b611324b89",
+          "6f9ef38d4c157469648e81710f7b328e7798f20d69f3492ef59bdab7bbd186b7"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e",
+          "b3e7fc30ac38fae2d09601caaa01608c08901bc8c2cedda06b512ac58b68a005",
+          "f3f4a90adeea7ed7dc6ef300c8194acc08b2fafc7021c8a550fa8c57b49dedc2",
+          "601d4af68b8e7d65c6b49e4e496a1a624f37b107ac1469171b5b24e6a8d76d07",
+          "0616e6acb5cb1a02c886413c16cca8438f631a5ed63a944ff3187bf7a6c038d4",
+          "5da1591c29dfdda261b466e3bc77798a4581061a3e2cd2a6c405d39c5ec2830b",
+          "8eadabdccb93dc9d851b167da8e5df078af12d05c77b5c5170a8ff787a896770",
+          "51fe6a9eda85e5ed737ff69766b41e55ab8e0f44c219f938fa6c272734817937",
+          "b1ed2f9482894bf8f1067724ff711573bb1c94ef0f9045c714e8883a6852fcc3",
+          "58324cfd6002809a4bcc19264195d3145e588cbc60831afbd00c98c29baed68a"
+        ]
+      },
+      "id": "iphone-backup",
+      "query": "What iPhone problem does the user plan to address later in the week?",
+      "query_vector_source_id": "a129a0d6b0940b5aaeaec55e43b9961402b4424f5b06f8b8dead9d3031558c3e"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 321,
+        "mode": "CommunityRouted",
+        "rank": 2,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "d268cf2863032b52c315da38ccaef0883f150a7aba5471db7d2eb3b648ef0cfe",
+          "f11aaa0a63ff5da0721465c8640a66b6cc1d4e7cf40df9edfa7b8de17f4d98bf",
+          "3854c0d305f02a549851ff0f41ef47fd44a81f108199c3f28b74a3458800ebf5",
+          "0f497ffd76d3469449e777840a197a36ee914b183322c23eb98f9bc9f0e1d4f8",
+          "070511a39b8220b750e6191ddf8e0e406abec76c32d615653964ba38c4c1e405",
+          "b233664e6260a53b3933f12c6cada3768d16712f3c7605e69699e7540a917a60",
+          "e3c06f130dbe05178251eb72011cff998ae2eb666243af7bbc22f5a514d01bb1",
+          "059e7e55f3b9aea26b2fdf027516d3d30d6208f9da2209739daf4f553bb49a2c",
+          "0d67a1fba758106e2e82c29e567da9c46b5bd5c5f502c8c7c171ccd4e785ae3a",
+          "42879293408179d876e49738707727efeaea0a01264230623f75f49525d75ca6"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "f11aaa0a63ff5da0721465c8640a66b6cc1d4e7cf40df9edfa7b8de17f4d98bf",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "d268cf2863032b52c315da38ccaef0883f150a7aba5471db7d2eb3b648ef0cfe",
+          "f11aaa0a63ff5da0721465c8640a66b6cc1d4e7cf40df9edfa7b8de17f4d98bf",
+          "3854c0d305f02a549851ff0f41ef47fd44a81f108199c3f28b74a3458800ebf5",
+          "a1690f1156637e9c2eb69f7ab8526311f44d7fed7c29b1e0be658f42d6a89af4",
+          "0f497ffd76d3469449e777840a197a36ee914b183322c23eb98f9bc9f0e1d4f8",
+          "e3c06f130dbe05178251eb72011cff998ae2eb666243af7bbc22f5a514d01bb1",
+          "070511a39b8220b750e6191ddf8e0e406abec76c32d615653964ba38c4c1e405",
+          "643634d548a3e84de0b2493b5974ff98cdbf311cee2eb161b5df7cabac8bab53",
+          "b233664e6260a53b3933f12c6cada3768d16712f3c7605e69699e7540a917a60",
+          "b0b638305f7f9b14af10d7752aee6cb9db06ad5a74a2df9a7c4ff5ea44a91fb9"
+        ]
+      },
+      "id": "cake-reaction",
+      "query": "How did the guests react when the homemade cake collapsed?",
+      "query_vector_source_id": "d268cf2863032b52c315da38ccaef0883f150a7aba5471db7d2eb3b648ef0cfe"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 328,
+        "mode": "CommunityRouted",
+        "rank": 3,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335",
+          "e2be9d22943150f86ee558cabbf22e1da840f5e3acf20ef1a99e804ca064d59f",
+          "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+          "4b1cd1507d5505a0416ef9391c5477464fc953e90e98d69e88195e76913dcb5d",
+          "2e42a23a69d2590a4c2eeaff4ffa6798c0ecf0d26f22d9b9f089702a05bd3ace",
+          "837e067966fc80d7e221d3d72dd65ce647b854f57e239a74c72ecd7edc6dea9a",
+          "957a6ba69981f7188da0b41bc22aa40843ef342fae2b367d73669e23c97872e8",
+          "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3",
+          "a6e8dab21f6627b38b06a3d9ddd059065d3796290f693c663efdfe4ac6974d3a",
+          "e3adf3f5f37b684dede2c4b8b50f0dcc948d61c07f817ed8c81e080b30094a22"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335",
+          "e2be9d22943150f86ee558cabbf22e1da840f5e3acf20ef1a99e804ca064d59f",
+          "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+          "4b1cd1507d5505a0416ef9391c5477464fc953e90e98d69e88195e76913dcb5d",
+          "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+          "01bf8a575dc590081c2f89d7f1e71e694e388ca14f2e186a7eeacdfc8f69b435",
+          "550d08fc4e69af0f57892943e81474a85ff9abc00a68b8cd2226f7f3f0e30561",
+          "642771f16598f7bc9f03f84809ac1c5a0ba28986cd94799ec6e843acc25b31c4",
+          "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3",
+          "045d419870d0a880de5233c55a461f523ccc40b813a24ba56e461c66a8b69095"
+        ]
+      },
+      "id": "math-worksheet",
+      "query": "How did the user and Monica resolve Jasper's difficult math worksheet before the trip?",
+      "query_vector_source_id": "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 313,
+        "mode": "CommunityRouted",
+        "rank": 8,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "1ef574437c7c465eae9f702ba70916c6848b0433173471681cf815122bc40366",
+          "05c2055d034e98fd6dc023a9d5b8c79664c915e86daa6488c8f8d9bfdd2e3929",
+          "afa80774c29205615cac57692114bafa979b6eb434f398fc1f4787e80dab7b99",
+          "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+          "24589d7b1f164a730e27de159b9ef90e3ea5f8c46acd23c2082e031fb9012383",
+          "2d51eb4f3d64abc51bf381d0e846e564ea3d9c75fd28452fa7e6a7929779d51b",
+          "56528675ba7227e750eb1a30d851b9a471cf447788cb939f41a26bdf9d4f4157",
+          "936af7fa3f81c11446123c474ab8faf4db9d72ca620060d050500a7e2026cf78",
+          "a959c0d8478d14e23458016b97041770b8d2805dc8f1ef9943d8a61f8baeb27d",
+          "b05d09a5393413cfbe84fddcdb622ba277e0a414d7a4f6ba85e413f2c5a0ec3e"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "936af7fa3f81c11446123c474ab8faf4db9d72ca620060d050500a7e2026cf78",
+      "hybrid": {
+        "rank": 8,
+        "top10": [
+          "05c2055d034e98fd6dc023a9d5b8c79664c915e86daa6488c8f8d9bfdd2e3929",
+          "1ef574437c7c465eae9f702ba70916c6848b0433173471681cf815122bc40366",
+          "5bd264e022f1eed108df187977ecb186a4c84fb6009edbfbbbb65105d9bfa9bc",
+          "56528675ba7227e750eb1a30d851b9a471cf447788cb939f41a26bdf9d4f4157",
+          "b05d09a5393413cfbe84fddcdb622ba277e0a414d7a4f6ba85e413f2c5a0ec3e",
+          "2d51eb4f3d64abc51bf381d0e846e564ea3d9c75fd28452fa7e6a7929779d51b",
+          "b639389cafbf945614acfcd07a0a4d740ccb7d88cdd331cd3868d590e968e189",
+          "936af7fa3f81c11446123c474ab8faf4db9d72ca620060d050500a7e2026cf78",
+          "f14cb57a212e13e60e8b6907ea38f76d44d1c6d6f495df672d5a5ec3a7950659",
+          "afa80774c29205615cac57692114bafa979b6eb434f398fc1f4787e80dab7b99"
+        ]
+      },
+      "id": "lentil-lemon",
+      "query": "What was planned to be added to Sunday's lentil soup?",
+      "query_vector_source_id": "1ef574437c7c465eae9f702ba70916c6848b0433173471681cf815122bc40366"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 357,
+        "mode": "CommunityRouted",
+        "rank": null,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "aad88258d9ed15e5837633b13a336a8104b825a07042eb60ecb2d3db22d51fb1",
+          "ef3c8a36162deb3073d95c8f12a46df76f4278eaa87be70d4dd8ee75aadbe271",
+          "f7e12dff38299e8569101f4a7c6a2cc886e875578616dfc467c40881a284b001",
+          "cea1628f5e15e5166fa84bd950c6e627443215b849adfd8e6795e78c3d4cacde",
+          "4e2dd0b079f71295a6c0ddf20afe382ae5d6d4589bc58971ab0591411fa7d305",
+          "7067550570533abc2f0213040a7855140379248e9b49dd5c0db4656699bdb7c2",
+          "b55e3b2db5266f1d97ac6b39919e5525fee7736fe8caad9d2f8070a30fbdcecd",
+          "ca9fb18ab19cec1d0e802a4d793b5ab2f705c52f0104eb3be3f6ac46a2e2ba83",
+          "00a3727c3df29ecb6d3faea8ec0983df990bf3b3dc9a5c46f679a5ada860b3cb",
+          "0c453e1707bece0b2e2487488b5d9ffd4a240436294a3e281f5ae8c27407fcc3"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "0a08059713697d405fbcf93acf5e666214fd4511f3faa655ffb6e7fab9560dcb",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "aad88258d9ed15e5837633b13a336a8104b825a07042eb60ecb2d3db22d51fb1",
+          "ef3c8a36162deb3073d95c8f12a46df76f4278eaa87be70d4dd8ee75aadbe271",
+          "0a08059713697d405fbcf93acf5e666214fd4511f3faa655ffb6e7fab9560dcb",
+          "cea1628f5e15e5166fa84bd950c6e627443215b849adfd8e6795e78c3d4cacde",
+          "b457fe73d355cfe7f029c9060a11b59b39d4b03c917daadd4f9e1d24ff2c0f65",
+          "4e2dd0b079f71295a6c0ddf20afe382ae5d6d4589bc58971ab0591411fa7d305",
+          "ca9fb18ab19cec1d0e802a4d793b5ab2f705c52f0104eb3be3f6ac46a2e2ba83",
+          "7dda6dbb9054bb88086aa2a7895939032c6fba09e40684af9449a0b77a389bc7",
+          "7067550570533abc2f0213040a7855140379248e9b49dd5c0db4656699bdb7c2",
+          "b55e3b2db5266f1d97ac6b39919e5525fee7736fe8caad9d2f8070a30fbdcecd"
+        ]
+      },
+      "id": "jan31-breakfast",
+      "query": "What replaced the planned healthy breakfast on January 31?",
+      "query_vector_source_id": "aad88258d9ed15e5837633b13a336a8104b825a07042eb60ecb2d3db22d51fb1"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 435,
+        "mode": "CommunityRouted",
+        "rank": 2,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "182d4bc7fe961c6daa82bbceb6e63e9bc4ff0220a7a85b0b34674bca612cc2d6",
+          "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+          "7d81263828635898ad8bc8353e0e2e20cbf40f653b758119cfff779afc1dead2",
+          "431b988337dc16e72bb8b390c2f4a2e52a8ad40186509571fd91a11197ce8910",
+          "08e01e9023fa9cdef236880c5240c75088056d166b74145c66dc1eaf9b47a830",
+          "16ee27ea18db02e512ab91b1f11a794659ed1e466629169db1e8a1992bf00d7f",
+          "3060c2c2b07a7d777fdde995bb5def3b4d0bb38b7739d4b20b398375f4748534",
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "398002373549c84b15d61c9f897d865959d1982d3ec578579bdd3db255467eb8",
+          "6314a60b01e259d36fa4fd33a90c2a9847efbc5b6d984f81430fd98fdadb3f32"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "182d4bc7fe961c6daa82bbceb6e63e9bc4ff0220a7a85b0b34674bca612cc2d6",
+          "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+          "059e7e55f3b9aea26b2fdf027516d3d30d6208f9da2209739daf4f553bb49a2c",
+          "431b988337dc16e72bb8b390c2f4a2e52a8ad40186509571fd91a11197ce8910",
+          "3060c2c2b07a7d777fdde995bb5def3b4d0bb38b7739d4b20b398375f4748534",
+          "6314a60b01e259d36fa4fd33a90c2a9847efbc5b6d984f81430fd98fdadb3f32",
+          "4e2dd0b079f71295a6c0ddf20afe382ae5d6d4589bc58971ab0591411fa7d305",
+          "7d81263828635898ad8bc8353e0e2e20cbf40f653b758119cfff779afc1dead2",
+          "be158c5af98fcb48d437e42fc0b2a757920a12a4cca8cb332f0e707233155576",
+          "a8b4e230cd74c00852bc762cc541bd43d4a0f2c7bd5f3d76c4713122d37477a5"
+        ]
+      },
+      "id": "trellis-help",
+      "query": "What did the user and Jasper help Mrs. Patel with after gardening on May 19?",
+      "query_vector_source_id": "182d4bc7fe961c6daa82bbceb6e63e9bc4ff0220a7a85b0b34674bca612cc2d6"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 321,
+        "mode": "CommunityRouted",
+        "rank": 2,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+          "e8fe21bab260b31b79a20f4b2038a3e3500a3b784b9753b6b2fb7e8ca46bd9a5",
+          "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+          "0c453e1707bece0b2e2487488b5d9ffd4a240436294a3e281f5ae8c27407fcc3",
+          "0c66b0508e105c9fc98b9b8627ac46c00654987b090221148d4b36a2c5e5d76f",
+          "0d67a1fba758106e2e82c29e567da9c46b5bd5c5f502c8c7c171ccd4e785ae3a",
+          "182d4bc7fe961c6daa82bbceb6e63e9bc4ff0220a7a85b0b34674bca612cc2d6",
+          "19b20c0d33045983989e87c1e1bf10b7819282fbbca6ecb683e22cf5335a312d",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+          "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81",
+          "51291c9a890f0743a59e113c9ced3127c6a298d5501927ed6b17956f654f2e27",
+          "b2d717ee82ee68188580ae19bd059fbb5b13f9192c933a12583a8ef13e25f772",
+          "0c453e1707bece0b2e2487488b5d9ffd4a240436294a3e281f5ae8c27407fcc3",
+          "e35e83efc8b276f8f28cb6c18d0138a6013bf87a4d26a81c5b57f2da51cd4c94",
+          "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+          "b0b638305f7f9b14af10d7752aee6cb9db06ad5a74a2df9a7c4ff5ea44a91fb9"
+        ]
+      },
+      "id": "mammoth-sunflowers",
+      "query": "What variety of sunflower seeds did Jasper select at the Home & Garden Center?",
+      "query_vector_source_id": "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 334,
+        "mode": "CommunityRouted",
+        "rank": 13,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "b228d7dcf41a59dee14156977550effa9dcf48a428533a6db764c4a8c44bb5ca",
+          "571b6a1c508b84c12454953c0e7ba0734792d1865ba66f91b7a891907983364f",
+          "306487255e46b8edfdb269dd3ecc4fc6f6c1ab5fb490762d80ed64a081359b31",
+          "3875fe030a07c97706884248f276d73caa210b938a287f5b0aff9adea50bc40a",
+          "0137db19eed2d61aae7d98c3207dc5f318fc4bbadf9ee176f69e9916aab85f7d",
+          "0d28bef20593944d39a32160d230a9517c3a85a23290839edd7b5fea2e85d49d",
+          "160e204a2764bb959575e6765e3994e95116fc6e5d17b12d826186c72a707d4e",
+          "17dc847ec0e8c6c1b0e90310d9999533fd167c30c73718a2d45d2bc49aca94c9",
+          "316999e8ce7a46908d30c3b1069f25c9917a1d5a113e5f38e7a2f590956be0b7",
+          "6f80a30a66c6064ec3fcc7367dea9427ae0784260e2a1585515f3594f1e0ae58"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "d533e618df57b93bf95c8569daa67bd0bac6b5c3f12f12abd4a28dc2d183c5d2",
+      "hybrid": {
+        "rank": 8,
+        "top10": [
+          "b228d7dcf41a59dee14156977550effa9dcf48a428533a6db764c4a8c44bb5ca",
+          "15169fe180883f99dcd1132719ff960c73b5061ada2538da85dd7c1372dd7188",
+          "571b6a1c508b84c12454953c0e7ba0734792d1865ba66f91b7a891907983364f",
+          "306487255e46b8edfdb269dd3ecc4fc6f6c1ab5fb490762d80ed64a081359b31",
+          "3875fe030a07c97706884248f276d73caa210b938a287f5b0aff9adea50bc40a",
+          "0137db19eed2d61aae7d98c3207dc5f318fc4bbadf9ee176f69e9916aab85f7d",
+          "309ad50392ef60e9b067acb61de7ff2381f746f881aab7b0f44fd05b9e192846",
+          "d533e618df57b93bf95c8569daa67bd0bac6b5c3f12f12abd4a28dc2d183c5d2",
+          "7c281ca1de27e3edafaa634caea082853546e08bee572ff021aa090fc4d3c49e",
+          "df54c9a260e23565acf9affaa089b8b343790e9d407571bce7e6da9b93afc7a0"
+        ]
+      },
+      "id": "curriculum-drawings",
+      "query": "Where were Jasper's drawings used for the national financial literacy course launch?",
+      "query_vector_source_id": "b228d7dcf41a59dee14156977550effa9dcf48a428533a6db764c4a8c44bb5ca"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 335,
+        "mode": "CommunityRouted",
+        "rank": 22,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "481fa99af37764ac27b5efcc684243cd96f8b29466f74dab6a0334104363bdfa",
+          "4ab7004b5d2f5bbb5235cd6c58fe78b15c51a1d8aab44657755907be4cfd2ea3",
+          "536a47892a7a3b14a9f586e161cd66581283bd8551000fc2f975ce52d895f76d",
+          "ecbf5172a692d921af95023f02087a1c0e1ae77394595867e05ad2b2c8d49142",
+          "0e5f541c695dcdf4a969b191fa018f83e9e8826e355b0735555b34f629bea77c",
+          "1bcf6eeeb6fb171efc25e5c8342087c2a2e82cf624a8c0430e513c4696dcf5be",
+          "2781fbf6f98a44eb811864a97e108e4d1f7338cac95c4f50fc166f2ebb3758c5",
+          "31edcd2ce66fe403ac0bb51d320195a9be74d937735fdad2c05bd7e43a5b62d5",
+          "3c9cf524b0f837d8392db0de690f8825c9e39dfc969b571279ee0db5112e8b83",
+          "4c52dbe1f212dcb6614adcd81ebe604741211c57b67dd3b1e50f39efe4e9965e"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "e6a953251bc7651d09fd45d86f5d3a960c1e92cae876b1b40e85a45ff2df7b4b",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "ecbf5172a692d921af95023f02087a1c0e1ae77394595867e05ad2b2c8d49142",
+          "481fa99af37764ac27b5efcc684243cd96f8b29466f74dab6a0334104363bdfa",
+          "e6a953251bc7651d09fd45d86f5d3a960c1e92cae876b1b40e85a45ff2df7b4b",
+          "607ace6f547e7e5b8ba1af87292e95ff873972eed2cd4d9751718ec4923b46fa",
+          "4c52dbe1f212dcb6614adcd81ebe604741211c57b67dd3b1e50f39efe4e9965e",
+          "2781fbf6f98a44eb811864a97e108e4d1f7338cac95c4f50fc166f2ebb3758c5",
+          "b536a1a0d4724f1177d0e7633acfe24f8dfc0f60232f1f82fd1e0cfc4d3d3b24",
+          "4ab7004b5d2f5bbb5235cd6c58fe78b15c51a1d8aab44657755907be4cfd2ea3",
+          "6fd2697f24d0daa4504282cc0a3e9a8d1d10cc7c3016522353fcf7fcb09b48b1",
+          "1bcf6eeeb6fb171efc25e5c8342087c2a2e82cf624a8c0430e513c4696dcf5be"
+        ]
+      },
+      "id": "neighbor-budgeting",
+      "query": "What features did Mrs. Patel's neighbors want in the budgeting challenge?",
+      "query_vector_source_id": "481fa99af37764ac27b5efcc684243cd96f8b29466f74dab6a0334104363bdfa"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 427,
+        "mode": "CommunityRouted",
+        "rank": 21,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "e666e6e855611cd80e8728e3f3ce18713b6f3bbcdff3a604a990d10b4973f332",
+          "6586239b949bf316c2a5179b95845e19a757e6a018d0ab8c56020b816a81d5a1",
+          "b45487b46a0e2b260cb2bae4516e4bc8db387f7fc7c9c924b1b42c48287f37cb",
+          "21b486f23788c657e836d7c489bc7943957f88287e7ebeb9155775f6849a20a4",
+          "1bcf6eeeb6fb171efc25e5c8342087c2a2e82cf624a8c0430e513c4696dcf5be",
+          "8623d8aea15930bf91680079755624c03870dafbd7eaba63ff217738a03eeee7",
+          "9dccb324f977c61213be23edf39b72703e5cda27afa798a5361a88c1b120e044",
+          "a0edcbaa8467cf3059ee875d60016df6a58e3dccd9a11a86b7c15420f0a15c5b",
+          "15132e06c39dce7d9ee14c63914080ffe2ee58fb503495bf404efb2302ccde94",
+          "83b91fd21d2ad1ef8f922754dce178ebbad2d936b151f8114e9239e4d9513ec1"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "36b5a5bca372871d405a1e17410c83cfd75b2993efbf9008dee9a716788b300d",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "e666e6e855611cd80e8728e3f3ce18713b6f3bbcdff3a604a990d10b4973f332",
+          "36b5a5bca372871d405a1e17410c83cfd75b2993efbf9008dee9a716788b300d",
+          "6586239b949bf316c2a5179b95845e19a757e6a018d0ab8c56020b816a81d5a1",
+          "b45487b46a0e2b260cb2bae4516e4bc8db387f7fc7c9c924b1b42c48287f37cb",
+          "21b486f23788c657e836d7c489bc7943957f88287e7ebeb9155775f6849a20a4",
+          "8623d8aea15930bf91680079755624c03870dafbd7eaba63ff217738a03eeee7",
+          "a4a3e69e09d17d9fb0089de36c0224eafcd4a9594c5f645beabfed8ebbc6cf53",
+          "9dccb324f977c61213be23edf39b72703e5cda27afa798a5361a88c1b120e044",
+          "1bcf6eeeb6fb171efc25e5c8342087c2a2e82cf624a8c0430e513c4696dcf5be",
+          "a0a4e3421a36551fdb60f13aac7ae767958b2ede49b4c61a249dc906dcddcf52"
+        ]
+      },
+      "id": "packet-revision",
+      "query": "Why was the digital workshop packet revised?",
+      "query_vector_source_id": "e666e6e855611cd80e8728e3f3ce18713b6f3bbcdff3a604a990d10b4973f332"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 328,
+        "mode": "CommunityRouted",
+        "rank": null,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335",
+          "e2be9d22943150f86ee558cabbf22e1da840f5e3acf20ef1a99e804ca064d59f",
+          "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+          "4b1cd1507d5505a0416ef9391c5477464fc953e90e98d69e88195e76913dcb5d",
+          "2e42a23a69d2590a4c2eeaff4ffa6798c0ecf0d26f22d9b9f089702a05bd3ace",
+          "837e067966fc80d7e221d3d72dd65ce647b854f57e239a74c72ecd7edc6dea9a",
+          "957a6ba69981f7188da0b41bc22aa40843ef342fae2b367d73669e23c97872e8",
+          "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3",
+          "a6e8dab21f6627b38b06a3d9ddd059065d3796290f693c663efdfe4ac6974d3a",
+          "e3adf3f5f37b684dede2c4b8b50f0dcc948d61c07f817ed8c81e080b30094a22"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+      "hybrid": {
+        "rank": 1,
+        "top10": [
+          "3c531ee1b5a6979b683b693fc630a9167e7f906a1d2b48ab8760cd184a5b2461",
+          "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335",
+          "e2be9d22943150f86ee558cabbf22e1da840f5e3acf20ef1a99e804ca064d59f",
+          "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f",
+          "4b1cd1507d5505a0416ef9391c5477464fc953e90e98d69e88195e76913dcb5d",
+          "957a6ba69981f7188da0b41bc22aa40843ef342fae2b367d73669e23c97872e8",
+          "837e067966fc80d7e221d3d72dd65ce647b854f57e239a74c72ecd7edc6dea9a",
+          "01bf8a575dc590081c2f89d7f1e71e694e388ca14f2e186a7eeacdfc8f69b435",
+          "550d08fc4e69af0f57892943e81474a85ff9abc00a68b8cd2226f7f3f0e30561",
+          "642771f16598f7bc9f03f84809ac1c5a0ba28986cd94799ec6e843acc25b31c4"
+        ]
+      },
+      "id": "return-school",
+      "query": "Who confirmed Jasper's gradual return-to-school plan?",
+      "query_vector_source_id": "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 370,
+        "mode": "CommunityRouted",
+        "rank": 3,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3",
+          "550d08fc4e69af0f57892943e81474a85ff9abc00a68b8cd2226f7f3f0e30561",
+          "2bb89c52d04a4d838ee4702986afeaa5d894388e67b964d0f3cc6e0b7f541644",
+          "e2be9d22943150f86ee558cabbf22e1da840f5e3acf20ef1a99e804ca064d59f",
+          "00a948879861a97dc942ba18f480f34d4b48eb91fb89b1c915665e6e2f35c335",
+          "60afe30d7c33a67348ccec0422b4a9378b8ef6ab56069dd699af09f27a373e07",
+          "0b0f39b94849c7b998af0a0d7fd6d9dd1c1cbaf10632d29530b0bec9c8240ad8",
+          "6502d4dc5b91b52793d2b2a7366e2837a6bde8028611a5199f268c8b17427a63",
+          "c0bb626d8fa449a5005fd108dd14eee16cb9a6ee149cc8331df4b7b30a282d4b",
+          "c54a708ac5c6506e117a7f3efc86b25318162a2c51a73be24c20529c60ab581a"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "2bb89c52d04a4d838ee4702986afeaa5d894388e67b964d0f3cc6e0b7f541644",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3",
+          "550d08fc4e69af0f57892943e81474a85ff9abc00a68b8cd2226f7f3f0e30561",
+          "2bb89c52d04a4d838ee4702986afeaa5d894388e67b964d0f3cc6e0b7f541644",
+          "abfef626bf617d6680b24dfdebaf0fe0ff2caf42ab81c013e7ce3d8745c48afa",
+          "31d05ceff0a20d092ed3034e408e3cea5126923b2af3ea4dc27b6e7771792af1",
+          "863c7dbc5c8aff95f99a95251f9b15a71011bee3913c6587d2e6bdb216b2db78",
+          "3fa71372137424240496df3f9e22c2f54bf87b48987aa138125e3db2ce83e1a3",
+          "00ccde5f41632548fe6fb50b67f36099f17ab4825dac96c1ec832e61cd177ab1",
+          "afebf7a5e6e3ada45b98cd88974beebeb444cdb62c0f8480592e568456c1e1a1",
+          "cbd96e5dfa38fb254555a0d55b76ee2da3f56152953b511026c181341dab7a3f"
+        ]
+      },
+      "id": "bus-prep",
+      "query": "How did quiet preparation time on the bus affect the user during the school session?",
+      "query_vector_source_id": "9c7084212098d1d831ef0fd94ab717e713cf3e0a3f220c9a040f6208bac746c3"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 413,
+        "mode": "CommunityRouted",
+        "rank": 32,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "15132e06c39dce7d9ee14c63914080ffe2ee58fb503495bf404efb2302ccde94",
+          "a0edcbaa8467cf3059ee875d60016df6a58e3dccd9a11a86b7c15420f0a15c5b",
+          "8623d8aea15930bf91680079755624c03870dafbd7eaba63ff217738a03eeee7",
+          "21b486f23788c657e836d7c489bc7943957f88287e7ebeb9155775f6849a20a4",
+          "1bcf6eeeb6fb171efc25e5c8342087c2a2e82cf624a8c0430e513c4696dcf5be",
+          "2d7abfbaf8dd26f219a499e26dd6a106991f53159f97024fcaea804653037790",
+          "31edcd2ce66fe403ac0bb51d320195a9be74d937735fdad2c05bd7e43a5b62d5",
+          "4ab7004b5d2f5bbb5235cd6c58fe78b15c51a1d8aab44657755907be4cfd2ea3",
+          "6586239b949bf316c2a5179b95845e19a757e6a018d0ab8c56020b816a81d5a1",
+          "83b91fd21d2ad1ef8f922754dce178ebbad2d936b151f8114e9239e4d9513ec1"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "1ae18e66bf4a6d1d986a41bc4c63d9753cb63391410933eb73500e1989e66342",
+      "hybrid": {
+        "rank": 3,
+        "top10": [
+          "15132e06c39dce7d9ee14c63914080ffe2ee58fb503495bf404efb2302ccde94",
+          "a0edcbaa8467cf3059ee875d60016df6a58e3dccd9a11a86b7c15420f0a15c5b",
+          "1ae18e66bf4a6d1d986a41bc4c63d9753cb63391410933eb73500e1989e66342",
+          "6586239b949bf316c2a5179b95845e19a757e6a018d0ab8c56020b816a81d5a1",
+          "af9ef3d2b6bf83c467449c2a5b83192e5273213fc66f49b5ca3a5e5dde49ac74",
+          "31edcd2ce66fe403ac0bb51d320195a9be74d937735fdad2c05bd7e43a5b62d5",
+          "932351c0519e099c716fd97c50d2c9654a35f14f7adbedf6c88aeb630a983dd2",
+          "77c99d72d2c787e4e22dc882b72a8cfe3221e24c4a5368e9074c4ec322ca3950",
+          "83b91fd21d2ad1ef8f922754dce178ebbad2d936b151f8114e9239e4d9513ec1",
+          "cbad4a25c19a8a713084d05b7388c0b68f80c493948180d70b37fe436093744f"
+        ]
+      },
+      "id": "education-board",
+      "query": "What financial-literacy idea did the user share with the education board?",
+      "query_vector_source_id": "15132e06c39dce7d9ee14c63914080ffe2ee58fb503495bf404efb2302ccde94"
+    },
+    {
+      "current": {
+        "memory_vectors_scored": 321,
+        "mode": "CommunityRouted",
+        "rank": 2,
+        "routing_vectors_scored": 36,
+        "selected_communities": 4,
+        "top10": [
+          "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+          "782ee1e48195c91ca75dcf10545910a4aeeb45971a22720457c5b035d11a95f0",
+          "0bb99f2500240f3e2b48b10fb029aedce68eb6a9c44bb28f2560950873eca5ae",
+          "0c453e1707bece0b2e2487488b5d9ffd4a240436294a3e281f5ae8c27407fcc3",
+          "0d67a1fba758106e2e82c29e567da9c46b5bd5c5f502c8c7c171ccd4e785ae3a",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81",
+          "51291c9a890f0743a59e113c9ced3127c6a298d5501927ed6b17956f654f2e27",
+          "7067550570533abc2f0213040a7855140379248e9b49dd5c0db4656699bdb7c2"
+        ],
+        "used_global_fallback": false
+      },
+      "gold_memory_id": "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+      "hybrid": {
+        "rank": 2,
+        "top10": [
+          "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0",
+          "30aee9a209ba109b300a55b6c81c9c159f4f5a268174962d7357df93a853963c",
+          "e8fe21bab260b31b79a20f4b2038a3e3500a3b784b9753b6b2fb7e8ca46bd9a5",
+          "a44272e53038fc65045bb25de626225b17a240386a1b168efd0a97d876e58a6e",
+          "1cfe9ba7720de54edcf7351da89685acfb008ce6a89a9e8564d0d58ff683ab81",
+          "d0a07178b068f111f40e6fd6ead24aff79ee5dabf523335fb25f237a1a5cf881",
+          "51291c9a890f0743a59e113c9ced3127c6a298d5501927ed6b17956f654f2e27",
+          "75226685717eaef0c05257894539e6426c2bf4556ecbe05734f8b1945ad16ecf",
+          "e35e83efc8b276f8f28cb6c18d0138a6013bf87a4d26a81c5b57f2da51cd4c94",
+          "b2d717ee82ee68188580ae19bd059fbb5b13f9192c933a12583a8ef13e25f772"
+        ]
+      },
+      "id": "market-seeds",
+      "query": "What seeds did the user and Jasper obtain for their garden?",
+      "query_vector_source_id": "5b8cfc69ed57ee827ecade0c853f3201878e635b4ace0ba239c64ae89ac895d0"
+    }
+  ],
+  "version": 1
+}

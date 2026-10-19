@@ -24,7 +24,7 @@ The capability matrix distinguishes implemented storage/runtime support from pla
 | PHY Identity (multiple selectable documents) | Implemented | `src/ego/ego_model.rs`, `ego_store_identities.rs`, `ego_identity_tests.rs`, `src/facade/phylactery_ego.rs` |
 | PHY Personality document | Implemented storage only | `ego_store_documents.rs`, `ego_persona_tests.rs`; synthesis and editing policy open |
 | REL and PHY Anchors | Implemented storage | `ego_store_anchors.rs`, `ego_anchor_tests.rs`, REL/PHY facades |
-| Owner-local cached Web synthesis | Partial target | `EgoWebSynthesis` in `ego_model.rs`; singleton text/revision/watermark, not PHY-owned per-source-REL three-size bundle |
+| Owner-local cached Web synthesis | Partial target | `EgoWebSynthesis` in `ego_model.rs`; singleton text/revision/watermark, not PHY-owned per-source-REL itemized summary with provenance |
 | REL accepted-turn activity | Implemented dependency | `src/archive/archive_activity.rs`, `src/facade/cva_activity.rs`, `tests/rel_activity_clock_contract.rs` |
 | Signed REL Memory Freshness and historical cut reads | Implemented dependency | `src/freshness/`, `src/facade/cva_freshness.rs`, Freshness tests; not an Ego audit controller |
 | Live semantic reinforcement (F8) | Implemented dependency | `src/facade/cva_semantic_live.rs`; intrinsic eligible REL behavior on `main` |
@@ -37,9 +37,9 @@ The capability matrix distinguishes implemented storage/runtime support from pla
 | Working-Web cleanup/admission and Freshness overflow pruning | Designed; unimplemented Ego consumer | [Memory-Web design](ego-web-synthesis-plan.md), `src/runtime_inference/freshness_access.rs` low-level helper only |
 | Mandatory broad audit and coverage | Designed; unimplemented | Whole admitted Web exposed; full-REL `memory_search` permitted |
 | Candidate selection | Open | Stage and output purpose decided; criteria, overlap and detailed mechanics unresolved |
-| Provenance-linked candidate bullets and mean-source Freshness | Designed; unimplemented | [Memory-Web design](ego-web-synthesis-plan.md) |
+| Provenance-linked SummaryPoints and mean-source Freshness | Designed; unimplemented | [Memory-Web design](ego-web-synthesis-plan.md) |
 | Candidate-summary reconciliation | Partially designed | Duplicate coverage avoidance, subject distinction and provenance decided; contradiction behavior open |
-| Three fixed stored summary sizes | Designed; unimplemented | Needs size calibration and PHY/source-REL persistence contract |
+| Single itemized maximum-detail stored summary | Designed; unimplemented | Needs item/provenance persistence contract and runtime budget selection |
 | REL and PHY refresh | Designed; unimplemented Ego scheduler | REL bootstrap 25 Memories, PHY first useful mutation, queued settlement boundary; cadence values open |
 | Personality synthesis and refresh | Open | PHY-behavior-only evidence ownership decided; generation/update contract undecided |
 | Cross-chat context | Designed; unimplemented selector | [Cross-chat plan](ego-cross-chat-context-plan.md); consume existing current-REL compactions |
@@ -48,7 +48,7 @@ The capability matrix distinguishes implemented storage/runtime support from pla
 
 ## Decided behavior — authoritative references
 
-- **Memory-Web synthesis:** [Ego Memory-Web Summary design](ego-web-synthesis-plan.md). Objective lifecycle cleanup; whole eligible Web admitted while it fits; only then Freshness-ordered pruning to a Fresh (>0) mandatory audit floor; all retained Memories receive mandatory audit exposure, possibly in controlled batches; full authorized Web remains searchable. Audit proposes broad subjects, while a separate stage selects source sets. Candidate summaries are grounded bullets with source provenance and arithmetic-mean source-Memory Freshness. Reconcile then produce three fixed stored sizes, never truncating or padding to reach a token target. At runtime select an existing fitting size without startup synthesis.
+- **Memory-Web synthesis:** [Ego Memory-Web Summary design](ego-web-synthesis-plan.md). Whole Web admitted unchanged if it fits; otherwise ordered reductions Archived → Historical → Duplicates → Superseded → Dormant → Stale, stopping as soon as it fits; all remaining Fresh Memories receive mandatory audit exposure, batching rather than excluding them; full authorized Web remains searchable. Audit proposes broad subjects, while a separate stage selects source sets. Candidate Selection → Candidate Audit → Summary Extraction → Summary Creation → Storage → Budgeting → Injection; SummarySection subjects originate with SummaryProposal; SummaryCandidates hold extracted blocks with controller-owned provenance; SummaryPoints carry mean source-Memory Freshness and sections carry mean point Freshness. Persist one maximum-detail itemized summary, with retained per-point provenance and dynamic non-reinforcing Freshness reads. At runtime budget existing sections/points to any allocation without startup synthesis.
 - **Refresh:** first REL eligibility at 25 eligible Memories; PHY at first useful Memory mutation; percentage-plus-cap source-progress rules (numeric values open), queued behind required Insomnia/Dream settlement at a frozen source boundary; no wall-clock backstop. [Memory-Web design](ego-web-synthesis-plan.md).
 - **Cross-chat:** reuse current REL's conversation compaction records, ordered by most recent activity, within remaining Ego budget; current-session compaction is distinct. [Cross-chat plan](ego-cross-chat-context-plan.md).
 - **Cross-REL:** PHY-owned per-source-REL summaries, underlying evidence remains REL-owned; only active PHY's existing summaries from host-authorized dependency or separately authorized reverse/related scopes; no default sibling access, mega-summary, or second unlimited budget. [Cross-REL plan](ego-cross-rel-summary-inclusion-plan.md).
@@ -72,7 +72,7 @@ The capability matrix distinguishes implemented storage/runtime support from pla
 
 ## Calibration (not license to invent behavioral policy)
 
-- Three stored summary token targets and hard ceilings.
+- Maximum-detail generation ceiling and runtime item budgeting rules.
 - REL refresh growth fraction and absolute accepted-turn cap.
 - PHY refresh growth fraction and absolute eligible mutation cap.
 - Audit batch/overlap sizing once a correct mandatory-coverage contract is established.
@@ -81,14 +81,13 @@ The capability matrix distinguishes implemented storage/runtime support from pla
 ## Dependency order and actionable next work
 
 1. Preserve the current design/implementation distinction and close the listed open Memory-Web design questions before claiming a finished end-to-end implementation specification.
-2. Specify the PHY-owned, source-REL-keyed three-size bundle persistence contract over the existing owner-local Ego substrate.
-3. Specify/implement the staged Memory-Web controller: lifecycle cleanup → whole-Web admission / Freshness overflow pruning → mandatory audit → separately designed candidate selection → grounded bullet synthesis → reconciliation → size materialization.
+2. Specify the PHY-owned, source-REL-keyed maximum-detail itemized summary persistence contract over the existing owner-local Ego substrate.
+3. Specify/implement the staged Memory-Web controller: whole-Web admission / ordered pruning → Candidate Selection → Candidate Audit → Summary Extraction → Summary Creation → Storage → Budgeting → Injection.
 4. Implement REL/PHY source-progress refresh coordination, durable queue semantics and frozen Insomnia/Dream completion boundary; reuse the existing REL clock rather than rebuilding it.
 5. Implement Cross-chat selection and separate Personality synthesis once their contracts are settled.
 6. Implement authorized Cross-REL summary selection and final host-facing Ego assembly/projection after summary persistence and source visibility contracts exist.
 
 **Not part of this step:** new behavioral decisions, implementation code, or a claim that feature-branch Freshness work is merged/released. [Roadmap](roadmap.md) tracks scheduling; the three linked Ego plans own their behavioral designs.
-
 
 ## Notes
 
