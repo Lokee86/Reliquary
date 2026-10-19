@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 13/243 execution steps complete
+Status: Implementation-ready; 14/243 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -143,10 +143,17 @@ Blockers: none; whole-owner lineage proof comparison is explicitly assigned to S
 
 ### Step 13 execution record
 
-Commit: pending Vector Generation oracle implementation commit.
+Commit: `19030b5`.
 Files: `src/facade/historical_vector_generation_fingerprint*.rs`, test-only crate wiring, maintainer/evidence docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-13--vector-generation-historical-fingerprint).
 Verification: initial fixture/activation checks 2/2; final activation and authentic pruning checks 2/2. Three REL fixture heads 1/1/2, historical activation/public API equality, exact immutable closure, retirement, prune evidence and reopen; six source hashes unchanged.
 Blockers: none.
+
+### Step 14 execution record
+
+Commit: pending Ego oracle implementation commit.
+Files: `src/facade/historical_ego_fingerprint*.rs`, test-only crate wiring, maintainer/evidence docs; [verification](minimal-lossless-history-storage-execution-2026-10-19.md#step-14--ego-historical-fingerprint).
+Verification: 4/4 checks pass; PHY/REL synthetic history/current getter/reopen comparisons, no-op clock stability, legacy identity equivalence and all six empty fixture owners; source hashes unchanged.
+Blockers: none; nonempty evidence is synthetic because fixture Ego heads are all zero.
 
 ### Integration Gate A — Historical oracle
 

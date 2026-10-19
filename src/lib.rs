@@ -39,6 +39,9 @@ mod owner_maintenance;
 #[path = "facade/historical_archive_fingerprint.rs"]
 mod historical_archive_fingerprint;
 #[cfg(test)]
+#[path = "facade/historical_ego_fingerprint.rs"]
+mod historical_ego_fingerprint;
+#[cfg(test)]
 #[path = "facade/historical_entity_fingerprint.rs"]
 mod historical_entity_fingerprint;
 #[cfg(test)]
