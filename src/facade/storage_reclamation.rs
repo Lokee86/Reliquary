@@ -166,6 +166,8 @@ fn reclaim_container(
             }
             let payload = container.read(object).map_err(|error| error.to_string())?;
             let payload = relocate_payload(&payload, &relocated)?;
+            let payload = crate::imports::legacy_epoch_transport::rebind_copy(&payload, &output)
+                .map_err(|error| error.to_string())?;
             let destination = output.append(&payload).map_err(|error| error.to_string())?;
             relocated.insert(object, destination);
             copied_chunks += 1;

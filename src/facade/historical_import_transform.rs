@@ -65,6 +65,9 @@ fn historical_owner_evidence_digest(container: &Container) -> Result<[u8; 32], C
         // These concrete owner families have no relocatable ObjectRef fields.
         // Insomnia completion includes the native grouped publication proof;
         // Dream includes publication intents and original first-cycle roots.
+        let payload = crate::imports::legacy_epoch_transport::original_payload(payload)
+            .map_err(CvaError::Import)?
+            .unwrap_or(payload);
         if payload.starts_with(b"CVAFR")
             || payload.starts_with(b"CVAFSA")
             || payload.starts_with(b"CVDREAM")

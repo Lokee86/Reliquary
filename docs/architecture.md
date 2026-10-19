@@ -55,11 +55,11 @@ Archive owns genuine retained fragments and accepted source positions. The priva
 
 ## Compact Memory reconstruction
 
-Memory owns its creation/delta codec and pure candidate application; common Memory value encoding is shared with the legacy carrier without changing those bytes. Existing `MemoryOpenState` remains the sole replay owner and retains exact object/version-marker admission, deferred unversioned frames and terminal tombstones. New compact payloads do not create another store, history clock or public delta API. See the [wire and replay contract](storage-format.md#compact-memory-wire-carriers).
+Memory owns its creation/delta codec and pure candidate application; common Memory value encoding is shared with the legacy carrier without changing those bytes. Standalone publication writes compact creations/deltas; atomic Insomnia and external publications embed compact creations within their existing owning transactions. Legacy grouped migration retains original clock observability in its explicit original-variant carrier. Existing `MemoryOpenState` remains the sole replay owner and retains exact object/version-marker admission, deferred unversioned frames and terminal tombstones. New compact payloads do not create another store, history clock or public delta API. See the [wire and replay contract](storage-format.md#compact-memory-wire-carriers).
 
 ## Lossless format-upgrade staging
 
-The private `storage_upgrade` module coordinates frozen-source identity, destination exclusion, disposable staging and abort cleanup. Container owns only bounded physical frame transport; each semantic owner remains responsible for its future codec conversion and equivalence acceptance. The shell preserves all source frames and their ordering while selecting the V2 header, and cannot publish or replace an owner. It creates no worker, shared semantic manifest or history clock. See the [internal shell contract](storage-format.md#internal-lossless-upgrade-shell).
+The private `storage_upgrade` module coordinates frozen-source identity, destination exclusion, disposable staging and abort cleanup. Container owns only bounded physical frame transport; each semantic owner remains responsible for codec conversion and equivalence acceptance. The mechanical shell preserves all source frames and their ordering while selecting the V2 header. Its private Memory path derives exact accepted revision coordinates, converts standalone/grouped/external Memory carriers and relocates physical version references through the existing copy seam; unrelated payloads and original tickets/times remain unchanged. Both paths remain disposable and cannot publish or replace an owner. It creates no worker, shared semantic manifest or history clock. See the [internal shell contract](storage-format.md#internal-lossless-upgrade-shell).
 
 ## Purpose
 This document owns the current Reliquary Memory v2 implementation boundaries, state ownership, lifecycle, and code map.
@@ -259,3 +259,5 @@ Protecting tests are the selector matrix, runtime decision integration tests, ge
 ## Notes
 
 Decision inheritance changes configured endpoint composition only; semantic persistence and owner lifecycle are unchanged.
+
+The import owner retains original legacy epoch evidence across format transport. CVAILEG2 wraps exact CVAILEG1 bytes and separately authenticates the transformed prefix; its validator remains in ImportEpochStore. The upgrade coordinator composes this concrete proof transport after validating the original source, rather than treating physical offsets/digests as semantic fields it may overwrite. Pitlord now explicitly assigns `src/storage_upgrade` to the storage-upgrade orchestration area.

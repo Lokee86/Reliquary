@@ -7,6 +7,7 @@ mod epoch_scope;
 mod epoch_store;
 mod hermes;
 pub(crate) mod legacy_epoch;
+pub(crate) mod legacy_epoch_transport;
 mod prepare;
 mod providers;
 mod readiness;
@@ -24,7 +25,7 @@ mod sequential_completion_tests;
 #[cfg(test)]
 pub(crate) mod tests;
 pub(crate) use epoch_scope::ImportEpochScope;
-pub(crate) use epoch_store::ImportEpochStore;
+pub(crate) use epoch_store::{ImportEpochStore, hash_file_prefix};
 pub(crate) use prepare::prepare;
 mod chatgpt;
 mod claude;

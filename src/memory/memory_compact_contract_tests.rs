@@ -224,7 +224,7 @@ fn immutable_identity_body_revision_and_clock_failures_reject() {
             0 => next.id = MemoryId([9; 32]),
             1 => next.body_id = MemoryBodyId([9; 32]),
             2 => next.revision += 1,
-            3 => next.global_version = previous.global_version,
+            3 => next.global_version = 0,
             4 => next.memory_version = previous.memory_version,
             5 => next.mutation_id.clear(),
             _ => next.mutation_id = previous.mutation_id.clone(),

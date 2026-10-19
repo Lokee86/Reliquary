@@ -258,7 +258,7 @@ impl Phylactery {
 }
 
 fn reject_rel_only_payload(payload: &[u8]) -> Result<(), PhylacteryError> {
-    const REL_ONLY_PREFIXES: [&[u8; 8]; 26] = [
+    const REL_ONLY_PREFIXES: [&[u8; 8]; 29] = [
         b"CVAAFMT2",
         b"CVACONT1",
         b"CVANODE1",
@@ -271,6 +271,9 @@ fn reject_rel_only_payload(payload: &[u8]) -> Result<(), PhylacteryError> {
         b"CVAAREC1",
         b"CVAINSF1",
         b"CVAINSW1",
+        b"CVAINSC8",
+        b"CVAINSC7",
+        b"CVAINSC6",
         b"CVAINSC5",
         b"CVAINSC4",
         b"CVAINSC3",

@@ -355,6 +355,9 @@ impl Cva {
                     crate::storage_reclamation::relocate_payload(&raw, &relocated)
                         .map_err(CvaError::Repack)?
                 };
+                let transformed =
+                    crate::imports::legacy_epoch_transport::rebind_copy(&transformed, &output)
+                        .map_err(CvaError::Import)?;
                 let destination = output.append(&transformed)?;
                 relocated.insert(*object, destination);
             }
@@ -434,7 +437,14 @@ impl Cva {
                 let destination = relocated
                     .get(object)
                     .ok_or_else(|| prune_error("nonselected raw chunk was lost"))?;
-                if reopened.container.read(*destination)? != expected {
+                let actual = reopened.container.read(*destination)?;
+                let expected_proof =
+                    crate::imports::legacy_epoch_transport::original_payload(&expected)
+                        .map_err(CvaError::Import)?;
+                let actual_proof =
+                    crate::imports::legacy_epoch_transport::original_payload(&actual)
+                        .map_err(CvaError::Import)?;
+                if expected_proof.unwrap_or(&expected) != actual_proof.unwrap_or(&actual) {
                     return Err(prune_error("nonselected raw chunk changed during prune"));
                 }
             }

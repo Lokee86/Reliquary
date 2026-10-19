@@ -295,3 +295,23 @@ fn graph_profiles_and_memory_vectors_persist() {
     assert_eq!(reopened.compatibility_profile_stats().profiles, 1);
     assert_eq!(reopened.memory_vector_stats().bindings, 2);
 }
+
+#[test]
+fn phylactery_rejects_recent_grouped_completion_carriers() {
+    for magic in [b"CVAINSC6", b"CVAINSC7", b"CVAINSC8"] {
+        let path = test_path(&format!("foreign-{}.phy", String::from_utf8_lossy(magic)));
+        let mut phy = Phylactery::create(&path).unwrap();
+        let mut payload = vec![0; if magic == b"CVAINSC8" { 85 } else { 84 }];
+        payload[..8].copy_from_slice(magic);
+        if magic == b"CVAINSC8" {
+            payload[8] = 6;
+        }
+        phy.container.append(&payload).unwrap();
+        phy.sync().unwrap();
+        drop(phy);
+        assert!(matches!(
+            Phylactery::open(&path),
+            Err(PhylacteryError::InvalidContainerIdentity(_))
+        ));
+    }
+}

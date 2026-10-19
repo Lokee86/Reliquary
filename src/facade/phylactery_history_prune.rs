@@ -227,6 +227,9 @@ impl Phylactery {
                     crate::storage_reclamation::relocate_payload(&raw, &relocated)
                         .map_err(PhylacteryError::Repack)?
                 };
+                let payload =
+                    crate::imports::legacy_epoch_transport::rebind_copy(&payload, &output)
+                        .map_err(|error| PhylacteryError::Repack(error.to_string()))?;
                 let destination = output.append(&payload)?;
                 relocated.insert(*object, destination);
             }

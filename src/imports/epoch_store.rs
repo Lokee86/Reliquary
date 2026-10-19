@@ -10,7 +10,11 @@ use std::io::Read;
 pub(crate) struct ImportEpochStore {
     starts: BTreeMap<String, ImportStart>,
     completions: BTreeMap<String, ImportComplete>,
-    legacy_frames: Vec<(super::LegacyImportEpoch, ObjectRef)>,
+    legacy_frames: Vec<(
+        super::LegacyImportEpoch,
+        ObjectRef,
+        Option<super::legacy_epoch_transport::PrefixBinding>,
+    )>,
     open: Option<String>,
 }
 
@@ -24,7 +28,16 @@ impl ImportEpochStore {
         position: Option<ObjectRef>,
         payload: &[u8],
     ) -> Result<(), ImportError> {
-        if let Some(frame) = super::legacy_epoch::decode(payload)? {
+        let legacy = if let Some((frame, binding)) = super::legacy_epoch_transport::decode(payload)?
+        {
+            Some((frame, Some(binding)))
+        } else {
+            super::legacy_epoch::decode(payload)?.map(|frame| (frame, None))
+        };
+        if payload.starts_with(b"CVAILEG") && legacy.is_none() {
+            return Err(ImportError::Epoch("unknown legacy epoch variant"));
+        }
+        if let Some((frame, binding)) = legacy {
             if !self.starts.is_empty()
                 || !self.completions.is_empty()
                 || !self.legacy_frames.is_empty()
@@ -35,7 +48,7 @@ impl ImportEpochStore {
             }
             let position =
                 position.ok_or(ImportError::Epoch("legacy frame lacks physical position"))?;
-            self.legacy_frames.push((frame, position));
+            self.legacy_frames.push((frame, position, binding));
             return Ok(());
         }
         let Some(record) = decode(payload)? else {
@@ -66,7 +79,7 @@ impl ImportEpochStore {
     pub(crate) fn legacy_epochs(&self) -> Vec<super::LegacyImportEpoch> {
         self.legacy_frames
             .iter()
-            .map(|(frame, _)| frame.clone())
+            .map(|(frame, _, _)| frame.clone())
             .collect()
     }
 
@@ -74,7 +87,12 @@ impl ImportEpochStore {
         &self,
         container: &mut Container,
     ) -> Result<(), ImportError> {
-        for (frame, marker) in &self.legacy_frames {
+        for (frame, marker, binding) in &self.legacy_frames {
+            if binding.is_some()
+                && container.version() != (crate::FormatVersion { major: 2, minor: 0 })
+            {
+                return Err(ImportError::Epoch("relocated legacy proof requires V2"));
+            }
             if Some(frame.owner_uuid) != container.owner_uuid() {
                 return Err(ImportError::Epoch("legacy epoch owner mismatch"));
             }
@@ -105,16 +123,34 @@ impl ImportEpochStore {
                 }
                 Ok(())
             })?;
-            if normalized {
+            if normalized && binding.is_none() {
                 continue;
             }
-            let prefix = hash_file_prefix(container.path(), frame.source_prefix_len)?;
-            if prefix != frame.source_prefix_digest {
+            let prefix_len = binding
+                .as_ref()
+                .map_or(frame.source_prefix_len, |value| value.length);
+            if marker.offset() != prefix_len {
+                return Err(ImportError::Epoch(
+                    "legacy settlement marker position mismatch",
+                ));
+            }
+            let expected_digest = binding.as_ref().map_or_else(
+                || frame.source_prefix_digest.clone(),
+                |value| {
+                    value
+                        .digest
+                        .iter()
+                        .map(|byte| format!("{byte:02x}"))
+                        .collect::<String>()
+                },
+            );
+            let prefix = hash_file_prefix(container.path(), prefix_len)?;
+            if prefix != expected_digest {
                 return Err(ImportError::Epoch("legacy source prefix digest mismatch"));
             }
             let mut matches = 0;
             container.visit_payloads_through::<ImportError>(
-                frame.source_prefix_len,
+                prefix_len,
                 |_, payload| {
                     if payload.starts_with(b"CVAFRS03") {
                         let digest = format!("{:x}", Sha256::digest(payload));
@@ -130,7 +166,7 @@ impl ImportEpochStore {
                     Ok(())
                 },
             )?;
-            if matches != 1 || marker.offset() != frame.source_prefix_len {
+            if matches != 1 || marker.offset() != prefix_len {
                 return Err(ImportError::Epoch("legacy settlement binding mismatch"));
             }
         }

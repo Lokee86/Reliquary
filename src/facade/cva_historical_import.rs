@@ -510,16 +510,13 @@ impl Cva {
             .map_err(CvaError::Freshness)
     }
 
-    /// Normalize persisted physical import proof once. Callers performing repair
-    /// use this on a disposable copy; ordinary open never appends.
-    pub fn normalize_import_settlements(&mut self) -> Result<usize, CvaError> {
-        self.container.require_storage_format_writable()?;
+    /// Reconstruct canonical successors while original physical cuts still
+    /// name the source stream. Read-only V1 migration uses this without append.
+    pub(crate) fn prepare_import_settlement_normalizations(
+        &mut self,
+    ) -> Result<Vec<Vec<u8>>, CvaError> {
         self.validate_historical_import_settlements()?;
-        let before = self
-            .freshness
-            .records_at(self.rel_turn_count())
-            .map_err(CvaError::Freshness)?;
-        let mut normalized = 0;
+        let mut payloads = Vec::new();
         for old in self.freshness.import_settlements().to_vec() {
             if old.semantic.is_some() {
                 continue;
@@ -557,7 +554,22 @@ impl Cva {
             scope.predecessor_digest = Some(predecessor);
             let settlement =
                 HistoricalImportFreshnessSettlement::from_semantic(old.as_semantic(scope));
-            let payload = settlement.encode();
+            payloads.push(settlement.encode());
+        }
+        Ok(payloads)
+    }
+
+    /// Normalize persisted physical import proof once on an explicit disposable copy.
+    /// Ordinary open never appends.
+    pub fn normalize_import_settlements(&mut self) -> Result<usize, CvaError> {
+        self.container.require_storage_format_writable()?;
+        self.validate_historical_import_settlements()?;
+        let before = self
+            .freshness
+            .records_at(self.rel_turn_count())
+            .map_err(CvaError::Freshness)?;
+        let mut normalized = 0;
+        for payload in self.prepare_import_settlement_normalizations()? {
             let open = self.open_import_epoch().is_some();
             self.container.set_owner_write_scope(open);
             let appended = (|| {
@@ -601,6 +613,12 @@ pub use reconstruction::{
     HistoricalReconstructionError, HistoricalReconstructionOptions, HistoricalReconstructionReport,
 };
 
+#[cfg(test)]
+#[path = "historical_import_legacy_epoch_tests.rs"]
+mod legacy_epoch_transport_tests;
+#[cfg(test)]
+#[path = "historical_import_legacy_epoch_version_tests.rs"]
+mod legacy_epoch_version_tests;
 #[cfg(test)]
 #[path = "historical_import_tests.rs"]
 mod tests;

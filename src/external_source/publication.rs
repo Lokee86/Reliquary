@@ -9,13 +9,19 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-const MAGIC: &[u8; 8] = b"CVAXMEM1";
+const MAGIC: &[u8; 8] = b"CVAXMEM2";
+const LEGACY_MAGIC: &[u8; 8] = b"CVAXMEM1";
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct WireRecord {
+struct LegacyWireRecord {
     global: u64,
     memory: u64,
+    bytes: Vec<u8>,
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WireRecord {
     bytes: Vec<u8>,
 }
 #[derive(Serialize, Deserialize)]
@@ -33,12 +39,12 @@ pub(crate) struct Binding {
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct WirePublication {
+struct WirePublication<R> {
     window: [u8; 32],
     global_start: u64,
     transaction_ns: i64,
     birth_turn: Option<u64>,
-    records: Vec<WireRecord>,
+    records: Vec<R>,
     bodies: Vec<WireBody>,
     bindings: Vec<Binding>,
     routing: Vec<Vec<u8>>,
@@ -59,9 +65,9 @@ pub(crate) fn encode(value: &Publication) -> Result<Vec<u8>, MemoryError> {
         .iter()
         .map(|r| {
             Ok(WireRecord {
-                global: r.global_version,
-                memory: r.memory_version,
-                bytes: crate::memory_codec::encode_record(r)?,
+                bytes: crate::memory_compact_codec::encode_creation(
+                    &crate::memory_compact_contract::MemoryCreation::new(r.clone())?,
+                )?,
             })
         })
         .collect::<Result<Vec<_>, MemoryError>>()?;
@@ -102,14 +108,56 @@ pub(crate) fn encode(value: &Publication) -> Result<Vec<u8>, MemoryError> {
     Ok(bytes)
 }
 pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
-    if !bytes.starts_with(MAGIC) {
+    if !bytes.starts_with(MAGIC) && !bytes.starts_with(LEGACY_MAGIC) {
         return Ok(None);
     }
     let invalid = || MemoryError::CorruptRecord("external publication");
     let (start, count, transaction_ns) =
         decode_embedded_version_range(bytes)?.ok_or_else(invalid)?;
-    let wire: WirePublication =
-        serde_json::from_slice(&bytes[36..bytes.len() - 32]).map_err(|_| invalid())?;
+    let compact = bytes.starts_with(MAGIC);
+    let wire: WirePublication<MemoryRecord> = if compact {
+        let raw: WirePublication<WireRecord> =
+            serde_json::from_slice(&bytes[36..bytes.len() - 32]).map_err(|_| invalid())?;
+        let records = raw
+            .records
+            .into_iter()
+            .map(|r| crate::memory_compact_codec::decode_creation(&r.bytes).map(|v| v.record))
+            .collect::<Result<Vec<_>, MemoryError>>()?;
+        WirePublication {
+            window: raw.window,
+            global_start: raw.global_start,
+            transaction_ns: raw.transaction_ns,
+            birth_turn: raw.birth_turn,
+            records,
+            bodies: raw.bodies,
+            bindings: raw.bindings,
+            routing: raw.routing,
+        }
+    } else {
+        let raw: WirePublication<LegacyWireRecord> =
+            serde_json::from_slice(&bytes[36..bytes.len() - 32]).map_err(|_| invalid())?;
+        let records = raw
+            .records
+            .into_iter()
+            .map(|r| {
+                let mut record =
+                    crate::memory_codec::decode_record(&r.bytes)?.ok_or_else(invalid)?;
+                record.global_version = r.global;
+                record.memory_version = r.memory;
+                Ok(record)
+            })
+            .collect::<Result<Vec<_>, MemoryError>>()?;
+        WirePublication {
+            window: raw.window,
+            global_start: raw.global_start,
+            transaction_ns: raw.transaction_ns,
+            birth_turn: raw.birth_turn,
+            records,
+            bodies: raw.bodies,
+            bindings: raw.bindings,
+            routing: raw.routing,
+        }
+    };
     if wire.global_start != start
         || wire.records.len() != count as usize
         || wire.transaction_ns != transaction_ns
@@ -120,9 +168,8 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
         return Err(invalid());
     }
     let mut records = Vec::new();
-    for (i, r) in wire.records.into_iter().enumerate() {
-        let mut record = crate::memory_codec::decode_record(&r.bytes)?.ok_or_else(invalid)?;
-        if r.global
+    for (i, record) in wire.records.into_iter().enumerate() {
+        if record.global_version
             != wire
                 .global_start
                 .checked_add(i as u64)
@@ -138,8 +185,6 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
         {
             return Err(invalid());
         }
-        record.global_version = r.global;
-        record.memory_version = r.memory;
         let binding = &wire.bindings[i];
         binding.evidence.validate().map_err(|_| invalid())?;
         if binding.memory != record.id.0
@@ -177,7 +222,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
 pub(crate) fn decode_embedded_version_range(
     bytes: &[u8],
 ) -> Result<Option<(u64, u32, i64)>, MemoryError> {
-    if !bytes.starts_with(MAGIC) {
+    if !bytes.starts_with(MAGIC) && !bytes.starts_with(LEGACY_MAGIC) {
         return Ok(None);
     }
     let invalid = || MemoryError::CorruptRecord("external publication");

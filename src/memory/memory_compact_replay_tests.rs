@@ -1,15 +1,16 @@
 use crate::memory_codec::{
     MemoryTombstone, MemoryVersion, encode_body, encode_record, encode_tombstone, encode_version,
 };
-use crate::memory_compact_codec::{encode_creation, encode_delta};
+use crate::memory_compact_codec::{decode_delta, encode_creation, encode_delta};
 use crate::memory_compact_contract::{MemoryCreation, MemoryDelta, MemoryFieldChange};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id};
 use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::{
-    Container, FormatVersion, MemoryBodyId, MemoryError, MemoryId, MemoryTemporalInference,
-    TemporalIndicationKind, TemporalInference, TemporalInferenceResolution,
+    Container, ContainerError, FileKind, FormatVersion, MemoryBodyId, MemoryError, MemoryId,
+    MemoryTemporalInference, TemporalIndicationKind, TemporalInference,
+    TemporalInferenceResolution,
 };
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -395,4 +396,161 @@ fn v1_open_rejects_compact_memory_payload_without_modifying_file() {
     .and_then(|mut container| state.finish(&mut container));
     assert!(matches!(result, Err(MemoryError::ConflictingFormat)));
     assert_eq!(fs::read(path).unwrap(), before);
+}
+
+fn append_v1_out_of_order_global_memory(container: &mut Container) -> Vec<MemoryRecord> {
+    let mut first = initial_record();
+    first.body_id = append_body(container, "Stable body", "Both revisions retain this body.");
+    first.global_version = 2;
+    first.memory_version = 1;
+
+    let mut second = successor(&first);
+    second.global_version = 1;
+    second.memory_version = 2;
+
+    // Reserve both tickets before binding either revision. V1 accepts late
+    // markers, including a successor whose global ticket predates its parent.
+    assert_eq!(append_ticket(container), 1);
+    assert_eq!(append_ticket(container), 2);
+    for record in [&first, &second] {
+        let chunk = container.append(&encode_record(record).unwrap()).unwrap();
+        append_version_marker(
+            container,
+            chunk,
+            record.global_version,
+            record.memory_version,
+        );
+    }
+    vec![first, second]
+}
+
+fn downgrade_header_to_v1(path: &Path) {
+    let mut bytes = fs::read(path).unwrap();
+    bytes[8..10].copy_from_slice(&1_u16.to_le_bytes());
+    bytes[10..12].copy_from_slice(&0_u16.to_le_bytes());
+    fs::write(path, bytes).unwrap();
+}
+
+fn capture_memory_history(
+    path: &Path,
+) -> (
+    Vec<MemoryRecord>,
+    Vec<Option<i64>>,
+    Vec<crate::historical_fingerprint::HistoricalFingerprint>,
+) {
+    let mut state = MemoryOpenState::new();
+    let mut container = Container::open_scanned(path, |chunk, payload, latest| {
+        state.ingest(chunk, payload, latest)
+    })
+    .unwrap();
+    let store = state.finish(&mut container).unwrap();
+    let records = store.records().to_vec();
+    let transaction_times = records
+        .iter()
+        .map(|record| container.transaction_time_ns(record.global_version))
+        .collect();
+    let history =
+        crate::historical_memory_fingerprint::MemoryHistory::read(&mut container, &store).unwrap();
+    let cuts = (0..=store.memory_version())
+        .map(|cut| history.at(cut).unwrap().fingerprint)
+        .collect();
+    (records, transaction_times, cuts)
+}
+
+fn assert_v1_memory_upgrade_preserves_reversed_global_history(path: &Path, kind: FileKind) {
+    let expected = {
+        let mut owner = match kind {
+            FileKind::Reliquary => crate::Cva::create(path).unwrap().container,
+            FileKind::Phylactery => crate::Phylactery::create(path).unwrap().container,
+        };
+        append_v1_out_of_order_global_memory(&mut owner)
+    };
+    downgrade_header_to_v1(path);
+
+    let source_history = capture_memory_history(path);
+    assert_eq!(source_history.0, expected);
+    assert_eq!(source_history.0[0].global_version, 2);
+    assert_eq!(source_history.0[1].global_version, 1);
+    assert_ne!(source_history.1[0], source_history.1[1]);
+
+    let destination = path.with_extension("staged");
+    let plan = crate::storage_upgrade::plan_storage_upgrade(
+        crate::storage_upgrade::StorageUpgradeRequest {
+            source: path.to_path_buf(),
+            destination,
+        },
+    )
+    .unwrap();
+    let staged = crate::storage_upgrade::stage_memory_storage_upgrade(&plan).unwrap();
+    let staged_history = capture_memory_history(staged.test_path());
+    assert_eq!(staged_history.0, expected);
+    assert_eq!(staged_history.1, source_history.1);
+    assert_eq!(staged_history.2, source_history.2);
+
+    let mut container = Container::open(staged.test_path()).unwrap();
+    let mut creation_count = 0;
+    let mut delta_count = 0;
+    let mut reversed_delta_seen = false;
+    container
+        .visit_payloads::<ContainerError>(|_, payload| {
+            if payload.starts_with(b"CVAMC001") {
+                creation_count += 1;
+            } else if payload.starts_with(b"CVAMD001") {
+                delta_count += 1;
+                let delta = decode_delta(payload).unwrap();
+                reversed_delta_seen |=
+                    delta.revision == 2 && delta.global_version == 1 && delta.memory_version == 2;
+            }
+            assert!(!payload.starts_with(b"CVAMEMR"));
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(creation_count, 1);
+    assert_eq!(delta_count, 1);
+    assert!(reversed_delta_seen);
+}
+
+#[test]
+fn v1_rel_and_phy_reopen_accept_successor_with_earlier_global_ticket() {
+    let rel_path = test_path("v1-reversed-global.rel");
+    let mut rel = crate::Cva::create(&rel_path).unwrap();
+    let rel_expected = append_v1_out_of_order_global_memory(&mut rel.container);
+    drop(rel);
+    downgrade_header_to_v1(&rel_path);
+
+    let rel = crate::Cva::open_v1_read_only(&rel_path).unwrap();
+    assert_eq!(rel.memories.records(), rel_expected);
+    assert_eq!(rel.memories.memory_version(), 2);
+    assert_eq!(rel.memories.records()[0].global_version, 2);
+    assert_eq!(rel.memories.records()[1].global_version, 1);
+    assert_eq!(
+        rel.memories.records()[0].body_id,
+        rel.memories.records()[1].body_id
+    );
+    drop(rel);
+
+    let phy_path = test_path("v1-reversed-global.phy");
+    let mut phy = crate::Phylactery::create(&phy_path).unwrap();
+    let phy_expected = append_v1_out_of_order_global_memory(&mut phy.container);
+    drop(phy);
+    downgrade_header_to_v1(&phy_path);
+
+    let phy = crate::Phylactery::open_v1_read_only(&phy_path).unwrap();
+    assert_eq!(phy.memories.records(), phy_expected);
+    assert_eq!(phy.memories.memory_version(), 2);
+    assert_eq!(phy.memories.records()[0].global_version, 2);
+    assert_eq!(phy.memories.records()[1].global_version, 1);
+    assert_eq!(
+        phy.memories.records()[0].body_id,
+        phy.memories.records()[1].body_id
+    );
+}
+
+#[test]
+fn memory_upgrade_preserves_v1_reversed_global_history_for_rel_and_phy() {
+    let rel_path = test_path("v1-reversed-global-upgrade.rel");
+    assert_v1_memory_upgrade_preserves_reversed_global_history(&rel_path, FileKind::Reliquary);
+
+    let phy_path = test_path("v1-reversed-global-upgrade.phy");
+    assert_v1_memory_upgrade_preserves_reversed_global_history(&phy_path, FileKind::Phylactery);
 }

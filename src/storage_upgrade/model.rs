@@ -34,6 +34,28 @@ pub(crate) enum StorageUpgradeError {
     SourceChanged,
     MissingOwnerIdentity,
     CopyMismatch,
+    Memory(crate::MemoryError),
+    Import(crate::imports::ImportError),
+    Migration(String),
+    Owner(Box<crate::CvaError>),
+}
+
+impl From<crate::CvaError> for StorageUpgradeError {
+    fn from(error: crate::CvaError) -> Self {
+        Self::Owner(Box::new(error))
+    }
+}
+
+impl From<crate::imports::ImportError> for StorageUpgradeError {
+    fn from(error: crate::imports::ImportError) -> Self {
+        Self::Import(error)
+    }
+}
+
+impl From<crate::MemoryError> for StorageUpgradeError {
+    fn from(error: crate::MemoryError) -> Self {
+        Self::Memory(error)
+    }
 }
 
 impl From<io::Error> for StorageUpgradeError {
@@ -58,6 +80,10 @@ impl fmt::Display for StorageUpgradeError {
             Self::MissingOwnerIdentity => {
                 f.write_str("upgrade requires retained owner identity and UUID")
             }
+            Self::Owner(error) => write!(f, "upgrade owner: {error}"),
+            Self::Import(error) => write!(f, "upgrade import proof: {error}"),
+            Self::Memory(error) => write!(f, "upgrade Memory: {error}"),
+            Self::Migration(error) => write!(f, "upgrade relocation: {error}"),
             Self::CopyMismatch => f.write_str("upgrade shell differs from frozen source"),
         }
     }

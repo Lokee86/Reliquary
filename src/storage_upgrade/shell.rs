@@ -73,6 +73,12 @@ pub(crate) struct StagedStorageUpgrade {
     pub(super) path: PathBuf,
     pub evidence: StorageUpgradeResult,
 }
+impl StagedStorageUpgrade {
+    #[cfg(test)]
+    pub(crate) fn test_path(&self) -> &Path {
+        &self.path
+    }
+}
 impl Drop for StagedStorageUpgrade {
     fn drop(&mut self) {
         let _ = fs::remove_file(&self.path);
@@ -88,11 +94,25 @@ pub(crate) fn stage_storage_upgrade(
     stage_with_check(plan, || Ok(()))
 }
 
+pub(crate) fn stage_memory_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), true)
+}
+
 // The callback is a bounded test seam for aborts and concurrent source/output
 // changes. It does not grant access to either open container handle.
 pub(super) fn stage_with_check(
     plan: &StorageUpgradePlan,
     check: impl FnOnce() -> Result<(), StorageUpgradeError>,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, check, false)
+}
+
+fn stage_impl(
+    plan: &StorageUpgradePlan,
+    check: impl FnOnce() -> Result<(), StorageUpgradeError>,
+    migrate_memory: bool,
 ) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
     reject_existing_output(&plan.request.destination)?;
     let mut source = Container::open_v1_read_only(&plan.request.source)?;
@@ -124,9 +144,13 @@ pub(super) fn stage_with_check(
     };
     let mut destination =
         Container::create_with_identity_and_uuid(&staged.path, plan.identity, plan.owner_uuid)?;
-    source.copy_upgrade_shell_frames(&mut destination)?;
-    if digest(destination.backing_file(), true)? != (plan.source_digest, plan.source_len) {
-        return Err(StorageUpgradeError::CopyMismatch);
+    if migrate_memory {
+        super::memory::transform(&mut source, &mut destination)?;
+    } else {
+        source.copy_upgrade_shell_frames(&mut destination)?;
+        if digest(destination.backing_file(), true)? != (plan.source_digest, plan.source_len) {
+            return Err(StorageUpgradeError::CopyMismatch);
+        }
     }
     destination.sync()?;
     drop(destination);

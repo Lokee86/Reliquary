@@ -166,9 +166,9 @@ fn rejects_bad_identity_base_revision_and_publication_envelope_without_mutation(
     wrong_revision.revision += 1;
     assert_rejected_without_mutation(&previous, wrong_revision);
 
-    let mut stale_global = base.clone();
-    stale_global.global_version = previous.global_version;
-    assert_rejected_without_mutation(&previous, stale_global);
+    let mut zero_global = base.clone();
+    zero_global.global_version = 0;
+    assert_rejected_without_mutation(&previous, zero_global);
 
     let mut stale_memory = base.clone();
     stale_memory.memory_version = previous.memory_version;

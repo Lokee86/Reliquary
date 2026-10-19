@@ -166,3 +166,7 @@ impl Cva {
             .map_err(|_| ExternalSourceError::RebuildRequired)
     }
 }
+
+#[cfg(test)]
+#[path = "publication_compact_tests.rs"]
+mod publication_compact_tests;

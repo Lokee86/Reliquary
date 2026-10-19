@@ -51,6 +51,9 @@ impl Cva {
                 rewritten_user_turns += usize::from(rewritten);
                 preserved_user_turns += usize::from(preserved);
                 let payload = relocate_payload(&payload, &relocated).map_err(CvaError::Repack)?;
+                let payload =
+                    crate::imports::legacy_epoch_transport::rebind_copy(&payload, &output)
+                        .map_err(CvaError::Import)?;
                 let destination_ref = output.append(&payload)?;
                 relocated.insert(source_ref, destination_ref);
                 copied_chunks += 1;

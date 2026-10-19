@@ -1,4 +1,4 @@
-//! Owner-local creation/delta contract. No wire codec or writer cutover yet.
+//! Owner-local creation/delta contract for compact publication and migration.
 use crate::memory_model::MemoryRecord;
 use crate::{EpisodeId, MemoryError, MemoryId, MemorySourceRef, MemoryTemporalInference};
 
@@ -117,7 +117,7 @@ impl MemoryDelta {
         }
         if previous.global_version == 0
             || previous.memory_version == 0
-            || next.global_version <= previous.global_version
+            || next.global_version == 0
             || next.memory_version <= previous.memory_version
         {
             return Err(MemoryError::CorruptRecord(

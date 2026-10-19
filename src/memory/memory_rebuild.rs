@@ -42,6 +42,7 @@ impl MemoryOpenState {
             return Ok(());
         }
         if let Some(publication) = crate::external_source::publication::decode(payload)? {
+            self.compact_seen |= payload.starts_with(b"CVAXMEM2");
             self.store
                 .apply_grouped_bodies(chunk, &publication.bodies)?;
             for record in &publication.records {
@@ -61,6 +62,8 @@ impl MemoryOpenState {
         if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
             .map_err(MemoryError::CorruptRecord)?
         {
+            self.compact_seen |=
+                payload.starts_with(b"CVAINSC7") || payload.starts_with(b"CVAINSC8");
             self.store.apply_grouped_bodies(chunk, &completion.bodies)?;
             for record in completion.records {
                 if record.global_version == 0 || record.global_version > latest_global_version {
