@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 47/247 execution steps complete
+Status: Implementation-ready; 55/247 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -469,6 +469,62 @@ Blockers: none for contract acceptance; wire codecs, replay and writer cutover b
 | 53 | Sol | Add validate-before-apply guard so invalid delta cannot mutate projection. | Negative tests prove prior state unchanged. |
 | 54 | Sol | Teach compact Memory rebuild to replay creation + delta + tombstone. | Synthetic histories reopen identically. |
 | 55 | Sol | Preserve exact mutation-ID retry/conflict behavior in compact replay. | Exact retry idempotent; conflicting payload rejects. |
+
+### Step 48 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_compact_codec.rs; neighboring compact codec/application/replay/retry tests.
+Verification: Independent golden creation bytes pass; separate body identity and exact creation coordinates retained. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
+
+### Step 49 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_compact_codec.rs; neighboring compact codec/application/replay/retry tests.
+Verification: Creation round-trip, every-byte truncation, bad magic/tags/UTF-8/lengths, empty mutation and zero coordinates reject. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
+
+### Step 50 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_compact_codec.rs; neighboring compact codec/application/replay/retry tests.
+Verification: Independent golden delta bytes pass; only mask-selected values appear in fixed order. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
+
+### Step 51 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_compact_codec.rs; neighboring compact codec/application/replay/retry tests.
+Verification: Malformed/truncated/unknown-mask/envelope inputs reject; prior-dependent redundant-operation canonicality is checked at application. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
+
+### Step 52 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_compact_apply.rs; neighboring compact codec/application/replay/retry tests.
+Verification: All twenty changed fields, explicit optional clears and legitimate empty-mask publications materialize exact postimages. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
+
+### Step 53 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_compact_apply.rs; src/memory/memory_rebuild.rs; neighboring compact codec/application/replay/retry tests.
+Verification: Invalid target/base/revision/coordinates/mutation, redundant fields and proof binding cannot replace prior accepted state. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
+
+### Step 54 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_rebuild.rs; src/memory/memory_store.rs; neighboring compact codec/application/replay/retry tests.
+Verification: Creation/delta/tombstone history reopens; unversioned carriers inert; exact publication-marker binding and V1 rejection preserve source bytes; legacy late-ticket visibility matches. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
+
+### Step 55 execution record
+
+Commit: `d5b8a79`.
+Files: src/memory/memory_compact_retry_tests.rs; neighboring compact codec/application/replay/retry tests.
+Verification: Creation/latest-revision exact retries, mutation conflict, stale new revision and terminal retry preserve existing bytes, coordinates and retained revisions. Shared focused run **31/31**, existing Memory regressions **29/29**, CLI **32/32**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-codec-and-replay).
+Blockers: none for this acceptance item; ordinary writer cutover and migration begin at Step 56.
 
 ## Phase F — Memory Writer Cutover and Migration
 
