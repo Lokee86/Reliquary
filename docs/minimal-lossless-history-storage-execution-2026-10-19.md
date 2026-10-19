@@ -168,7 +168,7 @@ The authoritative fixture run passes **3/3** (62.22 seconds), including repeated
 
 Final strengthened synthetic checks pass **3/3**: public historical API agreement/inert backing, terminal closure across reopen, and authenticated reclamation that actually relocates published objects.
 
-These sampled determinism checks do not claim exhaustive cross-format parity; exhaustive cut enumeration and baseline artifacts remain Steps 17–19. All six authoritative hashes were re-read afterward and still match the accepted baseline. Opt-in fixture checks use the `history-oracle-fixtures` Cargo feature and add no ignored tests to the ordinary suite.
+These sampled determinism checks do not claim exhaustive cross-format parity; exhaustive cut enumeration and baseline artifacts remain Steps 19–21. All six authoritative hashes were re-read afterward and still match the accepted baseline. Opt-in fixture checks use the `history-oracle-fixtures` Cargo feature and add no ignored tests to the ordinary suite.
 
 ## Step 9 — Memory historical fingerprint
 
@@ -208,7 +208,7 @@ Verification passes **3/3** (23.18 seconds): synthetic qualified participant/evi
 
 `historical_graph_fingerprint.rs` reads accepted Graph version publications and their decoded semantic changes. It preserves typed endpoint identities, relation kind/active/origin, transaction/global/local coordinates, exact publication time, inactive revisions and the isolated Memory population admitted by a fresh-history baseline. Physical node ordinals, chunk references and unpublished backing are excluded. MemoryGraph uses the last qualifying full-Graph version, not a separately dense counter; nonqualifying local cuts are rejected for its projection.
 
-Graph history is independent of current Memory/Entity lifecycle exclusions. Verification applies the existing owner visibility rule when comparing current topology, and checks that a Memory terminal does not fabricate a Graph publication or alter an earlier Graph fingerprint. Whole-owner historical visibility remains Step 18. The baseline owner/generation/policy tuple is validated against RewriteGenesis on open and belongs to that cross-owner lineage proof comparison; Step 18 explicitly owns it, while this Graph fingerprint records the admitted node population.
+Graph history is independent of current Memory/Entity lifecycle exclusions. Verification applies the existing owner visibility rule when comparing current topology, and checks that a Memory terminal does not fabricate a Graph publication or alter an earlier Graph fingerprint. Whole-owner historical visibility remains Step 20. The baseline owner/generation/policy tuple is validated against RewriteGenesis on open and belongs to that cross-owner lineage proof comparison; Step 20 explicitly owns it, while this Graph fingerprint records the admitted node population.
 
 The initial fixture run passed both tests (57.85 seconds). Its latest projections agree with replayed active full-Graph relations, MemoryGraph relations and clock:
 
@@ -252,7 +252,23 @@ Verification gates pass separately:
 | first 28 days | 16,465 | 25,337 | 30 |
 | Ellis | 2,972 | 6,309 | 45 |
 
-Normal `cargo check --locked` passes after the helper extraction. All six authoritative hashes remain unchanged. PHY has no Freshness activity owner. Exhaustive cut enumeration and persisted baseline artifacts remain Steps 17–19.
+Normal `cargo check --locked` passes after the helper extraction. All six authoritative hashes remain unchanged. PHY has no Freshness activity owner. Exhaustive cut enumeration and persisted baseline artifacts remain Steps 19–21.
+
+## Plan expansion — separate Dream state families
+
+After Step 15, source/spec review confirmed that accepted pending/completed first-pass proof (Step 16) does not cover REL/PHY monotone Dream pair membership or effective Dream processing-lane state. Pair membership is explicitly semantic in the specification; lane state changes future eligibility. Neither has a local history clock. They must not become hidden work in the whole-owner gate.
+
+Under the plan's explicit-owner-step rule, two bounded oracle steps were inserted as Steps 17 and 18. Former Steps 17–243 move to 19–245; verified Steps 1–15 and their commit identities remain unchanged. The plan is now **15/245**. Structural verification confirms every number 1–245 exactly once, with integration gates unnumbered. Historical global visibility for these clock-neutral states remains an explicit concern for Step 20 and may not be inferred from a timestamp or another owner's version.
+
+## Dream and cut-enumeration batch — Steps 16–19
+
+The revised execution rules group adjacent acceptance items into a coherent batch. The test-only Dream proof projection includes pending passes, settled markers, publication initialization intents/birth facts, accepted Graph proof cuts, and retained completed passes. A settled marker alone is not verified no-link evidence. Pair membership and processing-lane records remain separate owner domains. Both use an explicit clock-neutral current snapshot (`local_cut = 0`), with no borrowed Memory, Graph, activity, or global clock. Processing rows retain lane, satisfied epoch, cadence version and checkpoint time; legacy cooldown conversion is tested through the existing explicit migration seam.
+
+Cut enumeration includes the empty prefix and every retained dense owner-local/global position. MemoryGraph positions are selected by one scan of qualifying full-Graph publications, including gaps; synthetic expected positions are full Graph `[0,1,2,3]` and MemoryGraph `[0,1,3]`. Freshness enumerates activity positions separately from exact stable event prefixes at their accepted proof Graph cuts, collapsing identical accepted event receipts and rejecting conflicting identities. This is not a Cartesian event-ID/Graph-position product or a claim of exhaustive fingerprint comparison.
+
+Shared focused verification passes **17/17**, including existing matching historical Dream regressions and the new synthetic gates. Shared authoritative gates pass **4/4** (151.25 seconds): three REL proof histories, all six REL/PHY pair sets, all six processing states, and all six cut enumerations agree across repeated reads and reopen. All authoritative processing-lane sets are empty, so nonempty epoch/eligibility/legacy-conversion coverage is synthetic. Normal `cargo check --locked` and formatting pass. Source fixtures are read-only inputs copied with `io::copy`; no repeated source-hash sweep is claimed for this batch. No persisted format or runtime authority changes are part of this batch.
+
+Development runs caught and corrected synthetic lifecycle eligibility and nanosecond epoch-boundary mistakes before acceptance; the final focused run is green. Logs: `.test-tmp/lossless-dream-and-cuts-synthetic-verified.log`, `.test-tmp/lossless-dream-and-cuts-fixtures.log`, and `.test-tmp/lossless-dream-check.log`. Broad cross-domain verification remains at Gate A.
 
 ## Fresh baseline observations
 

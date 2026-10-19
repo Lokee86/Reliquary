@@ -163,6 +163,22 @@ impl GraphHistory {
             memory_graph_version,
         })
     }
+
+    /// Full-Graph positions that actually advance the MemoryGraph projection.
+    /// This scans the accepted transactions once and avoids fingerprinting
+    /// every intermediate cut merely to discover qualifying values.
+    pub(crate) fn memory_graph_positions(&self) -> Vec<u64> {
+        let mut positions = vec![0];
+        for (index, transaction) in self.transactions.iter().enumerate() {
+            if transaction
+                .iter()
+                .any(|relation| matches!(relation.kind, SemanticGraphRelationKind::Memory(_)))
+            {
+                positions.push(index as u64 + 1);
+            }
+        }
+        positions
+    }
 }
 
 fn relation_value(relation: SemanticGraphRelation) -> serde_json::Value {

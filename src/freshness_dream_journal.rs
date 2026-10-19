@@ -3,6 +3,27 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const MAGIC: &[u8; 8] = b"CVDREAM1";
 
+#[cfg(test)]
+pub(crate) fn historical_pass_value(pass: &InitialDreamPass) -> serde_json::Value {
+    let InitialDreamPass {
+        pass_id,
+        source_id,
+        first_revision,
+        turn,
+        accepted_settlement_turn,
+        preexisting_ids,
+        graph_version_before,
+        roots,
+    } = pass;
+    serde_json::json!({
+        "pass_id": pass_id, "source_id": source_id.0, "first_revision": first_revision,
+        "turn": turn, "accepted_settlement_turn": accepted_settlement_turn,
+        "preexisting_ids": preexisting_ids.iter().map(|id| id.0).collect::<Vec<_>>(),
+        "graph_version_before": graph_version_before,
+        "roots": roots.iter().map(|id| id.0).collect::<Vec<_>>(),
+    })
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct InitialDreamPass {
     pub pass_id: String,
@@ -26,6 +47,22 @@ pub(crate) struct DreamFreshnessJournal {
 }
 
 impl DreamFreshnessJournal {
+    /// Clock-neutral accepted resume state for the test-only equivalence oracle.
+    #[cfg(test)]
+    pub(crate) fn historical_oracle_value(&self) -> serde_json::Value {
+        use serde_json::json;
+        json!({
+            "pending": self.pending.values().map(historical_pass_value).collect::<Vec<_>>(),
+            "settled": self.settled,
+            "pending_initializations": self.pending_initializations.iter().map(|(id, (mutation, turn, admitted))| json!([id.0, mutation, turn, admitted])).collect::<Vec<_>>(),
+            "publication_births": self.publication_births.iter().map(|id| id.0).collect::<Vec<_>>(),
+            "accepted_graph_cuts": self.accepted_graph_cuts.iter().map(|(id, (turn, proof))| {
+                let crate::FreshnessEventProof { graph_version, community_generation, community_graph_version } = *proof;
+                json!([id, turn, graph_version, community_generation, community_graph_version])
+            }).collect::<Vec<_>>(),
+        })
+    }
+
     /// Re-encode accepted evidence through this owner at destination coordinates.
     /// The caller supplies mappings derived from already replayed owner records.
     pub(crate) fn replay_payload(

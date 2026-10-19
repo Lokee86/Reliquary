@@ -39,6 +39,18 @@ mod owner_maintenance;
 #[path = "facade/historical_archive_fingerprint.rs"]
 mod historical_archive_fingerprint;
 #[cfg(test)]
+#[path = "facade/historical_cut_enumeration.rs"]
+mod historical_cut_enumeration;
+#[cfg(test)]
+#[path = "facade/historical_dream_pair_fingerprint.rs"]
+mod historical_dream_pair_fingerprint;
+#[cfg(test)]
+#[path = "facade/historical_dream_processing_fingerprint.rs"]
+mod historical_dream_processing_fingerprint;
+#[cfg(test)]
+#[path = "facade/historical_dream_proof_fingerprint.rs"]
+mod historical_dream_proof_fingerprint;
+#[cfg(test)]
 #[path = "facade/historical_ego_fingerprint.rs"]
 mod historical_ego_fingerprint;
 #[cfg(test)]
