@@ -47,6 +47,9 @@ mod historical_fingerprint;
 #[cfg(test)]
 #[path = "facade/historical_memory_fingerprint.rs"]
 mod historical_memory_fingerprint;
+#[cfg(test)]
+#[path = "facade/historical_relationship_fingerprint.rs"]
+mod historical_relationship_fingerprint;
 
 pub mod imports;
 pub mod owner_lifecycle;
