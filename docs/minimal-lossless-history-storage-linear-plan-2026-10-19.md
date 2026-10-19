@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 62/266 execution steps complete
+Status: Implementation-ready; 86/266 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -575,6 +575,174 @@ Files: src/facade/storage_reclamation_scan.rs; src/memory/memory_compact_mainten
 Verification: REL/PHY reclamation preserves linked compact history and body closure while removing unversioned carriers and orphan bodies. Shared focused compact tests **36/36**, import adapter tests **3/3**, existing regressions **61/61**, CLI **32/32**; root/CLI checks and formatting pass. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#standalone-memory-writer-and-reader-cutover).
 Blockers: none for this item; grouped/external publication and migration remain pending.
 
+### Step 63 execution record
+
+Commit: `9996c28`.
+Files: `src/runtime_inference/insomnia/completion.rs`; `src/runtime_inference/insomnia/completion_compact_legacy.rs`; `src/runtime_inference/insomnia/completion_compact_tests.rs`.
+Verification: Atomic grouped/external publication tests pass **10/10**; existing Insomnia regressions pass **83/83**. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#steps-63-86--grouped-publication-migration-and-import-proof-transport).
+Blockers: none for this item; migration and integration acceptance are separate gates.
+
+### Step 64 execution record
+
+Commit: `9996c28`.
+Files: `src/external_source/publication.rs`; `src/external_source/publication_compact_tests.rs`.
+Verification: Compact external Memory publication/routing and atomic retry coverage pass in the **10/10** focused publication run; existing Insomnia regressions pass **83/83**.
+Blockers: none for this item; end-to-end migration remains separately gated.
+
+### Step 65 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory.rs`; `src/storage_upgrade/memory_tests.rs`; compact Memory writer/replay support.
+Verification: V1 standalone creation migrates with identity, body and publication coordinates preserved; the migration-filter run passes **14/14** for REL/PHY histories.
+Blockers: none for this item.
+
+### Step 66 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory.rs`; `src/storage_upgrade/memory_tests.rs`; `src/memory/memory_rebuild.rs`.
+Verification: V1 later revisions migrate to canonical compact deltas with historical parity; migration-filter run **14/14**.
+Blockers: none for this item.
+
+### Step 67 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory.rs`; `src/runtime_inference/insomnia/completion.rs`; `src/runtime_inference/insomnia/completion_compact_legacy.rs`; `src/runtime_inference/insomnia/completion_migration_tests.rs`.
+Verification: Grouped histories preserve record IDs, bodies, clocks and exact accepted completion contents; atomic run **10/10**, migration run **14/14**.
+Blockers: none for this item.
+
+### Step 68 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory.rs`; `src/external_source/publication.rs`; `src/external_source/publication_compact_tests.rs`.
+Verification: External publication and routing references migrate with owner coordinates and bodies preserved; migration run **14/14**.
+Blockers: none for this item.
+
+### Step 69 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory.rs`; `src/storage_upgrade/memory_tests.rs`; `src/memory/memory_rebuild.rs`.
+Verification: Pre-tombstone revisions and terminal publication coordinates match across V1-to-compact migration; migration run **14/14**.
+Blockers: none for this item.
+
+### Step 70 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory_tests.rs`; `src/memory/memory_compact_replay_tests.rs`; `src/memory/memory_compact_apply_tests.rs`.
+Verification: REL/PHY fixtures cover optional clears, supersession, archive/lifecycle changes, legal late-ticket coordinates and malformed histories; compact and migration tests pass **38/38** and **14/14**.
+Blockers: none for the adversarial fixture gate.
+
+### Step 71 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory_tests.rs`; `src/memory/memory_compact_retry_tests.rs`.
+Verification: Creation/latest-revision retries, metadata conflicts, stale new mutations and terminal retry preserve records and coordinates; migration run **14/14**.
+Blockers: none for the retry/conflict fixture gate.
+
+### Step 72 execution record
+
+Commit: `9996c28`.
+Files: `src/imports/legacy_epoch_transport.rs`; `src/imports/epoch_store.rs`.
+Verification: The relocated-proof contract keeps exact CVAILEG1 evidence and binds the transformed prefix independently; transport and legacy-epoch tests pass **6/6**.
+Blockers: none for the transport contract.
+
+### Step 73 execution record
+
+Commit: `9996c28`.
+Files: `src/imports/legacy_epoch_transport.rs`; `src/imports/mod.rs`.
+Verification: Bounded CVAILEG2 encoding retains original evidence and binds owner/prefix/settlement data; focused legacy-epoch suite passes **6/6**.
+Blockers: none for the encoder gate.
+
+### Step 74 execution record
+
+Commit: `9996c28`.
+Files: `src/imports/legacy_epoch_transport.rs`; `src/imports/epoch_store.rs`.
+Verification: Checksum, truncation, malformed nested frames, unknown versions and V1 rejection fail closed; focused legacy-epoch suite passes **6/6**.
+Blockers: none for the decoder gate.
+
+### Step 75 execution record
+
+Commit: `9996c28`.
+Files: `src/imports/epoch_store.rs`; `src/memory/memory_rebuild.rs`; `src/imports/legacy_epoch_transport.rs`.
+Verification: V2 owner replay validates owner, transformed prefix, marker and settlement while historical evidence exposes the original proof; V1 remains read-only and rejects compact proof. Focused suite **6/6**.
+Blockers: none for replay validation.
+
+### Step 76 execution record
+
+Commit: `9996c28`.
+Files: `src/storage_upgrade/memory.rs`; `src/facade/historical_import_legacy_epoch_tests.rs`; `src/imports/legacy_epoch_transport.rs`.
+Verification: The authoritative imported REL migration reopens with exact original proof and transformed-prefix binding; source bytes and semantic fingerprints match, with zero observed semantic mismatches.
+Blockers: The six-file authoritative migration/measurement run is still in progress; this step's imported REL proof gate is satisfied.
+
+### Step 77 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/historical_import_legacy_epoch_tests.rs`; `src/facade/historical_import_legacy_epoch_version_tests.rs`.
+Verification: Prefix, owner, marker, settlement, checksum, malformed framing and source-preservation attacks are covered; legacy-epoch suite passes **6/6**.
+Blockers: none for the adversarial proof gate.
+
+### Step 78 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/cva_historical_import.rs`; `src/facade/historical_import_transform.rs`.
+Verification: Read-only normalization preparation retains original proof bytes and does not append semantic versions or synthesize clocks; V3/V4/V5 legacy settlement tests pass within **6/6**.
+Blockers: none for preparation.
+
+### Step 79 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/cva_historical_import.rs`; normalization and legacy settlement tests.
+Verification: Normalization preparation is separated from persistence; repeated normalization is idempotent and preserves existing publication behavior. Legacy-epoch suite **6/6**.
+Blockers: none for extraction.
+
+### Step 80 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/historical_import_legacy_epoch_version_tests.rs`; `src/facade/cva_historical_import.rs`.
+Verification: CVAFRS03 normalization is prepared on the original source before relocation; exact evidence and canonical Freshness history survive migration and maintenance. Legacy-epoch suite **6/6**.
+Blockers: none for this variant.
+
+### Step 81 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/historical_import_legacy_epoch_version_tests.rs`; `src/facade/cva_historical_import.rs`.
+Verification: CVAFRS04 epoch scope and predecessor evidence survive migration without changing source bytes or semantic clocks; legacy-epoch suite **6/6**.
+Blockers: none for this variant.
+
+### Step 82 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/historical_import_legacy_epoch_version_tests.rs`; `src/facade/cva_historical_import.rs`.
+Verification: CVAFRS05 scoped event/source proof survives migration with matching canonical Freshness fingerprints and transaction times; legacy-epoch suite **6/6**.
+Blockers: none for this variant.
+
+### Step 83 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/historical_import_legacy_epoch_tests.rs`; `src/facade/historical_import_legacy_epoch_version_tests.rs`; maintenance/rebind paths.
+Verification: CVAFRS03/04/05 migration preserves source bytes, semantic fingerprints, global/local coordinates and transaction times; reclaim/repack/prune remain valid. Legacy-epoch suite **6/6**.
+Blockers: none for the synthetic and migrated-owner equivalence gate; the whole-file measurement remains Step 87.
+
+### Step 84 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/storage_reclamation.rs`; REL/PHY reclaim, attachment/principal repack and prune paths.
+Verification: Maintenance rebinds only the transported physical prefix; original CVAILEG1 receipt and semantic history remain unchanged. Legacy-epoch suite **6/6**.
+Blockers: none for the covered maintenance paths.
+
+### Step 85 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/cva_historical_import.rs`; `src/imports/legacy_epoch_transport.rs`; historical-copy equivalence paths.
+Verification: Historical evidence comparison unwraps and retains the exact original proof; maintenance validates the new physical binding separately. Legacy-epoch suite **6/6**.
+Blockers: none for proof-equivalence handling.
+
+### Step 86 execution record
+
+Commit: `9996c28`.
+Files: `src/facade/historical_import_legacy_epoch_tests.rs`; `src/facade/historical_import_legacy_epoch_version_tests.rs`.
+Verification: Migrated-owner reclaim, attachment/principal repack and prune preserve receipts, clocks and proof validation after earlier payloads are removed or changed; legacy-epoch suite **6/6**.
+Blockers: none for the covered maintenance regression.
+
 ## Phase F — Memory Writer Cutover and Migration
 
 | Step | Owner | Work | Gate |
@@ -1031,6 +1199,8 @@ The unnumbered integration gates are broad acceptance checkpoints and natural ba
 This decomposition contains **266 execution steps**. The initial 243-step expansion split the previous 74-step version into independent schema, codec, replay, writer, migration, proof, fixture, and measurement responsibilities. Execution discovery added explicit Dream pair-membership and processing-eligibility oracle steps before whole-owner integration; they are separate from accepted first-pass proof and must not be absorbed into the whole-owner gate. V1 open-path discovery added separate conversation-compaction and Entity-resolution read-only projection checks before owner lifecycle cutover; their physical reclamation and durable revision-repair failure domains require independent evidence.
 
 Standalone Memory writer cutover exposed four legacy-carrier readers with separate owners/failure domains: REL reconciliation, completed-import evidence, import interval admission and shared physical reclamation. These are explicit Steps 59-62; former Steps 59-247 move to 63-251. They may not be absorbed into the Memory integration gate.
+
+Steps 63-86 are accepted against `9996c28`; the execution ledger contains exactly the contiguous accepted range 1-86. Step 87's six-file raw-byte measurement and Integration Gate C remain pending. The passing 1,800-test root integration run is recorded as supporting evidence, not as completion of Gate C; fresh architecture evidence and the full authoritative measurement remain open.
 
 The number is not a target or an estimate of required work sessions. It is the consequence of making acceptance/failure domains explicit.
 
