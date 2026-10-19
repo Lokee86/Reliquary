@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 31/247 execution steps complete
+Status: Implementation-ready; 47/247 execution steps complete
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
@@ -254,56 +254,56 @@ Blockers: none for strict route selection. Owner-level compact dispatch and vers
 
 ### Step 24 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: src/archive/conversation_compaction_store.rs; `src/facade/storage_format_boundary_tests.rs`.
 Verification: Duplicate durable compactions project only the surviving generation; exact V1 source bytes remain unchanged while V2 writable reopen reclaims. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
 
 ### Step 25 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: src/facade/cva_lifecycle.rs, src/facade/phylactery_lifecycle.rs; `src/facade/storage_format_boundary_tests.rs`.
 Verification: Stored retired-Entity reference and resolution revision remain unchanged in V1; V2 writable reopen appends the existing canonical repair. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
 
 ### Step 26 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: src/container/container_scan.rs, src/facade/cva_lifecycle.rs; `src/facade/storage_format_boundary_tests.rs`.
 Verification: Explicit and automatic V1 REL opens use read-only handles; malformed V1 tails fail unchanged; V2 retains recovery. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
 
 ### Step 27 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: src/container/container_scan.rs, src/facade/phylactery_lifecycle.rs; `src/facade/storage_format_boundary_tests.rs`.
 Verification: Explicit V1 PHY inspection succeeds unchanged; strict V1 API rejects V2. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
 
 ### Step 28 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: Concrete owner stores and REL facade writers; `src/facade/storage_format_boundary_tests.rs`.
 Verification: Metadata no-op, exact Memory retry, empty Graph batch and exact Ego update return typed StorageFormatUpgradeRequired without resident/durable changes. Owner write scope cannot bypass the raw barrier. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
 
 ### Step 29 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: Concrete owner stores and PHY facade writers; `src/facade/storage_format_boundary_tests.rs`.
 Verification: Profile no-op and repeated writes return typed StorageFormatUpgradeRequired unchanged. Vector, Ego, Memory, Graph, processing and pair writers preflight format admission. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
 
 ### Step 30 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: src/container/container.rs, src/facade/cva_lifecycle.rs; `src/facade/storage_format_boundary_tests.rs`.
 Verification: New REL header is exactly V2.0; normal reopen succeeds and empty physical copies retain identity and UUID. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
 
 ### Step 31 execution record
 
-Commit: pending shared V1 read-only/V2 creation cutover commit.
+Commit: `a822c23`.
 Files: src/container/container.rs, src/facade/phylactery_lifecycle.rs; `src/facade/storage_format_boundary_tests.rs`.
 Verification: New PHY header is exactly V2.0 and normal reopen succeeds. Shared focused run **26/26**; broader evidence is recorded in the execution log.
 Blockers: none for this acceptance item; explicit lossless upgrade execution remains Phase C.
@@ -326,9 +326,81 @@ Blockers: none for this acceptance item; explicit lossless upgrade execution rem
 | 40 | Sol | Add partial-output cleanup/abort behavior. | Failed upgrade never leaves a promotable partial destination. |
 | 41 | Luna | Add corruption, output-exists, abort, and drift regression fixtures. | All failure modes leave source untouched. |
 
+### Step 32 execution record
+
+Commit: `4652466`.
+Files: src/storage_upgrade/model.rs; src/storage_upgrade/shell.rs.
+Verification: Internal request/plan/result types; existing file, directory and source-alias outputs reject without overwrite. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 33 execution record
+
+Commit: `4652466`.
+Files: src/storage_upgrade/shell.rs.
+Verification: Minimal REL staging retains kind, owner UUID and V2 reopen; source bytes unchanged. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 34 execution record
+
+Commit: `4652466`.
+Files: src/storage_upgrade/shell.rs.
+Verification: Minimal PHY staging retains kind, owner UUID and V2 reopen; source bytes unchanged. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 35 execution record
+
+Commit: `4652466`.
+Files: src/container/container_upgrade.rs.
+Verification: Four exact global tickets survive physical copy and reopen; no allocation/rebase. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 36 execution record
+
+Commit: `4652466`.
+Files: src/container/container_upgrade.rs.
+Verification: Exact timestamp map retains missing, repeated and nonmonotone values. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 37 execution record
+
+Commit: `4652466`.
+Files: src/storage_upgrade/tests.rs.
+Verification: Interleaved Memory/Entity owner cuts and whole-owner fingerprints match at every retained synthetic global cut. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 38 execution record
+
+Commit: `4652466`.
+Files: src/container/container_upgrade.rs.
+Verification: Complete normalized-header digest and exact chunk ordering match; clock-neutral replay frontier matches at every synthetic cut. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 39 execution record
+
+Commit: `4652466`.
+Files: src/storage_upgrade/shell.rs.
+Verification: Same-size UUID drift before/during staging rejects; final source handle/path digest checks precede shell acceptance. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 40 execution record
+
+Commit: `4652466`.
+Files: src/storage_upgrade/shell.rs.
+Verification: Owned sibling guard removes partial file/directory on abort, error and drop; late output winner remains untouched. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
+### Step 41 execution record
+
+Commit: `4652466`.
+Files: src/storage_upgrade/tests.rs.
+Verification: Eight shell regressions cover identity, ordering, historical cuts, truncated input, output aliases/collisions, abort and drift. Shared Gate B run **34/34**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#lossless-upgrade-shell).
+Blockers: none for shell acceptance; semantic codec migration and public promotion remain later plan requirements.
+
 ### Integration Gate B — Format boundary and upgrader shell
 
 Run header/open/create/read-only/mutation-rejection/upgrade-shell tests for REL and PHY. No semantic owner codec is changed yet.
+
+Acceptance: **34/34** focused tests pass (8 shell, 9 facade boundary, 4 header boundary, 13 existing container). Normal library check, formatting, both documentation-policy modes, current ownership guards and 23 retained-snapshot Pitlord rules pass. Fresh structural snapshot remains unavailable after a bounded refresh; no fresh evidence is claimed. The upgrader remains an internal non-promoting shell until owner migration/equivalence steps complete.
 
 ---
 
@@ -342,6 +414,48 @@ Run header/open/create/read-only/mutation-rejection/upgrade-shell tests for REL 
 | 45 | Sol | Freeze Memory creation record semantics. | Creation contract matches V1.0 first revision. |
 | 46 | Sol | Freeze Memory delta record semantics. | Delta contract can represent every legal V1.0 later revision. |
 | 47 | Sol | Define canonical Memory delta ordering/field-mask rules. | Equivalent changes encode identically. |
+
+### Step 42 execution record
+
+Commit: `4652466`.
+Files: src/memory/memory_model.rs; refactor specification Memory field inventory; src/memory/memory_compact_contract_tests.rs.
+Verification: Exact field-table coverage of all 21 MemoryDraft, 28 hydrated Memory and 26 MemoryRecord fields; no added created_at immutability. Shared contract run **7/7**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-delta-contract).
+Blockers: none for contract acceptance; wire codecs, replay and writer cutover begin at Step 48.
+
+### Step 43 execution record
+
+Commit: `4652466`.
+Files: src/memory/memory_compact_contract.rs; src/memory/memory_compact_contract_tests.rs.
+Verification: Table-driven optional None/Some transitions distinguish unchanged, set and clear; actual source-node clear sets the correct mask. Shared contract run **7/7**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-delta-contract).
+Blockers: none for contract acceptance; wire codecs, replay and writer cutover begin at Step 48.
+
+### Step 44 execution record
+
+Commit: `4652466`.
+Files: src/memory/memory_compact_contract.rs; src/memory/memory_compact_contract_tests.rs.
+Verification: Real temporal-inference resolution ordering triggers whole-value replacement; proof clear and unchanged remain distinct; routing stays independent. Shared contract run **7/7**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-delta-contract).
+Blockers: none for contract acceptance; wire codecs, replay and writer cutover begin at Step 48.
+
+### Step 45 execution record
+
+Commit: `4652466`.
+Files: src/memory/memory_compact_contract.rs; src/memory/memory_compact_contract_tests.rs.
+Verification: Exact creation record and first-revision/nonzero coordinate guards; retained V1 reader accepts the same initial record. Shared contract run **7/7**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-delta-contract).
+Blockers: none for contract acceptance; wire codecs, replay and writer cutover begin at Step 48.
+
+### Step 46 execution record
+
+Commit: `4652466`.
+Files: src/memory/memory_compact_contract.rs; src/memory/memory_compact_contract_tests.rs.
+Verification: Exact successor/identity/body/version/mutation envelope; metadata-empty publication and V1 later revision remain representable. Shared contract run **7/7**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-delta-contract).
+Blockers: none for contract acceptance; wire codecs, replay and writer cutover begin at Step 48.
+
+### Step 47 execution record
+
+Commit: `4652466`.
+Files: src/memory/memory_compact_contract.rs; src/memory/memory_compact_contract_tests.rs.
+Verification: Twenty fixed ordered fields, exhaustive record pattern, reserved-bit rejection and identical canonical delta across change construction order. Shared contract run **7/7**; [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#memory-delta-contract).
+Blockers: none for contract acceptance; wire codecs, replay and writer cutover begin at Step 48.
 
 ## Phase E — Memory Codec and Replay
 
