@@ -75,3 +75,7 @@ Start with:
 - [Roadmap](docs/roadmap.md)
 
 Architectural rationale is retained separately in [ADRs](docs/decisions/INDEX.md). Implemented behavior belongs in current architecture/reference documents; future and unresolved work belongs in the roadmap.
+
+## License
+
+Reliquary is licensed under the [PolyForm Shield License 1.0.0](LICENSE.md). It permits use, modification, and distribution for permitted purposes, but does not permit using the software to provide a competing product.
