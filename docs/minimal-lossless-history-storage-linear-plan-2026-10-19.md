@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: PAUSED after Step 86 (86/266 original steps); compatibility-policy correction specified, not implemented. Frozen checkpoint: `39eea4a`. Original Step 87 is pending.
+Status: Resumed after Step 86 (86/266 original steps); compatibility-policy interruption I1–I12 complete. Frozen checkpoint: `39eea4a`. Next: original Step 87. Runtime retirement remains pending.
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete R1–R22 after V2 domain migration and before final acceptance. V1 compatibility is temporary migration-only, not permanent runtime support. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -834,7 +834,7 @@ Run Memory lifecycle/history, Insomnia, external publication, imports, rewrite/p
 | ---: | --- | --- | --- |
 | 108 | Sol | Inventory mutable vs immutable fields for Identity, Anchor, Personality, and synthesis records. | Field table complete. |
 | 109 | Luna | Measure repeated Ego text/payload bytes to decide whether owner-local payload identity is warranted. | Measurement-backed yes/no decision recorded. |
-| 110 | Sol | Define Ego creation/delta semantics using the Step 90 decision. | Contract tests cover activation/deletion/state changes. |
+| 110 | Sol | Define Ego creation/delta semantics using the Step 109 decision. | Contract tests cover activation/deletion/state changes. |
 | 111 | Sol | Implement Ego creation codec. | Round-trip/corruption tests pass. |
 | 112 | Sol | Implement Ego delta codec. | Field-delta tests pass. |
 | 113 | Sol | Implement Ego replay/materialization. | Historical Ego states reconstruct exactly. |
@@ -857,7 +857,7 @@ Run Entity, canonical Relationship/Observation, Ego, lifecycle, reconciliation, 
 | 119 | Sol | Decide whether Graph compact-ID dictionary/ordinal encoding is worthwhile from measured fixtures. | Measurement-backed yes/no decision recorded. |
 | 120 | Sol | If justified, define the Graph local-ID table format and validation rules. | Corrupt/missing mappings fail closed. |
 | 121 | Sol | If justified, implement Graph compact-ID encoding/decoding behind Graph codec boundary. | Decoded canonical mutations match existing semantics. |
-| 122 | Sol | Extend upgrader for compact Graph encoding if Step 100 is implemented. | Graph historical oracle parity passes. |
+| 122 | Sol | Extend upgrader for compact Graph encoding if Step 121 is implemented. | Graph historical oracle parity passes. |
 | 123 | Luna | Add Graph mapping corruption/order/admission regressions if compact IDs are implemented. | Invalid mappings fail closed. |
 
 ---
@@ -1011,7 +1011,7 @@ Run Entity Resolution, Community, Dream/Freshness proof consumers, import readin
 | ---: | --- | --- | --- |
 | 195 | Luna | Build repeated same-profile Archive-vector-generation workload. | Reproducible workload exists. |
 | 196 | Luna | Measure unchanged exact vector-byte duplication across generations separately from compatibility-profile multiplicity. | Byte-duplication artifact exists. |
-| 197 | Sol | Decide whether row/block reuse is justified by Step 175. | Explicit implement/defer decision recorded. |
+| 197 | Sol | Decide whether row/block reuse is justified by Step 196. | Explicit implement/defer decision recorded. |
 | 198 | Sol | If justified, define immutable exact vector row/block identity preserving byte-distinct compatible embeddings. | Identity contract tests pass. |
 | 199 | Sol | If justified, implement reusable row/block storage. | Exact vector bytes round-trip. |
 | 200 | Sol | If justified, implement generation manifest/delta referencing row/block identities. | Historical generation materialization exact. |

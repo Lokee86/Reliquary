@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "source_freeze": "39eea4a2fdce2549e161972422958f369d05e9f3",
+  "resume_head": "9cf643e0ceb92c764e73e9d572a64eddbf3c3b7a",
+  "resume_source_status": "",
+  "source_changes_since_freeze": [
+    "docs/INDEX.md",
+    "docs/development-format-hard-cut-interruption-spec-2026-10-19.md",
+    "docs/minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md",
+    "docs/minimal-lossless-history-storage-linear-plan-2026-10-19.md",
+    "docs/minimal-lossless-history-storage-spec-2026-10-19.md"
+  ],
+  "runtime_diff_since_freeze": "",
+  "fixture_repository_head": "fca1c1d0a1bbb19f56f29c51b080e33185e01899",
+  "fixture_preexisting_status": [
+    "M local/authoritative/chatgpt-first14d/AUTHORITATIVE.txt",
+    " M local/authoritative/chatgpt-first14d/SHA256SUMS.txt",
+    " M local/authoritative/chatgpt-first14d/project.prj.rel",
+    " M local/authoritative/chatgpt-first14d/user.phy",
+    " M local/authoritative/chatgpt-first28d/AUTHORITATIVE.txt",
+    " M local/authoritative/chatgpt-first28d/SHA256SUMS.txt",
+    " M local/authoritative/chatgpt-first28d/project.prj.rel",
+    " M local/authoritative/chatgpt-first28d/user.phy",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/AUTHORITATIVE.txt",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/SHA256SUMS.txt",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/user.phy"
+  ],
+  "retained_corpus_policy": "Fixture README names these six as the only retained canonical REL/PHY state pairs. Calibration and experiment directories contain no additional REL/PHY/CVA inputs. Historical states remain in Git/Syncthing, not parallel current corpus.",
+  "retained_files": [
+    {
+      "path": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first14d\\project.prj.rel",
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "bytes": 31853182,
+      "sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "accepted_baseline_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "matches_accepted_baseline": true,
+      "major": 1,
+      "minor": 0
+    },
+    {
+      "path": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first14d\\user.phy",
+      "fixture": "chatgpt-first14d/user.phy",
+      "bytes": 814287,
+      "sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "accepted_baseline_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "matches_accepted_baseline": true,
+      "major": 1,
+      "minor": 0
+    },
+    {
+      "path": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first28d\\project.prj.rel",
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "bytes": 80056100,
+      "sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "accepted_baseline_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "matches_accepted_baseline": true,
+      "major": 1,
+      "minor": 0
+    },
+    {
+      "path": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first28d\\user.phy",
+      "fixture": "chatgpt-first28d/user.phy",
+      "bytes": 1840755,
+      "sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "accepted_baseline_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "matches_accepted_baseline": true,
+      "major": 1,
+      "minor": 0
+    },
+    {
+      "path": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\rhelm-david-r-ellis-pre-relationship\\project.prj.rel",
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "bytes": 19561460,
+      "sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "accepted_baseline_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "matches_accepted_baseline": true,
+      "major": 1,
+      "minor": 0
+    },
+    {
+      "path": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\rhelm-david-r-ellis-pre-relationship\\user.phy",
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "bytes": 4070532,
+      "sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "accepted_baseline_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "matches_accepted_baseline": true,
+      "major": 1,
+      "minor": 0
+    }
+  ],
+  "fixture_container_paths": [
+    "local\\authoritative\\chatgpt-first14d\\project.prj.rel",
+    "local\\authoritative\\chatgpt-first14d\\user.phy",
+    "local\\authoritative\\chatgpt-first28d\\project.prj.rel",
+    "local\\authoritative\\chatgpt-first28d\\user.phy",
+    "local\\authoritative\\rhelm-david-r-ellis-pre-relationship\\project.prj.rel",
+    "local\\authoritative\\rhelm-david-r-ellis-pre-relationship\\user.phy"
+  ],
+  "other_documented_candidate": {
+    "path": "C:\\!bin\\workspace\\Reliquary\\target\\insomnia-tuning-v1-check.cva",
+    "exists": false,
+    "disposition": "Historical development-doc reference; absent, not a retained corpus input."
+  },
+  "excluded": "Generated test scratch and build outputs are not promotion corpora. No input was changed by this inventory."
+}

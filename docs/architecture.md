@@ -2,11 +2,17 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-Current runtime settlement, normalization, owner maintenance and rewrite behavior is summarized in [Semantic maintenance and history rewrite](#semantic-maintenance-and-history-rewrite). Legacy framing is documented only where it remains a persisted compatibility boundary; current semantics below are authoritative.
+Current runtime settlement, normalization, owner maintenance and rewrite behavior is summarized in [Semantic maintenance and history rewrite](#semantic-maintenance-and-history-rewrite). Legacy framing below describes temporary implementation dependencies, not a permanent runtime-support promise.
+
+## Development-format lifecycle
+
+The target runtime accepts one canonical V2 format. During development, translate retained data with temporary offline tooling, verify exact history and authentic proof on disposable copies, commit canonical corpus and implementation separately, then delete old readers, dispatch and migration APIs/CLI. Old normal-runtime opens must fail closed with typed errors after that transition. There is no approved V1 or CVAFRS03/04/05/CVAILEG1/2 exception. Profile compatibility remains live semantic data.
+
+The [controlling amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) requires complete owner converters and corpus promotion before deletion. The [caller/removal map](development-format-interruption-execution-2026-10-19.md) tags temporary runtime and offline seams. This policy correction does not claim runtime retirement is already implemented.
 
 ## Semantic maintenance and history rewrite
 
-New import settlements use CVAFRS06 semantic event identity and digest evidence. Physical offsets are used transiently to select the settlement interval; they are not persisted as continuing authority. Existing CVAFRS03/04/05 and CVAILEG1 records remain supported at the persisted compatibility boundary. `Cva::normalize_import_settlements` is the sole explicit one-time normalization API on a working copy. Repair normalizes the copy before prune/reclaim and never normalizes the authoritative source in place.
+New import settlements use CVAFRS06 semantic event identity and digest evidence. Physical offsets are used transiently to select the settlement interval; they are not persisted as continuing authority. Existing CVAFRS03/04/05 and CVAILEG1/2 readers are temporary migration dependencies scheduled for removal after canonical corpus promotion. `Cva::normalize_import_settlements` is currently the explicit one-time normalization API on a working copy; it is also scheduled for retirement. Repair currently normalizes the copy before prune/reclaim and never normalizes the authoritative source in place.
 
 `OwnerMaintenanceStore` is shared by REL and PHY. Domain owners still prove each target's retention eligibility. `Cva::prune_tombstoned_history` and `Phylactery::prune_tombstoned_history` create a separate validated copy; REL additionally owns Archive conversation payload. PHY supports terminal Memory, Entity and Relationship payload plus retired-profile vector payload. Reclaim remains a separate conservative transformed-copy operation.
 

@@ -12,6 +12,12 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 ## Overview
 
+### Development storage-format lifecycle
+
+Development persistence has one canonical normal-runtime format. A format change requires a temporary offline converter, migration and full semantic verification of the retained development corpus, separate source/corpus commits, then removal of obsolete readers and converter APIs/CLI. Normal runtime must ultimately reject old formats with a typed unsupported-format error. Exceptions require a named consumer, supported version, owner and explicit sunset; none is approved for V1 or CVAFRS03/04/05/CVAILEG1/2. Live embedding/profile compatibility is a separate semantic contract.
+
+The [format-policy amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) orders this transition. Current V1/legacy readers are temporary dependencies while canonical V2 owner converters are unfinished; do not delete them before verified corpus promotion. The [interruption evidence](development-format-interruption-execution-2026-10-19.md) records caller ownership, retained corpus and current-only test design. Existing repair/rewrite workflows below describe present behavior and do not grant permanent old-format runtime support.
+
 Development uses deterministic local tests plus optional live provider execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, direct OpenAI-ready embedding/General HTTP transport, ChatGPT/Codex device-code acquisition, and provider-native Codex Responses execution are implemented. Codex OAuth token refresh remains outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
 ## Retained-owner maintenance and history rewrite

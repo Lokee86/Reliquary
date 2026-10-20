@@ -2,7 +2,7 @@
 
 Parent: [Documentation index](INDEX.md).
 
-Status: **Specified, not implemented.** This interrupts the [minimal-lossless-history-storage linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) after accepted Step 86 and before Step 87. Frozen checkpoint: `39eea4a2fdce2549e161972422958f369d05e9f3`. Resume compact-history implementation only after this policy has been integrated into the remaining plan.
+Status: **Policy interruption I1–I12 integrated and verified; runtime retirement not implemented.** This interrupts the [minimal-lossless-history-storage linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) after accepted Step 86 and before Step 87. Frozen checkpoint: `39eea4a2fdce2549e161972422958f369d05e9f3`. The [interruption execution record](development-format-interruption-execution-2026-10-19.md) supplies the completed policy/caller/corpus audit; original Step 87 may resume. Final R1–R22 migration and retirement remain mandatory.
 
 ## Purpose
 

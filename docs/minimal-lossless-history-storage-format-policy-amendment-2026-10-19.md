@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 Specification: [Development format hard cut](development-format-hard-cut-interruption-spec-2026-10-19.md).
 Prior plan: [Minimal lossless history storage](minimal-lossless-history-storage-linear-plan-2026-10-19.md).
 
-Status: **Planned, implementation not started.** Frozen source baseline: `39eea4a`. Steps 1–86 of the original plan are accepted; Step 87 and every later unrecorded step remain pending. This amendment overrides any V1 compatibility-retention language in the original plan/spec.
+Status: **I1–I12 complete; original Step 87 may resume. Runtime retirement not implemented.** Frozen source baseline: `39eea4a`. Steps 1–86 of the original plan are accepted; Step 87 and every later unrecorded step remain pending. This amendment overrides any V1 compatibility-retention language in the original plan/spec. See [interruption execution evidence](development-format-interruption-execution-2026-10-19.md).
 
 ## Purpose
 
@@ -32,6 +32,27 @@ Each item is an independently verifiable gate. Complete these **before** continu
 | I12 | Validate documentation/index links and freeze resumed-start state. | Plan and spec coherent, implementation ready. |
 
 No compatibility reader deletion is authorized by I1–I12. The code's V2 owner families are unfinished. This is a **bounded policy correction** ahead of existing Step 87, not a second full rewrite.
+
+### I1–I12 acceptance record
+
+Resumed from clean source `9cf643e`; exact frozen/runtime/fixture hashes and preexisting fixture dirt are in the [inventory manifest](../benchmarks/development-format-interruption-inventory-2026-10-19.json). The [execution record](development-format-interruption-execution-2026-10-19.md) supplies each gate's evidence:
+
+| Item | Accepted evidence |
+| --- | --- |
+| I1 | Exact clean resume/freeze hashes; runtime diff from freeze is empty. |
+| I2 | Six retained V1 containers hash-match accepted baseline; recursive fixture inventory and absent historical CVA candidate recorded; no corpus writes. |
+| I3 | T1/T2 container, facade, CLI/host caller and write-barrier map. |
+| I4 | T3/T4 legacy Freshness decode, normalization, repair and semantic consumers. |
+| I5 | T5/T6 legacy epoch decode, prefix validation and copy/maintenance transport. |
+| I6 | T7/T8 distinguish private format upgrade, identity bootstrap, content backfill and destructive rewrite. |
+| I7 | Owner dependency matrix ties every known canonical-conversion gap to original steps. |
+| I8 | Architecture, development, storage-format and ADR 0041 state migrate/verify/commit/remove policy without claiming retirement. |
+| I9 | Six named future runtime acceptance/negative-test contracts; no premature reader removal. |
+| I10 | T1–T8 removal tags name owner, source seams, final gate and retained tests. |
+| I11 | Exhaustive original 87–266 mapping; three stale future dependency references corrected; completed steps unchanged. |
+| I12 | Structural and change-impact documentation checks pass; original steps 1–266 and accepted records 1–86 intact; post-edit fixture hashes and runtime diff unchanged. |
+
+Validation logs: `.test-tmp/format-interruption-docs-structural.log` and `.test-tmp/format-interruption-docs-impact.log`. These are documentation/inventory acceptances only. R1–R22 and corpus/runtime retirement are not accepted.
 
 ### Resume the original plan
 

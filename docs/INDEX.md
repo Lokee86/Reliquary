@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Development-format interruption execution evidence](development-format-interruption-execution-2026-10-19.md) — freeze/corpus inventory, temporary caller ownership, runtime acceptance design and remaining-step mapping.
+
 - [Minimal lossless history storage — execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md) — frozen baseline, fixture identity and per-step verification.
 
 - [Minimal lossless history storage — specification](minimal-lossless-history-storage-spec-2026-10-19.md) — proposed compact owner history and historical equivalence requirements.

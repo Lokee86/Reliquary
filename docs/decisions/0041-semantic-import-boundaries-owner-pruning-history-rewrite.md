@@ -24,7 +24,7 @@ Physical file offsets may be used transiently while constructing an import settl
 
 The canonical import-settlement representation will persist the exact semantic evidence needed to validate attribution: import/start identity, source/cohort identity, affected Memories, exact accepted event identities and digests, superseded event identities, semantic cuts and resulting Freshness state. It will not require the original physical byte range to remain unchanged.
 
-New code stops emitting physical-prefix-authoritative settlements. Persisted CVAFRS03/CVAFRS04/CVAFRS05 and CVAILEG1 remain readable only at the on-disk compatibility boundary. A verified normalization path may consume their physical evidence once and materialize the canonical semantic settlement.
+New code stops emitting physical-prefix-authoritative settlements. Persisted CVAFRS03/CVAFRS04/CVAFRS05 and CVAILEG1 are temporary offline migration inputs, not permanent runtime formats. The [development-format lifecycle correction](../development-format-hard-cut-interruption-spec-2026-10-19.md) supersedes earlier compatibility-retention wording: migrate and verify the retained corpus, commit it separately, then remove these readers, CVAILEG2 transport and one-time normalization APIs. Current runtime dependencies remain until capable converters and verified corpus promotion exist. No supported legacy consumer exception is approved.
 
 ### Pruning is owner-neutral and history-preserving
 

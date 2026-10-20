@@ -1,5 +1,11 @@
 # Reliquary Storage Format
 Parent index: [Documentation index](INDEX.md)
+
+## Development-format lifecycle policy
+
+The final normal-runtime contract is canonical V2-only REL/PHY reads and writes. Development encoding changes require temporary offline conversion, exact retained-history/proof/vector verification, separate implementation and canonical-corpus commits, then removal of obsolete readers, dispatch and converter APIs/CLI. Unsupported old input must fail with typed errors before payload dispatch or repair. No enduring compatibility exception is approved for V1, CVAFRS03/04/05 or CVAILEG1/2. Embedding/profile compatibility is independent semantic data.
+
+The implemented behavior below is transitional: normal open still admits old readers while later owner converters are unfinished. The [format-policy amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) requires corpus migration before deleting them; the [caller/removal inventory](development-format-interruption-execution-2026-10-19.md) records those dependencies. A V2-header Memory-only copy containing obsolete owner/proof payloads is not a fully canonical corpus.
 ## Container version boundary — implemented
 
 New REL/PHY owners use container version **2.0**. The existing 40-byte identity header retains its magic, length, file-kind/scope discriminator and owner UUID; its little-endian major/minor fields encode `2` and `0`. Ordinary open dispatches V1.0 to read-only inspection and V2.0 to writable replay. Explicit `Cva::open_v1_read_only` and `Phylactery::open_v1_read_only` require exactly V1.0; the internal compact route requires exactly V2.0. Unknown versions return `ContainerError::UnsupportedVersion` before owner payload dispatch.
