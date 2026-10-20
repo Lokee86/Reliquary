@@ -6,6 +6,8 @@ mod ego_authoritative_tests;
 #[cfg(test)]
 mod ego_tests;
 mod entity;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+mod freshness_authoritative_tests;
 mod graph;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod graph_authoritative_tests;
@@ -44,3 +46,6 @@ mod relationship_tests;
 
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod relationship_authoritative_tests;
+
+#[cfg(test)]
+mod freshness_synthetic_tests;

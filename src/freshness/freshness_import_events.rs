@@ -58,6 +58,57 @@ pub(crate) struct ImportEventEvidence {
 }
 
 impl FreshnessStore {
+    /// Read exact owner-side event facts for a bounded accepted-event identity set.
+    /// Batch journals are expanded by `for_each_event`; settled projections are
+    /// never substituted for the immutable event receipts.
+    pub(crate) fn requested_import_event_entries(
+        &self,
+        requested: &BTreeSet<String>,
+    ) -> Result<BTreeMap<String, super::FreshnessReplayEntry>, String> {
+        if requested.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        let mut found = BTreeMap::new();
+        self.scan_entries(|entry| {
+            for_each_event(&entry, &mut |event| {
+                let JournalEntry::Event {
+                    event_id,
+                    turn,
+                    provenance,
+                    proof,
+                    effects,
+                    semantic,
+                    ..
+                } = event
+                else {
+                    unreachable!("for_each_event yields only Event entries")
+                };
+                if !requested.contains(event_id) {
+                    return Ok(());
+                }
+                let value = super::FreshnessReplayEntry::Event {
+                    event_id: event_id.clone(),
+                    source_turn: *turn,
+                    effects: effects.clone(),
+                    proof: *proof,
+                    provenance: Some(provenance.clone()),
+                    semantic: semantic.clone(),
+                };
+                if found
+                    .insert(event_id.clone(), value.clone())
+                    .is_some_and(|old| old != value)
+                {
+                    return Err("conflicting requested accepted Freshness event".into());
+                }
+                Ok(())
+            })
+        })?;
+        if requested.iter().any(|id| !found.contains_key(id)) {
+            return Err("requested accepted Freshness event is missing".into());
+        }
+        Ok(found)
+    }
+
     pub(crate) fn refresh_projection_at(&mut self, cut: u64) -> Result<(), String> {
         self.records = self.records_at(cut)?;
         Ok(())

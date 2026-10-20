@@ -3,6 +3,9 @@
 #[path = "reconciliation_entity_compact_tests.rs"]
 mod entity_compact_tests;
 #[cfg(test)]
+#[path = "reconciliation_freshness_authority_tests.rs"]
+mod freshness_authority_tests;
+#[cfg(test)]
 #[path = "reconciliation_graph_compact_tests.rs"]
 mod graph_compact_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
@@ -20,6 +23,7 @@ pub(super) struct CompletedEpoch {
     completions: Vec<Vec<u8>>,
     archive_records: Vec<Vec<u8>>,
     events: Vec<crate::freshness_storage::FreshnessReplayEntry>,
+    accepted_events: BTreeMap<String, crate::freshness_storage::FreshnessReplayEntry>,
     dream: Vec<Vec<u8>>,
     owner_evidence: Vec<Vec<u8>>,
 }
@@ -135,6 +139,16 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             .find(|settlement| hex(&settlement.import_id) == start.import_id)
             .cloned()
             .ok_or_else(|| unsupported("completed import lacks a scoped settlement"))?;
+        let semantic_scope = cva.semantic_scope_for_import_settlement(&settlement)?;
+        let mut accepted_events = cva
+            .freshness
+            .requested_import_event_entries(
+                &semantic_scope.accepted_events.keys().cloned().collect(),
+            )
+            .map_err(crate::CvaError::Freshness)?;
+        for event in accepted_events.values_mut() {
+            normalize_event_coordinates(event);
+        }
         let first = *starts
             .get(&start.import_id)
             .ok_or_else(|| unsupported("import start position unavailable"))?;
@@ -194,31 +208,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             for mut event in crate::freshness_storage::FreshnessReplayEntry::from_payload(&payload)
                 .map_err(crate::CvaError::Freshness)?
             {
-                use crate::freshness_storage::FreshnessReplayEntry as E;
-                match &mut event {
-                    E::RewriteBaseline { .. } => {}
-                    E::Initialize { source_turn, .. }
-                    | E::Admit { source_turn, .. }
-                    | E::AcceptedUseReceipt { source_turn, .. } => *source_turn = 0,
-                    E::Event {
-                        source_turn,
-                        proof,
-                        provenance,
-                        semantic,
-                        ..
-                    } => {
-                        *source_turn = 0;
-                        proof.graph_version = 0;
-                        proof.community_generation = proof.community_generation.map(|_| 0);
-                        proof.community_graph_version = proof.community_graph_version.map(|_| 0);
-                        if let Some(p) = provenance {
-                            p.accepted_turn = 0;
-                        }
-                        if let Some(e) = semantic {
-                            e.accepted_turn = 0;
-                        }
-                    }
-                }
+                normalize_event_coordinates(&mut event);
                 events.push(event);
             }
             if payload.starts_with(b"CVDREAM1") {
@@ -277,12 +267,41 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 completions,
                 archive_records,
                 events,
+                accepted_events,
                 dream,
                 owner_evidence,
             },
         );
     }
     Ok(result)
+}
+
+fn normalize_event_coordinates(event: &mut crate::freshness_storage::FreshnessReplayEntry) {
+    use crate::freshness_storage::FreshnessReplayEntry as E;
+    match event {
+        E::RewriteBaseline { .. } => {}
+        E::Initialize { source_turn, .. }
+        | E::Admit { source_turn, .. }
+        | E::AcceptedUseReceipt { source_turn, .. } => *source_turn = 0,
+        E::Event {
+            source_turn,
+            proof,
+            provenance,
+            semantic,
+            ..
+        } => {
+            *source_turn = 0;
+            proof.graph_version = 0;
+            proof.community_generation = proof.community_generation.map(|_| 0);
+            proof.community_graph_version = proof.community_graph_version.map(|_| 0);
+            if let Some(p) = provenance {
+                p.accepted_turn = 0;
+            }
+            if let Some(e) = semantic {
+                e.accepted_turn = 0;
+            }
+        }
+    }
 }
 
 fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconcileError> {
@@ -430,6 +449,7 @@ fn same_authority(a: &CompletedEpoch, b: &CompletedEpoch) -> bool {
         || a.completions != b.completions
         || a.archive_records != b.archive_records
         || a.events != b.events
+        || a.accepted_events != b.accepted_events
         || a.dream != b.dream
         || a.owner_evidence != b.owner_evidence
     {

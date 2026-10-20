@@ -1,0 +1,1720 @@
+{
+  "schema_version": 1,
+  "measurement_date": "2026-10-20",
+  "plan_step": 166,
+  "decision": "inventory_only_no_compaction_projection",
+  "manifest": "C:\\!bin\\workspace\\Reliquary\\benchmarks\\authoritative-history-rewrite-step62-2026-10-18.json",
+  "fixture_root": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative",
+  "authoritative_sources_unchanged": true,
+  "method": {
+    "container": "Read-only pinned V1.0 chunk scan; each chunk is an 8-byte little-endian payload length followed by payload.",
+    "global_tickets": "CVAVERS1 is {global_version:u64}; CVAVERS2 is {global_version:u64, transaction_time_ns:i64}.",
+    "owner_links": "Memory CVAMEMV1, Entity CVAENTV1, Relationship CVARELV1, Graph CVAGVER1, and Archive CVAAREC1 each carry global u64, owner-local u64, and 16-byte ObjectRef. Compact Memory/Entity/Relationship carriers inline their clocks; Ego carries only Ego-local sequence and has no global ticket or ObjectRef; compact Graph ordinal frames carry no clocks or references.",
+    "size_accounting": "Payload field bytes are separated from per-chunk 8-byte Container framing. This is measurement only and assumes no replacement format or savings.",
+    "unknown_families": "Recognized ticket/link/local-carrier prefixes with unknown suffixes fail closed. Unknown unrelated chunks are counted as unclassified, not inferred as publication records."
+  },
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "source_bytes": 31853182,
+      "source_sha256_before": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_sha256_after": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true,
+      "container_header_bytes": 40,
+      "container_record_count": 64490,
+      "recognized_publication_record_count": 36085,
+      "recognized_counts_by_owner": {
+        "Memory": 2225,
+        "Entity": 150,
+        "Relationship": 0,
+        "Ego": 0,
+        "Archive": 7526,
+        "Graph": 7913,
+        "Container": 17815,
+        "Insomnia": 456,
+        "ExternalSource": 0
+      },
+      "owner_link_family_counts": {
+        "memory_link": 2225,
+        "entity_link": 150,
+        "relationship_link": 0,
+        "archive_link": 7526,
+        "graph_link": 7913
+      },
+      "counts_by_family": {
+        "archive_link": 7526,
+        "container_ticket_v1": 17265,
+        "container_ticket_v2": 550,
+        "entity_link": 150,
+        "graph_link": 7913,
+        "insomnia_completion_v3": 85,
+        "insomnia_completion_v6": 371,
+        "memory_link": 2225
+      },
+      "bytes_by_family": {
+        "archive_link": {
+          "record_count": 7526,
+          "payload_bytes": 301040,
+          "container_framed_bytes": 361248,
+          "global_version_bytes": 60208,
+          "owner_local_version_bytes": 60208,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 120416,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "container_ticket_v1": {
+          "record_count": 17265,
+          "payload_bytes": 276240,
+          "container_framed_bytes": 414360,
+          "global_version_bytes": 138120,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "container_ticket_v2": {
+          "record_count": 550,
+          "payload_bytes": 13200,
+          "container_framed_bytes": 17600,
+          "global_version_bytes": 4400,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 4400,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "entity_link": {
+          "record_count": 150,
+          "payload_bytes": 6000,
+          "container_framed_bytes": 7200,
+          "global_version_bytes": 1200,
+          "owner_local_version_bytes": 1200,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 2400,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "graph_link": {
+          "record_count": 7913,
+          "payload_bytes": 316520,
+          "container_framed_bytes": 379824,
+          "global_version_bytes": 63304,
+          "owner_local_version_bytes": 63304,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 126608,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "insomnia_completion_v3": {
+          "record_count": 85,
+          "payload_bytes": 11143,
+          "container_framed_bytes": 11823,
+          "global_version_bytes": 680,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 340,
+          "field_offsets": {
+            "global_range_start": 64,
+            "global_range_count": 72
+          }
+        },
+        "insomnia_completion_v6": {
+          "record_count": 371,
+          "payload_bytes": 830241,
+          "container_framed_bytes": 833209,
+          "global_version_bytes": 2968,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 2968,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 1484,
+          "field_offsets": {
+            "global_range_start": 64,
+            "global_range_count": 72,
+            "transaction_time_ns": 76
+          }
+        },
+        "memory_link": {
+          "record_count": 2225,
+          "payload_bytes": 89000,
+          "container_framed_bytes": 106800,
+          "global_version_bytes": 17800,
+          "owner_local_version_bytes": 17800,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 35600,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        }
+      },
+      "publication_shapes": {
+        "global=8;local=0;time=0;object_ref=0;range_count=0": {
+          "record_count": 17265,
+          "payload_bytes": 276240,
+          "container_framed_bytes": 414360,
+          "family_count": 1
+        },
+        "global=8;local=0;time=0;object_ref=0;range_count=4": {
+          "record_count": 85,
+          "payload_bytes": 11143,
+          "container_framed_bytes": 11823,
+          "family_count": 1
+        },
+        "global=8;local=0;time=8;object_ref=0;range_count=0": {
+          "record_count": 550,
+          "payload_bytes": 13200,
+          "container_framed_bytes": 17600,
+          "family_count": 1
+        },
+        "global=8;local=0;time=8;object_ref=0;range_count=4": {
+          "record_count": 371,
+          "payload_bytes": 830241,
+          "container_framed_bytes": 833209,
+          "family_count": 1
+        },
+        "global=8;local=8;time=0;object_ref=16;range_count=0": {
+          "record_count": 17814,
+          "payload_bytes": 712560,
+          "container_framed_bytes": 855072,
+          "family_count": 4
+        }
+      },
+      "recognized_payload_bytes": 1843384,
+      "recognized_container_framed_bytes": 2132064,
+      "unknown_version_family_counts": {
+        "CVAVERS": 0,
+        "CVAMEMV": 0,
+        "CVAENTV": 0,
+        "CVARELV": 0,
+        "CVAGVER": 0,
+        "CVAAREC": 0,
+        "CVAINSC": 0,
+        "CVAXMEM": 0
+      },
+      "unclassified_record_count": 28405,
+      "unclassified_magic_counts": {
+        "CVAAFMT2": 1,
+        "CVAAVEC1": 1,
+        "CVAAVFM1": 1,
+        "CVABRCH1": 157,
+        "CVACOMM1": 3,
+        "CVACONT1": 5767,
+        "CVACPFM1": 1,
+        "CVACPRO1": 2,
+        "CVACPRT1": 1,
+        "CVADRP01": 428,
+        "CVAENTR1": 150,
+        "CVAEPIS1": 456,
+        "CVAERS02": 169,
+        "CVAFRAG1": 1056,
+        "CVAFRP01": 1,
+        "CVAFRS02": 71,
+        "CVAFRS03": 1,
+        "CVAGBAT1": 4262,
+        "CVAGFMT1": 1,
+        "CVAGMUT1": 3571,
+        "CVAGMUT2": 80,
+        "CVAGNOD2": 65,
+        "CVAGNODE": 1120,
+        "CVAILEG1": 1,
+        "CVAINSF1": 1,
+        "CVAINSW1": 1062,
+        "CVAMEMF2": 1,
+        "CVAMEMR4": 1102,
+        "CVAMEMR6": 1087,
+        "CVAMEMR8": 36,
+        "CVAMRTE2": 110,
+        "CVAMVEC1": 9,
+        "CVAMVFM1": 1,
+        "CVAPVEC1": 10,
+        "CVAPVFM1": 1,
+        "CVATURN1": 3049,
+        "CVATURN2": 2808,
+        "CVAVGEN2": 1,
+        "CVAVGFM2": 1,
+        "CVAVGRC2": 1,
+        "CVDREAM1": 1663,
+        "PRJCOR02": 1,
+        "PRJFILE1": 95
+      },
+      "global_ticket_attribution": {
+        "individual_container_ticket_records": 17815,
+        "distinct_individual_ticket_ids": 17815,
+        "individual_ticket_ids_by_referencing_owner": {
+          "Archive": 7526,
+          "Entity": 150,
+          "Graph": 7913,
+          "Memory": 2225
+        },
+        "individual_ticket_ids_with_no_publication_reference": 1,
+        "individual_ticket_ids_shared_by_multiple_owners": 0,
+        "exclusive_individual_ticket_bytes_by_owner": {
+          "Archive": {
+            "record_count": 7526,
+            "payload_bytes": 121072,
+            "container_framed_bytes": 181280
+          },
+          "Entity": {
+            "record_count": 150,
+            "payload_bytes": 3600,
+            "container_framed_bytes": 4800
+          },
+          "Graph": {
+            "record_count": 7913,
+            "payload_bytes": 128856,
+            "container_framed_bytes": 192160
+          },
+          "Memory": {
+            "record_count": 2225,
+            "payload_bytes": 35888,
+            "container_framed_bytes": 53688
+          }
+        },
+        "shared_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "orphan_ticket_bucket": {
+          "record_count": 1,
+          "payload_bytes": 24,
+          "container_framed_bytes": 32
+        },
+        "ticket_byte_partition_rule": "Each individual CVAVERS record is counted once: assigned to its sole attributed owner, the shared bucket if multiple owners/ranges claim it, or the orphan bucket if no claim exists.",
+        "direct_owner_link_reference_occurrences": 17814,
+        "direct_owner_link_references_by_owner": {
+          "Archive": 7526,
+          "Entity": 150,
+          "Graph": 7913,
+          "Memory": 2225
+        },
+        "direct_owner_link_distinct_ids_with_no_ticket_or_explicit_range": 0,
+        "embedded_version_range_records_by_family": {
+          "insomnia_completion_v3": 85,
+          "insomnia_completion_v6": 371
+        },
+        "embedded_version_range_ticket_ids_by_owner": {
+          "Insomnia": 1123
+        },
+        "embedded_version_range_ticket_id_occurrences": 1123,
+        "ticket_transaction_time_disagreements_with_explicit_ranges": 0,
+        "attribution_rule": "Owner links are joined to CVAVERS records by explicit global_version value. Insomnia/external-source reservations expand only their encoded start/count range. Unclaimed means a CVAVERS ID has no matching owner link or range; no record adjacency is used."
+      }
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "source_bytes": 814287,
+      "source_sha256_before": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_sha256_after": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true,
+      "container_header_bytes": 40,
+      "container_record_count": 3497,
+      "recognized_publication_record_count": 2176,
+      "recognized_counts_by_owner": {
+        "Memory": 421,
+        "Entity": 0,
+        "Relationship": 0,
+        "Ego": 0,
+        "Archive": 0,
+        "Graph": 667,
+        "Container": 1088,
+        "Insomnia": 0,
+        "ExternalSource": 0
+      },
+      "owner_link_family_counts": {
+        "memory_link": 421,
+        "entity_link": 0,
+        "relationship_link": 0,
+        "archive_link": 0,
+        "graph_link": 667
+      },
+      "counts_by_family": {
+        "container_ticket_v1": 1087,
+        "container_ticket_v2": 1,
+        "graph_link": 667,
+        "memory_link": 421
+      },
+      "bytes_by_family": {
+        "container_ticket_v1": {
+          "record_count": 1087,
+          "payload_bytes": 17392,
+          "container_framed_bytes": 26088,
+          "global_version_bytes": 8696,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "container_ticket_v2": {
+          "record_count": 1,
+          "payload_bytes": 24,
+          "container_framed_bytes": 32,
+          "global_version_bytes": 8,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 8,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "graph_link": {
+          "record_count": 667,
+          "payload_bytes": 26680,
+          "container_framed_bytes": 32016,
+          "global_version_bytes": 5336,
+          "owner_local_version_bytes": 5336,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 10672,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "memory_link": {
+          "record_count": 421,
+          "payload_bytes": 16840,
+          "container_framed_bytes": 20208,
+          "global_version_bytes": 3368,
+          "owner_local_version_bytes": 3368,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 6736,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        }
+      },
+      "publication_shapes": {
+        "global=8;local=0;time=0;object_ref=0;range_count=0": {
+          "record_count": 1087,
+          "payload_bytes": 17392,
+          "container_framed_bytes": 26088,
+          "family_count": 1
+        },
+        "global=8;local=0;time=8;object_ref=0;range_count=0": {
+          "record_count": 1,
+          "payload_bytes": 24,
+          "container_framed_bytes": 32,
+          "family_count": 1
+        },
+        "global=8;local=8;time=0;object_ref=16;range_count=0": {
+          "record_count": 1088,
+          "payload_bytes": 43520,
+          "container_framed_bytes": 52224,
+          "family_count": 2
+        }
+      },
+      "recognized_payload_bytes": 60936,
+      "recognized_container_framed_bytes": 78344,
+      "unknown_version_family_counts": {
+        "CVAVERS": 0,
+        "CVAMEMV": 0,
+        "CVAENTV": 0,
+        "CVARELV": 0,
+        "CVAGVER": 0,
+        "CVAAREC": 0,
+        "CVAINSC": 0,
+        "CVAXMEM": 0
+      },
+      "unclassified_record_count": 1321,
+      "unclassified_magic_counts": {
+        "CVACOMM1": 2,
+        "CVACPFM1": 1,
+        "CVACPRO1": 1,
+        "CVAGBAT1": 479,
+        "CVAGFMT1": 1,
+        "CVAGMUT1": 188,
+        "CVAGNODE": 104,
+        "CVAMBDY1": 108,
+        "CVAMEMF2": 1,
+        "CVAMEMR4": 214,
+        "CVAMEMR5": 99,
+        "CVAMEMR6": 107,
+        "CVAMEMR8": 1,
+        "CVAMRTE2": 1,
+        "CVAMVEC1": 6,
+        "CVAMVFM1": 1,
+        "CVAPVEC1": 6,
+        "CVAPVFM1": 1
+      },
+      "global_ticket_attribution": {
+        "individual_container_ticket_records": 1088,
+        "distinct_individual_ticket_ids": 1088,
+        "individual_ticket_ids_by_referencing_owner": {
+          "Graph": 667,
+          "Memory": 421
+        },
+        "individual_ticket_ids_with_no_publication_reference": 0,
+        "individual_ticket_ids_shared_by_multiple_owners": 0,
+        "exclusive_individual_ticket_bytes_by_owner": {
+          "Graph": {
+            "record_count": 667,
+            "payload_bytes": 10672,
+            "container_framed_bytes": 16008
+          },
+          "Memory": {
+            "record_count": 421,
+            "payload_bytes": 6744,
+            "container_framed_bytes": 10112
+          }
+        },
+        "shared_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "orphan_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "ticket_byte_partition_rule": "Each individual CVAVERS record is counted once: assigned to its sole attributed owner, the shared bucket if multiple owners/ranges claim it, or the orphan bucket if no claim exists.",
+        "direct_owner_link_reference_occurrences": 1088,
+        "direct_owner_link_references_by_owner": {
+          "Graph": 667,
+          "Memory": 421
+        },
+        "direct_owner_link_distinct_ids_with_no_ticket_or_explicit_range": 0,
+        "embedded_version_range_records_by_family": {},
+        "embedded_version_range_ticket_ids_by_owner": {},
+        "embedded_version_range_ticket_id_occurrences": 0,
+        "ticket_transaction_time_disagreements_with_explicit_ranges": 0,
+        "attribution_rule": "Owner links are joined to CVAVERS records by explicit global_version value. Insomnia/external-source reservations expand only their encoded start/count range. Unclaimed means a CVAVERS ID has no matching owner link or range; no record adjacency is used."
+      }
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "source_bytes": 80056100,
+      "source_sha256_before": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_sha256_after": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true,
+      "container_header_bytes": 40,
+      "container_record_count": 198542,
+      "recognized_publication_record_count": 101257,
+      "recognized_counts_by_owner": {
+        "Memory": 2880,
+        "Entity": 671,
+        "Relationship": 0,
+        "Ego": 0,
+        "Archive": 21068,
+        "Graph": 25337,
+        "Container": 49957,
+        "Insomnia": 1344,
+        "ExternalSource": 0
+      },
+      "owner_link_family_counts": {
+        "memory_link": 2880,
+        "entity_link": 671,
+        "relationship_link": 0,
+        "archive_link": 21068,
+        "graph_link": 25337
+      },
+      "counts_by_family": {
+        "archive_link": 21068,
+        "container_ticket_v1": 42611,
+        "container_ticket_v2": 7346,
+        "entity_link": 671,
+        "graph_link": 25337,
+        "insomnia_completion_v3": 345,
+        "insomnia_completion_v6": 999,
+        "memory_link": 2880
+      },
+      "bytes_by_family": {
+        "archive_link": {
+          "record_count": 21068,
+          "payload_bytes": 842720,
+          "container_framed_bytes": 1011264,
+          "global_version_bytes": 168544,
+          "owner_local_version_bytes": 168544,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 337088,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "container_ticket_v1": {
+          "record_count": 42611,
+          "payload_bytes": 681776,
+          "container_framed_bytes": 1022664,
+          "global_version_bytes": 340888,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "container_ticket_v2": {
+          "record_count": 7346,
+          "payload_bytes": 176304,
+          "container_framed_bytes": 235072,
+          "global_version_bytes": 58768,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 58768,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "entity_link": {
+          "record_count": 671,
+          "payload_bytes": 26840,
+          "container_framed_bytes": 32208,
+          "global_version_bytes": 5368,
+          "owner_local_version_bytes": 5368,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 10736,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "graph_link": {
+          "record_count": 25337,
+          "payload_bytes": 1013480,
+          "container_framed_bytes": 1216176,
+          "global_version_bytes": 202696,
+          "owner_local_version_bytes": 202696,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 405392,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "insomnia_completion_v3": {
+          "record_count": 345,
+          "payload_bytes": 45527,
+          "container_framed_bytes": 48287,
+          "global_version_bytes": 2760,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 1380,
+          "field_offsets": {
+            "global_range_start": 64,
+            "global_range_count": 72
+          }
+        },
+        "insomnia_completion_v6": {
+          "record_count": 999,
+          "payload_bytes": 2049606,
+          "container_framed_bytes": 2057598,
+          "global_version_bytes": 7992,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 7992,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 3996,
+          "field_offsets": {
+            "global_range_start": 64,
+            "global_range_count": 72,
+            "transaction_time_ns": 76
+          }
+        },
+        "memory_link": {
+          "record_count": 2880,
+          "payload_bytes": 115200,
+          "container_framed_bytes": 138240,
+          "global_version_bytes": 23040,
+          "owner_local_version_bytes": 23040,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 46080,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        }
+      },
+      "publication_shapes": {
+        "global=8;local=0;time=0;object_ref=0;range_count=0": {
+          "record_count": 42611,
+          "payload_bytes": 681776,
+          "container_framed_bytes": 1022664,
+          "family_count": 1
+        },
+        "global=8;local=0;time=0;object_ref=0;range_count=4": {
+          "record_count": 345,
+          "payload_bytes": 45527,
+          "container_framed_bytes": 48287,
+          "family_count": 1
+        },
+        "global=8;local=0;time=8;object_ref=0;range_count=0": {
+          "record_count": 7346,
+          "payload_bytes": 176304,
+          "container_framed_bytes": 235072,
+          "family_count": 1
+        },
+        "global=8;local=0;time=8;object_ref=0;range_count=4": {
+          "record_count": 999,
+          "payload_bytes": 2049606,
+          "container_framed_bytes": 2057598,
+          "family_count": 1
+        },
+        "global=8;local=8;time=0;object_ref=16;range_count=0": {
+          "record_count": 49956,
+          "payload_bytes": 1998240,
+          "container_framed_bytes": 2397888,
+          "family_count": 4
+        }
+      },
+      "recognized_payload_bytes": 4951453,
+      "recognized_container_framed_bytes": 5761509,
+      "unknown_version_family_counts": {
+        "CVAVERS": 0,
+        "CVAMEMV": 0,
+        "CVAENTV": 0,
+        "CVARELV": 0,
+        "CVAGVER": 0,
+        "CVAAREC": 0,
+        "CVAINSC": 0,
+        "CVAXMEM": 0
+      },
+      "unclassified_record_count": 97285,
+      "unclassified_magic_counts": {
+        "CVAAFMT2": 1,
+        "CVAAVEC1": 1,
+        "CVAAVFM1": 1,
+        "CVABRCH1": 377,
+        "CVACOMM1": 3,
+        "CVACONT1": 12532,
+        "CVACPFM1": 1,
+        "CVACPRO1": 4,
+        "CVACPRT1": 3,
+        "CVADRP01": 20158,
+        "CVAENTR1": 668,
+        "CVAENTT1": 3,
+        "CVAEPIS1": 1344,
+        "CVAERS01": 3845,
+        "CVAFRAG1": 2882,
+        "CVAFRP01": 1,
+        "CVAFRS02": 57,
+        "CVAFRS03": 1,
+        "CVAGBAT1": 11767,
+        "CVAGBAT2": 3,
+        "CVAGFMT1": 1,
+        "CVAGMUT1": 11661,
+        "CVAGMUT2": 1906,
+        "CVAGNOD2": 527,
+        "CVAGNODE": 2844,
+        "CVAILEG1": 1,
+        "CVAINSF1": 1,
+        "CVAINSW1": 1062,
+        "CVAMEMF2": 1,
+        "CVAMEMR4": 1102,
+        "CVAMEMR6": 1747,
+        "CVAMEMR8": 31,
+        "CVAMRTE2": 2816,
+        "CVAMVEC1": 25,
+        "CVAMVFM1": 1,
+        "CVAPVEC1": 26,
+        "CVAPVFM1": 1,
+        "CVATURN1": 16465,
+        "CVAVGEN2": 1,
+        "CVAVGFM2": 1,
+        "CVAVGRC2": 1,
+        "CVDREAM1": 3312,
+        "PRJCOR02": 1,
+        "PRJFILE1": 99
+      },
+      "global_ticket_attribution": {
+        "individual_container_ticket_records": 49957,
+        "distinct_individual_ticket_ids": 49957,
+        "individual_ticket_ids_by_referencing_owner": {
+          "Archive": 21068,
+          "Entity": 671,
+          "Graph": 25337,
+          "Memory": 2880
+        },
+        "individual_ticket_ids_with_no_publication_reference": 1,
+        "individual_ticket_ids_shared_by_multiple_owners": 0,
+        "exclusive_individual_ticket_bytes_by_owner": {
+          "Archive": {
+            "record_count": 21068,
+            "payload_bytes": 338152,
+            "container_framed_bytes": 506696
+          },
+          "Entity": {
+            "record_count": 671,
+            "payload_bytes": 16104,
+            "container_framed_bytes": 21472
+          },
+          "Graph": {
+            "record_count": 25337,
+            "payload_bytes": 453688,
+            "container_framed_bytes": 656384
+          },
+          "Memory": {
+            "record_count": 2880,
+            "payload_bytes": 50112,
+            "container_framed_bytes": 73152
+          }
+        },
+        "shared_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "orphan_ticket_bucket": {
+          "record_count": 1,
+          "payload_bytes": 24,
+          "container_framed_bytes": 32
+        },
+        "ticket_byte_partition_rule": "Each individual CVAVERS record is counted once: assigned to its sole attributed owner, the shared bucket if multiple owners/ranges claim it, or the orphan bucket if no claim exists.",
+        "direct_owner_link_reference_occurrences": 49956,
+        "direct_owner_link_references_by_owner": {
+          "Archive": 21068,
+          "Entity": 671,
+          "Graph": 25337,
+          "Memory": 2880
+        },
+        "direct_owner_link_distinct_ids_with_no_ticket_or_explicit_range": 0,
+        "embedded_version_range_records_by_family": {
+          "insomnia_completion_v3": 345,
+          "insomnia_completion_v6": 999
+        },
+        "embedded_version_range_ticket_ids_by_owner": {
+          "Insomnia": 2847
+        },
+        "embedded_version_range_ticket_id_occurrences": 2847,
+        "ticket_transaction_time_disagreements_with_explicit_ranges": 0,
+        "attribution_rule": "Owner links are joined to CVAVERS records by explicit global_version value. Insomnia/external-source reservations expand only their encoded start/count range. Unclaimed means a CVAVERS ID has no matching owner link or range; no record adjacency is used."
+      }
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "source_bytes": 1840755,
+      "source_sha256_before": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_sha256_after": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true,
+      "container_header_bytes": 40,
+      "container_record_count": 9194,
+      "recognized_publication_record_count": 4430,
+      "recognized_counts_by_owner": {
+        "Memory": 490,
+        "Entity": 35,
+        "Relationship": 0,
+        "Ego": 0,
+        "Archive": 0,
+        "Graph": 1690,
+        "Container": 2215,
+        "Insomnia": 0,
+        "ExternalSource": 0
+      },
+      "owner_link_family_counts": {
+        "memory_link": 490,
+        "entity_link": 35,
+        "relationship_link": 0,
+        "archive_link": 0,
+        "graph_link": 1690
+      },
+      "counts_by_family": {
+        "container_ticket_v1": 1018,
+        "container_ticket_v2": 1197,
+        "entity_link": 35,
+        "graph_link": 1690,
+        "memory_link": 490
+      },
+      "bytes_by_family": {
+        "container_ticket_v1": {
+          "record_count": 1018,
+          "payload_bytes": 16288,
+          "container_framed_bytes": 24432,
+          "global_version_bytes": 8144,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "container_ticket_v2": {
+          "record_count": 1197,
+          "payload_bytes": 28728,
+          "container_framed_bytes": 38304,
+          "global_version_bytes": 9576,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 9576,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "entity_link": {
+          "record_count": 35,
+          "payload_bytes": 1400,
+          "container_framed_bytes": 1680,
+          "global_version_bytes": 280,
+          "owner_local_version_bytes": 280,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 560,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "graph_link": {
+          "record_count": 1690,
+          "payload_bytes": 67600,
+          "container_framed_bytes": 81120,
+          "global_version_bytes": 13520,
+          "owner_local_version_bytes": 13520,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 27040,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "memory_link": {
+          "record_count": 490,
+          "payload_bytes": 19600,
+          "container_framed_bytes": 23520,
+          "global_version_bytes": 3920,
+          "owner_local_version_bytes": 3920,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 7840,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        }
+      },
+      "publication_shapes": {
+        "global=8;local=0;time=0;object_ref=0;range_count=0": {
+          "record_count": 1018,
+          "payload_bytes": 16288,
+          "container_framed_bytes": 24432,
+          "family_count": 1
+        },
+        "global=8;local=0;time=8;object_ref=0;range_count=0": {
+          "record_count": 1197,
+          "payload_bytes": 28728,
+          "container_framed_bytes": 38304,
+          "family_count": 1
+        },
+        "global=8;local=8;time=0;object_ref=16;range_count=0": {
+          "record_count": 2215,
+          "payload_bytes": 88600,
+          "container_framed_bytes": 106320,
+          "family_count": 3
+        }
+      },
+      "recognized_payload_bytes": 133616,
+      "recognized_container_framed_bytes": 169056,
+      "unknown_version_family_counts": {
+        "CVAVERS": 0,
+        "CVAMEMV": 0,
+        "CVAENTV": 0,
+        "CVARELV": 0,
+        "CVAGVER": 0,
+        "CVAAREC": 0,
+        "CVAINSC": 0,
+        "CVAXMEM": 0
+      },
+      "unclassified_record_count": 4764,
+      "unclassified_magic_counts": {
+        "CVACOMM1": 2,
+        "CVACPFM1": 1,
+        "CVACPRO1": 1,
+        "CVADRP01": 1591,
+        "CVAENTR1": 35,
+        "CVAERS01": 143,
+        "CVAGBAT1": 982,
+        "CVAGFMT1": 1,
+        "CVAGMUT1": 655,
+        "CVAGMUT2": 53,
+        "CVAGNOD2": 34,
+        "CVAGNODE": 242,
+        "CVAMBDY1": 243,
+        "CVAMEMF2": 1,
+        "CVAMEMR4": 214,
+        "CVAMEMR6": 274,
+        "CVAMEMR8": 2,
+        "CVAMRTE2": 246,
+        "CVAMVEC1": 21,
+        "CVAMVFM1": 1,
+        "CVAPVEC1": 21,
+        "CVAPVFM1": 1
+      },
+      "global_ticket_attribution": {
+        "individual_container_ticket_records": 2215,
+        "distinct_individual_ticket_ids": 2215,
+        "individual_ticket_ids_by_referencing_owner": {
+          "Entity": 35,
+          "Graph": 1690,
+          "Memory": 490
+        },
+        "individual_ticket_ids_with_no_publication_reference": 0,
+        "individual_ticket_ids_shared_by_multiple_owners": 0,
+        "exclusive_individual_ticket_bytes_by_owner": {
+          "Entity": {
+            "record_count": 35,
+            "payload_bytes": 840,
+            "container_framed_bytes": 1120
+          },
+          "Graph": {
+            "record_count": 1690,
+            "payload_bytes": 35224,
+            "container_framed_bytes": 48744
+          },
+          "Memory": {
+            "record_count": 490,
+            "payload_bytes": 8952,
+            "container_framed_bytes": 12872
+          }
+        },
+        "shared_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "orphan_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "ticket_byte_partition_rule": "Each individual CVAVERS record is counted once: assigned to its sole attributed owner, the shared bucket if multiple owners/ranges claim it, or the orphan bucket if no claim exists.",
+        "direct_owner_link_reference_occurrences": 2215,
+        "direct_owner_link_references_by_owner": {
+          "Entity": 35,
+          "Graph": 1690,
+          "Memory": 490
+        },
+        "direct_owner_link_distinct_ids_with_no_ticket_or_explicit_range": 0,
+        "embedded_version_range_records_by_family": {},
+        "embedded_version_range_ticket_ids_by_owner": {},
+        "embedded_version_range_ticket_id_occurrences": 0,
+        "ticket_transaction_time_disagreements_with_explicit_ranges": 0,
+        "attribution_rule": "Owner links are joined to CVAVERS records by explicit global_version value. Insomnia/external-source reservations expand only their encoded start/count range. Unclaimed means a CVAVERS ID has no matching owner link or range; no record adjacency is used."
+      }
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "source_bytes": 19561460,
+      "source_sha256_before": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_sha256_after": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true,
+      "container_header_bytes": 40,
+      "container_record_count": 49418,
+      "recognized_publication_record_count": 22141,
+      "recognized_counts_by_owner": {
+        "Memory": 727,
+        "Entity": 199,
+        "Relationship": 0,
+        "Ego": 0,
+        "Archive": 3763,
+        "Graph": 6309,
+        "Container": 11000,
+        "Insomnia": 143,
+        "ExternalSource": 0
+      },
+      "owner_link_family_counts": {
+        "memory_link": 727,
+        "entity_link": 199,
+        "relationship_link": 0,
+        "archive_link": 3763,
+        "graph_link": 6309
+      },
+      "counts_by_family": {
+        "archive_link": 3763,
+        "container_ticket_v2": 11000,
+        "entity_link": 199,
+        "graph_link": 6309,
+        "insomnia_completion_v5": 16,
+        "insomnia_completion_v6": 127,
+        "memory_link": 727
+      },
+      "bytes_by_family": {
+        "archive_link": {
+          "record_count": 3763,
+          "payload_bytes": 150520,
+          "container_framed_bytes": 180624,
+          "global_version_bytes": 30104,
+          "owner_local_version_bytes": 30104,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 60208,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "container_ticket_v2": {
+          "record_count": 11000,
+          "payload_bytes": 264000,
+          "container_framed_bytes": 352000,
+          "global_version_bytes": 88000,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 88000,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "entity_link": {
+          "record_count": 199,
+          "payload_bytes": 7960,
+          "container_framed_bytes": 9552,
+          "global_version_bytes": 1592,
+          "owner_local_version_bytes": 1592,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 3184,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "graph_link": {
+          "record_count": 6309,
+          "payload_bytes": 252360,
+          "container_framed_bytes": 302832,
+          "global_version_bytes": 50472,
+          "owner_local_version_bytes": 50472,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 100944,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "insomnia_completion_v5": {
+          "record_count": 16,
+          "payload_bytes": 4388,
+          "container_framed_bytes": 4516,
+          "global_version_bytes": 128,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 128,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 64,
+          "field_offsets": {
+            "global_range_start": 64,
+            "global_range_count": 72,
+            "transaction_time_ns": 76
+          }
+        },
+        "insomnia_completion_v6": {
+          "record_count": 127,
+          "payload_bytes": 605009,
+          "container_framed_bytes": 606025,
+          "global_version_bytes": 1016,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 1016,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 508,
+          "field_offsets": {
+            "global_range_start": 64,
+            "global_range_count": 72,
+            "transaction_time_ns": 76
+          }
+        },
+        "memory_link": {
+          "record_count": 727,
+          "payload_bytes": 29080,
+          "container_framed_bytes": 34896,
+          "global_version_bytes": 5816,
+          "owner_local_version_bytes": 5816,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 11632,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        }
+      },
+      "publication_shapes": {
+        "global=8;local=0;time=8;object_ref=0;range_count=0": {
+          "record_count": 11000,
+          "payload_bytes": 264000,
+          "container_framed_bytes": 352000,
+          "family_count": 1
+        },
+        "global=8;local=0;time=8;object_ref=0;range_count=4": {
+          "record_count": 143,
+          "payload_bytes": 609397,
+          "container_framed_bytes": 610541,
+          "family_count": 2
+        },
+        "global=8;local=8;time=0;object_ref=16;range_count=0": {
+          "record_count": 10998,
+          "payload_bytes": 439920,
+          "container_framed_bytes": 527904,
+          "family_count": 4
+        }
+      },
+      "recognized_payload_bytes": 1313317,
+      "recognized_container_framed_bytes": 1490445,
+      "unknown_version_family_counts": {
+        "CVAVERS": 0,
+        "CVAMEMV": 0,
+        "CVAENTV": 0,
+        "CVARELV": 0,
+        "CVAGVER": 0,
+        "CVAAREC": 0,
+        "CVAINSC": 0,
+        "CVAXMEM": 0
+      },
+      "unclassified_record_count": 27277,
+      "unclassified_magic_counts": {
+        "CVAAFMT2": 1,
+        "CVAAVEC1": 2,
+        "CVAAVFM1": 1,
+        "CVABRCH1": 75,
+        "CVACONT1": 2972,
+        "CVACONV2": 75,
+        "CVACPFM1": 1,
+        "CVACPRO1": 2,
+        "CVACPRT1": 1,
+        "CVADRP01": 8478,
+        "CVAENTF1": 1,
+        "CVAENTR1": 104,
+        "CVAENTR2": 88,
+        "CVAENTT1": 7,
+        "CVAEPIS1": 143,
+        "CVAERS01": 2455,
+        "CVAFRAG1": 498,
+        "CVAFRP01": 1,
+        "CVAFRS02": 92,
+        "CVAFRS03": 1,
+        "CVAGBAT1": 3746,
+        "CVAGBAT2": 5,
+        "CVAGFMT1": 1,
+        "CVAGMUT1": 1504,
+        "CVAGMUT2": 1054,
+        "CVAGNOD2": 95,
+        "CVAGNODE": 722,
+        "CVAILEG1": 1,
+        "CVAINSF1": 1,
+        "CVAMEMF2": 1,
+        "CVAMEMR7": 680,
+        "CVAMEMR8": 47,
+        "CVAMVEC1": 5,
+        "CVAMVFM1": 1,
+        "CVAPVEC1": 7,
+        "CVAPVFM1": 1,
+        "CVARELM1": 1,
+        "CVATURN1": 1486,
+        "CVATURN2": 1486,
+        "CVAVGEN2": 2,
+        "CVAVGFM2": 1,
+        "CVAVGRC2": 2,
+        "CVDREAM1": 1430
+      },
+      "global_ticket_attribution": {
+        "individual_container_ticket_records": 11000,
+        "distinct_individual_ticket_ids": 11000,
+        "individual_ticket_ids_by_referencing_owner": {
+          "Archive": 3763,
+          "Entity": 199,
+          "Graph": 6309,
+          "Memory": 727
+        },
+        "individual_ticket_ids_with_no_publication_reference": 2,
+        "individual_ticket_ids_shared_by_multiple_owners": 0,
+        "exclusive_individual_ticket_bytes_by_owner": {
+          "Archive": {
+            "record_count": 3763,
+            "payload_bytes": 90312,
+            "container_framed_bytes": 120416
+          },
+          "Entity": {
+            "record_count": 199,
+            "payload_bytes": 4776,
+            "container_framed_bytes": 6368
+          },
+          "Graph": {
+            "record_count": 6309,
+            "payload_bytes": 151416,
+            "container_framed_bytes": 201888
+          },
+          "Memory": {
+            "record_count": 727,
+            "payload_bytes": 17448,
+            "container_framed_bytes": 23264
+          }
+        },
+        "shared_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "orphan_ticket_bucket": {
+          "record_count": 2,
+          "payload_bytes": 48,
+          "container_framed_bytes": 64
+        },
+        "ticket_byte_partition_rule": "Each individual CVAVERS record is counted once: assigned to its sole attributed owner, the shared bucket if multiple owners/ranges claim it, or the orphan bucket if no claim exists.",
+        "direct_owner_link_reference_occurrences": 10998,
+        "direct_owner_link_references_by_owner": {
+          "Archive": 3763,
+          "Entity": 199,
+          "Graph": 6309,
+          "Memory": 727
+        },
+        "direct_owner_link_distinct_ids_with_no_ticket_or_explicit_range": 0,
+        "embedded_version_range_records_by_family": {
+          "insomnia_completion_v5": 16,
+          "insomnia_completion_v6": 127
+        },
+        "embedded_version_range_ticket_ids_by_owner": {
+          "Insomnia": 725
+        },
+        "embedded_version_range_ticket_id_occurrences": 725,
+        "ticket_transaction_time_disagreements_with_explicit_ranges": 0,
+        "attribution_rule": "Owner links are joined to CVAVERS records by explicit global_version value. Insomnia/external-source reservations expand only their encoded start/count range. Unclaimed means a CVAVERS ID has no matching owner link or range; no record adjacency is used."
+      }
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "source_bytes": 4070532,
+      "source_sha256_before": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_sha256_after": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true,
+      "container_header_bytes": 40,
+      "container_record_count": 24345,
+      "recognized_publication_record_count": 10442,
+      "recognized_counts_by_owner": {
+        "Memory": 976,
+        "Entity": 86,
+        "Relationship": 0,
+        "Ego": 0,
+        "Archive": 0,
+        "Graph": 4159,
+        "Container": 5221,
+        "Insomnia": 0,
+        "ExternalSource": 0
+      },
+      "owner_link_family_counts": {
+        "memory_link": 976,
+        "entity_link": 86,
+        "relationship_link": 0,
+        "archive_link": 0,
+        "graph_link": 4159
+      },
+      "counts_by_family": {
+        "container_ticket_v2": 5221,
+        "entity_link": 86,
+        "graph_link": 4159,
+        "memory_link": 976
+      },
+      "bytes_by_family": {
+        "container_ticket_v2": {
+          "record_count": 5221,
+          "payload_bytes": 125304,
+          "container_framed_bytes": 167072,
+          "global_version_bytes": 41768,
+          "owner_local_version_bytes": 0,
+          "transaction_time_bytes": 41768,
+          "object_ref_bytes": 0,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8
+          }
+        },
+        "entity_link": {
+          "record_count": 86,
+          "payload_bytes": 3440,
+          "container_framed_bytes": 4128,
+          "global_version_bytes": 688,
+          "owner_local_version_bytes": 688,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 1376,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "graph_link": {
+          "record_count": 4159,
+          "payload_bytes": 166360,
+          "container_framed_bytes": 199632,
+          "global_version_bytes": 33272,
+          "owner_local_version_bytes": 33272,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 66544,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        },
+        "memory_link": {
+          "record_count": 976,
+          "payload_bytes": 39040,
+          "container_framed_bytes": 46848,
+          "global_version_bytes": 7808,
+          "owner_local_version_bytes": 7808,
+          "transaction_time_bytes": 0,
+          "object_ref_bytes": 15616,
+          "range_count_bytes": 0,
+          "field_offsets": {
+            "global_version": 8,
+            "owner_local_version": 16,
+            "object_ref": 24
+          }
+        }
+      },
+      "publication_shapes": {
+        "global=8;local=0;time=8;object_ref=0;range_count=0": {
+          "record_count": 5221,
+          "payload_bytes": 125304,
+          "container_framed_bytes": 167072,
+          "family_count": 1
+        },
+        "global=8;local=8;time=0;object_ref=16;range_count=0": {
+          "record_count": 5221,
+          "payload_bytes": 208840,
+          "container_framed_bytes": 250608,
+          "family_count": 3
+        }
+      },
+      "recognized_payload_bytes": 334144,
+      "recognized_container_framed_bytes": 417680,
+      "unknown_version_family_counts": {
+        "CVAVERS": 0,
+        "CVAMEMV": 0,
+        "CVAENTV": 0,
+        "CVARELV": 0,
+        "CVAGVER": 0,
+        "CVAAREC": 0,
+        "CVAINSC": 0,
+        "CVAXMEM": 0
+      },
+      "unclassified_record_count": 13903,
+      "unclassified_magic_counts": {
+        "CVACPFM1": 1,
+        "CVACPRO1": 1,
+        "CVADRP01": 5453,
+        "CVAENTF1": 1,
+        "CVAENTR1": 45,
+        "CVAENTR2": 39,
+        "CVAENTT1": 2,
+        "CVAERS01": 1691,
+        "CVAGBAT1": 2711,
+        "CVAGBAT2": 2,
+        "CVAGFMT1": 1,
+        "CVAGMUT1": 1178,
+        "CVAGMUT2": 268,
+        "CVAGNOD2": 41,
+        "CVAGNODE": 461,
+        "CVAMBDY1": 510,
+        "CVAMEMF2": 1,
+        "CVAMEMR7": 929,
+        "CVAMEMR8": 47,
+        "CVAMRTE2": 511,
+        "CVAMVEC1": 4,
+        "CVAMVFM1": 1,
+        "CVAPVEC1": 4,
+        "CVAPVFM1": 1
+      },
+      "global_ticket_attribution": {
+        "individual_container_ticket_records": 5221,
+        "distinct_individual_ticket_ids": 5221,
+        "individual_ticket_ids_by_referencing_owner": {
+          "Entity": 86,
+          "Graph": 4159,
+          "Memory": 976
+        },
+        "individual_ticket_ids_with_no_publication_reference": 0,
+        "individual_ticket_ids_shared_by_multiple_owners": 0,
+        "exclusive_individual_ticket_bytes_by_owner": {
+          "Entity": {
+            "record_count": 86,
+            "payload_bytes": 2064,
+            "container_framed_bytes": 2752
+          },
+          "Graph": {
+            "record_count": 4159,
+            "payload_bytes": 99816,
+            "container_framed_bytes": 133088
+          },
+          "Memory": {
+            "record_count": 976,
+            "payload_bytes": 23424,
+            "container_framed_bytes": 31232
+          }
+        },
+        "shared_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "orphan_ticket_bucket": {
+          "record_count": 0,
+          "payload_bytes": 0,
+          "container_framed_bytes": 0
+        },
+        "ticket_byte_partition_rule": "Each individual CVAVERS record is counted once: assigned to its sole attributed owner, the shared bucket if multiple owners/ranges claim it, or the orphan bucket if no claim exists.",
+        "direct_owner_link_reference_occurrences": 5221,
+        "direct_owner_link_references_by_owner": {
+          "Entity": 86,
+          "Graph": 4159,
+          "Memory": 976
+        },
+        "direct_owner_link_distinct_ids_with_no_ticket_or_explicit_range": 0,
+        "embedded_version_range_records_by_family": {},
+        "embedded_version_range_ticket_ids_by_owner": {},
+        "embedded_version_range_ticket_id_occurrences": 0,
+        "ticket_transaction_time_disagreements_with_explicit_ranges": 0,
+        "attribution_rule": "Owner links are joined to CVAVERS records by explicit global_version value. Insomnia/external-source reservations expand only their encoded start/count range. Unclaimed means a CVAVERS ID has no matching owner link or range; no record adjacency is used."
+      }
+    }
+  ],
+  "aggregate": {
+    "fixture_count": 6,
+    "publication_bytes_by_family": {
+      "archive_link": {
+        "record_count": 32357,
+        "payload_bytes": 1294280,
+        "container_framed_bytes": 1553136,
+        "global_version_bytes": 258856,
+        "owner_local_version_bytes": 258856,
+        "transaction_time_bytes": 0,
+        "object_ref_bytes": 517712,
+        "range_count_bytes": 0
+      },
+      "container_ticket_v1": {
+        "record_count": 61981,
+        "payload_bytes": 991696,
+        "container_framed_bytes": 1487544,
+        "global_version_bytes": 495848,
+        "owner_local_version_bytes": 0,
+        "transaction_time_bytes": 0,
+        "object_ref_bytes": 0,
+        "range_count_bytes": 0
+      },
+      "container_ticket_v2": {
+        "record_count": 25315,
+        "payload_bytes": 607560,
+        "container_framed_bytes": 810080,
+        "global_version_bytes": 202520,
+        "owner_local_version_bytes": 0,
+        "transaction_time_bytes": 202520,
+        "object_ref_bytes": 0,
+        "range_count_bytes": 0
+      },
+      "entity_link": {
+        "record_count": 1141,
+        "payload_bytes": 45640,
+        "container_framed_bytes": 54768,
+        "global_version_bytes": 9128,
+        "owner_local_version_bytes": 9128,
+        "transaction_time_bytes": 0,
+        "object_ref_bytes": 18256,
+        "range_count_bytes": 0
+      },
+      "graph_link": {
+        "record_count": 46075,
+        "payload_bytes": 1843000,
+        "container_framed_bytes": 2211600,
+        "global_version_bytes": 368600,
+        "owner_local_version_bytes": 368600,
+        "transaction_time_bytes": 0,
+        "object_ref_bytes": 737200,
+        "range_count_bytes": 0
+      },
+      "insomnia_completion_v3": {
+        "record_count": 430,
+        "payload_bytes": 56670,
+        "container_framed_bytes": 60110,
+        "global_version_bytes": 3440,
+        "owner_local_version_bytes": 0,
+        "transaction_time_bytes": 0,
+        "object_ref_bytes": 0,
+        "range_count_bytes": 1720
+      },
+      "insomnia_completion_v5": {
+        "record_count": 16,
+        "payload_bytes": 4388,
+        "container_framed_bytes": 4516,
+        "global_version_bytes": 128,
+        "owner_local_version_bytes": 0,
+        "transaction_time_bytes": 128,
+        "object_ref_bytes": 0,
+        "range_count_bytes": 64
+      },
+      "insomnia_completion_v6": {
+        "record_count": 1497,
+        "payload_bytes": 3484856,
+        "container_framed_bytes": 3496832,
+        "global_version_bytes": 11976,
+        "owner_local_version_bytes": 0,
+        "transaction_time_bytes": 11976,
+        "object_ref_bytes": 0,
+        "range_count_bytes": 5988
+      },
+      "memory_link": {
+        "record_count": 7719,
+        "payload_bytes": 308760,
+        "container_framed_bytes": 370512,
+        "global_version_bytes": 61752,
+        "owner_local_version_bytes": 61752,
+        "transaction_time_bytes": 0,
+        "object_ref_bytes": 123504,
+        "range_count_bytes": 0
+      }
+    },
+    "publication_shapes": {
+      "global=8;local=0;time=0;object_ref=0;range_count=0": {
+        "record_count": 61981,
+        "payload_bytes": 991696,
+        "container_framed_bytes": 1487544,
+        "family_count": 4
+      },
+      "global=8;local=0;time=0;object_ref=0;range_count=4": {
+        "record_count": 430,
+        "payload_bytes": 56670,
+        "container_framed_bytes": 60110,
+        "family_count": 2
+      },
+      "global=8;local=0;time=8;object_ref=0;range_count=0": {
+        "record_count": 25315,
+        "payload_bytes": 607560,
+        "container_framed_bytes": 810080,
+        "family_count": 6
+      },
+      "global=8;local=0;time=8;object_ref=0;range_count=4": {
+        "record_count": 1513,
+        "payload_bytes": 3489244,
+        "container_framed_bytes": 3501348,
+        "family_count": 4
+      },
+      "global=8;local=8;time=0;object_ref=16;range_count=0": {
+        "record_count": 87292,
+        "payload_bytes": 3491680,
+        "container_framed_bytes": 4190016,
+        "family_count": 20
+      }
+    },
+    "global_ticket_attribution": {
+      "individual_container_ticket_records_across_files": 87296,
+      "per_file_distinct_individual_ticket_ids_sum": 87296,
+      "individual_ticket_ids_by_referencing_owner": {
+        "Archive": 32357,
+        "Entity": 1141,
+        "Graph": 46075,
+        "Memory": 7719
+      },
+      "individual_ticket_ids_with_no_publication_reference": 4,
+      "individual_ticket_ids_shared_by_multiple_owners": 0,
+      "exclusive_individual_ticket_bytes_by_owner": {
+        "Archive": {
+          "record_count": 32357,
+          "payload_bytes": 549536,
+          "container_framed_bytes": 808392
+        },
+        "Entity": {
+          "record_count": 1141,
+          "payload_bytes": 27384,
+          "container_framed_bytes": 36512
+        },
+        "Graph": {
+          "record_count": 46075,
+          "payload_bytes": 879672,
+          "container_framed_bytes": 1248272
+        },
+        "Memory": {
+          "record_count": 7719,
+          "payload_bytes": 142568,
+          "container_framed_bytes": 204320
+        }
+      },
+      "shared_ticket_bucket": {
+        "record_count": 0,
+        "payload_bytes": 0,
+        "container_framed_bytes": 0
+      },
+      "orphan_ticket_bucket": {
+        "record_count": 4,
+        "payload_bytes": 96,
+        "container_framed_bytes": 128
+      },
+      "direct_owner_link_reference_occurrences": 87292,
+      "direct_owner_link_references_by_owner": {
+        "Archive": 32357,
+        "Entity": 1141,
+        "Graph": 46075,
+        "Memory": 7719
+      },
+      "direct_owner_link_distinct_ids_with_no_ticket_or_explicit_range": 0,
+      "embedded_version_range_ticket_ids_by_owner": {
+        "Insomnia": 4695
+      },
+      "embedded_version_range_ticket_id_occurrences": 4695
+    },
+    "unknown_version_family_counts": {
+      "CVAVERS": 0,
+      "CVAMEMV": 0,
+      "CVAENTV": 0,
+      "CVARELV": 0,
+      "CVAGVER": 0,
+      "CVAAREC": 0,
+      "CVAINSC": 0,
+      "CVAXMEM": 0
+    },
+    "unclassified_record_count": 172955,
+    "zero_count_owner_families": [
+      "Relationship",
+      "Ego",
+      "ExternalSource"
+    ]
+  }
+}

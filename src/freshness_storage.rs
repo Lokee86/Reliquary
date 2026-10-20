@@ -13,6 +13,9 @@ mod historical_oracle;
 pub(crate) use historical_oracle::FreshnessOracleState;
 
 #[cfg(test)]
+#[path = "freshness/freshness_effect_storage_contract_tests.rs"]
+mod effect_storage_contract_tests;
+#[cfg(test)]
 #[path = "freshness_storage_tests.rs"]
 mod tests;
 

@@ -165,6 +165,7 @@ fn epoch(first: usize, end: usize) -> super::CompletedEpoch {
         completions: Vec::new(),
         archive_records: Vec::new(),
         events: Vec::new(),
+        accepted_events: BTreeMap::new(),
         dream: Vec::new(),
         owner_evidence: Vec::new(),
     }
