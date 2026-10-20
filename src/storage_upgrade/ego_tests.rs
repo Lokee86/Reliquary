@@ -213,7 +213,7 @@ fn create_v1_fixture(path: &Path, kind: FileKind, records: &[EgoRecord]) {
             owner.sync().unwrap();
         }
     }
-    // Container::append above produced genuine frame checksums. The Ego bytes
+    // Container::append above produced valid physical frames. The Ego bytes
     // are the admitted V1 raw record family; only the storage header version
     // is set to V1, matching the historical format's identical header layout.
     downgrade_header_to_v1(path);
