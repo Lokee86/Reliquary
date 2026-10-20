@@ -372,6 +372,14 @@ The completed root baseline reports **1,515 passed / 5 failed / 5 ignored**, in 
 
 Fresh root and CLI `cargo check --locked` pass. CLI tests pass **32/32**. Root/CLI formatting and both documentation-policy modes pass. Subsequent documentation runs must avoid racing scratch-directory removal by active byte-prefix tests; one concurrent structural scan encountered a disappearing scratch directory and was rerun after those tests finished.
 
+## Shared delta mechanics Steps 88–90
+
+Accepted against `bafdaae`, reconciled after the `14bcba3` handoff. Direct diff confirms no runtime/CLI/ownership-policy change between those checkpoints. `src/compact_delta.rs` extracts only typed unchanged/set diff, explicit optional clear, known-mask checking and pure candidate-field application. Memory retains every semantic/wire rule and its validate-envelope/build-candidate/canonical-validate/admit sequence. Independent Luna review found no behavior or wire change.
+
+Verification: compact Memory **38/38** (`.test-tmp/lossless-shared-delta-memory-tests.log`); root format/check (`.test-tmp/lossless-shared-delta-root-check.log`); CLI format/check and **32/32** (`.test-tmp/lossless-shared-delta-cli-check.log`, `.test-tmp/lossless-shared-delta-cli-tests.log`); both documentation modes (`.test-tmp/lossless-shared-delta-docs.log`). Current-source ownership assigns **987 Rust files to 20 areas with zero missing/overlapping owners**. The ongoing fresh architecture run is recorded separately in `.test-tmp/lossless-shared-delta-architecture-refresh.log`; it has not yet completed, so the earlier pre-extraction snapshot is not claimed to cover this new helper.
+
+Documentation impact: architecture/storage-format/maintainer-map define the value-only shared seam; plan/amendment reflect accepted gates. No public API or persisted-format change. Architecture impact: one pure `compact-codec` area owns the helper; semantic owner admission and storage authority remain unchanged. Fresh graph enforcement is the remaining broader verification item. Next Step 91 freezes Entity's exact retained-history contract.
+
 ## Related docs
 
 - [Specification](minimal-lossless-history-storage-spec-2026-10-19.md)

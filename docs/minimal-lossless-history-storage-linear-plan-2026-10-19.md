@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 87/266 original execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Step 88 helper extraction is committed (`bafdaae`) but its acceptance remains to be reconciled. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 90/266 original execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; next Step 91. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete R1–R22 after V2 domain migration and before final acceptance. V1 compatibility is temporary migration-only, not permanent runtime support. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -750,6 +750,27 @@ Commit: implementation `9996c28`; measurement artifact `c69f279`; policy interru
 Files: `src/storage_upgrade/memory_authoritative_tests.rs`; `benchmarks/lossless-memory-migration-step87-2026-10-19.json`.
 Verification: All six authoritative V1 sources pass every Memory cut/revision fingerprint, terminal state, transaction time and unchanged-source assertion; **zero mismatches**, optimized test **1/1**, 2288.21 seconds. Raw Memory carriers decrease by **1,146,938 bytes** in aggregate. Whole files increase by **6,269,151 bytes** because this temporary bridge retains old import proofs and adds semantic successors; per-file signed deltas are recorded without compression. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-87-and-integration-gate-c).
 Blockers: none for Memory measurement; canonical whole-corpus migration and reader retirement remain gated by R1–R22.
+
+### Step 88 execution record
+
+Commit: `bafdaae`.
+Files: `src/compact_delta.rs`; `src/memory/memory_compact_contract.rs`; `src/lib.rs`; `tools/pitlord/semantic.json`.
+Verification: Extracted only typed unchanged/set diff and known-mask mechanics; Memory field bits, order, tags and errors are unchanged. Focused compact Memory tests **38/38**; root/CLI format and checks pass; CLI **32/32**. No runtime/source-policy difference exists between the implementation and rebased checkpoint `14bcba3`. Current-source ownership: **987 Rust files, 20 areas, zero issues**. See [shared-mechanics evidence](minimal-lossless-history-storage-execution-2026-10-19.md#shared-delta-mechanics-steps-88-90).
+Blockers: none for the Memory regression gate; broader refreshed architecture enforcement remains running and is not claimed complete.
+
+### Step 89 execution record
+
+Commit: `bafdaae`.
+Files: `src/compact_delta.rs`; `src/memory/memory_compact_apply.rs`; `src/memory/memory_compact_apply_tests.rs`.
+Verification: Extracted pure candidate-field application. Envelope checks, exhaustive typed candidate construction and canonical re-derivation remain in Memory before owner admission. A generic semantic validation/candidate framework would add authority rather than reuse proven mechanics and was deliberately not introduced. Memory behavior is unchanged: **38/38**, root/CLI checks and CLI **32/32** pass; independent Luna review found no wire/validation change.
+Blockers: none for this item; no generic semantic-owner abstraction is authorized.
+
+### Step 90 execution record
+
+Commit: `bafdaae`.
+Files: `docs/architecture.md`; `docs/storage-format.md`; `docs/maintainer-map.md`.
+Verification: Documentation explicitly retains owner-specific IDs, clocks, revisions, field order, wire tags, errors, terminal rules, canonical validation and publication. The helper imports no owner/storage types. Both documentation-policy modes pass (`.test-tmp/lossless-shared-delta-docs.log`).
+Blockers: none for this documentation boundary; final format retirement remains gated by R1–R22.
 
 ## Phase F — Memory Writer Cutover and Migration
 
