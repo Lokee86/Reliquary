@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 169/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; next Step 170. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 172/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; next Step 173. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1898,4 +1898,25 @@ Commit: `e438360`.
 Files: `src/container/{container_scan,container_version,publication_envelope_clock_tests}.rs; src/facade/historical_global_frontier.rs`.
 Verification: Fourteen new clock/recovery tests pass. Container tracks standalone reservation provenance and consumes each envelope binding once; grouped/direct/future/repeated bindings reject. Exact allocations/times and physical global frontiers, V1 barriers, malformed-complete rejection, every partial allocation/binding frame prefix, failed validation, write fences and overflow pass. Five adjacent filters pass 318 unique tests with zero failures/ignores; root/CLI format/check and 32 CLI tests pass. Both documentation modes pass. Existing ordinary semantic writer shapes remain unchanged.
 Blockers: none for the mechanical gate; Memory body admission/consumers, other owner decisions, final integration/architecture refresh and retirement remain pending.
+
+### Step 170 execution record
+
+Commit: `032530b`.
+Files: `src/memory/memory_publication_codec{,_tests}.rs; memory_compact_codec.rs`.
+Verification: Seven independent codec tests pass for CVAMC002 creation, CVAMD002 delta and CVAMT002 terminal bodies. Outer global context is not duplicated; local/revision/identity/field mask and exact values remain owner-bound. Literal wire, optional clears/empty deltas, corruption/truncation/unknown versions and input immutability pass.
+Blockers: none for this body-codec gate; ordinary writer/converter and downstream consumer gates remain pending.
+
+### Step 171 execution record
+
+Commit: `032530b`.
+Files: `src/memory/{memory_rebuild,memory_store,memory_publication_replay_tests,memory_rebuild_overflow_tests}.rs`.
+Verification: Canonical owner candidate/terminal validation applies envelope bodies exactly once. Five replay/admission regressions pass, including actual REL/PHY reopen, reverse reserved globals, missing backing, invalid local/base state without mutation, raw 002/V1 rejection and unknown body failure. Local-version overflow is checked before insertion/removal and the atomicity regression passes. Adjacent Memory suite: 278 passed, zero failures, one existing opt-in ignore; initial localhost restriction resolved by permitted mock-server rerun. Root/CLI format/check, 32 CLI tests and both documentation modes pass.
+Blockers: none for owner admission; import/proof/copy/writer/converter and final integration remain pending.
+
+### Step 172 execution record
+
+Commit: `032530b`.
+Files: `src/memory/memory_publication_replay_tests.rs`; existing grouped and historical regressions.
+Verification: Every local cut of marker/envelope REL/PHY fixtures agrees, including reverse-global records, exact optional times and terminal state. Real grouped Insomnia plus envelope REL compares every local/global cut and timestamp. All seven focused replay/history tests, six external grouped publication regressions and fourteen Insomnia completion tests pass; existing grouped whole-owner/interior-cut cases pass in the 278-test adjacent run.
+Blockers: none for this historical gate; downstream consumers/writers/conversion and final integration remain pending.
 
