@@ -433,3 +433,5 @@ Accepted against commit `9996c28`. The ledger now records every execution step f
 - Retained-snapshot architecture policy passes all **23 rules**. Fresh architecture evidence remains a gap; no current structural snapshot refresh is claimed. Both documentation-policy modes passed for the batch.
 
 Step 87 remains unaccepted: the completed six-file parity and raw-byte measurement, with the required six-file report, is still pending. The first authoritative REL/PHY outputs above establish only the cases named; they are not generalized into a whole-file savings claim.
+
+Fresh architecture evidence subsequently completed successfully with `python scripts/check_architecture.py --refresh` (`.test-tmp/lossless-memory-architecture-refresh-final.log`). Lexicon snapshot `sha256:83e12942f18deb03747af6995bab271892f420c07e31629418eb1da560c95706` was synchronized into Arcana without compatibility warnings. All **23** Pitlord rules pass against **91,587 source nodes and 3,079 relationships**, along with the ownership guards. This closes the earlier architecture freshness gap for implementation `9996c28`; the authoritative measurement gate remains pending.
