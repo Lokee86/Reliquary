@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 126/283 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; next Step 127. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 138/283 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D is collecting broad root/CLI/current-source architecture evidence; next Step 139 after Gate D. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1551,3 +1551,91 @@ Commit: `41eaa0a`.
 Files: `scripts/measure_ego_history.py; scripts/test_measure_ego_history.py; benchmarks/ego-payload-repetition-2026-10-20.json`.
 Verification: Six immutable inputs contain zero Ego records; six independent parser/projection tests pass. No owner-local payload table warranted for this rollout. Shared batch evidence above and the detailed execution document apply.
 Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+## Ego numbered acceptance — Steps 127–138
+
+Implementation milestone `b10815d`. Focused codec/contract/replay/consumer checks pass; final corrected public writer/rewrite tests pass within the running full root test suite. Six-source authoritative conversion passed in `.test-tmp/ego-writer-migration-focused.log`; nonempty conversion passed in `ego-writer-migration-final.log`. Root/CLI format and compilation checks pass. Integration Gate D remains **pending** until the complete root/CLI runs and current-source architecture enforcement finish; these numbered records do not claim the integration gate or final rollout complete. Detailed evidence is in the execution document.
+
+### Step 127 execution record
+
+Commit: `b10815d`.
+Files: `src/ego/ego_compact_contract.rs; ego_compact_contract_tests.rs`.
+Verification: Nine contract tests preserve activation, terminal state, admitted repeated publications, backwards source cuts and owner restrictions.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 128 execution record
+
+Commit: `b10815d`.
+Files: `src/ego/ego_compact_codec.rs; ego_compact_creation_codec_tests.rs`.
+Verification: Seven literal/roundtrip/truncation/corruption creation/terminal tests pass for all four kinds; implicit revision and exact strings validated.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 129 execution record
+
+Commit: `b10815d`.
+Files: `src/ego/ego_compact_delta_codec.rs; ego_compact_delta_codec_tests.rs`.
+Verification: Six field-mask/literal/truncation/corruption tests pass; zero-mask publication and metadata-only deltas are retained.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 130 execution record
+
+Commit: `b10815d`.
+Files: `src/ego/ego_compact_apply.rs; ego_store_compact.rs; ego_compact_replay_tests.rs`.
+Verification: Five replay tests preserve exact materialized records across interleaved objects, legacy bases, activation and terminals; invalid bases fail.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 131 execution record
+
+Commit: `b10815d`.
+Files: `src/facade/historical_ego_fingerprint.rs; historical_ego_compact_tests.rs`.
+Verification: Both REL and PHY legacy/compact histories produce equal canonical fingerprints and projected fields at every cut.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 132 execution record
+
+Commit: `b10815d`.
+Files: `src/rewrite/semantic_state.rs; src/ego/ego_compact_writer_tests.rs`.
+Verification: Public REL/PHY fresh-history rewrite test passes in full root run; exact selected state, reset revisions, independent activation and existing cache policy remain.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 133 execution record
+
+Commit: `b10815d`.
+Files: `src/facade/ego_compact_maintenance_tests.rs`.
+Verification: Both owner histories retain every Ego fingerprint through native prune/reclaim/reopen; REL principal/attachment repacks also preserve cuts.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 134 execution record
+
+Commit: `b10815d`.
+Files: `src/imports/reconciliation_ego_compact_tests.rs; src/facade/cva_reconcile_ego_compact_tests.rs`.
+Verification: All compact families and independent activation remain explicitly unsupported in import intervals; divergent reconciliation rejects nonempty compact Ego without output publication.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 135 execution record
+
+Commit: `b10815d`.
+Files: `src/ego/ego_store.rs; ego_store_compact.rs; ego_compact_writer_tests.rs`.
+Verification: Ordinary REL/PHY writer tests pass in full root run: compact creation/delta/terminal, minimal activation, exact reopened state, small metadata deltas and no-op byte/clock stability.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 136 execution record
+
+Commit: `b10815d`.
+Files: `src/storage_upgrade/ego.rs; memory.rs; shell.rs; ego_tests.rs; ego_authoritative_tests.rs`.
+Verification: Nonempty REL/PHY every-cut parity and four malformed-source cleanup cases pass; six immutable authoritative V1 conversions pass with exact owner/clock/source parity.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 137 execution record
+
+Commit: `b10815d`.
+Files: `src/ego/ego_compact_contract_tests.rs; ego_compact_replay_tests.rs; ego_compact_writer_tests.rs; src/storage_upgrade/ego_tests.rs`.
+Verification: Activation/deletion/owner/sequence/revision/source-watermark and terminal resurrection cases preserve current admitted history and public lifecycle restrictions.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
+
+### Step 138 execution record
+
+Commit: `b10815d`.
+Files: `benchmarks/ego-history-storage-2026-10-20.json`.
+Verification: Six retained files explicitly report zero Ego records. Synthetic raw payload bytes 256→200 REL and 656→555 PHY; framed bytes 296→240 and 760→659. No compression or corpus saving inferred.
+Blockers: none for this numbered gate; broad Integration Gate D, later canonical promotion and runtime retirement remain pending.
