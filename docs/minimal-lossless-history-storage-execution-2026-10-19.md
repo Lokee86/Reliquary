@@ -1082,7 +1082,7 @@ Root format/check and locked CLI format/check pass. All **1,917 executed root te
 
 
 
-Architecture evidence: direct source ownership covers **1,042 Rust files in 20 areas**, with zero uncovered or overlapping paths. The initial graph pass exposed a stale-snapshot risk: initializing an existing Lexicon repository alone did not include the newest converter. `scripts/check_architecture.py --refresh` now explicitly scans before synchronizing Arcana. Final current-source graph enforcement is collecting in `.test-tmp/relationship-final-architecture.log`; no final source-complete graph pass is claimed until snapshot hashes are checked.
+Architecture evidence: direct source ownership covers **1,042 Rust files in 20 areas**, with zero uncovered or overlapping paths. The initial graph pass exposed a stale-snapshot risk: initializing an existing Lexicon repository alone did not include the newest converter. `scripts/check_architecture.py --refresh` now explicitly scans before synchronizing Arcana. Final enforcement passes all **23 rules**, **95,098 source nodes** and **3,124 relationships**, snapshot `17e404f7eb4de346ba75f1a1861c60030df4ae9f4932479280680e4ac315bc91` (`.test-tmp/relationship-final-architecture.log`). Changed Relationship implementation hashes match milestone `41eaa0a` after LF/CRLF normalization; the two root/export registration modules are inspected separately. The unrelated Entity test fix is included in the refreshed snapshot. Ego additions after this scan require a later integration refresh.
 
 
 
@@ -1110,7 +1110,7 @@ Architecture impact:
 
 - Other verification impact: complete root and CLI correctness runs pass; five opt-in entry points are disclosed separately.
 
-- Known architectural gaps: final refreshed source-complete enforcement is pending; later owner conversion and runtime retirement remain pending.
+- Known architectural gaps: later Ego/current-source integration refresh, owner conversion and runtime retirement remain pending.
 
 
 

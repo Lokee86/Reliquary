@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 112/283 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; next Step 113. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 126/283 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; next Step 127. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1077,7 +1077,7 @@ Run Entity, canonical Relationship/Observation, Ego, lifecycle, reconciliation, 
 | 140 | Sol | Decide whether Graph compact-ID dictionary/ordinal encoding is worthwhile from measured fixtures. | Measurement-backed yes/no decision recorded. |
 | 141 | Sol | If justified, define the Graph local-ID table format and validation rules. | Corrupt/missing mappings fail closed. |
 | 142 | Sol | If justified, implement Graph compact-ID encoding/decoding behind Graph codec boundary. | Decoded canonical mutations match existing semantics. |
-| 143 | Sol | Extend upgrader for compact Graph encoding if Step 130 is implemented. | Graph historical oracle parity passes. |
+| 143 | Sol | Extend upgrader for compact Graph encoding if Step 142 is implemented. | Graph historical oracle parity passes. |
 | 144 | Luna | Add Graph mapping corruption/order/admission regressions if compact IDs are implemented. | Invalid mappings fail closed. |
 
 ---
@@ -1449,3 +1449,105 @@ After Entity Step 107, the current source still persists Relationship; Observati
 ## Ego execution-discovery crosswalk
 
 Ego source inspection found four concrete failure domains outside ordinary replay/writing: the independent historical fingerprint scanner, fresh-history rewrite emission, maintenance preservation, and existing unsupported reconciliation/import boundaries. Steps 131–134 make these explicit before ordinary writer cutover. Former Steps 131–279 move to 135–283; Steps 1–130 remain unchanged. Earlier crosswalk totals retain their historical meaning; the current total is 283. These gates do not add Ego reconciliation support or change rewrite history-discard policy.
+
+## Relationship and Ego inventory acceptance — Steps 113–126
+
+Shared batch verification: implementation `41eaa0a`; 73 focused Relationship tests, 1,917 executed root tests (five existing opt-in ignores), 32 CLI tests, root/CLI format/check, six-file authoritative conversion and raw byte evidence. Architecture passes all 23 rules at snapshot `17e404f7eb4de346ba75f1a1861c60030df4ae9f4932479280680e4ac315bc91` (95,098 source nodes/3,124 relationships). Changed Relationship implementation hashes match committed bytes after LF/CRLF normalization; root/export module registrations are independently inspected. Documentation checks are rerun after this ledger update.
+
+### Step 113 execution record
+
+Commit: `41eaa0a`.
+Files: `src/perception/relationship_replay.rs; src/facade/cva_reconcile_relationship.rs`.
+Verification: Accepted coordinate lookup, exact replay, retries, terminal and typed unavailable tests pass. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 114 execution record
+
+Commit: `41eaa0a`.
+Files: `src/perception/relationship_replay.rs; src/imports/reconciliation.rs`.
+Verification: Normalized source evidence preserves accepted fields except rebased coordinates; legacy/compact evidence parity passes. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 115 execution record
+
+Commit: `41eaa0a`.
+Files: `src/imports/reconciliation.rs; reconciliation_relationship_compact_tests.rs`.
+Verification: Strict creation/delta/terminal admission and malformed/unknown-family rejection pass. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 116 execution record
+
+Commit: `41eaa0a`.
+Files: `src/facade/storage_reclamation_scan.rs; storage_reclamation_relationship_compact_tests.rs`.
+Verification: Published compact and terminal backing survive relocation/reopen; orphans remain inert. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 117 execution record
+
+Commit: `41eaa0a`.
+Files: `src/perception/relationship_retained_structure.rs`.
+Verification: Canonical retained-structure hash equals the prior summary-redacted schema independently of carrier encoding. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 118 execution record
+
+Commit: `41eaa0a`.
+Files: `src/perception/relationship_description_proof.rs; src/facade/cva_description_prune.rs; phylactery_history_prune.rs`.
+Verification: Strict proof extraction, exact membership/source binding and seven rechecksummed tamper cases for REL/PHY pass. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 119 execution record
+
+Commit: `41eaa0a`.
+Files: `src/perception/relationship_compact_publish.rs; relationship_store.rs`.
+Verification: Ordinary creation/delta publication shares validated owner replay seam; no ordinary legacy postimage writer remains. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 120 execution record
+
+Commit: `41eaa0a`.
+Files: `src/perception/relationship_description_prune.rs; src/facade/cva_history_prune.rs`.
+Verification: Native REL pruning emits authenticated redacted chains and removes selected orphan carriers; reopen/maintenance pass. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 121 execution record
+
+Commit: `41eaa0a`.
+Files: `src/facade/phylactery_history_prune.rs`.
+Verification: Native PHY pruning preserves exact retained structure, terminal history and authenticated unavailable descriptions. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 122 execution record
+
+Commit: `41eaa0a`.
+Files: `src/storage_upgrade/relationship.rs; memory.rs; shell.rs`.
+Verification: Nonempty REL/PHY conversion and all six pinned V1 conversions preserve exact history, UUID, ticket times and source bytes/hash/mtime. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 123 execution record
+
+Commit: `41eaa0a`.
+Files: `src/perception/relationship_replay_tests.rs; src/facade/relationship_compact_prune_tests.rs`.
+Verification: Participants/evidence remove-and-add, retry/orphan/terminal/unavailable and proof-tamper fixtures pass within 73 focused tests. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 124 execution record
+
+Commit: `41eaa0a`.
+Files: `benchmarks/relationship-history-storage-2026-10-20.json`.
+Verification: Six pinned inputs explicitly contain zero Relationship records; nonempty synthetic REL/PHY each save 28 raw bytes (689 to 661). Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 125 execution record
+
+Commit: `41eaa0a`.
+Files: `docs/minimal-lossless-history-storage-execution-2026-10-19.md`.
+Verification: Identity/Anchor/Personality/synthesis stable identity, mutable fields, terminal state, ownership and independent clocks inventoried. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
+
+### Step 126 execution record
+
+Commit: `41eaa0a`.
+Files: `scripts/measure_ego_history.py; scripts/test_measure_ego_history.py; benchmarks/ego-payload-repetition-2026-10-20.json`.
+Verification: Six immutable inputs contain zero Ego records; six independent parser/projection tests pass. No owner-local payload table warranted for this rollout. Shared batch evidence above and the detailed execution document apply.
+Blockers: none for this item; later owner conversion, canonical promotion and runtime retirement remain pending.
