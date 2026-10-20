@@ -3,6 +3,19 @@ use crate::relationship_model::RelationshipRecord;
 use crate::{EntityRef, Relationship, RelationshipError, RelationshipId, RelationshipStats};
 
 impl RelationshipStore {
+    pub(crate) fn current_record_for_replay(
+        &self,
+        id: crate::RelationshipId,
+    ) -> Result<&crate::relationship_model::RelationshipRecord, crate::RelationshipError> {
+        if self.tombstones.contains_key(&id) {
+            return Err(crate::RelationshipError::TerminalTombstone);
+        }
+        self.current
+            .get(&id)
+            .map(|index| &self.records[*index])
+            .ok_or(crate::RelationshipError::MissingRelationship)
+    }
+
     pub(crate) fn relationship_revision(
         &self,
         id: RelationshipId,

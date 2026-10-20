@@ -944,6 +944,20 @@ mod rel_metadata_model;
 mod rel_metadata_store;
 #[path = "perception/relationship_codec.rs"]
 mod relationship_codec;
+#[path = "perception/relationship_compact_apply.rs"]
+mod relationship_compact_apply;
+#[path = "perception/relationship_compact_codec.rs"]
+mod relationship_compact_codec;
+#[path = "perception/relationship_compact_contract.rs"]
+mod relationship_compact_contract;
+#[cfg(test)]
+#[path = "perception/relationship_compact_owner_tests.rs"]
+mod relationship_compact_owner_tests;
+#[cfg(test)]
+#[path = "perception/relationship_compact_rebuild_tests.rs"]
+mod relationship_compact_rebuild_tests;
+#[path = "perception/relationship_compact_values.rs"]
+mod relationship_compact_values;
 #[path = "perception/relationship_error.rs"]
 mod relationship_error;
 #[path = "perception/relationship_model.rs"]
@@ -954,6 +968,9 @@ mod relationship_owner;
 mod relationship_rebuild;
 #[path = "perception/relationship_store.rs"]
 mod relationship_store;
+#[cfg(test)]
+#[path = "perception/relationship_v1_characterization_tests.rs"]
+mod relationship_v1_characterization_tests;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]

@@ -356,6 +356,12 @@ For whichever representation is canonical when this work executes:
 
 If Relationship-to-Observation convergence lands first, implement compact history only on the canonical Observation representation and retain old Relationship codecs as migration input.
 
+Execution Step 108 selects Relationship: no separately persisted Observation owner has landed. The Relationship contract preserves exact validated values, including whitespace that ordinary draft publication normalizes. Creation binds all record fields with implicit revision 1; delta binds stable ID, exact predecessor/successor revision, global/local tickets and fresh mutation ID. Five mutable fields are kind, participant set, evidence set, summary and update timestamp. ID and creation time are immutable. Nonzero global tickets may arrive earlier than a previous revision's ticket; owner-local publications remain dense and interleaved across IDs. Update time may decrease relative to its predecessor while remaining at least creation time. A fresh mutation with no changed fields is legal.
+
+Participants are canonical sorted sets of complete `(EntityRef, optional role)` values; changing a role removes the old tuple and adds the new one. Evidence is a sorted set of `(owner ID, Memory ID)` values. Collection deltas carry sorted, unique, disjoint removal/addition lists; application must reject absent removals, existing additions and redundant encodings before validating the full candidate. Existing participant/evidence and text bounds apply. Local-reference admission stays at the existing writer/rebuild boundary; codec construction does not invent reference authority.
+
+Relationship description pruning clears only summary. Explicit proof carries SHA-256 of the original unpruned record payload and the complete canonical CVAHPR01 manifest; it grants no authorization alone. Shared file-level validation still binds exact manifest descriptor, ID/revision, original carrier and source history. Authored empty summary remains distinct from unavailable summary. Terminal deletion remains the existing explicit revision-plus-one operation; no resurrection or replacement target is introduced.
+
 ### Ego
 
 Identity, Anchor, Personality and synthesis revisions should stop repeating unchanged text/metadata.

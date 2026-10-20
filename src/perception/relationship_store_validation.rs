@@ -34,7 +34,7 @@ pub(super) fn normalize_draft(draft: &mut RelationshipDraft) -> Result<(), Relat
     )
 }
 
-pub(super) fn validate_record(record: &RelationshipRecord) -> Result<(), RelationshipError> {
+pub(crate) fn validate_record(record: &RelationshipRecord) -> Result<(), RelationshipError> {
     validate_fields(
         &record.kind,
         &record.participants,
