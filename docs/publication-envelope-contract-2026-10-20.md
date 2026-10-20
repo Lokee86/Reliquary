@@ -1,7 +1,7 @@
 # Compact publication envelope — execution contract
 
 Date: 2026-10-20
-Status: Step 167 contract accepted against `b043494`; Memory runtime admission and ordinary writing accepted through Step 177. Offline Memory conversion and Entity/Relationship envelope codecs, consumers, ordinary writing and offline conversion are implemented and in verification. Archive/Graph framing decisions and final promotion remain pending.
+Status: Step 167 contract accepted against `b043494`; Memory runtime admission and ordinary writing accepted through Step 177. Offline Memory conversion and Entity/Relationship envelope codecs, consumers, ordinary writing and offline conversion are implemented and in verification. Archive contract freeze and Graph implementation gates, plus final promotion, remain pending.
 
 ## Overview
 
@@ -96,6 +96,33 @@ Relationship owns creation, delta and direct terminal semantics. It has no optio
 Bodies use `CVARNC02` and `CVARND02`, preserving the `01` field order and all canonical participant/evidence collection operations, except that the global integer is supplied only by the envelope. Optional description proof and its checksum cover the new body bytes. `CVARTD02` stores Relationship ID, revision and local Relationship version as little-endian values. The envelope supplies its global coordinate. No body contains a carrier reference. Unknown family versions, zero coordinates, invalid revisions/masks/collections, malformed proof checksums, truncation and trailing bytes reject. Replay must preserve direct terminal authority and dense local sequence under reverse reserved globals.
 
 The implementation gates remain independent: codec (`relationship_compact_codec` and values); replay (`RelationshipOpenState`); historical cuts/fingerprints; reconciliation range and completed-import inventory; authenticated description pruning and owner-history digest; reclamation liveness and relocation; REL/PHY native copies and explicit semantic rewrite policy; ordinary revision/direct terminal writers; and offline accepted-link conversion at original marker slots. Existing raw carriers remain inert unless accepted. Writer cutover waits for those consumers, and a zero-link authoritative corpus cannot substitute for adversarial synthetic parity.
+
+## Archive envelope contract and repeated bindings
+
+Archive has 32,357 accepted links in the three pinned REL files and zero in PHY. The [family inventory](../benchmarks/archive-publication-family-inventory-2026-10-20.json) resolves complete referenced carriers, excludes content backing/format/grouped owners, and records unchanged hashes. The corpus has no repeated references; synthetic repeated-binding coverage is mandatory because current Archive replay accepts them without applying the semantic record again.
+
+Each applying Archive body has exactly one eight-byte family magic, then an explicit nonzero little-endian `archive_version: u64`, then the canonical semantic fields below. Global comes only from the physical envelope. Do not derive local sequence solely by counting envelopes, add another owner tag, nest an old carrier magic, or splice an encoded legacy carrier into a runtime body. Share actual field encoders/decoders under their existing concrete codec owners.
+
+| Native body magic | Canonical fields following the common local coordinate | Concrete codec owner |
+| --- | --- | --- |
+| `CVANOD02` | timestamp, content ID, node/conversation/parent/role/principal fields of current Node | `archive_codec` |
+| `CVABRC02` | canonical bool, branch/conversation/leaf IDs | `archive_codec` |
+| `CVACON04` | conversation ID, optional title, active flag, policy, nonzero policy revision | `conversation_metadata_codec` |
+| `CVACTM02` | conversation ID and exact node/branch/fragment/episode/file/metadata-version closure | `archive_codec` |
+| `CVAFRA02` | fragment ID, conversation/start/end node IDs | `archive_codec` |
+| `CVAEPI02` | episode ID, origin/boundary tags, source-through/finalized times, conversation/start/end node IDs | `episode_codec` |
+| `CVAFIL02` | file/content IDs, byte length, filename, optional MIME | `archive_codec` |
+| `CVATUR03` | current Node fields followed by the exact ordered attachment bundle | `turn_ingest_codec` |
+| `CVAIMP02` | validated current ImportReceipt JSON model and exact source/revision fingerprints | `archive_import` |
+| `CVAFME02` | file ID and Memory ID | `file_memory_link_codec` |
+
+Legacy Node/turn absence of principal stays `None`; legacy metadata keeps the existing decoded inactive/policy/revision defaults. Conversion canonicalizes those model values into these native fields. It does not retain legacy body decoders inside new envelopes. A tombstone has one local coordinate in the common prefix and no duplicate semantic global; its model receives the envelope global and its explicit local, and existing exact closure validation remains mandatory. An IngestedTurn remains one atomic publication. Content `CVACONT1`, format `CVAAFMT2`, legacy links and grouped owner frames are never applying Archive bodies. Known unsupported versions, malformed flags/tags/lengths/strings, zero coordinates and trailing data reject.
+
+`CVAARP02` is the separate Archive repeated-binding body: common explicit local followed by `first_applying_archive_version: u64`. It must name an earlier applying publication, never itself, a future local, a gap or another repeat. It consumes one local/global history cut and never reapplies the record. This retains the old accepted repeated-carrier behavior, including repeated terminal bindings. Historical/evidence readers resolve the first applying record with its original coordinates; current state keeps the original application. No new ancestry or clock is introduced. Offline conversion maps every repeated source reference to that first accepted local; it must not duplicate and reapply a semantic body. Native ordinary writers need not manufacture repeats.
+
+Archive retains its existing dense local sequence and strictly increasing publication globals; physical reserved clocks do not authorize a decreasing Archive sequence. Prepare the next local coordinate before any semantic state mutation. New `ArchiveRecordVersion.record` references point to the envelope itself. Container reads remain raw: concrete Archive readers resolve applying/repeated publications explicitly. Raw content and unaccepted record-shaped backing stay inert. Only accepted carriers are removable during conversion, after every reference is accounted for.
+
+The concrete consumer inventory is `ArchiveOpenState::ingest_version/apply_record`; `Archive::branch_at/record_version` and Archive/current historical materializers; `cva_reconcile_archive` ranges/receipts and import interval/evidence inventory; `history_prune_manifest::owner_history_digest`, Archive content/conversation pruning and terminal retention; `ReclamationScan` dependency liveness and physical relocation; REL attachment/native repack and rewrite/migration; and every `Archive::publish_record` caller (Node, Branch, metadata, tombstone, Fragment, Episode, File, IngestedTurn, ImportReceipt, FileMemoryLink). Each has an explicit gate in the linear plan. No writer cutover precedes these gates. Native copy must retain content dependencies, repeated anchors, IDs, all cuts and times; semantic rewrite keeps its explicit discard policy. Conversion binds at original marker slots with unchanged standalone reservations, canonical fields, proofs/receipts and source identity/hash/mtime. Per-family measured output bytes, including chunk framing, are required before any savings claim or promotion.
 
 ## Measurement and acceptance
 

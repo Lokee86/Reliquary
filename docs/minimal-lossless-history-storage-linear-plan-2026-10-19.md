@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 177/339 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; next Step 178. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 199/339 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; next Step 200. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -2001,3 +2001,162 @@ The Step 178 review inventories Entity before cutover. Former umbrella Step 179 
 ## Remaining envelope consumer expansion — 2026-10-20
 
 The owner inventory confirms real removable framing for Relationship, Archive and Graph; zero Relationship links in the six pinned inputs is not an absence of a live owner. Former Steps 189, 191 and 192 become ten independently gated owner-specific rows each. Relationship is now 189–198, Ego no-cutover decision 199, Archive 200–209, Graph 210–219, and the final coverage audit 220. Integration Gate E follows Step 220; former 194–312 become 221–339. Earlier accepted rows retain their identities and earlier dated crosswalks remain historical. Each selected owner must preserve its own existing lifecycle: Relationship has one direct tombstone and no Entity-style UUID or replacement chain. Archive content/format frames and atomic grouped owners are not ordinary versioned Archive publications. The vector reuse decision now points to the actual unchanged-vector-byte measurement at Step 273, rather than a stale Entity Resolution row. Structural acceptance requires 339 consecutive execution rows.
+
+
+## Envelope owner batch acceptance — Steps 178–199 (2026-10-20)
+
+Implementation: `ca60b5c`. Focused envelope regression 91/91; Relationship 98/98 and Entity 281/281 before writer cutover. New Relationship writers 4/4. Full unit sweep: 1,963 passed and 5 ignored, with one obsolete destination-wire assertion subsequently corrected and verified 1/1 against the same production code. Root/feature compilation, root/CLI formatting, 32 CLI tests and both documentation modes pass. The broader repository command is running against this implementation snapshot; Integration Gate E remains pending after Archive/Graph gates.
+
+### Step 178 accepted — Memory offline envelope conversion
+
+Commit: `ca60b5c`.
+Files: src/storage_upgrade/memory_envelope.rs; memory_envelope_tests.rs; memory_envelope_authoritative_tests.rs; historical_import_memory_envelope_upgrade_tests.rs.
+Verification: 13 focused tests pass; genuine V1 proof-boundary reservation and post-epoch binding pass. Six pinned sources preserve every local cut/global frontier, payload/routing, times, bytes/SHA-256/mtime in 1,178.86 seconds. Measured standalone framing is separate from grouped payloads.
+Blockers: None for this gate; CVAHPR01 remains an explicit typed unsupported source and canonical promotion is pending.
+
+### Step 179 accepted — Entity envelope contract
+
+Commit: `ca60b5c`.
+Files: docs/publication-envelope-contract-2026-10-20.md.
+Verification: Four concrete body schemas, all consumers, proof authority and direct/merge distinctions inventoried and frozen.
+Blockers: None.
+
+### Step 180 accepted — Entity envelope codecs
+
+Commit: `ca60b5c`.
+Files: src/perception/entity_publication_codec.rs; entity_publication_codec_tests.rs.
+Verification: Literal global omission, UUID transitions, empty/full deltas, both terminals, checksums, unknown masks/versions, truncation and trailing-byte rejection pass.
+Blockers: None.
+
+### Step 181 accepted — Entity envelope replay
+
+Commit: `ca60b5c`.
+Files: src/perception/entity_rebuild.rs; entity_store.rs; facade REL/PHY dispatch.
+Verification: REL/PHY admission, dense local sequence, reverse reservations, bases, terminal chains and V1 boundary pass. Overflow rejection leaves all semantic indexes unchanged.
+Blockers: None.
+
+### Step 182 accepted — Entity historical projections
+
+Commit: `ca60b5c`.
+Files: src/perception/entity_publication_history_tests.rs.
+Verification: Matched marker/envelope histories agree at all synthetic local/global cuts and transaction times, including both terminal forms.
+Blockers: None.
+
+### Step 183 accepted — Entity reconciliation and import evidence
+
+Commit: `ca60b5c`.
+Files: src/facade/cva_reconcile_entity.rs; src/imports/reconciliation.rs; reconciliation_freshness_authority_tests.rs.
+Verification: Finite physical ranges, reversed ticket times, duplicate replay, actual divergence, both terminals and normalized evidence from real completed imports pass.
+Blockers: None.
+
+### Step 184 accepted — Entity native prune proof
+
+Commit: `ca60b5c`.
+Files: src/perception/entity_description_proof.rs; entity_description_prune.rs; src/facade/history_prune_manifest.rs; entity_compact_prune_tests.rs.
+Verification: Every-watermark canonical authority, mixed raw/envelope source hashes, actual REL/PHY prune/reopen, exact retained descriptors, missing/detached/duplicate and rechecksummed proof tampering pass.
+Blockers: None.
+
+### Step 185 accepted — Entity reclamation and relocation
+
+Commit: `ca60b5c`.
+Files: src/facade/storage_reclamation_scan.rs; storage_reclamation.rs; storage_reclamation_entity_publication_tests.rs.
+Verification: Accepted inline authority/proofs/terminals remain live; inert backing is reclaimed; exact envelope bytes, cuts and times survive supported native outputs. Malformed/foreign bodies reject.
+Blockers: None.
+
+### Step 186 accepted — Entity native copies and semantic policies
+
+Commit: `ca60b5c`.
+Files: src/perception/entity_publication_copy_tests.rs; docs/current-limitations.md.
+Verification: Native REL attachment repack preserves every retained cut/time/terminal. Semantic rewrite follows selection; supported live PHY owner-ID migration preserves revisions/times.
+Blockers: None for supported policies. Existing owner-ID migration terminal limitation is explicit and must not be used for canonical promotion.
+
+### Step 187 accepted — Entity ordinary writer cutover
+
+Commit: `ca60b5c`.
+Files: src/perception/entity_compact_publish.rs; entity_store.rs; entity_compact_writer_tests.rs.
+Verification: Creation, delta, direct and merge terminal use one allocation envelope. Preflight, retries, reopen and incomplete-tail recovery pass. Genuine V1 boundary fixtures now construct legacy terminal authority explicitly.
+Blockers: None.
+
+### Step 188 accepted — Entity offline conversion
+
+Commit: `ca60b5c`.
+Files: src/storage_upgrade/entity_envelope.rs; entity_envelope_tests.rs; entity_envelope_authoritative_tests.rs.
+Verification: Synthetic reserved marker slots, orphan retention, invalid authority and both terminals pass. Six pinned files pass all Entity cuts/times/identities/terminals and unchanged hashes in 125.07 seconds. Accepted framed bytes saved: 64,772; reserved tickets excluded.
+Blockers: None for this gate; final canonical promotion remains pending.
+
+### Step 189 accepted — Relationship contract and inventory
+
+Commit: `ca60b5c`.
+Files: docs/publication-envelope-contract-2026-10-20.md.
+Verification: Creation/delta/direct terminal contract retains stable refs, roles, evidence, mutation identity and local sequence. No invented UUID/merge lifecycle; zero pinned population distinguished from populated synthetic coverage.
+Blockers: None.
+
+### Step 190 accepted — Relationship envelope codecs
+
+Commit: `ca60b5c`.
+Files: src/perception/relationship_publication_codec.rs; relationship_publication_codec_tests.rs.
+Verification: Literal global omission, exact fields/collections, zero masks, prefix/version/mask/trailing errors and proof-body checksum tampering pass.
+Blockers: None.
+
+### Step 191 accepted — Relationship replay and dispatch
+
+Commit: `ca60b5c`.
+Files: src/perception/relationship_rebuild.rs; relationship_store.rs; facade REL/PHY lifecycle.
+Verification: Both facades, reverse reservations/times, dense local order, missing/duplicate/gapped bases, resurrection and V1 boundaries pass. Rebuild overflow is atomic.
+Blockers: None.
+
+### Step 192 accepted — Relationship historical projections
+
+Commit: `ca60b5c`.
+Files: src/perception/relationship_publication_history_tests.rs.
+Verification: Paired marker/envelope REL/PHY histories compare every local cut, owner-global mapping, physical global whole-owner fingerprint and timestamp with interleaved Memory and role/evidence changes.
+Blockers: None.
+
+### Step 193 accepted — Relationship reconciliation and imports
+
+Commit: `ca60b5c`.
+Files: src/facade/cva_reconcile_relationship.rs; cva_reconcile_relationship_envelope_tests.rs; src/imports/reconciliation.rs; reconciliation_freshness_authority_tests.rs.
+Verification: Physical exclusive ranges, source times, duplicates, actual branch divergence and direct terminal replay pass. Genuine completed-import evidence and strict foreign/malformed classification pass. Legacy-tail destination assertions now inspect new envelopes.
+Blockers: None.
+
+### Step 194 accepted — Relationship prune authority
+
+Commit: `ca60b5c`.
+Files: src/perception/relationship_description_proof.rs; relationship_description_prune.rs; relationship_publication_prune_tests.rs; relationship_publication_legacy_prune_tests.rs; src/facade/relationship_compact_prune_tests.rs.
+Verification: Every-watermark authority, mixed raw/envelope carrier hashes, actual REL/PHY pruning/reopen, retained descriptors and valid-field proof tamper/missing/detached/duplicate rejection pass.
+Blockers: None.
+
+### Step 195 accepted — Relationship reclamation
+
+Commit: `ca60b5c`.
+Files: src/facade/storage_reclamation_scan.rs; storage_reclamation.rs; storage_reclamation_relationship_publication_tests.rs.
+Verification: Orphan-only reclamation, exact inline envelope retention, stable refs, terminal/cut/time parity and malformed/foreign scan/relocation rejection pass.
+Blockers: None.
+
+### Step 196 accepted — Relationship native copies and rewrite
+
+Commit: `ca60b5c`.
+Files: src/perception/relationship_publication_copy_tests.rs.
+Verification: REL attachment repack and PHY reclaim preserve exact envelope bytes, all retained cuts/times and terminals. Rewrite tests explicitly select the Memory closure and reset retained relationships to a baseline.
+Blockers: None for supported policies; existing owner-ID migration terminal policy is unchanged and excluded from promotion.
+
+### Step 197 accepted — Relationship ordinary writer cutover
+
+Commit: `ca60b5c`.
+Files: src/perception/relationship_compact_publish.rs; relationship_store.rs; relationship_publication_writer_tests.rs.
+Verification: Four REL/PHY writer/recovery tests pass: one allocation envelope, no naked carriers/links/tickets, byte/clock-stable retries, invalid preflight and truncated final terminal recovery.
+Blockers: None.
+
+### Step 198 accepted — Relationship offline conversion
+
+Commit: `ca60b5c`.
+Files: src/storage_upgrade/relationship_envelope.rs; relationship_envelope_tests.rs; relationship_envelope_authoritative_tests.rs.
+Verification: Synthetic V1 reverse slots, zero masks, terminal history, inert orphans and invalid source cleanup pass. All six pinned sources stage/reopen with zero Relationship links/envelopes, unchanged bytes/hash/mtime and no final publication in 183.67 seconds.
+Blockers: None for this gate; final canonical promotion remains pending.
+
+### Step 199 accepted — Ego envelope non-applicability
+
+Commit: `ca60b5c`.
+Files: src/ego/ego_codec.rs; ego_compact_codec.rs; ego_store.rs; docs/publication-envelope-contract-2026-10-20.md.
+Verification: Source audit finds no allocation/global publication link in Ego; lifecycle global coordinates remain None. Existing Ego regressions pass in the unit sweep. No invented global clock or envelope was added.
+Blockers: None.

@@ -12,7 +12,7 @@
     187,
     188
   ],
-  "status": "Six-source migration parity passed; final latest-source runtime checks pending acceptance.",
+  "status": "Steps179\u2013188 accepted against ca60b5c; integrated promotion pending.",
   "verification": "125.07 seconds; all Entity-local cuts, revision/terminal facts, identity, transaction times and unchanged source bytes/SHA-256/mtime. Original hashes independently matched accepted manifest.",
   "fixtures": [
     {

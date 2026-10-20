@@ -1392,22 +1392,22 @@ Architecture impact:
 - Known architectural gaps: offline converter and later owner-specific framing gates remain pending.
 
 
-## Envelope conversion and subsequent owner verification — in progress 2026-10-20
+## Envelope owner batch — Steps178–199 accepted against `ca60b5c`
 
-Accepted progress remains Step 177 while the next batch is under verification. Memory offline conversion replaces accepted direct links with reserved-binding envelopes at their original slots, retains inert backing and grouped publication authority, and rejects legacy `CVAHPR01` rather than inventing replacement proof. The completed-import boundary regression uses a genuine V1 `CVAILEG1` proof whose prefix contains the reserved ticket; migration must rebind that proof into a V2 transport wrapper. V2-only wrappers cannot be used as fabricated V1 inputs.
+The item-specific gates178–199 are accepted; next is Archive Step200. The broader root command is running against the implementation snapshot, with Integration Gate E pending after remaining owner framing. Memory offline conversion replaces accepted direct links with reserved-binding envelopes at their original slots, retains inert backing and grouped publication authority, and rejects legacy `CVAHPR01` rather than inventing replacement proof. The completed-import boundary regression uses a genuine V1 `CVAILEG1` proof whose prefix contains the reserved ticket; migration must rebind that proof into a V2 transport wrapper. V2-only wrappers cannot be used as fabricated V1 inputs.
 
-The optimized authoritative Memory check passed all six pinned files: all owner-local cuts, global frontiers, revision body/routing facts, terminal state, transaction times, source bytes/SHA-256/mtime, and unpublished-stage cleanup. Runtime was 1,178.86 seconds. [Measured results](../benchmarks/memory-envelope-migration-2026-10-20.json) report actual standalone framing separately from grouped/external atomic frames. These results do not claim whole-container savings. Latest-source focused and broad checks still gate acceptance.
+The optimized authoritative Memory check passed all six pinned files: all owner-local cuts, global frontiers, revision body/routing facts, terminal state, transaction times, source bytes/SHA-256/mtime, and unpublished-stage cleanup. Runtime was 1,178.86 seconds. [Measured results](../benchmarks/memory-envelope-migration-2026-10-20.json) report actual standalone framing separately from grouped/external atomic frames. These results do not claim whole-container savings. Item-specific acceptance is recorded against `ca60b5c`; integrated promotion and retirement remain pending.
 
-Entity envelope codecs, replay, history, reconciliation/import, pruning, reclamation/copies, ordinary writers and offline conversion are implemented and under verification. The authoritative comparison helper now reads direct and merge terminals from envelopes as well as legacy links. The corrected authoritative run passed all six files in 125.07 seconds; [measured results](../benchmarks/entity-envelope-migration-2026-10-20.json) retain accepted source hashes and per-owner byte accounting. Final latest-source runtime checks still gate acceptance. Rebuild overflow checks now precede semantic index mutation.
+Entity envelope codecs, replay, history, reconciliation/import, pruning, reclamation/copies, ordinary writers and offline conversion have passed their item-specific gates; broader integration remains under verification. The authoritative comparison helper now reads direct and merge terminals from envelopes as well as legacy links. The corrected authoritative run passed all six files in 125.07 seconds; [measured results](../benchmarks/entity-envelope-migration-2026-10-20.json) retain accepted source hashes and per-owner byte accounting. Broader integration remains under verification. Rebuild overflow checks now precede semantic index mutation.
 
-Relationship body codecs and explicit consumer adaptations are under verification. Luna contributed adversarial codecs, replay, pruning, reclamation, copy, import-evidence, migration and overflow fixtures. Ordinary writer cutover remains pending consumer acceptance. The concrete contract and plan distinguish synthetic runtime coverage from the pinned corpus's zero Relationship population.
+Relationship body codecs and explicit consumer adaptations have passed their item-specific gates. Luna contributed adversarial codecs, replay, pruning, reclamation, copy, import-evidence, migration and overflow fixtures. The ordinary Relationship writer cutover is implemented and its four REL/PHY writer/recovery tests pass. The concrete contract and plan distinguish synthetic runtime coverage from the pinned corpus's zero Relationship population.
 
 Documentation impact:
 - Inspected: owner publication contracts, retained history, import authority, proof/copy/converter boundaries.
 - Updated: envelope contract, storage format, maintainer map, coverage map, limitations, expanded owner-specific plan, measurement and this execution record.
 - Not affected: public API/CLI shape and authoritative source files.
 - Compliance check: both documentation modes and 32 CLI tests passed earlier in this batch; repeat after final edits.
-- Known documentation gaps: this is an in-progress record; no pending item is accepted here.
+- Known documentation gaps: Archive/Graph framing and integrated promotion/retirement remain pending.
 
 Architecture impact:
 - Standards added or changed: none.
@@ -1415,3 +1415,6 @@ Architecture impact:
 - Pitlord enforcement impact: refreshed scan completed with no violations across 23 rules; later source edits require final refresh.
 - Other verification impact: latest-source focused/broad verification is still running.
 - Known architectural gaps: remaining owner framing, integrated promotion and runtime retirement remain pending.
+
+
+The [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) records separate commit/files/verification/blockers for each accepted item. Relationship applicability is measured in [six-source staging evidence](../benchmarks/relationship-envelope-applicability-2026-10-20.json); it establishes zero population, while synthetic tests establish populated runtime/conversion correctness. The full unit sweep passed1,963 tests with5 ignored, exposing one obsolete destination-wire assertion; its corrected focused test passes against identical production code. Full repository verification is running separately.

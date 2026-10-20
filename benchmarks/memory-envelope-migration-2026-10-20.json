@@ -2,7 +2,7 @@
   "date": "2026-10-20",
   "step": 178,
   "verification": "Optimized authoritative test: six pinned inputs, all Memory-local cuts and global frontiers, revision payload/routing, terminal and transaction-time parity; source bytes/SHA-256/mtime unchanged. 1178.86 seconds.",
-  "status": "Corpus check passed; integrated latest-source runtime checks pending acceptance.",
+  "status": "Step178 accepted against ca60b5c; integrated promotion pending.",
   "measurement_scope": "Standalone Memory carriers and links versus inline envelopes; immutable body and routing reported separately. Grouped completion/external frames excluded. No whole-container savings claim.",
   "fixtures": [
     {
