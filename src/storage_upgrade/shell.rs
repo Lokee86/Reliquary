@@ -128,6 +128,28 @@ pub(crate) fn stage_graph_storage_upgrade(
     stage_impl(plan, || Ok(()), OwnerMigration::ThroughGraph)
 }
 
+pub(crate) fn stage_memory_envelope_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), OwnerMigration::ThroughMemoryEnvelopes)
+}
+
+pub(crate) fn stage_entity_envelope_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), OwnerMigration::ThroughEntityEnvelopes)
+}
+
+pub(crate) fn stage_relationship_envelope_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(
+        plan,
+        || Ok(()),
+        OwnerMigration::ThroughRelationshipEnvelopes,
+    )
+}
+
 enum OwnerMigration {
     None,
     Memory,
@@ -135,6 +157,9 @@ enum OwnerMigration {
     MemoryEntityAndRelationship,
     MemoryEntityRelationshipAndEgo,
     ThroughGraph,
+    ThroughMemoryEnvelopes,
+    ThroughEntityEnvelopes,
+    ThroughRelationshipEnvelopes,
 }
 
 // The callback is a bounded test seam for aborts and concurrent source/output
@@ -183,6 +208,12 @@ fn stage_impl(
         Container::create_with_identity_and_uuid(&staged.path, plan.identity, plan.owner_uuid)?;
     match migration {
         OwnerMigration::Memory => super::memory::transform(&mut source, &mut destination)?,
+        OwnerMigration::ThroughRelationshipEnvelopes => {
+            super::memory::transform_with_relationship_envelopes(&mut source, &mut destination)?
+        }
+        OwnerMigration::ThroughEntityEnvelopes => {
+            super::memory::transform_with_entity_envelopes(&mut source, &mut destination)?
+        }
         OwnerMigration::MemoryAndEntity => {
             super::memory::transform_with_entities(&mut source, &mut destination)?
         }
@@ -194,6 +225,9 @@ fn stage_impl(
         }
         OwnerMigration::ThroughGraph => {
             super::memory::transform_with_graph(&mut source, &mut destination)?
+        }
+        OwnerMigration::ThroughMemoryEnvelopes => {
+            super::memory::transform_with_memory_envelopes(&mut source, &mut destination)?
         }
         OwnerMigration::None => {
             source.copy_upgrade_shell_frames(&mut destination)?;

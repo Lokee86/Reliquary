@@ -6,6 +6,7 @@ mod ego_authoritative_tests;
 #[cfg(test)]
 mod ego_tests;
 mod entity;
+mod entity_envelope;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod freshness_authoritative_tests;
 mod graph;
@@ -14,8 +15,12 @@ mod graph_authoritative_tests;
 #[cfg(test)]
 mod graph_tests;
 mod memory;
+mod memory_envelope;
+#[cfg(test)]
+mod memory_envelope_tests;
 mod model;
 mod relationship;
+mod relationship_envelope;
 mod shell;
 #[cfg(test)]
 mod tests;
@@ -24,8 +29,10 @@ pub(crate) use model::{
     StorageUpgradeError, StorageUpgradePlan, StorageUpgradeRequest, StorageUpgradeResult,
 };
 pub(crate) use shell::{
-    plan_storage_upgrade, stage_ego_storage_upgrade, stage_entity_storage_upgrade,
-    stage_graph_storage_upgrade, stage_memory_storage_upgrade, stage_relationship_storage_upgrade,
+    plan_storage_upgrade, stage_ego_storage_upgrade, stage_entity_envelope_storage_upgrade,
+    stage_entity_storage_upgrade, stage_graph_storage_upgrade,
+    stage_memory_envelope_storage_upgrade, stage_memory_storage_upgrade,
+    stage_relationship_envelope_storage_upgrade, stage_relationship_storage_upgrade,
     stage_storage_upgrade,
 };
 

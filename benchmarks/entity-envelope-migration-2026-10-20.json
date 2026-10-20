@@ -1,0 +1,206 @@
+{
+  "date": "2026-10-20",
+  "steps": [
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    185,
+    186,
+    187,
+    188
+  ],
+  "status": "Six-source migration parity passed; final latest-source runtime checks pending acceptance.",
+  "verification": "125.07 seconds; all Entity-local cuts, revision/terminal facts, identity, transaction times and unchanged source bytes/SHA-256/mtime. Original hashes independently matched accepted manifest.",
+  "fixtures": [
+    {
+      "after": {
+        "creation_frames": 150,
+        "delta_frames": 0,
+        "direct_terminal_frames": 0,
+        "envelope_bytes": 48134,
+        "envelope_frames": 150,
+        "merge_terminal_frames": 0
+      },
+      "before": {
+        "accepted_carrier_bytes": 45284,
+        "accepted_carrier_frames": 150,
+        "inert_orphan_bytes": 0,
+        "inert_orphan_frames": 0,
+        "link_bytes": 6000,
+        "link_frames": 150,
+        "terminal_bytes": 0,
+        "terminal_frames": 0
+      },
+      "final_destination_published": false,
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "inert_orphan_bytes_after": 0,
+      "inert_orphan_frames_after": 0,
+      "scope": "Entity-owned frames only; Memory, Relationship, Ego, Graph and grouped whole-file bytes excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true,
+      "accepted_publication_framed_bytes_before": 53684,
+      "accepted_publication_framed_bytes_after": 49334,
+      "accepted_publication_framed_bytes_saved": 4350
+    },
+    {
+      "after": {
+        "creation_frames": 0,
+        "delta_frames": 0,
+        "direct_terminal_frames": 0,
+        "envelope_bytes": 0,
+        "envelope_frames": 0,
+        "merge_terminal_frames": 0
+      },
+      "before": {
+        "accepted_carrier_bytes": 0,
+        "accepted_carrier_frames": 0,
+        "inert_orphan_bytes": 0,
+        "inert_orphan_frames": 0,
+        "link_bytes": 0,
+        "link_frames": 0,
+        "terminal_bytes": 0,
+        "terminal_frames": 0
+      },
+      "final_destination_published": false,
+      "fixture": "chatgpt-first14d/user.phy",
+      "inert_orphan_bytes_after": 0,
+      "inert_orphan_frames_after": 0,
+      "scope": "Entity-owned frames only; Memory, Relationship, Ego, Graph and grouped whole-file bytes excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true,
+      "accepted_publication_framed_bytes_before": 0,
+      "accepted_publication_framed_bytes_after": 0,
+      "accepted_publication_framed_bytes_saved": 0
+    },
+    {
+      "after": {
+        "creation_frames": 527,
+        "delta_frames": 141,
+        "direct_terminal_frames": 0,
+        "envelope_bytes": 192281,
+        "envelope_frames": 671,
+        "merge_terminal_frames": 3
+      },
+      "before": {
+        "accepted_carrier_bytes": 195391,
+        "accepted_carrier_frames": 668,
+        "inert_orphan_bytes": 0,
+        "inert_orphan_frames": 0,
+        "link_bytes": 26840,
+        "link_frames": 671,
+        "terminal_bytes": 240,
+        "terminal_frames": 3
+      },
+      "final_destination_published": false,
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "inert_orphan_bytes_after": 0,
+      "inert_orphan_frames_after": 0,
+      "scope": "Entity-owned frames only; Memory, Relationship, Ego, Graph and grouped whole-file bytes excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true,
+      "accepted_publication_framed_bytes_before": 233207,
+      "accepted_publication_framed_bytes_after": 197649,
+      "accepted_publication_framed_bytes_saved": 35558
+    },
+    {
+      "after": {
+        "creation_frames": 34,
+        "delta_frames": 1,
+        "direct_terminal_frames": 0,
+        "envelope_bytes": 9494,
+        "envelope_frames": 35,
+        "merge_terminal_frames": 0
+      },
+      "before": {
+        "accepted_carrier_bytes": 8868,
+        "accepted_carrier_frames": 35,
+        "inert_orphan_bytes": 0,
+        "inert_orphan_frames": 0,
+        "link_bytes": 1400,
+        "link_frames": 35,
+        "terminal_bytes": 0,
+        "terminal_frames": 0
+      },
+      "final_destination_published": false,
+      "fixture": "chatgpt-first28d/user.phy",
+      "inert_orphan_bytes_after": 0,
+      "inert_orphan_frames_after": 0,
+      "scope": "Entity-owned frames only; Memory, Relationship, Ego, Graph and grouped whole-file bytes excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true,
+      "accepted_publication_framed_bytes_before": 10828,
+      "accepted_publication_framed_bytes_after": 9774,
+      "accepted_publication_framed_bytes_saved": 1054
+    },
+    {
+      "after": {
+        "creation_frames": 95,
+        "delta_frames": 97,
+        "direct_terminal_frames": 0,
+        "envelope_bytes": 44640,
+        "envelope_frames": 199,
+        "merge_terminal_frames": 7
+      },
+      "before": {
+        "accepted_carrier_bytes": 51581,
+        "accepted_carrier_frames": 192,
+        "inert_orphan_bytes": 0,
+        "inert_orphan_frames": 0,
+        "link_bytes": 7960,
+        "link_frames": 199,
+        "terminal_bytes": 560,
+        "terminal_frames": 7
+      },
+      "final_destination_published": false,
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "inert_orphan_bytes_after": 0,
+      "inert_orphan_frames_after": 0,
+      "scope": "Entity-owned frames only; Memory, Relationship, Ego, Graph and grouped whole-file bytes excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true,
+      "accepted_publication_framed_bytes_before": 63285,
+      "accepted_publication_framed_bytes_after": 46232,
+      "accepted_publication_framed_bytes_saved": 17053
+    },
+    {
+      "after": {
+        "creation_frames": 41,
+        "delta_frames": 43,
+        "direct_terminal_frames": 0,
+        "envelope_bytes": 18782,
+        "envelope_frames": 86,
+        "merge_terminal_frames": 2
+      },
+      "before": {
+        "accepted_carrier_bytes": 21251,
+        "accepted_carrier_frames": 84,
+        "inert_orphan_bytes": 0,
+        "inert_orphan_frames": 0,
+        "link_bytes": 3440,
+        "link_frames": 86,
+        "terminal_bytes": 160,
+        "terminal_frames": 2
+      },
+      "final_destination_published": false,
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "inert_orphan_bytes_after": 0,
+      "inert_orphan_frames_after": 0,
+      "scope": "Entity-owned frames only; Memory, Relationship, Ego, Graph and grouped whole-file bytes excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true,
+      "accepted_publication_framed_bytes_before": 26227,
+      "accepted_publication_framed_bytes_after": 19470,
+      "accepted_publication_framed_bytes_saved": 6757
+    }
+  ],
+  "framing_scope": "Includes 8-byte chunk framing for accepted Entity carriers, version links and replacement envelopes. Standalone reserved global tickets remain unchanged and are excluded; inert orphans are reported separately. No compression or whole-container saving claim."
+}

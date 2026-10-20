@@ -1,0 +1,521 @@
+{
+  "schema_version": 1,
+  "measurement_date": "2026-10-20",
+  "source_manifest": "benchmarks/authoritative-history-rewrite-step62-2026-10-18.json",
+  "method": "Parse complete Container frames from offset 40. Only exact CVAGVER1 records create accepted carrier references; ObjectRef is resolved at exact frame start and payload length. Classify referenced carrier by its first 8 bytes. Orphans are complete unreferenced frames whose payload begins with a recognized Graph mutation family magic. Direct node mappings, format markers and rewrite baselines are counted separately. No arbitrary substring search.",
+  "mutation_family_magics": {
+    "Mutation v1": "CVAGMUT1",
+    "Mutation v2": "CVAGMUT2",
+    "Batch v1": "CVAGBAT1",
+    "Batch v2": "CVAGBAT2",
+    "Compact mutation v1": "CVAGCM01",
+    "Compact batch v1": "CVAGCB01"
+  },
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256_before": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "sha256_after": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true,
+      "source_bytes": 31853182,
+      "frame_count": 64490,
+      "version_link_count": 7913,
+      "version_links_by_carrier_family": {
+        "Mutation v1": {
+          "accepted_link_count": 3571,
+          "distinct_accepted_carrier_count": 3571,
+          "accepted_carrier_payload_bytes_per_link": 267877,
+          "distinct_accepted_carrier_payload_bytes": 267877,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Mutation v2": {
+          "accepted_link_count": 80,
+          "distinct_accepted_carrier_count": 80,
+          "accepted_carrier_payload_bytes_per_link": 6240,
+          "distinct_accepted_carrier_payload_bytes": 6240,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v1": {
+          "accepted_link_count": 4262,
+          "distinct_accepted_carrier_count": 4262,
+          "accepted_carrier_payload_bytes_per_link": 715747,
+          "distinct_accepted_carrier_payload_bytes": 715747,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v2": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact mutation v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact batch v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        }
+      },
+      "direct_owner_frames": {
+        "CVAGFMT1": 1,
+        "CVAGNODE": 1120,
+        "CVAGNOD2": 65
+      },
+      "invalid_references": []
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256_before": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "sha256_after": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true,
+      "source_bytes": 814287,
+      "frame_count": 3497,
+      "version_link_count": 667,
+      "version_links_by_carrier_family": {
+        "Mutation v1": {
+          "accepted_link_count": 188,
+          "distinct_accepted_carrier_count": 188,
+          "accepted_carrier_payload_bytes_per_link": 14100,
+          "distinct_accepted_carrier_payload_bytes": 14100,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Mutation v2": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v1": {
+          "accepted_link_count": 479,
+          "distinct_accepted_carrier_count": 479,
+          "accepted_carrier_payload_bytes_per_link": 79247,
+          "distinct_accepted_carrier_payload_bytes": 79247,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v2": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact mutation v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact batch v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        }
+      },
+      "direct_owner_frames": {
+        "CVAGFMT1": 1,
+        "CVAGNODE": 104
+      },
+      "invalid_references": []
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256_before": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "sha256_after": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true,
+      "source_bytes": 80056100,
+      "frame_count": 198542,
+      "version_link_count": 25337,
+      "version_links_by_carrier_family": {
+        "Mutation v1": {
+          "accepted_link_count": 11661,
+          "distinct_accepted_carrier_count": 11661,
+          "accepted_carrier_payload_bytes_per_link": 882717,
+          "distinct_accepted_carrier_payload_bytes": 882717,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Mutation v2": {
+          "accepted_link_count": 1906,
+          "distinct_accepted_carrier_count": 1906,
+          "accepted_carrier_payload_bytes_per_link": 148668,
+          "distinct_accepted_carrier_payload_bytes": 148668,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v1": {
+          "accepted_link_count": 11767,
+          "distinct_accepted_carrier_count": 11767,
+          "accepted_carrier_payload_bytes_per_link": 1843827,
+          "distinct_accepted_carrier_payload_bytes": 1843827,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v2": {
+          "accepted_link_count": 3,
+          "distinct_accepted_carrier_count": 3,
+          "accepted_carrier_payload_bytes_per_link": 2416,
+          "distinct_accepted_carrier_payload_bytes": 2416,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact mutation v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact batch v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        }
+      },
+      "direct_owner_frames": {
+        "CVAGFMT1": 1,
+        "CVAGNODE": 2844,
+        "CVAGNOD2": 527
+      },
+      "invalid_references": []
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256_before": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "sha256_after": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true,
+      "source_bytes": 1840755,
+      "frame_count": 9194,
+      "version_link_count": 1690,
+      "version_links_by_carrier_family": {
+        "Mutation v1": {
+          "accepted_link_count": 655,
+          "distinct_accepted_carrier_count": 655,
+          "accepted_carrier_payload_bytes_per_link": 49592,
+          "distinct_accepted_carrier_payload_bytes": 49592,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Mutation v2": {
+          "accepted_link_count": 53,
+          "distinct_accepted_carrier_count": 53,
+          "accepted_carrier_payload_bytes_per_link": 4134,
+          "distinct_accepted_carrier_payload_bytes": 4134,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v1": {
+          "accepted_link_count": 982,
+          "distinct_accepted_carrier_count": 982,
+          "accepted_carrier_payload_bytes_per_link": 162531,
+          "distinct_accepted_carrier_payload_bytes": 162531,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v2": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact mutation v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact batch v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        }
+      },
+      "direct_owner_frames": {
+        "CVAGFMT1": 1,
+        "CVAGNODE": 242,
+        "CVAGNOD2": 34
+      },
+      "invalid_references": []
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256_before": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "sha256_after": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true,
+      "source_bytes": 19561460,
+      "frame_count": 49418,
+      "version_link_count": 6309,
+      "version_links_by_carrier_family": {
+        "Mutation v1": {
+          "accepted_link_count": 1504,
+          "distinct_accepted_carrier_count": 1504,
+          "accepted_carrier_payload_bytes_per_link": 114304,
+          "distinct_accepted_carrier_payload_bytes": 114304,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Mutation v2": {
+          "accepted_link_count": 1054,
+          "distinct_accepted_carrier_count": 1054,
+          "accepted_carrier_payload_bytes_per_link": 82212,
+          "distinct_accepted_carrier_payload_bytes": 82212,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v1": {
+          "accepted_link_count": 3746,
+          "distinct_accepted_carrier_count": 3746,
+          "accepted_carrier_payload_bytes_per_link": 554476,
+          "distinct_accepted_carrier_payload_bytes": 554476,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v2": {
+          "accepted_link_count": 5,
+          "distinct_accepted_carrier_count": 5,
+          "accepted_carrier_payload_bytes_per_link": 1110,
+          "distinct_accepted_carrier_payload_bytes": 1110,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact mutation v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact batch v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        }
+      },
+      "direct_owner_frames": {
+        "CVAGFMT1": 1,
+        "CVAGNODE": 722,
+        "CVAGNOD2": 95
+      },
+      "invalid_references": []
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256_before": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "sha256_after": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true,
+      "source_bytes": 4070532,
+      "frame_count": 24345,
+      "version_link_count": 4159,
+      "version_links_by_carrier_family": {
+        "Mutation v1": {
+          "accepted_link_count": 1178,
+          "distinct_accepted_carrier_count": 1178,
+          "accepted_carrier_payload_bytes_per_link": 89528,
+          "distinct_accepted_carrier_payload_bytes": 89528,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Mutation v2": {
+          "accepted_link_count": 268,
+          "distinct_accepted_carrier_count": 268,
+          "accepted_carrier_payload_bytes_per_link": 20904,
+          "distinct_accepted_carrier_payload_bytes": 20904,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v1": {
+          "accepted_link_count": 2711,
+          "distinct_accepted_carrier_count": 2711,
+          "accepted_carrier_payload_bytes_per_link": 403200,
+          "distinct_accepted_carrier_payload_bytes": 403200,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Batch v2": {
+          "accepted_link_count": 2,
+          "distinct_accepted_carrier_count": 2,
+          "accepted_carrier_payload_bytes_per_link": 444,
+          "distinct_accepted_carrier_payload_bytes": 444,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact mutation v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        },
+        "Compact batch v1": {
+          "accepted_link_count": 0,
+          "distinct_accepted_carrier_count": 0,
+          "accepted_carrier_payload_bytes_per_link": 0,
+          "distinct_accepted_carrier_payload_bytes": 0,
+          "repeated_reference_link_count": 0,
+          "repeated_references": [],
+          "unreferenced_complete_carrier_count": 0,
+          "unreferenced_complete_carrier_payload_bytes": 0
+        }
+      },
+      "direct_owner_frames": {
+        "CVAGFMT1": 1,
+        "CVAGNODE": 461,
+        "CVAGNOD2": 41
+      },
+      "invalid_references": []
+    }
+  ],
+  "aggregate": {
+    "version_link_count": 46075,
+    "accepted_links_by_carrier_family": {
+      "Mutation v1": 18757,
+      "Mutation v2": 3361,
+      "Batch v1": 23947,
+      "Batch v2": 10,
+      "Compact mutation v1": 0,
+      "Compact batch v1": 0
+    },
+    "distinct_carriers_by_family": {
+      "Mutation v1": 18757,
+      "Mutation v2": 3361,
+      "Batch v1": 23947,
+      "Batch v2": 10,
+      "Compact mutation v1": 0,
+      "Compact batch v1": 0
+    },
+    "distinct_carrier_payload_bytes_by_family": {
+      "Mutation v1": 1418118,
+      "Mutation v2": 262158,
+      "Batch v1": 3759028,
+      "Batch v2": 3970,
+      "Compact mutation v1": 0,
+      "Compact batch v1": 0
+    },
+    "repeated_reference_links_by_family": {
+      "Mutation v1": 0,
+      "Mutation v2": 0,
+      "Batch v1": 0,
+      "Batch v2": 0,
+      "Compact mutation v1": 0,
+      "Compact batch v1": 0
+    },
+    "unreferenced_complete_carrier_count_by_family": {
+      "Mutation v1": 0,
+      "Mutation v2": 0,
+      "Batch v1": 0,
+      "Batch v2": 0,
+      "Compact mutation v1": 0,
+      "Compact batch v1": 0
+    },
+    "all_six_hashes_unchanged": true
+  }
+}

@@ -1,8 +1,6 @@
 //! Plan canonical compact replacements for selected Relationship descriptions.
-use crate::relationship_codec::decode_version;
-use crate::relationship_compact_codec::{
-    decode_creation, decode_delta, encode_creation, encode_delta,
-};
+use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+use crate::relationship_compact_codec::{decode_creation, decode_delta};
 use crate::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };
@@ -41,17 +39,30 @@ pub(crate) fn prepare_description_prune(
     // global tickets that need not be numerically increasing.
     for object in container.chunks()? {
         let payload = container.read(object)?;
-        let Some(version) = decode_version(&payload)? else {
+        let Some((global, local)) = publication::coordinates(&payload)? else {
             continue;
         };
-        let Some(publication) =
-            store.retained_publication_at(version.global_version, version.relationship_version)?
-        else {
+        let Some(publication) = store.retained_publication_at(global, local)? else {
             continue;
+        };
+        let envelope = crate::container::publication_envelope::decode(&payload)?;
+        let carrier = match envelope {
+            Some(_) => object,
+            None => {
+                crate::relationship_codec::decode_version(&payload)?
+                    .ok_or(RelationshipError::InvalidVersion)?
+                    .record
+            }
         };
         match publication {
             RelationshipReplayPublication::Record(record) if selected.contains(&record.id) => {
-                let original = container.read(version.record)?;
+                let original = if let Some(envelope) = envelope {
+                    let body = publication::decode(envelope.body, envelope.global_version)?
+                        .ok_or(RelationshipError::InvalidVersion)?;
+                    publication::comparison_carrier(&body)?
+                } else {
+                    container.read(carrier)?
+                };
                 let proof = RelationshipDescriptionProof {
                     original_carrier_digest: Sha256::digest(&original).into(),
                     manifest_digest,
@@ -59,30 +70,42 @@ pub(crate) fn prepare_description_prune(
                 let mut redacted = record.clone();
                 redacted.summary.clear();
 
-                let replacement = if record.revision == 1 {
+                let replacement_publication = if record.revision == 1 {
                     if previous_redacted.contains_key(&record.id) {
                         return Err(RelationshipError::RevisionConflict);
                     }
-                    encode_creation(&RelationshipCreation::new_pruned(redacted.clone(), proof)?)?
+                    RelationshipPublication::Creation(RelationshipCreation::new_pruned(
+                        redacted.clone(),
+                        proof,
+                    )?)
                 } else {
                     let previous = previous_redacted
                         .get(&record.id)
                         .ok_or(RelationshipError::RevisionConflict)?;
-                    encode_delta(&RelationshipDelta::between_pruned(
+                    RelationshipPublication::Delta(RelationshipDelta::between_pruned(
                         previous, &redacted, proof,
-                    )?)?
+                    )?)
                 };
 
-                if plan
-                    .replacements
-                    .insert(version.record, replacement)
-                    .is_some()
-                {
+                let replacement = if let Some(envelope) = envelope {
+                    let body = publication::encode(&replacement_publication)?;
+                    crate::container::publication_envelope::encode(
+                        crate::container::publication_envelope::PublicationEnvelope {
+                            global_version: envelope.global_version,
+                            clock: envelope.clock,
+                            body: &body,
+                        },
+                    )?
+                } else {
+                    publication::comparison_carrier(&replacement_publication)?
+                };
+
+                if plan.replacements.insert(carrier, replacement).is_some() {
                     return Err(RelationshipError::CorruptRecord(
                         "duplicate accepted Relationship carrier",
                     ));
                 }
-                accepted_carriers.insert(version.record);
+                accepted_carriers.insert(carrier);
                 previous_redacted.insert(record.id, redacted);
                 seen_selected.insert(record.id);
             }

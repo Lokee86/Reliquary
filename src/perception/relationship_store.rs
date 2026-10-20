@@ -10,9 +10,7 @@ mod validation;
 
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
-use crate::relationship_codec::{
-    RelationshipTombstone, RelationshipVersion, encode_format, encode_tombstone, encode_version,
-};
+use crate::relationship_codec::{RelationshipTombstone, encode_format};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
     Container, EntityRef, Relationship, RelationshipDraft, RelationshipError, RelationshipId,
@@ -180,6 +178,10 @@ impl RelationshipStore {
             return Err(RelationshipError::RevisionConflict);
         }
         validate_record(&record)?;
+        let next = self
+            .next_relationship_version
+            .checked_add(1)
+            .ok_or(RelationshipError::VersionExhausted)?;
         if let Some(index) = self.current.get(&record.id).copied() {
             self.deindex(index);
         }
@@ -194,10 +196,7 @@ impl RelationshipStore {
         self.current.insert(record.id, index);
         self.revisions.insert(record.id, record.revision);
         self.records.push(record);
-        self.next_relationship_version = self
-            .next_relationship_version
-            .checked_add(1)
-            .ok_or(RelationshipError::VersionExhausted)?;
+        self.next_relationship_version = next;
         Ok(())
     }
 
@@ -247,14 +246,22 @@ impl RelationshipStore {
                 .checked_add(1)
                 .ok_or(RelationshipError::VersionExhausted)?,
         };
-        let record = container.append(&encode_tombstone(tombstone))?;
-        let global_version = container.allocate_version()?;
         let relationship_version = self.next_relationship_version;
-        container.append(&encode_version(RelationshipVersion {
-            global_version,
-            relationship_version,
-            record,
-        }))?;
+        let candidate = container.next_version_candidate();
+        candidate
+            .checked_add(1)
+            .ok_or(RelationshipError::VersionExhausted)?;
+        let body = crate::relationship_compact_codec::publication::encode(
+            &crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
+                id: tombstone.id,
+                revision: tombstone.revision,
+                relationship_version,
+            },
+        )?;
+        let (global_version, _) = container.append_publication_envelope(&body)?;
+        if global_version != candidate {
+            return Err(RelationshipError::InvalidVersion);
+        }
         self.insert_tombstone_rebuilt(tombstone, global_version, relationship_version)?;
 
         Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
@@ -289,6 +296,9 @@ impl RelationshipStore {
             return Err(RelationshipError::RevisionConflict);
         }
 
+        let next = relationship_version
+            .checked_add(1)
+            .ok_or(RelationshipError::VersionExhausted)?;
         self.current.remove(&tombstone.id);
         self.deindex(index);
         self.revisions.insert(tombstone.id, tombstone.revision);
@@ -299,9 +309,7 @@ impl RelationshipStore {
                 domain_version: Some(relationship_version),
             },
         );
-        self.next_relationship_version = relationship_version
-            .checked_add(1)
-            .ok_or(RelationshipError::VersionExhausted)?;
+        self.next_relationship_version = next;
         Ok(())
     }
 
@@ -428,3 +436,11 @@ fn same_draft(value: &Relationship, draft: &RelationshipDraft) -> bool {
         && value.created_at_ns == draft.created_at_ns
         && value.updated_at_ns == draft.updated_at_ns
 }
+
+#[cfg(test)]
+#[path = "relationship_rebuild_overflow_tests.rs"]
+mod rebuild_overflow_tests;
+
+#[cfg(test)]
+#[path = "relationship_publication_writer_tests.rs"]
+mod publication_writer_tests;

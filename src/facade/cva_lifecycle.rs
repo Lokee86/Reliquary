@@ -289,6 +289,22 @@ impl Cva {
                         graph_state.ingest(chunk, payload, latest_global)?;
                     }
                     OpenRecordRoute::ContainerVersion => {}
+                    OpenRecordRoute::Publication => {
+                        let envelope = crate::container::publication_envelope::decode(payload)?
+                            .ok_or(crate::MemoryError::CorruptRecord(
+                                "missing publication envelope",
+                            ))?;
+                        if !memory_state.ingest_publication_envelope(envelope, latest_global)?
+                            && !entity_state.ingest_publication_envelope(envelope, latest_global)?
+                            && !relationship_state
+                                .ingest_publication_envelope(envelope, latest_global)?
+                        {
+                            return Err(crate::MemoryError::CorruptRecord(
+                                "unsupported publication envelope body",
+                            )
+                            .into());
+                        }
+                    }
                     OpenRecordRoute::Fallback => {
                         owner_maintenance
                             .ingest(payload)

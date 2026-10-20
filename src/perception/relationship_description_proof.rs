@@ -11,6 +11,20 @@ const DELTA_FAMILY: &[u8; 6] = b"CVARND";
 pub(crate) fn compact_description_proof(
     bytes: &[u8],
 ) -> Result<Option<(RelationshipId, u64, RelationshipDescriptionProof)>, RelationshipError> {
+    if let Some(envelope) = crate::container::publication_envelope::decode(bytes)? {
+        use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+        return Ok(
+            match publication::decode(envelope.body, envelope.global_version)? {
+                Some(RelationshipPublication::Creation(value)) => value
+                    .description_proof
+                    .map(|proof| (value.record.id, value.record.revision, proof)),
+                Some(RelationshipPublication::Delta(value)) => value
+                    .description_proof
+                    .map(|proof| (value.id, value.revision, proof)),
+                _ => None,
+            },
+        );
+    }
     if bytes.starts_with(CREATION_FAMILY) {
         let creation = crate::relationship_compact_codec::decode_creation(bytes)?;
         return Ok(creation

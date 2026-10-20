@@ -7,7 +7,7 @@ use crate::imports::{
     ImportBranch, ImportComplete, ImportConversation, ImportMessage, ImportStart, ImportWatermarks,
     NativeImport,
 };
-use crate::{Cva, FreshnessEventProof, MemoryDraft, MemoryId};
+use crate::{Cva, EntityDraft, EntityGlobalId, FreshnessEventProof, MemoryDraft, MemoryId};
 use serde_json::{Map, json};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -146,6 +146,39 @@ fn completed_epoch(
         dream: Vec::new(),
         owner_evidence: Vec::new(),
     }
+}
+
+fn entity_draft(name: &str, mutation_id: &str, summary: &str, updated_at_ns: i64) -> EntityDraft {
+    EntityDraft {
+        canonical_name: name.into(),
+        aliases: vec![format!("{name} alias")],
+        kind: "project".into(),
+        summary: summary.into(),
+        mutation_id: mutation_id.into(),
+        created_at_ns: 10,
+        updated_at_ns,
+    }
+}
+
+fn entity_import_evidence(cva: &Cva, global: u64, local: u64) -> Vec<u8> {
+    cva.entities
+        .retained_publication_at(global, local)
+        .unwrap()
+        .expect("Entity publication is accepted by the owner")
+        .normalized_import_evidence()
+        .unwrap()
+}
+
+fn append_entity_publication(
+    cva: &mut Cva,
+    publication: crate::entity_compact_codec::publication::EntityPublication,
+    global: u64,
+    local: u64,
+) {
+    let body = crate::entity_compact_codec::publication::encode(&publication).unwrap();
+    let (appended_global, _) = cva.container.append_publication_envelope(&body).unwrap();
+    assert_eq!(appended_global, global);
+    assert_eq!(cva.entity_version() + 1, local);
 }
 
 #[test]
@@ -373,15 +406,29 @@ fn owner_scope_events_outside_epoch_interval_are_compared_by_normalized_facts() 
 
 #[test]
 fn inventory_derives_accepted_event_authority_from_completed_owner_scope() {
-    completed_scope_inventory(false);
+    completed_scope_inventory(false, false, false);
 }
 
 #[test]
 fn inventory_derives_memory_envelope_evidence_from_real_completed_import() {
-    completed_scope_inventory(true);
+    completed_scope_inventory(true, false, false);
 }
 
-fn completed_scope_inventory(with_envelope: bool) {
+#[test]
+fn inventory_normalizes_entity_envelopes_and_marker_bound_terminals_in_real_completed_import() {
+    completed_scope_inventory(false, true, false);
+}
+
+#[test]
+fn inventory_derives_relationship_envelope_evidence_from_real_completed_import() {
+    completed_scope_inventory(false, false, true);
+}
+
+fn completed_scope_inventory(
+    with_envelope: bool,
+    with_entity_envelopes: bool,
+    with_relationship_envelopes: bool,
+) {
     let scratch = Scratch::new();
     let path = scratch.0.join("completed-import.rel");
     let mut cva = Cva::create(&path).unwrap();
@@ -571,6 +618,316 @@ fn completed_scope_inventory(with_envelope: bool) {
     } else {
         None
     };
+    let mut entity_evidence = Vec::new();
+    if with_entity_envelopes {
+        // Start this history with a real legacy marker-bound revision, then
+        // continue the same Entity through the envelope writer. Inventory
+        // must derive the same owner-owned facts from both wire forms.
+        let (legacy, changed) = cva
+            .entities
+            .publish_legacy_fixture(
+                &mut cva.container,
+                None,
+                0,
+                entity_draft(
+                    "Marker-bound entity",
+                    "marker-bound-entity-create",
+                    "Accepted marker-bound description",
+                    20,
+                ),
+                Some(EntityGlobalId([0x61; 16])),
+            )
+            .unwrap();
+        assert!(changed);
+        entity_evidence.push(entity_import_evidence(
+            &cva,
+            legacy.global_version,
+            legacy.entity_version,
+        ));
+
+        // Step 183 consumes the new envelope format before Step 187 changes
+        // the ordinary writer. Construct candidate publications directly and
+        // admit them through the same rebuilt-store validation used by replay.
+        let previous = cva
+            .entities
+            .records()
+            .iter()
+            .find(|record| record.id == legacy.id)
+            .unwrap()
+            .clone();
+        let mut revised = previous.clone();
+        revised.revision += 1;
+        revised.global_version = cva.container.next_version_candidate();
+        revised.entity_version = cva.entity_version() + 1;
+        revised.mutation_id = "envelope-entity-revision".into();
+        revised.summary = "Accepted envelope revision description".into();
+        revised.updated_at_ns = 21;
+        let delta =
+            crate::entity_compact_contract::EntityDelta::between(&previous, &revised).unwrap();
+        let global = revised.global_version;
+        let local = revised.entity_version;
+        append_entity_publication(
+            &mut cva,
+            crate::entity_compact_codec::publication::EntityPublication::Delta(delta.clone()),
+            global,
+            local,
+        );
+        let decoded = crate::entity_compact_apply::apply_delta(&previous, &delta).unwrap();
+        assert_eq!(decoded, revised);
+        cva.entities.insert_rebuilt(decoded).unwrap();
+        entity_evidence.push(entity_import_evidence(&cva, global, local));
+
+        let global = cva.container.next_version_candidate();
+        let local = cva.entity_version() + 1;
+        let direct = crate::entity_codec::DirectEntityTombstone {
+            id: legacy.id,
+            revision: revised.revision + 1,
+        };
+        append_entity_publication(
+            &mut cva,
+            crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
+                id: direct.id,
+                revision: direct.revision,
+                entity_version: local,
+            },
+            global,
+            local,
+        );
+        cva.entities
+            .insert_direct_tombstone_rebuilt(direct, global, local)
+            .unwrap();
+        entity_evidence.push(entity_import_evidence(&cva, global, local));
+
+        let make_entity = |id: crate::EntityId,
+                           global_id: EntityGlobalId,
+                           draft: EntityDraft,
+                           global_version: u64,
+                           entity_version: u64|
+         -> crate::entity_model::EntityRecord {
+            crate::entity_model::EntityRecord {
+                id,
+                global_id: Some(global_id),
+                revision: 1,
+                canonical_name: draft.canonical_name,
+                aliases: draft.aliases,
+                kind: draft.kind,
+                summary: draft.summary,
+                mutation_id: draft.mutation_id,
+                created_at_ns: draft.created_at_ns,
+                updated_at_ns: draft.updated_at_ns,
+                global_version,
+                entity_version,
+            }
+        };
+        let merge_target_id = crate::EntityId([0x62; 32]);
+        let merge_target_global = cva.container.next_version_candidate();
+        let merge_target_local = cva.entity_version() + 1;
+        let merge_target = make_entity(
+            merge_target_id,
+            EntityGlobalId([0x62; 16]),
+            entity_draft(
+                "Merged entity",
+                "envelope-merge-target",
+                "Accepted merge target description",
+                22,
+            ),
+            merge_target_global,
+            merge_target_local,
+        );
+        let creation =
+            crate::entity_compact_contract::EntityCreation::new(merge_target.clone()).unwrap();
+        append_entity_publication(
+            &mut cva,
+            crate::entity_compact_codec::publication::EntityPublication::Creation(creation),
+            merge_target_global,
+            merge_target_local,
+        );
+        cva.entities.insert_rebuilt(merge_target).unwrap();
+        entity_evidence.push(entity_import_evidence(
+            &cva,
+            merge_target_global,
+            merge_target_local,
+        ));
+
+        let survivor_id = crate::EntityId([0x63; 32]);
+        let survivor_global = cva.container.next_version_candidate();
+        let survivor_local = cva.entity_version() + 1;
+        let survivor = make_entity(
+            survivor_id,
+            EntityGlobalId([0x63; 16]),
+            entity_draft(
+                "Surviving entity",
+                "envelope-merge-survivor",
+                "Accepted survivor description",
+                23,
+            ),
+            survivor_global,
+            survivor_local,
+        );
+        let creation =
+            crate::entity_compact_contract::EntityCreation::new(survivor.clone()).unwrap();
+        append_entity_publication(
+            &mut cva,
+            crate::entity_compact_codec::publication::EntityPublication::Creation(creation),
+            survivor_global,
+            survivor_local,
+        );
+        cva.entities.insert_rebuilt(survivor).unwrap();
+        entity_evidence.push(entity_import_evidence(
+            &cva,
+            survivor_global,
+            survivor_local,
+        ));
+
+        let global = cva.container.next_version_candidate();
+        let local = cva.entity_version() + 1;
+        let merge = crate::entity_codec::EntityTombstone {
+            id: merge_target_id,
+            revision: 2,
+            replacement_id: survivor_id,
+        };
+        append_entity_publication(
+            &mut cva,
+            crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
+                id: merge.id,
+                revision: merge.revision,
+                entity_version: local,
+                replacement_id: merge.replacement_id,
+            },
+            global,
+            local,
+        );
+        cva.entities
+            .insert_tombstone_rebuilt(merge, global, local)
+            .unwrap();
+        entity_evidence.push(entity_import_evidence(&cva, global, local));
+    }
+    let mut relationship_evidence = Vec::new();
+    if with_relationship_envelopes {
+        // Construct valid Relationship candidates directly so this consumer
+        // test does not depend on the ordinary writer cutover. The store's
+        // rebuilt admission path validates each record and terminal position.
+        let id = crate::RelationshipId([0x74; 32]);
+        let make_relationship = |revision: u64,
+                                 global_version: u64,
+                                 relationship_version: u64,
+                                 mutation_id: &str,
+                                 summary: &str|
+         -> crate::relationship_model::RelationshipRecord {
+            crate::relationship_model::RelationshipRecord {
+                id,
+                revision,
+                kind: "supports".into(),
+                participants: vec![crate::RelationshipParticipant {
+                    entity: crate::EntityRef {
+                        owner_id: "stable-remote-owner".into(),
+                        entity_id: crate::EntityId([0x75; 32]),
+                    },
+                    role: Some("source".into()),
+                }],
+                evidence: vec![crate::MemoryRef {
+                    owner_id: "stable-remote-memory-owner".into(),
+                    memory_id: MemoryId([0x76; 32]),
+                }],
+                summary: summary.into(),
+                mutation_id: mutation_id.into(),
+                created_at_ns: -12,
+                updated_at_ns: 20 + revision as i64,
+                global_version,
+                relationship_version,
+            }
+        };
+        let append_relationship = |cva: &mut Cva,
+                                  publication: crate::relationship_compact_codec::publication::RelationshipPublication,
+                                  expected_global: u64| {
+            let body = crate::relationship_compact_codec::publication::encode(&publication).unwrap();
+            let (global, _) = cva.container.append_publication_envelope(&body).unwrap();
+            assert_eq!(global, expected_global);
+        };
+        let first_global = cva.container.next_version_candidate();
+        let first_local = cva.relationship_version() + 1;
+        let first = make_relationship(
+            1,
+            first_global,
+            first_local,
+            "envelope-relationship-create",
+            "Accepted Relationship creation description",
+        );
+        let first_publication =
+            crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+                crate::relationship_compact_contract::RelationshipCreation::new(first.clone())
+                    .unwrap(),
+            );
+        append_relationship(&mut cva, first_publication, first_global);
+        cva.relationships.insert_rebuilt(first).unwrap();
+        relationship_evidence.push(
+            cva.relationships
+                .retained_publication_at(first_global, first_local)
+                .unwrap()
+                .unwrap()
+                .normalized_import_evidence()
+                .unwrap(),
+        );
+
+        let next_global = cva.container.next_version_candidate();
+        let next_local = cva.relationship_version() + 1;
+        let next = make_relationship(
+            2,
+            next_global,
+            next_local,
+            "envelope-relationship-revision",
+            "Accepted Relationship revised description",
+        );
+        let delta = crate::relationship_compact_contract::RelationshipDelta::between(
+            &cva.relationships.records().last().unwrap(),
+            &next,
+        )
+        .unwrap();
+        let delta_publication =
+            crate::relationship_compact_codec::publication::RelationshipPublication::Delta(
+                delta.clone(),
+            );
+        append_relationship(&mut cva, delta_publication, next_global);
+        let applied = crate::relationship_compact_apply::apply_delta(
+            cva.relationships.records().last().unwrap(),
+            &delta,
+        )
+        .unwrap();
+        assert_eq!(applied, next);
+        cva.relationships.insert_rebuilt(applied).unwrap();
+        relationship_evidence.push(
+            cva.relationships
+                .retained_publication_at(next_global, next_local)
+                .unwrap()
+                .unwrap()
+                .normalized_import_evidence()
+                .unwrap(),
+        );
+
+        let terminal_global = cva.container.next_version_candidate();
+        let terminal_local = cva.relationship_version() + 1;
+        let tombstone = crate::relationship_codec::RelationshipTombstone { id, revision: 3 };
+        append_relationship(
+            &mut cva,
+            crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
+                id,
+                revision: tombstone.revision,
+                relationship_version: terminal_local,
+            },
+            terminal_global,
+        );
+        cva.relationships
+            .insert_tombstone_rebuilt(tombstone, terminal_global, terminal_local)
+            .unwrap();
+        relationship_evidence.push(
+            cva.relationships
+                .retained_publication_at(terminal_global, terminal_local)
+                .unwrap()
+                .unwrap()
+                .normalized_import_evidence()
+                .unwrap(),
+        );
+    }
     cva.container.set_owner_write_scope(false);
     cva.reconstruct_historical_freshness(Default::default())
         .unwrap();
@@ -586,6 +943,63 @@ fn completed_scope_inventory(with_envelope: bool) {
             epoch.owner_evidence.contains(&expected),
             "completed interval must retain canonical envelope publication facts"
         );
+    }
+    if with_entity_envelopes {
+        assert_eq!(entity_evidence.len(), 6);
+        for (index, expected) in entity_evidence.iter().enumerate() {
+            assert!(
+                epoch.owner_evidence.contains(expected),
+                "completed epoch retains normalized Entity evidence {index}"
+            );
+        }
+        let chunks = reopened.container.chunks().unwrap();
+        let mut envelope_count = 0;
+        let mut marker_count = 0;
+        for chunk in chunks.iter().take(epoch.end).skip(epoch.first) {
+            let payload = reopened.container.read(*chunk).unwrap();
+            let marker = crate::entity_codec::decode_version(&payload).unwrap();
+            envelope_count += usize::from(
+                crate::entity_compact_codec::publication::coordinates(&payload)
+                    .unwrap()
+                    .is_some()
+                    && marker.is_none(),
+            );
+            marker_count += usize::from(marker.is_some());
+        }
+        assert_eq!(
+            envelope_count, 5,
+            "Entity create/delta/direct/merge envelopes"
+        );
+        assert_eq!(marker_count, 1, "one accepted legacy marker-bound creation");
+    }
+    if with_relationship_envelopes {
+        assert_eq!(relationship_evidence.len(), 3);
+        for (index, expected) in relationship_evidence.iter().enumerate() {
+            assert!(
+                epoch.owner_evidence.contains(expected),
+                "completed epoch retains normalized Relationship evidence {index}"
+            );
+        }
+        let chunks = reopened.container.chunks().unwrap();
+        let mut relationship_envelopes = 0;
+        for chunk in chunks.iter().take(epoch.end).skip(epoch.first) {
+            let payload = reopened.container.read(*chunk).unwrap();
+            relationship_envelopes += usize::from(
+                crate::relationship_compact_codec::publication::coordinates(&payload)
+                    .unwrap()
+                    .is_some(),
+            );
+        }
+        assert_eq!(
+            relationship_envelopes, 3,
+            "Relationship create/delta/terminal envelopes"
+        );
+        let descriptor = reopened
+            .relationship_retention_descriptor(crate::RelationshipId([0x74; 32]))
+            .unwrap();
+        assert_eq!(descriptor.tombstone_revision, 3);
+        assert_eq!(descriptor.tombstone_relationship_version, 3);
+        assert_eq!(descriptor.revisions.len(), 2);
     }
     let semantic_scope = epoch.settlement.semantic.as_ref().unwrap();
     assert_eq!(
@@ -615,4 +1029,49 @@ fn completed_scope_inventory(with_envelope: bool) {
         FreshnessReplayEntry::Event { event_id, .. }
             if epoch.accepted_events.contains_key(event_id)
     )));
+}
+
+#[test]
+fn import_interval_classifier_rejects_malformed_and_foreign_publication_envelopes() {
+    use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+
+    for (name, body, malformed_physical) in [
+        (
+            "unknown-owner",
+            b"CVAFORE1opaque foreign owner".as_slice(),
+            false,
+        ),
+        ("malformed-entity", b"CVAENC02".as_slice(), false),
+        ("malformed-relationship", b"CVARNC02".as_slice(), false),
+        (
+            "foreign-relationship-owner",
+            b"CVAFORE1foreign relationship body".as_slice(),
+            false,
+        ),
+        ("truncated-envelope", b"CVAPUB01".as_slice(), true),
+    ] {
+        let scratch = Scratch::new();
+        let path = scratch.0.join(format!("{name}.rel"));
+        let mut cva = Cva::create(&path).unwrap();
+        let boundary = cva.container.chunks().unwrap().len();
+        if malformed_physical {
+            cva.container.append(body).unwrap();
+        } else {
+            let global = cva
+                .container
+                .allocate_version_with_transaction_time(Some(700))
+                .unwrap();
+            let envelope = publication_envelope::encode(PublicationEnvelope {
+                global_version: global,
+                clock: PublicationClock::BindReserved,
+                body,
+            })
+            .unwrap();
+            cva.container.append(&envelope).unwrap();
+        }
+        assert!(
+            super::validate_replay_interval(&mut cva, boundary).is_err(),
+            "strict import classification must reject {name}"
+        );
+    }
 }

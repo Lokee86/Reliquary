@@ -319,13 +319,28 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
     .unwrap();
     // Construct the legacy retirement and its canonical resolution explicitly:
     // ordinary merge also writes a current-format survivor metadata revision.
+    let terminal = crate::entity_codec::EntityTombstone {
+        id: retired.id,
+        revision: retired.revision + 1,
+        replacement_id: survivor.id,
+    };
+    let carrier = rel
+        .container
+        .append(&crate::entity_codec::encode_tombstone(terminal))
+        .unwrap();
+    let global = rel.container.allocate_version().unwrap();
+    let local = rel.entity_version() + 1;
+    rel.container
+        .append(&crate::entity_codec::encode_version(
+            crate::entity_codec::EntityVersion {
+                global_version: global,
+                entity_version: local,
+                record: carrier,
+            },
+        ))
+        .unwrap();
     rel.entities
-        .tombstone(
-            &mut rel.container,
-            retired.id,
-            retired.revision,
-            survivor.id,
-        )
+        .insert_tombstone_rebuilt(terminal, global, local)
         .unwrap();
     let canonical = crate::MemoryEntityResolution {
         key,

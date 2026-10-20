@@ -1,14 +1,13 @@
 //! Relationship-owned persistence of a resolved compact revision.
 use super::{RelationshipStore, resolve, validate_record};
-use crate::relationship_codec::{RelationshipVersion, encode_version};
-use crate::relationship_compact_codec::{encode_creation, encode_delta};
+use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
 use crate::{Container, Relationship, RelationshipError};
 
 impl RelationshipStore {
     /// Callers resolve drafts and retries; this seam validates admission before
-    /// writing and owns the carrier/marker pair for both ordinary and replay writes.
+    /// writing and owns the allocation envelope for ordinary and replay writes.
     pub(super) fn persist_compact_revision(
         &mut self,
         container: &mut Container,
@@ -48,20 +47,17 @@ impl RelationshipStore {
             .global_version
             .checked_add(1)
             .ok_or(RelationshipError::VersionExhausted)?;
-        let payload = match previous {
-            Some(prior) => encode_delta(&RelationshipDelta::between(prior, &record)?)?,
-            None => encode_creation(&RelationshipCreation::new(record.clone())?)?,
+        let value = match previous {
+            Some(prior) => {
+                RelationshipPublication::Delta(RelationshipDelta::between(prior, &record)?)
+            }
+            None => RelationshipPublication::Creation(RelationshipCreation::new(record.clone())?),
         };
-        let carrier = container.append(&payload)?;
-        let global_version = container.allocate_version()?;
+        let payload = publication::encode(&value)?;
+        let (global_version, _) = container.append_publication_envelope(&payload)?;
         if global_version != record.global_version {
             return Err(RelationshipError::InvalidVersion);
         }
-        container.append(&encode_version(RelationshipVersion {
-            global_version,
-            relationship_version: record.relationship_version,
-            record: carrier,
-        }))?;
         self.insert_rebuilt(record.clone())?;
         Ok(resolve(&record))
     }

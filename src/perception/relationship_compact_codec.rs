@@ -16,6 +16,13 @@ use crate::{
 };
 use sha2::{Digest, Sha256};
 
+#[path = "relationship_publication_codec.rs"]
+pub(crate) mod publication;
+
+#[cfg(test)]
+#[path = "relationship_publication_codec_tests.rs"]
+mod publication_tests;
+
 const CREATION_MAGIC: &[u8; 8] = b"CVARNC01";
 const DELTA_MAGIC: &[u8; 8] = b"CVARND01";
 const CREATION_FAMILY: &[u8; 6] = b"CVARNC";

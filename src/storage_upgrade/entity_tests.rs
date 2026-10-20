@@ -1,4 +1,7 @@
 use super::entity::prepare;
+
+#[path = "entity_envelope_tests.rs"]
+mod envelope_tests;
 use super::{StorageUpgradeError, StorageUpgradeRequest, plan_storage_upgrade};
 use crate::entity_model::EntityRecord;
 use crate::{Container, ContainerError, Cva, EntityGlobalId, EntityId, FileKind, Phylactery};

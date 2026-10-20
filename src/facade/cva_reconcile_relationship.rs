@@ -1,5 +1,5 @@
 use crate::cva_reconcile::with_replayed_transaction_time;
-use crate::relationship_codec::decode_version;
+use crate::relationship_compact_codec::publication::coordinates;
 use crate::relationship_store::RelationshipReplayPublication;
 use crate::{Cva, CvaReconcileError};
 
@@ -33,16 +33,16 @@ pub(crate) fn read_relationship_range(
     let mut revisions = Vec::new();
     for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
-        let Some(version) = decode_version(&payload)? else {
+        let Some((global, local)) = coordinates(&payload)? else {
             continue;
         };
         let mutation = cva
             .relationships
-            .publication_at(version.global_version, version.relationship_version)?
+            .publication_at(global, local)?
             .ok_or(crate::RelationshipError::InvalidVersion)?;
         revisions.push(RelationshipReplayRevision {
             publication: mutation,
-            transaction_time_ns: cva.transaction_time_ns(version.global_version),
+            transaction_time_ns: cva.transaction_time_ns(global),
         });
     }
     Ok(RelationshipTail { revisions })
@@ -79,3 +79,7 @@ pub(crate) fn replay_relationship_tail(
 #[cfg(test)]
 #[path = "cva_reconcile_relationship_compact_tests.rs"]
 mod compact_tests;
+
+#[cfg(test)]
+#[path = "cva_reconcile_relationship_envelope_tests.rs"]
+mod envelope_tests;

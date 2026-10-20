@@ -1,5 +1,8 @@
 #![cfg(feature = "history-oracle-fixtures")]
 
+#[path = "entity_envelope_authoritative_tests.rs"]
+mod envelope_tests;
+
 use super::{StorageUpgradeRequest, plan_storage_upgrade, stage_entity_storage_upgrade};
 use crate::entity_codec::{decode_direct_tombstone, decode_tombstone, decode_version};
 use crate::entity_model::EntityRecord;
@@ -123,6 +126,32 @@ fn terminal_cuts(container: &mut Container) -> TerminalCuts {
     let mut result = TerminalCuts::default();
     for object in container.chunks().unwrap() {
         let payload = container.read(object).unwrap();
+        if let Some(envelope) = crate::container::publication_envelope::decode(&payload).unwrap() {
+            if let Some(publication) = crate::entity_compact_codec::publication::decode(
+                envelope.body,
+                envelope.global_version,
+            )
+            .unwrap()
+            {
+                match publication {
+                    crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
+                        id,
+                        entity_version,
+                        ..
+                    }
+                    | crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
+                        id,
+                        entity_version,
+                        ..
+                    } => {
+                        result.by_id.insert(id, entity_version);
+                    }
+                    crate::entity_compact_codec::publication::EntityPublication::Creation(_)
+                    | crate::entity_compact_codec::publication::EntityPublication::Delta(_) => {}
+                }
+            }
+            continue;
+        }
         let Some(version) = decode_version(&payload).unwrap() else {
             continue;
         };

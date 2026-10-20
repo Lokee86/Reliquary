@@ -1,10 +1,11 @@
 //! Scratch compact Relationship tail tests for facade reconciliation.
 use super::{read_relationship_tail, replay_relationship_tail};
+use crate::container::publication_envelope;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::relationship_codec::{
-    RelationshipTombstone, RelationshipVersion, decode_tombstone, decode_version, encode_record,
-    encode_tombstone, encode_version,
+    RelationshipTombstone, RelationshipVersion, encode_record, encode_tombstone, encode_version,
 };
+use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_codec::{encode_creation, encode_delta};
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
@@ -182,17 +183,39 @@ fn compact_tail_replays_exact_history_terminal_and_transaction_times() {
         })
     );
 
-    let mut carriers = Vec::new();
+    let mut publications = Vec::new();
     for chunk in destination.container.chunks().unwrap() {
         let payload = destination.container.read(chunk).unwrap();
-        if let Some(version) = decode_version(&payload).unwrap() {
-            carriers.push(destination.container.read(version.record).unwrap());
+        if let Some(envelope) = publication_envelope::decode(&payload).unwrap() {
+            publications.push(
+                publication::decode(envelope.body, envelope.global_version)
+                    .unwrap()
+                    .unwrap(),
+            );
         }
     }
-    assert_eq!(carriers.len(), 3);
-    assert!(carriers[0].starts_with(b"CVARNC01"));
-    assert!(carriers[1].starts_with(b"CVARND01"));
-    assert!(decode_tombstone(&carriers[2]).unwrap().is_some());
+    assert_eq!(publications.len(), 3);
+    assert!(matches!(
+        &publications[0],
+        RelationshipPublication::Creation(creation)
+            if creation.record == first
+                && creation.record.global_version == 1
+                && creation.record.relationship_version == 1
+    ));
+    assert!(matches!(
+        &publications[1],
+        RelationshipPublication::Delta(delta)
+            if delta.id == first.id
+                && delta.previous_revision == 1
+                && delta.revision == 2
+                && delta.global_version == 2
+                && delta.relationship_version == 2
+    ));
+    assert!(matches!(
+        &publications[2],
+        RelationshipPublication::Tombstone { id, revision: 3, relationship_version: 3 }
+            if *id == first.id
+    ));
 }
 
 #[test]

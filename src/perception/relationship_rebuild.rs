@@ -124,6 +124,52 @@ impl RelationshipOpenState {
         Ok(())
     }
 
+    pub(crate) fn ingest_publication_envelope(
+        &mut self,
+        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        latest_global_version: u64,
+    ) -> Result<bool, RelationshipError> {
+        use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+        let Some(publication) = publication::decode(envelope.body, envelope.global_version)? else {
+            return Ok(false);
+        };
+        if envelope.global_version > latest_global_version {
+            return Err(RelationshipError::InvalidVersion);
+        }
+        match publication {
+            RelationshipPublication::Creation(creation) => {
+                let identity = (creation.record.id, creation.record.revision);
+                let pruned = creation.description_proof.is_some();
+                self.store.insert_rebuilt(creation.record)?;
+                if pruned {
+                    self.store.pruned_revisions.insert(identity);
+                }
+            }
+            RelationshipPublication::Delta(delta) => {
+                let previous = self.store.current_record_for_replay(delta.id)?;
+                let record = crate::relationship_compact_apply::apply_delta(previous, &delta)?;
+                let identity = (record.id, record.revision);
+                self.store.insert_rebuilt(record)?;
+                if delta.description_proof.is_some() {
+                    self.store.pruned_revisions.insert(identity);
+                }
+            }
+            RelationshipPublication::Tombstone {
+                id,
+                revision,
+                relationship_version,
+            } => {
+                self.store.insert_tombstone_rebuilt(
+                    crate::relationship_codec::RelationshipTombstone { id, revision },
+                    envelope.global_version,
+                    relationship_version,
+                )?;
+            }
+        }
+        self.compact_seen = true;
+        Ok(true)
+    }
+
     pub(crate) fn finish(
         self,
         container: &crate::Container,
@@ -137,3 +183,23 @@ impl RelationshipOpenState {
         Ok(self.store)
     }
 }
+
+#[cfg(test)]
+#[path = "relationship_publication_replay_tests.rs"]
+mod publication_replay_tests;
+
+#[cfg(test)]
+#[path = "relationship_publication_prune_tests.rs"]
+mod publication_prune_tests;
+
+#[cfg(test)]
+#[path = "relationship_publication_copy_tests.rs"]
+mod publication_copy_tests;
+
+#[cfg(test)]
+#[path = "relationship_publication_history_tests.rs"]
+mod publication_history_tests;
+
+#[cfg(test)]
+#[path = "relationship_publication_legacy_prune_tests.rs"]
+mod publication_legacy_prune_tests;

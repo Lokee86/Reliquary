@@ -1,14 +1,13 @@
 //! Entity-owned persistence of a resolved compact revision.
 use super::{EntityStore, resolve, validate_record};
-use crate::entity_codec::{EntityVersion, encode_version};
-use crate::entity_compact_codec::{encode_creation, encode_delta};
+use crate::entity_compact_codec::publication::{self, EntityPublication};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityError};
 
 impl EntityStore {
     /// Callers resolve drafts and retries; this seam validates admission before
-    /// writing and owns the carrier/marker pair for both ordinary and replay writes.
+    /// writing and owns one envelope for both ordinary and replay writes.
     pub(super) fn persist_compact_revision(
         &mut self,
         container: &mut Container,
@@ -49,19 +48,17 @@ impl EntityStore {
             .checked_add(1)
             .ok_or(EntityError::VersionExhausted)?;
         let payload = match previous {
-            Some(prior) => encode_delta(&EntityDelta::between(prior, &record)?)?,
-            None => encode_creation(&EntityCreation::new(record.clone())?)?,
+            Some(prior) => publication::encode(&EntityPublication::Delta(EntityDelta::between(
+                prior, &record,
+            )?))?,
+            None => publication::encode(&EntityPublication::Creation(EntityCreation::new(
+                record.clone(),
+            )?))?,
         };
-        let carrier = container.append(&payload)?;
-        let global_version = container.allocate_version()?;
+        let (global_version, _) = container.append_publication_envelope(&payload)?;
         if global_version != record.global_version {
             return Err(EntityError::InvalidVersion);
         }
-        container.append(&encode_version(EntityVersion {
-            global_version,
-            entity_version: record.entity_version,
-            record: carrier,
-        }))?;
         self.insert_rebuilt(record.clone())?;
         Ok(resolve(&record))
     }

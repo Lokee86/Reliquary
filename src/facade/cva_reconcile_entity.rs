@@ -1,5 +1,5 @@
 use crate::cva_reconcile::with_replayed_transaction_time;
-use crate::entity_codec::decode_version;
+use crate::entity_compact_codec::publication::coordinates;
 use crate::entity_store::EntityReplayPublication;
 use crate::{Cva, CvaReconcileError};
 
@@ -33,16 +33,16 @@ pub(crate) fn read_entity_range(
     let mut revisions = Vec::new();
     for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
-        let Some(version) = decode_version(&payload)? else {
+        let Some((global, local)) = coordinates(&payload)? else {
             continue;
         };
         let mutation = cva
             .entities
-            .publication_at(version.global_version, version.entity_version)?
+            .publication_at(global, local)?
             .ok_or(crate::EntityError::InvalidVersion)?;
         revisions.push(EntityReplayRevision {
             publication: mutation,
-            transaction_time_ns: cva.transaction_time_ns(version.global_version),
+            transaction_time_ns: cva.transaction_time_ns(global),
         });
     }
     Ok(EntityTail { revisions })
@@ -79,3 +79,7 @@ pub(crate) fn replay_entity_tail(
 #[cfg(test)]
 #[path = "cva_reconcile_entity_compact_tests.rs"]
 mod compact_tests;
+
+#[cfg(test)]
+#[path = "cva_reconcile_entity_envelope_tests.rs"]
+mod envelope_tests;

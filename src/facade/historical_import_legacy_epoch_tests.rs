@@ -570,3 +570,6 @@ fn reclaimed_migrated_owner_rebinds_legacy_epoch_after_dropping_inert_memory_fra
     drop(pruned);
     assert_rebound_epoch(&pruned_path, &expected);
 }
+
+#[path = "historical_import_memory_envelope_upgrade_tests.rs"]
+mod memory_envelope_upgrade;

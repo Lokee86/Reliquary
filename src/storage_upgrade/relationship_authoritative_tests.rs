@@ -17,6 +17,9 @@ const CORPORA: [&str; 3] = [
     "rhelm-david-r-ellis-pre-relationship",
 ];
 
+#[path = "relationship_envelope_authoritative_tests.rs"]
+mod envelope_tests;
+
 struct ScratchDirectory(PathBuf);
 
 impl ScratchDirectory {

@@ -3,6 +3,7 @@ pub(crate) enum OpenRecordRoute {
     Archive,
     Memory,
     Graph,
+    Publication,
     ContainerVersion,
     Fallback,
 }
@@ -28,6 +29,7 @@ pub(crate) fn classify_open_record(payload: &[u8]) -> OpenRecordRoute {
         }
 
         b"CVAVERS1" | b"CVAVERS2" => OpenRecordRoute::ContainerVersion,
+        b"CVAPUB01" => OpenRecordRoute::Publication,
 
         _ => OpenRecordRoute::Fallback,
     }

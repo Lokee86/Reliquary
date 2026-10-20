@@ -158,9 +158,22 @@ impl Phylactery {
                 owner_maintenance
                     .ingest(payload)
                     .map_err(PhylacteryError::Repack)?;
-                memory_state.ingest(chunk, payload, latest_global)?;
+                if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+                    if !memory_state.ingest_publication_envelope(envelope, latest_global)?
+                        && !entity_state.ingest_publication_envelope(envelope, latest_global)?
+                        && !relationship_state
+                            .ingest_publication_envelope(envelope, latest_global)?
+                    {
+                        return Err(crate::MemoryError::CorruptRecord(
+                            "unsupported publication envelope body",
+                        )
+                        .into());
+                    }
+                } else {
+                    memory_state.ingest(chunk, payload, latest_global)?;
+                    entity_state.ingest(chunk, payload, latest_global)?;
+                }
                 graph_state.ingest(chunk, payload, latest_global)?;
-                entity_state.ingest(chunk, payload, latest_global)?;
                 relationship_state.ingest(chunk, payload, latest_global)?;
                 community_state.ingest(payload)?;
                 packed_state.ingest(chunk, payload)?;

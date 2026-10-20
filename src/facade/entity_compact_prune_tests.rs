@@ -1,6 +1,7 @@
-//! Authenticated native pruning of compact Entity histories.
-use crate::entity_codec::decode_version;
-use crate::entity_compact_codec::{decode_creation, decode_delta, encode_creation, encode_delta};
+//! Authenticated native pruning of Entity publication-envelope histories.
+use crate::container::publication_envelope::{self, PublicationEnvelope};
+use crate::entity_compact_codec::publication::{self, EntityPublication};
+use crate::entity_compact_codec::{encode_creation, encode_delta};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDescriptionProof};
 use crate::entity_model::{EntityRecord, EntityRetentionDescriptor};
 use crate::entity_store::{EntityReplayPublication, EntityStore};
@@ -268,16 +269,20 @@ fn payloads(path: &Path) -> Vec<(crate::ObjectRef, Vec<u8>)> {
 fn selected_proofs(path: &Path, selected_id: EntityId) -> Vec<(u64, EntityDescriptionProof)> {
     let mut proofs = Vec::new();
     for (_, payload) in payloads(path) {
-        if payload.starts_with(b"CVAENC") {
-            let creation = decode_creation(&payload).unwrap();
-            if creation.record.id == selected_id {
+        let Some(envelope) = publication_envelope::decode(&payload).unwrap() else {
+            continue;
+        };
+        match publication::decode(envelope.body, envelope.global_version)
+            .unwrap()
+            .unwrap()
+        {
+            EntityPublication::Creation(creation) if creation.record.id == selected_id => {
                 proofs.push((1, creation.description_proof.unwrap()));
             }
-        } else if payload.starts_with(b"CVAEND") {
-            let delta = decode_delta(&payload).unwrap();
-            if delta.id == selected_id {
+            EntityPublication::Delta(delta) if delta.id == selected_id => {
                 proofs.push((delta.revision, delta.description_proof.unwrap()));
             }
+            _ => {}
         }
     }
     proofs.sort_by_key(|(revision, _)| *revision);
@@ -289,20 +294,20 @@ fn source_carrier_digests(path: &Path, selected_id: EntityId) -> BTreeMap<u64, [
     let mut versions = BTreeMap::new();
     for object in container.chunks().unwrap() {
         let payload = container.read(object).unwrap();
-        if let Some(version) = decode_version(&payload).unwrap() {
-            let raw = container.read(version.record).unwrap();
-            let id_revision = if raw.starts_with(b"CVAENC") {
-                let creation = decode_creation(&raw).unwrap();
-                (creation.record.id, 1)
-            } else if raw.starts_with(b"CVAEND") {
-                let delta = decode_delta(&raw).unwrap();
-                (delta.id, delta.revision)
-            } else {
-                continue;
-            };
-            if id_revision.0 == selected_id {
-                versions.insert(id_revision.1, Sha256::digest(raw).into());
-            }
+        let Some(envelope) = publication_envelope::decode(&payload).unwrap() else {
+            continue;
+        };
+        let publication = publication::decode(envelope.body, envelope.global_version)
+            .unwrap()
+            .unwrap();
+        let (id, revision) = match &publication {
+            EntityPublication::Creation(creation) => (creation.record.id, 1),
+            EntityPublication::Delta(delta) => (delta.id, delta.revision),
+            _ => continue,
+        };
+        if id == selected_id {
+            let comparison = publication::comparison_carrier(&publication).unwrap();
+            versions.insert(revision, Sha256::digest(comparison).into());
         }
     }
     versions
@@ -547,10 +552,13 @@ fn tampered_copy(
         .iter()
         .find_map(|object| {
             let payload = input.read(*object).unwrap();
-            (payload.starts_with(b"CVAENC")
-                && decode_creation(&payload)
-                    .is_ok_and(|creation| creation.record.id == selected_id))
-            .then_some((*object, payload))
+            let envelope = publication_envelope::decode(&payload).ok()??;
+            let publication = publication::decode(envelope.body, envelope.global_version)
+                .ok()??;
+            let global_version = envelope.global_version;
+            let clock = envelope.clock;
+            matches!(&publication, EntityPublication::Creation(creation) if creation.record.id == selected_id)
+                .then_some((*object, payload, global_version, clock))
         })
         .unwrap();
     let mut replacement = target.1.clone();
@@ -563,26 +571,34 @@ fn tampered_copy(
             .into_iter()
             .find_map(|object| {
                 let payload = original.read(object).unwrap();
-                if !payload.starts_with(b"CVAENC") {
-                    return None;
-                }
-                let creation = decode_creation(&payload).ok()?;
-                (creation.record.id == selected_id && creation.record.revision == 1)
-                    .then_some(payload)
+                let envelope = publication_envelope::decode(&payload).ok()??;
+                let publication =
+                    publication::decode(envelope.body, envelope.global_version).ok()??;
+                matches!(&publication, EntityPublication::Creation(creation)
+                    if creation.record.id == selected_id && creation.record.revision == 1
+                        && creation.description_proof.is_none())
+                .then_some(payload)
             })
-            .expect("original source creation carrier");
-        let accepted_pruned = decode_creation(&target.1).unwrap();
-        assert!(accepted_pruned.description_proof.is_some());
-        assert!(
-            decode_creation(&original_carrier)
+            .expect("original source creation envelope");
+        let pruned_envelope = publication_envelope::decode(&target.1).unwrap().unwrap();
+        let accepted_pruned =
+            publication::decode(pruned_envelope.body, pruned_envelope.global_version)
                 .unwrap()
-                .description_proof
-                .is_none()
-        );
+                .unwrap();
+        let EntityPublication::Creation(accepted_pruned) = accepted_pruned else {
+            panic!("pruned publication is a creation")
+        };
+        assert!(accepted_pruned.description_proof.is_some());
         detached_proof = Some(target.1.clone());
         replacement = original_carrier;
     } else if !matches!(tamper, ProofTamper::DuplicateProofCarrier) {
-        let mut creation = decode_creation(&replacement).unwrap();
+        let envelope = publication_envelope::decode(&replacement).unwrap().unwrap();
+        let publication = publication::decode(envelope.body, envelope.global_version)
+            .unwrap()
+            .unwrap();
+        let EntityPublication::Creation(mut creation) = publication else {
+            panic!("tampered publication is a creation")
+        };
         match tamper {
             ProofTamper::ManifestDigest => {
                 creation.description_proof.as_mut().unwrap().manifest_digest = [0xE1; 32];
@@ -599,7 +615,13 @@ fn tampered_copy(
                 unreachable!()
             }
         }
-        replacement = encode_creation(&creation).unwrap();
+        let body = publication::encode(&EntityPublication::Creation(creation)).unwrap();
+        replacement = publication_envelope::encode(PublicationEnvelope {
+            global_version: envelope.global_version,
+            clock: envelope.clock,
+            body: &body,
+        })
+        .unwrap();
     }
 
     let mut destination = input.create_empty_like(output).unwrap();

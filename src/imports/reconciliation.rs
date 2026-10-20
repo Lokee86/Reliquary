@@ -177,17 +177,21 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             {
                 owner_evidence.push(canonical_memory_publication(cva, global, local, &payload)?);
             }
-            if let Some(version) = crate::entity_codec::decode_version(&payload)? {
+            if let Some((global, local)) =
+                crate::entity_compact_codec::publication::coordinates(&payload)?
+            {
                 let publication = cva
                     .entities
-                    .retained_publication_at(version.global_version, version.entity_version)?
+                    .retained_publication_at(global, local)?
                     .ok_or(crate::EntityError::InvalidVersion)?;
                 owner_evidence.push(publication.normalized_import_evidence()?);
             }
-            if let Some(version) = crate::relationship_codec::decode_version(&payload)? {
+            if let Some((global, local)) =
+                crate::relationship_compact_codec::publication::coordinates(&payload)?
+            {
                 let publication = cva
                     .relationships
-                    .retained_publication_at(version.global_version, version.relationship_version)?
+                    .retained_publication_at(global, local)?
                     .ok_or(crate::RelationshipError::InvalidVersion)?;
                 owner_evidence.push(publication.normalized_import_evidence()?);
             }
@@ -350,11 +354,11 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::memory_routing_codec::decode(&payload)?.is_some()
             || crate::entity_codec::decode_record(&payload)?.is_some()
             || crate::entity_compact_codec::is_compact_record(&payload)?
-            || crate::entity_codec::decode_version(&payload)?.is_some()
+            || crate::entity_compact_codec::publication::coordinates(&payload)?.is_some()
             || crate::relationship_codec::decode_record(&payload)?.is_some()
             || crate::relationship_compact_codec::is_compact_record(&payload)?
             || crate::relationship_codec::decode_tombstone(&payload)?.is_some()
-            || crate::relationship_codec::decode_version(&payload)?.is_some()
+            || crate::relationship_compact_codec::publication::coordinates(&payload)?.is_some()
             || crate::entity_resolution_codec::decode_resolution(&payload)?.is_some()
             || crate::graph_codec::decode_node(&payload)?.is_some()
             || crate::graph_codec::decode_version(&payload)?.is_some()

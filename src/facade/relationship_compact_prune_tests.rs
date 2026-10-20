@@ -1,7 +1,9 @@
 //! Native compact Relationship description pruning for REL and PHY owners.
+use crate::container::publication_envelope::{self, PublicationEnvelope};
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::owner_maintenance::{HistoryPruneManifest, PrunedPayload, RetentionDomain};
 use crate::relationship_codec::encode_record;
+use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_codec::{decode_creation, decode_delta, encode_creation};
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDescriptionProof};
 use crate::relationship_model::RelationshipRecord;
@@ -74,6 +76,18 @@ fn selected_proofs(path: &Path, id: RelationshipId) -> Vec<(u64, RelationshipDes
     let mut proofs = Vec::new();
     for object in container.chunks().unwrap() {
         let raw = container.read(object).unwrap();
+        if let Some(envelope) = publication_envelope::decode(&raw).unwrap() {
+            match publication::decode(envelope.body, envelope.global_version).unwrap() {
+                Some(RelationshipPublication::Creation(creation)) if creation.record.id == id => {
+                    proofs.push((1, creation.description_proof.unwrap()));
+                }
+                Some(RelationshipPublication::Delta(delta)) if delta.id == id => {
+                    proofs.push((delta.revision, delta.description_proof.unwrap()));
+                }
+                _ => {}
+            }
+            continue;
+        }
         if raw.starts_with(b"CVARNC") {
             let creation = decode_creation(&raw).unwrap();
             if creation.record.id == id {
@@ -95,6 +109,23 @@ fn source_digests(path: &Path, id: RelationshipId) -> BTreeMap<u64, [u8; 32]> {
     let mut digests = BTreeMap::new();
     for object in container.chunks().unwrap() {
         let marker = container.read(object).unwrap();
+        if let Some(envelope) = publication_envelope::decode(&marker).unwrap() {
+            let Some(publication) =
+                publication::decode(envelope.body, envelope.global_version).unwrap()
+            else {
+                continue;
+            };
+            let (publication_id, revision) = match &publication {
+                RelationshipPublication::Creation(creation) => (creation.record.id, 1),
+                RelationshipPublication::Delta(delta) => (delta.id, delta.revision),
+                _ => continue,
+            };
+            if publication_id == id {
+                let carrier = publication::comparison_carrier(&publication).unwrap();
+                digests.insert(revision, Sha256::digest(carrier).into());
+            }
+            continue;
+        }
         let Some(version) = crate::relationship_codec::decode_version(&marker).unwrap() else {
             continue;
         };
@@ -219,6 +250,69 @@ fn tampered_relationship_carrier(
     manifest_digest: Option<[u8; 32]>,
     duplicate_creation: &mut Option<Vec<u8>>,
 ) -> Vec<u8> {
+    if let Some(envelope) = publication_envelope::decode(raw).unwrap() {
+        let Some(publication) =
+            publication::decode(envelope.body, envelope.global_version).unwrap()
+        else {
+            return raw.to_vec();
+        };
+        let modified = match publication {
+            RelationshipPublication::Creation(mut creation) if creation.record.id == id => {
+                if matches!(tamper, ProofTamper::DuplicateProofCarrier) {
+                    *duplicate_creation = Some(raw.to_vec());
+                    return raw.to_vec();
+                }
+                if matches!(tamper, ProofTamper::IncompleteChain) {
+                    return raw.to_vec();
+                }
+                let Some(proof) = creation.description_proof.as_mut() else {
+                    return raw.to_vec();
+                };
+                match tamper {
+                    ProofTamper::WrongManifestDigest => proof.manifest_digest = [0xE1; 32],
+                    ProofTamper::WrongCarrierDigest => proof.original_carrier_digest = [0xE2; 32],
+                    ProofTamper::MissingDescriptor
+                    | ProofTamper::WrongDescriptor
+                    | ProofTamper::CrossTargetDescriptor => {
+                        proof.manifest_digest = manifest_digest.unwrap()
+                    }
+                    _ => {}
+                }
+                RelationshipPublication::Creation(creation)
+            }
+            RelationshipPublication::Delta(mut delta) if delta.id == id => {
+                match tamper {
+                    ProofTamper::IncompleteChain => delta.description_proof = None,
+                    ProofTamper::WrongManifestDigest => {
+                        delta.description_proof.as_mut().unwrap().manifest_digest = [0xE1; 32]
+                    }
+                    ProofTamper::WrongCarrierDigest => {
+                        delta
+                            .description_proof
+                            .as_mut()
+                            .unwrap()
+                            .original_carrier_digest = [0xE2; 32]
+                    }
+                    ProofTamper::MissingDescriptor
+                    | ProofTamper::WrongDescriptor
+                    | ProofTamper::CrossTargetDescriptor => {
+                        delta.description_proof.as_mut().unwrap().manifest_digest =
+                            manifest_digest.unwrap()
+                    }
+                    _ => return raw.to_vec(),
+                }
+                RelationshipPublication::Delta(delta)
+            }
+            _ => return raw.to_vec(),
+        };
+        let body = publication::encode(&modified).unwrap();
+        return publication_envelope::encode(PublicationEnvelope {
+            global_version: envelope.global_version,
+            clock: envelope.clock,
+            body: &body,
+        })
+        .unwrap();
+    }
     if raw.starts_with(b"CVARNC") {
         let Ok(mut creation) = decode_creation(raw) else {
             return raw.to_vec();

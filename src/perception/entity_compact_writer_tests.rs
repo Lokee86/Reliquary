@@ -1,7 +1,7 @@
-//! Ordinary Entity publication writes compact creation/delta carriers in REL and PHY.
+//! Ordinary Entity publication writes Entity bodies in publication envelopes for REL and PHY.
 use crate::compact_delta::FieldChange;
-use crate::entity_codec::{decode_direct_tombstone, decode_tombstone};
-use crate::entity_compact_codec::{decode_creation, decode_delta};
+use crate::container::publication_envelope::decode as decode_publication_envelope;
+use crate::entity_compact_codec::publication::{self, EntityPublication};
 use crate::{Cva, EntityDraft, EntityError, EntityId, Phylactery};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -52,18 +52,66 @@ fn payloads(path: &Path) -> Vec<Vec<u8>> {
     values
 }
 
+fn publications(path: &Path) -> Vec<(u64, EntityPublication)> {
+    payloads(path)
+        .iter()
+        .filter_map(|payload| decode_publication_envelope(payload).unwrap())
+        .map(|envelope| {
+            (
+                envelope.global_version,
+                publication::decode(envelope.body, envelope.global_version)
+                    .unwrap()
+                    .unwrap(),
+            )
+        })
+        .collect()
+}
+
 fn assert_compact_stream(path: &Path, expected_creation_id: EntityId, expected_delta_id: EntityId) {
     let values = payloads(path);
-    let creations = values
+    let publications = values
         .iter()
-        .filter(|payload| payload.starts_with(b"CVAENC01"))
+        .filter_map(|payload| decode_publication_envelope(payload).unwrap())
+        .map(|envelope| {
+            (
+                envelope.global_version,
+                publication::decode(envelope.body, envelope.global_version)
+                    .unwrap()
+                    .unwrap(),
+            )
+        })
         .collect::<Vec<_>>();
-    let deltas = values
+    let creations = publications
         .iter()
-        .filter(|payload| payload.starts_with(b"CVAEND01"))
+        .filter_map(|(_, publication)| match publication {
+            EntityPublication::Creation(value) => Some(value),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let deltas = publications
+        .iter()
+        .filter_map(|(_, publication)| match publication {
+            EntityPublication::Delta(value) => Some(value),
+            _ => None,
+        })
         .collect::<Vec<_>>();
     assert_eq!(creations.len(), 3);
     assert_eq!(deltas.len(), 1);
+    assert_eq!(
+        publications.len(),
+        6,
+        "three creations, one delta, two terminals"
+    );
+    assert!(
+        values.iter().all(|payload| {
+            !payload.starts_with(b"CVAENC01")
+                && !payload.starts_with(b"CVAEND01")
+                && !payload.starts_with(b"CVAENTV1")
+                && !payload.starts_with(b"CVAENTT1")
+                && !payload.starts_with(b"CVAENTT2")
+        }),
+        "ordinary writer must use envelopes for all Entity publications"
+    );
     assert_eq!(
         values
             .iter()
@@ -72,12 +120,9 @@ fn assert_compact_stream(path: &Path, expected_creation_id: EntityId, expected_d
         0,
         "ordinary writer must not persist full Entity records"
     );
-    assert_eq!(
-        decode_creation(creations[0]).unwrap().record.id,
-        expected_creation_id
-    );
-    assert_eq!(decode_delta(deltas[0]).unwrap().id, expected_delta_id);
-    let delta = decode_delta(deltas[0]).unwrap();
+    assert_eq!(creations[0].record.id, expected_creation_id);
+    assert_eq!(deltas[0].id, expected_delta_id);
+    let delta = deltas[0];
     assert_eq!(delta.fields.mask(), 1 << 4);
     assert!(matches!(delta.fields.global_id, FieldChange::Unchanged));
     assert!(matches!(
@@ -167,32 +212,24 @@ fn assert_publication_retry_contract_rel(path: &Path) {
     rel.sync().unwrap();
 
     assert_compact_stream(path, created.id, created.id);
-    let values = payloads(path);
+    let entity_publications = publications(path);
     assert_eq!(
-        values
+        entity_publications
             .iter()
-            .filter(|payload| payload.starts_with(b"CVAENTT1"))
+            .filter(|(_, publication)| matches!(
+                publication,
+                EntityPublication::MergeTombstone { .. }
+            ))
             .count(),
         1
     );
     assert_eq!(
-        values
+        entity_publications
             .iter()
-            .filter(|payload| payload.starts_with(b"CVAENTT2"))
-            .count(),
-        1
-    );
-    assert_eq!(
-        values
-            .iter()
-            .filter(|payload| decode_tombstone(payload).unwrap().is_some())
-            .count(),
-        1
-    );
-    assert_eq!(
-        values
-            .iter()
-            .filter(|payload| decode_direct_tombstone(payload).unwrap().is_some())
+            .filter(|(_, publication)| matches!(
+                publication,
+                EntityPublication::DirectTombstone { .. }
+            ))
             .count(),
         1
     );
@@ -294,18 +331,24 @@ fn assert_publication_retry_contract_phy(path: &Path) {
     phy.sync().unwrap();
 
     assert_compact_stream(path, created.id, created.id);
-    let values = payloads(path);
+    let entity_publications = publications(path);
     assert_eq!(
-        values
+        entity_publications
             .iter()
-            .filter(|payload| payload.starts_with(b"CVAENTT1"))
+            .filter(|(_, publication)| matches!(
+                publication,
+                EntityPublication::MergeTombstone { .. }
+            ))
             .count(),
         1
     );
     assert_eq!(
-        values
+        entity_publications
             .iter()
-            .filter(|payload| payload.starts_with(b"CVAENTT2"))
+            .filter(|(_, publication)| matches!(
+                publication,
+                EntityPublication::DirectTombstone { .. }
+            ))
             .count(),
         1
     );
@@ -331,6 +374,82 @@ fn assert_publication_retry_contract_phy(path: &Path) {
     assert_eq!(reopened.retired_entity_replacement(direct.id), None);
 }
 
+fn assert_validation_rejected_before_append_rel(path: &Path) {
+    let mut rel = Cva::create(path).unwrap();
+    let before_len = fs::metadata(path).unwrap().len();
+    let before_global = rel.latest_global_version();
+    let before_local = rel.entity_version();
+    assert!(matches!(
+        rel.publish_entity(None, 0, draft("  ", "invalid-empty-name", "summary")),
+        Err(EntityError::InvalidField("Entity canonical name"))
+    ));
+    assert_eq!(fs::metadata(path).unwrap().len(), before_len);
+    assert_eq!(rel.latest_global_version(), before_global);
+    assert_eq!(rel.entity_version(), before_local);
+}
+
+fn assert_validation_rejected_before_append_phy(path: &Path) {
+    let mut phy = Phylactery::create(path).unwrap();
+    let before_len = fs::metadata(path).unwrap().len();
+    let before_global = phy.latest_global_version();
+    let before_local = phy.entity_version();
+    assert!(matches!(
+        phy.publish_entity(None, 0, draft("  ", "invalid-empty-name", "summary")),
+        Err(EntityError::InvalidField("Entity canonical name"))
+    ));
+    assert_eq!(fs::metadata(path).unwrap().len(), before_len);
+    assert_eq!(phy.latest_global_version(), before_global);
+    assert_eq!(phy.entity_version(), before_local);
+}
+
+fn assert_truncated_terminal_envelope_recovers_rel(path: &Path) {
+    let mut rel = Cva::create(path).unwrap();
+    let (created, _) = rel
+        .publish_entity(None, 0, draft("Recovery", "recovery-create", "Initial"))
+        .unwrap();
+    rel.publish_entity(
+        Some(created.id),
+        1,
+        draft("Recovery", "recovery-delta", "Updated"),
+    )
+    .unwrap();
+    rel.tombstone_entity(created.id, 2).unwrap();
+    rel.sync().unwrap();
+    drop(rel);
+
+    let mut bytes = fs::read(path).unwrap();
+    bytes.pop();
+    fs::write(path, bytes).unwrap();
+    let reopened = Cva::open(path).unwrap();
+    assert_eq!(reopened.entity_version(), 2);
+    assert_eq!(reopened.latest_global_version(), 2);
+    assert_eq!(reopened.entity(created.id).unwrap().summary, "Updated");
+}
+
+fn assert_truncated_terminal_envelope_recovers_phy(path: &Path) {
+    let mut phy = Phylactery::create(path).unwrap();
+    let (created, _) = phy
+        .publish_entity(None, 0, draft("Recovery", "recovery-create", "Initial"))
+        .unwrap();
+    phy.publish_entity(
+        Some(created.id),
+        1,
+        draft("Recovery", "recovery-delta", "Updated"),
+    )
+    .unwrap();
+    phy.tombstone_entity(created.id, 2).unwrap();
+    phy.sync().unwrap();
+    drop(phy);
+
+    let mut bytes = fs::read(path).unwrap();
+    bytes.pop();
+    fs::write(path, bytes).unwrap();
+    let reopened = Phylactery::open(path).unwrap();
+    assert_eq!(reopened.entity_version(), 2);
+    assert_eq!(reopened.latest_global_version(), 2);
+    assert_eq!(reopened.entity(created.id).unwrap().summary, "Updated");
+}
+
 #[test]
 fn rel_entity_writer_uses_compact_records_and_preserves_retry_and_terminal_semantics() {
     let scratch = Scratch::new();
@@ -341,4 +460,28 @@ fn rel_entity_writer_uses_compact_records_and_preserves_retry_and_terminal_seman
 fn phy_entity_writer_uses_compact_records_and_preserves_retry_and_terminal_semantics() {
     let scratch = Scratch::new();
     assert_publication_retry_contract_phy(&scratch.file("writer.phy"));
+}
+
+#[test]
+fn rel_entity_writer_validates_before_append() {
+    let scratch = Scratch::new();
+    assert_validation_rejected_before_append_rel(&scratch.file("invalid.rel"));
+}
+
+#[test]
+fn phy_entity_writer_validates_before_append() {
+    let scratch = Scratch::new();
+    assert_validation_rejected_before_append_phy(&scratch.file("invalid.phy"));
+}
+
+#[test]
+fn rel_entity_writer_recovers_incomplete_final_terminal_envelope() {
+    let scratch = Scratch::new();
+    assert_truncated_terminal_envelope_recovers_rel(&scratch.file("tail.rel"));
+}
+
+#[test]
+fn phy_entity_writer_recovers_incomplete_final_terminal_envelope() {
+    let scratch = Scratch::new();
+    assert_truncated_terminal_envelope_recovers_phy(&scratch.file("tail.phy"));
 }

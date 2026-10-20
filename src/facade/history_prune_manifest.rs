@@ -181,6 +181,26 @@ pub(crate) fn owner_history_digest(
             }
             continue;
         }
+        if let Some((global, marker, digest)) =
+            crate::entity_compact_codec::publication::history_evidence(&raw)
+                .map_err(|error| error.to_string())?
+        {
+            if global <= watermark {
+                digest_bytes(&mut hash, &marker);
+                digest_bytes(&mut hash, &digest);
+            }
+            continue;
+        }
+        if let Some((global, marker, digest)) =
+            crate::relationship_compact_codec::publication::history_evidence(&raw)
+                .map_err(|error| error.to_string())?
+        {
+            if global <= watermark {
+                digest_bytes(&mut hash, &marker);
+                digest_bytes(&mut hash, &digest);
+            }
+            continue;
+        }
         let publication = if let Some(version) =
             crate::archive_history_codec::decode_record_version(&raw)
                 .map_err(|error| error.to_string())?

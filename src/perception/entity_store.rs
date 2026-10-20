@@ -1,8 +1,12 @@
 #[path = "entity_compact_publish.rs"]
 mod compact_publish;
+
 #[cfg(test)]
 #[path = "entity_legacy_fixture.rs"]
 mod legacy_fixture;
+#[cfg(test)]
+#[path = "entity_rebuild_overflow_tests.rs"]
+mod overflow_tests;
 #[path = "entity_store_read.rs"]
 mod read;
 #[path = "entity_replay.rs"]
@@ -10,10 +14,7 @@ mod replay;
 #[path = "entity_store_validation.rs"]
 mod validation;
 
-use crate::entity_codec::{
-    DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone, encode_format,
-    encode_tombstone, encode_version,
-};
+use crate::entity_codec::{DirectEntityTombstone, EntityTombstone, encode_format};
 use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
 pub(crate) use replay::EntityReplayPublication;
@@ -186,6 +187,11 @@ impl EntityStore {
         }
         validate_record(&record)?;
 
+        let next_entity_version = self
+            .next_entity_version
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+
         if let Some(index) = self.current.get(&record.id).copied() {
             let prior = &self.records[index];
             for surface in entity_surfaces(&prior.canonical_name, &prior.aliases) {
@@ -225,10 +231,7 @@ impl EntityStore {
             }
         }
         self.records.push(record);
-        self.next_entity_version = self
-            .next_entity_version
-            .checked_add(1)
-            .ok_or(EntityError::VersionExhausted)?;
+        self.next_entity_version = next_entity_version;
         Ok(())
     }
 
@@ -261,17 +264,15 @@ impl EntityStore {
         entity_version
             .checked_add(1)
             .ok_or(EntityError::VersionExhausted)?;
-        let mutation = container.append(&encode_tombstone(EntityTombstone {
-            id,
-            revision,
-            replacement_id,
-        }))?;
-        let global_version = container.allocate_version()?;
-        container.append(&encode_version(EntityVersion {
-            global_version,
-            entity_version,
-            record: mutation,
-        }))?;
+        let body = crate::entity_compact_codec::publication::encode(
+            &crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
+                id,
+                revision,
+                entity_version,
+                replacement_id,
+            },
+        )?;
+        let (global_version, _) = container.append_publication_envelope(&body)?;
         self.insert_tombstone_rebuilt(
             EntityTombstone {
                 id,
@@ -310,8 +311,14 @@ impl EntityStore {
         }
         let index = self
             .current
-            .remove(&tombstone.id)
+            .get(&tombstone.id)
+            .copied()
             .ok_or(EntityError::MissingEntity)?;
+        let next_entity_version = self
+            .next_entity_version
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
+        self.current.remove(&tombstone.id);
         let prior = &self.records[index];
         deindex_entity(
             &mut self.by_surface,
@@ -328,10 +335,7 @@ impl EntityStore {
                 domain_version: Some(entity_version),
             },
         );
-        self.next_entity_version = self
-            .next_entity_version
-            .checked_add(1)
-            .ok_or(EntityError::VersionExhausted)?;
+        self.next_entity_version = next_entity_version;
         Ok(())
     }
 
@@ -371,14 +375,15 @@ impl EntityStore {
                 .checked_add(1)
                 .ok_or(EntityError::VersionExhausted)?,
         };
-        let record = container.append(&encode_direct_tombstone(tombstone))?;
-        let global_version = container.allocate_version()?;
         let entity_version = self.next_entity_version;
-        container.append(&encode_version(EntityVersion {
-            global_version,
-            entity_version,
-            record,
-        }))?;
+        let body = crate::entity_compact_codec::publication::encode(
+            &crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
+                id: tombstone.id,
+                revision: tombstone.revision,
+                entity_version,
+            },
+        )?;
+        let (global_version, _) = container.append_publication_envelope(&body)?;
         self.insert_direct_tombstone_rebuilt(tombstone, global_version, entity_version)?;
         Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
             crate::owner_lifecycle::TombstoneCoordinates {
@@ -410,6 +415,10 @@ impl EntityStore {
         {
             return Err(EntityError::RevisionConflict);
         }
+        let next_entity_version = self
+            .next_entity_version
+            .checked_add(1)
+            .ok_or(EntityError::VersionExhausted)?;
         self.current.remove(&tombstone.id);
         deindex_entity(
             &mut self.by_surface,
@@ -425,9 +434,7 @@ impl EntityStore {
                 domain_version: Some(entity_version),
             },
         );
-        self.next_entity_version = entity_version
-            .checked_add(1)
-            .ok_or(EntityError::VersionExhausted)?;
+        self.next_entity_version = next_entity_version;
         Ok(())
     }
 

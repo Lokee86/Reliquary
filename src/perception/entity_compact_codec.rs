@@ -1,4 +1,6 @@
 //! Compact Entity creation and delta carriers.
+#[path = "entity_publication_codec.rs"]
+pub(crate) mod publication;
 use crate::EntityError;
 use crate::compact_delta::FieldChange;
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDeltaFields};

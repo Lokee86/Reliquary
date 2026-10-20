@@ -1,6 +1,6 @@
 //! Plan canonical compact replacements for selected Entity descriptions.
-use crate::entity_codec::decode_version;
-use crate::entity_compact_codec::{decode_creation, decode_delta, encode_creation, encode_delta};
+use crate::entity_compact_codec::publication::{self, EntityPublication};
+use crate::entity_compact_codec::{decode_creation, decode_delta};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDescriptionProof};
 use crate::entity_model::EntityRecord;
 use crate::entity_store::{EntityReplayPublication, EntityStore};
@@ -37,20 +37,33 @@ pub(crate) fn prepare_description_prune(
     // global tickets that need not be numerically increasing.
     for object in container.chunks()? {
         let payload = container.read(object)?;
-        let Some(version) = decode_version(&payload)? else {
+        let Some((global, local)) = publication::coordinates(&payload)? else {
             continue;
         };
-        let Some(publication) =
-            store.retained_publication_at(version.global_version, version.entity_version)?
-        else {
+        let Some(publication) = store.retained_publication_at(global, local)? else {
             continue;
+        };
+        let envelope = crate::container::publication_envelope::decode(&payload)?;
+        let carrier = match envelope {
+            Some(_) => object,
+            None => {
+                crate::entity_codec::decode_version(&payload)?
+                    .ok_or(EntityError::InvalidVersion)?
+                    .record
+            }
         };
         match publication {
             EntityReplayPublication::Record(record) if selected.contains(&record.id) => {
                 if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
                     return Err(EntityError::PayloadRequiredByLiveTarget);
                 }
-                let original = container.read(version.record)?;
+                let original = if let Some(envelope) = envelope {
+                    let body = publication::decode(envelope.body, envelope.global_version)?
+                        .ok_or(EntityError::InvalidVersion)?;
+                    publication::comparison_carrier(&body)?
+                } else {
+                    container.read(carrier)?
+                };
                 let proof = EntityDescriptionProof {
                     original_carrier_digest: Sha256::digest(&original).into(),
                     manifest_digest,
@@ -60,28 +73,40 @@ pub(crate) fn prepare_description_prune(
                 redacted.aliases.clear();
                 redacted.summary.clear();
 
-                let replacement = if record.revision == 1 {
+                let replacement_publication = if record.revision == 1 {
                     if previous_redacted.contains_key(&record.id) {
                         return Err(EntityError::RevisionConflict);
                     }
-                    encode_creation(&EntityCreation::new_pruned(redacted.clone(), proof)?)?
+                    EntityPublication::Creation(EntityCreation::new_pruned(
+                        redacted.clone(),
+                        proof,
+                    )?)
                 } else {
                     let previous = previous_redacted
                         .get(&record.id)
                         .ok_or(EntityError::RevisionConflict)?;
-                    encode_delta(&EntityDelta::between_pruned(previous, &redacted, proof)?)?
+                    EntityPublication::Delta(EntityDelta::between_pruned(
+                        previous, &redacted, proof,
+                    )?)
+                };
+                let replacement = if let Some(envelope) = envelope {
+                    let body = publication::encode(&replacement_publication)?;
+                    crate::container::publication_envelope::encode(
+                        crate::container::publication_envelope::PublicationEnvelope {
+                            body: &body,
+                            ..envelope
+                        },
+                    )?
+                } else {
+                    publication::comparison_carrier(&replacement_publication)?
                 };
 
-                if plan
-                    .replacements
-                    .insert(version.record, replacement)
-                    .is_some()
-                {
+                if plan.replacements.insert(carrier, replacement).is_some() {
                     return Err(EntityError::CorruptRecord(
                         "duplicate accepted Entity carrier",
                     ));
                 }
-                accepted_carriers.insert(version.record);
+                accepted_carriers.insert(carrier);
                 previous_redacted.insert(record.id, redacted);
                 seen_selected.insert(record.id);
             }

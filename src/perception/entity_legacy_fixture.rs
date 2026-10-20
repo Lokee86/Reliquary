@@ -3,7 +3,7 @@
 //! Keep this writer isolated from ordinary publication so tests can build
 //! genuine legacy carriers after the production writer moves to compact data.
 use super::*;
-use crate::entity_codec::encode_record;
+use crate::entity_codec::{EntityVersion, encode_record, encode_version};
 
 impl EntityStore {
     #[cfg(test)]

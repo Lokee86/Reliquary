@@ -13,6 +13,9 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[path = "relationship_envelope_tests.rs"]
+mod envelope_tests;
+
 struct Fixture(PathBuf);
 
 impl Fixture {

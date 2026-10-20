@@ -8,6 +8,9 @@ use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+#[path = "memory_envelope_authoritative_tests.rs"]
+mod envelope;
+
 const AUTHORITATIVE_BASELINE: &str =
     "benchmarks/authoritative-history-rewrite-step62-2026-10-18.json";
 

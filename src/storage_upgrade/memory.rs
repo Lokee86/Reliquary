@@ -8,35 +8,136 @@ pub(super) fn transform(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, false, false, false, false)
+    transform_owners(
+        source,
+        destination,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+    )
 }
 
 pub(super) fn transform_with_entities(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, false, false, false)
+    transform_owners(
+        source,
+        destination,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+    )
 }
 
 pub(super) fn transform_with_relationships(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, true, false, false)
+    transform_owners(
+        source,
+        destination,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+    )
 }
 
 pub(super) fn transform_with_ego(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, true, true, false)
+    transform_owners(
+        source,
+        destination,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+        false,
+    )
 }
 
 pub(super) fn transform_with_graph(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, true, true, true)
+    transform_owners(
+        source,
+        destination,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+        false,
+    )
+}
+
+pub(super) fn transform_with_memory_envelopes(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(
+        source,
+        destination,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+        false,
+    )
+}
+
+pub(super) fn transform_with_entity_envelopes(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(
+        source,
+        destination,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+    )
+}
+
+pub(super) fn transform_with_relationship_envelopes(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(
+        source,
+        destination,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+    )
 }
 
 fn transform_owners(
@@ -46,6 +147,9 @@ fn transform_owners(
     migrate_relationships: bool,
     migrate_ego: bool,
     migrate_graph: bool,
+    migrate_memory_envelopes: bool,
+    migrate_entity_envelopes: bool,
+    migrate_relationship_envelopes: bool,
 ) -> Result<(), StorageUpgradeError> {
     let normalizations = if source
         .identity()
@@ -89,12 +193,12 @@ fn transform_owners(
     } else {
         BTreeMap::new()
     };
-    let entity_carriers = if migrate_entities {
+    let entity_carriers = if migrate_entities && !migrate_entity_envelopes {
         super::entity::prepare(source)?
     } else {
         BTreeMap::new()
     };
-    let relationship_carriers = if migrate_relationships {
+    let relationship_carriers = if migrate_relationships && !migrate_relationship_envelopes {
         super::relationship::prepare(source)?
     } else {
         BTreeMap::new()
@@ -104,9 +208,28 @@ fn transform_owners(
     } else {
         BTreeMap::new()
     };
+    let envelope_plan = if migrate_memory_envelopes {
+        super::memory_envelope::prepare(source, &memories)?
+    } else {
+        super::memory_envelope::MemoryEnvelopePlan::default()
+    };
+    let entity_envelope_plan = if migrate_entity_envelopes {
+        super::entity_envelope::prepare(source)?
+    } else {
+        super::entity_envelope::EntityEnvelopePlan::default()
+    };
+    let relationship_envelope_plan = if migrate_relationship_envelopes {
+        super::relationship_envelope::prepare(source)?
+    } else {
+        super::relationship_envelope::RelationshipEnvelopePlan::default()
+    };
     let mut preceding = HashMap::new();
     let mut encoded = BTreeMap::new();
-    for record in memories.records() {
+    for record in memories
+        .records()
+        .iter()
+        .filter(|_| !migrate_memory_envelopes)
+    {
         let bytes = if record.revision == 1 {
             crate::memory_compact_codec::encode_creation(
                 &crate::memory_compact_contract::MemoryCreation::new(record.clone())?,
@@ -124,7 +247,21 @@ fn transform_owners(
     }
     let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
-        let transformed = if let Some(entity) = entity_carriers.get(&object) {
+        // Only accepted direct carriers are omitted. Orphans remain inert,
+        // and each replacement stays at the original publication marker slot.
+        if envelope_plan.carriers.contains(&object)
+            || entity_envelope_plan.carriers.contains(&object)
+            || relationship_envelope_plan.carriers.contains(&object)
+        {
+            return Ok(());
+        }
+        let transformed = if let Some(envelope) = envelope_plan.markers.get(&object) {
+            envelope.clone()
+        } else if let Some(envelope) = entity_envelope_plan.markers.get(&object) {
+            envelope.clone()
+        } else if let Some(envelope) = relationship_envelope_plan.markers.get(&object) {
+            envelope.clone()
+        } else if let Some(entity) = entity_carriers.get(&object) {
             entity.clone()
         } else if let Some(relationship) = relationship_carriers.get(&object) {
             relationship.clone()
