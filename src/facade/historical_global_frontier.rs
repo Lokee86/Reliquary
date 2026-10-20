@@ -4,7 +4,7 @@
 //! caller must hold the source owner stable while selecting the accepted prefix.
 //! Its offsets are a V1 Container scan boundary only, never semantic data.
 use crate::{Container, CvaError};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub(crate) fn frontier_end(source: &Container, global_cut: u64) -> Result<u64, String> {
     let source_head = source.latest_version();
@@ -23,12 +23,14 @@ pub(crate) fn frontier_end(source: &Container, global_cut: u64) -> Result<u64, S
         Container::open_read_only_for_scan(source.path()).map_err(|error| error.to_string())?;
     let mut next_version = 1_u64;
     let mut transaction_times = BTreeMap::new();
+    let mut standalone_reservations = BTreeSet::new();
     let mut frontier_end = scan.header_len;
     let mut position = scan.header_len;
     scan.visit_payloads_through::<CvaError>(source_end, |_object, payload| {
         crate::container_version::observe_version_payload_state(
             &mut next_version,
             &mut transaction_times,
+            &mut standalone_reservations,
             payload,
         )?;
         // V1 frames are contiguous `[u64 length][payload]` chunks; accumulate

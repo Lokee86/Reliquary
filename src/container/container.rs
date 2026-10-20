@@ -1,3 +1,6 @@
+#[path = "publication_envelope.rs"]
+pub(crate) mod publication_envelope;
+
 #[path = "container_scan.rs"]
 mod scan;
 #[path = "container_upgrade.rs"]

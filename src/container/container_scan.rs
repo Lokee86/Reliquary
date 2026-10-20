@@ -3,7 +3,7 @@ use super::{
     LEGACY_VERSION, ObjectRef, read_header, read_header_for_version, truncated_or_io,
 };
 use crate::container_version::observe_version_payload_state;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::OpenOptions;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
@@ -130,6 +130,8 @@ impl Container {
             .map_err(ContainerError::Io)?;
 
         let mut truncate_at = None;
+        let allow_envelopes = self.version == COMPACT_VERSION;
+        let mut standalone_reservations = BTreeSet::new();
         {
             let file = &mut self.file;
             let next_version = &mut self.next_version;
@@ -163,8 +165,16 @@ impl Container {
                     .map_err(|error| E::from(truncated_or_io(error, offset)))?;
 
                 let object = ObjectRef::from_chunk(ChunkRef { offset, len });
-                observe_version_payload_state(next_version, transaction_times, &payload)
-                    .map_err(E::from)?;
+                if !allow_envelopes && payload.starts_with(b"CVAPUB") {
+                    return Err(E::from(ContainerError::InvalidVersionRecord));
+                }
+                observe_version_payload_state(
+                    next_version,
+                    transaction_times,
+                    &mut standalone_reservations,
+                    &payload,
+                )
+                .map_err(E::from)?;
                 visitor(object, &payload, next_version.saturating_sub(1))?;
                 offset = end;
             }

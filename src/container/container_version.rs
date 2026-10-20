@@ -1,5 +1,6 @@
-use crate::{Container, ContainerError};
-use std::collections::BTreeMap;
+use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+use crate::{Container, ContainerError, ObjectRef};
+use std::collections::{BTreeMap, BTreeSet};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 const VERSION_MAGIC_V1: [u8; 8] = *b"CVAVERS1";
@@ -8,6 +9,37 @@ const VERSION_RECORD_V1_LEN: usize = 16;
 const VERSION_RECORD_V2_LEN: usize = 24;
 
 impl Container {
+    /// Append one physical allocation envelope. The caller owns body admission
+    /// and sync; this method assigns only global order and transaction time.
+    pub(crate) fn append_publication_envelope(
+        &mut self,
+        body: &[u8],
+    ) -> Result<(u64, ObjectRef), ContainerError> {
+        self.require_write_admission()?;
+        let global_version = self.next_version;
+        let next_version = global_version
+            .checked_add(1)
+            .ok_or(ContainerError::VersionExhausted)?;
+        let transaction_time_ns = match self.next_transaction_time_override {
+            Some(time) => time,
+            None => Some(Self::transaction_time_now_ns()?),
+        };
+        let payload = publication_envelope::encode(PublicationEnvelope {
+            global_version,
+            clock: PublicationClock::Allocate {
+                transaction_time_ns,
+            },
+            body,
+        })?;
+        let object = self.append(&payload)?;
+        self.next_version = next_version;
+        self.next_transaction_time_override = None;
+        if let Some(time) = transaction_time_ns {
+            self.observe_transaction_time(global_version, time)?;
+        }
+        Ok((global_version, object))
+    }
+
     pub(crate) fn allocate_version(&mut self) -> Result<u64, ContainerError> {
         self.require_write_admission()?;
         let transaction_time_ns = match self.next_transaction_time_override.take() {
@@ -134,6 +166,7 @@ impl Container {
 pub(crate) fn observe_version_payload_state(
     next_version: &mut u64,
     transaction_times: &mut BTreeMap<u64, i64>,
+    standalone_reservations: &mut BTreeSet<u64>,
     payload: &[u8],
 ) -> Result<(), ContainerError> {
     if let Some((version, transaction_time_ns)) = decode_version(payload)? {
@@ -145,6 +178,32 @@ pub(crate) fn observe_version_payload_state(
                 version,
                 transaction_time_ns,
             )?;
+        }
+        // Only standalone tickets authorize a later physical envelope binding.
+        // Existing semantic links are still validated by their concrete owners.
+        standalone_reservations.insert(version);
+        return Ok(());
+    }
+    if let Some(envelope) = publication_envelope::decode(payload)? {
+        match envelope.clock {
+            PublicationClock::Allocate {
+                transaction_time_ns,
+            } => {
+                observe_version_range(next_version, envelope.global_version, 1)?;
+                if let Some(time) = transaction_time_ns {
+                    observe_transaction_time(
+                        *next_version,
+                        transaction_times,
+                        envelope.global_version,
+                        time,
+                    )?;
+                }
+            }
+            PublicationClock::BindReserved => {
+                if !standalone_reservations.remove(&envelope.global_version) {
+                    return Err(ContainerError::InvalidVersionRecord);
+                }
+            }
         }
         return Ok(());
     }
@@ -285,3 +344,7 @@ fn current_time_ns() -> Result<i64, ContainerError> {
         .as_nanos();
     i64::try_from(nanos).map_err(|_| ContainerError::InvalidTransactionTime)
 }
+
+#[cfg(test)]
+#[path = "publication_envelope_clock_tests.rs"]
+mod envelope_clock_tests;
