@@ -1,4 +1,7 @@
 //! Ordered reconciliation of completed native import epochs through their owners.
+#[cfg(test)]
+#[path = "reconciliation_entity_compact_tests.rs"]
+mod entity_compact_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
 use crate::cva_reconcile::{CvaComparison, CvaReconcileResult};
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
@@ -153,14 +156,11 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 owner_evidence.push(canonical_memory_publication(cva, version)?);
             }
             if let Some(version) = crate::entity_codec::decode_version(&payload)? {
-                let bytes = cva.container.read(version.record)?;
-                if let Some(mut record) = crate::entity_codec::decode_record(&bytes)? {
-                    record.global_version = 0;
-                    record.entity_version = 0;
-                    owner_evidence.push(crate::entity_codec::encode_record(&record)?);
-                } else {
-                    owner_evidence.push(bytes);
-                }
+                let publication = cva
+                    .entities
+                    .retained_publication_at(version.global_version, version.entity_version)?
+                    .ok_or(crate::EntityError::InvalidVersion)?;
+                owner_evidence.push(publication.normalized_import_evidence()?);
             }
             if let Some(version) = crate::relationship_codec::decode_version(&payload)? {
                 let bytes = cva.container.read(version.record)?;
@@ -325,6 +325,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::memory_codec::decode_version(&payload)?.is_some()
             || crate::memory_routing_codec::decode(&payload)?.is_some()
             || crate::entity_codec::decode_record(&payload)?.is_some()
+            || crate::entity_compact_codec::is_compact_record(&payload)?
             || crate::entity_codec::decode_version(&payload)?.is_some()
             || crate::relationship_codec::decode_record(&payload)?.is_some()
             || crate::relationship_codec::decode_version(&payload)?.is_some()

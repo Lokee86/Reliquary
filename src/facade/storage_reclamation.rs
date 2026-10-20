@@ -265,3 +265,6 @@ fn relocated_ref(
         .copied()
         .ok_or_else(|| format!("{kind} points to a missing or not-yet-copied physical object"))
 }
+#[cfg(test)]
+#[path = "storage_reclamation_entity_compact_tests.rs"]
+mod entity_compact_tests;

@@ -5,6 +5,19 @@ use crate::{Entity, EntityError, EntityId, EntityStats};
 use std::collections::BTreeSet;
 
 impl EntityStore {
+    pub(crate) fn current_record_for_replay(
+        &self,
+        id: EntityId,
+    ) -> Result<&EntityRecord, EntityError> {
+        if self.tombstones.contains_key(&id) {
+            return Err(EntityError::TerminalTombstone);
+        }
+        self.current
+            .get(&id)
+            .map(|index| &self.records[*index])
+            .ok_or(EntityError::MissingEntity)
+    }
+
     pub(crate) fn entity_revision(
         &self,
         id: EntityId,

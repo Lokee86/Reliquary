@@ -10,7 +10,8 @@ use crate::{EntityError, EntityGlobalId, EntityId};
 pub(crate) struct EntityDescriptionProof {
     /// SHA-256 of the original record carrier bytes, before description pruning.
     pub original_carrier_digest: [u8; 32],
-    /// Digest binding the authorized retained-description descriptor.
+    /// SHA-256 of the complete canonical encoded CVAHPR01 manifest.
+    /// File-level validation checks its descriptor authorizes this revision.
     pub manifest_digest: [u8; 32],
 }
 

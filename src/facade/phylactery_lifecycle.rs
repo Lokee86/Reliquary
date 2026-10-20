@@ -189,7 +189,7 @@ impl Phylactery {
 
         let mut container = container;
         let memories = memory_state.finish(&mut container)?;
-        let entities = entity_state.finish()?;
+        let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish();
         relationships.validate_local_references(
             container.owner_id().as_deref(),

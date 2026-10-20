@@ -388,7 +388,7 @@ impl Cva {
         archive.validate_prune_history(&mut container, &owner_maintenance)?;
         let memories = memory_state.finish(&mut container)?;
         memories.validate_prune_history(&mut container, &owner_maintenance)?;
-        let entities = entity_state.finish()?;
+        let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish();
         relationships.validate_local_references(
             container.owner_id().as_deref(),

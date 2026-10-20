@@ -424,14 +424,10 @@ impl Phylactery {
             .iter()
             .filter(|record| record.id == id)
         {
-            let mut record = original.clone();
-            record.canonical_name = "[pruned]".into();
-            record.aliases.clear();
-            record.summary.clear();
-            let raw = crate::entity_codec::encode_record(&record)?;
+            let raw = crate::entity_retained_structure::encode_record_structure(original)?;
             append_part(&mut structure, &raw);
-            structure.extend(record.global_version.to_le_bytes());
-            structure.extend(record.entity_version.to_le_bytes());
+            structure.extend(original.global_version.to_le_bytes());
+            structure.extend(original.entity_version.to_le_bytes());
         }
         let mut payloads = retained
             .revisions

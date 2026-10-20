@@ -1,5 +1,7 @@
 #[path = "entity_store_read.rs"]
 mod read;
+#[path = "entity_replay.rs"]
+mod replay;
 #[path = "entity_store_validation.rs"]
 mod validation;
 
@@ -9,6 +11,7 @@ use crate::entity_codec::{
 };
 use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
+pub(crate) use replay::EntityReplayPublication;
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};
 use validation::normalize_draft;

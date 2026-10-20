@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 90/271 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; next Step 91. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 92/271 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; next Step 93. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -772,6 +772,20 @@ Files: `docs/architecture.md`; `docs/storage-format.md`; `docs/maintainer-map.md
 Verification: Documentation explicitly retains owner-specific IDs, clocks, revisions, field order, wire tags, errors, terminal rules, canonical validation and publication. The helper imports no owner/storage types. Both documentation-policy modes pass (`.test-tmp/lossless-shared-delta-docs.log`).
 Blockers: none for this documentation boundary; final format retirement remains gated by R1–R22.
 
+### Step 91 execution record
+
+Commit: `3cc6631`.
+Files: `src/storage_upgrade/memory.rs`; `model.rs`; `prepruned_memory_tests.rs`; `memory_authoritative_tests.rs`.
+Verification: Reproduced invalid staged reopen from unchanged maintenance-history proof. Typed unsupported-authority rejection now preserves genuine prepruned V1 source and cleans staging without a destination. Upgrade **13/13**, legacy proof **6/6**, six supported authoritative stages **1/1** with exact accepted byte counts and source hashes unchanged. See execution evidence for logs.
+Blockers: none for fail-closed rejection; translating existing CVAHPR01 authority remains unsupported until explicit proof-equivalence work passes.
+
+### Step 92 execution record
+
+Commit: `3cc6631`.
+Files: `src/perception/entity_compact_contract.rs`; `entity_compact_contract_tests.rs`; `entity_legacy_admission_tests.rs`; field-validation visibility; specification.
+Verification: Actual V1 REL/PHY characterization **2/2**; pure owner contract **11/11**; broad Entity regressions **187/187**; root format/check and both documentation-policy modes pass. Contract preserves optional UUID changes, exact values, legal late tickets and six explicit mutable bits. Pruning evidence is explicit; file-level authorization is reserved for Step 101 before writer/migration cutover. Terminals remain separate.
+Blockers: none for the representation contract; codecs, replay and authenticated file-level proof admission remain pending.
+
 ## Phase F — Memory Writer Cutover and Migration
 
 | Step | Owner | Work | Gate |
@@ -1250,11 +1264,11 @@ This revised decomposition contains **271 execution steps**. The initial 243-ste
 
 Standalone Memory writer cutover exposed four legacy-carrier readers with separate owners/failure domains: REL reconciliation, completed-import evidence, import interval admission and shared physical reclamation. These are explicit Steps 59-62; former Steps 59-247 move to 63-251. They may not be absorbed into the Memory integration gate.
 
-Steps 63–86 are accepted against `9996c28`; Step 87 and Integration Gate C passed against the six-file artifact `c69f279`. Steps 88–90 passed against `bafdaae`, including refreshed architecture enforcement. The accepted range is 1–90; remaining owner converters and R1–R22 still gate final acceptance.
+Steps 63–86 are accepted against `9996c28`; Step 87 and Integration Gate C passed against the six-file artifact `c69f279`. Steps 88–90 passed against `bafdaae`, including refreshed architecture enforcement. Steps 91–92 passed against `3cc6631`. The accepted range is 1–92; remaining owner converters and integrated final promotion/retirement gates still gate final acceptance.
 
 The number is not a target or an estimate of required work sessions. It is the consequence of making acceptance/failure domains explicit.
 
-A healthy execution run is expected to close several adjacent items when they share one implementation seam. The plan should therefore be read as **271 acceptance checks grouped into phases**, not 275 isolated mini-projects.
+A healthy execution run is expected to close several adjacent items when they share one implementation seam. The plan should therefore be read as **271 acceptance checks grouped into phases**, not isolated mini-projects.
 
 If any one item still requires multiple independent implementation passes, split it before starting. If several adjacent items are naturally one coherent implementation pass, execute them together and mark each gate independently. Do not preserve numbering conventions at the expense of efficient, bounded execution.
 Authoritative Memory migration exposed the legacy `CVAILEG1` import receipt's binding to original physical prefix bytes. Steps 72-77 now explicitly own its contract, encoder, decoder, replay validation, migration binding and adversarial verification before Memory measurement/Gate C. Former Steps 72-251 move to 78-257. The later post-migration import-family audit remains required and does not substitute for these execution steps.

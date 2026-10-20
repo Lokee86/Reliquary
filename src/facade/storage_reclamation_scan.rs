@@ -154,6 +154,11 @@ impl ReclamationScan {
         if crate::entity_codec::decode_record(payload)
             .map_err(|error| error.to_string())?
             .is_some()
+            || crate::entity_compact_codec::is_compact_record(payload)
+                .map_err(|error| error.to_string())?
+            || crate::entity_codec::decode_direct_tombstone(payload)
+                .map_err(|error| error.to_string())?
+                .is_some()
             || crate::entity_codec::decode_tombstone(payload)
                 .map_err(|error| error.to_string())?
                 .is_some()

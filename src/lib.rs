@@ -530,8 +530,17 @@ mod entity_candidate_tests;
 mod entity_candidates;
 #[path = "perception/entity_codec.rs"]
 mod entity_codec;
+#[path = "perception/entity_compact_apply.rs"]
+mod entity_compact_apply;
+#[path = "perception/entity_compact_codec.rs"]
+mod entity_compact_codec;
 #[path = "perception/entity_compact_contract.rs"]
 mod entity_compact_contract;
+#[cfg(test)]
+#[path = "perception/entity_compact_rebuild_tests.rs"]
+mod entity_compact_rebuild_tests;
+#[path = "perception/entity_compact_values.rs"]
+mod entity_compact_values;
 #[cfg(test)]
 #[path = "perception/entity_creation_guard_tests.rs"]
 mod entity_creation_guard_tests;
@@ -655,6 +664,8 @@ mod entity_resolver_model;
 mod entity_resolver_reason_tests;
 #[path = "perception/entity_resolver_schema.rs"]
 mod entity_resolver_schema;
+#[path = "perception/entity_retained_structure.rs"]
+mod entity_retained_structure;
 #[path = "perception/entity_store.rs"]
 mod entity_store;
 #[cfg(all(test, feature = "entity-calibration"))]

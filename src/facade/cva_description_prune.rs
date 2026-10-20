@@ -85,15 +85,11 @@ impl Cva {
             .iter()
             .filter(|record| record.id == id)
         {
-            let mut record = original.clone();
-            record.canonical_name = "[pruned]".into();
-            record.aliases.clear();
-            record.summary.clear();
-            let raw = crate::entity_codec::encode_record(&record)?;
+            let raw = crate::entity_retained_structure::encode_record_structure(original)?;
             bytes.extend((raw.len() as u64).to_le_bytes());
             bytes.extend(raw);
-            bytes.extend(record.global_version.to_le_bytes());
-            bytes.extend(record.entity_version.to_le_bytes());
+            bytes.extend(original.global_version.to_le_bytes());
+            bytes.extend(original.entity_version.to_le_bytes());
         }
         Ok(bytes)
     }
