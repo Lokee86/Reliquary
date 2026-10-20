@@ -1285,7 +1285,7 @@ This revised decomposition contains **271 execution steps**. The initial 243-ste
 
 Standalone Memory writer cutover exposed four legacy-carrier readers with separate owners/failure domains: REL reconciliation, completed-import evidence, import interval admission and shared physical reclamation. These are explicit Steps 59-62; former Steps 59-247 move to 63-251. They may not be absorbed into the Memory integration gate.
 
-Steps 63–86 are accepted against `9996c28`; Step 87 and Integration Gate C passed against the six-file artifact `c69f279`. Steps 88–90 passed against `bafdaae`, including refreshed architecture enforcement. Steps 91–92 passed against `3cc6631`. The accepted range is 1–92; remaining owner converters and integrated final promotion/retirement gates still gate final acceptance.
+Steps 63–86 are accepted against `9996c28`; Step 87 and Integration Gate C passed against the six-file artifact `c69f279`. Steps 88–90 passed against `bafdaae`, including refreshed architecture enforcement. Steps 91–92 passed against `3cc6631`; Steps 93–95 passed against `ace0a33`. The accepted range is 1–95; remaining owner converters and integrated final promotion/retirement gates still gate final acceptance.
 
 The number is not a target or an estimate of required work sessions. It is the consequence of making acceptance/failure domains explicit.
 

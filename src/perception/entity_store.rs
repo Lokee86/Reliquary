@@ -1,3 +1,8 @@
+#[path = "entity_compact_publish.rs"]
+mod compact_publish;
+#[cfg(test)]
+#[path = "entity_legacy_fixture.rs"]
+mod legacy_fixture;
 #[path = "entity_store_read.rs"]
 mod read;
 #[path = "entity_replay.rs"]
@@ -7,7 +12,7 @@ mod validation;
 
 use crate::entity_codec::{
     DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone, encode_format,
-    encode_record, encode_tombstone, encode_version,
+    encode_tombstone, encode_version,
 };
 use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
@@ -128,7 +133,7 @@ impl EntityStore {
             .checked_add(1)
             .ok_or(EntityError::VersionExhausted)?;
 
-        let mut record = EntityRecord {
+        let record = EntityRecord {
             id,
             global_id: Some(global_id),
             revision,
@@ -142,16 +147,7 @@ impl EntityStore {
             global_version: 0,
             entity_version,
         };
-        let record_ref = container.append(&encode_record(&record)?)?;
-        let global_version = container.allocate_version()?;
-        container.append(&encode_version(EntityVersion {
-            global_version,
-            entity_version,
-            record: record_ref,
-        }))?;
-        record.global_version = global_version;
-        self.insert_rebuilt(record.clone())?;
-        Ok((resolve(&record), true))
+        Ok((self.persist_compact_revision(container, record)?, true))
     }
 
     pub(crate) fn insert_rebuilt(&mut self, record: EntityRecord) -> Result<(), EntityError> {

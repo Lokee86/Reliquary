@@ -6,7 +6,6 @@ use crate::entity_compact_codec::{encode_creation, encode_delta};
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::{Cva, EntityId};
-use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
 
@@ -58,12 +57,6 @@ fn append_and_check(cva: &mut Cva, payloads: &[&[u8]], accepted: bool) {
     assert_eq!(result.is_ok(), accepted, "classifier result: {result:?}");
 }
 
-fn refresh_checksum(bytes: &mut [u8]) {
-    let checksum_at = bytes.len() - 32;
-    let digest = Sha256::digest(&bytes[..checksum_at]);
-    bytes[checksum_at..].copy_from_slice(&digest);
-}
-
 #[test]
 fn replay_interval_accepts_valid_compact_entity_creation_and_delta() {
     let scratch = Scratch::new();
@@ -104,7 +97,6 @@ fn replay_interval_rejects_unknown_truncated_and_reserved_mask_compact_entity_fr
     );
     reserved_mask[mask_offset..mask_offset + 8]
         .copy_from_slice(&(mask | (1_u64 << 63)).to_le_bytes());
-    refresh_checksum(&mut reserved_mask);
 
     for (name, payload) in [
         ("unknown-version.rel", b"CVAENC02".as_slice()),

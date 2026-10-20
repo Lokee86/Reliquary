@@ -287,19 +287,24 @@ impl Cva {
             .iter()
             .map(|(id, object)| (*object, *id))
             .collect::<HashMap<_, _>>();
-        let mut description_objects = HashMap::new();
+        let selected_entities = description_targets
+            .iter()
+            .filter_map(|target| match target {
+                LifecycleTarget::Entity(id) => Some(*id),
+                _ => None,
+            })
+            .collect::<HashSet<_>>();
+        let entity_plan = crate::entity_description_prune::prepare_description_prune(
+            &self.entities,
+            &mut self.container,
+            &selected_entities,
+            manifest_digest,
+        )?;
+        let mut description_objects = entity_plan.replacements;
         for object in &objects {
             let raw = self.container.read(*object)?;
-            let replacement = if let Some(record) = crate::entity_codec::decode_record(&raw)? {
-                if description_targets.contains(&LifecycleTarget::Entity(record.id)) {
-                    Some(crate::entity_codec::encode_pruned_description(
-                        &raw,
-                        manifest_digest,
-                    )?)
-                } else {
-                    None
-                }
-            } else if let Some(record) = crate::relationship_codec::decode_record(&raw)? {
+            let replacement = if let Some(record) = crate::relationship_codec::decode_record(&raw)?
+            {
                 if description_targets.contains(&LifecycleTarget::Relationship(record.id)) {
                     Some(crate::relationship_codec::encode_pruned_description(
                         &raw,
@@ -323,6 +328,9 @@ impl Cva {
             let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
             let mut marked = HashSet::new();
             for object in &objects {
+                if entity_plan.discard.contains(object) {
+                    continue;
+                }
                 let raw = self.container.read(*object)?;
                 if let Some(bytes) = description_objects.get(object) {
                     let destination = output.append(bytes)?;
@@ -392,6 +400,9 @@ impl Cva {
                 }
             }
             for object in &objects {
+                if entity_plan.discard.contains(object) {
+                    continue;
+                }
                 let raw = self.container.read(*object)?;
                 if let Some(bytes) = description_objects.get(object) {
                     if reopened.container.read(relocated[object])? != *bytes {

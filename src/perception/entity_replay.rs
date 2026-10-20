@@ -1,7 +1,4 @@
 use super::{EntityStore, validate_record};
-use crate::entity_codec::{EntityVersion, encode_version};
-use crate::entity_compact_codec::{encode_creation, encode_delta};
-use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::{Container, EntityError, EntityId, EntityRetainedRevision};
 
@@ -165,7 +162,7 @@ impl EntityStore {
     fn replay_record(
         &mut self,
         container: &mut Container,
-        mut record: EntityRecord,
+        record: EntityRecord,
     ) -> Result<bool, EntityError> {
         validate_record(&record)?;
         if self.tombstones.contains_key(&record.id) {
@@ -182,44 +179,7 @@ impl EntityStore {
                 Err(EntityError::MutationConflict)
             };
         }
-        if self.tombstones.contains_key(&record.id) {
-            return Err(EntityError::TerminalTombstone);
-        }
-        let current = self
-            .current
-            .get(&record.id)
-            .map(|index| &self.records[*index]);
-        let expected_revision = self.revisions.get(&record.id).copied().unwrap_or(0);
-        if record.revision
-            != expected_revision
-                .checked_add(1)
-                .ok_or(EntityError::VersionExhausted)?
-            || current.is_some_and(|previous| previous.created_at_ns != record.created_at_ns)
-        {
-            return Err(EntityError::RevisionConflict);
-        }
-
-        let entity_version = self.next_entity_version;
-        entity_version
-            .checked_add(1)
-            .ok_or(EntityError::VersionExhausted)?;
-        record.entity_version = entity_version;
-        record.global_version = container.next_version_candidate();
-
-        let encoded = if let Some(previous) = current {
-            encode_delta(&EntityDelta::between(previous, &record)?)?
-        } else {
-            encode_creation(&EntityCreation::new(record.clone())?)?
-        };
-        let record_ref = container.append(&encoded)?;
-        let global_version = container.allocate_version()?;
-        container.append(&encode_version(EntityVersion {
-            global_version,
-            entity_version,
-            record: record_ref,
-        }))?;
-        record.global_version = global_version;
-        self.insert_rebuilt(record)?;
+        self.persist_compact_revision(container, record)?;
         Ok(true)
     }
 }

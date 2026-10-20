@@ -537,13 +537,23 @@ mod entity_compact_codec;
 #[path = "perception/entity_compact_contract.rs"]
 mod entity_compact_contract;
 #[cfg(test)]
+#[path = "facade/entity_compact_prune_tests.rs"]
+mod entity_compact_prune_tests;
+#[cfg(test)]
 #[path = "perception/entity_compact_rebuild_tests.rs"]
 mod entity_compact_rebuild_tests;
 #[path = "perception/entity_compact_values.rs"]
 mod entity_compact_values;
 #[cfg(test)]
+#[path = "perception/entity_compact_writer_tests.rs"]
+mod entity_compact_writer_tests;
+#[cfg(test)]
 #[path = "perception/entity_creation_guard_tests.rs"]
 mod entity_creation_guard_tests;
+#[path = "perception/entity_description_proof.rs"]
+mod entity_description_proof;
+#[path = "perception/entity_description_prune.rs"]
+mod entity_description_prune;
 #[path = "perception/entity_error.rs"]
 mod entity_error;
 #[path = "perception/entity_identity_guard.rs"]

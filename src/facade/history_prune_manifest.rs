@@ -200,16 +200,20 @@ pub(crate) fn owner_history_digest(
                 let normalized = crate::storage_reclamation::relocate_payload(&raw, &normalized)?;
                 digest_bytes(&mut hash, &normalized);
                 let bytes = container.read(record).map_err(|error| error.to_string())?;
-                let digest: [u8; 32] =
-                    if bytes.starts_with(b"CVAEPRN1") || bytes.starts_with(b"CVARPRN1") {
-                        bytes
-                            .get(8..40)
-                            .ok_or("truncated description marker")?
-                            .try_into()
-                            .unwrap()
-                    } else {
-                        Sha256::digest(&bytes).into()
-                    };
+                let digest: [u8; 32] = if let Some((_, _, proof)) =
+                    crate::entity_description_proof::compact_description_proof(&bytes)
+                        .map_err(|error| error.to_string())?
+                {
+                    proof.original_carrier_digest
+                } else if bytes.starts_with(b"CVAEPRN1") || bytes.starts_with(b"CVARPRN1") {
+                    bytes
+                        .get(8..40)
+                        .ok_or("truncated description marker")?
+                        .try_into()
+                        .unwrap()
+                } else {
+                    Sha256::digest(&bytes).into()
+                };
                 digest_bytes(&mut hash, &digest);
             }
             continue;

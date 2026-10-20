@@ -7,7 +7,7 @@ use std::collections::HashMap;
 
 enum PendingEntityRecord {
     Legacy(EntityRecord),
-    Creation(EntityRecord),
+    Creation(crate::entity_compact_contract::EntityCreation),
     Delta(crate::entity_compact_contract::EntityDelta),
 }
 
@@ -47,22 +47,12 @@ impl EntityOpenState {
         }
         if payload.starts_with(b"CVAENC") {
             let creation = crate::entity_compact_codec::decode_creation(payload)?;
-            if creation.description_proof.is_some() {
-                return Err(EntityError::CorruptRecord(
-                    "compact Entity description proof admission pending",
-                ));
-            }
             self.pending_records
-                .insert(chunk, PendingEntityRecord::Creation(creation.record));
+                .insert(chunk, PendingEntityRecord::Creation(creation));
             return Ok(());
         }
         if payload.starts_with(b"CVAEND") {
             let delta = crate::entity_compact_codec::decode_delta(payload)?;
-            if delta.description_proof.is_some() {
-                return Err(EntityError::CorruptRecord(
-                    "compact Entity description proof admission pending",
-                ));
-            }
             self.pending_records
                 .insert(chunk, PendingEntityRecord::Delta(delta));
             return Ok(());
@@ -90,13 +80,19 @@ impl EntityOpenState {
                 return Err(EntityError::InvalidVersion);
             }
             if let Some(pending) = self.pending_records.remove(&version.record) {
+                let pruned = match &pending {
+                    PendingEntityRecord::Creation(creation) => creation.description_proof.is_some(),
+                    PendingEntityRecord::Delta(delta) => delta.description_proof.is_some(),
+                    PendingEntityRecord::Legacy(_) => false,
+                };
                 let record = match pending {
                     PendingEntityRecord::Legacy(mut record) => {
                         record.global_version = version.global_version;
                         record.entity_version = version.entity_version;
                         record
                     }
-                    PendingEntityRecord::Creation(record) => {
+                    PendingEntityRecord::Creation(creation) => {
+                        let record = creation.record;
                         if record.global_version != version.global_version
                             || record.entity_version != version.entity_version
                         {
@@ -117,7 +113,13 @@ impl EntityOpenState {
                         record
                     }
                 };
+                let identity = (record.id, record.revision);
                 self.store.insert_rebuilt(record)?;
+                if pruned {
+                    // This records unavailability only. Owner reopen must still
+                    // authenticate the exact manifest and source-history digest.
+                    self.store.pruned_revisions.insert(identity);
+                }
             } else if let Some(tombstone) = self.pending_direct_tombstones.remove(&version.record) {
                 self.store.insert_direct_tombstone_rebuilt(
                     tombstone,

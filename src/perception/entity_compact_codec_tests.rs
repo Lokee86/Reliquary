@@ -40,9 +40,8 @@ fn push_string(out: &mut Vec<u8>, value: &str) {
     out.extend_from_slice(value.as_bytes());
 }
 
-fn seal(mut bytes: Vec<u8>) -> Vec<u8> {
-    let checksum = Sha256::digest(&bytes);
-    bytes.extend_from_slice(&checksum);
+fn seal(bytes: Vec<u8>) -> Vec<u8> {
+    // Ordinary frames intentionally have no checksum trailer.
     bytes
 }
 
@@ -136,12 +135,6 @@ fn decode_frame(bytes: &[u8], creation: bool) -> Result<(), EntityError> {
     } else {
         decode_delta(bytes).map(|_| ())
     }
-}
-
-fn refresh_checksum(bytes: &mut Vec<u8>) {
-    let checksum_at = bytes.len() - 32;
-    let checksum = Sha256::digest(&bytes[..checksum_at]);
-    bytes[checksum_at..].copy_from_slice(&checksum);
 }
 
 #[test]
@@ -325,47 +318,66 @@ fn checksum_truncation_trailing_bytes_and_unknown_versions_fail_closed() {
             );
         }
         let mut trailing = bytes.clone();
-        let checksum_at = trailing.len() - 32;
-        trailing.insert(checksum_at, 0xEE);
-        refresh_checksum(&mut trailing);
+        trailing.push(0xEE);
         assert!(is_compact_record(&trailing).is_err());
     }
 
     let mut bad_creation_version = creation_golden();
     bad_creation_version[7] = b'2';
-    refresh_checksum(&mut bad_creation_version);
     assert!(is_compact_record(&bad_creation_version).is_err());
     let mut bad_delta_version = delta_golden();
     bad_delta_version[7] = b'2';
-    refresh_checksum(&mut bad_delta_version);
     assert!(is_compact_record(&bad_delta_version).is_err());
 
-    let mut corrupt_checksum = creation_golden();
-    corrupt_checksum[20] ^= 1;
-    assert!(decode_creation(&corrupt_checksum).is_err());
+    let mut pruned = record();
+    pruned.canonical_name = "[pruned]".into();
+    pruned.aliases.clear();
+    pruned.summary.clear();
+    let proof = EntityDescriptionProof {
+        original_carrier_digest: [0xA5; 32],
+        manifest_digest: [0x5A; 32],
+    };
+    let proof_frame =
+        encode_creation(&EntityCreation::new_pruned(pruned, proof.clone()).unwrap()).unwrap();
+    assert!(proof_frame.len() >= CHECKSUM_LEN);
+    let mut corrupt_proof_checksum = proof_frame;
+    let last = corrupt_proof_checksum.len() - 1;
+    corrupt_proof_checksum[last] ^= 1;
+    assert!(decode_creation(&corrupt_proof_checksum).is_err());
+
+    let previous = record();
+    let mut redacted_revision = previous.clone();
+    redacted_revision.revision = 2;
+    redacted_revision.global_version = 1;
+    redacted_revision.entity_version = 4;
+    redacted_revision.mutation_id = "mutation-pruned".into();
+    redacted_revision.canonical_name = "[pruned]".into();
+    redacted_revision.aliases.clear();
+    redacted_revision.summary.clear();
+    let delta = EntityDelta::between_pruned(&previous, &redacted_revision, proof).unwrap();
+    let mut proof_delta = encode_delta(&delta).unwrap();
+    let last = proof_delta.len() - 1;
+    proof_delta[last] ^= 1;
+    assert!(decode_delta(&proof_delta).is_err());
 }
 
 #[test]
 fn malformed_tags_masks_utf8_and_lengths_fail_closed() {
     let mut bad_global_tag = creation_golden();
     bad_global_tag[40] = 2;
-    refresh_checksum(&mut bad_global_tag);
     assert!(decode_creation(&bad_global_tag).is_err());
 
     let proof_flag = creation_proof_flag_offset(&creation_golden());
     let mut bad_proof_tag = creation_golden();
     bad_proof_tag[proof_flag] = 2;
-    refresh_checksum(&mut bad_proof_tag);
     assert!(decode_creation(&bad_proof_tag).is_err());
 
     let mut invalid_utf8 = creation_golden();
     invalid_utf8[61] = 0xFF; // first mutation-ID byte
-    refresh_checksum(&mut invalid_utf8);
     assert!(decode_creation(&invalid_utf8).is_err());
 
     let mut oversized_string = creation_golden();
     oversized_string[57..61].copy_from_slice(&u32::MAX.to_le_bytes());
-    refresh_checksum(&mut oversized_string);
     assert!(decode_creation(&oversized_string).is_err());
 
     let mut too_many_aliases = creation_golden();
@@ -373,13 +385,11 @@ fn malformed_tags_masks_utf8_and_lengths_fail_closed() {
     let aliases_count = string_end(&too_many_aliases, canonical_start);
     too_many_aliases[aliases_count..aliases_count + 2]
         .copy_from_slice(&((crate::MAX_ENTITY_ALIASES + 1) as u16).to_le_bytes());
-    refresh_checksum(&mut too_many_aliases);
     assert!(decode_creation(&too_many_aliases).is_err());
 
     let mut unknown_mask = delta_golden();
     let mask = delta_mask_offset(&unknown_mask);
     unknown_mask[mask..mask + 8].copy_from_slice(&(1_u64 << 6).to_le_bytes());
-    refresh_checksum(&mut unknown_mask);
     assert!(decode_delta(&unknown_mask).is_err());
 
     let mut changed_uuid = next_record(&record());
@@ -388,17 +398,14 @@ fn malformed_tags_masks_utf8_and_lengths_fail_closed() {
         encode_delta(&EntityDelta::between(&record(), &changed_uuid).unwrap()).unwrap();
     let global_tag = delta_mask_offset(&bad_delta_global_tag) + 8;
     bad_delta_global_tag[global_tag] = 2;
-    refresh_checksum(&mut bad_delta_global_tag);
     assert!(decode_delta(&bad_delta_global_tag).is_err());
 
     let mut delta_invalid_utf8 = delta_golden();
     delta_invalid_utf8[76] = 0xFF;
-    refresh_checksum(&mut delta_invalid_utf8);
     assert!(decode_delta(&delta_invalid_utf8).is_err());
 
     let mut delta_oversized_string = delta_golden();
     delta_oversized_string[72..76].copy_from_slice(&u32::MAX.to_le_bytes());
-    refresh_checksum(&mut delta_oversized_string);
     assert!(decode_delta(&delta_oversized_string).is_err());
 }
 
@@ -414,14 +421,12 @@ fn malformed_delta_coordinates_and_empty_mutation_fail_closed() {
     ] {
         let mut bytes = original.clone();
         bytes[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
-        refresh_checksum(&mut bytes);
         assert!(decode_delta(&bytes).is_err(), "coordinate {offset}");
     }
 
     let mut empty_mutation = original;
     empty_mutation[72..76].copy_from_slice(&0_u32.to_le_bytes());
     empty_mutation.drain(76..86); // remove mutation-2
-    refresh_checksum(&mut empty_mutation);
     assert!(decode_delta(&empty_mutation).is_err());
 }
 
@@ -430,7 +435,6 @@ fn malformed_creation_coordinates_fail_closed() {
     for offset in [41, 49] {
         let mut bytes = creation_golden();
         bytes[offset..offset + 8].copy_from_slice(&0_u64.to_le_bytes());
-        refresh_checksum(&mut bytes);
         assert!(decode_creation(&bytes).is_err(), "coordinate {offset}");
     }
 }

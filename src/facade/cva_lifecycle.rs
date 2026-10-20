@@ -586,22 +586,8 @@ impl Cva {
         let conversation_compactions = if container.version().major == 1 {
             compaction_state.finish_without_reclaim()?
         } else {
-            compaction_state.finish(&mut container)?
+            compaction_state.finish_unrecovered()?
         };
-        let repaired_entity_resolutions = if container.version().major == 1 {
-            // Inspection preserves stored revisions; historical references remain validated below.
-            0
-        } else {
-            entity_resolutions.repair_retired_entity_references(
-                &mut container,
-                &memories,
-                &entities,
-            )?
-        };
-        entity_resolutions.validate(&memories, &entities)?;
-        if repaired_entity_resolutions > 0 {
-            container.sync()?;
-        }
         import_epochs.validate_owner(container.owner_uuid())?;
         import_epochs.validate_receipts(&archive.import_receipts)?;
         let mut result = Self {
@@ -639,10 +625,31 @@ impl Cva {
             freshness_due,
             freshness_notifications: std::collections::BTreeMap::new(),
         };
-        result.validate_historical_import_settlements()?;
-        result.validate_import_completion_settlements()?;
         result.validate_pruned_packed_vectors()?;
         result.validate_pruned_descriptions()?;
+        if result.container.version().major != 1 {
+            result
+                .conversation_compactions
+                .recover(&mut result.container)?;
+        }
+        result.validate_historical_import_settlements()?;
+        result.validate_import_completion_settlements()?;
+        let repaired_entity_resolutions = if result.container.version().major == 1 {
+            // Inspection preserves stored revisions; historical references remain validated below.
+            0
+        } else {
+            result.entity_resolutions.repair_retired_entity_references(
+                &mut result.container,
+                &result.memories,
+                &result.entities,
+            )?
+        };
+        result
+            .entity_resolutions
+            .validate(&result.memories, &result.entities)?;
+        if repaired_entity_resolutions > 0 {
+            result.container.sync()?;
+        }
         Ok(result)
     }
 }

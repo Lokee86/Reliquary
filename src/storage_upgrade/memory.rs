@@ -8,6 +8,21 @@ pub(super) fn transform(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
+    transform_owners(source, destination, false)
+}
+
+pub(super) fn transform_with_entities(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(source, destination, true)
+}
+
+fn transform_owners(
+    source: &mut Container,
+    destination: &mut Container,
+    migrate_entities: bool,
+) -> Result<(), StorageUpgradeError> {
     let normalizations = if source
         .identity()
         .is_some_and(|identity| identity.file_kind == crate::FileKind::Reliquary)
@@ -45,6 +60,11 @@ pub(super) fn transform(
     )?;
     imports.validate_legacy_frames(&mut scanned)?;
     let memories = state.finish(&mut scanned)?;
+    let entity_carriers = if migrate_entities {
+        super::entity::prepare(source)?
+    } else {
+        BTreeMap::new()
+    };
     let mut preceding = HashMap::new();
     let mut encoded = BTreeMap::new();
     for record in memories.records() {
@@ -65,7 +85,9 @@ pub(super) fn transform(
     }
     let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
-        let transformed = if crate::imports::legacy_epoch::decode(payload)?.is_some() {
+        let transformed = if let Some(entity) = entity_carriers.get(&object) {
+            entity.clone()
+        } else if crate::imports::legacy_epoch::decode(payload)?.is_some() {
             let length = destination.backing_file().metadata()?.len();
             let hex = crate::imports::hash_file_prefix(destination.path(), length)?;
             let mut digest = [0; 32];

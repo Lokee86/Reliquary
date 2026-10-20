@@ -63,12 +63,20 @@ impl ConversationCompactionOpenState {
         self,
         container: &mut Container,
     ) -> Result<ConversationCompactionStore, ConversationCompactionError> {
-        let mut store = ConversationCompactionStore {
-            chunks: self.chunks,
-            next_generation: self.next_generation.max(1),
-        };
+        let mut store = self.finish_unrecovered()?;
         store.recover(container)?;
         Ok(store)
+    }
+
+    /// Builds the replay projection without changing physical chunks. Call `recover` only after
+    /// owner-level evidence has been validated.
+    pub(crate) fn finish_unrecovered(
+        self,
+    ) -> Result<ConversationCompactionStore, ConversationCompactionError> {
+        Ok(ConversationCompactionStore {
+            chunks: self.chunks,
+            next_generation: self.next_generation.max(1),
+        })
     }
 
     /// Builds the same visible compaction projection without reclaiming or rewriting chunks.
@@ -169,7 +177,10 @@ impl ConversationCompactionStore {
         Ok(record)
     }
 
-    fn recover(&mut self, container: &mut Container) -> Result<(), ConversationCompactionError> {
+    pub(crate) fn recover(
+        &mut self,
+        container: &mut Container,
+    ) -> Result<(), ConversationCompactionError> {
         container.require_storage_format_writable()?;
         let stale = self.stale_chunks();
         for object in stale {

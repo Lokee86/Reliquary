@@ -97,7 +97,19 @@ pub(crate) fn stage_storage_upgrade(
 pub(crate) fn stage_memory_storage_upgrade(
     plan: &StorageUpgradePlan,
 ) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
-    stage_impl(plan, || Ok(()), true)
+    stage_impl(plan, || Ok(()), OwnerMigration::Memory)
+}
+
+pub(crate) fn stage_entity_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), OwnerMigration::MemoryAndEntity)
+}
+
+enum OwnerMigration {
+    None,
+    Memory,
+    MemoryAndEntity,
 }
 
 // The callback is a bounded test seam for aborts and concurrent source/output
@@ -106,13 +118,13 @@ pub(super) fn stage_with_check(
     plan: &StorageUpgradePlan,
     check: impl FnOnce() -> Result<(), StorageUpgradeError>,
 ) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
-    stage_impl(plan, check, false)
+    stage_impl(plan, check, OwnerMigration::None)
 }
 
 fn stage_impl(
     plan: &StorageUpgradePlan,
     check: impl FnOnce() -> Result<(), StorageUpgradeError>,
-    migrate_memory: bool,
+    migration: OwnerMigration,
 ) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
     reject_existing_output(&plan.request.destination)?;
     let mut source = Container::open_v1_read_only(&plan.request.source)?;
@@ -144,12 +156,16 @@ fn stage_impl(
     };
     let mut destination =
         Container::create_with_identity_and_uuid(&staged.path, plan.identity, plan.owner_uuid)?;
-    if migrate_memory {
-        super::memory::transform(&mut source, &mut destination)?;
-    } else {
-        source.copy_upgrade_shell_frames(&mut destination)?;
-        if digest(destination.backing_file(), true)? != (plan.source_digest, plan.source_len) {
-            return Err(StorageUpgradeError::CopyMismatch);
+    match migration {
+        OwnerMigration::Memory => super::memory::transform(&mut source, &mut destination)?,
+        OwnerMigration::MemoryAndEntity => {
+            super::memory::transform_with_entities(&mut source, &mut destination)?
+        }
+        OwnerMigration::None => {
+            source.copy_upgrade_shell_frames(&mut destination)?;
+            if digest(destination.backing_file(), true)? != (plan.source_digest, plan.source_len) {
+                return Err(StorageUpgradeError::CopyMismatch);
+            }
         }
     }
     destination.sync()?;

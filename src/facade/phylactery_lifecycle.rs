@@ -217,21 +217,6 @@ impl Phylactery {
         let compatibility_profiles = profile_state.finish()?;
         let memory_vectors =
             memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
-        let repaired_entity_resolutions = if container.version().major == 1 {
-            // Inspection preserves stored revisions; historical references remain validated below.
-            0
-        } else {
-            entity_resolutions.repair_retired_entity_references(
-                &mut container,
-                &memories,
-                &entities,
-            )?
-        };
-        entity_resolutions.validate(&memories, &entities)?;
-        if repaired_entity_resolutions > 0 {
-            container.sync()?;
-        }
-
         let mut result = Self {
             owner_maintenance,
             rewrite_lineage,
@@ -253,6 +238,22 @@ impl Phylactery {
             relationships,
         };
         result.validate_prune_evidence()?;
+        let repaired_entity_resolutions = if result.container.version().major == 1 {
+            // Inspection preserves stored revisions; historical references remain validated below.
+            0
+        } else {
+            result.entity_resolutions.repair_retired_entity_references(
+                &mut result.container,
+                &result.memories,
+                &result.entities,
+            )?
+        };
+        result
+            .entity_resolutions
+            .validate(&result.memories, &result.entities)?;
+        if repaired_entity_resolutions > 0 {
+            result.container.sync()?;
+        }
         Ok(result)
     }
 }

@@ -1,0 +1,147 @@
+{
+  "status": "pre-refinement diagnostic; not final Step 107 acceptance",
+  "canonical_corpus_promotion": false,
+  "semantic_mismatches": 0,
+  "test_seconds": 184.11,
+  "migration_scope": "Memory and Entity temporary conversion, including retained import-proof transport; whole-file changes are not Entity-only",
+  "rows": [
+    {
+      "after": {
+        "compact_creations": 51584,
+        "compact_deltas": 0,
+        "entity_version_frames": 6000,
+        "legacy_records": 0,
+        "proof_frames": 0,
+        "total_file_bytes": 33297395,
+        "total_payload_bytes": 32781427
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "entity_version_frames": 6000,
+        "legacy_records": 45284,
+        "proof_frames": 0,
+        "total_file_bytes": 31853182,
+        "total_payload_bytes": 31337222
+      },
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "scope": "raw Entity carrier and file bytes; no compression",
+      "semantic_mismatches": 0
+    },
+    {
+      "after": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "entity_version_frames": 0,
+        "legacy_records": 0,
+        "proof_frames": 0,
+        "total_file_bytes": 777735,
+        "total_payload_bytes": 749719
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "entity_version_frames": 0,
+        "legacy_records": 0,
+        "proof_frames": 0,
+        "total_file_bytes": 814287,
+        "total_payload_bytes": 786271
+      },
+      "fixture": "chatgpt-first14d/user.phy",
+      "scope": "raw Entity carrier and file bytes; no compression",
+      "semantic_mismatches": 0
+    },
+    {
+      "after": {
+        "compact_creations": 171505,
+        "compact_deltas": 35825,
+        "entity_version_frames": 26840,
+        "legacy_records": 0,
+        "proof_frames": 0,
+        "total_file_bytes": 83901639,
+        "total_payload_bytes": 82313255
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "entity_version_frames": 26840,
+        "legacy_records": 195391,
+        "proof_frames": 0,
+        "total_file_bytes": 80056100,
+        "total_payload_bytes": 78467724
+      },
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "scope": "raw Entity carrier and file bytes; no compression",
+      "semantic_mismatches": 0
+    },
+    {
+      "after": {
+        "compact_creations": 10073,
+        "compact_deltas": 226,
+        "entity_version_frames": 1400,
+        "legacy_records": 0,
+        "proof_frames": 0,
+        "total_file_bytes": 1809218,
+        "total_payload_bytes": 1735626
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "entity_version_frames": 1400,
+        "legacy_records": 8868,
+        "proof_frames": 0,
+        "total_file_bytes": 1840755,
+        "total_payload_bytes": 1767163
+      },
+      "fixture": "chatgpt-first28d/user.phy",
+      "scope": "raw Entity carrier and file bytes; no compression",
+      "semantic_mismatches": 0
+    },
+    {
+      "after": {
+        "compact_creations": 30659,
+        "compact_deltas": 17662,
+        "entity_version_frames": 7960,
+        "legacy_records": 0,
+        "proof_frames": 0,
+        "total_file_bytes": 20706692,
+        "total_payload_bytes": 20311300
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "entity_version_frames": 7960,
+        "legacy_records": 51581,
+        "proof_frames": 0,
+        "total_file_bytes": 19561460,
+        "total_payload_bytes": 19166076
+      },
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "scope": "raw Entity carrier and file bytes; no compression",
+      "semantic_mismatches": 0
+    },
+    {
+      "after": {
+        "compact_creations": 12626,
+        "compact_deltas": 7878,
+        "entity_version_frames": 3440,
+        "legacy_records": 0,
+        "proof_frames": 0,
+        "total_file_bytes": 3988451,
+        "total_payload_bytes": 3793651
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "entity_version_frames": 3440,
+        "legacy_records": 21251,
+        "proof_frames": 0,
+        "total_file_bytes": 4070532,
+        "total_payload_bytes": 3875732
+      },
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "scope": "raw Entity carrier and file bytes; no compression",
+      "semantic_mismatches": 0
+    }
+  ]
+}

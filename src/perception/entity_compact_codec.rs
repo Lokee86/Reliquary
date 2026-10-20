@@ -1,4 +1,4 @@
-//! Checksummed compact Entity creation and delta carriers.
+//! Compact Entity creation and delta carriers.
 use crate::EntityError;
 use crate::compact_delta::FieldChange;
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDeltaFields};
@@ -46,26 +46,28 @@ pub(crate) fn encode_creation(creation: &EntityCreation) -> Result<Vec<u8>, Enti
     out.extend_from_slice(&record.created_at_ns.to_le_bytes());
     out.extend_from_slice(&record.updated_at_ns.to_le_bytes());
     write_description_proof(&mut out, creation.description_proof.as_ref());
-    append_checksum(&mut out);
+    if creation.description_proof.is_some() {
+        append_checksum(&mut out);
+    }
     Ok(out)
 }
 
 pub(crate) fn decode_creation(bytes: &[u8]) -> Result<EntityCreation, EntityError> {
-    let body = checked_body(bytes, CREATION_MAGIC)?;
+    require_magic(bytes, CREATION_MAGIC)?;
     let mut cursor = 8;
-    let id = read_entity_id(body, &mut cursor)?;
-    let global_id = read_optional_global_id(body, &mut cursor)?;
-    let global_version = read_u64(body, &mut cursor)?;
-    let entity_version = read_u64(body, &mut cursor)?;
-    let mutation_id = read_string(body, &mut cursor)?;
-    let canonical_name = read_string(body, &mut cursor)?;
-    let aliases = <Vec<String> as EntityValue>::read(body, &mut cursor)?;
-    let kind = read_string(body, &mut cursor)?;
-    let summary = read_string(body, &mut cursor)?;
-    let created_at_ns = read_i64(body, &mut cursor)?;
-    let updated_at_ns = read_i64(body, &mut cursor)?;
-    let description_proof = read_description_proof(body, &mut cursor)?;
-    require_end(body, cursor)?;
+    let id = read_entity_id(bytes, &mut cursor)?;
+    let global_id = read_optional_global_id(bytes, &mut cursor)?;
+    let global_version = read_u64(bytes, &mut cursor)?;
+    let entity_version = read_u64(bytes, &mut cursor)?;
+    let mutation_id = read_string(bytes, &mut cursor)?;
+    let canonical_name = read_string(bytes, &mut cursor)?;
+    let aliases = <Vec<String> as EntityValue>::read(bytes, &mut cursor)?;
+    let kind = read_string(bytes, &mut cursor)?;
+    let summary = read_string(bytes, &mut cursor)?;
+    let created_at_ns = read_i64(bytes, &mut cursor)?;
+    let updated_at_ns = read_i64(bytes, &mut cursor)?;
+    let description_proof = read_description_proof(bytes, &mut cursor)?;
+    finish_frame(bytes, cursor, description_proof.is_some())?;
     let record = EntityRecord {
         id,
         global_id,
@@ -105,23 +107,25 @@ pub(crate) fn encode_delta(delta: &EntityDelta) -> Result<Vec<u8>, EntityError> 
     out.extend_from_slice(&delta.fields.mask().to_le_bytes());
     write_delta_fields(&delta.fields, &mut out)?;
     write_description_proof(&mut out, delta.description_proof.as_ref());
-    append_checksum(&mut out);
+    if delta.description_proof.is_some() {
+        append_checksum(&mut out);
+    }
     Ok(out)
 }
 
 pub(crate) fn decode_delta(bytes: &[u8]) -> Result<EntityDelta, EntityError> {
-    let body = checked_body(bytes, DELTA_MAGIC)?;
+    require_magic(bytes, DELTA_MAGIC)?;
     let mut cursor = 8;
-    let id = read_entity_id(body, &mut cursor)?;
-    let previous_revision = read_u64(body, &mut cursor)?;
-    let revision = read_u64(body, &mut cursor)?;
-    let global_version = read_u64(body, &mut cursor)?;
-    let entity_version = read_u64(body, &mut cursor)?;
-    let mutation_id = read_string(body, &mut cursor)?;
-    let mask = read_u64(body, &mut cursor)?;
-    let fields = read_delta_fields(body, &mut cursor, mask)?;
-    let description_proof = read_description_proof(body, &mut cursor)?;
-    require_end(body, cursor)?;
+    let id = read_entity_id(bytes, &mut cursor)?;
+    let previous_revision = read_u64(bytes, &mut cursor)?;
+    let revision = read_u64(bytes, &mut cursor)?;
+    let global_version = read_u64(bytes, &mut cursor)?;
+    let entity_version = read_u64(bytes, &mut cursor)?;
+    let mutation_id = read_string(bytes, &mut cursor)?;
+    let mask = read_u64(bytes, &mut cursor)?;
+    let fields = read_delta_fields(bytes, &mut cursor, mask)?;
+    let description_proof = read_description_proof(bytes, &mut cursor)?;
+    finish_frame(bytes, cursor, description_proof.is_some())?;
     let delta = EntityDelta {
         id,
         previous_revision,
@@ -247,25 +251,27 @@ fn read_description_proof(
     }
 }
 
-fn checked_body<'a>(bytes: &'a [u8], magic: &[u8; 8]) -> Result<&'a [u8], EntityError> {
+fn require_magic(bytes: &[u8], magic: &[u8; 8]) -> Result<(), EntityError> {
     if bytes.get(..8) != Some(magic.as_slice()) {
         return Err(EntityError::CorruptRecord("invalid compact Entity magic"));
     }
-    if bytes.len() < 8 + CHECKSUM_LEN {
-        return Err(EntityError::CorruptRecord("short compact Entity frame"));
-    }
-    let body_end = bytes.len() - CHECKSUM_LEN;
-    let expected = Sha256::digest(&bytes[..body_end]);
-    if expected.as_slice() != &bytes[body_end..] {
-        return Err(EntityError::CorruptRecord(
-            "compact Entity checksum mismatch",
-        ));
-    }
-    Ok(&bytes[..body_end])
+    Ok(())
 }
 
-fn require_end(bytes: &[u8], cursor: usize) -> Result<(), EntityError> {
-    if cursor != bytes.len() {
+fn finish_frame(bytes: &[u8], cursor: usize, has_proof: bool) -> Result<(), EntityError> {
+    if has_proof {
+        if bytes.len() != cursor.saturating_add(CHECKSUM_LEN) {
+            return Err(EntityError::CorruptRecord(
+                "invalid compact Entity proof frame length",
+            ));
+        }
+        let expected = Sha256::digest(&bytes[..cursor]);
+        if expected.as_slice() != &bytes[cursor..] {
+            return Err(EntityError::CorruptRecord(
+                "compact Entity proof checksum mismatch",
+            ));
+        }
+    } else if cursor != bytes.len() {
         return Err(EntityError::CorruptRecord("compact Entity trailing bytes"));
     }
     Ok(())

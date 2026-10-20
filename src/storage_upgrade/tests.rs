@@ -143,12 +143,15 @@ fn interleaved_owner_cuts_and_historical_fingerprints_survive_shell_copy() {
         )
         .unwrap();
     assert!(changed);
-    rel.publish_entity(
-        None,
-        0,
-        crate::entity_candidate_test_support::entity_draft("Server", &[], "upgrade-entity", 1),
-    )
-    .unwrap();
+    rel.entities
+        .publish_legacy_fixture(
+            &mut rel.container,
+            None,
+            0,
+            crate::entity_candidate_test_support::entity_draft("Server", &[], "upgrade-entity", 1),
+            None,
+        )
+        .unwrap();
     let (second_memory, changed) = rel
         .memories
         .publish_legacy_fixture(

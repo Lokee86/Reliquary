@@ -362,12 +362,15 @@ fn build_rel(path: &Path) -> (crate::MemoryId, crate::MemoryId) {
     assert!(changed);
 
     // Interleave a second owner publication into the global clock.
-    rel.publish_entity(
-        None,
-        0,
-        crate::entity_candidate_test_support::entity_draft("Server", &[], "upgrade-entity", 11),
-    )
-    .unwrap();
+    rel.entities
+        .publish_legacy_fixture(
+            &mut rel.container,
+            None,
+            0,
+            crate::entity_candidate_test_support::entity_draft("Server", &[], "upgrade-entity", 11),
+            None,
+        )
+        .unwrap();
 
     let mut revision_two_draft = draft("upgrade-memory-a-revision-two", "Server", Some(20), 20);
     set_revision_two_metadata(&mut revision_two_draft);

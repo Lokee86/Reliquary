@@ -158,16 +158,16 @@ impl Phylactery {
                 }
             }
         }
+        let entity_plan = crate::entity_description_prune::prepare_description_prune(
+            &self.entities,
+            &mut self.container,
+            &selected_entities,
+            manifest_digest,
+        )?;
+        description_objects.extend(entity_plan.replacements);
         for object in self.container.chunks()? {
             let raw = self.container.read(object)?;
-            if let Some(record) = crate::entity_codec::decode_record(&raw)?
-                && selected_entities.contains(&record.id)
-            {
-                description_objects.insert(
-                    object,
-                    crate::entity_codec::encode_pruned_description(&raw, manifest_digest)?,
-                );
-            } else if let Some(record) = crate::relationship_codec::decode_record(&raw)?
+            if let Some(record) = crate::relationship_codec::decode_record(&raw)?
                 && selected_relationships.contains(&record.id)
             {
                 description_objects.insert(
@@ -205,6 +205,9 @@ impl Phylactery {
         let copy = (|| {
             let mut relocated = BTreeMap::new();
             for object in &source_objects {
+                if entity_plan.discard.contains(object) {
+                    continue;
+                }
                 let raw = self.container.read(*object)?;
                 let replacement = if let Some(bytes) = description_objects.get(object) {
                     Some(bytes.clone())
@@ -335,7 +338,13 @@ impl Phylactery {
         }
         for object in self.container.chunks()? {
             let bytes = self.container.read(object)?;
-            let payload = if bytes.starts_with(b"CVAEPRN1") {
+            let compact = crate::entity_description_proof::compact_description_proof(&bytes)?;
+            let payload = if let Some((id, revision, _)) = &compact {
+                if !self.entities.pruned_revisions.contains(&(*id, *revision)) {
+                    return Err(invalid());
+                }
+                Some(PrunedPayload::EntityDescription(id.0, *revision))
+            } else if bytes.starts_with(b"CVAEPRN1") {
                 let record = crate::entity_codec::decode_record(&bytes)?.ok_or_else(invalid)?;
                 Some(PrunedPayload::EntityDescription(
                     record.id.0,
@@ -352,11 +361,15 @@ impl Phylactery {
                 None
             };
             if let Some(payload) = payload {
-                let digest = bytes
-                    .get(40..72)
-                    .ok_or_else(invalid)?
-                    .try_into()
-                    .map_err(|_| invalid())?;
+                let digest = if let Some((_, _, proof)) = compact {
+                    proof.manifest_digest
+                } else {
+                    bytes
+                        .get(40..72)
+                        .ok_or_else(invalid)?
+                        .try_into()
+                        .map_err(|_| invalid())?
+                };
                 if !authorized.contains(&(payload.clone(), digest))
                     || !seen.insert((payload, digest))
                 {

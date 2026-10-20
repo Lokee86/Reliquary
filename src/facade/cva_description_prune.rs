@@ -144,7 +144,13 @@ impl Cva {
         let mut seen = std::collections::BTreeSet::new();
         for object in self.container.chunks()? {
             let bytes = self.container.read(object)?;
-            let payload = if bytes.starts_with(b"CVAEPRN1") {
+            let compact = crate::entity_description_proof::compact_description_proof(&bytes)?;
+            let payload = if let Some((id, revision, _)) = &compact {
+                if !self.entities.pruned_revisions.contains(&(*id, *revision)) {
+                    return Err(invalid());
+                }
+                PrunedPayload::EntityDescription(id.0, *revision)
+            } else if bytes.starts_with(b"CVAEPRN1") {
                 let record = crate::entity_codec::decode_record(&bytes)?.ok_or_else(invalid)?;
                 PrunedPayload::EntityDescription(record.id.0, record.revision)
             } else if bytes.starts_with(b"CVARPRN1") {
@@ -154,7 +160,10 @@ impl Cva {
             } else {
                 continue;
             };
-            let digest: [u8; 32] = bytes[40..72].try_into().unwrap();
+            let digest: [u8; 32] = match compact {
+                Some((_, _, proof)) => proof.manifest_digest,
+                None => bytes[40..72].try_into().unwrap(),
+            };
             if !authorized.contains(&(payload.clone(), digest)) || !seen.insert((payload, digest)) {
                 return Err(invalid());
             }

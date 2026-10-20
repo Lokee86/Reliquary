@@ -258,7 +258,9 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
     let source = test_path("stale-retired-resolution-source.rel");
     let mut rel = Cva::create(&source).unwrap();
     let survivor = rel
-        .publish_entity(
+        .entities
+        .publish_legacy_fixture(
+            &mut rel.container,
             None,
             0,
             crate::entity_candidate_test_support::entity_draft(
@@ -267,11 +269,14 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
                 "storage-boundary-survivor",
                 1,
             ),
+            None,
         )
         .unwrap()
         .0;
     let retired = rel
-        .publish_entity(
+        .entities
+        .publish_legacy_fixture(
+            &mut rel.container,
             None,
             0,
             crate::entity_candidate_test_support::entity_draft(
@@ -280,6 +285,7 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
                 "storage-boundary-retired",
                 1,
             ),
+            None,
         )
         .unwrap()
         .0;
@@ -311,7 +317,28 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
         20,
     )
     .unwrap();
-    rel.merge_entities(survivor.id, retired.id, 21).unwrap();
+    // Construct the legacy retirement and its canonical resolution explicitly:
+    // ordinary merge also writes a current-format survivor metadata revision.
+    rel.entities
+        .tombstone(
+            &mut rel.container,
+            retired.id,
+            retired.revision,
+            survivor.id,
+        )
+        .unwrap();
+    let canonical = crate::MemoryEntityResolution {
+        key,
+        revision: 2,
+        updated_at_ns: 21,
+        status: crate::MemoryEntityResolutionStatus::Resolved {
+            entity_id: survivor.id,
+            reason: crate::EntityResolutionReason::ContextMatch,
+        },
+    };
+    rel.container
+        .append(&crate::entity_resolution_codec::encode_resolution(&canonical).unwrap())
+        .unwrap();
 
     // Reproduce a historically accepted stale reference at a later durable revision. V2 open
     // repairs this canonical-owner drift; V1 inspection must retain exactly what was stored.
@@ -360,6 +387,40 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
     ));
     drop(repaired);
     assert!(fs::metadata(&current).unwrap().len() > current_len);
+
+    // Failed proof admission must precede the same otherwise-valid recovery.
+    let invalid = test_path("stale-resolution-unauthorized-proof.rel");
+    copy_file(&source, &invalid);
+    let mut raw = crate::Container::open(&invalid).unwrap();
+    let record = crate::entity_model::EntityRecord {
+        id: retired.id,
+        global_id: retired.global_id,
+        revision: 1,
+        canonical_name: "[pruned]".into(),
+        aliases: vec![],
+        kind: retired.kind.clone(),
+        summary: String::new(),
+        mutation_id: "unauthorized-prune-proof".into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+        global_version: 1,
+        entity_version: 1,
+    };
+    let creation = crate::entity_compact_contract::EntityCreation::new_pruned(
+        record,
+        crate::entity_compact_contract::EntityDescriptionProof {
+            original_carrier_digest: [1; 32],
+            manifest_digest: [2; 32],
+        },
+    )
+    .unwrap();
+    raw.append(&crate::entity_compact_codec::encode_creation(&creation).unwrap())
+        .unwrap();
+    raw.sync().unwrap();
+    drop(raw);
+    let before = fs::read(&invalid).unwrap();
+    assert!(Cva::open(&invalid).is_err());
+    assert_eq!(fs::read(&invalid).unwrap(), before);
 }
 
 #[test]
