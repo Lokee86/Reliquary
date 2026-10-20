@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 140/294 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; next Step 141. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 153/294 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; next Step 154. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1674,3 +1674,94 @@ Commit: `e9b36e9` (measurement evidence); owner/source review and decision recor
 Files: Graph byte inventory; `src/semantic_graph/graph_store.rs`, `graph_store_write.rs`, `graph_rebuild.rs`; this execution ledger.
 Verification: **yes, compact endpoint IDs are warranted**. The conservative four-byte projection saves 3,918,649 bytes across all six fixtures even while charging an additional framed typed dictionary. Reuse the already-persisted dense Graph-owned u32 mappings rather than adding a second ID authority. Retain stable semantic IDs in all public/historical views; use fixed u32 ordinals to preserve the existing mapping range and checked exhaustion, without adaptive-width rollover. Actual byte savings, map interpretation/proof binding, every-cut parity and hard-cut retirement remain separate gates.
 Blockers: none for the measured decision; Step 141 contract and Steps 142–155 must pass before this becomes ordinary persisted mutation encoding.
+
+### Step 141 execution record
+
+Commit: `864efe9`.
+Files: `src/semantic_graph/graph_compact_contract.rs; graph_store.rs; docs/storage-format.md`.
+Verification: Fixed u32 endpoint ordinals reuse the existing dense Graph mappings; zero is valid, semantic kind/32-byte identity remains stable, and missing/non-dense/duplicate mappings fail closed. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 142 execution record
+
+Commit: `864efe9`.
+Files: `src/semantic_graph/graph_compact_codec.rs; graph_compact_codec_tests.rs`.
+Verification: Independent literal single/batch fixtures cover all relation kinds, every origin, zero/max ordinals, repeated values, malformed prefixes/counts/flags, unknown versions and exact trailing-byte rejection. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 143 execution record
+
+Commit: `864efe9`.
+Files: `src/semantic_graph/graph_rebuild.rs; graph_store_compact.rs; src/facade/{cva,phylactery}_lifecycle.rs`.
+Verification: REL/PHY replay resolves ordinals at the accepted marker, admits carrier→mapping→marker, preserves raw repeated transactions/mixed origins/clocks, rejects dangling/repeated markers, and enforces published compact V2 admission while keeping valid unmarked carriers inert. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 144 execution record
+
+Commit: `864efe9`.
+Files: `src/facade/historical_graph_fingerprint.rs; src/semantic_graph/graph_compact_rebuild_tests.rs; graph_compact_writer_tests.rs`.
+Verification: Full Graph and qualifying MemoryGraph cuts retain exact stable relation facts, versions and transaction times; isolated rewrite-baseline membership remains available at Graph cut zero. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 145 execution record
+
+Commit: `864efe9`.
+Files: `src/facade/cva_reconcile_graph.rs; graph_compact_reconcile_tests.rs`.
+Verification: Two independent source owners assign the same ordinal to different stable IDs; tail replay resolves through each source and preserves target semantics and times. Existing mixed-origin reconciliation rejection remains unchanged. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 146 execution record
+
+Commit: `864efe9`.
+Files: `src/facade/cva_freshness.rs; graph_compact_freshness_tests.rs`.
+Verification: Dream Graph snapshot/evidence reads resolve compact endpoints at the pinned accepted cut, retain origin/active/candidate filters, and exclude later compact publications from the accepted proof. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 147 execution record
+
+Commit: `864efe9`.
+Files: `src/imports/reconciliation_interval.rs; reconciliation_graph_compact_tests.rs`.
+Verification: Shared and retained completed-interval coordinate extraction resolves compact backing through its source owner; source Graph cut 2 rebases to destination cut 3 without assuming physical or local-coordinate equality. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 148 execution record
+
+Commit: `864efe9`.
+Files: `src/imports/reconciliation.rs; reconciliation_graph_compact_tests.rs`.
+Verification: Strict import-interval classification admits valid compact Graph carriers and rejects malformed or unknown versions rather than absorbing them as opaque replay work. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 149 execution record
+
+Commit: `864efe9`.
+Files: `src/semantic_graph/graph_store_compact.rs; src/facade/{history_prune_manifest,owner_maintenance,cva_lifecycle,phylactery_history_prune,graph_compact_proof_tests}.rs`.
+Verification: Graph-owned canonical carrier digests bind ordered stable endpoint IDs, kind, active and origin. Native REL/PHY prune reopen succeeds; valid mapping substitution fails maintenance proof. Legacy full-ID digest matches an independent pre-change golden calculation. Orphans, unused later mappings and post-watermark markers remain excluded. REL admission validates after Graph materialization. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 150 execution record
+
+Commit: `864efe9`.
+Files: `src/facade/storage_reclamation_scan.rs; storage_reclamation.rs; graph_compact_maintenance_tests.rs`.
+Verification: Reclamation identifies compact backing carriers, drops proven unmarked payloads, preserves published ones and relocates the unchanged Graph version links. All Graph/MemoryGraph cuts, mapping order and times survive REL/PHY reclaim. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 151 execution record
+
+Commit: `864efe9`.
+Files: `src/facade/migration_phy.rs; graph_compact_maintenance_tests.rs`.
+Verification: PHY semantic migration resolves stable IDs from the source Graph owner. A legacy source without owner UUID uses an independent cumulative source-state reference; every migrated cut, global/local coordinate and transaction time agrees. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 152 execution record
+
+Commit: `864efe9`.
+Files: `src/facade/graph_compact_maintenance_tests.rs; graph_compact_proof_tests.rs`.
+Verification: Native REL/PHY prune/reclaim and REL principal/attachment repacks preserve compact Graph interpretation; native repacks compare every Graph/MemoryGraph cut and exact publication times. Table bytes remain owner data, not a second dictionary authority. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
+
+### Step 153 execution record
+
+Commit: `864efe9`.
+Files: `src/semantic_graph/graph_store_write.rs; graph_compact_writer_tests.rs`.
+Verification: Ordinary REL/PHY Memory-only and typed single/batch writes emit CVAGCM01/CVAGCB01 after mappings. Reopen state/clocks/times and exact no-op byte stability pass; fresh-history rewrite emits compact Graph and preserves isolated Graph-zero baseline membership. The integrated adjacent compact regression run passes **240/240** with zero failures/ignores (`.test-tmp/graph-writer-compact-regressions.log`); the pre-cutover run passes 236/236.
+Blockers: none for this numbered gate; Graph converter Step 154, broad Integration Gate E, canonical promotion and runtime retirement remain pending.
