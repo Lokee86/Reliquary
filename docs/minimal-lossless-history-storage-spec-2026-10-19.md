@@ -315,9 +315,9 @@ Later Entity revisions use typed deltas for mutable fields and evidence collecti
 
 Entity historical lookup must reconstruct every prior accepted revision exactly.
 
-#### Entity field inventory — Step 91 preparation
+#### Entity field contract — Step 92
 
-This inventory is based on `entity_model.rs`, R1/R2 decoding and `EntityStore::insert_rebuilt`; Step 91 remains unaccepted until runtime characterization and the pruned-description proof boundary are verified. No Entity writer or persisted record changes are enabled by this table.
+This contract is based on `entity_model.rs`, R1/R2 decoding and `EntityStore::insert_rebuilt`, with actual V1 REL/PHY characterization and pure contract tests. No Entity writer or persisted record changes are enabled by this table.
 
 | Field | Retained-history rule | Compact responsibility |
 | --- | --- | --- |
@@ -336,9 +336,11 @@ This inventory is based on `entity_model.rs`, R1/R2 decoding and `EntityStore::i
 
 Creation must represent legacy optional global identity without forcing current writer defaults. Delta derivation is over resolved accepted records, not draft arguments. An empty changed-field mask is legal for a distinct accepted mutation. Existing name/kind/summary/alias limits, timestamp checks and principal deterministic identity validation remain authoritative. Migration preserves accepted spelling/whitespace and values rather than rerunning draft normalization.
 
-Merge retirement (`CVAENTT1`) retains replacement identity; direct tombstone (`CVAENTT2`) has no replacement. Neither is a metadata-field delta. Both keep exact revision and publication coordinates and terminal/no-resurrection behavior. Missing legacy Entity format markers still mean the existing empty-owner case during temporary conversion; this is not final legacy-runtime support.
+Merge retirement (`CVAENTT1`) retains replacement identity; direct tombstone (`CVAENTT2`) has no replacement. Neither is a metadata-field delta. Both keep exact revision and publication coordinates and terminal/no-resurrection behavior. An absent legacy Entity format marker with no Entity publications retains the existing empty-owner case. Replay currently also admits versioned Entity records without that marker; conversion must not discard them merely because the marker is absent. This is temporary input characterization, not final legacy-runtime support.
 
-Pruned descriptions must retain structural revision fields, authenticated original-carrier/maintenance-manifest evidence and explicit payload-unavailable status. Placeholder text alone cannot prove pruning. Canonical compact pruned carriers and both REL/PHY pruning adapters require an explicit contract before writer/migration cutover; old `CVAEPRN1` is only a temporary conversion input. Reconciliation, backing liveness, maintenance proof validation and raw-carrier-dependent history digests must be inventoried as separate reader/writer seams, not hidden in ordinary Entity replay.
+Pruned descriptions retain structural revision fields and explicit evidence separate from authored text. `EntityDescriptionProof.original_carrier_digest` is SHA-256 of the original record carrier bytes before description pruning; `manifest_digest` binds the existing retained-description authorization. Canonical redaction is name `[pruned]`, empty aliases and empty summary; principal descriptions cannot be pruned. Placeholder text alone cannot prove pruning. Pure construction and wire decoding do not authenticate this evidence: shared file-level proof admission must bind the descriptor, original carrier and source history before making unavailable payload claims.
+
+Existing `CVAHPR01.source_history_digest` depends on original publication carriers. The temporary converter explicitly rejects these inputs until an owner-specific preservation or authenticated-equivalence implementation is accepted; copying proofs across rewritten carriers is forbidden. Shared proof admission (Step 101) and both REL/PHY pruning adapters precede writer/migration cutover. Old `CVAEPRN1` remains temporary conversion input. Reconciliation, backing liveness, retained-description structure and raw-carrier-dependent history digests have explicit separate execution steps. Step 92 freezes representation and authority boundaries, not completion of those adapters.
 
 ### Relationships / Observations
 

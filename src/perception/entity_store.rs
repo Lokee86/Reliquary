@@ -11,7 +11,8 @@ use crate::entity_model::EntityRecord;
 use crate::{Container, Entity, EntityDraft, EntityError, EntityGlobalId, EntityId};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};
-use validation::{normalize_draft, validate_record};
+use validation::normalize_draft;
+pub(crate) use validation::validate_record;
 
 pub(crate) struct EntityStore {
     records: Vec<EntityRecord>,

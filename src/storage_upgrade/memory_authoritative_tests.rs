@@ -319,3 +319,67 @@ fn authoritative_v1_memory_histories_migrate_without_semantic_or_source_changes(
         }
     }
 }
+
+#[test]
+fn authoritative_memory_staging_matches_accepted_measurements_without_untranslated_proofs() {
+    let root = PathBuf::from(std::env::var_os("RELIQUARY_HISTORY_FIXTURES").unwrap());
+    let report: Value = serde_json::from_slice(
+        &fs::read(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("benchmarks/lossless-memory-migration-step87-2026-10-19.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let scratch = ScratchDirectory::new();
+    let fixtures = report["fixtures"].as_array().unwrap();
+    assert_eq!(fixtures.len(), 6);
+    for row in fixtures {
+        let fixture = row["fixture"].as_str().unwrap();
+        let source_path = root.join(fixture);
+        let source_bytes = fs::read(&source_path).unwrap();
+        let source_digest = sha256(&source_bytes);
+        assert_eq!(
+            source_digest,
+            row["accepted_source_sha256"].as_str().unwrap()
+        );
+        let modified = fs::metadata(&source_path).unwrap().modified().unwrap();
+        let mut source = Container::open_v1_read_only(&source_path).unwrap();
+        let identity = source.identity().unwrap();
+        let owner = source.owner_uuid();
+        let head = source.latest_version();
+        source
+            .visit_payloads::<ContainerError>(|_, payload| {
+                assert!(
+                    !payload.starts_with(b"CVAHPR01"),
+                    "{fixture} needs a proof converter"
+                );
+                Ok(())
+            })
+            .unwrap();
+        drop(source);
+        let plan = plan_storage_upgrade(StorageUpgradeRequest {
+            source: source_path.clone(),
+            destination: scratch.destination(&fixture.replace('/', "-")),
+        })
+        .unwrap();
+        let staged = stage_memory_storage_upgrade(&plan).unwrap();
+        assert_eq!(
+            serde_json::to_value(payload_bytes(staged.test_path(), false)).unwrap(),
+            row["after"]
+        );
+        match identity.file_kind {
+            FileKind::Reliquary => {
+                let reopened = Cva::open(staged.test_path()).unwrap();
+                assert_eq!(reopened.owner_uuid(), owner);
+                assert_eq!(reopened.latest_global_version(), head);
+            }
+            FileKind::Phylactery => {
+                let reopened = Phylactery::open(staged.test_path()).unwrap();
+                assert_eq!(reopened.owner_uuid(), owner);
+                assert_eq!(reopened.latest_global_version(), head);
+            }
+        }
+        assert_source_unchanged(&source_path, &source_bytes, &source_digest, modified);
+    }
+}

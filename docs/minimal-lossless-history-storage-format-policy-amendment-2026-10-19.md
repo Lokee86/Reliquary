@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 Specification: [Development format hard cut](development-format-hard-cut-interruption-spec-2026-10-19.md).
 Prior plan: [Minimal lossless history storage](minimal-lossless-history-storage-linear-plan-2026-10-19.md).
 
-Status: **I1–I12 complete; original Steps 1–90 accepted. Runtime retirement R1–R22 not implemented.** Original source freeze: `39eea4a`; rebased operational checkpoint: `bafdaae` (see [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md)). Step 91 is next. The shared-mechanics gate was reconciled with passing Memory/build/CLI/doc evidence; broader refreshed architecture enforcement remains running. This amendment overrides any V1 compatibility-retention language in the original plan/spec. See [interruption execution evidence](development-format-interruption-execution-2026-10-19.md).
+Status: **I1–I12 complete; original Steps 1–90 accepted. Runtime retirement not implemented; R1–R22 superseded by integrated linear closeout.** Original source freeze: `39eea4a`; rebased operational checkpoint: `bafdaae` (see [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md)). Step 91 is next. The shared-mechanics gate was reconciled with passing Memory/build/CLI/doc evidence and refreshed architecture enforcement (23 rules, 20 areas, 91,596 source nodes). This amendment overrides any V1 compatibility-retention language in the original plan/spec. See [interruption execution evidence](development-format-interruption-execution-2026-10-19.md).
 
 ## Purpose
 
@@ -52,45 +52,28 @@ Resumed from clean source `9cf643e`; exact frozen/runtime/fixture hashes and pre
 | I11 | Exhaustive original 87–266 mapping; three stale future dependency references corrected; completed steps unchanged. |
 | I12 | Structural and change-impact documentation checks pass; original steps 1–266 and accepted records 1–86 intact; post-edit fixture hashes and runtime diff unchanged. |
 
-Validation logs: `.test-tmp/format-interruption-docs-structural.log` and `.test-tmp/format-interruption-docs-impact.log`. These are documentation/inventory acceptances only. R1–R22 and corpus/runtime retirement are not accepted.
+Validation logs: `.test-tmp/format-interruption-docs-structural.log` and `.test-tmp/format-interruption-docs-impact.log`. These are documentation/inventory acceptances only. Corpus migration and runtime retirement are not accepted.
 
 ### Resume the original plan
 
-Subsequent Entity consumer inventory refined the current linear plan to 270 rows without changing accepted Steps 1–90: new 95/96 own reconciliation/reclamation; the original writer 95 becomes 97; new 98/99 own REL/PHY pruning; original 96–266 become 100–270. I11's original-number mapping is historical and uses this explicit crosswalk. Final acceptance is now linear Step 270 and still requires every R1–R22 gate.
+The remaining implementation plan has been consolidated to **271 total steps**. Accepted Steps 1–90 and their execution records remain intact. The Entity dependency additions discovered after I11 remain in the future sequence; four redundant future reconciliation/benchmark rows were removed or merged, and the old final audits were converted to concrete migration promotion, legacy-reader removal and post-retirement validation gates. Pending row numbers have been resequenced; historical I11 number mappings are evidence only. **R1–R22 no longer exist as a second execution workstream.** Final acceptance is now Step 271 of the integrated plan.
 
 - Original Step 87: measure raw compact Memory-history bytes before/after. Preserve the existing byte-size acceptance gate.
 - Original Steps 88 onward: retain owner-specific compact codec, replay, writing and temporary migration tasks, with their existing test requirements. Revise wording that suggests the old codecs will be permanent.
 - At each subsequent owner migration gate: record obsolete reader/codec dependencies explicitly, and keep temporary old-format translator isolated from the normal V2 code path.
 - The original final acceptance is **not complete** while any obsolete development format remains a supported runtime read path.
 
-### Mandatory final hard-cut phases (after all V2 owner converters exist)
+### Integrated final format retirement (supersedes R1–R22)
 
-| Step | Small contained action | Acceptance |
-| --- | --- | --- |
-| R1 | Record full pre-migration source fixture hash and historical-cut oracle. | Immutable baseline captured. |
-| R2 | Migrate the first-14-day REL on a disposable copy. | Current canonical V2 payloads emitted. |
-| R3 | Verify first-14-day REL historical cuts and reopen. | Exact parity, no unreported loss. |
-| R4 | Migrate the first-28-day REL on a disposable copy. | Current canonical V2 payloads emitted. |
-| R5 | Verify first-28-day REL historical cuts and reopen. | Exact parity. |
-| R6 | Migrate the Ellis REL on a disposable copy. | Current canonical V2 payloads emitted. |
-| R7 | Verify Ellis cut/retrieval parity. | Exact retrieval, profiles, vector and history fidelity. |
-| R8 | Migrate three paired PHY files on disposable copies. | All canonical V2. |
-| R9 | Verify PHY history, owner identity, vector/profile and relationships. | Exact parity. |
-| R10 | Migrate each additional deliberately retained corpus file, one at a time. | Inventoried corpus fully migrated, or typed documented blocker. |
-| R11 | Verify migrated corpus has no legacy settlement/epoch/owner records. | Parsed record inventory, not signature-only counts. |
-| R12 | Commit canonical fixture corpus in fixture repository. | New hashes/manifest verified, source backups retained until accepted. |
-| R13 | Remove V1 normal-runtime container reader/dispatch. | V1 opens reject with typed unsupported error. |
-| R14 | Remove CVAFRS03/04/05 runtime settlement decode/normalization. | No old-format runtime decoder reachable. |
-| R15 | Remove CVAILEG1/2 runtime epoch/prefix transport. | No legacy runtime dependency reachable. |
-| R16 | Remove temporary upgrader APIs/CLI and associated obsolete tests. | Dead-symbol search clean. |
-| R17 | Add/retain explicit old-format negative tests. | Fail-closed and current V2 positive tests pass. |
-| R18 | Run root and CLI formatting/compilation/test suites. | Pass, or classified unrelated failure with independent rerun. |
-| R19 | Run historical, rewrite, prune, reconciliation and Ellis equality gates. | No semantic divergence. |
-| R20 | Run structural, docs and cross-repository fixture hash checks. | All required gates pass. |
-| R21 | Update canonical docs/ADR to state V2-only reader support. | No residual V1-support promises. |
-| R22 | Commit isolated runtime cleanup and final verification evidence. | No accidental unrelated files, explicit hashes. |
+**R1–R22 are retired as separate execution items.** Their unique requirements are incorporated in the original linear plan's retained fixture migration, exhaustive historical equivalence, canonical fixture promotion, old-reader/upgrader removal and final post-removal verification gates. The final plan has **271 total original-sequence steps**, of which Steps 1–90 remain the last accepted checkpoint in this amendment; consult the current linear plan and execution evidence for newer acceptance.
 
-R1–R22 are **future mandatory gates**. They cannot be used to claim compatibility-retirement completion before migration. If an owner codec cannot yet translate a record, return to the exact original domain migration step that supplies it rather than silently weakening history equivalence.
+- The retained six REL/PHY fixtures are converted as part of the existing authoritative fixture migration phase, without parallel duplicate R2–R9 experiments.
+- Historical proof, Ellis retrieval and owner-state equality are checked in the existing equivalence and integration gates rather than another R19.
+- The six canonical files are promoted with checksum manifests and a fixture commit only after equivalence passes.
+- Production V1 readers, CVAFRS03/04/05, CVAILEG1/2, and temporary developer migration tools are removed at the integrated closeout; only format-rejection negative tests remain.
+- All root/CLI/structural and historical acceptance is rerun *after* the removal, and a final commit/cleanliness gate closes the plan.
+
+Some V1 conversion code remains necessary **temporarily** for lossless migration and is not an optional feature or permanent compatibility support. This is not a second implementation stream.
 
 ## Related docs
 

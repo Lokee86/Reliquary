@@ -26,6 +26,12 @@ pub(super) fn transform(
         source.path(),
         Some(crate::FormatVersion { major: 1, minor: 0 }),
         |object, bytes, head| -> Result<(), StorageUpgradeError> {
+            // This proof authenticates the original carrier hashes. Copying it
+            // while rewriting those carriers would return an invalid owner.
+            // Do not invent a replacement proof or another runtime bridge.
+            if bytes.starts_with(b"CVAHPR01") {
+                return Err(StorageUpgradeError::UnsupportedAuthority("CVAHPR01"));
+            }
             state.ingest(object, bytes, head)?;
             imports.ingest_at(Some(object), bytes)?;
             if let Some(version) = crate::memory_codec::decode_version(bytes)? {

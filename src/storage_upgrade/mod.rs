@@ -13,6 +13,8 @@ pub(crate) use shell::{plan_storage_upgrade, stage_memory_storage_upgrade, stage
 
 #[cfg(test)]
 mod memory_tests;
+#[cfg(test)]
+mod prepruned_memory_tests;
 
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod memory_authoritative_tests;

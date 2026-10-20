@@ -34,6 +34,7 @@ pub(crate) enum StorageUpgradeError {
     SourceChanged,
     MissingOwnerIdentity,
     CopyMismatch,
+    UnsupportedAuthority(&'static str),
     Memory(crate::MemoryError),
     Import(crate::imports::ImportError),
     Migration(String),
@@ -85,6 +86,12 @@ impl fmt::Display for StorageUpgradeError {
             Self::Memory(error) => write!(f, "upgrade Memory: {error}"),
             Self::Migration(error) => write!(f, "upgrade relocation: {error}"),
             Self::CopyMismatch => f.write_str("upgrade shell differs from frozen source"),
+            Self::UnsupportedAuthority(family) => {
+                write!(
+                    f,
+                    "upgrade has no canonical converter for authority {family}"
+                )
+            }
         }
     }
 }

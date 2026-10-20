@@ -530,6 +530,8 @@ mod entity_candidate_tests;
 mod entity_candidates;
 #[path = "perception/entity_codec.rs"]
 mod entity_codec;
+#[path = "perception/entity_compact_contract.rs"]
+mod entity_compact_contract;
 #[cfg(test)]
 #[path = "perception/entity_creation_guard_tests.rs"]
 mod entity_creation_guard_tests;
@@ -537,6 +539,9 @@ mod entity_creation_guard_tests;
 mod entity_error;
 #[path = "perception/entity_identity_guard.rs"]
 mod entity_identity_guard;
+#[cfg(test)]
+#[path = "perception/entity_legacy_admission_tests.rs"]
+mod entity_legacy_admission_tests;
 #[path = "perception/entity_merge.rs"]
 mod entity_merge;
 #[path = "perception/entity_model.rs"]
