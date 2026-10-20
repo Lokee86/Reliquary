@@ -15,7 +15,6 @@ pub(crate) struct RelationshipOpenState {
     pending_tombstones: HashMap<ObjectRef, crate::relationship_codec::RelationshipTombstone>,
     format_seen: bool,
     compact_seen: bool,
-    compact_proof_seen: bool,
 }
 
 impl RelationshipOpenState {
@@ -26,7 +25,6 @@ impl RelationshipOpenState {
             pending_tombstones: HashMap::new(),
             format_seen: false,
             compact_seen: false,
-            compact_proof_seen: false,
         }
     }
 
@@ -120,7 +118,6 @@ impl RelationshipOpenState {
             let identity = (record.id, record.revision);
             self.store.insert_rebuilt(record)?;
             if pruned {
-                self.compact_proof_seen = true;
                 self.store.pruned_revisions.insert(identity);
             }
         }
@@ -131,13 +128,8 @@ impl RelationshipOpenState {
         self,
         container: &crate::Container,
     ) -> Result<crate::relationship_store::RelationshipStore, RelationshipError> {
-        // Step 118 supplies authenticated compact-proof file admission. Until
-        // then, no accepted compact proof may return an unauthenticated owner.
-        if self.compact_proof_seen {
-            return Err(RelationshipError::CorruptRecord(
-                "compact Relationship proof admission unavailable",
-            ));
-        }
+        // Unavailability is provisional until REL/PHY file-level validation
+        // authenticates the exact terminal descriptor, manifest and history.
         if self.compact_seen && container.version() != (crate::FormatVersion { major: 2, minor: 0 })
         {
             return Err(RelationshipError::ConflictingFormat);

@@ -37,6 +37,7 @@ pub(crate) enum StorageUpgradeError {
     UnsupportedAuthority(&'static str),
     Memory(crate::MemoryError),
     Entity(crate::EntityError),
+    Relationship(crate::RelationshipError),
     Import(crate::imports::ImportError),
     Migration(String),
     Owner(Box<crate::CvaError>),
@@ -66,6 +67,12 @@ impl From<crate::EntityError> for StorageUpgradeError {
     }
 }
 
+impl From<crate::RelationshipError> for StorageUpgradeError {
+    fn from(error: crate::RelationshipError) -> Self {
+        Self::Relationship(error)
+    }
+}
+
 impl From<io::Error> for StorageUpgradeError {
     fn from(error: io::Error) -> Self {
         Self::Io(error)
@@ -92,6 +99,7 @@ impl fmt::Display for StorageUpgradeError {
             Self::Import(error) => write!(f, "upgrade import proof: {error}"),
             Self::Memory(error) => write!(f, "upgrade Memory: {error}"),
             Self::Entity(error) => write!(f, "upgrade Entity: {error}"),
+            Self::Relationship(error) => write!(f, "upgrade Relationship: {error}"),
             Self::Migration(error) => write!(f, "upgrade relocation: {error}"),
             Self::CopyMismatch => f.write_str("upgrade shell differs from frozen source"),
             Self::UnsupportedAuthority(family) => {

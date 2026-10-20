@@ -165,16 +165,16 @@ impl Phylactery {
             manifest_digest,
         )?;
         description_objects.extend(entity_plan.replacements);
+        let relationship_plan = crate::relationship_description_prune::prepare_description_prune(
+            &self.relationships,
+            &mut self.container,
+            &selected_relationships,
+            manifest_digest,
+        )?;
+        description_objects.extend(relationship_plan.replacements);
         for object in self.container.chunks()? {
             let raw = self.container.read(object)?;
-            if let Some(record) = crate::relationship_codec::decode_record(&raw)?
-                && selected_relationships.contains(&record.id)
-            {
-                description_objects.insert(
-                    object,
-                    crate::relationship_codec::encode_pruned_description(&raw, manifest_digest)?,
-                );
-            } else if let Some(decoded) = crate::packed_vector_codec::decode_object(&raw)?
+            if let Some(decoded) = crate::packed_vector_codec::decode_object(&raw)?
                 && packed_ids.contains(&decoded.id)
             {
                 if packed_objects.insert(decoded.id, object).is_some() {
@@ -205,7 +205,9 @@ impl Phylactery {
         let copy = (|| {
             let mut relocated = BTreeMap::new();
             for object in &source_objects {
-                if entity_plan.discard.contains(object) {
+                if entity_plan.discard.contains(object)
+                    || relationship_plan.discard.contains(object)
+                {
                     continue;
                 }
                 let raw = self.container.read(*object)?;
@@ -339,7 +341,18 @@ impl Phylactery {
         for object in self.container.chunks()? {
             let bytes = self.container.read(object)?;
             let compact = crate::entity_description_proof::compact_description_proof(&bytes)?;
-            let payload = if let Some((id, revision, _)) = &compact {
+            let relationship_compact =
+                crate::relationship_description_proof::compact_description_proof(&bytes)?;
+            let payload = if let Some((id, revision, _)) = &relationship_compact {
+                if !self
+                    .relationships
+                    .pruned_revisions
+                    .contains(&(*id, *revision))
+                {
+                    return Err(invalid());
+                }
+                Some(PrunedPayload::RelationshipDescription(id.0, *revision))
+            } else if let Some((id, revision, _)) = &compact {
                 if !self.entities.pruned_revisions.contains(&(*id, *revision)) {
                     return Err(invalid());
                 }
@@ -361,8 +374,11 @@ impl Phylactery {
                 None
             };
             if let Some(payload) = payload {
-                let digest = if let Some((_, _, proof)) = compact {
-                    proof.manifest_digest
+                let digest = if let Some(digest) = compact
+                    .map(|(_, _, proof)| proof.manifest_digest)
+                    .or_else(|| relationship_compact.map(|(_, _, proof)| proof.manifest_digest))
+                {
+                    digest
                 } else {
                     bytes
                         .get(40..72)
@@ -482,9 +498,8 @@ impl Phylactery {
             .iter()
             .filter(|record| record.id == id)
         {
-            let mut record = original.clone();
-            record.summary.clear();
-            let raw = crate::relationship_codec::encode_record(&record)?;
+            let record = original;
+            let raw = crate::relationship_retained_structure::encode_record_structure(record)?;
             append_part(&mut structure, &raw);
             structure.extend(record.global_version.to_le_bytes());
             structure.extend(record.relationship_version.to_le_bytes());

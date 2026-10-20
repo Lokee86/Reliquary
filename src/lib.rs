@@ -966,6 +966,8 @@ mod relationship_model;
 mod relationship_owner;
 #[path = "perception/relationship_rebuild.rs"]
 mod relationship_rebuild;
+#[path = "perception/relationship_retained_structure.rs"]
+mod relationship_retained_structure;
 #[path = "perception/relationship_store.rs"]
 mod relationship_store;
 #[cfg(test)]
@@ -1759,3 +1761,13 @@ mod vector_generation_validation_tests;
 #[cfg(test)]
 #[path = "facade/storage_format_boundary_tests.rs"]
 mod storage_format_boundary_tests;
+
+#[path = "perception/relationship_description_proof.rs"]
+mod relationship_description_proof;
+
+#[path = "perception/relationship_description_prune.rs"]
+mod relationship_description_prune;
+
+#[cfg(test)]
+#[path = "facade/relationship_compact_prune_tests.rs"]
+mod relationship_compact_prune_tests;

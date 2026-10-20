@@ -213,6 +213,54 @@ fn compact_creation_delta_interleaving_tombstone_and_late_tickets_replay_exactly
 }
 
 #[test]
+fn compact_delta_replays_participant_and_evidence_removals_and_additions() {
+    let path = test_path("collection-operations.rel");
+    let mut container = initialize(&path);
+    reserve_tickets(&mut container, 2);
+
+    let previous = record(0x4A, 1, 1, 1, "collection-create");
+    let creation_ref = append_creation(&mut container, &previous);
+    append_version(&mut container, creation_ref, 1, 1);
+
+    let mut next = previous.clone();
+    next.revision = 2;
+    next.global_version = 2;
+    next.relationship_version = 2;
+    next.mutation_id = "collection-update".into();
+    next.participants.remove(0);
+    next.participants.push(RelationshipParticipant {
+        entity: EntityRef {
+            owner_id: "external-c".into(),
+            entity_id: EntityId([0xA0; 32]),
+        },
+        role: Some("reviewer".into()),
+    });
+    next.participants.sort();
+    next.evidence.clear();
+    next.evidence.push(MemoryRef {
+        owner_id: "external-memory-new".into(),
+        memory_id: MemoryId([0xA1; 32]),
+    });
+
+    let (delta_ref, delta) = append_delta(&mut container, &previous, &next);
+    assert_eq!(
+        delta.fields.participants.removed,
+        vec![previous.participants[0].clone()]
+    );
+    assert_eq!(
+        delta.fields.participants.added,
+        vec![next.participants[1].clone()]
+    );
+    assert_eq!(delta.fields.evidence.removed, previous.evidence);
+    assert_eq!(delta.fields.evidence.added, next.evidence);
+    append_version(&mut container, delta_ref, 2, 2);
+    drop(container);
+
+    let (store, _) = replay(&path).unwrap();
+    assert_eq!(store.records(), &[previous, next]);
+}
+
+#[test]
 fn unversioned_compact_creation_and_delta_remain_inert() {
     let path = test_path("orphan-inert.rel");
     let mut container = initialize(&path);
@@ -384,26 +432,50 @@ fn v1_rejects_published_compact_but_keeps_an_unversioned_compact_frame_inert() {
 }
 
 #[test]
-fn published_compact_prune_proof_is_rejected_until_file_admission_exists() {
-    let path = test_path("pruned-compact-pending-admission.rel");
-    let mut container = initialize(&path);
-    reserve_tickets(&mut container, 1);
-    let mut redacted = record(0x91, 1, 1, 1, "pruned");
-    redacted.summary.clear();
+fn compact_proof_is_provisional_in_rebuild_but_rejected_by_owner_reopen() {
     let proof = RelationshipDescriptionProof {
         original_carrier_digest: [0xA5; 32],
         manifest_digest: [0x5A; 32],
     };
+    let mut redacted = record(0x91, 1, 1, 1, "pruned");
+    redacted.summary.clear();
     let creation = RelationshipCreation::new_pruned(redacted.clone(), proof).unwrap();
+
+    // The domain rebuild preserves the provisional pruned revision. Only
+    // owner-level file validation has the manifest and history context needed
+    // to accept or reject its proof.
+    let replay_path = test_path("pruned-compact-pending-admission.rel");
+    let mut container = initialize(&replay_path);
+    reserve_tickets(&mut container, 1);
     let carrier = container
         .append(&encode_creation(&creation).unwrap())
         .unwrap();
     append_version(&mut container, carrier, 1, 1);
     drop(container);
-    assert!(matches!(
-        replay(&path),
-        Err(RelationshipError::CorruptRecord(
-            "compact Relationship proof admission unavailable"
-        ))
-    ));
+    let (store, _) = replay(&replay_path).unwrap();
+    assert_eq!(store.records(), &[redacted]);
+
+    let cva_path = test_path("pruned-compact-owner.rel");
+    let mut cva = crate::Cva::create(&cva_path).unwrap();
+    reserve_tickets(&mut cva.container, 1);
+    let carrier = cva
+        .container
+        .append(&encode_creation(&creation).unwrap())
+        .unwrap();
+    append_version(&mut cva.container, carrier, 1, 1);
+    cva.sync().unwrap();
+    drop(cva);
+    assert!(crate::Cva::open(&cva_path).is_err());
+
+    let phy_path = test_path("pruned-compact-owner.phy");
+    let mut phy = crate::Phylactery::create(&phy_path).unwrap();
+    reserve_tickets(&mut phy.container, 1);
+    let carrier = phy
+        .container
+        .append(&encode_creation(&creation).unwrap())
+        .unwrap();
+    append_version(&mut phy.container, carrier, 1, 1);
+    phy.sync().unwrap();
+    drop(phy);
+    assert!(crate::Phylactery::open(&phy_path).is_err());
 }

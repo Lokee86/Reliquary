@@ -301,25 +301,20 @@ impl Cva {
             manifest_digest,
         )?;
         let mut description_objects = entity_plan.replacements;
-        for object in &objects {
-            let raw = self.container.read(*object)?;
-            let replacement = if let Some(record) = crate::relationship_codec::decode_record(&raw)?
-            {
-                if description_targets.contains(&LifecycleTarget::Relationship(record.id)) {
-                    Some(crate::relationship_codec::encode_pruned_description(
-                        &raw,
-                        manifest_digest,
-                    )?)
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
-            if let Some(bytes) = replacement {
-                description_objects.insert(*object, bytes);
-            }
-        }
+        let selected_relationships = description_targets
+            .iter()
+            .filter_map(|target| match target {
+                LifecycleTarget::Relationship(id) => Some(*id),
+                _ => None,
+            })
+            .collect::<HashSet<_>>();
+        let relationship_plan = crate::relationship_description_prune::prepare_description_prune(
+            &self.relationships,
+            &mut self.container,
+            &selected_relationships,
+            manifest_digest,
+        )?;
+        description_objects.extend(relationship_plan.replacements);
         let source_file_bytes = fs::metadata(self.container.path())
             .map_err(|e| prune_error(&e.to_string()))?
             .len();
@@ -328,7 +323,9 @@ impl Cva {
             let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
             let mut marked = HashSet::new();
             for object in &objects {
-                if entity_plan.discard.contains(object) {
+                if entity_plan.discard.contains(object)
+                    || relationship_plan.discard.contains(object)
+                {
                     continue;
                 }
                 let raw = self.container.read(*object)?;
@@ -400,7 +397,9 @@ impl Cva {
                 }
             }
             for object in &objects {
-                if entity_plan.discard.contains(object) {
+                if entity_plan.discard.contains(object)
+                    || relationship_plan.discard.contains(object)
+                {
                     continue;
                 }
                 let raw = self.container.read(*object)?;

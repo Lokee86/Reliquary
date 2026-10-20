@@ -268,3 +268,7 @@ fn relocated_ref(
 #[cfg(test)]
 #[path = "storage_reclamation_entity_compact_tests.rs"]
 mod entity_compact_tests;
+
+#[cfg(test)]
+#[path = "storage_reclamation_relationship_compact_tests.rs"]
+mod relationship_compact_tests;

@@ -205,6 +205,11 @@ pub(crate) fn owner_history_digest(
                         .map_err(|error| error.to_string())?
                 {
                     proof.original_carrier_digest
+                } else if let Some((_, _, proof)) =
+                    crate::relationship_description_proof::compact_description_proof(&bytes)
+                        .map_err(|error| error.to_string())?
+                {
+                    proof.original_carrier_digest
                 } else if bytes.starts_with(b"CVAEPRN1") || bytes.starts_with(b"CVARPRN1") {
                     bytes
                         .get(8..40)

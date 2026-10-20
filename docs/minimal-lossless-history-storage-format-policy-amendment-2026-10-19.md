@@ -56,7 +56,7 @@ Validation logs: `.test-tmp/format-interruption-docs-structural.log` and `.test-
 
 ### Resume the original plan
 
-The remaining implementation plan has been consolidated to **271 total steps**. Accepted Steps 1–90 and their execution records remain intact. The Entity dependency additions discovered after I11 remain in the future sequence; four redundant future reconciliation/benchmark rows were removed or merged, and the old final audits were converted to concrete migration promotion, legacy-reader removal and post-retirement validation gates. Pending row numbers have been resequenced; historical I11 number mappings are evidence only. **R1–R22 no longer exist as a second execution workstream.** Final acceptance is now Step 271 of the integrated plan.
+The remaining implementation plan has been consolidated to **271 total steps**. Accepted Steps 1–90 and their execution records remain intact. The Entity dependency additions discovered after I11 remain in the future sequence; four redundant future reconciliation/benchmark rows were removed or merged, and the old final audits were converted to concrete migration promotion, legacy-reader removal and post-retirement validation gates. Pending row numbers have been resequenced; historical I11 number mappings are evidence only. **R1–R22 no longer exist as a second execution workstream.** That consolidation ended at Step 271. Subsequent execution discovery added eight explicit Relationship consumer/pruning gates, making the current integrated plan 279 steps; final acceptance is Step 279. The consolidation count remains historical evidence.
 
 - Original Step 87: measure raw compact Memory-history bytes before/after. Preserve the existing byte-size acceptance gate.
 - Original Steps 88 onward: retain owner-specific compact codec, replay, writing and temporary migration tasks, with their existing test requirements. Revise wording that suggests the old codecs will be permanent.
@@ -65,7 +65,7 @@ The remaining implementation plan has been consolidated to **271 total steps**. 
 
 ### Integrated final format retirement (supersedes R1–R22)
 
-**R1–R22 are retired as separate execution items.** Their unique requirements are incorporated in the original linear plan's retained fixture migration, exhaustive historical equivalence, canonical fixture promotion, old-reader/upgrader removal and final post-removal verification gates. The final plan has **271 total original-sequence steps**, of which Steps 1–90 remain the last accepted checkpoint in this amendment; consult the current linear plan and execution evidence for newer acceptance.
+**R1–R22 are retired as separate execution items.** Their unique requirements are incorporated in the original linear plan's retained fixture migration, exhaustive historical equivalence, canonical fixture promotion, old-reader/upgrader removal and final post-removal verification gates. The current plan has **279 total original-sequence steps**, of which Steps 1–90 remain the last accepted checkpoint in this amendment; consult the current linear plan and execution evidence for newer acceptance.
 
 - The retained six REL/PHY fixtures are converted as part of the existing authoritative fixture migration phase, without parallel duplicate R2–R9 experiments.
 - Historical proof, Ellis retrieval and owner-state equality are checked in the existing equivalence and integration gates rather than another R19.

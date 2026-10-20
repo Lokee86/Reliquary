@@ -163,14 +163,11 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 owner_evidence.push(publication.normalized_import_evidence()?);
             }
             if let Some(version) = crate::relationship_codec::decode_version(&payload)? {
-                let bytes = cva.container.read(version.record)?;
-                if let Some(mut record) = crate::relationship_codec::decode_record(&bytes)? {
-                    record.global_version = 0;
-                    record.relationship_version = 0;
-                    owner_evidence.push(crate::relationship_codec::encode_record(&record)?);
-                } else {
-                    owner_evidence.push(bytes);
-                }
+                let publication = cva
+                    .relationships
+                    .retained_publication_at(version.global_version, version.relationship_version)?
+                    .ok_or(crate::RelationshipError::InvalidVersion)?;
+                owner_evidence.push(publication.normalized_import_evidence()?);
             }
             if let Some(version) = crate::graph_codec::decode_version(&payload)? {
                 owner_evidence.push(cva.container.read(version.mutation)?);
@@ -328,6 +325,8 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::entity_compact_codec::is_compact_record(&payload)?
             || crate::entity_codec::decode_version(&payload)?.is_some()
             || crate::relationship_codec::decode_record(&payload)?.is_some()
+            || crate::relationship_compact_codec::is_compact_record(&payload)?
+            || crate::relationship_codec::decode_tombstone(&payload)?.is_some()
             || crate::relationship_codec::decode_version(&payload)?.is_some()
             || crate::entity_resolution_codec::decode_resolution(&payload)?.is_some()
             || crate::graph_codec::decode_node(&payload)?.is_some()
@@ -469,3 +468,7 @@ fn physical_boundary(cva: &mut Cva, common: usize) -> Result<usize, CvaReconcile
     }
     Err(unsupported("common import boundary unavailable"))
 }
+
+#[cfg(test)]
+#[path = "reconciliation_relationship_compact_tests.rs"]
+mod relationship_compact_tests;

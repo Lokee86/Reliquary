@@ -104,9 +104,8 @@ impl Cva {
             .iter()
             .filter(|record| record.id == id)
         {
-            let mut record = original.clone();
-            record.summary.clear();
-            let raw = crate::relationship_codec::encode_record(&record)?;
+            let record = original;
+            let raw = crate::relationship_retained_structure::encode_record_structure(record)?;
             bytes.extend((raw.len() as u64).to_le_bytes());
             bytes.extend(raw);
             bytes.extend(record.global_version.to_le_bytes());
@@ -145,7 +144,18 @@ impl Cva {
         for object in self.container.chunks()? {
             let bytes = self.container.read(object)?;
             let compact = crate::entity_description_proof::compact_description_proof(&bytes)?;
-            let payload = if let Some((id, revision, _)) = &compact {
+            let relationship_compact =
+                crate::relationship_description_proof::compact_description_proof(&bytes)?;
+            let payload = if let Some((id, revision, _)) = &relationship_compact {
+                if !self
+                    .relationships
+                    .pruned_revisions
+                    .contains(&(*id, *revision))
+                {
+                    return Err(invalid());
+                }
+                PrunedPayload::RelationshipDescription(id.0, *revision)
+            } else if let Some((id, revision, _)) = &compact {
                 if !self.entities.pruned_revisions.contains(&(*id, *revision)) {
                     return Err(invalid());
                 }
@@ -160,8 +170,11 @@ impl Cva {
             } else {
                 continue;
             };
-            let digest: [u8; 32] = match compact {
-                Some((_, _, proof)) => proof.manifest_digest,
+            let digest: [u8; 32] = match compact
+                .map(|(_, _, proof)| proof.manifest_digest)
+                .or_else(|| relationship_compact.map(|(_, _, proof)| proof.manifest_digest))
+            {
+                Some(digest) => digest,
                 None => bytes[40..72].try_into().unwrap(),
             };
             if !authorized.contains(&(payload.clone(), digest)) || !seen.insert((payload, digest)) {

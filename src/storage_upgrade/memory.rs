@@ -8,20 +8,28 @@ pub(super) fn transform(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, false)
+    transform_owners(source, destination, false, false)
 }
 
 pub(super) fn transform_with_entities(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true)
+    transform_owners(source, destination, true, false)
+}
+
+pub(super) fn transform_with_relationships(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(source, destination, true, true)
 }
 
 fn transform_owners(
     source: &mut Container,
     destination: &mut Container,
     migrate_entities: bool,
+    migrate_relationships: bool,
 ) -> Result<(), StorageUpgradeError> {
     let normalizations = if source
         .identity()
@@ -65,6 +73,11 @@ fn transform_owners(
     } else {
         BTreeMap::new()
     };
+    let relationship_carriers = if migrate_relationships {
+        super::relationship::prepare(source)?
+    } else {
+        BTreeMap::new()
+    };
     let mut preceding = HashMap::new();
     let mut encoded = BTreeMap::new();
     for record in memories.records() {
@@ -87,6 +100,8 @@ fn transform_owners(
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
         let transformed = if let Some(entity) = entity_carriers.get(&object) {
             entity.clone()
+        } else if let Some(relationship) = relationship_carriers.get(&object) {
+            relationship.clone()
         } else if crate::imports::legacy_epoch::decode(payload)?.is_some() {
             let length = destination.backing_file().metadata()?.len();
             let hex = crate::imports::hash_file_prefix(destination.path(), length)?;

@@ -708,7 +708,9 @@ The current pre-unification Relationship records are persisted separately from G
 8 bytes   "CVARELF1"   Relationship format marker
 ```
 
-A Relationship backing record uses:
+Ordinary V2 writes use [Relationship compact history](#relationship-compact-history). The owner format marker and publication/terminal markers remain unchanged. The following backing layout documents temporary legacy decode/conversion; it is not a permanent runtime compatibility promise.
+
+Temporary legacy Relationship backing records use:
 
 ```text
 8 bytes   "CVARELR1"
@@ -741,7 +743,7 @@ u64       backing-record chunk offset
 u64       backing-record payload length
 ```
 
-`relationship_version` begins at `1` and is dense within the containing REL/PHY. A backing record without valid version metadata is inert. Participant/evidence lists are normalized into deterministic order before publication. Local-owner Entity/Memory references must resolve; owner-qualified references into another REL/PHY may remain unresolved. This history is physically/version-wise separate from Arcana Graph history, but ADR 0034 no longer grants it independent semantic authority from Observation; migration/convergence must preserve the current format until relational Observation persistence supersedes or incorporates it.
+`relationship_version` begins at `1` and is dense within the containing REL/PHY. A backing record without valid version metadata is inert. Participant/evidence lists are normalized into deterministic order before publication. Local-owner Entity/Memory references must resolve; owner-qualified references into another REL/PHY may remain unresolved. This history is physically/version-wise separate from Arcana Graph history, but ADR 0034 no longer grants it independent semantic authority from Observation; migration/convergence must preserve retained semantic state until relational Observation persistence supersedes or incorporates it.
 
 ### Dream maintenance records
 
@@ -1175,7 +1177,7 @@ The [C12 production disposition](freshness-historical-production-disposition-202
 
 `CVAILEG1` is a legacy compatibility frame for one accepted `CVAFRS03` settlement as a completed initial epoch. Legacy bytes are validated using their original prefix contract before explicit normalization; passive legacy reads do not append or normalize records. It does not fabricate native start/completion markers or bypass the native completion coordinator. The original source is never normalized in place.
 
-`CVAHPR01` authorizes explicit transformed-copy payload removal through concrete terminal-owner retention descriptors. Checksummed `CVAPRND1` Archive content markers, `CVAMPRN1` Memory body markers, `CVAEPRN1` Entity description wrappers, `CVARPRN1` Relationship description wrappers, and `CVAPVRN1` packed-vector markers retain identity/topology and bind the exact manifest digest. Description wrappers retain the original publication payload digest so source-history fingerprint validation survives removal. Missing payload without exact owner/manifest evidence remains corruption. Active/shared references block removal. REL and PHY prune coordinators emit and validate copies using the shared maintenance store; PHY has no Archive targets.
+`CVAHPR01` authorizes explicit transformed-copy payload removal through concrete terminal-owner retention descriptors. Checksummed `CVAPRND1` Archive content markers, `CVAMPRN1` Memory body markers, `CVAEPRN1` Entity description wrappers, `CVARPRN1` Relationship description wrappers, and `CVAPVRN1` packed-vector markers retain identity/topology and bind the exact manifest digest. Legacy description wrappers and native compact Entity/Relationship proof-bearing carriers retain the original publication payload digest so source-history fingerprint validation survives removal. Missing payload without exact owner/manifest evidence remains corruption. Active/shared references block removal. REL and PHY prune coordinators emit and validate copies using the shared maintenance store; PHY has no Archive targets.
 
 ## Rewrite lineage and Freshness baseline records
 
@@ -1219,10 +1221,16 @@ Before moving bytes, the REL upgrade coordinator opens the original V1 owner rea
 
 The transformed destination retains original legacy payloads and appends their prepared canonical semantic successors. Existing Freshness replay authenticates these successors, skips obsolete physical interpretation, and preserves effective records/cohorts/event identities. Original CVAILEG1 evidence remains inside CVAILEG2. Canonical historical Freshness comparison clears only predecessor transport binding as in the existing oracle; original proof bytes remain retained and checked. Physical cuts from the original stream must never be interpreted against compacted offsets.
 
-## Relationship compact carriers under implementation
+## Relationship compact history
 
 The canonical target remains Relationship. `CVARNC01` creation carries ID (32 bytes), global/local publication tickets (u64), mutation and kind strings, participant list, evidence list, summary, creation/update timestamps (i64), and a proof tag. Revision 1 is implicit. `CVARND01` delta carries ID, predecessor/successor revisions, both tickets, mutation, u64 changed-field mask and changed values. Bits 0–4 are kind, participant operations, evidence operations, summary and update time. Creation time is inherited; fresh-mutation zero masks are legal.
 
 Integers are little endian and strings are u32-length UTF-8. Participant/evidence lists have bounded u16 counts. Each participant carries owner string, Entity ID and optional-role byte tag (0 absent; 1 followed by string); evidence carries owner string and Memory ID. A changed collection carries removal list then addition list, each sorted, unique and disjoint. Complete participant tuples include optional role. Empty encoded collection changes, absent removals and already-present additions reject; the latter membership checks require the accepted base. Full candidate owner validation and canonical delta re-derivation precede store insertion.
 
-Ordinary frames terminate exactly after proof tag 0. Tag 1 carries original unpruned carrier SHA-256 and complete canonical manifest SHA-256, then the SHA-256 trailer of preceding frame bytes. Unknown families/versions, masks/tags, malformed values, lengths/counts, proof checksums and trailing bytes fail closed. These are owner-specific codecs. Until the explicit shared Relationship proof-admission step is complete, accepted proof-bearing compact Relationship publications reject on owner open; decoding opaque evidence grants no file authorization. Ordinary writers still emit legacy records until all concrete consumer gates and writer cutover pass.
+Ordinary frames terminate exactly after proof tag 0. Tag 1 carries original unpruned carrier SHA-256 and complete canonical manifest SHA-256, then the SHA-256 trailer of preceding frame bytes. Unknown families/versions, masks/tags, malformed values, lengths/counts, proof checksums and trailing bytes fail closed. These are owner-specific codecs. REL/PHY open authenticates proof-bearing carriers against the exact manifest, terminal retained descriptor, selected ID/revision, and original source-history digest. Decoding opaque evidence grants no file authorization. Ordinary writers emit compact creation/delta carriers; explicit terminal/version markers remain unchanged.
+
+Relationship reconciliation now resolves accepted record/terminal publications from the owner by exact global/local coordinates. Its exact replay seam preserves accepted text and optional roles instead of applying ordinary draft normalization; exact older-mutation retries remain inert while the ID is active. Normalized import evidence retains all semantic fields, with a distinct unavailable-summary variant, omitting only rebased publication coordinates. Strict compact interval classification admits validated carriers and terminal backing, while orphan carriers remain inert and malformed or unknown variants reject.
+
+Reclamation classifies compact Relationship creation/delta and explicit terminal backing through their existing version markers; semantic references inside compact frames are stable IDs and require no physical relocation. Canonical retained-structure hash input is independent of persisted carrier encoding and remains byte-identical to the established summary-redacted schema. Its historical discriminator bytes are hash-schema tags, not new container emissions or legacy decoder dependencies.
+
+REL and PHY description pruning reconstruct selected accepted chains in physical publication order, clear summaries, and re-encode canonical compact creations/deltas with exact original-carrier and manifest digests. Selected unpublished carriers are discarded so old plaintext cannot survive. Retained identity, topology, revisions, clocks, timestamps and transaction times remain unchanged. The private V1 converter now composes Memory, Entity and Relationship transformations; it preserves terminal markers and relocates publication references without new tickets. Existing maintenance-history proof remains a typed unsupported input for migration until a dedicated lossless converter exists; this is not corpus promotion or runtime retirement.

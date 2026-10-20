@@ -104,6 +104,9 @@ def refresh_evidence(lexicon: Path, arcana: Path) -> None:
         ],
         environment=adapter_environment,
     )
+    # init may reuse an existing snapshot; configuration is not a freshness guarantee.
+    # Always advance the snapshot before synchronizing enforcement evidence.
+    run([str(lexicon), "scan", "--repo", str(ROOT)], environment=adapter_environment)
     run(
         [
             str(arcana),

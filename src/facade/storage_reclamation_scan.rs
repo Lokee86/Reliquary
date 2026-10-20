@@ -179,6 +179,11 @@ impl ReclamationScan {
         if crate::relationship_codec::decode_record(payload)
             .map_err(|error| error.to_string())?
             .is_some()
+            || crate::relationship_compact_codec::is_compact_record(payload)
+                .map_err(|error| error.to_string())?
+            || crate::relationship_codec::decode_tombstone(payload)
+                .map_err(|error| error.to_string())?
+                .is_some()
         {
             self.backing_candidates.insert(object);
             return Ok(());

@@ -106,10 +106,17 @@ pub(crate) fn stage_entity_storage_upgrade(
     stage_impl(plan, || Ok(()), OwnerMigration::MemoryAndEntity)
 }
 
+pub(crate) fn stage_relationship_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), OwnerMigration::MemoryEntityAndRelationship)
+}
+
 enum OwnerMigration {
     None,
     Memory,
     MemoryAndEntity,
+    MemoryEntityAndRelationship,
 }
 
 // The callback is a bounded test seam for aborts and concurrent source/output
@@ -160,6 +167,9 @@ fn stage_impl(
         OwnerMigration::Memory => super::memory::transform(&mut source, &mut destination)?,
         OwnerMigration::MemoryAndEntity => {
             super::memory::transform_with_entities(&mut source, &mut destination)?
+        }
+        OwnerMigration::MemoryEntityAndRelationship => {
+            super::memory::transform_with_relationships(&mut source, &mut destination)?
         }
         OwnerMigration::None => {
             source.copy_upgrade_shell_frames(&mut destination)?;

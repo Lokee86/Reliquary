@@ -254,7 +254,8 @@ fn compact_reconciliation_rejects_pruned_payload_without_fabricating_placeholder
                 canonical_name: "Original name".into(),
                 aliases: vec!["Original alias".into()],
                 kind: "project".into(),
-                summary: "Original private description".into(),
+                // Exercise unavailable payload replay after satisfying native net-shrink admission.
+                summary: "Original private description".repeat(128),
                 mutation_id: "pruned-source".into(),
                 created_at_ns: 10,
                 updated_at_ns: 20,

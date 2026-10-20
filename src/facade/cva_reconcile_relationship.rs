@@ -1,13 +1,14 @@
 use crate::cva_reconcile::with_replayed_transaction_time;
-use crate::relationship_codec::{decode_record, decode_version};
-use crate::{Cva, CvaReconcileError, Relationship, RelationshipDraft};
+use crate::relationship_codec::decode_version;
+use crate::relationship_store::RelationshipReplayPublication;
+use crate::{Cva, CvaReconcileError};
 
 pub(crate) struct RelationshipTail {
     revisions: Vec<RelationshipReplayRevision>,
 }
 
 struct RelationshipReplayRevision {
-    relationship: Relationship,
+    publication: RelationshipReplayPublication,
     transaction_time_ns: Option<i64>,
 }
 
@@ -35,28 +36,12 @@ pub(crate) fn read_relationship_range(
         let Some(version) = decode_version(&payload)? else {
             continue;
         };
-        let record_payload = cva.container.read(version.record)?;
-        let Some(mut record) = decode_record(&record_payload)? else {
-            return Err(CvaReconcileError::UnsupportedSemanticOwner(
-                "invalid Relationship version record",
-            ));
-        };
-        record.global_version = version.global_version;
-        record.relationship_version = version.relationship_version;
+        let mutation = cva
+            .relationships
+            .publication_at(version.global_version, version.relationship_version)?
+            .ok_or(crate::RelationshipError::InvalidVersion)?;
         revisions.push(RelationshipReplayRevision {
-            relationship: Relationship {
-                id: record.id,
-                revision: record.revision,
-                kind: record.kind,
-                participants: record.participants,
-                evidence: record.evidence,
-                summary: record.summary,
-                mutation_id: record.mutation_id,
-                created_at_ns: record.created_at_ns,
-                updated_at_ns: record.updated_at_ns,
-                global_version: record.global_version,
-                relationship_version: record.relationship_version,
-            },
+            publication: mutation,
             transaction_time_ns: cva.transaction_time_ns(version.global_version),
         });
     }
@@ -70,26 +55,15 @@ pub(crate) fn replay_relationship_tail(
     let mut revisions = 0;
     let mut duplicate_revisions = 0;
     for revision in tail.revisions {
-        let relationship = revision.relationship;
-        let id = relationship.id;
-        let expected_revision = relationship.revision.saturating_sub(1);
-        let draft = RelationshipDraft {
-            kind: relationship.kind,
-            participants: relationship.participants,
-            evidence: relationship.evidence,
-            summary: relationship.summary,
-            mutation_id: relationship.mutation_id,
-            created_at_ns: relationship.created_at_ns,
-            updated_at_ns: relationship.updated_at_ns,
-        };
         let created = with_replayed_transaction_time(
             destination,
             revision.transaction_time_ns,
             |destination| {
-                destination.replay_relationship_revision(Some(id), expected_revision, draft)
+                destination
+                    .relationships
+                    .replay_publication(&mut destination.container, revision.publication)
             },
-        )?
-        .1;
+        )?;
         if created {
             revisions += 1;
         } else {
@@ -101,3 +75,7 @@ pub(crate) fn replay_relationship_tail(
         duplicate_revisions,
     })
 }
+
+#[cfg(test)]
+#[path = "cva_reconcile_relationship_compact_tests.rs"]
+mod compact_tests;

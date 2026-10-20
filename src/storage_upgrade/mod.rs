@@ -3,6 +3,7 @@
 mod entity;
 mod memory;
 mod model;
+mod relationship;
 mod shell;
 #[cfg(test)]
 mod tests;
@@ -12,7 +13,7 @@ pub(crate) use model::{
 };
 pub(crate) use shell::{
     plan_storage_upgrade, stage_entity_storage_upgrade, stage_memory_storage_upgrade,
-    stage_storage_upgrade,
+    stage_relationship_storage_upgrade, stage_storage_upgrade,
 };
 
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
@@ -26,3 +27,9 @@ mod prepruned_memory_tests;
 
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod memory_authoritative_tests;
+
+#[cfg(test)]
+mod relationship_tests;
+
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+mod relationship_authoritative_tests;

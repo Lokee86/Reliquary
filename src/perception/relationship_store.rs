@@ -1,3 +1,8 @@
+#[path = "relationship_replay.rs"]
+mod replay;
+pub(crate) use replay::RelationshipReplayPublication;
+#[path = "relationship_compact_publish.rs"]
+mod compact_publish;
 #[path = "relationship_store_read.rs"]
 mod read;
 #[path = "relationship_store_validation.rs"]
@@ -6,8 +11,7 @@ mod validation;
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::relationship_codec::{
-    RelationshipTombstone, RelationshipVersion, encode_format, encode_record, encode_tombstone,
-    encode_version,
+    RelationshipTombstone, RelationshipVersion, encode_format, encode_tombstone, encode_version,
 };
 use crate::relationship_model::RelationshipRecord;
 use crate::{
@@ -121,7 +125,7 @@ impl RelationshipStore {
         relationship_version
             .checked_add(1)
             .ok_or(RelationshipError::VersionExhausted)?;
-        let mut record = RelationshipRecord {
+        let record = RelationshipRecord {
             id,
             revision,
             kind: draft.kind,
@@ -134,16 +138,8 @@ impl RelationshipStore {
             global_version: 0,
             relationship_version,
         };
-        let record_ref = container.append(&encode_record(&record)?)?;
-        let global_version = container.allocate_version()?;
-        container.append(&encode_version(RelationshipVersion {
-            global_version,
-            relationship_version,
-            record: record_ref,
-        }))?;
-        record.global_version = global_version;
-        self.insert_rebuilt(record.clone())?;
-        Ok((resolve(&record), true))
+        let relationship = self.persist_compact_revision(container, record)?;
+        Ok((relationship, true))
     }
 
     pub(crate) fn insert_rebuilt(

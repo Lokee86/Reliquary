@@ -295,3 +295,5 @@ N4 removes timestamp-order rejection for existing RELs; missing/conflicting iden
 ## Retained normalization limits
 
 The exact-fixture normalizer/private hooks and all promotion siblings are deleted. All three authoritative corpora passed native preservation and C10 acceptance; their before/after hashes and complete proof archive remain in the dated verification record. Arbitrary legacy conversion is unsupported.
+
+Relationship ordinary writes, accepted-history reconciliation, reclamation and authenticated REL/PHY summary pruning now use compact creation/delta history. The temporary private converter includes Relationship histories; complete corpus promotion and retirement of legacy runtime readers remain pending. Pre-pruned V1 maintenance authority is still explicitly unsupported by the converter rather than copied across changed carrier identities.
