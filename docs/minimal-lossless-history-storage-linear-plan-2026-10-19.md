@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 87/266 original execution steps complete; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Next: original Step 88. Runtime retirement remains pending.
+Status: 87/266 original execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Step 88 helper extraction is committed (`bafdaae`) but its acceptance remains to be reconciled. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete R1–R22 after V2 domain migration and before final acceptance. V1 compatibility is temporary migration-only, not permanent runtime support. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 

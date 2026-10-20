@@ -15,7 +15,8 @@
 - [Semantic import, pruning and history rewrite — baseline evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) — ongoing baseline fixture hashes, Arcana snapshot limits, source dependency audit and planned focused checks.
 - [Development-format compatibility retirement audit (2026-10-19)](development-format-compatibility-retirement-audit-2026-10-19.md) — canonical-format policy, confirmed legacy authoritative fixture inventory, and outstanding migration/retirement gates.
 - [Development format hard cut — interruption specification](development-format-hard-cut-interruption-spec-2026-10-19.md) — canonical runtime-only format lifecycle, migration and legacy-retirement acceptance.
-- [Minimal lossless history storage — format-policy amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) — I1–I12 interruption gates, original Step 87 resume point and final R1–R22 retirement gates.
+- [Minimal lossless history storage — format-policy amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) — completed I1–I12 interruption, verified Step 87 and final R1–R22 retirement gates.
+- [Minimal lossless history storage — rebased freeze and handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md) — current checkpoint after continued compact-history work, Step 88 acceptance boundary and updated resumption order.
 
 - [Operator and integration manual](manual/INDEX.md) — task-oriented workflows for users, operators, and product integrators.
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.

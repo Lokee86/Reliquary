@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 Specification: [Development format hard cut](development-format-hard-cut-interruption-spec-2026-10-19.md).
 Prior plan: [Minimal lossless history storage](minimal-lossless-history-storage-linear-plan-2026-10-19.md).
 
-Status: **I1–I12 complete; original Step 87 may resume. Runtime retirement not implemented.** Frozen source baseline: `39eea4a`. Steps 1–87 of the original plan are accepted; Step 88 is next and every later unrecorded step remains pending. This amendment overrides any V1 compatibility-retention language in the original plan/spec. See [interruption execution evidence](development-format-interruption-execution-2026-10-19.md).
+Status: **I1–I12 complete; original Step 87 accepted; Step 88 implementation committed, acceptance not yet recorded. Runtime retirement R1–R22 not implemented.** Original source freeze: `39eea4a`; current rebased operational checkpoint: `bafdaae` (see [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md)). Steps 1–87 of the original plan are accepted; Step 88 is the next acceptance gate. This amendment overrides any V1 compatibility-retention language in the original plan/spec. See [interruption execution evidence](development-format-interruption-execution-2026-10-19.md).
 
 ## Purpose
 
