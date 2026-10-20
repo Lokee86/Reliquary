@@ -725,7 +725,10 @@ unmarked carriers remain inert, including empty batches and absent ordinals;
 an empty published transaction is invalid. Published compact carriers require
 V2.0. The existing marker ordering, uniqueness and clock checks still apply.
 Source-owner readers resolve ordinals before reconciling stable IDs into another
-owner's mapping scope.
+owner's mapping scope. Completed-import authority comparison uses the Graph owner's
+canonical stable-ID evidence, preserving single/batch shape and mutation order.
+That full-ID serialization is comparison evidence in memory; ordinary persisted
+writes continue to use compact carriers.
 
 Prune history proofs bind accepted compact carriers to their resolved stable
 endpoints using a Graph-owned SHA-256 digest of the domain tag

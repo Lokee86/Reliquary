@@ -173,7 +173,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 owner_evidence.push(publication.normalized_import_evidence()?);
             }
             if let Some(version) = crate::graph_codec::decode_version(&payload)? {
-                owner_evidence.push(cva.container.read(version.mutation)?);
+                owner_evidence.push(canonical_graph_publication(cva, version)?);
             }
             if let Some(mut snapshot) =
                 crate::community_codec::decode_snapshot(&payload).map_err(crate::CvaError::from)?
@@ -397,6 +397,14 @@ fn canonical_memory_publication(
     }
     // Terminal publications retain their independent tombstone evidence.
     Ok(cva.container.read(version.record)?)
+}
+
+fn canonical_graph_publication(
+    cva: &mut Cva,
+    version: crate::graph_codec::GraphVersionPayload,
+) -> Result<Vec<u8>, CvaReconcileError> {
+    let bytes = cva.container.read(version.mutation)?;
+    Ok(cva.graph.normalized_import_evidence(&bytes)?)
 }
 
 pub(super) fn unsupported(reason: &'static str) -> CvaReconcileError {

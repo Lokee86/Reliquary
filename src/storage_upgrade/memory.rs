@@ -8,28 +8,35 @@ pub(super) fn transform(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, false, false, false)
+    transform_owners(source, destination, false, false, false, false)
 }
 
 pub(super) fn transform_with_entities(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, false, false)
+    transform_owners(source, destination, true, false, false, false)
 }
 
 pub(super) fn transform_with_relationships(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, true, false)
+    transform_owners(source, destination, true, true, false, false)
 }
 
 pub(super) fn transform_with_ego(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, true, true)
+    transform_owners(source, destination, true, true, true, false)
+}
+
+pub(super) fn transform_with_graph(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(source, destination, true, true, true, true)
 }
 
 fn transform_owners(
@@ -38,6 +45,7 @@ fn transform_owners(
     migrate_entities: bool,
     migrate_relationships: bool,
     migrate_ego: bool,
+    migrate_graph: bool,
 ) -> Result<(), StorageUpgradeError> {
     let normalizations = if source
         .identity()
@@ -91,6 +99,11 @@ fn transform_owners(
     } else {
         BTreeMap::new()
     };
+    let graph_carriers = if migrate_graph {
+        super::graph::prepare(source)?
+    } else {
+        BTreeMap::new()
+    };
     let mut preceding = HashMap::new();
     let mut encoded = BTreeMap::new();
     for record in memories.records() {
@@ -117,6 +130,8 @@ fn transform_owners(
             relationship.clone()
         } else if let Some(ego) = ego_carriers.get(&object) {
             ego.clone()
+        } else if let Some(graph) = graph_carriers.get(&object) {
+            graph.clone()
         } else if crate::imports::legacy_epoch::decode(payload)?.is_some() {
             let length = destination.backing_file().metadata()?.len();
             let hex = crate::imports::hash_file_prefix(destination.path(), length)?;

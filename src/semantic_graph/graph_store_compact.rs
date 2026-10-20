@@ -5,6 +5,23 @@ use crate::graph_codec::{GraphMutationPayload, decode_batch, decode_mutation};
 use crate::graph_compact_contract::GraphOrdinalMutation;
 
 impl GraphStore {
+    /// Stable full-ID evidence for import comparison, never a persisted writer.
+    /// Preserve single/batch shape and mutation order while removing ordinal scope.
+    pub(crate) fn normalized_import_evidence(&self, bytes: &[u8]) -> Result<Vec<u8>, GraphError> {
+        let values = self
+            .decode_stored_mutations(bytes)?
+            .ok_or(GraphError::InvalidGraphVersion)?;
+        let single = bytes.starts_with(b"CVAGCM01") || decode_mutation(bytes)?.is_some();
+        if single {
+            if values.len() != 1 {
+                return Err(GraphError::InvalidGraphVersion);
+            }
+            Ok(crate::graph_codec::encode_mutation(values[0]))
+        } else {
+            Ok(crate::graph_codec::encode_batch(&values))
+        }
+    }
+
     /// Bind compact publications to stable endpoint identities, independently
     /// of this owner's ordinal assignment. Legacy carrier digests stay exact.
     pub(crate) fn compact_carrier_digest(

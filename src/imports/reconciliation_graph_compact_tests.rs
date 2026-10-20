@@ -273,3 +273,84 @@ fn replay_interval_classifier_accepts_valid_compact_graph_and_fails_closed_on_ba
         );
     }
 }
+
+fn last_graph_evidence(path: &std::path::Path) -> (Vec<u8>, Vec<u8>) {
+    let mut owner = Cva::open(path).unwrap();
+    let mut last = None;
+    for object in owner.container.chunks().unwrap() {
+        if let Some(version) =
+            crate::graph_codec::decode_version(&owner.container.read(object).unwrap()).unwrap()
+        {
+            last = Some(version);
+        }
+    }
+    let version = last.unwrap();
+    let raw = owner.container.read(version.mutation).unwrap();
+    (
+        raw,
+        super::canonical_graph_publication(&mut owner, version).unwrap(),
+    )
+}
+
+#[test]
+fn completed_import_graph_evidence_is_stable_across_wire_formats_and_independent_mapping_scopes() {
+    let scratch = Scratch::new();
+    let base_path = scratch.file("evidence-base.rel");
+    let mut base = Cva::create(&base_path).unwrap();
+    let (a, b) = publish_pair(&mut base, ("evidence-a", "evidence-b"));
+    base.sync().unwrap();
+    drop(base);
+    let left_path = scratch.file("evidence-left.rel");
+    let right_path = scratch.file("evidence-right.rel");
+    let legacy_path = scratch.file("evidence-legacy.rel");
+    for path in [&left_path, &right_path, &legacy_path] {
+        fs::copy(&base_path, path).unwrap();
+    }
+    for (path, reverse, legacy) in [
+        (&left_path, false, false),
+        (&right_path, true, false),
+        (&legacy_path, false, true),
+    ] {
+        let mut owner = Cva::open(path).unwrap();
+        let (from, to) = if reverse { (b, a) } else { (a, b) };
+        owner
+            .set_memory_relation_with_origin(
+                from,
+                to,
+                GraphRelationKind::Factual,
+                true,
+                GraphRelationOrigin::User,
+                0,
+            )
+            .unwrap();
+        if legacy {
+            append_legacy(&mut owner, 2, a, b);
+        } else {
+            append_compact(&mut owner, 2, a, b);
+        }
+        owner.sync().unwrap();
+    }
+    let (left_raw, left) = last_graph_evidence(&left_path);
+    let (right_raw, right) = last_graph_evidence(&right_path);
+    let (legacy_raw, legacy) = last_graph_evidence(&legacy_path);
+    assert_ne!(
+        left_raw, right_raw,
+        "same stable edge uses source-local ordinals"
+    );
+    assert_ne!(left_raw, legacy_raw, "carrier formats differ");
+    assert_eq!(left, right);
+    assert_eq!(left, legacy);
+    let mut owner = Cva::open(&right_path).unwrap();
+    append_compact(&mut owner, 3, b, a);
+    owner.sync().unwrap();
+    drop(owner);
+    let (collision_raw, collision) = last_graph_evidence(&right_path);
+    assert_eq!(
+        left_raw, collision_raw,
+        "identical wire ordinals can name different stable edges"
+    );
+    assert_ne!(
+        left, collision,
+        "import authority must bind stable endpoints"
+    );
+}

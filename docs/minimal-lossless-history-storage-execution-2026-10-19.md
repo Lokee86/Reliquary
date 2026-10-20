@@ -1261,4 +1261,25 @@ Architecture impact:
 - Other verification impact: 240 adjacent compact regressions and library compilation pass; next verify the private V1 converter and measured output.
 - Known architectural gaps: broader integration/source refresh, canonical corpus promotion and runtime/converter retirement remain pending.
 
-The ledger accepts **153/294** numbered steps; the next numbered gate is **154**.
+The ledger accepted **153/294** numbered steps at that checkpoint; the following review and discovery records supersede its count.
+
+## Graph conversion, byte evidence and renewed import comparison
+
+The private `stage_graph_storage_upgrade` composes the prior Memory/Entity/Relationship/Ego adapters and translates accepted Graph marker-linked carriers through the validated source Graph owner. It preserves single/batch shape, original per-mutation order and origins, repeated raw no-op publications, mapping bytes, original markers/global tickets and transaction times. It allocates no semantic publication and leaves unmarked backing inert. Genuine malformed V1 source histories reject without source changes, final output or staging debris. The adapter and migration-only tests are explicitly in the temporary T7 removal scope.
+
+Three upgrade tests pass, including all six pinned authoritative V1 files (`.test-tmp/graph-upgrade-focused.log`, 160.89 seconds). Every accepted marker's coordinates and ordered stable-ID mutations, mapping bytes, Graph/MemoryGraph heads, current projection and all global transaction times compare exactly. Deterministic replay proves every prefix cut equal; the nonempty synthetic REL/PHY fixtures also compare every Graph/MemoryGraph cut fingerprint explicitly. All six source bytes, hashes, lengths and mtimes remain unchanged. Disposable staged files are not corpus promotion.
+
+Actual [Graph storage measurement](../benchmarks/graph-history-storage-2026-10-20.json):
+- 46,075 accepted publications; 98,411 Graph records before and after.
+- Published carrier payloads: 5,443,274 → 1,346,932 bytes.
+- All Graph payloads, including mappings/format/links: 7,562,328 → 3,465,986 bytes.
+- Container-framed Graph bytes: 8,349,616 → 4,253,274 bytes.
+- Actual saving: **4,096,342 bytes**, without compression or a second dictionary.
+- Existing mapping payloads remain exactly **275,982 bytes**. Domain totals exclude owner file headers and do not attribute other owners' migration savings to Graph.
+- Independent inventory totals agree with the before-conversion measurement.
+
+Final reader review reopened Step 147: completed-epoch coordinate extraction was converted, but `inventory` still compared raw Graph carrier bytes as owner evidence. The supplement now resolves stable IDs through Graph and emits canonical comparison evidence, preserving shape/order. A regression proves legacy/compact and opposite mapping assignments compare equally for the same edge, while identical raw ordinal bytes representing different stable edges compare differently. The full library suite passes **1,831 tests, zero failures, five existing opt-in ignores**, including that regression (`.test-tmp/graph-full-tests.log`). Root integration suites and remaining current-source checks are still completing. An overlapping targeted build briefly hit Windows executable locking; its retry uses the separate fixture-enabled test binary, and no production guard was changed.
+
+## Freshness authority discovery — separate pending gate
+
+Read-only Freshness review found an additional comparison responsibility: a completed settlement's accepted-event map can omit or name an event outside the physical import interval, while the old reconciliation comparison only checked normalized interval events. New Step **163** will compare the settlement's canonical accepted event identities and immutable causal evidence through the existing Freshness owner, using the established turn/Graph-proof coordinate normalization. Raw event payload digests cannot be compared directly because rebasing legitimately changes those coordinates. Former pending Steps 163–294 become **164–295**; Steps 1–162 retain their identities. This is an explicit owner-specific implementation gate before the previously planned regression-only row. No Freshness implementation acceptance or second effect codec is claimed here.

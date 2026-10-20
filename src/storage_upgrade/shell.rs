@@ -122,12 +122,19 @@ pub(crate) fn stage_ego_storage_upgrade(
     )
 }
 
+pub(crate) fn stage_graph_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), OwnerMigration::ThroughGraph)
+}
+
 enum OwnerMigration {
     None,
     Memory,
     MemoryAndEntity,
     MemoryEntityAndRelationship,
     MemoryEntityRelationshipAndEgo,
+    ThroughGraph,
 }
 
 // The callback is a bounded test seam for aborts and concurrent source/output
@@ -184,6 +191,9 @@ fn stage_impl(
         }
         OwnerMigration::MemoryEntityRelationshipAndEgo => {
             super::memory::transform_with_ego(&mut source, &mut destination)?
+        }
+        OwnerMigration::ThroughGraph => {
+            super::memory::transform_with_graph(&mut source, &mut destination)?
         }
         OwnerMigration::None => {
             source.copy_upgrade_shell_frames(&mut destination)?;
