@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 172/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; next Step 173. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 177/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; next Step 178. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1920,3 +1920,38 @@ Files: `src/memory/memory_publication_replay_tests.rs`; existing grouped and his
 Verification: Every local cut of marker/envelope REL/PHY fixtures agrees, including reverse-global records, exact optional times and terminal state. Real grouped Insomnia plus envelope REL compares every local/global cut and timestamp. All seven focused replay/history tests, six external grouped publication regressions and fourteen Insomnia completion tests pass; existing grouped whole-owner/interior-cut cases pass in the 278-test adjacent run.
 Blockers: none for this historical gate; downstream consumers/writers/conversion and final integration remain pending.
 
+
+### Step 173 execution record
+
+Commit: `53e603e`.
+Files: `src/facade/cva_reconcile_memory.rs; src/imports/reconciliation{,_interval,_memory_envelope_tests,_freshness_authority_tests}.rs; Memory publication coordinate helper.`
+Verification: Five focused cases and fifty adjacent reconciliation tests pass. Direct interval replay and divergent reconciliation retain source times; real completed-import evidence includes an envelope revision; strict malformed/foreign body rejection passes. Deferred reserved bindings are captured at their physical publication interval. Terminal replay retains its preexisting unsupported revision-API restriction.
+Blockers: none for this numbered gate; offline Memory envelope conversion, later owner framing, Integration Gate E/source refresh and final promotion/retirement remain pending.
+
+### Step 174 execution record
+
+Commit: `53e603e`.
+Files: `src/facade/history_prune_manifest.rs; src/memory/memory_publication_codec.rs; memory_publication_prune_tests.rs.`
+Verification: Canonical comparison-only marker/carrier evidence agrees at every global watermark with reverse-global legacy marker history. Actual REL/PHY native prune outputs reopen, removed Memory bodies resolve as unavailable, and a valid creation mutation-ID change rejects the authenticated output. Source bytes remain unchanged.
+Blockers: none for this numbered gate; offline Memory envelope conversion, later owner framing, Integration Gate E/source refresh and final promotion/retirement remain pending.
+
+### Step 175 execution record
+
+Commit: `53e603e`.
+Files: `src/facade/storage_reclamation{,_scan,_memory_publication_tests}.rs.`
+Verification: Actual REL/PHY reclamation retains creation/delta/terminal authority and hydrated historical bodies, exact records/times and byte-identical envelopes. One inert orphan carrier/body is reclaimed without source changes. Strict malformed and unsupported owner envelope bodies reject; existing marker reference relocation remains supported.
+Blockers: none for this numbered gate; offline Memory envelope conversion, later owner framing, Integration Gate E/source refresh and final promotion/retirement remain pending.
+
+### Step 176 execution record
+
+Commit: `53e603e`.
+Files: `src/memory/memory_publication_copy_tests.rs; existing history rewrite, native maintenance and migration suites.`
+Verification: Native REL attachment repack preserves all Memory-local fingerprints/current membership, revision payloads and global times. REL/PHY current-selection semantic rewrites retain the selected identity/body semantics; ownerless PHY migration retains live envelope revisions and source times. Existing AllRetained rewrite contracts and native REL/PHY maintenance paths pass in the complete root run; intentional fresh-history coordinate remapping is not claimed as source-history preservation.
+Blockers: none for this numbered gate; offline Memory envelope conversion, later owner framing, Integration Gate E/source refresh and final promotion/retirement remain pending.
+
+### Step 177 execution record
+
+Commit: `53e603e`.
+Files: `src/memory/memory_store.rs; memory_publication_writer_tests.rs; compact writer/maintenance tests; explicit legacy terminal/completion fixtures.`
+Verification: Direct creation/delta/terminal publication emits one allocation envelope with no separate ticket/MemoryVersion/001 carrier. Exact mutation and terminal retries consume no bytes or clocks. Actual REL/PHY reopen and every incomplete final-envelope frame prefix pass. Complete root run: 2,045 passed, zero failures, five existing ignores; root/CLI format/check, 32 CLI tests and both documentation modes pass.
+Blockers: none for this numbered gate; offline Memory envelope conversion, later owner framing, Integration Gate E/source refresh and final promotion/retirement remain pending.
