@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Resumed after Step 86 (86/266 original steps); compatibility-policy interruption I1–I12 complete. Frozen checkpoint: `39eea4a`. Next: original Step 87. Runtime retirement remains pending.
+Status: 87/266 original execution steps complete; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Next: original Step 88. Runtime retirement remains pending.
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete R1–R22 after V2 domain migration and before final acceptance. V1 compatibility is temporary migration-only, not permanent runtime support. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -741,8 +741,15 @@ Blockers: none for proof-equivalence handling.
 
 Commit: `9996c28`.
 Files: `src/facade/historical_import_legacy_epoch_tests.rs`; `src/facade/historical_import_legacy_epoch_version_tests.rs`.
-Verification: Migrated-owner reclaim, attachment/principal repack and prune preserve receipts, clocks and proof validation after earlier payloads are removed or changed; legacy-epoch suite **6/6**.
+Verification: Migrated-owner reclaim, attachment repack and prune preserve receipts, clocks and proof validation after earlier payloads are removed or changed; legacy-epoch suite **6/6**. Principal repack uses the same import-owned rebinding helper and is covered by the broader maintenance suite.
 Blockers: none for the covered maintenance regression.
+
+### Step 87 execution record
+
+Commit: implementation `9996c28`; measurement artifact `c69f279`; policy interruption `fd61a1e`.
+Files: `src/storage_upgrade/memory_authoritative_tests.rs`; `benchmarks/lossless-memory-migration-step87-2026-10-19.json`.
+Verification: All six authoritative V1 sources pass every Memory cut/revision fingerprint, terminal state, transaction time and unchanged-source assertion; **zero mismatches**, optimized test **1/1**, 2288.21 seconds. Raw Memory carriers decrease by **1,146,938 bytes** in aggregate. Whole files increase by **6,269,151 bytes** because this temporary bridge retains old import proofs and adds semantic successors; per-file signed deltas are recorded without compression. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-87-and-integration-gate-c).
+Blockers: none for Memory measurement; canonical whole-corpus migration and reader retirement remain gated by R1–R22.
 
 ## Phase F — Memory Writer Cutover and Migration
 
@@ -784,6 +791,8 @@ Blockers: none for the covered maintenance regression.
 ### Integration Gate C — Memory reference owner
 
 Run Memory lifecycle/history, Insomnia, external publication, imports, rewrite/prune/reclaim interaction, reconciliation, and historical-oracle suites.
+
+Accepted for implementation `9996c28`: root library/integration **1,800 passed / 0 failed / 5 existing ignores across 25 binaries**; final CLI **32/32**; compact Memory **38/38**; legacy proof/normalization/maintenance **6/6**; six authoritative Memory histories **zero mismatches**. Fresh Lexicon/Arcana/Pitlord enforcement passes **23 rules**. Policy interruption I1–I12 is complete. This gate does not accept canonical corpus promotion or runtime retirement.
 
 ---
 

@@ -434,4 +434,16 @@ Accepted against commit `9996c28`. The ledger now records every execution step f
 
 Step 87 remains unaccepted: the completed six-file parity and raw-byte measurement, with the required six-file report, is still pending. The first authoritative REL/PHY outputs above establish only the cases named; they are not generalized into a whole-file savings claim.
 
+## Step 87 and Integration Gate C
+
+The complete authoritative run subsequently passed **1/1** in **2288.21 seconds**, with all six sources reporting **zero semantic mismatches** (`.test-tmp/lossless-memory-authoritative-optimized-serial.log`). Every Memory local cut and retained revision/body/routing fingerprint, terminal descriptor and global transaction time matches; REL import evidence and canonical Freshness cuts match. Source bytes, SHA-256, size and modification times remain unchanged.
+
+[Raw measurement artifact](../benchmarks/lossless-memory-migration-step87-2026-10-19.json), commit `c69f279`, records each raw payload family, signed whole-file delta and accepted source hash. Memory carriers shrink by **1,146,938 bytes** across six files. The three REL files grow because the temporary bridge retains old import proof and adds canonical semantic successors; the three PHY files shrink. Combined whole-file change is **+6,269,151 bytes**. No compression is involved and no whole-file savings claim is made.
+
+The intervening policy amendment was completed first: I1–I12 at `fd61a1e`, with [inventory/caller/acceptance evidence](development-format-interruption-execution-2026-10-19.md). That work changed no runtime code or corpus bytes. This Memory-only bridge is not final canonical V2 corpus promotion; R1–R22 remain mandatory.
+
+Gate C is accepted against `9996c28`: full root **1,800 passed, zero failures, five existing ignores across 25 binaries**; compact Memory **38/38**; legacy proof/versions/maintenance **6/6**; final CLI format/check and **32/32 tests** (`.test-tmp/lossless-memory-cli-final-check.log`, `.test-tmp/lossless-memory-cli-final-tests.log`); complete authoritative run above. Fresh architecture enforcement passes all **23 rules**, **91,587 source nodes**, **3,079 relationships**, snapshot `83e12942f18deb03747af6995bab271892f420c07e31629418eb1da560c95706`. The previous architecture freshness gap is closed.
+
+Documentation impact: inspected and updated plan, execution, architecture, development, storage format, policy amendment and ADR 0041; both documentation modes pass for the interruption. No API/manual runtime behavior changed. Architecture impact: no new source ownership or runtime coupling in the interruption/measurement records; temporary migration seams remain tagged for mandatory post-promotion removal. Next original step is 88.
+
 Fresh architecture evidence subsequently completed successfully with `python scripts/check_architecture.py --refresh` (`.test-tmp/lossless-memory-architecture-refresh-final.log`). Lexicon snapshot `sha256:83e12942f18deb03747af6995bab271892f420c07e31629418eb1da560c95706` was synchronized into Arcana without compatibility warnings. All **23** Pitlord rules pass against **91,587 source nodes and 3,079 relationships**, along with the ownership guards. This closes the earlier architecture freshness gap for implementation `9996c28`; the authoritative measurement gate remains pending.
