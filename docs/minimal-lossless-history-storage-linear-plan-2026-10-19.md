@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 92/271 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; next Step 93. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 95/271 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild Steps 93–95 against `ace0a33`; next Step 96. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -785,6 +785,27 @@ Commit: `3cc6631`.
 Files: `src/perception/entity_compact_contract.rs`; `entity_compact_contract_tests.rs`; `entity_legacy_admission_tests.rs`; field-validation visibility; specification.
 Verification: Actual V1 REL/PHY characterization **2/2**; pure owner contract **11/11**; broad Entity regressions **187/187**; root format/check and both documentation-policy modes pass. Contract preserves optional UUID changes, exact values, legal late tickets and six explicit mutable bits. Pruning evidence is explicit; file-level authorization is reserved for Step 101 before writer/migration cutover. Terminals remain separate.
 Blockers: none for the representation contract; codecs, replay and authenticated file-level proof admission remain pending.
+
+### Step 93 execution record
+
+Commit: `ace0a33`.
+Files: `src/perception/entity_compact_codec.rs`; `entity_compact_values.rs`; `entity_compact_codec_tests.rs`.
+Verification: Independent golden creation framing, exact optional identity and signed timestamps, explicit prune evidence, checksums, truncation, tags, UTF-8, lengths/counts and trailing-byte rejection pass within the **220/220** Entity regression sweep (`.test-tmp/lossless-entity-codec-replay-import-regressions.log`). Root format/check pass. Six-byte CVAENC family avoids the existing Echo namespace; the Echo migration regression passes.
+Blockers: none for the creation codec; file-level proof authentication is a later gate.
+
+### Step 94 execution record
+
+Commit: `ace0a33`.
+Files: `src/perception/entity_compact_codec.rs`; `entity_compact_values.rs`; `entity_compact_codec_tests.rs`.
+Verification: Independent golden delta, all 64 mutable-field masks, optional UUID transitions, empty mask, nonzero publication coordinates, unknown mask/version and checksummed corruption cases pass in the same **220/220** run. Independent Luna framing review found no material defect. Candidate-dependent semantic validation remains in owner application.
+Blockers: none for delta framing.
+
+### Step 95 execution record
+
+Commit: `ace0a33`.
+Files: `src/perception/entity_compact_apply.rs`; `entity_compact_apply_tests.rs`; `entity_rebuild.rs`; `entity_compact_rebuild_tests.rs`; owner lifecycle callers and replay lookup.
+Verification: Canonical candidate re-derivation, all 64 field combinations, UUID clear/replace, interleaved Entity IDs, retained historical revisions, legal earlier global tickets, marker-coordinate mismatch, missing base, redundant Set, mutation conflict and terminal no-resurrection pass in **220/220**. Published compact carriers reject under V1; unpublished valid carriers remain inert. Existing REL/PHY legacy behavior remains covered.
+Blockers: none for ordinary compact reconstruction; proof-bearing admission requires Step 101 and is not certified by this record.
 
 ## Phase F — Memory Writer Cutover and Migration
 
