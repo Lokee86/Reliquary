@@ -1,7 +1,8 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: Implementation-ready; 86/266 execution steps complete
+Status: PAUSED after Step 86 (86/266 original steps); compatibility-policy correction specified, not implemented. Frozen checkpoint: `39eea4a`. Original Step 87 is pending.
+Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete R1–R22 after V2 domain migration and before final acceptance. V1 compatibility is temporary migration-only, not permanent runtime support. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
 ## Overview
