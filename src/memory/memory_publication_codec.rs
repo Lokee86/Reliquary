@@ -132,6 +132,63 @@ pub(crate) fn decode(
     }))
 }
 
+/// Canonical source-history evidence shared with the existing marker-bound form.
+/// This reconstructs comparison bytes only; it does not persist an old carrier.
+pub(crate) fn history_evidence(
+    payload: &[u8],
+) -> Result<Option<(u64, Vec<u8>, Vec<u8>)>, MemoryError> {
+    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+        return Ok(None);
+    };
+    let Some(publication) = decode(envelope.body, envelope.global_version)? else {
+        return Ok(None);
+    };
+    let (local, carrier) = match publication {
+        MemoryPublication::Creation(creation) => (
+            creation.record.memory_version,
+            super::encode_creation(&creation)?,
+        ),
+        MemoryPublication::Delta(delta) => (delta.memory_version, super::encode_delta(&delta)?),
+        MemoryPublication::Tombstone {
+            id,
+            revision,
+            memory_version,
+        } => (
+            memory_version,
+            crate::memory_codec::encode_tombstone(crate::memory_codec::MemoryTombstone {
+                id,
+                revision,
+            }),
+        ),
+    };
+    let marker = crate::memory_codec::encode_version(crate::memory_codec::MemoryVersion {
+        global_version: envelope.global_version,
+        memory_version: local,
+        record: crate::ObjectRef::from_legacy_bytes([0; 16]),
+    });
+    Ok(Some((envelope.global_version, marker, carrier)))
+}
+
+/// Inspect this owner's direct publication coordinates, never inert carriers.
+/// Callers resolving accepted facts must still consult the admitted Memory owner.
+pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, MemoryError> {
+    if let Some(version) = crate::memory_codec::decode_version(payload)? {
+        return Ok(Some((version.global_version, version.memory_version)));
+    }
+    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+        return Ok(None);
+    };
+    let Some(publication) = decode(envelope.body, envelope.global_version)? else {
+        return Ok(None);
+    };
+    let local = match publication {
+        MemoryPublication::Creation(creation) => creation.record.memory_version,
+        MemoryPublication::Delta(delta) => delta.memory_version,
+        MemoryPublication::Tombstone { memory_version, .. } => memory_version,
+    };
+    Ok(Some((envelope.global_version, local)))
+}
+
 fn validate_terminal(revision: u64, memory_version: u64) -> Result<(), MemoryError> {
     if revision == 0 || memory_version == 0 {
         return Err(MemoryError::InvalidVersion);

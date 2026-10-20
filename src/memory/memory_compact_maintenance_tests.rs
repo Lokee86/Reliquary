@@ -1,6 +1,6 @@
-use crate::memory_codec::decode_tombstone;
 use crate::memory_codec::encode_body;
-use crate::memory_compact_codec::{decode_creation, decode_delta, encode_creation, encode_delta};
+use crate::memory_compact_codec::publication::{self, MemoryPublication};
+use crate::memory_compact_codec::{encode_creation, encode_delta};
 use crate::memory_compact_contract::{MemoryCreation, MemoryDelta};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id};
 use crate::owner_lifecycle::{LifecycleState, TombstoneOutcome};
@@ -73,35 +73,54 @@ fn payloads(path: &Path) -> Vec<Vec<u8>> {
 
 fn assert_compact_memory_payloads(path: &Path, records: &[MemoryRecord]) {
     let payloads = payloads(path);
-    let creations: Vec<_> = payloads
+    let publications: Vec<_> = payloads
         .iter()
-        .filter(|payload| payload.starts_with(b"CVAMC001"))
+        .filter_map(|payload| {
+            let envelope = crate::container::publication_envelope::decode(payload).unwrap()?;
+            publication::decode(envelope.body, envelope.global_version).unwrap()
+        })
         .collect();
-    let deltas: Vec<_> = payloads
+    assert_eq!(publications.len(), 3);
+    let creations: Vec<_> = publications
         .iter()
-        .filter(|payload| payload.starts_with(b"CVAMD001"))
+        .filter_map(|publication| match publication {
+            MemoryPublication::Creation(creation) => Some(creation),
+            _ => None,
+        })
+        .collect();
+    let deltas: Vec<_> = publications
+        .iter()
+        .filter_map(|publication| match publication {
+            MemoryPublication::Delta(delta) => Some(delta),
+            _ => None,
+        })
+        .collect();
+    let tombstones: Vec<_> = publications
+        .iter()
+        .filter_map(|publication| match publication {
+            MemoryPublication::Tombstone {
+                id,
+                revision,
+                memory_version,
+            } => Some((*id, *revision, *memory_version)),
+            _ => None,
+        })
         .collect();
     assert_eq!(creations.len(), 1);
     assert_eq!(deltas.len(), 1);
-    assert_eq!(decode_creation(creations[0]).unwrap().record, records[0]);
-    assert_eq!(decode_delta(deltas[0]).unwrap().id, records[1].id);
+    assert_eq!(tombstones.len(), 1);
+    assert_eq!(creations[0].record, records[0]);
+    assert_eq!(deltas[0].id, records[1].id);
+    assert_eq!(deltas[0].revision, records[1].revision);
+    assert_eq!(deltas[0].global_version, records[1].global_version);
+    assert_eq!(deltas[0].memory_version, records[1].memory_version);
     assert_eq!(
-        decode_delta(deltas[0]).unwrap().revision,
-        records[1].revision
-    );
-    assert_eq!(
-        payloads
-            .iter()
-            .filter(|payload| payload.starts_with(b"CVAMEMV1"))
-            .count(),
-        3
-    );
-    assert_eq!(
-        payloads
-            .iter()
-            .filter(|payload| decode_tombstone(payload).unwrap().is_some())
-            .count(),
-        1
+        tombstones[0],
+        (
+            records[0].id,
+            records.last().unwrap().revision + 1,
+            records.last().unwrap().memory_version + 1,
+        )
     );
 }
 

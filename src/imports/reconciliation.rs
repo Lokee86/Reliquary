@@ -8,6 +8,9 @@ mod freshness_authority_tests;
 #[cfg(test)]
 #[path = "reconciliation_graph_compact_tests.rs"]
 mod graph_compact_tests;
+#[cfg(test)]
+#[path = "reconciliation_memory_envelope_tests.rs"]
+mod memory_envelope_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
 use crate::cva_reconcile::{CvaComparison, CvaReconcileResult};
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
@@ -169,8 +172,10 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 // including unrelated records not named by the import receipt.
                 archive_records.push(cva.container.read(version.record)?);
             }
-            if let Some(version) = crate::memory_codec::decode_version(&payload)? {
-                owner_evidence.push(canonical_memory_publication(cva, version)?);
+            if let Some((global, local)) =
+                crate::memory_compact_codec::publication::coordinates(&payload)?
+            {
+                owner_evidence.push(canonical_memory_publication(cva, global, local, &payload)?);
             }
             if let Some(version) = crate::entity_codec::decode_version(&payload)? {
                 let publication = cva
@@ -341,7 +346,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::memory_codec::decode_body(&payload)?.is_some()
             || crate::memory_codec::decode_record(&payload)?.is_some()
             || crate::memory_compact_codec::is_compact_record(&payload)?
-            || crate::memory_codec::decode_version(&payload)?.is_some()
+            || crate::memory_compact_codec::publication::coordinates(&payload)?.is_some()
             || crate::memory_routing_codec::decode(&payload)?.is_some()
             || crate::entity_codec::decode_record(&payload)?.is_some()
             || crate::entity_compact_codec::is_compact_record(&payload)?
@@ -401,21 +406,37 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
 
 fn canonical_memory_publication(
     cva: &mut Cva,
-    version: crate::memory_codec::MemoryVersion,
+    global_version: u64,
+    memory_version: u64,
+    payload: &[u8],
 ) -> Result<Vec<u8>, CvaReconcileError> {
     if let Some(record) = cva
         .memories
-        .record_at_publication(version.global_version, version.memory_version)
+        .record_at_publication(global_version, memory_version)
     {
         let mut normalized = record.clone();
         normalized.global_version = 0;
         normalized.memory_version = 0;
-        // This is the established semantic evidence representation, never a
-        // second persisted Memory history carrier or an ordinary legacy write.
+        // Established semantic comparison evidence, never a persisted carrier.
         return Ok(crate::memory_codec::encode_record(&normalized)?);
     }
-    // Terminal publications retain their independent tombstone evidence.
-    Ok(cva.container.read(version.record)?)
+    if let Some(version) = crate::memory_codec::decode_version(payload)? {
+        return Ok(cva.container.read(version.record)?);
+    }
+    // Compare terminal facts using the same established evidence representation.
+    let envelope = crate::container::publication_envelope::decode(payload)?
+        .ok_or(CvaReconcileError::InvalidMemoryVersionRecord)?;
+    if let Some(crate::memory_compact_codec::publication::MemoryPublication::Tombstone {
+        id,
+        revision,
+        ..
+    }) = crate::memory_compact_codec::publication::decode(envelope.body, global_version)?
+    {
+        return Ok(crate::memory_codec::encode_tombstone(
+            crate::memory_codec::MemoryTombstone { id, revision },
+        ));
+    }
+    Err(CvaReconcileError::InvalidMemoryVersionRecord)
 }
 
 fn canonical_graph_publication(

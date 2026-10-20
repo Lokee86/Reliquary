@@ -188,7 +188,7 @@ pub(super) fn replay_frame(
             .map(usize::from)
             .map_err(Into::into);
     }
-    if crate::memory_codec::decode_version(payload)?.is_some() {
+    if crate::memory_compact_codec::publication::coordinates(payload)?.is_some() {
         let memory = crate::cva_reconcile_memory::read_memory_range(source, index, index + 1)?;
         let result = crate::cva_reconcile_memory::replay_memory_tail(output, memory)?;
         coordinates.memory_revisions += result.revisions;

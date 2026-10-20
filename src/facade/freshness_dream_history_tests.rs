@@ -17,7 +17,12 @@ fn freshness_direct_birth_gap_rebuilds_without_append_or_anchor_reset() {
         .chunks()
         .unwrap()
         .into_iter()
-        .find(|chunk| rel.container.read(*chunk).unwrap().starts_with(b"CVAMEMV1"))
+        .find(|chunk| {
+            let payload = rel.container.read(*chunk).unwrap();
+            crate::memory_compact_codec::publication::coordinates(&payload)
+                .unwrap()
+                .is_some()
+        })
         .unwrap();
     let end = chunk.legacy_offset() + 8 + chunk.legacy_len();
     drop(rel);

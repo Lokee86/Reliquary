@@ -394,6 +394,64 @@ pub(crate) fn copy_with_legacy_v6_completion(cva: &mut Cva, path: &Path) {
                 completion_count += 1;
                 let decoded = decode_completion(payload).unwrap().unwrap();
                 legacy_payload(6, &decoded)
+            } else if let Some(envelope) =
+                crate::container::publication_envelope::decode(payload).unwrap()
+            {
+                use crate::container::publication_envelope::PublicationClock;
+                use crate::memory_compact_codec::publication::{self, MemoryPublication};
+                let publication = publication::decode(envelope.body, envelope.global_version)
+                    .unwrap()
+                    .expect("fixture has a Memory envelope");
+                if let PublicationClock::Allocate {
+                    transaction_time_ns,
+                } = envelope.clock
+                {
+                    // Explicit V1 fixture construction: restore the standalone
+                    // reservation at this allocation slot, never reheader V2 bytes.
+                    let mut ticket = if transaction_time_ns.is_some() {
+                        b"CVAVERS2".to_vec()
+                    } else {
+                        b"CVAVERS1".to_vec()
+                    };
+                    ticket.extend_from_slice(&envelope.global_version.to_le_bytes());
+                    if let Some(time) = transaction_time_ns {
+                        ticket.extend_from_slice(&time.to_le_bytes());
+                    }
+                    copied.append(&ticket)?;
+                }
+                let (local, carrier) = match publication {
+                    MemoryPublication::Creation(creation) => (
+                        creation.record.memory_version,
+                        encode_record(&creation.record).unwrap(),
+                    ),
+                    MemoryPublication::Delta(delta) => {
+                        let record = records
+                            .iter()
+                            .find(|record| {
+                                record.global_version == envelope.global_version
+                                    && record.memory_version == delta.memory_version
+                            })
+                            .unwrap();
+                        (delta.memory_version, encode_record(record).unwrap())
+                    }
+                    MemoryPublication::Tombstone {
+                        id,
+                        revision,
+                        memory_version,
+                    } => (
+                        memory_version,
+                        crate::memory_codec::encode_tombstone(
+                            crate::memory_codec::MemoryTombstone { id, revision },
+                        ),
+                    ),
+                };
+                let record = copied.append(&carrier)?;
+                crate::memory_codec::encode_version(crate::memory_codec::MemoryVersion {
+                    global_version: envelope.global_version,
+                    memory_version: local,
+                    record,
+                })
+                .to_vec()
             } else if payload.starts_with(b"CVAMC001") || payload.starts_with(b"CVAMD001") {
                 let coordinates = if payload.starts_with(b"CVAMC001") {
                     let record = crate::memory_compact_codec::decode_creation(payload)

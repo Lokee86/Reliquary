@@ -170,6 +170,17 @@ pub(crate) fn owner_history_digest(
         .collect::<std::collections::BTreeMap<_, _>>();
     for object in objects {
         let raw = container.read(object).map_err(|error| error.to_string())?;
+        if let Some((global, marker, carrier)) =
+            crate::memory_compact_codec::publication::history_evidence(&raw)
+                .map_err(|error| error.to_string())?
+        {
+            if global <= watermark {
+                digest_bytes(&mut hash, &marker);
+                let digest: [u8; 32] = Sha256::digest(&carrier).into();
+                digest_bytes(&mut hash, &digest);
+            }
+            continue;
+        }
         let publication = if let Some(version) =
             crate::archive_history_codec::decode_record_version(&raw)
                 .map_err(|error| error.to_string())?

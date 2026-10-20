@@ -1,7 +1,7 @@
-use crate::memory_codec::{
-    MemoryTombstone, MemoryVersion, decode_body, encode_body, encode_format, encode_tombstone,
-    encode_version,
-};
+use crate::memory_codec::{MemoryTombstone, decode_body, encode_body, encode_format};
+#[cfg(test)]
+use crate::memory_codec::{MemoryVersion, encode_version};
+use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
     Container, MAX_MEMORY_ENTITY_MENTIONS, MAX_MEMORY_ROUTING_TEXT_BYTES, Memory, MemoryBodyId,
@@ -170,19 +170,13 @@ impl MemoryStore {
                 &self.records[*index],
                 &record,
             )?;
-            crate::memory_compact_codec::encode_delta(&delta)?
+            publication::encode(&MemoryPublication::Delta(delta))?
         } else {
-            crate::memory_compact_codec::encode_creation(
-                &crate::memory_compact_contract::MemoryCreation::new(record.clone())?,
-            )?
+            publication::encode(&MemoryPublication::Creation(
+                crate::memory_compact_contract::MemoryCreation::new(record.clone())?,
+            ))?
         };
-        let record_chunk = container.append(&encoded)?;
-        let global_version = container.allocate_version()?;
-        container.append(&encode_version(MemoryVersion {
-            global_version,
-            memory_version: record.memory_version,
-            record: record_chunk,
-        }))?;
+        let (global_version, _) = container.append_publication_envelope(&encoded)?;
         record.global_version = global_version;
         self.insert(record.clone())?;
         self.next_memory_version = next_memory_version;
@@ -360,14 +354,13 @@ impl MemoryStore {
                 .checked_add(1)
                 .ok_or(MemoryError::VersionExhausted)?,
         };
-        let record = container.append(&encode_tombstone(tombstone))?;
-        let global_version = container.allocate_version()?;
         let memory_version = self.next_memory_version;
-        container.append(&encode_version(MemoryVersion {
-            global_version,
+        let encoded = publication::encode(&MemoryPublication::Tombstone {
+            id,
+            revision: tombstone.revision,
             memory_version,
-            record,
-        }))?;
+        })?;
+        let (global_version, _) = container.append_publication_envelope(&encoded)?;
         self.insert_tombstone_rebuilt(tombstone, global_version, memory_version)?;
         Ok(crate::owner_lifecycle::TombstoneOutcome::Published(
             crate::owner_lifecycle::TombstoneCoordinates {
@@ -1155,3 +1148,11 @@ fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
         && memory.created_at_ns == draft.created_at_ns
         && memory.updated_at_ns == draft.updated_at_ns
 }
+
+#[cfg(test)]
+#[path = "memory_publication_writer_tests.rs"]
+mod publication_writer_tests;
+
+#[cfg(test)]
+#[path = "memory_legacy_terminal_fixture.rs"]
+mod legacy_terminal_fixture;

@@ -373,6 +373,15 @@ fn owner_scope_events_outside_epoch_interval_are_compared_by_normalized_facts() 
 
 #[test]
 fn inventory_derives_accepted_event_authority_from_completed_owner_scope() {
+    completed_scope_inventory(false);
+}
+
+#[test]
+fn inventory_derives_memory_envelope_evidence_from_real_completed_import() {
+    completed_scope_inventory(true);
+}
+
+fn completed_scope_inventory(with_envelope: bool) {
     let scratch = Scratch::new();
     let path = scratch.0.join("completed-import.rel");
     let mut cva = Cva::create(&path).unwrap();
@@ -533,6 +542,35 @@ fn inventory_derives_accepted_event_authority_from_completed_owner_scope() {
     cva.container.append(&payload).unwrap();
     cva.container.sync().unwrap();
     cva.freshness.ingest_appended(&payload).unwrap();
+    let envelope_evidence = if with_envelope {
+        let previous = cva
+            .memories
+            .records()
+            .iter()
+            .rev()
+            .find(|record| record.id == memory)
+            .unwrap()
+            .clone();
+        let mut next = previous.clone();
+        next.revision += 1;
+        next.memory_version = cva.memory_version() + 1;
+        next.global_version = cva.container.next_version_candidate();
+        next.mutation_id = "completed-import-envelope-revision".into();
+        next.updated_at_ns += 1;
+        let delta = crate::memory_compact_contract::MemoryDelta::between(&previous, &next).unwrap();
+        let body = crate::memory_compact_codec::publication::encode(
+            &crate::memory_compact_codec::publication::MemoryPublication::Delta(delta),
+        )
+        .unwrap();
+        let (global, _) = cva.container.append_publication_envelope(&body).unwrap();
+        assert_eq!(global, next.global_version);
+        cva.memories.insert_rebuilt(next.clone()).unwrap();
+        next.global_version = 0;
+        next.memory_version = 0;
+        Some(crate::memory_codec::encode_record(&next).unwrap())
+    } else {
+        None
+    };
     cva.container.set_owner_write_scope(false);
     cva.reconstruct_historical_freshness(Default::default())
         .unwrap();
@@ -543,6 +581,12 @@ fn inventory_derives_accepted_event_authority_from_completed_owner_scope() {
     let mut reopened = Cva::open(&path).unwrap();
     let epochs = super::inventory(&mut reopened).unwrap();
     let epoch = epochs.get(&start.import_id).unwrap();
+    if let Some(expected) = envelope_evidence {
+        assert!(
+            epoch.owner_evidence.contains(&expected),
+            "completed interval must retain canonical envelope publication facts"
+        );
+    }
     let semantic_scope = epoch.settlement.semantic.as_ref().unwrap();
     assert_eq!(
         epoch.accepted_events.keys().collect::<BTreeSet<_>>(),

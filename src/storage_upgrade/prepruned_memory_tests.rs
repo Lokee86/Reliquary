@@ -74,7 +74,9 @@ fn prepruned_legacy_memory_upgrade_rejects_untranslated_history_proof_without_wr
         .publish_legacy_fixture(&mut phy.container, None, 0, draft())
         .unwrap();
     assert!(changed);
-    phy.tombstone_memory(memory.id, memory.revision).unwrap();
+    phy.memories
+        .tombstone_legacy_fixture(&mut phy.container, memory.id, memory.revision)
+        .unwrap();
     let retained = phy.memory_retention_descriptor(memory.id).unwrap();
     let pruned = scratch.0.join("pruned-v2.phy");
     phy.prune_tombstoned_history(

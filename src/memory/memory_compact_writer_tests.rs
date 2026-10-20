@@ -1,5 +1,5 @@
-use crate::memory_codec::{MemoryTombstone, decode_tombstone};
-use crate::memory_compact_codec::{decode_creation, decode_delta};
+use crate::container::publication_envelope;
+use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_compact_contract::MemoryDelta;
 use crate::memory_model::MemoryRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneOutcome};
@@ -82,21 +82,51 @@ fn payloads(path: &Path) -> Vec<Vec<u8>> {
 
 fn assert_compact_frames(path: &Path, records: &[MemoryRecord]) {
     let payloads = payloads(path);
-    let creations: Vec<_> = payloads
+    let envelopes: Vec<_> = payloads
         .iter()
-        .filter(|payload| payload.starts_with(b"CVAMC001"))
+        .filter_map(|payload| publication_envelope::decode(payload).unwrap())
         .collect();
-    let deltas: Vec<_> = payloads
+    let creations: Vec<_> = envelopes
         .iter()
-        .filter(|payload| payload.starts_with(b"CVAMD001"))
+        .filter_map(|envelope| {
+            match publication::decode(envelope.body, envelope.global_version).unwrap() {
+                Some(MemoryPublication::Creation(creation)) => Some(creation),
+                _ => None,
+            }
+        })
         .collect();
+    let deltas: Vec<_> = envelopes
+        .iter()
+        .filter_map(|envelope| {
+            match publication::decode(envelope.body, envelope.global_version).unwrap() {
+                Some(MemoryPublication::Delta(delta)) => Some(delta),
+                _ => None,
+            }
+        })
+        .collect();
+    let terminals = envelopes
+        .iter()
+        .filter(|envelope| envelope.body.starts_with(b"CVAMT002"))
+        .count();
+    assert_eq!(envelopes.len(), 2 + terminals);
+    assert!(terminals <= 1);
     assert_eq!(creations.len(), 1);
     assert_eq!(deltas.len(), 1);
-    assert_eq!(decode_creation(creations[0]).unwrap().record, records[0]);
+    assert_eq!(creations[0].record, records[0]);
     assert_eq!(
-        decode_delta(deltas[0]).unwrap(),
+        deltas[0],
         MemoryDelta::between(&records[0], &records[1]).unwrap()
     );
+
+    for legacy_magic in [b"CVAMC001".as_slice(), b"CVAMD001", b"CVAMEMV1"] {
+        assert!(
+            !payloads
+                .iter()
+                .any(|payload| payload.starts_with(legacy_magic)),
+            "found legacy Memory publication sidecar {}",
+            String::from_utf8_lossy(legacy_magic)
+        );
+    }
 
     for legacy_version in 2..=8 {
         let magic = format!("CVAMEMR{legacy_version}");
@@ -180,20 +210,28 @@ fn rel_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(bytes(&path), tombstone_bytes);
 
     let payloads = payloads(&path);
-    assert_eq!(
-        payloads
-            .iter()
-            .filter(|payload| payload.starts_with(b"CVAMEMV1"))
-            .count(),
-        3
-    );
-    let tombstones: Vec<_> = payloads
+    let envelopes: Vec<_> = payloads
         .iter()
-        .filter_map(|payload| decode_tombstone(payload).unwrap())
+        .filter_map(|payload| publication_envelope::decode(payload).unwrap())
+        .collect();
+    assert_eq!(envelopes.len(), 3);
+    let tombstones: Vec<_> = envelopes
+        .iter()
+        .filter_map(|envelope| {
+            match publication::decode(envelope.body, envelope.global_version).unwrap() {
+                Some(MemoryPublication::Tombstone {
+                    id,
+                    revision,
+                    memory_version,
+                }) => Some((id, revision, memory_version)),
+                _ => None,
+            }
+        })
         .collect();
     assert_eq!(tombstones.len(), 1);
-    assert_eq!(tombstones[0].id, id);
-    assert_eq!(tombstones[0].revision, second.revision + 1);
+    assert_eq!(tombstones[0].0, id);
+    assert_eq!(tombstones[0].1, second.revision + 1);
+    assert_eq!(tombstones[0].2, tombstone_version);
     assert_compact_frames(&path, &records);
     rel.sync().unwrap();
     drop(rel);
@@ -277,20 +315,28 @@ fn phy_writes_compact_creation_and_delta_and_reopens_exact_tombstoned_history() 
     assert_eq!(bytes(&path), tombstone_bytes);
 
     let payloads = payloads(&path);
-    assert_eq!(
-        payloads
-            .iter()
-            .filter(|payload| payload.starts_with(b"CVAMEMV1"))
-            .count(),
-        3
-    );
-    let tombstones: Vec<_> = payloads
+    let envelopes: Vec<_> = payloads
         .iter()
-        .filter_map(|payload| decode_tombstone(payload).unwrap())
+        .filter_map(|payload| publication_envelope::decode(payload).unwrap())
+        .collect();
+    assert_eq!(envelopes.len(), 3);
+    let tombstones: Vec<_> = envelopes
+        .iter()
+        .filter_map(|envelope| {
+            match publication::decode(envelope.body, envelope.global_version).unwrap() {
+                Some(MemoryPublication::Tombstone {
+                    id,
+                    revision,
+                    memory_version,
+                }) => Some((id, revision, memory_version)),
+                _ => None,
+            }
+        })
         .collect();
     assert_eq!(tombstones.len(), 1);
-    assert_eq!(tombstones[0].id, id);
-    assert_eq!(tombstones[0].revision, second.revision + 1);
+    assert_eq!(tombstones[0].0, id);
+    assert_eq!(tombstones[0].1, second.revision + 1);
+    assert_eq!(tombstones[0].2, tombstone_version);
     assert_compact_frames(&path, &records);
     phy.sync().unwrap();
     drop(phy);

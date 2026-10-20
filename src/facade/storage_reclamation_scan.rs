@@ -40,6 +40,27 @@ impl ReclamationScan {
                 .extend(publication.records.into_iter().map(|r| r.body_id));
             return Ok(());
         }
+        if let Some(envelope) = crate::container::publication_envelope::decode(payload)
+            .map_err(|error| error.to_string())?
+        {
+            let publication = crate::memory_compact_codec::publication::decode(
+                envelope.body,
+                envelope.global_version,
+            )
+            .map_err(|error| error.to_string())?
+            .ok_or_else(|| "unsupported publication envelope body during reclamation".to_owned())?;
+            // Publication envelopes are semantic carriers in their own
+            // right. A compact Memory creation also keeps its immutable
+            // body alive; deltas and tombstones do not replace that body.
+            self.published_backing.insert(object);
+            if let crate::memory_compact_codec::publication::MemoryPublication::Creation(creation) =
+                publication
+            {
+                self.memory_body_refs
+                    .insert(object, creation.record.body_id);
+            }
+            return Ok(());
+        }
         if let Some(version) = crate::archive_history_codec::decode_record_version(payload)
             .map_err(|error| error.to_string())?
         {

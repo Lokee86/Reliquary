@@ -1363,3 +1363,30 @@ Architecture impact:
 - Pitlord enforcement impact: existing Memory/Container areas remain unchanged; source refresh remains Integration Gate E.
 - Other verification impact: actual REL/PHY reopen, reverse-global and grouped coexistence, historical cuts and failure atomicity are exercised.
 - Known architectural gaps: Steps 173 onward and final integrated architecture enforcement remain pending.
+
+
+## Memory envelope consumers and ordinary writer — Steps 173–177 verified
+
+Reconciliation reads both marker-bound and envelope publication coordinates, resolves accepted records through MemoryStore and retains source transaction times. Completed-import evidence canonicalizes accepted records through the established comparison encoding, including terminal evidence without broadening the existing unsupported terminal-replay API. Five focused regressions pass, including actual divergent reconciliation and a real completed import containing an envelope delta. Fifty adjacent reconciliation tests pass.
+
+Native prune source-history evidence reconstructs comparison-only marker/carrier facts from each envelope; it does not persist legacy frames or give the physical layer semantic ownership. Exact global watermark parity passes against marker-bound creation/delta/terminal history with reverse globals. Real REL/PHY prune outputs reopen, retain unavailable-body descriptors and reject an otherwise valid mutation-ID change in an accepted creation. The fixture checks the Memory-body count; the preexisting REL destroyed-body-byte counter covers Archive contents rather than Memory payloads.
+
+Reclamation keeps accepted envelope creations and their immutable bodies live, drops inert orphan carriers/bodies, and preserves inline publication bytes after strict supported-body validation. Unknown bodies fail closed pending explicit owner migration. Actual REL/PHY outputs retain revisions, hydrated bodies and optional times while leaving source bytes unchanged. Native REL attachment repack compares every Memory-local history cut and all global transaction times. Semantic rewrite tests honor the current-selection policy, and ownerless PHY semantic migration tests exercise accepted live envelope revisions with source times. Existing legacy owner-ID migration terminal limitations are not broadened by these adapters.
+
+Ordinary Memory creation, revision and terminal publication now each append one allocation envelope. Retry paths return before append/allocation. Grouped Insomnia/external publication remains atomic under its existing owner path. Literal old-carrier and V1 migration fixtures remain explicit; current writer assertions inspect envelope bodies. The legacy V6 grouped-completion fixture adapter restores actual legacy tickets/carriers/markers for direct Memory envelopes before writing a V1 header, rather than reheadering V2 authority.
+
+Verification: the complete root run passes **2,045 tests**, zero failures and five existing ignores across 26 suites, including **1,888 unit tests** and the long native byte-prefix/retry sweeps (`.test-tmp/memory-envelope-runtime-root-tests.log`). All root test/example binaries compile. Root/CLI format and compilation checks, **32 CLI tests** and both documentation modes pass. The preceding consumer publication filter passed 91 tests; the first writer filter exposed an obsolete marker-only comparison helper, and the wider Memory run exposed legacy terminal fixtures still using the ordinary writer. These fixture/assertion issues are corrected and all pass in the full run. New writer tests check every incomplete final-envelope frame prefix, exact earlier state/clock recovery and byte-stable retries. Source architecture refresh remains Integration Gate E.
+
+Documentation impact:
+- Inspected: direct and grouped Memory publication, owner replay, reconciliation/import evidence, prune proof, reclamation, native copies, semantic rewrite and owner-ID migration.
+- Updated: storage format, maintainer map, documentation coverage and this execution record.
+- Not affected: public CLI/API shape, canonical source fixtures, grouped transaction contracts and semantic identity.
+- Compliance check: root/CLI format/check, 2,045 root tests, 32 CLI tests and both documentation modes pass.
+- Known documentation gaps: offline envelope conversion, subsequent owner framing and final promotion/retirement remain pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: concrete Memory adapters own semantic coordinates and canonical evidence; Container allocates physical envelopes only. No generalized semantic registry was introduced.
+- Pitlord enforcement impact: existing owner boundaries remain; source refresh remains Integration Gate E.
+- Other verification impact: full root/CLI checks pass for this Memory runtime milestone; Gate E will repeat broad checks after the remaining framing owners.
+- Known architectural gaps: offline converter and later owner-specific framing gates remain pending.

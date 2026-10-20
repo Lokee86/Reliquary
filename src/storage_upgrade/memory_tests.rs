@@ -403,7 +403,8 @@ fn build_rel(path: &Path) -> (crate::MemoryId, crate::MemoryId) {
     assert_eq!(revision_three.revision, 3);
     assert_eq!(revision_three.source_time_ns, None);
     let tombstone = rel
-        .tombstone_memory(terminal.id, terminal.revision)
+        .memories
+        .tombstone_legacy_fixture(&mut rel.container, terminal.id, terminal.revision)
         .unwrap();
     assert!(matches!(
         tombstone,
@@ -466,7 +467,8 @@ fn build_phy(path: &Path) -> (crate::MemoryId, crate::MemoryId) {
     assert_eq!(revision_three.revision, 3);
     assert_eq!(revision_three.source_time_ns, None);
     let tombstone = phy
-        .tombstone_memory(terminal.id, terminal.revision)
+        .memories
+        .tombstone_legacy_fixture(&mut phy.container, terminal.id, terminal.revision)
         .unwrap();
     assert!(matches!(
         tombstone,
@@ -704,7 +706,9 @@ fn compact_creation_and_delta_cannot_be_mislabeled_as_v1_upgrade_input() {
     let mut container = Container::open(&request.source).unwrap();
     container
         .visit_payloads::<ContainerError>(|_, payload| {
-            found_delta |= payload.starts_with(b"CVAMD001");
+            found_delta |= crate::container::publication_envelope::decode(payload)
+                .unwrap()
+                .is_some_and(|envelope| envelope.body.starts_with(b"CVAMD002"));
             Ok(())
         })
         .unwrap();
@@ -715,10 +719,16 @@ fn compact_creation_and_delta_cannot_be_mislabeled_as_v1_upgrade_input() {
 
     assert!(matches!(
         Cva::open_v1_read_only(&request.source),
-        Err(crate::CvaError::Memories(MemoryError::ConflictingFormat))
+        Err(crate::CvaError::Container(
+            crate::ContainerError::InvalidVersionRecord
+        ))
     ));
-    let plan = plan_storage_upgrade(request.clone()).unwrap();
-    assert!(stage_memory_storage_upgrade(&plan).is_err());
+    assert!(matches!(
+        plan_storage_upgrade(request.clone()),
+        Err(super::StorageUpgradeError::Container(
+            ContainerError::InvalidVersionRecord
+        ))
+    ));
     assert_eq!(fs::read(&request.source).unwrap(), source_before);
     assert!(!request.destination.exists());
     fixture.assert_no_partial();

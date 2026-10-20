@@ -1,3 +1,8 @@
+#[path = "memory_publication_copy_tests.rs"]
+mod copy;
+#[path = "memory_publication_prune_tests.rs"]
+mod prune;
+
 use super::*;
 use crate::container::publication_envelope::{PublicationClock, PublicationEnvelope};
 use crate::memory_compact_codec::publication::{self, MemoryPublication};

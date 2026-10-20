@@ -32,22 +32,26 @@ fn downgrade_header_to_v1(path: &Path) {
     fs::write(path, bytes).unwrap();
 }
 
-fn memory_versions(cva: &mut Cva) -> Vec<crate::memory_codec::MemoryVersion> {
+fn memory_versions(cva: &mut Cva) -> Vec<(u64, u64, Vec<u8>)> {
     let mut versions = Vec::new();
     for chunk in cva.container.chunks().unwrap() {
         let payload = cva.container.read(chunk).unwrap();
-        if let Some(version) = crate::memory_codec::decode_version(&payload).unwrap() {
-            versions.push(version);
+        if let Some((global, local)) =
+            crate::memory_compact_codec::publication::coordinates(&payload).unwrap()
+        {
+            versions.push((global, local, payload));
         }
     }
-    versions.sort_by_key(|version| version.memory_version);
+    versions.sort_by_key(|(_, local, _)| *local);
     versions
 }
 
 fn canonical_memory_evidence(cva: &mut Cva) -> Vec<Vec<u8>> {
     memory_versions(cva)
         .into_iter()
-        .map(|version| super::canonical_memory_publication(cva, version).unwrap())
+        .map(|(global, local, payload)| {
+            super::canonical_memory_publication(cva, global, local, &payload).unwrap()
+        })
         .collect()
 }
 
@@ -99,7 +103,7 @@ fn compact_memory_publications_have_legacy_canonical_evidence_with_clears() {
     let legacy_versions = memory_versions(&mut legacy);
     let legacy_coordinates: Vec<_> = legacy_versions
         .iter()
-        .map(|version| (version.global_version, version.memory_version))
+        .map(|(global, local, _)| (*global, *local))
         .collect();
     let legacy_evidence = canonical_memory_evidence(&mut legacy);
     drop(legacy);
@@ -125,7 +129,7 @@ fn compact_memory_publications_have_legacy_canonical_evidence_with_clears() {
     let compact_versions = memory_versions(&mut compact);
     let compact_coordinates: Vec<_> = compact_versions
         .iter()
-        .map(|version| (version.global_version, version.memory_version))
+        .map(|(global, local, _)| (*global, *local))
         .collect();
     let compact_evidence = canonical_memory_evidence(&mut compact);
 
