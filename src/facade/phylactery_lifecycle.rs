@@ -209,6 +209,7 @@ impl Phylactery {
         validate_phylactery_provenance(&memories)?;
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
+        graph_state.validate_storage_version(container.version())?;
         let graph = graph_state.finish(&memories, &entities)?;
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;

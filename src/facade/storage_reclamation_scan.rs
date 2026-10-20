@@ -166,9 +166,11 @@ impl ReclamationScan {
             self.backing_candidates.insert(object);
             return Ok(());
         }
-        if crate::graph_codec::decode_batch(payload)
+        if crate::graph_compact_codec::is_compact_record(payload)
             .map_err(|error| error.to_string())?
-            .is_some()
+            || crate::graph_codec::decode_batch(payload)
+                .map_err(|error| error.to_string())?
+                .is_some()
             || crate::graph_codec::decode_mutation(payload)
                 .map_err(|error| error.to_string())?
                 .is_some()

@@ -1,5 +1,5 @@
 use crate::cva_reconcile::with_replayed_transaction_time;
-use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
+use crate::graph_codec::decode_version;
 use crate::{
     Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationOrigin, SemanticGraphRelationChange,
     SemanticGraphRelationKind, SemanticNodeRef,
@@ -49,6 +49,10 @@ pub(crate) struct GraphReplayResult {
     pub(crate) source_memory_graph_changed: bool,
 }
 
+#[cfg(test)]
+#[path = "graph_compact_reconcile_tests.rs"]
+mod compact_tests;
+
 pub(crate) fn read_graph_tail(
     cva: &mut Cva,
     start_chunk: usize,
@@ -69,11 +73,7 @@ pub(crate) fn read_graph_range(
             continue;
         };
         let mutation_payload = cva.container.read(version.mutation)?;
-        let mutations = if let Some(batch) = decode_batch(&mutation_payload)? {
-            batch
-        } else if let Some(mutation) = decode_mutation(&mutation_payload)? {
-            vec![mutation]
-        } else {
+        let Some(mutations) = cva.graph.decode_stored_mutations(&mutation_payload)? else {
             return Err(CvaReconcileError::InvalidGraphVersionRecord);
         };
         let origin = mutations

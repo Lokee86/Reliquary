@@ -654,7 +654,7 @@ Format marker:
 u32       schema = 1
 ```
 
-Legacy Memory node mapping remains readable:
+Canonical Memory node mapping:
 ```text
 8 bytes   "CVAGNODE"
 32 bytes  MemoryId
@@ -669,9 +669,9 @@ u8        SemanticNodeKind: 1=Memory, 2=Entity, 3=Observation
 u32       dense NodeId
 ```
 
-Memory nodes continue to use `CVAGNODE` for byte-level compatibility and decode as `SemanticNodeRef::Memory`. Dense Arcana IDs are internal topology indexes; stable semantic identity remains the typed owner-local reference.
+Memory nodes use `CVAGNODE` and decode as `SemanticNodeRef::Memory`; non-Memory nodes use `CVAGNOD2`. Dense Arcana IDs are internal topology indexes; stable semantic identity remains the typed owner-local reference.
 
-Legacy Memory-only relationship mutation remains readable and is still emitted for Memory-only transactions:
+Temporary full-ID Memory-only mutation input for V1 conversion:
 ```text
 8 bytes   "CVAGMUT1"
 32 bytes  source MemoryId
@@ -681,7 +681,7 @@ u8        active: 0=retracted, 1=active
 u8        origin: 1=Dream, 2=User
 ```
 
-Typed semantic relationship mutation:
+Temporary full-ID typed semantic mutation input:
 ```text
 8 bytes   "CVAGMUT2"
 u8+32     source SemanticNodeRef
@@ -694,6 +694,47 @@ u8        origin: 1=Dream, 2=User, 3=Perception
 Legacy Memory-only atomic batches use `CVAGBAT1`; typed/mixed atomic batches use `CVAGBAT2` and repeat the corresponding typed endpoint/kind/active/origin fields. Memory relationship kind codes remain `1=topical`, `2=factual`, `3=causal`, `4=recurrent`, `5=references`, `6=duplicate-of`, `7=supersedes`, and `8=structural-parent`. Semantic kind `100=entity-association` is the ordinary directional `Memory -> Entity` Perception relation. Semantic kind `101=principal-association` is the reserved directional `Memory -> principal Entity` relation used for PHY-backed user identity; it is durable but omitted from ordinary semantic traversal/projection and exposed only through explicit principal lookup. Observation relation families are not yet accepted because no durable Observation owner exists.
 
 One batch cannot contain the same oriented `(source, target, kind)` identity more than once. Already-visible no-op states are removed before publication. Endpoint validation is relation-specific: Memory relation families require two same-owner Memories; `entity-association` requires an existing same-owner Memory source and non-principal Entity target; `principal-association` requires an existing same-owner Memory source and an Entity whose reserved kind is `principal`.
+
+V2 compact Graph carriers reuse the same Graph-owned dense node mappings.
+Ordinary V2 writes use these carriers for Memory-only and typed transactions:
+
+```text
+8 bytes   "CVAGCM01" (one mutation)
+u32       source Graph node ordinal
+u32       target Graph node ordinal
+u16       semantic relationship kind
+u8        active: 0=retracted, 1=active
+u8        origin: 1=Dream, 2=User, 3=Perception
+
+8 bytes   "CVAGCB01" (atomic batch)
+u32       mutation count
+repeated: the same 12-byte mutation body
+```
+
+Integers are little-endian. Ordinal zero is valid, and the existing checked
+u32 mapping range remains unchanged. Public and historical endpoints remain
+stable typed semantic IDs. Each mutation retains its own origin and position;
+raw replay preserves repeated transactions even when the ordinary API would
+filter them as no-ops. Unknown versions, invalid kind/flags/origin, truncated
+bodies, trailing bytes and mismatched batch counts fail closed.
+
+Open replay buffers unresolved carriers and resolves their endpoints at the
+referencing publication marker. Mappings may occur between carrier and marker;
+a later mapping cannot repair an invalid publication. Structurally valid
+unmarked carriers remain inert, including empty batches and absent ordinals;
+an empty published transaction is invalid. Published compact carriers require
+V2.0. The existing marker ordering, uniqueness and clock checks still apply.
+Source-owner readers resolve ordinals before reconciling stable IDs into another
+owner's mapping scope.
+
+Prune history proofs bind accepted compact carriers to their resolved stable
+endpoints using a Graph-owned SHA-256 digest of the domain tag
+`Reliquary Graph semantic carrier v1\0`, carrier magic, u64 mutation count and
+ordered source kind/32-byte ID, target kind/32-byte ID, u16 relation kind and
+u8 active/origin. The proof retains legacy full-ID carrier digests unchanged.
+Only published carriers through the frozen watermark enter that proof;
+unreferenced or later mapping entries do not change it. Proof admission runs
+after the Graph owner has validated and materialized its node table.
 
 Graph version metadata is unchanged:
 ```text

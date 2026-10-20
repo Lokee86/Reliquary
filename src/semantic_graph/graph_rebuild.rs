@@ -7,9 +7,15 @@ use crate::memory_store::MemoryStore;
 use crate::{GraphError, GraphNodeRecord, ObjectRef, SemanticGraphRelation};
 use std::collections::{HashMap, HashSet};
 
+enum MutationCarrier {
+    Stable(Vec<GraphMutationPayload>),
+    Ordinal(Vec<crate::graph_compact_contract::GraphOrdinalMutation>),
+}
+
 pub(crate) struct GraphOpenState {
     store: GraphStore,
-    pending: HashMap<ObjectRef, Vec<GraphMutationPayload>>,
+    pending: HashMap<ObjectRef, MutationCarrier>,
+    compact_published: bool,
     format_seen: bool,
     data_seen: bool,
 }
@@ -19,6 +25,7 @@ impl GraphOpenState {
         Self {
             store: GraphStore::empty(),
             pending: HashMap::new(),
+            compact_published: false,
             format_seen: false,
             data_seen: false,
         }
@@ -55,14 +62,30 @@ impl GraphOpenState {
             self.ingest_version(chunk, version, latest_global)?;
             return Ok(());
         }
+        if let Some(values) = crate::graph_compact_codec::decode(payload)? {
+            self.data_seen = true;
+            self.pending.insert(chunk, MutationCarrier::Ordinal(values));
+            return Ok(());
+        }
         if let Some(batch) = decode_batch(payload)? {
             self.data_seen = true;
-            self.pending.insert(chunk, batch);
+            self.pending.insert(chunk, MutationCarrier::Stable(batch));
             return Ok(());
         }
         if let Some(mutation) = decode_mutation(payload)? {
             self.data_seen = true;
-            self.pending.insert(chunk, vec![mutation]);
+            self.pending
+                .insert(chunk, MutationCarrier::Stable(vec![mutation]));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn validate_storage_version(
+        &self,
+        version: crate::FormatVersion,
+    ) -> Result<(), GraphError> {
+        if self.compact_published && version != (crate::FormatVersion { major: 2, minor: 0 }) {
+            return Err(GraphError::ConflictingFormat);
         }
         Ok(())
     }
@@ -94,10 +117,18 @@ impl GraphOpenState {
         {
             return Err(GraphError::InvalidGraphVersion);
         }
-        let mutations = self
+        let carrier = self
             .pending
             .remove(&version.mutation)
             .ok_or(GraphError::InvalidGraphVersion)?;
+        // Resolve only now: admitted V1 ordering permits mappings between a
+        // carrier and its marker, but never after the marker.
+        let (mutations, compact) = match carrier {
+            MutationCarrier::Stable(values) => (values, false),
+            MutationCarrier::Ordinal(values) => {
+                (self.store.resolve_compact_mutations(&values)?, true)
+            }
+        };
 
         let mut keys = HashSet::with_capacity(mutations.len());
         let mut transaction = Vec::with_capacity(mutations.len());
@@ -116,6 +147,7 @@ impl GraphOpenState {
             });
         }
         self.store.insert_transaction_rebuilt(&transaction)?;
+        self.compact_published |= compact;
         Ok(())
     }
 }

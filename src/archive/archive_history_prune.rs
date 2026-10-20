@@ -164,15 +164,6 @@ impl Archive {
         })
     }
 
-    pub(crate) fn prune_history_digest(
-        &self,
-        container: &mut Container,
-        watermark: u64,
-    ) -> Result<[u8; 32], ArchiveError> {
-        crate::owner_maintenance::owner_history_digest(container, watermark)
-            .map_err(|_| ArchiveError::CorruptRecord("invalid source history fingerprint"))
-    }
-
     pub(crate) fn validate_prune_history(
         &self,
         container: &mut Container,

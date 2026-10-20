@@ -9,6 +9,8 @@ use arcana::storage::InMemoryGraph;
 use arcana::{GraphDataset, NodeId};
 use std::collections::{BTreeSet, HashMap, HashSet};
 
+#[path = "graph_store_compact.rs"]
+mod compact;
 #[path = "graph_store_read.rs"]
 mod read;
 #[path = "graph_rewrite_baseline.rs"]

@@ -23,7 +23,9 @@ pub(crate) fn classify_open_record(payload: &[u8]) -> OpenRecordRoute {
         }
 
         b"CVAGFMT1" | b"CVAGNODE" | b"CVAGNOD2" | b"CVAGVER1" | b"CVAGMUT1" | b"CVAGMUT2"
-        | b"CVAGBAT1" | b"CVAGBAT2" | b"CVAGBL01" => OpenRecordRoute::Graph,
+        | b"CVAGBAT1" | b"CVAGBAT2" | b"CVAGBL01" | b"CVAGCM01" | b"CVAGCB01" => {
+            OpenRecordRoute::Graph
+        }
 
         b"CVAVERS1" | b"CVAVERS2" => OpenRecordRoute::ContainerVersion,
 

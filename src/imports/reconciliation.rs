@@ -2,6 +2,9 @@
 #[cfg(test)]
 #[path = "reconciliation_entity_compact_tests.rs"]
 mod entity_compact_tests;
+#[cfg(test)]
+#[path = "reconciliation_graph_compact_tests.rs"]
+mod graph_compact_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
 use crate::cva_reconcile::{CvaComparison, CvaReconcileResult};
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
@@ -333,6 +336,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::graph_codec::decode_version(&payload)?.is_some()
             || crate::graph_codec::decode_mutation(&payload)?.is_some()
             || crate::graph_codec::decode_batch(&payload)?.is_some()
+            || crate::graph_compact_codec::is_compact_record(&payload)?
             || crate::community_codec::decode_snapshot(&payload)
                 .map_err(crate::CvaError::from)?
                 .is_some()

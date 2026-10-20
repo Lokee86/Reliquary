@@ -272,3 +272,7 @@ mod entity_compact_tests;
 #[cfg(test)]
 #[path = "storage_reclamation_relationship_compact_tests.rs"]
 mod relationship_compact_tests;
+
+#[cfg(test)]
+#[path = "graph_compact_maintenance_tests.rs"]
+mod compact_graph_tests;

@@ -353,9 +353,6 @@ impl Cva {
                 "file is not a Reliquary",
             ));
         }
-        owner_maintenance
-            .validate_source_history(&mut container)
-            .map_err(CvaError::Repack)?;
         let import_open = import_epochs.open().is_some();
         container.set_write_admission_closed(import_open);
         freshness
@@ -401,7 +398,11 @@ impl Cva {
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         validate_file_memory_targets(&archive, &memories)?;
+        graph_state.validate_storage_version(container.version())?;
         let graph = graph_state.finish(&memories, &entities)?;
+        owner_maintenance
+            .validate_source_history(&mut container, &graph)
+            .map_err(CvaError::Repack)?;
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;

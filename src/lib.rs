@@ -747,6 +747,22 @@ mod general_decision;
 mod general_endpoint;
 #[path = "semantic_graph/graph_codec.rs"]
 mod graph_codec;
+#[path = "semantic_graph/graph_compact_codec.rs"]
+mod graph_compact_codec;
+#[cfg(test)]
+#[path = "semantic_graph/graph_compact_codec_tests.rs"]
+mod graph_compact_codec_tests;
+#[path = "semantic_graph/graph_compact_contract.rs"]
+mod graph_compact_contract;
+#[cfg(test)]
+#[path = "semantic_graph/graph_compact_owner_tests.rs"]
+mod graph_compact_owner_tests;
+#[cfg(test)]
+#[path = "semantic_graph/graph_compact_rebuild_tests.rs"]
+mod graph_compact_rebuild_tests;
+#[cfg(test)]
+#[path = "semantic_graph/graph_compact_writer_tests.rs"]
+mod graph_compact_writer_tests;
 #[path = "semantic_graph/graph_error.rs"]
 mod graph_error;
 #[path = "semantic_graph/graph_model.rs"]

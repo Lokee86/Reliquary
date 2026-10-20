@@ -29,13 +29,10 @@ impl Coordinates {
             if let Some(v) = crate::graph_codec::decode_version(&payload)? {
                 result.graph.insert(v.graph_version, v.graph_version);
                 let mutation = source.container.read(v.mutation)?;
-                let changes = if let Some(batch) = crate::graph_codec::decode_batch(&mutation)? {
-                    batch
-                } else if let Some(change) = crate::graph_codec::decode_mutation(&mutation)? {
-                    vec![change]
-                } else {
-                    return Err(CvaReconcileError::InvalidGraphVersionRecord);
-                };
+                let changes = source
+                    .graph
+                    .decode_stored_mutations(&mutation)?
+                    .ok_or(CvaReconcileError::InvalidGraphVersionRecord)?;
                 if changes.iter().any(|change| {
                     matches!(change.kind, crate::SemanticGraphRelationKind::Memory(_))
                 }) {
@@ -68,13 +65,10 @@ impl Coordinates {
                 let payload = cva.container.read(chunk)?;
                 if let Some(version) = crate::graph_codec::decode_version(&payload)? {
                     let raw = cva.container.read(version.mutation)?;
-                    let changes = match crate::graph_codec::decode_batch(&raw)? {
-                        Some(batch) => batch,
-                        None => vec![
-                            crate::graph_codec::decode_mutation(&raw)?
-                                .ok_or(CvaReconcileError::InvalidGraphVersionRecord)?,
-                        ],
-                    };
+                    let changes = cva
+                        .graph
+                        .decode_stored_mutations(&raw)?
+                        .ok_or(CvaReconcileError::InvalidGraphVersionRecord)?;
                     graphs.push((
                         version.graph_version,
                         changes

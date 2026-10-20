@@ -240,9 +240,12 @@ impl Cva {
         let manifest = HistoryPruneManifest {
             owner_uuid,
             source_global_version: watermark,
-            source_history_digest: self
-                .archive
-                .prune_history_digest(&mut self.container, watermark)?,
+            source_history_digest: crate::owner_maintenance::owner_history_digest(
+                &mut self.container,
+                watermark,
+                &self.graph,
+            )
+            .map_err(CvaError::Repack)?,
             descriptors,
         };
         let manifest_bytes = manifest.encode().map_err(CvaError::Repack)?;

@@ -1,6 +1,6 @@
 //! Accepted Graph publications, independent of physical node ordinals and the
 //! current lifecycle exclusions owned by Memory/Entity.
-use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
+use crate::graph_codec::decode_version;
 use crate::graph_store::GraphStore;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::{
@@ -51,13 +51,9 @@ impl GraphHistory {
                 return Err(crate::GraphError::InvalidGraphVersion.into());
             }
             let bytes = objects.read(version.mutation)?;
-            let mutations = if let Some(batch) = decode_batch(&bytes)? {
-                batch
-            } else if let Some(single) = decode_mutation(&bytes)? {
-                vec![single]
-            } else {
-                return Err(crate::GraphError::InvalidGraphVersion.into());
-            };
+            let mutations = store
+                .decode_stored_mutations(&bytes)?
+                .ok_or(crate::GraphError::InvalidGraphVersion)?;
             let mut transaction = Vec::new();
             for mutation in mutations {
                 let crate::graph_codec::GraphMutationPayload {

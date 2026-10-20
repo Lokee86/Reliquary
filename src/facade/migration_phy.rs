@@ -1,5 +1,5 @@
 use super::{MigrationError, op, processing_epochs_for_migration, require_same};
-use crate::graph_codec::{decode_batch, decode_mutation, decode_version};
+use crate::graph_codec::decode_version;
 use crate::{
     Container, EntityDraft, GraphRelationOrigin, Memory, MemoryDraft, Phylactery,
     RelationshipDraft, SemanticGraphRelationChange,
@@ -18,7 +18,7 @@ pub(super) fn migrate(
         .iter()
         .map(|record| (record.id, record.revision))
         .collect();
-    let graph = graph_transactions(&mut source.container)?;
+    let graph = graph_transactions(&mut source.container, &source.graph)?;
     let entities = source.entities.records().to_vec();
     let relationships = source.relationships.records().to_vec();
     let profiles = source
@@ -188,6 +188,7 @@ fn copy_vectors(
 
 fn graph_transactions(
     container: &mut Container,
+    graph: &crate::graph_store::GraphStore,
 ) -> Result<
     Vec<(
         Vec<SemanticGraphRelationChange>,
@@ -204,15 +205,9 @@ fn graph_transactions(
             continue;
         };
         let mutation_payload = op(container.read(version.mutation))?;
-        let mutations = if let Some(batch) = op(decode_batch(&mutation_payload))? {
-            batch
-        } else if let Some(mutation) = op(decode_mutation(&mutation_payload))? {
-            vec![mutation]
-        } else {
-            return Err(MigrationError::Operation(
-                "graph version points at a non-graph mutation".into(),
-            ));
-        };
+        let mutations = op(graph.decode_stored_mutations(&mutation_payload))?.ok_or_else(|| {
+            MigrationError::Operation("graph version points at a non-graph mutation".into())
+        })?;
         let origin = mutations
             .first()
             .map(|mutation| mutation.origin)

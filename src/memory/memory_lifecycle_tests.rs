@@ -98,7 +98,8 @@ fn phy_open_rejects_checksummed_but_unauthorized_prune_manifest_marker() {
     let fake_memory = crate::MemoryId([0x52; 32]);
     let watermark = phy.latest_global_version();
     let source_history_digest =
-        crate::owner_maintenance::owner_history_digest(&mut phy.container, watermark).unwrap();
+        crate::owner_maintenance::owner_history_digest(&mut phy.container, watermark, &phy.graph)
+            .unwrap();
     let manifest = HistoryPruneManifest {
         owner_uuid: phy.owner_uuid().unwrap(),
         source_global_version: watermark,

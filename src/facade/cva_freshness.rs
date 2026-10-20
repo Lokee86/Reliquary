@@ -3,6 +3,9 @@ use crate::{Cva, CvaError, MemoryId};
 use std::collections::BTreeMap;
 
 #[cfg(test)]
+#[path = "graph_compact_freshness_tests.rs"]
+mod graph_compact_tests;
+#[cfg(test)]
 #[path = "cva_freshness_r2_tests.rs"]
 mod r2_tests;
 
@@ -840,15 +843,12 @@ impl Cva {
             {
                 trace_object_bytes += payload.len() as u64;
             }
-            let mutations = if let Some(batch) = crate::graph_codec::decode_batch(&payload)? {
-                batch
-            } else if let Some(mutation) = crate::graph_codec::decode_mutation(&payload)? {
-                vec![mutation]
-            } else {
-                return Err(CvaError::Freshness(
-                    "Dream graph snapshot lacks committed mutation".into(),
-                ));
-            };
+            let mutations = self
+                .graph
+                .decode_stored_mutations(&payload)?
+                .ok_or_else(|| {
+                    CvaError::Freshness("Dream graph snapshot lacks committed mutation".into())
+                })?;
             #[cfg(feature = "freshness-performance-trace")]
             {
                 trace_mutations += mutations.len() as u64;
@@ -945,15 +945,12 @@ impl Cva {
             {
                 trace_object_bytes += payload.len() as u64;
             }
-            let mutations = if let Some(batch) = crate::graph_codec::decode_batch(&payload)? {
-                batch
-            } else if let Some(mutation) = crate::graph_codec::decode_mutation(&payload)? {
-                vec![mutation]
-            } else {
-                return Err(CvaError::Freshness(
-                    "committed Dream graph version lacks its mutation".into(),
-                ));
-            };
+            let mutations = self
+                .graph
+                .decode_stored_mutations(&payload)?
+                .ok_or_else(|| {
+                    CvaError::Freshness("committed Dream graph version lacks its mutation".into())
+                })?;
             #[cfg(feature = "freshness-performance-trace")]
             {
                 trace_mutations += mutations.len() as u64;

@@ -146,6 +146,7 @@ impl HistoryPruneManifest {
 pub(crate) fn owner_history_digest(
     container: &mut crate::Container,
     watermark: u64,
+    graph: &crate::graph_store::GraphStore,
 ) -> Result<[u8; 32], String> {
     if watermark > container.latest_version() {
         return Err("history watermark exceeds owner clock".into());
@@ -200,7 +201,12 @@ pub(crate) fn owner_history_digest(
                 let normalized = crate::storage_reclamation::relocate_payload(&raw, &normalized)?;
                 digest_bytes(&mut hash, &normalized);
                 let bytes = container.read(record).map_err(|error| error.to_string())?;
-                let digest: [u8; 32] = if let Some((_, _, proof)) =
+                let digest: [u8; 32] = if let Some(digest) = graph
+                    .compact_carrier_digest(&bytes)
+                    .map_err(|error| error.to_string())?
+                {
+                    digest
+                } else if let Some((_, _, proof)) =
                     crate::entity_description_proof::compact_description_proof(&bytes)
                         .map_err(|error| error.to_string())?
                 {
@@ -318,3 +324,7 @@ mod tests {
         assert!(manifest.encode().is_err());
     }
 }
+
+#[cfg(test)]
+#[path = "graph_compact_proof_tests.rs"]
+mod graph_compact_proof_tests;

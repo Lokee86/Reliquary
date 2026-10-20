@@ -1,8 +1,6 @@
 use super::{GraphStore, RelationKey, validation};
 use crate::entity_store::EntityStore;
-use crate::graph_codec::{
-    GraphMutationPayload, GraphVersionPayload, encode_batch, encode_mutation, encode_version,
-};
+use crate::graph_codec::{GraphMutationPayload, GraphVersionPayload, encode_version};
 use crate::memory_store::MemoryStore;
 use crate::{
     Container, EntityId, GraphError, GraphRelation, GraphRelationChange, GraphRelationOrigin,
@@ -241,11 +239,7 @@ impl GraphStore {
                 origin,
             })
             .collect();
-        let payload = if payloads.len() == 1 {
-            encode_mutation(payloads[0])
-        } else {
-            encode_batch(&payloads)
-        };
+        let payload = self.encode_compact_mutations(&payloads, payloads.len() == 1)?;
         let mutation = container.append(&payload)?;
         let graph_version = self.next_graph_version;
         let global_version = container.allocate_version()?;
