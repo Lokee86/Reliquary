@@ -56,6 +56,8 @@ Validation logs: `.test-tmp/format-interruption-docs-structural.log` and `.test-
 
 ### Resume the original plan
 
+Subsequent Entity consumer inventory refined the current linear plan to 270 rows without changing accepted Steps 1–90: new 95/96 own reconciliation/reclamation; the original writer 95 becomes 97; new 98/99 own REL/PHY pruning; original 96–266 become 100–270. I11's original-number mapping is historical and uses this explicit crosswalk. Final acceptance is now linear Step 270 and still requires every R1–R22 gate.
+
 - Original Step 87: measure raw compact Memory-history bytes before/after. Preserve the existing byte-size acceptance gate.
 - Original Steps 88 onward: retain owner-specific compact codec, replay, writing and temporary migration tasks, with their existing test requirements. Revise wording that suggests the old codecs will be permanent.
 - At each subsequent owner migration gate: record obsolete reader/codec dependencies explicitly, and keep temporary old-format translator isolated from the normal V2 code path.

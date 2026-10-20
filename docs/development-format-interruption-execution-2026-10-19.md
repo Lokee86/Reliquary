@@ -98,4 +98,6 @@ I12 passed: both documentation-policy modes returned success (`.test-tmp/format-
 
 ## Notes
 
+After I12, Entity consumer discovery inserted four steps in the live plan. Original 95 maps to 97, original 96–266 map to 100–270, and new 95/96/98/99 own reconciliation, reclamation, REL pruning and PHY pruning. The I11 table above is the preserved pre-refinement mapping; no original work or completed record was removed. This later refinement does not claim any R-gate is implemented.
+
 The completed Memory six-file run is evidence for original Step 87 only; it is not canonical corpus promotion, reader retirement, full-domain parity or R1–R22 completion. Corpus originals remain untouched by this interruption.

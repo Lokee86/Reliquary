@@ -315,6 +315,31 @@ Later Entity revisions use typed deltas for mutable fields and evidence collecti
 
 Entity historical lookup must reconstruct every prior accepted revision exactly.
 
+#### Entity field inventory — Step 91 preparation
+
+This inventory is based on `entity_model.rs`, R1/R2 decoding and `EntityStore::insert_rebuilt`; Step 91 remains unaccepted until runtime characterization and the pruned-description proof boundary are verified. No Entity writer or persisted record changes are enabled by this table.
+
+| Field | Retained-history rule | Compact responsibility |
+| --- | --- | --- |
+| `id` | Stable per Entity revision chain; retain exact 32 bytes | Creation identity; delta binds the same ID |
+| `global_id` | Optional per revision. R1 has `None`; replay does not enforce continuity across R2 revisions | Mutable typed optional field; preserve set/change/clear without inventing UUIDs |
+| `revision` | Exact per-Entity successor; terminals advance existing revision semantics | Explicit envelope and predecessor revision |
+| `canonical_name` | Mutable exact accepted string | Changed value only |
+| `aliases` | Mutable sorted unique vector under existing validation; exact order is semantic | Whole ordered replacement; do not renormalize migration input |
+| `kind` | Mutable subject to per-record principal validation | Changed value only; existing principal rules remain owner-local |
+| `summary` | Mutable; authored empty and pruned unavailable are distinct | Changed value only plus explicit separate pruning evidence |
+| `mutation_id` | Per-publication identity, with existing owner retry/conflict rules | Explicit envelope; a new mutation with unchanged metadata remains legal |
+| `created_at_ns` | Existing replay enforces stable creation time | Creation value inherited by deltas |
+| `updated_at_ns` | Mutable; existing record validation requires it to be at least creation time, not at least the previous update | Changed value only; no new historical monotonicity restriction |
+| `global_version` | Retained publication ticket, nonzero and admitted against the observed container frontier | Exact envelope; do not add ordering requirements beyond actual owner admission |
+| `entity_version` | Dense owner-local publication sequence, interleaved across Entity IDs | Exact envelope; per-ID successors need not be adjacent owner-local tickets |
+
+Creation must represent legacy optional global identity without forcing current writer defaults. Delta derivation is over resolved accepted records, not draft arguments. An empty changed-field mask is legal for a distinct accepted mutation. Existing name/kind/summary/alias limits, timestamp checks and principal deterministic identity validation remain authoritative. Migration preserves accepted spelling/whitespace and values rather than rerunning draft normalization.
+
+Merge retirement (`CVAENTT1`) retains replacement identity; direct tombstone (`CVAENTT2`) has no replacement. Neither is a metadata-field delta. Both keep exact revision and publication coordinates and terminal/no-resurrection behavior. Missing legacy Entity format markers still mean the existing empty-owner case during temporary conversion; this is not final legacy-runtime support.
+
+Pruned descriptions must retain structural revision fields, authenticated original-carrier/maintenance-manifest evidence and explicit payload-unavailable status. Placeholder text alone cannot prove pruning. Canonical compact pruned carriers and both REL/PHY pruning adapters require an explicit contract before writer/migration cutover; old `CVAEPRN1` is only a temporary conversion input. Reconciliation, backing liveness, maintenance proof validation and raw-carrier-dependent history digests must be inventoried as separate reader/writer seams, not hidden in ordinary Entity replay.
+
 ### Relationships / Observations
 
 The current transitional Relationship owner and its future Observation-converged form must not force this refactor to preserve a soon-obsolete schema.
