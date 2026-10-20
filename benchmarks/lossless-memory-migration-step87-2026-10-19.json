@@ -1,0 +1,263 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-19",
+  "implementation_commit": "9996c28",
+  "execution_step": 87,
+  "accepted_source_hash_baseline": "benchmarks/authoritative-history-rewrite-step62-2026-10-18.json",
+  "compression": "none",
+  "measurement_scope": "Raw persisted payload families and complete staged files. Grouped/external carriers include their atomic bodies, routing and receipts.",
+  "proof_normalization": "Original physical import proofs are retained; canonical semantic successors are added before relocation. Whole-file increases are reported, not hidden in Memory carrier savings.",
+  "verification": {
+    "authoritative_test": "authoritative_v1_memory_histories_migrate_without_semantic_or_source_changes",
+    "fixtures": 6,
+    "semantic_mismatches": 0,
+    "assertions": [
+      "every Memory owner-local cut",
+      "every retained revision/body/routing fingerprint",
+      "current and terminal state",
+      "global transaction times",
+      "REL import evidence and canonical Freshness cuts",
+      "source bytes, SHA-256, length and modification time unchanged"
+    ],
+    "profile": "release; jobs=1; lore opt-level=0; reliquary-memory opt-level=1",
+    "log": ".test-tmp/lossless-memory-authoritative-optimized-serial.log"
+  },
+  "fixtures": [
+    {
+      "after": {
+        "compact_creations": 0,
+        "compact_deltas": 539007,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 832856,
+        "legacy_memory_records": 0,
+        "memory_bodies": 0,
+        "memory_publication_metadata": 89008,
+        "memory_routing_metadata": 12956,
+        "other_payloads": 31301300,
+        "total_file": 33291095,
+        "total_payloads": 32775127
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 841384,
+        "legacy_memory_records": 923163,
+        "memory_bodies": 0,
+        "memory_publication_metadata": 89008,
+        "memory_routing_metadata": 12956,
+        "other_payloads": 29470711,
+        "total_file": 31853182,
+        "total_payloads": 31337222
+      },
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "scope": "raw payloads; grouped/external frames include their atomic bodies, routing and receipts; no compression",
+      "semantic_mismatches": 0,
+      "accepted_source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "memory_carrier_bytes": {
+        "before": 1764547,
+        "after": 1371863,
+        "delta_after_minus_before": -392684
+      },
+      "whole_file_delta_after_minus_before": 1437913,
+      "whole_file_change_percent": 4.51419
+    },
+    {
+      "after": {
+        "compact_creations": 33937,
+        "compact_deltas": 71277,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 0,
+        "legacy_memory_records": 0,
+        "memory_bodies": 19042,
+        "memory_publication_metadata": 16848,
+        "memory_routing_metadata": 76,
+        "other_payloads": 608539,
+        "total_file": 777735,
+        "total_payloads": 749719
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 0,
+        "legacy_memory_records": 141766,
+        "memory_bodies": 19042,
+        "memory_publication_metadata": 16848,
+        "memory_routing_metadata": 76,
+        "other_payloads": 608539,
+        "total_file": 814287,
+        "total_payloads": 786271
+      },
+      "fixture": "chatgpt-first14d/user.phy",
+      "scope": "raw payloads; grouped/external frames include their atomic bodies, routing and receipts; no compression",
+      "semantic_mismatches": 0,
+      "accepted_source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "memory_carrier_bytes": {
+        "before": 141766,
+        "after": 105214,
+        "delta_after_minus_before": -36552
+      },
+      "whole_file_delta_after_minus_before": -36552,
+      "whole_file_change_percent": -4.488835
+    },
+    {
+      "after": {
+        "compact_creations": 0,
+        "compact_deltas": 600642,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 2073701,
+        "legacy_memory_records": 0,
+        "memory_bodies": 0,
+        "memory_publication_metadata": 115208,
+        "memory_routing_metadata": 314354,
+        "other_payloads": 79197411,
+        "total_file": 83889700,
+        "total_payloads": 82301316
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 2095133,
+        "legacy_memory_records": 1076579,
+        "memory_bodies": 0,
+        "memory_publication_metadata": 115208,
+        "memory_routing_metadata": 314354,
+        "other_payloads": 74866450,
+        "total_file": 80056100,
+        "total_payloads": 78467724
+      },
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "scope": "raw payloads; grouped/external frames include their atomic bodies, routing and receipts; no compression",
+      "semantic_mismatches": 0,
+      "accepted_source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "memory_carrier_bytes": {
+        "before": 3171712,
+        "after": 2674343,
+        "delta_after_minus_before": -497369
+      },
+      "whole_file_delta_after_minus_before": 3833600,
+      "whole_file_change_percent": 4.788642
+    },
+    {
+      "after": {
+        "compact_creations": 94134,
+        "compact_deltas": 49751,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 0,
+        "legacy_memory_records": 0,
+        "memory_bodies": 48974,
+        "memory_publication_metadata": 19608,
+        "memory_routing_metadata": 21644,
+        "other_payloads": 1500084,
+        "total_file": 1807787,
+        "total_payloads": 1734195
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 0,
+        "legacy_memory_records": 176853,
+        "memory_bodies": 48974,
+        "memory_publication_metadata": 19608,
+        "memory_routing_metadata": 21644,
+        "other_payloads": 1500084,
+        "total_file": 1840755,
+        "total_payloads": 1767163
+      },
+      "fixture": "chatgpt-first28d/user.phy",
+      "scope": "raw payloads; grouped/external frames include their atomic bodies, routing and receipts; no compression",
+      "semantic_mismatches": 0,
+      "accepted_source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "memory_carrier_bytes": {
+        "before": 176853,
+        "after": 143885,
+        "delta_after_minus_before": -32968
+      },
+      "whole_file_delta_after_minus_before": -32968,
+      "whole_file_change_percent": -1.791004
+    },
+    {
+      "after": {
+        "compact_creations": 0,
+        "compact_deltas": 148920,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 603740,
+        "legacy_memory_records": 0,
+        "memory_bodies": 0,
+        "memory_publication_metadata": 29088,
+        "memory_routing_metadata": 0,
+        "other_payloads": 19532812,
+        "total_file": 20709952,
+        "total_payloads": 20314560
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 609397,
+        "legacy_memory_records": 249294,
+        "memory_bodies": 0,
+        "memory_publication_metadata": 29088,
+        "memory_routing_metadata": 0,
+        "other_payloads": 18278297,
+        "total_file": 19561460,
+        "total_payloads": 19166076
+      },
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "scope": "raw payloads; grouped/external frames include their atomic bodies, routing and receipts; no compression",
+      "semantic_mismatches": 0,
+      "accepted_source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "memory_carrier_bytes": {
+        "before": 858691,
+        "after": 752660,
+        "delta_after_minus_before": -106031
+      },
+      "whole_file_delta_after_minus_before": 1148492,
+      "whole_file_change_percent": 5.871198
+    },
+    {
+      "after": {
+        "compact_creations": 211887,
+        "compact_deltas": 95307,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 0,
+        "legacy_memory_records": 0,
+        "memory_bodies": 92432,
+        "memory_publication_metadata": 39048,
+        "memory_routing_metadata": 58519,
+        "other_payloads": 3297205,
+        "total_file": 3989198,
+        "total_payloads": 3794398
+      },
+      "before": {
+        "compact_creations": 0,
+        "compact_deltas": 0,
+        "external_publication_payloads": 0,
+        "grouped_completion_payloads": 0,
+        "legacy_memory_records": 388528,
+        "memory_bodies": 92432,
+        "memory_publication_metadata": 39048,
+        "memory_routing_metadata": 58519,
+        "other_payloads": 3297205,
+        "total_file": 4070532,
+        "total_payloads": 3875732
+      },
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "scope": "raw payloads; grouped/external frames include their atomic bodies, routing and receipts; no compression",
+      "semantic_mismatches": 0,
+      "accepted_source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "memory_carrier_bytes": {
+        "before": 388528,
+        "after": 307194,
+        "delta_after_minus_before": -81334
+      },
+      "whole_file_delta_after_minus_before": -81334,
+      "whole_file_change_percent": -1.998117
+    }
+  ],
+  "canonical_corpus_promotion": false,
+  "temporary_bridge": "Memory-only disposable staging retains obsolete non-Memory payloads and CVAILEG2 original-proof transport. Mandatory R1-R22 full-domain conversion/promotion/retirement remain pending."
+}
