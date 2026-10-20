@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 167/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; next Step 168. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 169/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; next Step 170. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1884,4 +1884,18 @@ Commit: `b043494`.
 Files: docs/publication-envelope-contract-2026-10-20.md; expanded linear-plan rows169–177.
 Verification: Parent review accepts explicit allocation tags and prior-standalone-reservation binding, original marker/import slots and source-authenticated proof relocation. Container stays physical; each owner retains semantic admission/local clocks. Characterized reverse-global Memory/Relationship histories remain representable. No runtime codec/writer is accepted by this contract gate.
 Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 168 execution record
+
+Commit: `e438360`.
+Files: `src/container/publication_envelope.rs; publication_envelope_tests.rs`.
+Verification: Five independent literal codec tests cover all allocation/reserved tags, optional signed timestamp extremes, structural maximum global, opaque borrowed body bytes, zero/short/nested/unknown/truncated frames and exact round-trip. All 29 envelope-filter tests pass; no semantic owner registry or ordinary writer cutover is introduced.
+Blockers: none for this codec gate; owner body/readers/writer/converter and final integration remain pending.
+
+### Step 169 execution record
+
+Commit: `e438360`.
+Files: `src/container/{container_scan,container_version,publication_envelope_clock_tests}.rs; src/facade/historical_global_frontier.rs`.
+Verification: Fourteen new clock/recovery tests pass. Container tracks standalone reservation provenance and consumes each envelope binding once; grouped/direct/future/repeated bindings reject. Exact allocations/times and physical global frontiers, V1 barriers, malformed-complete rejection, every partial allocation/binding frame prefix, failed validation, write fences and overflow pass. Five adjacent filters pass 318 unique tests with zero failures/ignores; root/CLI format/check and 32 CLI tests pass. Both documentation modes pass. Existing ordinary semantic writer shapes remain unchanged.
+Blockers: none for the mechanical gate; Memory body admission/consumers, other owner decisions, final integration/architecture refresh and retirement remain pending.
 

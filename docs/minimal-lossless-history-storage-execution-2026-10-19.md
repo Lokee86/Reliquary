@@ -1330,7 +1330,7 @@ Documentation impact:
 - Inspected: Container clock, raw append/read, scan/recovery, physical historical frontier, owner format and native import binding constraints.
 - Updated: storage format, maintainer and coverage maps, envelope contract and execution evidence.
 - Not affected: public CLI/API surface, owner semantic clocks/IDs, ordinary publication writer shape or canonical fixture hashes.
-- Compliance check: format/check and focused/adjacent/CLI tests pass; structural/change-impact documentation checks run for this batch.
+- Compliance check: root/CLI format/check, focused/adjacent/CLI tests and both structural/change-impact documentation checks pass for this batch.
 - Known documentation gaps: remaining owner cutover, final promotion and compatibility retirement are pending.
 
 Architecture impact:
