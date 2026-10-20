@@ -2,6 +2,13 @@
   "version": 1,
   "areas": [
     {
+      "id": "compact-codec",
+      "description": "Pure field-change and known-mask value mechanics; no semantic owner, clock, persistence or publication authority",
+      "paths": [
+        "src/compact_delta.rs"
+      ]
+    },
+    {
       "id": "freshness",
       "description": "REL-local deterministic relevance scores, decay, event batches and bounded graph propagation; independent of semantic Memory revisions",
       "paths": [

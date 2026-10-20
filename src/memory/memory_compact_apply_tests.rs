@@ -1,4 +1,5 @@
 use super::*;
+use crate::memory_compact_contract::MemoryFieldChange;
 use crate::{
     EpisodeId, MemoryBodyId, MemoryId, MemorySourceRef, MemoryTemporalInference,
     TemporalIndicationKind, TemporalInference, TemporalInferenceResolution,

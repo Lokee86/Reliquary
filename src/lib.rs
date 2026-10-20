@@ -30,6 +30,7 @@ pub mod freshness;
 #[path = "rewrite.rs"]
 pub mod rewrite;
 pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
+mod compact_delta;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
 #[path = "facade/owner_maintenance.rs"]

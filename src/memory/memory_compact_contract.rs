@@ -2,22 +2,7 @@
 use crate::memory_model::MemoryRecord;
 use crate::{EpisodeId, MemoryError, MemoryId, MemorySourceRef, MemoryTemporalInference};
 
-/// For optional T, Set(None) explicitly clears; Unchanged inherits the prior
-/// accepted value. This operates on resolved records, never caller arguments.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) enum MemoryFieldChange<T> {
-    Unchanged,
-    Set(T),
-}
-impl<T: Clone + Eq> MemoryFieldChange<T> {
-    fn between(previous: &T, next: &T) -> Self {
-        if previous == next {
-            Self::Unchanged
-        } else {
-            Self::Set(next.clone())
-        }
-    }
-}
+pub(crate) use crate::compact_delta::FieldChange as MemoryFieldChange;
 
 macro_rules! memory_fields {
     ($($bit:literal => $field:ident: $ty:ty),+ $(,)?) => {
@@ -139,7 +124,7 @@ impl MemoryDelta {
     }
 
     pub(crate) fn validate_mask(mask: u64) -> Result<(), MemoryError> {
-        if mask & !MEMORY_DELTA_KNOWN_MASK != 0 {
+        if !crate::compact_delta::mask_is_known(mask, MEMORY_DELTA_KNOWN_MASK) {
             return Err(MemoryError::CorruptRecord("unknown Memory delta field"));
         }
         Ok(())

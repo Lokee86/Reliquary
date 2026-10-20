@@ -26,6 +26,8 @@ The staging guard removes its owned file and directory on error, abort or drop, 
 
 ## Internal Memory compact contract
 
+The internal `compact_delta` value helpers do not change persisted bytes. Owners specify their own field masks/order, wire tags, coordinates and errors; the helper distinguishes unchanged from `Set(None)` and builds candidate field values without mutating prior accepted state. Memory retains its body/ID inheritance, revision/mutation rules and canonical-delta validation. Optional-field mechanics are shared; semantic validation and publication are not.
+
 `memory_compact_contract.rs` defines the private creation/delta envelope and twenty ordered mutable fields. Creation retains the exact first accepted record and body reference; later records bind the previous revision and preserve publication coordinates while carrying only changed metadata. Explicit optional clear differs from unchanged. Inference collections use whole-value ordered replacement; separate immutable routing remains outside the revision delta. The [field inventory and contract](minimal-lossless-history-storage-spec-2026-10-19.md#memory-field-inventory-step-42) track codec implementation. The compact wire codec and pure delta application are implemented; ordinary standalone publication uses this format on V2. Grouped/external creation publication has cut over; lossless migration remains separately gated.
 
 ## Compact Memory wire carriers

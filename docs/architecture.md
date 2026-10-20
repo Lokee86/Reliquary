@@ -61,6 +61,8 @@ Archive owns genuine retained fragments and accepted source positions. The priva
 
 ## Compact Memory reconstruction
 
+`src/compact_delta.rs` shares only value-level mechanics: typed unchanged/set changes (including explicit optional clear), known-mask checking, and pure candidate-field application. It has no owner, storage, revision, clock or publication authority. Memory and each later owner retain field ordering, wire tags, identity rules, terminal behavior, error types and canonical-delta validation. Validate-before-apply remains a concrete owner sequence: validate the envelope, build a disposable typed candidate, validate canonical semantics, then admit/publish through that owner. A generic owner/candidate-validation framework is not introduced.
+
 Memory owns its creation/delta codec and pure candidate application; common Memory value encoding is shared with the legacy carrier without changing those bytes. Standalone publication writes compact creations/deltas; atomic Insomnia and external publications embed compact creations within their existing owning transactions. Legacy grouped migration retains original clock observability in its explicit original-variant carrier. Existing `MemoryOpenState` remains the sole replay owner and retains exact object/version-marker admission, deferred unversioned frames and terminal tombstones. New compact payloads do not create another store, history clock or public delta API. See the [wire and replay contract](storage-format.md#compact-memory-wire-carriers).
 
 ## Lossless format-upgrade staging

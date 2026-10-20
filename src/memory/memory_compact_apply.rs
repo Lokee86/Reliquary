@@ -1,14 +1,8 @@
 //! Pure application of an accepted Memory delta to its prior revision.
 use crate::MemoryError;
-use crate::memory_compact_contract::{MemoryDelta, MemoryFieldChange};
+use crate::compact_delta::apply_field;
+use crate::memory_compact_contract::MemoryDelta;
 use crate::memory_model::MemoryRecord;
-
-fn apply_field<T: Clone>(previous: &T, change: &MemoryFieldChange<T>) -> T {
-    match change {
-        MemoryFieldChange::Unchanged => previous.clone(),
-        MemoryFieldChange::Set(value) => value.clone(),
-    }
-}
 
 pub(crate) fn apply_delta(
     previous: &MemoryRecord,
