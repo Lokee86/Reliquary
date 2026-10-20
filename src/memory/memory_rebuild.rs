@@ -38,6 +38,14 @@ impl MemoryOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), MemoryError> {
+        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+            if !self.ingest_publication_envelope(envelope, latest_global_version)? {
+                return Err(MemoryError::CorruptRecord(
+                    "unsupported publication envelope body",
+                ));
+            }
+            return Ok(());
+        }
         if self.store.prune.ingest(chunk, payload)? {
             return Ok(());
         }
@@ -169,6 +177,45 @@ impl MemoryOpenState {
             self.store.insert_rebuilt(record)?;
         }
         Ok(())
+    }
+
+    pub(crate) fn ingest_publication_envelope(
+        &mut self,
+        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        latest_global_version: u64,
+    ) -> Result<bool, MemoryError> {
+        use crate::memory_compact_codec::publication::{self, MemoryPublication};
+        let Some(publication) = publication::decode(envelope.body, envelope.global_version)? else {
+            return Ok(false);
+        };
+        if envelope.global_version > latest_global_version {
+            return Err(MemoryError::InvalidVersion);
+        }
+        match publication {
+            MemoryPublication::Creation(creation) => {
+                crate::memory_store::MemoryStore::validate_compact_record(&creation.record)?;
+                self.store.insert_rebuilt(creation.record)?;
+            }
+            MemoryPublication::Delta(delta) => {
+                let previous = self.store.current_record_for_replay(delta.id)?;
+                let record = crate::memory_compact_apply::apply_delta(previous, &delta)?;
+                crate::memory_store::MemoryStore::validate_compact_record(&record)?;
+                self.store.insert_rebuilt(record)?;
+            }
+            MemoryPublication::Tombstone {
+                id,
+                revision,
+                memory_version,
+            } => {
+                self.store.insert_tombstone_rebuilt(
+                    crate::memory_codec::MemoryTombstone { id, revision },
+                    envelope.global_version,
+                    memory_version,
+                )?;
+            }
+        }
+        self.compact_seen = true;
+        Ok(true)
     }
 
     pub(crate) fn finish(

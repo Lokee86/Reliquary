@@ -1,4 +1,6 @@
-//! Compact Memory wire carriers; not enabled in ordinary writers or replay yet.
+//! Memory wire value codecs shared by marker-bound carriers and envelope bodies.
+#[path = "memory_publication_codec.rs"]
+pub(crate) mod publication;
 use crate::memory_compact_contract::{
     MEMORY_DELTA_KNOWN_MASK, MemoryCreation, MemoryDelta, MemoryDeltaFields, MemoryFieldChange,
 };

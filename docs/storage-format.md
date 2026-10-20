@@ -40,6 +40,12 @@ The internal `compact_delta` value helpers do not change persisted bytes. Owners
 
 `memory_compact_contract.rs` defines the private creation/delta envelope and twenty ordered mutable fields. Creation retains the exact first accepted record and body reference; later records bind the previous revision and preserve publication coordinates while carrying only changed metadata. Explicit optional clear differs from unchanged. Inference collections use whole-value ordered replacement; separate immutable routing remains outside the revision delta. The [field inventory and contract](minimal-lossless-history-storage-spec-2026-10-19.md#memory-field-inventory-step-42) track codec implementation. The compact wire codec and pure delta application are implemented; ordinary standalone publication uses this format on V2. Grouped/external creation publication has cut over; lossless migration remains separately gated.
 
+## Memory publication envelope bodies
+
+Memory owns `CVAMC002` creation, `CVAMD002` delta and `CVAMT002` terminal bodies inside `CVAPUB01`. Creation retains stable Memory/body IDs, Memory-local u64 version, mutation ID and the existing twenty creation values; revision one is implicit. Delta retains ID, previous/current revision, Memory-local version, mutation ID, field mask and ordered selected values. Both omit the global integer supplied by the physical envelope. Terminal retains ID, terminal revision and Memory-local version. The 002 forms are envelope bodies only; 001 carriers remain the current marker-bound ordinary writer format until the explicit writer cutover.
+
+The body codec shares existing concrete Memory value encodings. MemoryOpenState applies envelope creation/delta/terminal facts through the same compact candidate validation, revision sequencing, immutable body identity and tombstone machinery. Envelope bodies are accepted once without a second version marker; unknown owner bodies fail closed. Missing immutable body backing rejects at owner finish. Existing grouped publications retain their atomic path. Ordinary Memory writer cutover, historical/import readers, prune proof/copy adapters and offline conversion remain separately gated.
+
 ## Compact Memory wire carriers
 
 `src/memory/memory_compact_codec.rs` owns `CVAMC001` creation and `CVAMD001` delta records. Shared Memory-owned value encodings live in `memory_codec_values.rs`; extracting them from the legacy carrier does not change legacy bytes. `memory_compact_values.rs` supplies typed value dispatch only within Memory.

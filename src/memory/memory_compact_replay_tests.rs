@@ -1,3 +1,6 @@
+#[path = "memory_publication_replay_tests.rs"]
+mod publication;
+
 use crate::memory_codec::{
     MemoryTombstone, MemoryVersion, encode_body, encode_record, encode_tombstone, encode_version,
 };

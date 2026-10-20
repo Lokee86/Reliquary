@@ -10,6 +10,10 @@ use crate::{
 };
 use std::collections::{HashMap, HashSet};
 
+#[cfg(test)]
+#[path = "memory_rebuild_overflow_tests.rs"]
+mod rebuild_overflow_tests;
+
 #[path = "memory_store/grouped_publish.rs"]
 mod grouped_publish;
 #[path = "memory_store/history_prune.rs"]
@@ -382,6 +386,9 @@ impl MemoryStore {
         if global_version == 0 || memory_version != self.next_memory_version {
             return Err(MemoryError::InvalidVersion);
         }
+        let next_memory_version = memory_version
+            .checked_add(1)
+            .ok_or(MemoryError::VersionExhausted)?;
         let index = self
             .current
             .get(&tombstone.id)
@@ -404,9 +411,7 @@ impl MemoryStore {
                 domain_version: Some(memory_version),
             },
         );
-        self.next_memory_version = memory_version
-            .checked_add(1)
-            .ok_or(MemoryError::VersionExhausted)?;
+        self.next_memory_version = next_memory_version;
         Ok(())
     }
 
@@ -765,11 +770,12 @@ impl MemoryStore {
         if record.memory_version != self.next_memory_version {
             return Err(MemoryError::InvalidVersion);
         }
-        self.insert(record)?;
-        self.next_memory_version = self
+        let next_memory_version = self
             .next_memory_version
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
+        self.insert(record)?;
+        self.next_memory_version = next_memory_version;
         Ok(())
     }
 

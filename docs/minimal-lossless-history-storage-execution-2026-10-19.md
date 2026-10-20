@@ -1339,3 +1339,27 @@ Architecture impact:
 - Pitlord enforcement impact: existing Container/facade areas remain unchanged; refreshed source enforcement remains Gate E.
 - Other verification impact: nineteen new physical tests plus 318 unique adjacent cases and 32 CLI tests pass.
 - Known architectural gaps: per-owner body admission/proof/copy/writer/converter gates and final source refresh remain pending.
+
+## Memory envelope bodies, replay and history — Steps 170–172 verified
+
+Memory owns the `CVAMC002`, `CVAMD002` and `CVAMT002` envelope bodies. They retain the existing local/revision/identity/causal fields while the outer physical envelope supplies global order. The codec shares concrete Memory value helpers, not an encoded-old-record stripping adapter. Seven independent literal/corruption tests pass, covering external global context, optional clears, empty deltas, malformed coordinates/masks/UTF-8 and unchanged input contracts on rejection.
+
+MemoryOpenState admits these direct bodies through the same creation validation, pure delta application, dense local sequence and terminal machinery. Accepted body backing, temporal evidence, provenance and routing validation remain in owner finish/lifecycle. Unknown physical envelope bodies fail closed while Memory is the only migrated semantic envelope consumer; future owner gates must extend explicit dispatch before their writers cut over. Raw 002 bodies outside a physical envelope reject, and V1 continues to reject physical envelopes.
+
+The initial publication filter passes **80/80**, including actual REL/PHY facade creation reopen and unknown-body rejection. Five focused replay tests pass after adding invalid successor state preservation and explicit raw-body/V1 boundary cases. Reverse-global standalone reservations preserve records and terminal state, global head and exact optional timestamps. Ordinary Memory writes still emit their current marker-bound carriers until Step 177; no premature writer cutover is claimed.
+
+Review exposed an inherited mutation-before-overflow corner in `MemoryStore::insert_rebuilt` and `insert_tombstone_rebuilt`. Both now compute the next local version before changing accepted maps; a dedicated regression snapshots revisions/current/mutation/terminal state at exhaustion. The overflow regression passes. Final adjacent Memory verification passes **278 tests**, zero failures and one existing opt-in ignore (`.test-tmp/memory-envelope-adjacent-repo-network.log`). A localhost HTTP mock failed under restricted networking; its permitted rerun passes, without production changes. All **seven** focused replay/history tests pass (`.test-tmp/memory-envelope-historical-final.log`), including every local cut for marker/envelope REL/PHY fixtures with reversed globals and terminal state, plus every local/global cut and exact timestamp in a real grouped-Insomnia-plus-envelope REL. Six external grouped-publication and fourteen Insomnia completion regressions pass. Root/CLI format/check, **32 CLI tests**, and both documentation checks pass. Gate E remains the whole-root/source refresh checkpoint.
+
+Documentation impact:
+- Inspected: Memory carrier/body codecs, rebuild, immutable body/provenance/routing checks, terminal lifecycle, historical fingerprints and grouped publication authority.
+- Updated: storage format, maintainer map, documentation coverage and execution evidence.
+- Not affected: ordinary Memory writer shape, public API/CLI commands, semantic identity/clocks and canonical source fixtures.
+- Compliance check: root/CLI format/check, seven codec and seven replay/history tests, overflow regression, 278 adjacent Memory tests, grouped suites, 32 CLI tests and both documentation modes pass.
+- Known documentation gaps: downstream import/proof/copy/writer/converter migration and final promotion/retirement remain pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: Memory owns its body format and reduction; Container supplies physical global context only. Shared value helpers stay under the concrete Memory codec.
+- Pitlord enforcement impact: existing Memory/Container areas remain unchanged; source refresh remains Integration Gate E.
+- Other verification impact: actual REL/PHY reopen, reverse-global and grouped coexistence, historical cuts and failure atomicity are exercised.
+- Known architectural gaps: Steps 173 onward and final integrated architecture enforcement remain pending.
