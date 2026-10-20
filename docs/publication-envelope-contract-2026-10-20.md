@@ -1,7 +1,7 @@
 # Compact publication envelope — execution contract
 
 Date: 2026-10-20
-Status: Step 167 contract prepared for parent acceptance; runtime admission and writing remain pending subsequent explicit gates.
+Status: Step 167 contract accepted against `b043494`; runtime admission and writing remain pending subsequent explicit gates.
 
 ## Overview
 

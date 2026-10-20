@@ -1307,10 +1307,10 @@ Architecture impact:
 - Standards added or changed: none.
 - Ownership or boundary impact: FreshnessStore remains the semantic owner; reconciliation consumes its bounded requested-event seam and canonical legacy scope adapter. No generic history registry or second reducer was added.
 - Pitlord enforcement impact: existing Freshness/import ownership areas remain unchanged; refreshed source enforcement belongs to Integration Gate E.
-- Other verification impact: root compilation passes; focused owner, wire, migration and fixture tests are recorded above.
+- Other verification impact: root/CLI format and compilation pass; all 32 CLI tests pass. Focused owner, wire, migration and fixture tests are recorded above; full root rerun and architecture refresh remain at Gate E.
 - Known architectural gaps: broad Gate E, final corpus promotion and temporary converter/legacy-reader retirement remain pending.
 
-## Publication framing inventory — Step 166 preparation
+## Publication framing inventory and contract — Steps 166–167 accepted
 
 The [read-only framing inventory](../benchmarks/publication-framing-byte-inventory-2026-10-20.json) pins all six source hashes before and after its scan. Nine independent parser/accounting tests pass. It joins tickets by explicit global IDs, expands encoded grouped ranges, and never attributes by neighboring records. There are **87,296** standalone global tickets: **87,292** have one owner link, **four** are unclaimed and none are shared. Links comprise Memory 7,719, Entity 1,141, Archive 32,357 and Graph 46,075; Relationship/Ego links are absent from the corpus. Insomnia has **1,943 embedded ranges covering 4,695 global IDs**; external-source ranges are absent. Actual ticket payload/framed bytes are partitioned once by owner plus explicit orphan/shared buckets. No envelope savings are claimed by this inventory.
 

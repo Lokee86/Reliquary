@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 155/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; next Step 156. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 167/303 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; next Step 168. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1799,3 +1799,89 @@ Blockers: none for the adversarial gate; final integration, canonical corpus pro
 ## Publication envelope consumer expansion crosswalk
 
 Step 167 review confirms distinct Container allocation/reserved-binding semantics and Memory codec, replay, historical, reconciliation/import, authenticated-proof, reclamation, native-copy and writer failure domains. New Step 169 owns physical clock/recovery integration; former Memory writer Step 169 becomes explicit Steps 170–177. Former pending Steps 170–295 become 178–303. Steps 1–168 retain their identities; Integration Gate E now follows Step 184. Existing earlier crosswalk totals remain dated checkpoints. The plan has 303 consecutive execution rows. [Envelope contract](publication-envelope-contract-2026-10-20.md) records the reserved-binding decision and source import-boundary constraints. Before another owner migration, inventory its actual consumers and insert explicit owner-specific steps rather than absorbing work into an umbrella row.
+
+
+### Step 156 execution record
+
+Commit: `b043494`.
+Files: Freshness field inventory and concrete consumer audit in execution evidence.
+Verification: Every event identity/order/effect/proof/provenance/semantic field is accepted authority; per-event postimages are derived. Birth/admission/settlement records remain accepted metadata/proof.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 157 execution record
+
+Commit: `b043494`.
+Files: docs/storage-format.md; src/freshness_storage.rs.
+Verification: Existing CVAFRS02 already expresses every required accepted fact without postimages. Reused the current format instead of inventing another carrier; independent literal wire test passes.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 158 execution record
+
+Commit: `b043494`.
+Files: src/freshness/freshness_effect_storage_contract_tests.rs; src/freshness_storage.rs.
+Verification: Existing encoder/decoder verified by exact literal semantic bytes, complete decoded fields, truncation/trailing/producer/option/owner/version rejection; all four contract tests pass.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 159 execution record
+
+Commit: `b043494`.
+Files: src/freshness_storage.rs and effect-storage contract tests.
+Verification: Canonical prior-state-plus-effect reduction reproduces exact postimages; decoded events carry no postimages. Adjacent scoring/order/replay regressions pass.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 160 execution record
+
+Commit: `b043494`.
+Files: Freshness owner, semantic settlement, forgery and contract tests.
+Verification: 154 adjacent tests pass; the unchanged long-owner retry test passed in the earlier run. Forged candidate postimages reject before omission; malformed wire, provenance, policy, identity, duplicate/conflict and semantic source rules remain enforced.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 161 execution record
+
+Commit: `b043494`.
+Files: src/freshness_storage.rs; effects-only contract and synthetic migration tests.
+Verification: Ordinary event encoding already writes only accepted effects/proof/evidence. Literal bytes prove derived record maps cannot alter the payload; durable accepted-use events reopen and reconstruct observable same-turn postimages.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 162 execution record
+
+Commit: `b043494`.
+Files: src/storage_upgrade/freshness_{synthetic,authoritative}_tests.rs; src/storage_upgrade/mod.rs.
+Verification: Two migration tests pass (317.25s), including six hash-pinned V1 owners and a nonempty legacy-Memory/two-event fixture. Exact retained facts, supported cuts, event-cut availability, proofs and source-derived settlement normalization agree. Source bytes/hashes/lengths/mtimes are unchanged; no promotion.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 163 execution record
+
+Commit: `b043494`.
+Files: src/freshness/freshness_import_events.rs; src/imports/reconciliation.rs; reconciliation_freshness_authority_tests.rs.
+Verification: Freshness owner resolves canonical scope accepted IDs, expands batches and rejects missing/conflicting events. Completed epochs compare normalized immutable event maps including outside-interval facts. Four focused tests pass, including real settled import inventory; legitimate coordinate rebasing remains equivalent.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 164 execution record
+
+Commit: `b043494`.
+Files: Freshness authority/synthetic/authoritative migration regressions.
+Verification: Real CVAFRS06 normalization bytes match source-derived successors. Two same-turn synthetic event cuts preserve exact facts and derived scores. All 111 retained intra-settlement event cuts return the same documented unavailable outcome; no successful retained event-cut fingerprints are claimed.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 165 execution record
+
+Commit: `b043494`.
+Files: benchmarks/freshness-history-storage-2026-10-20.json.
+Verification: 111 events/148,708 effects retained. All CVAFRS02 journal payload bytes 5,098,875→5,098,875; framed bytes 5,100,635→5,100,635; zero journal saving because effects-only encoding already exists. Actual CVAFRS06 normalization adds 7,415,813 payload bytes, separately attributed. Policy receipts are outside journal totals.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 166 execution record
+
+Commit: `b043494`.
+Files: scripts/measure_publication_framing.py; parser tests; benchmarks/publication-framing-byte-inventory-2026-10-20.json.
+Verification: Nine parser/accounting tests pass; six before/after source hashes match. Exact-ID/range attribution partitions 87,296 global tickets once (four unclaimed, none shared), owner links and 1,943 grouped ranges/4,695 global IDs. Per-owner ticket/link/framing field bytes and explicit absent families are recorded; no projected savings claimed.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
+### Step 167 execution record
+
+Commit: `b043494`.
+Files: docs/publication-envelope-contract-2026-10-20.md; expanded linear-plan rows169–177.
+Verification: Parent review accepts explicit allocation tags and prior-standalone-reservation binding, original marker/import slots and source-authenticated proof relocation. Container stays physical; each owner retains semantic admission/local clocks. Characterized reverse-global Memory/Relationship histories remain representable. No runtime codec/writer is accepted by this contract gate.
+Blockers: none for this numbered gate; envelope runtime implementation, broad Integration Gate E, canonical promotion and compatibility retirement remain pending.
+
