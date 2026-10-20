@@ -1,5 +1,7 @@
 #[path = "ego_store_anchors.rs"]
 mod anchors;
+#[path = "ego_store_compact.rs"]
+mod compact;
 #[path = "ego_store_documents.rs"]
 mod documents;
 #[path = "ego_store_identities.rs"]
@@ -9,7 +11,7 @@ mod read;
 #[path = "ego_store_validation.rs"]
 mod validation;
 
-use crate::ego_codec::{EgoRecord, decode, encode, record_ego_version};
+use crate::ego_codec::{EgoRecord, decode, record_ego_version};
 use crate::{
     Container, EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId, EgoPersonality,
     EgoWebSynthesis,
@@ -29,6 +31,7 @@ enum EgoOwnerKind {
 
 #[derive(Clone, Debug)]
 struct IdentityState {
+    ego_version: u64,
     revision: u64,
     deleted: bool,
     name: String,
@@ -37,6 +40,7 @@ struct IdentityState {
 
 #[derive(Clone, Debug)]
 struct AnchorState {
+    ego_version: u64,
     revision: u64,
     deleted: bool,
     priority: EgoAnchorPriority,
@@ -46,6 +50,7 @@ struct AnchorState {
 pub(crate) struct EgoStore {
     owner_kind: EgoOwnerKind,
     version: u64,
+    compact_seen: bool,
     identities: BTreeMap<EgoIdentityId, IdentityState>,
     identity_history: BTreeMap<(EgoIdentityId, u64), crate::EgoIdentity>,
     anchor_history: BTreeMap<(EgoAnchorId, u64), crate::EgoAnchor>,
@@ -53,8 +58,10 @@ pub(crate) struct EgoStore {
     anchor_deletions: BTreeMap<EgoAnchorId, u64>,
     active_identity_id: Option<EgoIdentityId>,
     personality: Option<EgoPersonality>,
+    personality_ego_version: u64,
     anchors: BTreeMap<EgoAnchorId, AnchorState>,
     synthesis: Option<EgoWebSynthesis>,
+    synthesis_ego_version: u64,
 }
 
 impl EgoStore {
@@ -65,10 +72,15 @@ impl EgoStore {
         Self::new(EgoOwnerKind::Phylactery)
     }
 
+    pub(crate) fn empty_replay(&self) -> Self {
+        Self::new(self.owner_kind)
+    }
+
     fn new(owner_kind: EgoOwnerKind) -> Self {
         Self {
             owner_kind,
             version: 0,
+            compact_seen: false,
             identities: BTreeMap::new(),
             identity_history: BTreeMap::new(),
             anchor_history: BTreeMap::new(),
@@ -76,14 +88,33 @@ impl EgoStore {
             anchor_deletions: BTreeMap::new(),
             active_identity_id: None,
             personality: None,
+            personality_ego_version: 0,
             anchors: BTreeMap::new(),
             synthesis: None,
+            synthesis_ego_version: 0,
         }
     }
 
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), EgoError> {
-        let Some(record) = decode(payload)? else {
-            return Ok(());
+        self.ingest_publication(payload).map(|_| ())
+    }
+
+    pub(crate) fn ingest_publication(
+        &mut self,
+        payload: &[u8],
+    ) -> Result<Option<EgoRecord>, EgoError> {
+        let record = if payload.starts_with(b"CVAECR") {
+            crate::ego_codec::compact::decode_creation(payload)?.record
+        } else if payload.starts_with(b"CVAETM") {
+            crate::ego_codec::compact::decode_terminal(payload)?.record
+        } else if payload.starts_with(b"CVAEDL") {
+            let delta = crate::ego_codec::compact::decode_delta(payload)?;
+            let previous = self.delta_predecessor(&delta.changes)?;
+            crate::ego_compact_apply::materialize(&previous, &delta)?
+        } else if let Some(record) = decode(payload)? {
+            record
+        } else {
+            return Ok(None);
         };
         self.validate_owner_record(&record)?;
         let expected_version = self.next_version()?;
@@ -93,9 +124,12 @@ impl EgoStore {
                 "Ego version sequence expected {expected_version}, got {actual_version}"
             )));
         }
-        self.apply(record)?;
+        self.apply(record.clone())?;
         self.version = actual_version;
-        Ok(())
+        self.compact_seen |= payload.starts_with(b"CVAECR")
+            || payload.starts_with(b"CVAEDL")
+            || payload.starts_with(b"CVAETM");
+        Ok(Some(record))
     }
 
     fn append_apply(
@@ -104,7 +138,7 @@ impl EgoStore {
         record: EgoRecord,
     ) -> Result<(), EgoError> {
         container.require_storage_format_writable()?;
-        let payload = encode(&record)?;
+        let payload = self.encode_compact_publication(&record)?;
         container.append(&payload)?;
         let version = record_ego_version(&record);
         self.apply(record)?;
@@ -117,6 +151,7 @@ impl EgoStore {
         match record {
             EgoRecord::LegacyIdentity { revision, text, .. } => {
                 self.apply_identity(
+                    ego_version,
                     LEGACY_IDENTITY_ID,
                     revision,
                     false,
@@ -134,7 +169,7 @@ impl EgoStore {
                 text,
                 ..
             } => {
-                self.apply_identity(id, revision, deleted, activate, name, text)?;
+                self.apply_identity(ego_version, id, revision, deleted, activate, name, text)?;
                 if deleted {
                     self.identity_deletions.insert(id, ego_version);
                 }
@@ -158,6 +193,7 @@ impl EgoStore {
                     text,
                     source_memory_version,
                 });
+                self.personality_ego_version = ego_version;
             }
             EgoRecord::Anchor {
                 id,
@@ -193,6 +229,7 @@ impl EgoStore {
                 self.anchors.insert(
                     id,
                     AnchorState {
+                        ego_version,
                         revision,
                         deleted,
                         priority,
@@ -215,6 +252,7 @@ impl EgoStore {
                     source_memory_version,
                     text,
                 });
+                self.synthesis_ego_version = ego_version;
             }
         }
         Ok(())
@@ -222,6 +260,7 @@ impl EgoStore {
 
     fn apply_identity(
         &mut self,
+        ego_version: u64,
         id: EgoIdentityId,
         revision: u64,
         deleted: bool,
@@ -256,6 +295,7 @@ impl EgoStore {
         self.identities.insert(
             id,
             IdentityState {
+                ego_version,
                 revision,
                 deleted,
                 name,

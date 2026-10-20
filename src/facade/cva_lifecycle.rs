@@ -395,6 +395,7 @@ impl Cva {
             &memories,
             &entities,
         )?;
+        ego.validate_storage_version(container.version())?;
         ego.validate_memory_version(memories.memory_version())?;
         memories.validate_provenance(&archive)?;
         processing_epochs.validate(&memories)?;

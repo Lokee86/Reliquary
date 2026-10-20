@@ -8,21 +8,28 @@ pub(super) fn transform(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, false, false)
+    transform_owners(source, destination, false, false, false)
 }
 
 pub(super) fn transform_with_entities(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, false)
+    transform_owners(source, destination, true, false, false)
 }
 
 pub(super) fn transform_with_relationships(
     source: &mut Container,
     destination: &mut Container,
 ) -> Result<(), StorageUpgradeError> {
-    transform_owners(source, destination, true, true)
+    transform_owners(source, destination, true, true, false)
+}
+
+pub(super) fn transform_with_ego(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(source, destination, true, true, true)
 }
 
 fn transform_owners(
@@ -30,6 +37,7 @@ fn transform_owners(
     destination: &mut Container,
     migrate_entities: bool,
     migrate_relationships: bool,
+    migrate_ego: bool,
 ) -> Result<(), StorageUpgradeError> {
     let normalizations = if source
         .identity()
@@ -68,6 +76,11 @@ fn transform_owners(
     )?;
     imports.validate_legacy_frames(&mut scanned)?;
     let memories = state.finish(&mut scanned)?;
+    let ego_carriers = if migrate_ego {
+        super::ego::prepare(source, memories.memory_version())?
+    } else {
+        BTreeMap::new()
+    };
     let entity_carriers = if migrate_entities {
         super::entity::prepare(source)?
     } else {
@@ -102,6 +115,8 @@ fn transform_owners(
             entity.clone()
         } else if let Some(relationship) = relationship_carriers.get(&object) {
             relationship.clone()
+        } else if let Some(ego) = ego_carriers.get(&object) {
+            ego.clone()
         } else if crate::imports::legacy_epoch::decode(payload)?.is_some() {
             let length = destination.backing_file().metadata()?.len();
             let hex = crate::imports::hash_file_prefix(destination.path(), length)?;

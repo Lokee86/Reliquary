@@ -1,5 +1,10 @@
 //! Internal transformed-copy shell. Owner codec migration and semantic parity
 //! must be integrated before this can expose a public upgrade/promotion API.
+mod ego;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+mod ego_authoritative_tests;
+#[cfg(test)]
+mod ego_tests;
 mod entity;
 mod memory;
 mod model;
@@ -12,8 +17,8 @@ pub(crate) use model::{
     StorageUpgradeError, StorageUpgradePlan, StorageUpgradeRequest, StorageUpgradeResult,
 };
 pub(crate) use shell::{
-    plan_storage_upgrade, stage_entity_storage_upgrade, stage_memory_storage_upgrade,
-    stage_relationship_storage_upgrade, stage_storage_upgrade,
+    plan_storage_upgrade, stage_ego_storage_upgrade, stage_entity_storage_upgrade,
+    stage_memory_storage_upgrade, stage_relationship_storage_upgrade, stage_storage_upgrade,
 };
 
 #[cfg(all(test, feature = "history-oracle-fixtures"))]

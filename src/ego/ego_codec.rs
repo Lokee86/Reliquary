@@ -1,3 +1,5 @@
+#[path = "ego_compact_codec.rs"]
+pub(crate) mod compact;
 #[path = "ego_codec_scalar.rs"]
 mod scalar;
 

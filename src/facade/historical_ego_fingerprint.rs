@@ -1,5 +1,8 @@
 //! Ego's accepted owner-local sequence; Ego records have no global ticket.
-use crate::ego_codec::{EgoRecord, decode, record_ego_version};
+#[cfg(test)]
+#[path = "historical_ego_compact_tests.rs"]
+mod compact_tests;
+use crate::ego_codec::{EgoRecord, record_ego_version};
 use crate::ego_store::EgoStore;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::{
@@ -28,8 +31,9 @@ impl EgoHistory {
         let mut scan =
             Container::open_read_only_for_scan(container.path()).map_err(|e| e.to_string())?;
         let mut records = Vec::new();
+        let mut replay = store.empty_replay();
         scan.visit_payloads::<CvaError>(|_, payload| {
-            if let Some(record) = decode(payload)? {
+            if let Some(record) = replay.ingest_publication(payload)? {
                 if record_ego_version(&record) != records.len() as u64 + 1 {
                     return Err(crate::EgoError::InvalidRecord(
                         "oracle Ego sequence differs".into(),

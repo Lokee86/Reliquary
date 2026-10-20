@@ -463,6 +463,9 @@ mod dream_pair_history;
 #[path = "runtime_inference/freshness_access.rs"]
 mod freshness_access;
 pub use freshness_access::{AcceptedMemoryUseReceipt, EgoFreshnessCandidate, EgoMemoryFreshness};
+#[cfg(test)]
+#[path = "facade/cva_reconcile_ego_compact_tests.rs"]
+mod cva_reconcile_ego_compact_tests;
 #[path = "runtime_inference/dream_processor.rs"]
 mod dream_processor;
 #[path = "runtime_inference/dream_processor_error.rs"]
@@ -495,6 +498,28 @@ mod echo_model;
 mod echo_store;
 #[path = "ego/ego_codec.rs"]
 mod ego_codec;
+#[path = "ego/ego_compact_apply.rs"]
+mod ego_compact_apply;
+#[path = "ego/ego_compact_contract.rs"]
+mod ego_compact_contract;
+#[cfg(test)]
+#[path = "ego/ego_compact_contract_tests.rs"]
+mod ego_compact_contract_tests;
+#[cfg(test)]
+#[path = "ego/ego_compact_creation_codec_tests.rs"]
+mod ego_compact_creation_codec_tests;
+#[cfg(test)]
+#[path = "ego/ego_compact_delta_codec_tests.rs"]
+mod ego_compact_delta_codec_tests;
+#[cfg(test)]
+#[path = "facade/ego_compact_maintenance_tests.rs"]
+mod ego_compact_maintenance_tests;
+#[cfg(test)]
+#[path = "ego/ego_compact_replay_tests.rs"]
+mod ego_compact_replay_tests;
+#[cfg(test)]
+#[path = "ego/ego_compact_writer_tests.rs"]
+mod ego_compact_writer_tests;
 #[path = "ego/ego_error.rs"]
 mod ego_error;
 #[path = "ego/ego_model.rs"]

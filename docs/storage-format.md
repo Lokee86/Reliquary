@@ -211,7 +211,7 @@ The type label is optional display/organization metadata only and must not selec
 
 Ego persistence is owner-local, append-only, and clock-neutral with respect to the existing Container semantic global clock. Ego maintains its own contiguous `ego_version` beginning at `1`; each logical document/Anchor also has an optimistic local revision beginning at `1`. Missing Ego records mean empty Ego state.
 
-PHY-only Identity records now support multiple stable Identity documents plus one active selection. New Identity revisions use:
+PHY-only Identity records support multiple stable Identity documents plus one active selection. The temporary legacy postimage carrier is:
 ```text
 8 bytes   "CVAEIDN2"
 u64       ego_version
@@ -232,7 +232,7 @@ u64       ego_version
 ```
 The target must identify a live Identity. Re-selecting the already-active Identity is an API no-op and writes no record.
 
-Legacy single-Identity `CVAEIDN1` records remain readable. They are projected as one stable reserved Identity with display name `Default` and are active on reopen; new writes use `CVAEIDN2`/`CVAEIDA1`.
+Legacy single-Identity `CVAEIDN1` records are temporarily readable during the development-format migration. They project to the reserved zero-ID Identity with display name `Default` and activation true. Ordinary V2 writes use compact creation/delta/terminal records below; `CVAEIDA1` remains the independent activation carrier. All retired postimage readers are subject to final runtime-retirement gates.
 
 PHY-only Personality:
 ```text
@@ -265,6 +265,16 @@ u64       source_memory_version
 string    UTF-8 synthesis text
 ```
 The source Memory version is a deterministic stale-input watermark; it may trail the owner's current `memory_version` but may not exceed it. Direct writes and reopen validation reject impossible future source cuts. The record does not itself run synthesis or claim Memory/Dream authority. Identity, Personality, and synthesis storage impose no policy-level text cap beyond the underlying length-prefixed record representation; context-budget bounds belong to later Ego synthesis/assembly policy. Ego records consume no `CVAVERS1`, Archive version, Memory version, Graph version, or Vector Generation version.
+
+#### Compact Ego carriers
+
+V2 replay also accepts the strict `CVAECR01` creation, `CVAEDL01` field-delta and `CVAETM01` terminal families. Unknown versions in these families, unknown document kinds, masks or flags, truncated values and trailing bytes fail closed. They retain exact UTF-8 strings and use the existing little-endian scalar/string representation. The document kind is `1` Identity, `2` Anchor, `3` Personality or `4` synthesis. No owner-local text table is introduced: the retained six-file corpus contains no Ego values and provides no measured pooling benefit.
+
+Creation layout is magic, kind byte and Ego sequence, followed by the document fields. Identity carries its 16-byte ID, activation byte, name and text; Anchor carries its 16-byte ID, priority byte and text; Personality/synthesis carry source Memory version and text. Creation revision is implicitly one. Identity and Anchor terminals carry magic, kind, Ego sequence, ID and revision; Anchor additionally carries exact terminal priority. Empty terminal text/name and false Identity activation are implicit. An initially terminal revision one remains representable for admitted historical inputs.
+
+Delta layout is magic, kind, Ego sequence and predecessor document revision, then stable ID for Identity/Anchor, Identity activation when applicable, one-byte field mask and changed values. Successor revision is predecessor plus one with checked overflow. Bit 0 changes Identity name, Anchor priority or singleton source Memory version; bit 1 changes text. Values follow bit order. Zero masks preserve admitted repeated raw postimages and their publication/revision. Explicit redundant changed values are rejected during materialization; ordinary setter no-ops still emit no publication. Activation is per-publication metadata, so raw Identity updates with activation remain exact. `CVAEIDA1` remains the minimal independent activation carrier.
+
+EgoStore owns materialization, owner restrictions, dense publication sequence and document lifecycle. Its accepted current document bases retain their actual last Ego sequence; replay never substitutes a Memory or global clock. Historical fingerprint scans use this same owner replay seam. Fresh-history rewrite emits compact first revisions and independent activation, retaining rewrite's existing history-discard policy. Ordinary writers emit these compact carriers through EgoStore. The private offline Ego converter composes Memory/Entity/Relationship transport with exact Ego publication translation and retains source sequence/revision/UUID/global times. Converter acceptance and final canonical promotion remain separately tracked gates. V1 inputs containing these compact families are rejected; temporary V1 translation readers remain subject to the final retirement gates.
 
 ### Interaction-stream checkpoints
 

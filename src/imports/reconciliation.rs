@@ -470,5 +470,8 @@ fn physical_boundary(cva: &mut Cva, common: usize) -> Result<usize, CvaReconcile
 }
 
 #[cfg(test)]
+#[path = "reconciliation_ego_compact_tests.rs"]
+mod ego_compact_tests;
+#[cfg(test)]
 #[path = "reconciliation_relationship_compact_tests.rs"]
 mod relationship_compact_tests;

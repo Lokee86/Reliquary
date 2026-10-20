@@ -565,8 +565,8 @@ fn append_ego_record<O>(
 where
     O: EgoDestination,
 {
-    let bytes =
-        crate::ego_codec::encode(&record).map_err(|error| RewriteError(error.to_string()))?;
+    let bytes = crate::ego_codec::compact::encode_initial(&record)
+        .map_err(|error| RewriteError(error.to_string()))?;
     destination.append_ego_record(&bytes)
 }
 

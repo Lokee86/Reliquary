@@ -1172,3 +1172,49 @@ Step 126 selects inline owner-specific creation/field-delta storage without a pa
 Identity and Personality remain PHY-only. Anchor and synthesis remain valid in both REL and PHY. Legacy Identity normalizes to zero ID, name `Default`, and activation true. Ego sequence remains dense and owner-local; document revisions advance independently and interleave across objects. Source Memory watermarks may decrease and remain bounded by the owner's current Memory head; they do not borrow the Ego clock. Activation-only publications retain their existing minimal carrier. No global ticket, transaction-time field, or payload identity is invented.
 
 Four discovered consumers are explicit pending plan gates before writer cutover: historical fingerprint materialization, fresh-history rewrite emission, maintenance chain preservation, and safe rejection of unsupported Ego reconciliation/imports. Contract implementation and tests remain pending; Step 127 is not accepted by this preparation record.
+
+## Ego compact publication and consumer batch — Steps 127–138 under validation
+
+The Ego owner now has explicit compact creation, two-field delta, terminal and independent activation semantics. Creation revision and delta successor revision are implicit; exact semantic content, activation flags, terminal Anchor priority, independent owner sequence and source Memory watermarks survive materialization. Zero-field raw publications remain represented. Existing setter no-ops still append nothing. Accepted current-document bases retain their actual last Ego publication coordinates, without a new global clock or text pool.
+
+The store dispatches strict compact families, rejects missing/wrong/terminal predecessors, unknown versions, invalid masks/flags/UTF-8/trailing bytes and redundant changed fields, and enforces existing owner/lifecycle rules. V1 inputs containing compact Ego frames fail the storage-version gate. Historical fingerprints resolve materialized publications through the same Ego owner. Fresh-history rewrite emits compact first revisions and independent activation while preserving its selected-state and derived-cache policies. Native REL/PHY pruning and reclamation, REL repacking, unsupported divergent reconciliation and import interval guards have explicit compact-history regressions. Ordinary writers use compact frames; the private V1 upgrader composes Ego with Memory/Entity/Relationship translation and allocates no semantic sequence.
+
+Read-side verification passes **56 tests**, including exact legacy/compact canonical fingerprints at every REL/PHY Ego cut. The six-file authoritative Ego upgrade passes with source bytes, hashes, lengths and modification times unchanged; all six contain zero Ego records, explicitly disclosed in [the byte artifact](../benchmarks/ego-history-storage-2026-10-20.json). Nonempty raw V1 fixtures independently cover five REL and thirteen PHY publications, including Legacy Default Identity, repeated postimages, activation on update, independent activation, terminal priority changes and all four document kinds. They preserve every cut, owner UUID, global tickets and transaction times. Raw payload bytes are **256→200 REL** and **656→555 PHY**; including unchanged per-frame 8-byte lengths, **296→240** and **760→659** respectively. These are synthetic examples, not a retained-corpus savings estimate.
+
+Development fixture errors corrected during validation include an incorrect REL open for a PHY test, overbroad CVAE prefix scans that matched Entity records, an over-limit Anchor body, a wrongly fixed activation count, and a relabeled compact carrier used as a V1 fixture. Tests now construct genuine raw V1 Ego carriers; no production guard was relaxed. Root integration, current-source architecture refresh and final acceptance entries remain pending.
+
+Documentation impact:
+- Inspected: architecture, invariants, history/storage plans, shared ownership/seams/documentation standards, Ego codecs/stores/facades, historical readers and rewrite/import/maintenance boundaries.
+- Updated: storage format, current limitations, maintainer/coverage maps, temporary converter removal scope, development scan guidance, byte evidence and this execution record.
+- Not affected: public API signatures, CLI command surface, source fixture bytes or canonical promotion policy.
+- Compliance check: structural and change-impact modes pass before this evidence refresh and will be rerun at batch acceptance.
+- Known documentation gaps: full post-Ego integration/architecture evidence and acceptance ledger are still collecting; retained sources have zero Ego values.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: EgoStore remains the only mutable Ego semantic owner; codecs and candidate materialization remain concrete Ego modules. Historical scans consume the owner seam. No generic root/store registry was added.
+- Pitlord enforcement impact: 20 existing areas/23 rules unchanged; a final Ego source refresh is collecting. The helper avoids a redundant initialization scan when configuration already matches, but always explicitly scans.
+- Other verification impact: bounded codecs/replay/migration/maintenance tests, read-only authoritative conversion and full root/CLI integration checks.
+- Known architectural gaps: final Ego snapshot enforcement and later canonical promotion/runtime retirement remain pending.
+
+## Graph field inventory preparation — Step 139 pending Gate D
+
+The read-only [Graph inventory](../benchmarks/graph-history-byte-inventory-2026-10-20.json) and [measurement script](../scripts/measure_graph_history.py) distinguish format markers, node mappings, mutation/batch carriers and publication links. The six immutable source files contain **7,562,328 Graph payload bytes**, or **8,349,616 bytes including Container frames**. Mappings retain 32-byte Memory or 33-byte typed semantic references plus a 4-byte internal ordinal; links retain two u64 coordinates and a 16-byte physical ObjectRef. Mutations carry two full semantic endpoints, relation kind, active flag and explicit or legacy-implicit origin; batches share only their magic/count framing.
+
+A hypothetical new owner-local dictionary includes one complete framed header and 33 bytes per typed entry, with no assumed reuse of existing mappings. Four-byte references project **3,918,649 net bytes saved** across all six files; one-byte references are infeasible for five files and are excluded for those files. This is not implemented format evidence or a final Step 140 decision. Six independent parser/projection tests pass, including literal typed Memory widths, family-specific batch strides, malformed data, empty dictionaries and ordinal capacity. Parent review corrected initially optimistic framing/kind accounting before retaining the artifact. All source hashes match before and after. Step 139 remains unaccepted until preceding Ego/Gate D work closes.
+
+## Freshness effect-history discovery — Step 145 preparation only
+
+Current-source inspection found that the planned removal of persisted event postimages has already occurred: `freshness_storage.rs::put_event` serializes effects and immutable evidence, deliberately ignores the derived `records` map, and `get_event` returns an empty postimage map for owner replay. `FreshnessStore` prepares canonical candidate postimages from prior state plus effects, and rejects nonempty supplied postimages that differ before applying the event. This source fact must be verified against existing format, forgery, replay and migration tests before Steps 146–153 are accepted; adding a redundant second effect-only carrier is not assumed necessary. No Freshness runtime change or acceptance is claimed here.
+
+| Field | Classification | Lossless requirement |
+| --- | --- | --- |
+| Event ID and turn | Immutable identity/order | Preserve exact accepted identity, retry/conflict behavior and canonical `(turn, event_id)` cuts. |
+| Recipient Memory ID to signed effect | Accepted causal facts | Retain every recipient and effect; current scores cannot recover them. |
+| Graph/Community proof | Accepted evidence | Preserve exact Graph cut and optional Community generation/Graph version; validate against owner evidence. |
+| Producer/source/origin/accepted turn/policy provenance | Accepted evidence | Preserve producer-specific admission and source identity, independently of derived scores. |
+| Semantic/fragment evidence | Accepted evidence | Preserve owner, fragment/source keys, conversation/node, accepted turn, policy/profile and source/target digests used by admission and import proof. |
+| Per-event postimage records | Derived candidate projection | Recompute with the owner reducer; never replace causal/proof facts with final scores. |
+| Physical frame order | Transport/replay ordering | Preserve the applicable event, accepted-use batch/receipt and settlement ordering contracts. |
+
+Concrete consumers include owner replay, the `FreshnessReplayEntry` adapter, historical event-cut enumeration/fingerprints, REL reconciliation and proof rebasing, native import interval/evidence extraction, historical settlement digests and supersession, and fresh-history rewrite score recomputation. Any actual codec change must name these consumers explicitly rather than hiding them in a generic writer row. Current `CVAFRS06` settlement proof semantics remain required.

@@ -501,7 +501,25 @@ fn v1_rejects_exact_ego_anchor_update_and_v2_empty_clone_preserves_identity() {
     drop(rel);
 
     let legacy = test_path("ego-v1.rel");
-    copy_file(&source, &legacy);
+    // Build an actual legacy carrier: relabeling a compact V2 writer output
+    // as V1 must now fail, before this test's read-only update assertion.
+    let mut legacy_owner = Cva::create(&legacy).unwrap();
+    let legacy_container = &mut legacy_owner.container;
+    legacy_container
+        .append(
+            &crate::ego_codec::encode(&crate::ego_codec::EgoRecord::Anchor {
+                ego_version: 1,
+                id: anchor.id,
+                revision: 1,
+                deleted: false,
+                priority: anchor.priority,
+                text: anchor.text.clone(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+    legacy_container.sync().unwrap();
+    drop(legacy_owner);
     downgrade_header_to_v1(&legacy);
     let before = fs::read(&legacy).unwrap();
     let mut rel = Cva::open_v1_read_only(&legacy).unwrap();

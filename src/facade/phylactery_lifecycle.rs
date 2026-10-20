@@ -204,6 +204,7 @@ impl Phylactery {
             return Err(crate::EntityError::InvalidField("Phylactery principal Entity").into());
         }
         let lexical_index = LexicalIndex::default();
+        ego.validate_storage_version(container.version())?;
         ego.validate_memory_version(memories.memory_version())?;
         validate_phylactery_provenance(&memories)?;
         processing_epochs.validate(&memories)?;

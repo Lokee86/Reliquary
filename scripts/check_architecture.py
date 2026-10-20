@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -90,20 +91,33 @@ def refresh_evidence(lexicon: Path, arcana: Path) -> None:
     # application build/test profiles or excluding authored source.
     adapter_environment = os.environ.copy()
     adapter_environment.setdefault("CARGO_PROFILE_DEV_OPT_LEVEL", "3")
-    run(
-        [
-            str(lexicon),
-            "init",
-            "--repo",
-            str(ROOT),
-            "--adapters",
-            str(adapter_root()),
-            # semantic.json owns authored Rust under src; Python guards run above.
-            "--languages",
-            "rust",
-        ],
-        environment=adapter_environment,
-    )
+    adapters = adapter_root()
+    try:
+        configuration = json.loads((ROOT / ".lexicon" / "config.json").read_text(encoding="utf-8"))
+        configured = (
+            configuration.get("version") == 1
+            and Path(configuration.get("adapter_root", "")).resolve() == adapters
+            and configuration.get("enabled_languages") == ["rust"]
+        )
+    except (OSError, ValueError, TypeError):
+        configured = False
+    # An unchanged configuration needs one explicit scan, not init's scan plus
+    # another scan. Reconfigure first when adapters or enabled languages differ.
+    if not configured:
+        run(
+            [
+                str(lexicon),
+                "init",
+                "--repo",
+                str(ROOT),
+                "--adapters",
+                str(adapters),
+                # semantic.json owns authored Rust under src; Python guards run above.
+                "--languages",
+                "rust",
+            ],
+            environment=adapter_environment,
+        )
     # init may reuse an existing snapshot; configuration is not a freshness guarantee.
     # Always advance the snapshot before synchronizing enforcement evidence.
     run([str(lexicon), "scan", "--repo", str(ROOT)], environment=adapter_environment)
