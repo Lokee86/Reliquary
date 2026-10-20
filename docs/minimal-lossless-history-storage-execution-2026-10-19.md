@@ -507,3 +507,23 @@ Architecture impact:
 - Known architectural gaps: Relationship and later owner migrations are unfinished; no corpus promotion or legacy retirement is claimed.
 
 Entity implementation is committed as `73e88ae`. CLI format/check and **32/32 tests** pass (`.test-tmp/lossless-entity-final-cli-format.log`, `.test-tmp/lossless-entity-final-cli-check.log`, `.test-tmp/lossless-entity-final-cli-tests.log`). Steps 96–107 are accepted independently against this implementation. Step 108 selects Relationship as the still-canonical persisted target; eight explicit consumer/pruning gates expand pending work to 279 rows while preserving accepted numbering. The next execution item is Step 109.
+
+## Relationship contract, codecs and reconstruction — Steps 109–112
+
+Implementation `0650305` passes **52/52** Relationship regressions, zero failures (`.test-tmp/lossless-relationship-codec-rebuild-tests-final.log`). This includes actual V1 REL/PHY acceptance characterization, independent compact golden frames, all 32 field masks, complete participant tuple add/remove semantics, bounded exact UTF-8/reference values, candidate canonicality, current/historical owner reopen, late global tickets and preserved transaction times, explicit terminal history, inert orphans and V1 published-compact refusal. The first run's two failures were fixture preconditions (noncanonical ordering and an earlier clock failure hiding revision overflow); they were corrected without production changes. Root format/check and both documentation modes pass. Accepted range is now 1–112 of 279.
+
+Published compact Relationship prune proofs currently fail closed at owner finish until Step 118 supplies authenticated manifest/source-history admission. Ordinary Relationship writers remain unchanged pending the concrete consumer gates. No migration or corpus promotion is claimed here.
+
+Documentation impact:
+- Inspected: architecture, invariants, maintainer map, current limitations, roadmap and history/format plans.
+- Updated: source specification, storage format, current limitations, execution and acceptance ledger.
+- Not affected: public API signatures and CLI commands.
+- Compliance check: both structural and change-impact documentation checks pass for this source batch.
+- Known documentation gaps: consumer/proof/writer/migration and final retirement acceptance remain pending.
+
+Architecture impact:
+- Standards added or changed: none.
+- Ownership or boundary impact: Relationship owns its pure contract, bounded wire values, candidate reconstruction and accepted-publication replay; lifecycle only invokes the existing owner seam.
+- Pitlord enforcement impact: new modules remain in existing perception ownership; fresh graph enforcement remains scheduled for Integration Gate D.
+- Other verification impact: focused owner and historical tests pass; broad cross-owner checks remain required at Gate D.
+- Known architectural gaps: concrete consumers and native prune proof readers precede writer cutover.

@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 108/279 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; next Step 109. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 112/279 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; next Step 113. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1014,6 +1014,35 @@ Commit: `73e88ae` inspected source; decision recorded in the following plan/cont
 Files: `src/perception/relationship_store.rs`; `relationship_model.rs`; `relationship_rebuild.rs`; `src/rewrite/semantic_state.rs`; `src/semantic_graph/graph_store_validation.rs`.
 Verification: Relationship remains the only persisted candidate owner. Observation is explicitly not a separate persisted store; Graph rejects Observation nodes. Compact history therefore targets the existing Relationship owner and its stable references. No competing durable Observation writer exists to retire. Independent Luna inventory confirms the five mutable fields and concrete raw-carrier consumers; the eight explicit adapter gates are inserted before their cutovers.
 Blockers: none for canonical target selection; if a concurrent canonical-owner change lands, stop and explicitly replan that ownership boundary.
+
+
+### Step 109 execution record
+
+Commit: `0650305`.
+Files: `src/perception/` relationship_compact_contract.rs; contract/adversarial tests; relationship_v1_characterization_tests.rs.
+Verification: All five mutable fields, exact V1 text/roles/reference ordering, fresh-mutation zero mask, late tickets, nonmonotonic update time within bounds and explicit terminal/proof semantics are frozen. Genuine V1 REL/PHY fixtures reopen unchanged. Cohesive Relationship regression **52/52**, zero failures (`.test-tmp/lossless-relationship-codec-rebuild-tests-final.log`); root format/check and both documentation modes pass. The initial run found two test-fixture precondition errors, corrected without weakening production validation.
+Blockers: none for this gate. Published compact pruning evidence remains deliberately fail-closed until Step 118 authenticates the file-level proof reader; ordinary writer cutover and migration remain pending.
+
+### Step 110 execution record
+
+Commit: `0650305`.
+Files: `src/perception/` relationship_compact_codec.rs; relationship_compact_values.rs; codec tests.
+Verification: Independent creation golden, exact optional roles and bounded lists/UTF-8, every proper-prefix truncation, tags, unknown versions, ordinary EOF and proof-only checksums pass. Cohesive Relationship regression **52/52**, zero failures (`.test-tmp/lossless-relationship-codec-rebuild-tests-final.log`); root format/check and both documentation modes pass. The initial run found two test-fixture precondition errors, corrected without weakening production validation.
+Blockers: none for this gate. Published compact pruning evidence remains deliberately fail-closed until Step 118 authenticates the file-level proof reader; ordinary writer cutover and migration remain pending.
+
+### Step 111 execution record
+
+Commit: `0650305`.
+Files: `src/perception/` relationship_compact_codec.rs; relationship_compact_values.rs; codec/contract tests.
+Verification: All 32 masks, exact participant role remove/add, evidence changes, zero mask, sorted unique disjoint operations, malformed/empty operation encoding, count bounds and reserved-bit rejection pass. Cohesive Relationship regression **52/52**, zero failures (`.test-tmp/lossless-relationship-codec-rebuild-tests-final.log`); root format/check and both documentation modes pass. The initial run found two test-fixture precondition errors, corrected without weakening production validation.
+Blockers: none for this gate. Published compact pruning evidence remains deliberately fail-closed until Step 118 authenticates the file-level proof reader; ordinary writer cutover and migration remain pending.
+
+### Step 112 execution record
+
+Commit: `0650305`.
+Files: `src/perception/` relationship_compact_apply.rs; relationship_rebuild.rs; relationship_store_read.rs; REL/PHY lifecycle callers; application/rebuild/owner tests.
+Verification: Pure canonical candidate reconstruction and both real owner reopen paths preserve exact revisions/fields/clocks/times. Missing bases, marker mismatch, redundant sets, mutation conflicts and terminal resurrection reject; V1 published compact rejects and orphan carriers stay inert. Cohesive Relationship regression **52/52**, zero failures (`.test-tmp/lossless-relationship-codec-rebuild-tests-final.log`); root format/check and both documentation modes pass. The initial run found two test-fixture precondition errors, corrected without weakening production validation.
+Blockers: none for this gate. Published compact pruning evidence remains deliberately fail-closed until Step 118 authenticates the file-level proof reader; ordinary writer cutover and migration remain pending.
 
 ## Phase J — Ego Compact History
 
