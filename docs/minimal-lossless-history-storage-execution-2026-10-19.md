@@ -505,3 +505,5 @@ Architecture impact:
 - Pitlord enforcement impact: direct path ownership passes; fresh graph enforcement is scheduled with the cohesive postimage-owner Integration Gate D.
 - Other verification impact: CLI validation follows the changed ordinary writer behavior; full repository checks remain required at Gate D.
 - Known architectural gaps: Relationship and later owner migrations are unfinished; no corpus promotion or legacy retirement is claimed.
+
+Entity implementation is committed as `73e88ae`. CLI format/check and **32/32 tests** pass (`.test-tmp/lossless-entity-final-cli-format.log`, `.test-tmp/lossless-entity-final-cli-check.log`, `.test-tmp/lossless-entity-final-cli-tests.log`). Steps 96–107 are accepted independently against this implementation. Step 108 selects Relationship as the still-canonical persisted target; eight explicit consumer/pruning gates expand pending work to 279 rows while preserving accepted numbering. The next execution item is Step 109.
