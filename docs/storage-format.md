@@ -133,6 +133,18 @@ This document is the exact reference owner for persistent records currently impl
 P5-B changes no schema or persisted journal framing. Dispatch switches/wake state and the router digest cache remain ephemeral; existing owner receipts, vector profiles/bindings and derived queues reconstruct work. Durable host intent/cancellation/terminal proof remain in the REL journal. Private vector profiles/batches synchronize before runtime visibility/wake.
 
 ## Overview
+
+Current REL interaction-stream checkpoints use `CVAISTR2` Begin metadata,
+exact UTF-8 Append suffixes with prior byte lengths, and Interrupted markers
+with current byte lengths. Replay materializes the unchanged public checkpoint
+record. Repeated metadata never resets text or interruption; an interrupted
+checkpoint may extend text but cannot resume. Completion remains Archive-owned.
+The writer validates a full checkpoint before appending, admits each complete
+frame prefix, and emits no frame for an identical checkpoint. The existing sync
+boundary controls acknowledgement. Explicit V1 inspection rejects this format;
+the temporary offline converter replays cumulative `CVAISTR1` checkpoints through
+the current owner. Neither format is a PHY owner. See the
+[compact stream contract](interaction-stream-compact-contract-2026-10-21.md).
 The shared container supports two typed semantic file kinds. A Reliquary `.rel` contains the full existing source/workspace owner composition: Archive source/history records, embedded and repository-backed file references, durable Project repository-revision correlations, durable interaction-stream checkpoints, turn-attached Echo execution evidence, mutable conversation-compaction state, Memories, Graph relationship state, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Insomnia operational/completion records, vector backing/bindings, compatibility profiles, and vector generations. Most owners remain append-oriented; conversation compaction is an explicitly mutable variable-width owner with immediate free-space reclamation. A Phylactery `.phy` contains the narrower user-global owner set: latest-wins principal profile metadata, Memories, Graph, clock-neutral Dream maintenance/pair-history records, derived Community snapshots and semantic-name records, Packed Vectors, Memory Vectors, Compatibility Profiles, and Ego Identity/Personality/Anchor/web-synthesis records. REL files may contain Ego Anchors and one cached owner-local web synthesis but reject PHY-only Identity/Personality records. Each top-level type opens the same physical stream but dispatches and validates only its permitted owners.
 
 ## Reliquary and Phylactery file identity — implemented

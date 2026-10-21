@@ -217,6 +217,14 @@ The internal reconnect operation reads a fresh authorized snapshot and replaces 
 
 ## P4 exact conversation streams
 
+InteractionStreamStore owns materialization of REL `CVAISTR2` metadata, exact
+UTF-8 suffixes and irreversible interruption markers. The physical byte position
+is a content coordinate, never a semantic clock. Checkpoint validation and
+reconciliation retain their existing latest-state contract; destination replay
+uses the same compact writer. Archive still owns completed turns and supersedes
+stream state by message ID. Temporary offline V1 conversion lives in
+`storage_upgrade`; it does not add a public delta API or a generic event store.
+
 The P4 stream hub lives inside each mounted REL sequencer and shares its publication gate while keeping exact conversation/operation/generation/branch cursors and queues separate from broad REL summaries. Production joins use P3's authoritative snapshot and a validated durable full prefix before registration; delivery follows only persisted checkpoint/status facts. If Archive has advanced ahead of the journal, the prefix is bounded to the journal-authoritative UTF-8 length and checked against its SHA-256 before delivery. Count/byte overflow requires fresh prefix replacement. Authority and epoch teardown apply to both namespaces. The deterministic-provider tests remain the P4.6 mechanical evidence; production convergence is recorded in [P4.7](multiplexing-implementation-plan.md), and the coverage/lock/privacy audit is recorded in [P4.8](multiplexing-implementation-plan.md). P4.9 local/convergence functional acceptance passed with repository-wide verification exceptions recorded in [P4.9 acceptance record](multiplexing-implementation-plan.md).
 
 ## Semantic Freshness source preparation

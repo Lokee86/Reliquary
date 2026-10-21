@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-21",
+  "workload": "256 synchronized cumulative checkpoints, each adding exact UTF-8 é, then interruption",
+  "verification": "interaction_stream_compact_tests::compact_stream_long_stream_has_linear_raw_growth",
+  "message_id": "message",
+  "session_id": "session",
+  "parent": null,
+  "final_content_bytes": 512,
+  "legacy": { "frames": 257, "payload_bytes": 77869, "framed_bytes": 79925 },
+  "current": { "frames": 258, "payload_bytes": 7745, "framed_bytes": 9809 },
+  "current_growth": "one Begin plus 38 framed bytes per two-byte suffix plus one 32-byte Interrupted marker",
+  "scope": "raw stream-family bytes including eight-byte Container framing; no compression or whole-file saving claim"
+}

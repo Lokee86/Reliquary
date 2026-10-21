@@ -330,6 +330,13 @@ impl Cva {
                         archive_vector_state.ingest(chunk, payload)?;
                         profile_state.ingest(chunk, payload)?;
                         generation_state.ingest(chunk, payload, latest_global)?;
+                        if required_version.is_some_and(|version| version.major == 1)
+                            && crate::interaction_stream_codec::is_compact(payload)
+                        {
+                            return Err(CvaError::InteractionStream(
+                                "compact interaction stream in V1 input".into(),
+                            ));
+                        }
                         interaction_streams.ingest(payload)?;
                         compaction_state.ingest(chunk, payload)?;
                         echo.ingest(payload)?;

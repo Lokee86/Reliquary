@@ -1555,3 +1555,44 @@ pass, including a byte-verified independent1775-file Git snapshot. Ownership
 guards and all23 retained-snapshot Pitlord rules pass. A bounded fresh Lexicon
 refresh did not complete and was stopped; no fresh architecture evidence is
 claimed. Refresh remains an integration Gate F requirement.
+
+
+## Steps 250–255 — Compact Dream pair history
+
+Implementation: `d3e48a6`; generated-analysis scope correction: `c7115ea`.
+The [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md#step-250-execution-record)
+contains separate acceptance records for each numbered requirement.
+
+DreamPairStore retains canonical stable-ID membership and owns a per-file
+physical ID table. CVADRM01 maps dense nonzero u32 references to32-byte IDs;
+CVADRP02 stores two references, resolved and checked in semantic ID order.
+Neither representation adds a semantic clock. Both-owner writers, copies,
+reconciliation union, terminal pruning, reclamation and the private V1 converter
+retain exact membership. Current rows in V1 input reject. An interrupted append
+after its first mapping can reopen without membership and retry using that row.
+
+All11 focused pair checks and the final broad library run pass (2,072 passed,
+five existing ignored, three previously-passed exhaustive cases filtered).
+All157 integration cases passed in the broad root invocation; its15-minute
+process bound fired while starting doctests after a13m53s rebuild. The separate
+doctest invocation passes. Root/CLI checks and formatting pass, and CLI tests
+pass32/32. No behavioral test failure remains.
+
+The six-file authoritative conversion test passes in318.44 seconds. It compares
+exact pair sets/fingerprints, all three REL Dream proof fingerprints, source
+manifest hashes before/after, and physical raw accounting. The
+[measurement](../benchmarks/dream-pair-storage-2026-10-21.json) includes mapping
+tables and unchanged8-byte frame headers. For36,108 pairs and4,316 mapped IDs,
+payload bytes fall from2,599,776 to767,632 and framed bytes from2,888,640 to1,091,024
+(62.23%). Tiny histories can grow: one pair costs128 framed bytes instead of80.
+A zero-pair source receives no table or savings claim. Compression is separate.
+
+Divergent completed-import interval replay still rejects pair frames in both
+legacy/current encodings under the existing unsupported-owner policy. This
+change does not weaken that refusal or introduce an unverified import adapter.
+
+Architecture refresh diagnosis found disposable Rust/repository copies under
+.test-tmp inside Lexicon's analysis mirror. The new root .lexiconignore excludes
+only .test-tmp and .verification-tmp; neither has tracked authored files. Normal
+src/tests/examples/cli source scope remains intact. The scoped refresh is being
+collected; retained-snapshot and fresh results are distinguished explicitly.

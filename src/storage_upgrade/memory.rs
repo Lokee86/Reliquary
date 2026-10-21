@@ -333,8 +333,14 @@ fn transform_owners(
     }
     let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
     let mut dream_pairs = crate::dream_pair_history::DreamPairStore::default();
+    let mut interaction_streams =
+        crate::interaction_stream_store::InteractionStreamStore::default();
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
         if migrate_graph_envelopes {
+            if let Some(record) = crate::interaction_stream_codec::decode(payload)? {
+                interaction_streams.put(destination, record)?;
+                return Ok(());
+            }
             if let Some((left, right)) =
                 crate::dream_pair_history::DreamPairStore::decode_legacy_pair(payload)?
             {

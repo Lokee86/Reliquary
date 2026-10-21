@@ -799,6 +799,9 @@ mod interaction_session;
 mod interaction_stream;
 #[path = "archive/interaction_stream_codec.rs"]
 mod interaction_stream_codec;
+#[cfg(test)]
+#[path = "archive/interaction_stream_compact_tests.rs"]
+mod interaction_stream_compact_tests;
 #[path = "archive/interaction_stream_persistence.rs"]
 mod interaction_stream_persistence;
 #[path = "archive/interaction_stream_record.rs"]

@@ -7,6 +7,7 @@
 - [Minimal lossless history storage — specification](minimal-lossless-history-storage-spec-2026-10-19.md) — proposed compact owner history and historical equivalence requirements.
 - [Minimal lossless history storage — linear execution plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) — ordered implementation steps and integration gates.
 - [Dream population and Memory identity prefix](dream-population-contract-2026-10-21.md) — planned local identity and physical Begin evidence contract.
+- [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
 - [Compact publication envelope contract](publication-envelope-contract-2026-10-20.md) — planned physical allocation/reserved-binding format and owner migration gates.
 
 - [Tombstone/import execution contract](tombstone-import-history-execution-contract.md) — frozen boundaries and staged implementation record.

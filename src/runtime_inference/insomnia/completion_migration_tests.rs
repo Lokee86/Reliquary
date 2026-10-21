@@ -435,9 +435,29 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     // current compact authority as V1 input.
     let mut legacy_begins = BTreeMap::new();
     let mut legacy_pairs = BTreeMap::new();
+    let mut legacy_streams = BTreeMap::new();
+    let mut streams = crate::interaction_stream_store::InteractionStreamStore::default();
     let mut pair_mappings = std::collections::HashSet::new();
     for object in cva.container.chunks().unwrap() {
         let payload = cva.container.read(object).unwrap();
+        if crate::interaction_stream_codec::is_compact(&payload) {
+            streams.ingest(&payload).unwrap();
+            let message_id = match crate::interaction_stream_codec::decode_compact(&payload)
+                .unwrap()
+                .unwrap()
+            {
+                crate::interaction_stream_codec::CompactRecord::Begin(record) => record.message_id,
+                crate::interaction_stream_codec::CompactRecord::Append { message_id, .. }
+                | crate::interaction_stream_codec::CompactRecord::Interrupted {
+                    message_id, ..
+                } => message_id,
+            };
+            legacy_streams.insert(
+                object,
+                crate::interaction_stream_codec::encode(streams.record(&message_id).unwrap())
+                    .unwrap(),
+            );
+        }
         if payload.starts_with(b"CVADRM01") {
             pair_mappings.insert(object);
         }
@@ -468,7 +488,9 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
             if pair_mappings.contains(&object) {
                 return Ok(());
             }
-            let transformed = if let Some(begin) = legacy_begins.get(&object) {
+            let transformed = if let Some(stream) = legacy_streams.get(&object) {
+                stream.clone()
+            } else if let Some(begin) = legacy_begins.get(&object) {
                 begin.clone()
             } else if let Some(pair) = legacy_pairs.get(&object) {
                 pair.clone()
