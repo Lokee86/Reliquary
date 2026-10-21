@@ -1488,3 +1488,6 @@ Post226 broad library revalidation passes2,024 tests, five existing ignored and 
 
 
 Insomnia prefix227 accepted against `99e7f04`: three focused current/legacy proof cases and2,027 broad units pass, five existing ignored and three previously verified exhaustive sweeps filtered. Reopen shares the exact extracted owner-validation checks with the prefix reader; no-proof legacy completions remain non-births. Progress227/356; external-source prefix228 is active.
+
+
+External prefix228 accepted against `ad45319`: populated legacy/current format parity and2,028 broad units pass, five existing ignored and three separately verified exhaustive sweeps filtered. Before REL coordination, discovery requires a separate Container bounded version-aware reader: new229 owns physical-frontier/no-repair correctness, former229 onward shift byone. Progress228/357; coordinator is230. Accepted1–228 retain their identities.
