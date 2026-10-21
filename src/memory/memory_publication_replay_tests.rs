@@ -91,7 +91,9 @@ fn first_publication_prefix_uses_local_cut_and_preserves_first_global_facts() {
     third.body_id = append_body(&mut container, "Third", "Third accepted identity.");
 
     for time in [Some(100), Some(200), Some(300), Some(400), Some(500)] {
-        container.allocate_version_with_transaction_time(time).unwrap();
+        container
+            .allocate_version_with_transaction_time(time)
+            .unwrap();
     }
 
     // Accepted local order is 1, 2, 3, 4, 5. First-publication global order
@@ -135,7 +137,7 @@ fn first_publication_prefix_uses_local_cut_and_preserves_first_global_facts() {
         PublicationClock::BindReserved,
         MemoryPublication::Tombstone {
             id: second.id,
-            revision: 3,
+            revision: 2,
             memory_version: 5,
         },
     );
@@ -143,24 +145,35 @@ fn first_publication_prefix_uses_local_cut_and_preserves_first_global_facts() {
     drop(container);
 
     let store = replay(&path).unwrap();
-    let expected = [
-        (first.id, 2),
-        (second.id, 1),
-        (third.id, 3),
-    ];
+    let expected = [(first.id, 2), (second.id, 1), (third.id, 3)];
     assert!(store.first_publication_prefix(0).unwrap().is_empty());
-    assert_eq!(store.first_publication_prefix(1).unwrap(), expected[..1]);
-    assert_eq!(store.first_publication_prefix(2).unwrap(), expected[..2]);
-    assert_eq!(store.first_publication_prefix(3).unwrap(), expected);
-    assert_eq!(store.first_publication_prefix(4).unwrap(), expected);
-    assert_eq!(store.first_publication_prefix(5).unwrap(), expected);
+    assert_eq!(
+        store.first_publication_prefix(1).unwrap(),
+        expected[..1].to_vec()
+    );
+    assert_eq!(
+        store.first_publication_prefix(2).unwrap(),
+        expected[..2].to_vec()
+    );
+    assert_eq!(
+        store.first_publication_prefix(3).unwrap(),
+        expected.to_vec()
+    );
+    assert_eq!(
+        store.first_publication_prefix(4).unwrap(),
+        expected.to_vec()
+    );
+    assert_eq!(
+        store.first_publication_prefix(5).unwrap(),
+        expected.to_vec()
+    );
     assert!(matches!(
         store.first_publication_prefix(6),
         Err(MemoryError::InvalidVersion)
     ));
     assert!(matches!(
         store.lifecycle_state(second.id).unwrap(),
-        Some(LifecycleState::Tombstoned(_))
+        LifecycleState::Tombstoned(_)
     ));
 }
 
@@ -390,8 +403,13 @@ fn envelope_memory_history_matches_marker_history_at_every_local_cut() {
 fn envelope_coexists_with_grouped_completion_at_all_memory_and_global_cuts() {
     use crate::historical_memory_fingerprint::MemoryHistory;
     let (path, mut owner, _) = crate::insomnia::completion_tests::setup("envelope-grouped-source");
-    let completed = crate::insomnia::completion_tests::process(&mut owner, 1, 200);
-    assert_eq!(completed.created.len(), 1);
+    let completed = crate::insomnia::completion_tests::process(&mut owner, 2, 200);
+    assert_eq!(completed.created.len(), 2);
+    let grouped_ids = completed
+        .created
+        .iter()
+        .map(|memory| memory.id)
+        .collect::<Vec<_>>();
     owner.sync().unwrap();
     drop(owner);
     let second_path = test_path("envelope-grouped-copy.rel");
@@ -426,6 +444,13 @@ fn envelope_coexists_with_grouped_completion_at_all_memory_and_global_cuts() {
     let mut right = crate::Cva::open(&second_path).unwrap();
     assert_eq!(left.memories.records(), right.memories.records());
     assert_eq!(left.latest_global_version(), right.latest_global_version());
+    let prefix = left
+        .memories
+        .first_publication_prefix(left.memory_version())
+        .unwrap();
+    for id in grouped_ids {
+        assert!(prefix.contains(&(id, left.memories.first_global_version(id).unwrap())));
+    }
     let left_history = MemoryHistory::read(&mut left.container, &left.memories).unwrap();
     let right_history = MemoryHistory::read(&mut right.container, &right.memories).unwrap();
     for cut in 0..=left.memory_version() {

@@ -366,6 +366,15 @@ fn external_publication_receipt_provenance_and_global_clock_reopen_atomically() 
     assert_eq!(reopened.container.latest_version(), before);
     assert_eq!(reopened.memory(id).unwrap().content, memories[0].content);
     assert_eq!(
+        reopened
+            .memories
+            .first_publication_prefix(reopened.memory_version())
+            .unwrap(),
+        vec![(id, memories[0].global_version)],
+        "external births retain their first accepted identity coordinates"
+    );
+
+    assert_eq!(
         reopened.external_memory_evidence(id).unwrap(),
         Some(evidence)
     );

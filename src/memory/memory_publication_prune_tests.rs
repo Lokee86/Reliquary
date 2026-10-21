@@ -152,22 +152,46 @@ fn native_rel_and_phy_prune_bind_envelope_facts_and_reject_valid_mutation_tamper
         };
         if kind == FileKind::Reliquary {
             let mut owner = crate::Cva::open(&source).unwrap();
+            let expected_prefix = owner
+                .memories
+                .first_publication_prefix(owner.memory_version())
+                .unwrap();
             let report = owner.prune_tombstoned_history(&output, request).unwrap();
             assert_eq!(report.pruned_memory_bodies, 1);
             drop(owner);
             let mut pruned = crate::Cva::open(&output).unwrap();
             assert_eq!(pruned.memory_version(), 3);
+            assert_eq!(
+                pruned
+                    .memories
+                    .first_publication_prefix(pruned.memory_version())
+                    .unwrap(),
+                expected_prefix,
+                "pruning body bytes must preserve the accepted identity prefix"
+            );
             assert!(matches!(
                 pruned.memory_revision(first.id, 1),
                 Err(MemoryError::PayloadUnavailable(_))
             ));
         } else {
             let mut owner = crate::Phylactery::open(&source).unwrap();
+            let expected_prefix = owner
+                .memories
+                .first_publication_prefix(owner.memory_version())
+                .unwrap();
             let report = owner.prune_tombstoned_history(&output, request).unwrap();
             assert_eq!(report.pruned_memory_bodies, 1);
             drop(owner);
             let mut pruned = crate::Phylactery::open(&output).unwrap();
             assert_eq!(pruned.memory_version(), 3);
+            assert_eq!(
+                pruned
+                    .memories
+                    .first_publication_prefix(pruned.memory_version())
+                    .unwrap(),
+                expected_prefix,
+                "pruning body bytes must preserve the accepted identity prefix"
+            );
             assert!(matches!(
                 pruned.memory_revision(first.id, 1),
                 Err(MemoryError::PayloadUnavailable(_))
