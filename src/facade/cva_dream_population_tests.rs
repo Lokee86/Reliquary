@@ -379,3 +379,247 @@ fn bounded_population_replays_reserved_global_order_independently_of_memory_loca
     );
     assert_eq!(std::fs::read(&path).unwrap(), before);
 }
+
+fn append_v2_begin(owner: &mut Cva, record: crate::dream_begin_codec::BeginRecord) {
+    let payload = crate::dream_begin_codec::encode(&record).unwrap();
+    owner.container.append(&payload).unwrap();
+}
+
+fn append_legacy_roots(owner: &mut Cva, pass_id: &str, roots: &BTreeSet<crate::MemoryId>) {
+    let mut payload = Vec::new();
+    payload.extend_from_slice(b"CVDREAM1");
+    payload.extend_from_slice(&owner.container.owner_uuid().unwrap());
+    payload.push(1);
+    payload.extend_from_slice(&(pass_id.len() as u32).to_le_bytes());
+    payload.extend_from_slice(pass_id.as_bytes());
+    payload.extend_from_slice(&(roots.len() as u32).to_le_bytes());
+    for id in roots {
+        payload.extend_from_slice(&id.0);
+    }
+    owner.container.append(&payload).unwrap();
+}
+
+fn append_legacy_marker(owner: &mut Cva, kind: u8, pass_id: &str, turn: Option<u64>) {
+    let mut payload = Vec::new();
+    payload.extend_from_slice(b"CVDREAM1");
+    payload.extend_from_slice(&owner.container.owner_uuid().unwrap());
+    payload.push(kind);
+    payload.extend_from_slice(&(pass_id.len() as u32).to_le_bytes());
+    payload.extend_from_slice(pass_id.as_bytes());
+    if let Some(turn) = turn {
+        payload.extend_from_slice(&turn.to_le_bytes());
+    }
+    owner.container.append(&payload).unwrap();
+}
+
+#[test]
+fn compact_begin_replays_exact_physical_population_before_legacy_roots() {
+    let temp = Temp::new();
+    let path = temp.owner_path();
+    let mut owner = Cva::create(&path).unwrap();
+    let candidate = owner
+        .publish_memory(None, 0, draft("v2-before-source", "knowledge"))
+        .unwrap()
+        .0
+        .id;
+    let source = owner
+        .publish_memory(None, 0, draft("v2-source", "extracted"))
+        .unwrap()
+        .0
+        .id;
+    let source_mutation = owner.memories.first_mutation_id(source).unwrap().to_owned();
+    let pending_intent = owner
+        .dream_freshness
+        .publication_intent_payload(source, &source_mutation, 0, false)
+        .unwrap();
+    owner.container.append(&pending_intent).unwrap();
+    let cut = owner.memories.memory_version();
+    let end = std::fs::metadata(&path).unwrap().len();
+    let population = owner.dream_population_at_prefix(end, cut, source).unwrap();
+    assert_eq!(population, BTreeSet::from([candidate]));
+    let pass_id = "compact-after-decode";
+    let owner_uuid = owner.container.owner_uuid().unwrap();
+    append_v2_begin(
+        &mut owner,
+        crate::dream_begin_codec::BeginRecord {
+            owner_uuid,
+            pass_id: pass_id.into(),
+            source_id: source,
+            turn: 0,
+            graph_version_before: 0,
+            population: crate::dream_begin_codec::BeginPopulation::CompactCut {
+                memory_cut: cut,
+                digest: crate::dream_population_digest::digest(&population),
+            },
+        },
+    );
+    append_legacy_roots(&mut owner, pass_id, &BTreeSet::from([candidate]));
+    owner.sync().unwrap();
+    drop(owner);
+
+    let reopened = Cva::open(&path).unwrap();
+    let pass = reopened.dream_freshness.pending(pass_id).unwrap();
+    assert_eq!(pass.preexisting_ids, population);
+    assert_eq!(pass.roots, BTreeSet::from([candidate]));
+    assert!(reopened.freshness_has_pending_publication(source));
+}
+
+#[test]
+fn explicit_begin_is_literal_population_authority() {
+    let temp = Temp::new();
+    let path = temp.owner_path();
+    let mut owner = Cva::create(&path).unwrap();
+    let source = owner
+        .publish_memory(None, 0, draft("v2-explicit-source", "extracted"))
+        .unwrap()
+        .0
+        .id;
+    let literal = crate::MemoryId([213; 32]);
+    let pass_id = "explicit-literal";
+    let owner_uuid = owner.container.owner_uuid().unwrap();
+    append_v2_begin(
+        &mut owner,
+        crate::dream_begin_codec::BeginRecord {
+            owner_uuid,
+            pass_id: pass_id.into(),
+            source_id: source,
+            turn: 0,
+            graph_version_before: 0,
+            population: crate::dream_begin_codec::BeginPopulation::ExplicitSet(BTreeSet::from([
+                literal,
+            ])),
+        },
+    );
+    append_legacy_roots(&mut owner, pass_id, &BTreeSet::from([literal]));
+    owner.sync().unwrap();
+    drop(owner);
+
+    let reopened = Cva::open(&path).unwrap();
+    let pass = reopened.dream_freshness.pending(pass_id).unwrap();
+    assert_eq!(pass.preexisting_ids, BTreeSet::from([literal]));
+    assert_eq!(pass.roots, BTreeSet::from([literal]));
+}
+
+#[test]
+fn compact_begin_rejects_wrong_cut_digest_and_owner_without_rewriting_bytes() {
+    for failure in ["cut", "digest", "owner"] {
+        let temp = Temp::new();
+        let path = temp.owner_path();
+        let mut owner = Cva::create(&path).unwrap();
+        let _prior = owner
+            .publish_memory(None, 0, draft(&format!("v2-{failure}-prior"), "knowledge"))
+            .unwrap();
+        let source = owner
+            .publish_memory(None, 0, draft(&format!("v2-{failure}-source"), "extracted"))
+            .unwrap()
+            .0
+            .id;
+        let cut = owner.memories.memory_version();
+        let end = std::fs::metadata(&path).unwrap().len();
+        let population = owner.dream_population_at_prefix(end, cut, source).unwrap();
+        let mut memory_cut = cut;
+        let mut digest = crate::dream_population_digest::digest(&population);
+        let mut owner_uuid = owner.container.owner_uuid().unwrap();
+        match failure {
+            "cut" => memory_cut += 1,
+            "digest" => digest[0] ^= 1,
+            "owner" => owner_uuid[0] ^= 1,
+            _ => unreachable!(),
+        }
+        append_v2_begin(
+            &mut owner,
+            crate::dream_begin_codec::BeginRecord {
+                owner_uuid,
+                pass_id: format!("reject-{failure}"),
+                source_id: source,
+                turn: 0,
+                graph_version_before: 0,
+                population: crate::dream_begin_codec::BeginPopulation::CompactCut {
+                    memory_cut,
+                    digest,
+                },
+            },
+        );
+        owner.sync().unwrap();
+        drop(owner);
+        let before = std::fs::read(&path).unwrap();
+        assert!(Cva::open(&path).is_err(), "{failure} should reject");
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+    }
+}
+
+#[test]
+fn mixed_legacy_and_current_begins_keep_later_settlement_replay() {
+    let temp = Temp::new();
+    let path = temp.owner_path();
+    let mut owner = Cva::create(&path).unwrap();
+    let source = owner
+        .publish_memory(None, 0, draft("mixed-current-source", "extracted"))
+        .unwrap()
+        .0
+        .id;
+    let owner_uuid = owner.container.owner_uuid().unwrap();
+    let legacy_pass = crate::InitialDreamPass {
+        pass_id: "legacy-before-current".into(),
+        source_id: crate::MemoryId([212; 32]),
+        first_revision: 1,
+        turn: 0,
+        accepted_settlement_turn: None,
+        preexisting_ids: BTreeSet::new(),
+        graph_version_before: 0,
+        roots: BTreeSet::new(),
+    };
+    let legacy_journal =
+        crate::freshness_dream_journal::DreamFreshnessJournal::new(Some(owner_uuid));
+    owner
+        .container
+        .append(&legacy_journal.begin_payload(&legacy_pass).unwrap())
+        .unwrap();
+    let pass_id = "current-after-legacy";
+    append_v2_begin(
+        &mut owner,
+        crate::dream_begin_codec::BeginRecord {
+            owner_uuid,
+            pass_id: pass_id.into(),
+            source_id: source,
+            turn: 0,
+            graph_version_before: 0,
+            population: crate::dream_begin_codec::BeginPopulation::ExplicitSet(BTreeSet::new()),
+        },
+    );
+    append_legacy_marker(&mut owner, 3, pass_id, Some(0));
+    append_legacy_marker(&mut owner, 2, pass_id, None);
+    append_legacy_marker(&mut owner, 3, &legacy_pass.pass_id, Some(0));
+    append_legacy_marker(&mut owner, 2, &legacy_pass.pass_id, None);
+    owner.sync().unwrap();
+    drop(owner);
+
+    let reopened = Cva::open(&path).unwrap();
+    assert!(reopened.dream_freshness.is_settled(pass_id));
+    assert!(reopened.dream_freshness.is_settled(&legacy_pass.pass_id));
+}
+
+#[test]
+fn unknown_dream_version_and_current_begin_in_v1_reject_without_byte_changes() {
+    let temp = Temp::new();
+    let path = temp.owner_path();
+    let mut owner = Cva::create(&path).unwrap();
+    owner.container.append(b"CVDREAM3unknown").unwrap();
+    owner.sync().unwrap();
+    drop(owner);
+    let before = std::fs::read(&path).unwrap();
+    assert!(Cva::open(&path).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+
+    let v1 = temp.0.join("v1-current-begin.rel");
+    let mut bytes = Vec::new();
+    bytes.extend_from_slice(b"CVA\0\r\n\x1a\n");
+    bytes.extend_from_slice(&1_u16.to_le_bytes());
+    bytes.extend_from_slice(&0_u16.to_le_bytes());
+    bytes.extend_from_slice(&16_u32.to_le_bytes());
+    bytes.extend_from_slice(&14_u64.to_le_bytes());
+    bytes.extend_from_slice(b"CVDREAM2forged");
+    std::fs::write(&v1, &bytes).unwrap();
+    assert!(Cva::open_v1_read_only(&v1).is_err());
+    assert_eq!(std::fs::read(&v1).unwrap(), bytes);
+}

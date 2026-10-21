@@ -196,18 +196,7 @@ impl DreamFreshnessJournal {
             return Err("trailing Dream Freshness journal bytes".into());
         }
         match entry {
-            DreamEntry::Begin(pass) => match self.pending.get(&pass.pass_id) {
-                Some(existing)
-                    if existing.source_id == pass.source_id
-                        && existing.first_revision == pass.first_revision
-                        && existing.turn == pass.turn
-                        && existing.preexisting_ids == pass.preexisting_ids
-                        && existing.graph_version_before == pass.graph_version_before => {}
-                Some(_) => return Err("conflicting Dream Freshness pass identity".into()),
-                None => {
-                    self.pending.insert(pass.pass_id.clone(), pass);
-                }
-            },
+            DreamEntry::Begin(pass) => self.admit_begin(pass)?,
             DreamEntry::Roots(id, roots) => {
                 let pass = self
                     .pending
@@ -303,6 +292,44 @@ impl DreamFreshnessJournal {
             }
         }
         self.owner_uuid.get_or_insert(owner);
+        Ok(())
+    }
+
+    /// Admit a decoded current Begin after its population authority has been
+    /// materialized by REL at the physical marker. This deliberately follows
+    /// the legacy Begin admission rules rather than going through the writer.
+    pub(crate) fn ingest_materialized_begin(
+        &mut self,
+        owner: [u8; 16],
+        pass: InitialDreamPass,
+    ) -> Result<(), String> {
+        if self.owner_uuid.is_some_and(|expected| expected != owner) {
+            return Err("Dream Freshness pass owner mismatch".into());
+        }
+        if pass.pass_id.is_empty()
+            || pass.first_revision != 1
+            || pass.preexisting_ids.contains(&pass.source_id)
+        {
+            return Err("invalid initial Dream Freshness pass".into());
+        }
+        self.admit_begin(pass)?;
+        self.owner_uuid.get_or_insert(owner);
+        Ok(())
+    }
+
+    fn admit_begin(&mut self, pass: InitialDreamPass) -> Result<(), String> {
+        match self.pending.get(&pass.pass_id) {
+            Some(existing)
+                if existing.source_id == pass.source_id
+                    && existing.first_revision == pass.first_revision
+                    && existing.turn == pass.turn
+                    && existing.preexisting_ids == pass.preexisting_ids
+                    && existing.graph_version_before == pass.graph_version_before => {}
+            Some(_) => return Err("conflicting Dream Freshness pass identity".into()),
+            None => {
+                self.pending.insert(pass.pass_id.clone(), pass);
+            }
+        }
         Ok(())
     }
 
@@ -582,6 +609,11 @@ impl DirectBirthPrefix {
         if payload.get(..8) != Some(MAGIC.as_slice()) {
             return Ok(());
         }
+        let owner: [u8; 16] = payload
+            .get(8..24)
+            .ok_or("truncated Dream Freshness header")?
+            .try_into()
+            .expect("owner length checked");
         let mut reader = Reader {
             bytes: payload,
             at: 24,
@@ -591,6 +623,20 @@ impl DirectBirthPrefix {
             return Err("trailing Dream Freshness journal bytes".into());
         }
 
+        let direct_birth_entry = matches!(
+            &entry,
+            DreamEntry::Intent(..) | DreamEntry::Consume(..) | DreamEntry::ReplayBirth(..)
+        );
+        if self
+            .journal
+            .owner_uuid
+            .is_some_and(|expected| expected != owner)
+        {
+            return Err("Dream Freshness pass owner mismatch".into());
+        }
+        if !direct_birth_entry {
+            return Ok(());
+        }
         let matching_pending = match &entry {
             DreamEntry::Consume(id, mutation) => self.pending_intents.get(id) == Some(mutation),
             _ => false,

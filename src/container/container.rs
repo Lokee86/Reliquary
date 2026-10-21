@@ -129,6 +129,9 @@ pub struct Container {
 }
 
 impl Container {
+    pub(crate) fn physical_length(&self) -> Result<u64, ContainerError> {
+        Ok(self.file.metadata()?.len())
+    }
     pub fn create(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
         let path = path.as_ref();
         let mut file = OpenOptions::new()

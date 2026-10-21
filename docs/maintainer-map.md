@@ -51,7 +51,7 @@ Retained-REL diagnosis uses `historical_retained_corpus_tests.rs` / `historical_
 
 ## Dream population prefix coordination
 
-`src/facade/cva_dream_population.rs` owns the private REL coordination of Memory first-publication metadata, direct Dream birth evidence, and accepted Insomnia/external birth cohorts at a physical boundary. Memory owns identity/local-version reconstruction; each source retains its birth/cohort proof validation; Container supplies a bounded read-only versioned visitor. The coordinator resolves no bodies and does not use current liveness or end-of-file birth indexes. The [population contract](dream-population-contract-2026-10-21.md) defines authority; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) separately tracks compact wire, replay and ordinary writer integration.
+`src/facade/cva_dream_population.rs` owns the private REL coordination of Memory first-publication metadata, direct Dream birth evidence, and accepted Insomnia/external birth cohorts at a physical boundary. Memory owns identity/local-version reconstruction; each source retains its birth/cohort proof validation; Container supplies a bounded read-only versioned visitor. The coordinator resolves no bodies and does not use current liveness or end-of-file birth indexes. `src/facade/cva_dream_journal_replay.rs` owns current Begin replay binding after source admission, while the Dream journal retains pass identity, roots and settlement semantics. The [population contract](dream-population-contract-2026-10-21.md) defines authority; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) separately tracks compact wire, replay and ordinary writer integration.
 
 ## Purpose
 

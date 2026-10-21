@@ -262,11 +262,12 @@ impl Cva {
         let mut freshness = FreshnessStore::default();
         freshness.bind_history_path(path.as_ref(), 0);
         let mut dream_freshness = DreamFreshnessJournal::default();
+        let mut defer_dream_replay = false;
         let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut external_index = crate::external_source::store::ExternalIndexStore::default();
         let mut container = Container::open_scanned_version(
-            path,
+            path.as_ref(),
             required_version,
             |chunk, payload, latest_global| {
                 if let Some(owner_uuid) = lineage_owner {
@@ -357,9 +358,36 @@ impl Cva {
                         if payload.starts_with(b"CVAFRP01") {
                             freshness.ingest(payload).map_err(CvaError::Freshness)?;
                         }
-                        dream_freshness
-                            .ingest(payload)
-                            .map_err(CvaError::Freshness)?;
+                        if payload.starts_with(b"CVDREAM") && !payload.starts_with(b"CVDREAM1") {
+                            if !payload.starts_with(b"CVDREAM2") {
+                                return Err(CvaError::Freshness(
+                                    "unsupported Dream journal version".into(),
+                                ));
+                            }
+                            if required_version.is_some_and(|version| version.major == 1)
+                                || lineage_owner.is_none()
+                            {
+                                return Err(CvaError::Freshness(
+                                    "CVDREAM2 Begin requires a versioned V2 owner".into(),
+                                ));
+                            }
+                            let record = crate::dream_begin_codec::decode(payload)
+                                .map_err(CvaError::Freshness)?;
+                            if lineage_owner != Some(record.owner_uuid) {
+                                return Err(CvaError::Freshness(
+                                    "Dream Freshness pass owner mismatch".into(),
+                                ));
+                            }
+                            dream_freshness
+                                .bind_owner(Some(record.owner_uuid))
+                                .map_err(CvaError::Freshness)?;
+                            defer_dream_replay = true;
+                        }
+                        if !defer_dream_replay {
+                            dream_freshness
+                                .ingest(payload)
+                                .map_err(CvaError::Freshness)?;
+                        }
                         processing_epochs.ingest(payload)?;
                         dream_pairs.ingest(payload)?;
                     }
@@ -431,6 +459,15 @@ impl Cva {
         let mut insomnia = insomnia_state.finish()?;
         insomnia.validate(&archive, &memories)?;
         insomnia.rebuild_schedule(&archive)?;
+        if defer_dream_replay {
+            dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
+            crate::cva_dream_journal_replay::replay_with_population(
+                &mut container,
+                &archive,
+                &memories,
+                &mut dream_freshness,
+            )?;
+        }
         freshness.begin_rebuild();
         if let Some(owner) = container.owner_uuid() {
             for (id, mutation, turn, admitted) in dream_freshness.pending_initializations() {
