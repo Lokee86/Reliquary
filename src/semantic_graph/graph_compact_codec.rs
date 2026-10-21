@@ -5,6 +5,9 @@ const MUTATION: &[u8; 8] = b"CVAGCM01";
 const BATCH: &[u8; 8] = b"CVAGCB01";
 const BODY: usize = 12;
 
+#[path = "graph_publication_codec.rs"]
+pub(crate) mod publication;
+
 pub(crate) fn is_compact_record(bytes: &[u8]) -> Result<bool, GraphError> {
     Ok(decode(bytes)?.is_some())
 }
