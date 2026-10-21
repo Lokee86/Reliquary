@@ -1509,3 +1509,49 @@ Strict decoder234 accepted against `f810554`: nine codec tests pass, covering in
 
 
 Replay235 accepted against `d43d460`: ten focused cases and2,052 broad units pass, five existing ignored and three previously verified exhaustive sweeps filtered. Current Begins materialize from the physical pre-frame prefix into the existing RAM API, while legacy-only replay and EOF Freshness pending-intent recovery keep their semantics. Docs structural/impact checks pass. Progress235/357; root/eligibility236 is active.
+
+
+## Steps 236–249 — Dream Begin authority, transport and measurement
+
+Commit: `c320fc6`. Each numbered acceptance record is in the
+[linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md#step-236-execution-record).
+
+REL now uses one accepted physical Memory/birth/cohort prefix for runtime Begin
+capture, current replay and completed-proof readers. Destination and temporary
+offline conversion prove complete set equality before compact emission; manual
+subsets and unrepresentable prefixes retain exact explicit exceptions. Ordinary
+Begin writing uses CVDREAM2 while roots/acceptance/settlement keep their existing
+framing. Fresh-history rewrite continues its intentional pass-history discard
+policy; copy, terminal pruning and reclamation preserve retained prefix authority.
+
+Focused population cases pass30/30; the extra-birth completed-import exception
+regression and seven legacy-epoch fixture regressions pass. Legacy fixture
+construction now translates current Begins into genuine old carriers before
+reheadering instead of admitting V2 records in V1. The exhaustive byte-prefix,
+live-use-prefix and long-owner receipt sweeps passed in the first broad run;
+subsequent broad verification excludes only those already-passed expensive cases.
+Final broad verification passes: 2,064 library tests, five existing ignored and three already-passed exhaustive sweeps filtered; all integration suites and doctests pass. No test failures remain.
+
+The private authoritative conversion test passes on all three pinned RELs in
+293.08 seconds, comparing complete Dream fingerprints and completed-proof maps.
+The raw [baseline inventory](../benchmarks/dream-begin-storage-2026-10-21.json)
+includes all six source identities; the actual
+[upgrade measurement](../benchmarks/dream-begin-authoritative-upgrade-2026-10-21.json)
+records114 compact Begins, zero explicit exceptions and unchanged source hashes.
+REL Begin payload totals are5,153,040 before and25,992 after (5,127,048 saved,
+99.50%). This is a record-family result, not whole-file or compression savings.
+Synthetic runtime identity sizes for populations0/1/2/64 are200/232/264/2248 old
+payload bytes and192/228/228/228 current bytes; unchanged8-byte frame lengths are
+accounted separately. PHY contains no Begins and has no claimed savings.
+
+An extra left birth can change independent Freshness recipient authority during
+completed-import rebase. The first replay preserves the exact Dream population
+using an explicit exception; repeat remains an ImportEpoch conflict under the
+existing strict settlement comparison. No settlement validation was relaxed.
+
+Root/CLI checks and formatting pass; CLI tests pass32/32 through Workspace after
+two sandbox-only configuration-access failures. Both documentation-policy modes
+pass, including a byte-verified independent1775-file Git snapshot. Ownership
+guards and all23 retained-snapshot Pitlord rules pass. A bounded fresh Lexicon
+refresh did not complete and was stopped; no fresh architecture evidence is
+claimed. Refresh remains an integration Gate F requirement.

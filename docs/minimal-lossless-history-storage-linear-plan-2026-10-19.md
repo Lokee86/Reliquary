@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 235/357 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; Archive admission202 verified against `ed7e21a`; Archive readers/reconciliation/proofs/reclamation/copies203–207 verified against `9e153aa`; Archive ordinary writers208 verified against `2801100`; Archive offline envelope conversion209 verified against `ea26adc`; Graph envelope contract210 verified against `6946ce4`; Graph publication codecs211 verified against `b939ff2`; Graph native admission212 verified against `aea161e`; Graph historical/current readers213 verified against `e5ec250`; Graph reconciliation/import214 verified against `bfb20d1`; Graph proofs/reclamation/copies215–217 verified against `c0a6b0f`; Graph ordinary allocation writers218 verified against `308e725`; Graph envelope conversion219 verified against `e1e4d9e` and measurement `0113e78`; coverage audit220 complete; supplemental Graph epoch-authority Step221 accepted against 9ce3476; Integration Gate E passed with refreshed architecture snapshot 4cc4320f; Dream reference222 accepted against `37210c8` and Memory prefix contract223 against `24d1c53`; Memory prefix224 accepted against `21b4ec9`; physical Begin authority225 is frozen; direct-birth projection226 accepted against `ccc0c94`; Insomnia prefix227 accepted against `99e7f04`; external prefix228 accepted against `ad45319`; bounded physical scan229 accepted against `aeb7a43`; REL coordination230 accepted against `944231e`; population digest231 accepted against `99a9e73` and Begin wire contract232 against `e79cda6`; encoder233 accepted against `17844a3`; decoder234 accepted against `f810554`; replay235 accepted against `d43d460`; roots236 is active. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 249/357 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; Archive admission202 verified against `ed7e21a`; Archive readers/reconciliation/proofs/reclamation/copies203–207 verified against `9e153aa`; Archive ordinary writers208 verified against `2801100`; Archive offline envelope conversion209 verified against `ea26adc`; Graph envelope contract210 verified against `6946ce4`; Graph publication codecs211 verified against `b939ff2`; Graph native admission212 verified against `aea161e`; Graph historical/current readers213 verified against `e5ec250`; Graph reconciliation/import214 verified against `bfb20d1`; Graph proofs/reclamation/copies215–217 verified against `c0a6b0f`; Graph ordinary allocation writers218 verified against `308e725`; Graph envelope conversion219 verified against `e1e4d9e` and measurement `0113e78`; coverage audit220 complete; supplemental Graph epoch-authority Step221 accepted against 9ce3476; Integration Gate E passed with refreshed architecture snapshot 4cc4320f; Dream reference222 accepted against `37210c8` and Memory prefix contract223 against `24d1c53`; Memory prefix224 accepted against `21b4ec9`; physical Begin authority225 is frozen; direct-birth projection226 accepted against `ccc0c94`; Insomnia prefix227 accepted against `99e7f04`; external prefix228 accepted against `ad45319`; bounded physical scan229 accepted against `aeb7a43`; REL coordination230 accepted against `944231e`; population digest231 accepted against `99a9e73` and Begin wire contract232 against `e79cda6`; encoder233 accepted against `17844a3`; decoder234 accepted against `f810554`; replay235 accepted against `d43d460`; Dream roots/proofs/runtime capture, exact destination transport, writer cutover, offline conversion, adversarial transforms and measurements236–249 accepted against `c320fc6`; Dream pair table250 is next. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1334,6 +1334,105 @@ Commit: `d43d460`.
 Files: `src/facade/cva_dream_journal_replay.rs; cva_lifecycle.rs; cva_dream_population_tests.rs; src/freshness_dream_journal.rs; src/container/container.rs; src/lib.rs`; architecture, maintainer and population contract docs.
 Verification: Ten focused prefix/replay tests and2,052 broad units pass, with five existing ignored and three previously verified exhaustive sweeps filtered. Compact Begin checks exact pre-frame Memory head, source presence and digest; ExplicitSet remains literal. Mixed legacy/current Roots and settlement replay, EOF pending-intent recovery, wrong cut/digest/owner, unknown versions and V1 rejection preserve source bytes. Legacy-only first-scan admission remains unchanged; current replay uses one additional ordered scan of the held container after source validation. Formatting, structural and documentation-impact checks pass.
 Blockers: none for replay; historical proof and destination writers retain their explicit later gates. Architecture refresh remains at integration Gate F; owner boundaries and policy are unchanged.
+
+
+### Step 236 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/dream_population_authority_tests.rs; src/facade/cva_dream_population.rs`.
+Verification: Canonical runtime identity/eligibility, immutable root subset, source exclusion, no-link and exact retry tests pass for both variants. Forged cut/digest/owner and later-root attempts reject without appending.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 237 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/cva_dream_journal_replay.rs; cva_historical_dream.rs; dream_population_proof_tests.rs; src/freshness_dream_journal.rs`.
+Verification: Legacy, compact and explicit histories have equal fingerprints and completed proofs at Begin, Roots, acceptance and settlement. Completed proofs replay actual physical authority; bare settled markers remain insufficient. All three pinned REL proof fingerprints and completed maps agree after conversion.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 238 execution record
+
+Commit: `c320fc6`.
+Files: `src/runtime_inference/dream_freshness.rs; src/facade/dream_population_authority_tests.rs`.
+Verification: Runtime capture uses the same physical Memory/birth/cohort prefix as reopen. Unknown ranking candidates neither grant authority nor narrow the birth set; later publication and retry preserve the saved pass. Reversed local/global and grouped sibling reference tests pass.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 239 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/cva_dream_begin_transport.rs; src/imports/reconciliation_interval.rs; reconcile_tests.rs`.
+Verification: Source Begin materializes at its original frame. Destination encoding proves exact set equality before CompactCut; a destination with an extra birth emits ExplicitSet and preserves original roots/population. Current non-import reconciliation retains its existing settled-identity policy.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 240 execution record
+
+Commit: `c320fc6`.
+Files: `src/imports/reconciliation.rs; reconciliation_interval.rs; src/facade/historical_import_base.rs; src/freshness_dream_journal.rs`.
+Verification: Completed-epoch normalization materializes source authority before zeroing destination coordinates. DirectBirthPrefix isolates pre-import birth evidence from pass roots. Equal-base retries retain existing coverage; extra-recipient repeat remains an explicit ImportEpoch conflict under independent settlement authority, documented in current limitations.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 241 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/dream_population_authority_tests.rs; src/rewrite/file.rs (inspected); docs/dream-population-contract-2026-10-21.md`.
+Verification: Fresh-history rewrite retains its existing intentional pass-history discard policy: both selected Memories reopen in the new owner/generation with no obsolete Begin/cut carried across. Source bytes remain unchanged. No new rewrite retention policy was introduced.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 242 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/cva_freshness.rs; cva_dream_begin_transport.rs; dream_population_proof_tests.rs; docs/storage-format.md`.
+Verification: Ordinary Begin writes CVDREAM2 after existing eligibility/retry validation. Exact nonempty populations use cut/digest; empty and unequal literal populations use ExplicitSet. Roots/acceptance/settlement framing remains unchanged; legacy reference construction is explicitly test-only.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 243 execution record
+
+Commit: `c320fc6`.
+Files: `src/storage_upgrade/dream_begin.rs; memory.rs; mod.rs`.
+Verification: The temporary graph-envelope stage scans V1 in physical order, deriving each Begin Memory head from accepted prefix publications without comparing local/global clocks or using later birth evidence. It creates no new birth/cohort fact or global ticket.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 244 execution record
+
+Commit: `c320fc6`.
+Files: `src/storage_upgrade/dream_begin.rs; src/facade/dream_population_authority_tests.rs; src/storage_upgrade/dream_begin_authoritative_tests.rs`.
+Verification: Full stable-ID set equality precedes CompactCut emission and digest commitment. Synthetic and all114 pinned Begins retain exact Dream proof state; both hash passes agree with the accepted fixture manifest.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 245 execution record
+
+Commit: `c320fc6`.
+Files: `src/storage_upgrade/dream_begin.rs; src/facade/dream_population_authority_tests.rs`.
+Verification: Manual subset and proof-after-Begin migration fixtures emit literal exceptions with the exact original population. They reopen without fabricated cuts or earlier proof visibility; source bytes remain unchanged.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 246 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/dream_population_authority_tests.rs; docs/dream-population-contract-2026-10-21.md`.
+Verification: Native copy, terminal-root body pruning and subsequent reclamation reopen the same compact pending pass and full original population. Existing first-publication metadata and physical birth facts survive these transforms; source bytes remain unchanged.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 247 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/cva_dream_population_tests.rs; dream_population_authority_tests.rs; cva_freshness_insomnia_prefix_tests.rs; external_birth_prefix_tests.rs; src/freshness/dream_begin_codec_tests.rs`.
+Verification: Wrong local cut, forged digest/owner, absent source, later roots, source-as-root, invalid grouped/external evidence and malformed framing fail closed. Existing direct/Insomnia/external cohort authority is unchanged.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 248 execution record
+
+Commit: `c320fc6`.
+Files: `src/facade/dream_population_authority_tests.rs; dream_population_proof_tests.rs; freshness_dream_history_tests.rs; src/imports/reconcile_tests.rs`.
+Verification: Reversed clocks, archived/terminal births, same-cohort exclusions, physical proof-before/after-Begin, destination exceptions and fresh-history policy regressions pass. Existing strict completed-import recipient authority remains explicit.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
+
+### Step 249 execution record
+
+Commit: `c320fc6`.
+Files: `benchmarks/dream-begin-storage-2026-10-21.json; benchmarks/dream-begin-authoritative-upgrade-2026-10-21.json; src/storage_upgrade/dream_begin_authoritative_tests.rs`.
+Verification: Pinned REL payload bytes:14-day1,278,432 to8,208 (36 compact);28-day2,814,072 to7,068 (31 compact); Ellis1,060,536 to10,716 (47 compact). Total5,153,040 to25,992, with zero exceptions, exact proof parity and unchanged hashes. PHY has zero Begins and receives no savings claim. Populated synthetic0/1/2/64 cases also round-trip; compression is excluded.
+Blockers: none for this item; canonical promotion, runtime retirement and integration Gate F remain separately gated.
 
 
 ---
