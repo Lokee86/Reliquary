@@ -156,7 +156,7 @@ Route configuration, exact-owner controls and private status live in `runtime_ho
 | Whole-CVA restore across databases | [Versioning plan](version-history-plan.md) | not implemented | future multi-store recovery suite |
 | Additional semantic databases | [Roadmap](roadmap.md), [ADR 0001](decisions/0001-purpose-built-database-ownership.md) | not implemented | future store-local suites |
 | Architecture ownership / dependency policy | [Architecture](architecture.md), [Architectural invariants](invariants.md), [Development](development.md) | `tools/pitlord/`, `scripts/check_architecture.py`, `.github/workflows/architecture.yml` | `python scripts/check_architecture.py --refresh` |
-| Documentation governance | [Documentation policy](documentation-policy.md) | `docs-standard.json`, `AGENTS.md`, `docs/` | shared documentation checker |
+| Documentation governance | [Documentation policy](documentation-policy.md) | Archivist codemaps and document integrity, `docs-standard.json`, `AGENTS.md`, `docs/`; Pitlord consumes Archivist + Arcana ownership evidence | shared policy checker, `ddocs check --root docs --indexes --links`, `pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m` |
 
 ## Generic review evaluator
 

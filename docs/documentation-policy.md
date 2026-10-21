@@ -40,16 +40,23 @@ The repository uses the `library-engine` profile with the `stateful` capability.
 
 ## Enforcement
 
-The canonical standard is the sibling `engineering-standards` repository. This repository currently runs the shared checker directly from that source rather than carrying a generated `.standards/` snapshot.
+The canonical standard is the sibling `engineering-standards` repository. Reliquary composes three deterministic shared-tool gates rather than implementing repository-local documentation validation:
 
-The local structural commands are:
+- the shared documentation-policy checker enforces the declared repository profile and compatibility rules;
+- Archivist (`ddocs`) owns Markdown indexes, local links, navigation integrity, and codemap extraction/resolution; and
+- Pitlord consumes Archivist codemaps plus the current Arcana file inventory and fails when code lacks codemap ownership or changed code has no owning-document change.
+
+Local verification, with the shared tools available on `PATH`, is:
 
 ```text
 python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
+ddocs check --root docs --indexes --links
+python scripts/check_architecture.py --refresh
+pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m
 ```
 
-The first checks repository structure. The changed-from form additionally enforces configured documentation impact for implementation paths changed since the comparison revision. Normal Rust verification remains required in addition to documentation checks.
+All of these are blocking gates. The repository must not replace them with ad hoc source-layout scripts. Normal Rust verification remains required in addition to documentation checks.
 
 ## Related docs
 
@@ -60,4 +67,4 @@ The first checks repository structure. The changed-from form additionally enforc
 
 ## Notes
 
-Repository-local architecture enforcement lives under `tools/pitlord/` and composes the shared architecture-core policy from the sibling `engineering-standards` repository. `python scripts/check_architecture.py --refresh` rebuilds Lexicon/Arcana evidence and then validates the current Pitlord policy; the documentation checker remains a separate structural/change-impact gate.
+Repository-local architecture policy lives under `tools/pitlord/` and composes the shared architecture-core policy from the sibling `engineering-standards` repository. `python scripts/check_architecture.py --refresh` rebuilds Lexicon/Arcana evidence and validates architecture policy. The separate `pitlord docs` guard uses that Arcana evidence with Archivist's codemap export to enforce documentation ownership. CI runs Archivist integrity and Pitlord ownership as independent blocking surfaces so one failure cannot make the other disappear.

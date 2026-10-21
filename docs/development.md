@@ -51,8 +51,9 @@ examples/freshness_calibration.rs      synthetic and verified-copy REL Graph Fre
 
 docs/                                current docs, plans, limits, decisions
 tools/pitlord/                       repository architecture ownership/policy
-scripts/check_architecture.py        Lexicon/Arcana refresh + Pitlord enforcement
-.github/workflows/architecture.yml   push/PR architecture gate
+scripts/check_architecture.py        Lexicon/Arcana refresh + Pitlord architecture enforcement
+.github/workflows/documentation.yml  Archivist + shared documentation-policy gate
+.github/workflows/architecture.yml   Pitlord architecture + codemap ownership gate
 ```
 
 Do not copy large portions of previous Reliquary implementations as a migration shortcut. Reuse must preserve current ownership boundaries.
@@ -92,7 +93,9 @@ cargo check --manifest-path cli/Cargo.toml --locked
 cargo test --manifest-path cli/Cargo.toml --locked
 python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
+ddocs check --root docs --indexes --links
 python scripts/check_architecture.py --refresh
+pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m
 ```
 
 For the 2026-10-04 UTC multiplexing F6 completion, all 862 library tests passed with zero ignored tests; the locked --tests integration gate, 69 gateway cases, focused journal/instance/legacy suites, public contracts and source guard passed. Independent CLI formatting/locked check and 19/19 tests passed. Unrestricted cargo test --locked retains the existing archive_open_profile/lore_base global-allocator conflict. The bounded architecture refresh timed out after 180 seconds in Rust/Python indexing before a usable refreshed enforcement result; no Pitlord pass is claimed. Both documentation policy modes passed. See the [final completion record](multiplexing-implementation-plan.md).

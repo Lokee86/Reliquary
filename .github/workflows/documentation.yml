@@ -1,0 +1,45 @@
+name: Documentation
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  archivist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: reliquary
+          fetch-depth: 0
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/engineering-standards
+          path: engineering-standards
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/demon-docs
+          path: archivist
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: archivist/go.mod
+          cache: true
+
+      - name: Build Archivist
+        shell: bash
+        run: |
+          mkdir -p "${RUNNER_TEMP}/reliquary-tools"
+          (cd archivist && go build -trimpath -o "${RUNNER_TEMP}/reliquary-tools/ddocs" ./cmd/ddocs)
+
+      - name: Enforce shared documentation policy
+        shell: bash
+        working-directory: reliquary
+        run: |
+          python ../engineering-standards/tools/docs_policy/check.py --repo .
+          python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
+
+      - name: Enforce Archivist integrity
+        shell: bash
+        working-directory: reliquary
+        run: |
+          "${RUNNER_TEMP}/reliquary-tools/ddocs" check --root docs --indexes --links

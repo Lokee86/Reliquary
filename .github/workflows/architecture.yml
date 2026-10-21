@@ -11,6 +11,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: reliquary
+          fetch-depth: 0
       - uses: actions/checkout@v6
         with:
           repository: Lokee86/engineering-standards
@@ -23,9 +24,13 @@ jobs:
         with:
           repository: Lokee86/pitlord
           path: pitlord
+      - uses: actions/checkout@v6
+        with:
+          repository: Lokee86/demon-docs
+          path: archivist
       - uses: actions/setup-go@v6
         with:
-          go-version-file: pitlord/go.mod
+          go-version-file: archivist/go.mod
           cache: true
       - uses: dtolnay/rust-toolchain@stable
 
@@ -34,6 +39,7 @@ jobs:
         run: |
           mkdir -p "${RUNNER_TEMP}/reliquary-tools"
           (cd pitlord && go build -trimpath -o "${RUNNER_TEMP}/reliquary-tools/pitlord" ./cmd/pitlord)
+          (cd archivist && go build -trimpath -o "${RUNNER_TEMP}/reliquary-tools/ddocs" ./cmd/ddocs)
           (cd analysis/lexicon && go build -trimpath -o "${RUNNER_TEMP}/reliquary-tools/lexicon" ./cmd/lexicon)
           cargo build --release --locked --manifest-path analysis/lexicon/adapters/rust/Cargo.toml
           cp analysis/lexicon/adapters/rust/target/release/lexicon-rust-adapter analysis/lexicon/adapters/rust/lexicon-rust
@@ -48,3 +54,17 @@ jobs:
           ARCANA: ${{ github.workspace }}/analysis/arcana/target/release/arcana
           LEXICON_ARCANA_ROOT: ${{ github.workspace }}/analysis
         run: python scripts/check_architecture.py --refresh
+
+      - name: Enforce documentation ownership
+        shell: bash
+        working-directory: reliquary
+        env:
+          ARCANA: ${{ github.workspace }}/analysis/arcana/target/release/arcana
+        run: |
+          "${RUNNER_TEMP}/reliquary-tools/pitlord" docs \
+            --repo . \
+            --ddocs-root docs \
+            --ddocs "${RUNNER_TEMP}/reliquary-tools/ddocs" \
+            --arcana "${ARCANA}" \
+            --changed-from origin/main \
+            --timeout 2m

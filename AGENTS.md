@@ -50,17 +50,19 @@ cargo check --manifest-path cli/Cargo.toml --locked
 cargo test --manifest-path cli/Cargo.toml --locked
 ```
 
-For documentation changes also run both structural and change-impact checks:
+For documentation changes run the shared policy checks and Archivist integrity gate:
 
 ```text
 python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
+ddocs check --root docs --indexes --links
 ```
 
-For architectural/source-ownership changes also refresh and enforce the repository policy:
+For implementation or architectural/source-ownership changes refresh architecture evidence and enforce Pitlord documentation ownership:
 
 ```text
 python scripts/check_architecture.py --refresh
+pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m
 ```
 
 When the graph-corpus smoke path is affected, run the `archive_roundtrip` example against a prepared graph JSONL fixture.
