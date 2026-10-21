@@ -72,6 +72,40 @@ matching identity or revision fields is not a substitute for accepted
 birth/cohort evidence. The reconstructed Dream population remains a separate
 historical selection; it does not change the identity-prefix rules above.
 
+## Accepted birth and cohort visibility
+
+A Begin binds the physical prefix strictly before its own frame. Its Memory
+cut is the accepted Memory-local head at that boundary, not the local position
+preceding the source first revision. Select from that identity prefix using
+`candidate.first_global < source.first_global`, excluding the source and its
+accepted publication cohort. Reserved global values retain their original
+meaning even when physical and Memory-local orders differ.
+
+For direct publication, a matching pending Intent plus its accepted first
+Memory publication already visible before Begin counts under the existing
+recoverable birth rule. Consume records confirm the matching Intent identity;
+they do not move birth visibility later when both prerequisite facts already
+precede Begin. An Intent without its first Memory publication is insufficient.
+A later Consume cannot make a Memory publication after Begin visible earlier.
+ReplayBirth contributes only at its own physical position and requires an
+accepted first Memory identity in the queried Memory prefix. Duplicate markers
+retain set semantics. No end-of-file birth set can replace these queries.
+
+Insomnia and external-source births and cohorts come from their own accepted
+completion/publication records before Begin, with their existing member,
+mutation and birth evidence validation. The whole-file cohort query cannot
+establish earlier membership. Each source owner projects its own facts; REL
+coordinates those projections and Memory's identity reader. Dream journal
+framing does not acquire ownership of the other stores' semantic validation.
+
+Prefix reconstruction occurs after source owner validation, using retained
+physical positions or a second ordered scan. A later accepted proof never
+retroactively expands an earlier Begin population. An unsupported reconstruction
+must remain explicit: migration and destination transforms use the separately
+planned explicit-set exception when the original exact set cannot be represented.
+These rules do not add rejection conditions to existing explicit-set source
+admission or replace its immutable set with an inferred one.
+
 ## Notes
 
 This contract adds no persisted clock and does not alter source admission rules. Runtime writer cutover, migration, destination exceptions and corpus measurements remain separate gates.
