@@ -1485,3 +1485,6 @@ Direct-birth prefix226 accepted against `ccc0c94`: five focused projection/corre
 
 
 Post226 broad library revalidation passes2,024 tests, five existing ignored and only three separately passed exhaustive recovery/long-owner sweeps filtered (19.93 seconds). Both structural and impact documentation checks pass on the isolated validation snapshot.
+
+
+Insomnia prefix227 accepted against `99e7f04`: three focused current/legacy proof cases and2,027 broad units pass, five existing ignored and three previously verified exhaustive sweeps filtered. Reopen shares the exact extracted owner-validation checks with the prefix reader; no-proof legacy completions remain non-births. Progress227/356; external-source prefix228 is active.
