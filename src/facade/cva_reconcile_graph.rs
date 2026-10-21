@@ -108,7 +108,14 @@ pub(crate) fn replay_graph_tail(
     destination: &mut Cva,
     tail: &GraphTail,
 ) -> Result<GraphReplayResult, CvaReconcileError> {
-    replay_with_skips(destination, tail, &HashMap::new())
+    replay_with_skips(destination, tail, &HashMap::new(), false)
+}
+
+pub(crate) fn replay_import_graph_tail(
+    destination: &mut Cva,
+    tail: &GraphTail,
+) -> Result<GraphReplayResult, CvaReconcileError> {
+    replay_with_skips(destination, tail, &HashMap::new(), true)
 }
 
 pub(crate) fn reconcile_right_graph_tail(
@@ -117,7 +124,7 @@ pub(crate) fn reconcile_right_graph_tail(
     right_divergent: &GraphTail,
 ) -> Result<GraphReplayResult, CvaReconcileError> {
     let skips = replay_skips(left_divergent, right_divergent)?;
-    replay_with_skips(destination, right_divergent, &skips)
+    replay_with_skips(destination, right_divergent, &skips, false)
 }
 
 #[cfg(test)]
@@ -169,6 +176,7 @@ fn replay_with_skips(
     destination: &mut Cva,
     tail: &GraphTail,
     skips: &HashMap<GraphKey, usize>,
+    preserve_import_postimages: bool,
 ) -> Result<GraphReplayResult, CvaReconcileError> {
     let mut seen = HashMap::<GraphKey, usize>::new();
     let mut transactions = 0;
@@ -184,9 +192,11 @@ fn replay_with_skips(
         for change in &transaction.changes {
             let key = key(*change);
             let occurrence = seen.entry(key).or_default();
-            if *occurrence < skips.get(&key).copied().unwrap_or(0) {
+            let duplicate = *occurrence < skips.get(&key).copied().unwrap_or(0);
+            if duplicate {
                 duplicate_mutations += 1;
-            } else {
+            }
+            if preserve_import_postimages || !duplicate {
                 changes.push(*change);
             }
             *occurrence += 1;
@@ -199,15 +209,27 @@ fn replay_with_skips(
             destination,
             transaction.transaction_time_ns,
             |destination| {
-                destination.graph.replay_semantic_transaction(
-                    &mut destination.container,
-                    &destination.memories,
-                    &destination.entities,
-                    &changes,
-                    transaction.origin,
-                    graph_version,
-                    transaction.single,
-                )
+                if preserve_import_postimages {
+                    destination.graph.replay_import_semantic_transaction(
+                        &mut destination.container,
+                        &destination.memories,
+                        &destination.entities,
+                        &changes,
+                        transaction.origin,
+                        graph_version,
+                        transaction.single,
+                    )
+                } else {
+                    destination.graph.replay_semantic_transaction(
+                        &mut destination.container,
+                        &destination.memories,
+                        &destination.entities,
+                        &changes,
+                        transaction.origin,
+                        graph_version,
+                        transaction.single,
+                    )
+                }
             },
         )?;
         duplicate_mutations += changes.len().saturating_sub(published.len());

@@ -191,6 +191,7 @@ impl GraphStore {
             origin,
             expected_graph_version,
             None,
+            false,
         )
     }
 
@@ -204,6 +205,52 @@ impl GraphStore {
         expected_graph_version: u64,
         single: bool,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
+        self.replay_semantic_transaction_with_postimages(
+            container,
+            memories,
+            entities,
+            changes,
+            origin,
+            expected_graph_version,
+            single,
+            false,
+        )
+    }
+
+    pub(crate) fn replay_import_semantic_transaction(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+        changes: &[SemanticGraphRelationChange],
+        origin: GraphRelationOrigin,
+        expected_graph_version: u64,
+        single: bool,
+    ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
+        self.replay_semantic_transaction_with_postimages(
+            container,
+            memories,
+            entities,
+            changes,
+            origin,
+            expected_graph_version,
+            single,
+            true,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn replay_semantic_transaction_with_postimages(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+        changes: &[SemanticGraphRelationChange],
+        origin: GraphRelationOrigin,
+        expected_graph_version: u64,
+        single: bool,
+        preserve_postimages: bool,
+    ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
         container.require_storage_format_writable()?;
         for change in changes {
             validation::validate_change(memories, entities, *change, origin)?;
@@ -214,6 +261,7 @@ impl GraphStore {
             origin,
             expected_graph_version,
             Some(single),
+            preserve_postimages,
         )
     }
 
@@ -224,6 +272,7 @@ impl GraphStore {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
         source_single: Option<bool>,
+        preserve_postimages: bool,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
         container.require_storage_format_writable()?;
         let current_version = self.graph_version();
@@ -249,7 +298,7 @@ impl GraphStore {
                 Some(state) => state.active != change.active || state.origin != origin,
                 None => change.active,
             };
-            if state_changed {
+            if state_changed || preserve_postimages {
                 effective.push(*change);
             }
         }

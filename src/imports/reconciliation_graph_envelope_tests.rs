@@ -1,7 +1,10 @@
 use super::*;
 use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
 use crate::graph_compact_contract::GraphOrdinalMutation;
-use crate::{GraphRelationKind, GraphRelationOrigin, SemanticGraphRelationKind, SemanticNodeRef};
+use crate::{
+    EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphRelationKind, GraphRelationOrigin,
+    InsomniaPriority, SemanticGraphRelationKind, SemanticNodeRef,
+};
 use std::{fs, path::PathBuf};
 
 struct Scratch(PathBuf);
@@ -124,6 +127,231 @@ fn fixture(
     owner.sync().unwrap();
     drop(owner);
     (scratch, source, target, index, payload, time, expected)
+}
+
+fn empty_import(namespace: &str) -> crate::imports::NativeImport {
+    crate::imports::NativeImport {
+        schema_version: 1,
+        source_namespace: namespace.into(),
+        source_format: "graph-partial-dedup-test-v1".into(),
+        conversations: Vec::new(),
+    }
+}
+
+fn append_native_graph_batch(cva: &mut Cva, rows: Vec<GraphOrdinalMutation>) {
+    let body = publication::encode(&GraphPublication {
+        graph_version: cva.graph_version() + 1,
+        transaction: GraphTransaction::Batch(rows),
+    })
+    .unwrap();
+    cva.container.append_publication_envelope(&body).unwrap();
+}
+
+fn graph_transaction_in_epoch(
+    cva: &mut Cva,
+    epoch: &super::CompletedEpoch,
+) -> (
+    bool,
+    Vec<crate::graph_codec::GraphMutationPayload>,
+    Option<i64>,
+) {
+    let chunks = cva.container.chunks().unwrap();
+    for object in chunks.into_iter().take(epoch.end).skip(epoch.first) {
+        let payload = cva.container.read(object).unwrap();
+        let Some(version) = publication::version_at(object, &payload).unwrap() else {
+            continue;
+        };
+        let mutation = cva.container.read(version.mutation).unwrap();
+        if let Some((single, rows)) = cva.graph.decode_stored_transaction(&mutation).unwrap() {
+            return (
+                single,
+                rows,
+                cva.transaction_time_ns(version.global_version),
+            );
+        }
+    }
+    panic!("completed import interval has no Graph transaction");
+}
+
+fn partial_or_full_duplicate_completed_batch(existing_members: usize) {
+    let scratch = Scratch::new();
+    let base_path = scratch.0.join("base.rel");
+    let left_path = scratch.0.join("left.rel");
+    let right_path = scratch.0.join("right.rel");
+    let merged_path = scratch.0.join("merged.rel");
+    let repeated_path = scratch.0.join("repeated.rel");
+
+    let mut base = Cva::create(&base_path).unwrap();
+    let mut parent = None;
+    for index in 0..8 {
+        let user = format!("u{index}");
+        let assistant = format!("a{index}");
+        base.append_node(
+            user.clone(),
+            "shared-conversation".into(),
+            parent.clone(),
+            "user".into(),
+            10 + index as i64 * 2,
+            &format!("Graph interval provenance fact {index}."),
+        )
+        .unwrap();
+        base.append_node(
+            assistant.clone(),
+            "shared-conversation".into(),
+            Some(user),
+            "assistant".into(),
+            11 + index as i64 * 2,
+            "Acknowledged.",
+        )
+        .unwrap();
+        parent = Some(assistant);
+    }
+    let episode = base
+        .materialize_path_episodes(
+            "shared-conversation",
+            parent.as_deref().unwrap(),
+            EpisodeConfig::default(),
+            EpisodeOrigin::Live,
+            Some((EpisodeBoundary::Inactivity, 100)),
+        )
+        .unwrap()
+        .created
+        .remove(0);
+    base.queue_insomnia_episode(episode.id, InsomniaPriority::Live, 101)
+        .unwrap();
+    let ids = crate::insomnia::completion_tests::process(&mut base, 3, 110)
+        .created
+        .into_iter()
+        .map(|memory| memory.id)
+        .collect::<Vec<_>>();
+    assert_eq!(ids.len(), 3, "live completion supplies proven Memory nodes");
+    for (ordinal, id) in ids.iter().enumerate() {
+        base.container
+            .append(&crate::graph_codec::encode_node(
+                crate::graph_codec::GraphNodePayload {
+                    semantic_node: SemanticNodeRef::memory(*id),
+                    node_id: arcana::NodeId(ordinal as u32),
+                },
+            ))
+            .unwrap();
+    }
+    base.sync().unwrap();
+    drop(base);
+    fs::copy(&base_path, &left_path).unwrap();
+    fs::copy(&base_path, &right_path).unwrap();
+
+    let rows = [(0, 1), (1, 2)]
+        .into_iter()
+        .map(|(source, target)| GraphOrdinalMutation {
+            source,
+            target,
+            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
+            active: true,
+            origin: GraphRelationOrigin::User,
+        })
+        .collect::<Vec<_>>();
+
+    let mut left = Cva::open(&left_path).unwrap();
+    for (source, target) in [(ids[0], ids[1]), (ids[1], ids[2])]
+        .into_iter()
+        .take(existing_members)
+    {
+        left.set_memory_relation_with_origin(
+            source,
+            target,
+            GraphRelationKind::Factual,
+            true,
+            GraphRelationOrigin::User,
+            left.graph_version(),
+        )
+        .unwrap();
+    }
+    left.sync().unwrap();
+    drop(left);
+
+    let mut right = Cva::open(&right_path).unwrap();
+    right
+        .import_native(&empty_import("partial-duplicate-epoch"), 100)
+        .unwrap();
+    right.with_import_write_scope(|right| append_native_graph_batch(right, rows));
+    right.sync().unwrap();
+    drop(right);
+    let mut right = Cva::open(&right_path).unwrap();
+    let import_id = right.open_import_epoch().unwrap().import_id.clone();
+    crate::imports::tests::finish_current_import(&mut right, 110);
+    right.sync().unwrap();
+    drop(right);
+
+    let mut source = Cva::open(&right_path).unwrap();
+    let source_epoch = super::inventory(&mut source).unwrap();
+    let source_epoch = source_epoch.get(&import_id).unwrap();
+    let source_evidence = source_epoch.owner_evidence.clone();
+    let source_transaction = graph_transaction_in_epoch(&mut source, source_epoch);
+    assert!(!source_transaction.0, "the source publication is a batch");
+    assert_eq!(source_transaction.1.len(), 2);
+    assert_eq!(
+        (
+            source_transaction.1[0].source,
+            source_transaction.1[0].target
+        ),
+        (
+            SemanticNodeRef::memory(ids[0]),
+            SemanticNodeRef::memory(ids[1])
+        )
+    );
+    assert_eq!(
+        (
+            source_transaction.1[1].source,
+            source_transaction.1[1].target
+        ),
+        (
+            SemanticNodeRef::memory(ids[1]),
+            SemanticNodeRef::memory(ids[2])
+        )
+    );
+    drop(source);
+    let before_left = fs::read(&left_path).unwrap();
+    let before_right = fs::read(&right_path).unwrap();
+    Cva::reconcile(&left_path, &right_path, &merged_path).unwrap();
+    let mut merged = Cva::open(&merged_path).unwrap();
+    let graph_transactions = merged.graph.transaction_global_versions().len();
+    assert_eq!(
+        merged.graph.stats().active_relations,
+        2,
+        "both edges are effective"
+    );
+    let merged_epoch = super::inventory(&mut merged).unwrap();
+    let merged_epoch = merged_epoch.get(&import_id).unwrap();
+    let merged_evidence = &merged_epoch.owner_evidence;
+    assert!(
+        *merged_evidence == source_evidence,
+        "reconciled import retains its original normalized Graph batch evidence"
+    );
+    let merged_transaction = graph_transaction_in_epoch(&mut merged, merged_epoch);
+    assert_eq!(merged_transaction, source_transaction);
+    drop(merged);
+    assert_eq!(fs::read(&left_path).unwrap(), before_left);
+    assert_eq!(fs::read(&right_path).unwrap(), before_right);
+
+    let result = Cva::reconcile(&merged_path, &right_path, &repeated_path);
+    assert!(
+        result.is_ok(),
+        "retrying the same source epoch should retain completed-epoch authority: {result:?}"
+    );
+    assert!(repeated_path.exists());
+    assert_eq!(fs::read(&left_path).unwrap(), before_left);
+    assert_eq!(fs::read(&right_path).unwrap(), before_right);
+    assert!(graph_transactions >= 1);
+}
+
+#[test]
+fn completed_native_graph_batch_partial_duplicate_preserves_authority_on_retry() {
+    partial_or_full_duplicate_completed_batch(1);
+}
+
+#[test]
+fn completed_native_graph_batch_fully_duplicate_preserves_authority_on_retry() {
+    partial_or_full_duplicate_completed_batch(2);
 }
 
 #[test]

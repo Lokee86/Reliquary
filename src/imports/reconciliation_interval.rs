@@ -214,7 +214,11 @@ pub(super) fn replay_frame(
     if let Some((_, graph_version)) = crate::graph_compact_codec::publication::coordinates(payload)?
     {
         let graph = crate::cva_reconcile_graph::read_graph_range(source, index, index + 1)?;
-        let result = crate::cva_reconcile_graph::replay_graph_tail(output, &graph)?;
+        let result = if output.open_import_epoch().is_some() {
+            crate::cva_reconcile_graph::replay_import_graph_tail(output, &graph)?
+        } else {
+            crate::cva_reconcile_graph::replay_graph_tail(output, &graph)?
+        };
         coordinates.graph_transactions += result.transactions;
         coordinates.graph_mutations += result.mutations;
         coordinates.duplicate_graph_mutations += result.duplicate_mutations;
