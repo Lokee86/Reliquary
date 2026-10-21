@@ -12,6 +12,9 @@ use crate::{Archive, ArchiveError, ArchiveRecordVersion, ObjectRef};
 use std::collections::{HashMap, HashSet};
 
 #[cfg(test)]
+#[path = "archive_publication_reader_tests.rs"]
+mod publication_reader_tests;
+#[cfg(test)]
 #[path = "archive_publication_replay_tests.rs"]
 mod publication_tests;
 

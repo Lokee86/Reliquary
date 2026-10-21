@@ -130,7 +130,11 @@ impl Cva {
         let mut selected_content = HashSet::new();
         let mut protected_content = HashSet::new();
         for version in self.archive.record_versions() {
-            match decode_record(&self.container.read(version.record)?)? {
+            match self
+                .archive
+                .read_publication(&mut self.container, *version)?
+                .0
+            {
                 ArchiveRecord::Node(node) => {
                     if selected.contains(&node.conversation_id) {
                         selected_content.insert(node.content_id);

@@ -48,7 +48,11 @@ impl ReclamationScan {
                 envelope.global_version,
             )
             .map_err(|error| error.to_string())?;
+            let archive =
+                crate::archive_codec::publication::decode(envelope.body, envelope.global_version)
+                    .map_err(|error| error.to_string())?;
             if memory.is_none()
+                && archive.is_none()
                 && crate::entity_compact_codec::publication::decode(
                     envelope.body,
                     envelope.global_version,
@@ -68,6 +72,25 @@ impl ReclamationScan {
             // right. A compact Memory creation also keeps its immutable
             // body alive; deltas and tombstones do not replace that body.
             self.published_backing.insert(object);
+            if let Some(crate::archive_codec::publication::ArchivePublication::Record {
+                record,
+                ..
+            }) = archive
+            {
+                let refs = match record {
+                    ArchiveRecord::Node(node) => vec![node.content_id],
+                    ArchiveRecord::File(file) => vec![file.content_id],
+                    ArchiveRecord::IngestedTurn(turn) => {
+                        let mut refs = vec![turn.node.content_id];
+                        refs.extend(turn.attachments.into_iter().map(|file| file.content_id));
+                        refs
+                    }
+                    _ => Vec::new(),
+                };
+                if !refs.is_empty() {
+                    self.archive_content_refs.insert(object, refs);
+                }
+            }
             if let Some(crate::memory_compact_codec::publication::MemoryPublication::Creation(
                 creation,
             )) = memory

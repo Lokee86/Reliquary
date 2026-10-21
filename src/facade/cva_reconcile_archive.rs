@@ -1,5 +1,4 @@
-use crate::archive_codec::{ArchiveRecord, decode_record};
-use crate::archive_history_codec::decode_record_version;
+use crate::archive_codec::ArchiveRecord;
 use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::cva_reconcile_conflict_map::archive_replay_error;
 use crate::{
@@ -227,12 +226,17 @@ pub(crate) fn read_archive_range(
 
     for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
-        let Some(version) = decode_record_version(&payload)? else {
+        let Some(version) = crate::archive_codec::publication::version_at(*chunk, &payload)? else {
             continue;
         };
         let transaction_time_ns = cva.transaction_time_ns(version.global_version);
-        let record_payload = cva.container.read(version.record)?;
-        let record = match decode_record(&record_payload)? {
+        let (record, applying) = cva.archive.read_publication(&mut cva.container, version)?;
+        if applying.archive_version != version.archive_version {
+            // Reconciliation replays semantic changes; repeated source bindings
+            // must never revert a later destination mutation.
+            continue;
+        }
+        let record = match record {
             ArchiveRecord::ImportReceipt(receipt) => ArchiveReplayRecord::ImportReceipt(receipt),
             ArchiveRecord::Node(node) => {
                 let content = cva.archive.content(&mut cva.container, node.content_id)?;

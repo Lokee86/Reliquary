@@ -209,8 +209,33 @@ fn project_backed_repack_removes_legacy_attachment_payload_without_replaying_sta
     let reference = project_ref(bytes, "revision-legacy", "warlock/uploads/plan.pdf");
     cva.bind_legacy_project_file(file.id, reference.clone())
         .unwrap();
+    let native_local = cva.archive_version() + 1;
+    let body = crate::archive_codec::publication::encode(
+        &crate::archive_codec::publication::ArchivePublication::Record {
+            archive_version: native_local,
+            record: crate::archive_codec::ArchiveRecord::File(file.clone()),
+        },
+    )
+    .unwrap();
+    let (_, native_object) = cva.container.append_publication_envelope(&body).unwrap();
+    let repeat = crate::archive_codec::publication::encode(
+        &crate::archive_codec::publication::ArchivePublication::Repeat {
+            archive_version: native_local + 1,
+            first_applying_archive_version: native_local,
+        },
+    )
+    .unwrap();
+    let (_, repeat_object) = cva.container.append_publication_envelope(&repeat).unwrap();
+    let native_payload = cva.container.read(native_object).unwrap();
+    let repeat_payload = cva.container.read(repeat_object).unwrap();
+    cva.sync().unwrap();
+    drop(cva);
+    let mut cva = Cva::open_project(&path).unwrap();
     let owner_uuid = cva.owner_uuid();
     let global_version = cva.latest_global_version();
+    let transaction_times = (0..=global_version)
+        .map(|v| cva.transaction_time_ns(v))
+        .collect::<Vec<_>>();
     let archive_version = cva.archive_version();
     let memory_version = cva.memory_version();
     let graph_version = cva.graph_version();
@@ -224,9 +249,27 @@ fn project_backed_repack_removes_legacy_attachment_payload_without_replaying_sta
     let mut reopened = Cva::open_project(output).unwrap();
     assert_eq!(reopened.owner_uuid(), owner_uuid);
     assert_eq!(reopened.latest_global_version(), global_version);
+    assert_eq!(
+        (0..=global_version)
+            .map(|v| reopened.transaction_time_ns(v))
+            .collect::<Vec<_>>(),
+        transaction_times
+    );
     assert_eq!(reopened.archive_version(), archive_version);
     assert_eq!(reopened.memory_version(), memory_version);
     assert_eq!(reopened.graph_version(), graph_version);
+    let native_ref = reopened
+        .archive
+        .record_version(native_local)
+        .unwrap()
+        .record;
+    let repeat_ref = reopened
+        .archive
+        .record_version(native_local + 1)
+        .unwrap()
+        .record;
+    assert_eq!(reopened.container.read(native_ref).unwrap(), native_payload);
+    assert_eq!(reopened.container.read(repeat_ref).unwrap(), repeat_payload);
     assert_eq!(reopened.project_file_ref(file.id), Some(reference));
     assert_eq!(
         reopened.files_for_source("session-1", "message-1"),

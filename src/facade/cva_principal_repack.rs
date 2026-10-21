@@ -149,6 +149,45 @@ fn rewrite_missing_user_principal(
     payload: &[u8],
     principal_id: &str,
 ) -> Result<(Vec<u8>, bool, bool), CvaError> {
+    if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+        use crate::archive_codec::publication::{self, ArchivePublication};
+        if let Some(mut publication) = publication::decode(envelope.body, envelope.global_version)?
+        {
+            let node = match &mut publication {
+                ArchivePublication::Record {
+                    record: ArchiveRecord::Node(node),
+                    ..
+                } => Some(node),
+                ArchivePublication::Record {
+                    record: ArchiveRecord::IngestedTurn(turn),
+                    ..
+                } => Some(&mut turn.node),
+                _ => None,
+            };
+            if let Some(node) = node.filter(|node| node.role == "user") {
+                match node.principal_id.as_deref() {
+                    None => node.principal_id = Some(principal_id.to_owned()),
+                    Some(existing) if existing == principal_id => {
+                        return Ok((payload.to_vec(), false, true));
+                    }
+                    Some(_) => {
+                        return Err(CvaError::Repack(
+                            "principal backfill encountered a conflicting user principal".into(),
+                        ));
+                    }
+                }
+                let body = publication::encode(&publication)?;
+                let bytes = crate::container::publication_envelope::encode(
+                    crate::container::publication_envelope::PublicationEnvelope {
+                        body: &body,
+                        ..envelope
+                    },
+                )?;
+                return Ok((bytes, true, false));
+            }
+            return Ok((payload.to_vec(), false, false));
+        }
+    }
     match decode_record(payload)? {
         ArchiveRecord::Node(mut node) if node.role == "user" => {
             match node.principal_id.as_deref() {
@@ -185,6 +224,67 @@ mod tests {
     use std::path::PathBuf;
 
     const PRINCIPAL: &str = "phy-00000000-0000-0000-0000-000000000123";
+
+    #[test]
+    fn native_turn_backfill_preserves_publication_clock_and_atomic_bundle() {
+        use crate::archive_codec::publication::{self, ArchivePublication};
+        use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+        let turn = crate::IngestedTurn {
+            node: crate::Node {
+                id: "n".into(),
+                conversation_id: "c".into(),
+                parent_id: None,
+                role: "user".into(),
+                principal_id: None,
+                timestamp_ns: -9,
+                content_id: crate::ContentId([1; 32]),
+            },
+            attachments: vec![crate::StoredFile {
+                id: crate::FileId([2; 32]),
+                content_id: crate::ContentId([3; 32]),
+                filename: "f".into(),
+                mime_type: None,
+                byte_length: 4,
+            }],
+        };
+        let body = publication::encode(&ArchivePublication::Record {
+            archive_version: 7,
+            record: ArchiveRecord::IngestedTurn(turn.clone()),
+        })
+        .unwrap();
+        let payload = publication_envelope::encode(PublicationEnvelope {
+            global_version: 19,
+            clock: PublicationClock::BindReserved,
+            body: &body,
+        })
+        .unwrap();
+        let (rewritten, changed, preserved) =
+            rewrite_missing_user_principal(&payload, PRINCIPAL).unwrap();
+        assert!(changed);
+        assert!(!preserved);
+        let envelope = publication_envelope::decode(&rewritten).unwrap().unwrap();
+        assert_eq!(envelope.global_version, 19);
+        assert_eq!(envelope.clock, PublicationClock::BindReserved);
+        let Some(ArchivePublication::Record {
+            archive_version: 7,
+            record: ArchiveRecord::IngestedTurn(actual),
+        }) = publication::decode(envelope.body, envelope.global_version).unwrap()
+        else {
+            panic!("atomic turn expected");
+        };
+        let mut expected = turn;
+        expected.node.principal_id = Some(PRINCIPAL.into());
+        assert_eq!(actual, expected);
+        let (same, changed, preserved) =
+            rewrite_missing_user_principal(&rewritten, PRINCIPAL).unwrap();
+        assert_eq!(same, rewritten);
+        assert!(!changed);
+        assert!(preserved);
+        assert!(
+            rewrite_missing_user_principal(&rewritten, "phy-00000000-0000-0000-0000-000000000456")
+                .is_err()
+        );
+    }
 
     #[test]
     fn repack_backfills_only_user_turns_and_preserves_entity_state() {

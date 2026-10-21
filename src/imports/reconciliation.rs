@@ -1,5 +1,8 @@
 //! Ordered reconciliation of completed native import epochs through their owners.
 #[cfg(test)]
+#[path = "reconciliation_archive_envelope_tests.rs"]
+mod archive_envelope_tests;
+#[cfg(test)]
 #[path = "reconciliation_entity_compact_tests.rs"]
 mod entity_compact_tests;
 #[cfg(test)]
@@ -167,10 +170,11 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             crate::freshness_dream_journal::DreamFreshnessJournal::new(cva.owner_uuid());
         for chunk in cva.container.chunks()?.into_iter().take(end).skip(first) {
             let payload = cva.container.read(chunk)?;
-            if let Some(version) = crate::archive_history_codec::decode_record_version(&payload)? {
+            if let Some(version) = crate::archive_codec::publication::version_at(chunk, &payload)? {
                 // Retain every accepted source-domain record in interval order,
                 // including unrelated records not named by the import receipt.
-                archive_records.push(cva.container.read(version.record)?);
+                let (record, _) = cva.archive.read_publication(&mut cva.container, version)?;
+                archive_records.push(crate::archive_codec::publication::import_evidence(record)?);
             }
             if let Some((global, local)) =
                 crate::memory_compact_codec::publication::coordinates(&payload)?
@@ -342,6 +346,9 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             crate::archive_codec::decode_record(&payload)?,
             crate::archive_codec::ArchiveRecord::Other
         ) {
+            continue;
+        }
+        if crate::archive_codec::publication::version_at(chunk, &payload)?.is_some() {
             continue;
         }
         // Each accepted owner is replayed through its concrete codec/API;

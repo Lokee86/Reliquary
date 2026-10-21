@@ -3,7 +3,7 @@
 //! This module only interprets markers. The facade maintenance operation is
 //! responsible for validating the manifest against the source history before
 //! publishing a transformed copy.
-use crate::archive_codec::{ArchiveRecord, decode_record, encode_conversation_tombstone};
+use crate::archive_codec::{ArchiveRecord, encode_conversation_tombstone};
 use crate::owner_maintenance::{
     HistoryRetentionDescriptor, PrunedPayload, RetentionDomain, RetentionTarget,
 };
@@ -113,8 +113,13 @@ impl Archive {
             .iter()
             .filter(|version| version.global_version <= watermark)
         {
-            let raw = container.read(version.record)?;
-            let record = decode_record(&raw)?;
+            let (record, _) = self.read_publication(container, *version)?;
+            let stored = container.read(version.record)?;
+            let raw = if crate::container::publication_envelope::decode(&stored)?.is_some() {
+                crate::archive_codec::publication::comparison_carrier(&record)?
+            } else {
+                stored
+            };
             let relevant = match &record {
                 ArchiveRecord::Node(node) => node.conversation_id == conversation_id,
                 ArchiveRecord::IngestedTurn(turn) => turn.node.conversation_id == conversation_id,
@@ -221,7 +226,7 @@ impl Archive {
                 .iter()
                 .filter(|version| version.global_version <= manifest.source_global_version)
             {
-                let record = decode_record(&container.read(version.record)?)?;
+                let (record, _) = self.read_publication(container, *version)?;
                 let protected = match &record {
                     ArchiveRecord::Node(node) => {
                         lengths.contains_key(&node.content_id)

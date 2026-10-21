@@ -168,8 +168,49 @@ pub(crate) fn owner_history_digest(
         .iter()
         .map(|object| (*object, crate::ObjectRef::from_legacy_bytes([0; 16])))
         .collect::<std::collections::BTreeMap<_, _>>();
+    let mut archive_applying = std::collections::HashMap::<u64, [u8; 32]>::new();
+    let mut archive_carriers = std::collections::HashSet::new();
     for object in objects {
         let raw = container.read(object).map_err(|error| error.to_string())?;
+        if let Some(envelope) = crate::container::publication_envelope::decode(&raw)
+            .map_err(|error| error.to_string())?
+        {
+            use crate::archive_codec::publication::{self, ArchivePublication};
+            if let Some(publication) = publication::decode(envelope.body, envelope.global_version)
+                .map_err(|error| error.to_string())?
+            {
+                if envelope.global_version <= watermark {
+                    let local = publication.archive_version();
+                    let digest = match publication {
+                        ArchivePublication::Record { record, .. } => {
+                            let digest = Sha256::digest(
+                                publication::comparison_carrier(&record)
+                                    .map_err(|error| error.to_string())?,
+                            )
+                            .into();
+                            archive_applying.insert(local, digest);
+                            digest
+                        }
+                        ArchivePublication::Repeat {
+                            first_applying_archive_version,
+                            ..
+                        } => *archive_applying
+                            .get(&first_applying_archive_version)
+                            .ok_or("Archive repeat proof anchor is not applying history")?,
+                    };
+                    let marker = crate::archive_history_codec::encode_record_version(
+                        crate::ArchiveRecordVersion {
+                            global_version: envelope.global_version,
+                            archive_version: local,
+                            record: crate::ObjectRef::from_legacy_bytes([0; 16]),
+                        },
+                    );
+                    digest_bytes(&mut hash, &marker);
+                    digest_bytes(&mut hash, &digest);
+                }
+                continue;
+            }
+        }
         if let Some((global, marker, carrier)) =
             crate::memory_compact_codec::publication::history_evidence(&raw)
                 .map_err(|error| error.to_string())?
@@ -256,6 +297,12 @@ pub(crate) fn owner_history_digest(
                 } else {
                     Sha256::digest(&bytes).into()
                 };
+                if let Some(version) = crate::archive_history_codec::decode_record_version(&raw)
+                    .map_err(|error| error.to_string())?
+                    && archive_carriers.insert(version.record)
+                {
+                    archive_applying.insert(version.archive_version, digest);
+                }
                 digest_bytes(&mut hash, &digest);
             }
             continue;

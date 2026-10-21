@@ -252,6 +252,41 @@ pub(crate) fn version_at(
     }))
 }
 
+/// Import comparison concerns semantic source records, independent of their
+/// carrier layout or publication coordinates.
+pub(crate) fn import_evidence(mut record: ArchiveRecord) -> Result<Vec<u8>, ArchiveError> {
+    if let ArchiveRecord::ConversationTombstone(value) = &mut record {
+        value.archive_version = 1;
+        value.global_version = 1;
+    }
+    encode(&ArchivePublication::Record {
+        archive_version: 1,
+        record,
+    })
+}
+
+/// Preserve existing retention proof identities while standalone carriers are
+/// replaced. This encodes semantic fields, never slices a framed carrier.
+pub(crate) fn comparison_carrier(record: &ArchiveRecord) -> Result<Vec<u8>, ArchiveError> {
+    match record {
+        ArchiveRecord::Node(v) => super::encode_node(v),
+        ArchiveRecord::Branch(v) => super::encode_branch(v),
+        ArchiveRecord::ConversationMetadata(v) => {
+            crate::conversation_metadata_codec::encode_conversation_metadata(v)
+        }
+        ArchiveRecord::ConversationTombstone(v) => super::encode_conversation_tombstone(v),
+        ArchiveRecord::Fragment(v) => super::encode_fragment(v),
+        ArchiveRecord::Episode(v) => crate::episode_codec::encode_episode(v),
+        ArchiveRecord::File(v) => super::encode_file(v),
+        ArchiveRecord::IngestedTurn(v) => crate::turn_ingest_codec::encode_ingested_turn(v),
+        ArchiveRecord::ImportReceipt(v) => crate::archive_import::encode(v),
+        ArchiveRecord::FileMemoryLink(v) => {
+            Ok(crate::file_memory_link_codec::encode_file_memory_link(*v))
+        }
+        _ => Err(ArchiveError::InvalidArchiveRecordVersion),
+    }
+}
+
 #[cfg(test)]
 #[path = "archive_publication_bundle_tests.rs"]
 mod bundle_tests;

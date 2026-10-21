@@ -273,6 +273,9 @@ pub(crate) fn relocate_payload(
             )
             .map_err(|error| error.to_string())?
             .is_none()
+            && crate::archive_codec::publication::decode(envelope.body, envelope.global_version)
+                .map_err(|error| error.to_string())?
+                .is_none()
         {
             return Err("unsupported publication envelope body during relocation".to_owned());
         }
