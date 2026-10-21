@@ -163,6 +163,7 @@ impl Phylactery {
                         && !entity_state.ingest_publication_envelope(envelope, latest_global)?
                         && !relationship_state
                             .ingest_publication_envelope(envelope, latest_global)?
+                        && !graph_state.ingest_publication_envelope(envelope, latest_global)?
                     {
                         return Err(crate::MemoryError::CorruptRecord(
                             "unsupported publication envelope body",
@@ -172,8 +173,8 @@ impl Phylactery {
                 } else {
                     memory_state.ingest(chunk, payload, latest_global)?;
                     entity_state.ingest(chunk, payload, latest_global)?;
+                    graph_state.ingest(chunk, payload, latest_global)?;
                 }
-                graph_state.ingest(chunk, payload, latest_global)?;
                 relationship_state.ingest(chunk, payload, latest_global)?;
                 community_state.ingest(payload)?;
                 packed_state.ingest(chunk, payload)?;

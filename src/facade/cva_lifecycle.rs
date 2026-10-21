@@ -303,6 +303,7 @@ impl Cva {
                                 envelope,
                                 latest_global,
                             )?
+                            && !graph_state.ingest_publication_envelope(envelope, latest_global)?
                         {
                             return Err(crate::MemoryError::CorruptRecord(
                                 "unsupported publication envelope body",

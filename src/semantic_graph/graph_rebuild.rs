@@ -7,6 +7,10 @@ use crate::memory_store::MemoryStore;
 use crate::{GraphError, GraphNodeRecord, ObjectRef, SemanticGraphRelation};
 use std::collections::{HashMap, HashSet};
 
+#[cfg(test)]
+#[path = "graph_publication_replay_tests.rs"]
+mod publication_replay_tests;
+
 enum MutationCarrier {
     Stable(Vec<GraphMutationPayload>),
     Ordinal(Vec<crate::graph_compact_contract::GraphOrdinalMutation>),
@@ -37,6 +41,10 @@ impl GraphOpenState {
         payload: &[u8],
         latest_global: u64,
     ) -> Result<(), GraphError> {
+        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+            self.ingest_publication_envelope(envelope, latest_global)?;
+            return Ok(());
+        }
         if decode_format(payload)? {
             if self.format_seen {
                 return Err(GraphError::ConflictingFormat);
@@ -58,8 +66,8 @@ impl GraphOpenState {
             return Ok(());
         }
         if let Some(version) = decode_version(payload)? {
-            self.data_seen = true;
             self.ingest_version(chunk, version, latest_global)?;
+            self.data_seen = true;
             return Ok(());
         }
         if let Some(values) = crate::graph_compact_codec::decode(payload)? {
@@ -78,6 +86,34 @@ impl GraphOpenState {
                 .insert(chunk, MutationCarrier::Stable(vec![mutation]));
         }
         Ok(())
+    }
+
+    pub(crate) fn ingest_publication_envelope(
+        &mut self,
+        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        latest_global: u64,
+    ) -> Result<bool, GraphError> {
+        let Some(publication) = crate::graph_compact_codec::publication::decode(
+            envelope.body,
+            envelope.global_version,
+        )?
+        else {
+            return Ok(false);
+        };
+        if envelope.global_version > latest_global {
+            return Err(GraphError::InvalidGraphVersion);
+        }
+        let mutations = self
+            .store
+            .resolve_compact_mutations(publication.mutations())?;
+        self.apply_mutations(
+            mutations,
+            envelope.global_version,
+            publication.graph_version,
+        )?;
+        self.compact_published = true;
+        self.data_seen = true;
+        Ok(true)
     }
 
     pub(crate) fn validate_storage_version(
@@ -119,17 +155,29 @@ impl GraphOpenState {
         }
         let carrier = self
             .pending
-            .remove(&version.mutation)
+            .get(&version.mutation)
             .ok_or(GraphError::InvalidGraphVersion)?;
         // Resolve only now: admitted V1 ordering permits mappings between a
         // carrier and its marker, but never after the marker.
         let (mutations, compact) = match carrier {
-            MutationCarrier::Stable(values) => (values, false),
+            MutationCarrier::Stable(values) => (values.clone(), false),
             MutationCarrier::Ordinal(values) => {
-                (self.store.resolve_compact_mutations(&values)?, true)
+                (self.store.resolve_compact_mutations(values)?, true)
             }
         };
 
+        self.apply_mutations(mutations, version.global_version, version.graph_version)?;
+        self.pending.remove(&version.mutation);
+        self.compact_published |= compact;
+        Ok(())
+    }
+
+    fn apply_mutations(
+        &mut self,
+        mutations: Vec<GraphMutationPayload>,
+        global_version: u64,
+        graph_version: u64,
+    ) -> Result<(), GraphError> {
         let mut keys = HashSet::with_capacity(mutations.len());
         let mut transaction = Vec::with_capacity(mutations.len());
         for mutation in mutations {
@@ -142,12 +190,11 @@ impl GraphOpenState {
                 kind: mutation.kind,
                 active: mutation.active,
                 origin: mutation.origin,
-                global_version: version.global_version,
-                graph_version: version.graph_version,
+                global_version,
+                graph_version,
             });
         }
         self.store.insert_transaction_rebuilt(&transaction)?;
-        self.compact_published |= compact;
         Ok(())
     }
 }

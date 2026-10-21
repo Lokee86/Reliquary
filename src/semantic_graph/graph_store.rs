@@ -9,6 +9,10 @@ use arcana::storage::InMemoryGraph;
 use arcana::{GraphDataset, NodeId};
 use std::collections::{BTreeSet, HashMap, HashSet};
 
+#[cfg(test)]
+#[path = "graph_publication_overflow_tests.rs"]
+mod publication_overflow_tests;
+
 #[path = "graph_store_compact.rs"]
 mod compact;
 #[path = "graph_store_read.rs"]
@@ -109,6 +113,10 @@ impl GraphStore {
         {
             return Err(GraphError::InvalidGraphVersion);
         }
+        let next_graph_version = self
+            .next_graph_version
+            .checked_add(1)
+            .ok_or(GraphError::GraphVersionExhausted)?;
         for relation in relations {
             validation::validate_relation_contract(
                 relation.source,
@@ -123,10 +131,7 @@ impl GraphStore {
             }
         }
         self.insert_transaction(relations)?;
-        self.next_graph_version = self
-            .next_graph_version
-            .checked_add(1)
-            .ok_or(GraphError::GraphVersionExhausted)?;
+        self.next_graph_version = next_graph_version;
         Ok(())
     }
 
