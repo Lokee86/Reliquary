@@ -1479,3 +1479,9 @@ Dream reference222 accepted against `37210c8`: four runtime Begin population tes
 
 
 Memory prefix224 accepted against `21b4ec9` (implementation first captured in `1aaf6cd`):22 Memory compact replay/copy/prune tests and the accepted external publication fixture pass. Body pruning preserves first identity/global metadata in REL and PHY. Physical Begin authority225 is frozen in the Dream population contract, including recoverable pending intents and strict physical-prefix evidence. Progress225/356; direct-birth projection226 is active. Documentation validation now uses a verified independent Git snapshot; an earlier missing nested Git directory resolved to the parent and captured the in-progress224 implementation with acceptance docs, without loss or premature step acceptance.
+
+
+Direct-birth prefix226 accepted against `ccc0c94`: five focused projection/correlation cases, six Dream journal regressions and four legacy population references pass. REL validates owner and first Memory identity/mutation at the requested local cut; journal evidence retains all consumed mutations so later accepted retries cannot erase an earlier birth. Current source admission and writers remain unchanged; physical Begin scan integration is229. Progress226/356; Insomnia proof/cohort projection227 is active.
+
+
+Post226 broad library revalidation passes2,024 tests, five existing ignored and only three separately passed exhaustive recovery/long-owner sweeps filtered (19.93 seconds). Both structural and impact documentation checks pass on the isolated validation snapshot.
