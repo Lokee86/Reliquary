@@ -1,5 +1,7 @@
 # Architectural Decisions
 
+- [ADR 0042: Minimal lossless current history](0042-minimal-lossless-current-history.md) — **Accepted design; corpus verification complete; final promotion and runtime retirement tracked separately**, 2026-10-21.
+
 - [ADR 0041: Semantic import boundaries, owner-neutral pruning, and explicit history rewrite](0041-semantic-import-boundaries-owner-pruning-history-rewrite.md) — **Accepted direction; staged implementation**, 2026-10-18.
 - [ADR 0040: Terminal tombstones, import epochs and explicit history pruning](0040-terminal-tombstones-and-import-epochs.md) — **Accepted direction; staged implementation**, 2026-10-17.
 

@@ -44,6 +44,9 @@ mod historical_archive_fingerprint;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_baseline_artifacts.rs"]
 mod historical_baseline_artifacts;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+#[path = "facade/historical_current_corpus_tests.rs"]
+mod historical_current_corpus_tests;
 #[cfg(test)]
 #[path = "facade/historical_cut_enumeration.rs"]
 mod historical_cut_enumeration;

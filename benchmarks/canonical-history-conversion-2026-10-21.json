@@ -1731,6 +1731,7 @@
       "source_unchanged": true
     }
   ],
-  "historical_equivalence_complete": false,
-  "schema": 1
+  "historical_equivalence_complete": true,
+  "schema": 1,
+  "historical_equivalence_artifact": "canonical-history-equivalence-2026-10-21.json"
 }

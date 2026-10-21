@@ -88,7 +88,9 @@
     "src/facade/historical_global_cuts.rs",
     "src/freshness/historical_oracle.rs",
     "src/storage_upgrade/canonical_matrix_tests.rs",
-    "src/storage_upgrade/canonical_performance_tests.rs"
+    "src/storage_upgrade/canonical_performance_tests.rs",
+    "src/facade/historical_current_corpus_tests.rs",
+    "src/lib.rs: cfg(test, history-oracle-fixtures) current-corpus module declaration only"
   ],
   "final_post_retirement_refresh_still_required": true
 }

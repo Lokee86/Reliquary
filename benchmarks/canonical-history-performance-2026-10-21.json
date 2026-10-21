@@ -1,0 +1,792 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "build": "cargo release profile; optimized lib test harness",
+  "cold_definition": "first owner open in a fresh isolated process; OS file cache is uncontrolled and is not claimed cold",
+  "warm_definition": "three close/reopens in that same process",
+  "lookup_definition": "three repetitions of oldest, middle and recent preloaded historical Memory snapshot fingerprints; preparation recorded separately",
+  "memory_definition": "OS lifetime peak resident working set and peak committed bytes for a fresh process performing only the named measurement; includes fixed harness/startup overhead; not an allocation trace",
+  "peak_sampling_interval_ms": 5,
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "canonical_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "source_and_canonical_unchanged": true,
+      "oldest_middle_recent_memory_snapshots_equal": true,
+      "measurements": {
+        "source": {
+          "fixture": "chatgpt-first14d/project.prj.rel",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 4274.1748,
+            "memory_history": {
+              "head": 3348,
+              "preparation_ms": 36.6475,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.1155,
+                    0.0242,
+                    0.0172
+                  ],
+                  "rows": 4,
+                  "sha256": "926e66ee159f77fb9cb663bf5ab1e8acc42f5eeb4fa96798d3ac22bf6dfce2ad"
+                },
+                {
+                  "local_cut": 1674,
+                  "lookup_ms": [
+                    24.285,
+                    21.9836,
+                    20.8413
+                  ],
+                  "rows": 4932,
+                  "sha256": "2c985bae726def55a3e098cc79e462cf8c69eb8b846d469d7eb94818dbc9cc91"
+                },
+                {
+                  "local_cut": 3348,
+                  "lookup_ms": [
+                    42.984700000000004,
+                    41.1767,
+                    40.1005
+                  ],
+                  "rows": 6714,
+                  "sha256": "0bd5ff86eb337dac26f0fba95b88c30ba395791971f1080c0cde977e01b5b4f2"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              3858.8687999999997,
+              3952.6106,
+              4028.0281000000004
+            ]
+          },
+          "mode": "source",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 75227136,
+          "whole_process_peak_commit_bytes": 215052288,
+          "os_memory_counter_samples": 3025
+        },
+        "canonical": {
+          "fixture": "chatgpt-first14d/project.prj.rel",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 3196.8185,
+            "memory_history": {
+              "head": 3348,
+              "preparation_ms": 40.2157,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.09899999999999999,
+                    0.0207,
+                    0.0198
+                  ],
+                  "rows": 4,
+                  "sha256": "926e66ee159f77fb9cb663bf5ab1e8acc42f5eeb4fa96798d3ac22bf6dfce2ad"
+                },
+                {
+                  "local_cut": 1674,
+                  "lookup_ms": [
+                    28.214,
+                    27.2882,
+                    26.7916
+                  ],
+                  "rows": 4932,
+                  "sha256": "2c985bae726def55a3e098cc79e462cf8c69eb8b846d469d7eb94818dbc9cc91"
+                },
+                {
+                  "local_cut": 3348,
+                  "lookup_ms": [
+                    44.4318,
+                    40.4254,
+                    46.9737
+                  ],
+                  "rows": 6714,
+                  "sha256": "0bd5ff86eb337dac26f0fba95b88c30ba395791971f1080c0cde977e01b5b4f2"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              3019.5289000000002,
+              2836.9843,
+              2798.3264
+            ]
+          },
+          "mode": "canonical",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 80158720,
+          "whole_process_peak_commit_bytes": 198545408,
+          "os_memory_counter_samples": 2256
+        },
+        "migrate": {
+          "fixture": "chatgpt-first14d/project.prj.rel",
+          "measurement": {
+            "canonical_bytes": 30742210,
+            "plan_ms": 430.1769,
+            "source_bytes": 31853182,
+            "stage_ms": 16996.152,
+            "total_migration_ms": 17426.328899999997
+          },
+          "mode": "migrate",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 72142848,
+          "whole_process_peak_commit_bytes": 226889728,
+          "os_memory_counter_samples": 3225
+        }
+      }
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "canonical_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "source_and_canonical_unchanged": true,
+      "oldest_middle_recent_memory_snapshots_equal": true,
+      "measurements": {
+        "source": {
+          "fixture": "chatgpt-first14d/user.phy",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 22.146800000000002,
+            "memory_history": {
+              "head": 421,
+              "preparation_ms": 4.1229,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.1167,
+                    0.0109,
+                    0.0087
+                  ],
+                  "rows": 4,
+                  "sha256": "15c742a99a536eba0dfe96212b56d8428d1f02f8bb11594638f2876b601ddffc"
+                },
+                {
+                  "local_cut": 210,
+                  "lookup_ms": [
+                    2.4728,
+                    2.038,
+                    1.7403
+                  ],
+                  "rows": 531,
+                  "sha256": "df736788979970999f0bda4e96d517a80b4c45b98f19b35840d818896e4bde35"
+                },
+                {
+                  "local_cut": 421,
+                  "lookup_ms": [
+                    5.0382,
+                    5.1438999999999995,
+                    4.536499999999999
+                  ],
+                  "rows": 745,
+                  "sha256": "77cb0a72cfde5a67b667d178cb4c9bdaa82c28a1ac717a6c715ad819cbe4fed5"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              26.6661,
+              23.3626,
+              24.2385
+            ]
+          },
+          "mode": "source",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 17076224,
+          "whole_process_peak_commit_bytes": 84508672,
+          "os_memory_counter_samples": 31
+        },
+        "canonical": {
+          "fixture": "chatgpt-first14d/user.phy",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 17.4973,
+            "memory_history": {
+              "head": 421,
+              "preparation_ms": 4.5241,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.08339999999999999,
+                    0.0101,
+                    0.0149
+                  ],
+                  "rows": 4,
+                  "sha256": "15c742a99a536eba0dfe96212b56d8428d1f02f8bb11594638f2876b601ddffc"
+                },
+                {
+                  "local_cut": 210,
+                  "lookup_ms": [
+                    2.117,
+                    1.7243,
+                    1.9295
+                  ],
+                  "rows": 531,
+                  "sha256": "df736788979970999f0bda4e96d517a80b4c45b98f19b35840d818896e4bde35"
+                },
+                {
+                  "local_cut": 421,
+                  "lookup_ms": [
+                    3.8081,
+                    4.1482,
+                    4.4918
+                  ],
+                  "rows": 745,
+                  "sha256": "77cb0a72cfde5a67b667d178cb4c9bdaa82c28a1ac717a6c715ad819cbe4fed5"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              17.735500000000002,
+              15.7132,
+              20.7498
+            ]
+          },
+          "mode": "canonical",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 17108992,
+          "whole_process_peak_commit_bytes": 84459520,
+          "os_memory_counter_samples": 26
+        },
+        "migrate": {
+          "fixture": "chatgpt-first14d/user.phy",
+          "measurement": {
+            "canonical_bytes": 675300,
+            "plan_ms": 15.271099999999999,
+            "source_bytes": 814287,
+            "stage_ms": 193.8272,
+            "total_migration_ms": 209.0983
+          },
+          "mode": "migrate",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 13250560,
+          "whole_process_peak_commit_bytes": 84180992,
+          "os_memory_counter_samples": 47
+        }
+      }
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "canonical_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "source_and_canonical_unchanged": true,
+      "oldest_middle_recent_memory_snapshots_equal": true,
+      "measurements": {
+        "source": {
+          "fixture": "chatgpt-first28d/project.prj.rel",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 8522.139799999999,
+            "memory_history": {
+              "head": 5727,
+              "preparation_ms": 92.8402,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.1105,
+                    0.0165,
+                    0.0129
+                  ],
+                  "rows": 4,
+                  "sha256": "9a88986d7c608a51ab3402769d5c6edb1bd1273ca293e641036413b88f87aaca"
+                },
+                {
+                  "local_cut": 2863,
+                  "lookup_ms": [
+                    52.574799999999996,
+                    48.8205,
+                    54.3046
+                  ],
+                  "rows": 8139,
+                  "sha256": "803133a5be8d4b66233d126f5617990bfe0b2e7284a2338c19f6e365f2dfc8ba"
+                },
+                {
+                  "local_cut": 5727,
+                  "lookup_ms": [
+                    86.9135,
+                    86.5467,
+                    83.27229999999999
+                  ],
+                  "rows": 14224,
+                  "sha256": "769fc6c8cbf472e510b3b0b979587356e512c61b84312d4a87e89fa7f1571ee5"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              8223.0113,
+              8282.224100000001,
+              7835.9439999999995
+            ]
+          },
+          "mode": "source",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 176676864,
+          "whole_process_peak_commit_bytes": 364986368,
+          "os_memory_counter_samples": 6170
+        },
+        "canonical": {
+          "fixture": "chatgpt-first28d/project.prj.rel",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 7067.1646,
+            "memory_history": {
+              "head": 5727,
+              "preparation_ms": 93.9937,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.0976,
+                    0.024,
+                    0.016
+                  ],
+                  "rows": 4,
+                  "sha256": "9a88986d7c608a51ab3402769d5c6edb1bd1273ca293e641036413b88f87aaca"
+                },
+                {
+                  "local_cut": 2863,
+                  "lookup_ms": [
+                    46.142500000000005,
+                    44.4754,
+                    45.089
+                  ],
+                  "rows": 8139,
+                  "sha256": "803133a5be8d4b66233d126f5617990bfe0b2e7284a2338c19f6e365f2dfc8ba"
+                },
+                {
+                  "local_cut": 5727,
+                  "lookup_ms": [
+                    81.71249999999999,
+                    83.0732,
+                    86.01880000000001
+                  ],
+                  "rows": 14224,
+                  "sha256": "769fc6c8cbf472e510b3b0b979587356e512c61b84312d4a87e89fa7f1571ee5"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              7254.203600000001,
+              6861.389499999999,
+              9568.4701
+            ]
+          },
+          "mode": "canonical",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 187420672,
+          "whole_process_peak_commit_bytes": 374018048,
+          "os_memory_counter_samples": 5795
+        },
+        "migrate": {
+          "fixture": "chatgpt-first28d/project.prj.rel",
+          "measurement": {
+            "canonical_bytes": 76542131,
+            "plan_ms": 860.0254000000001,
+            "source_bytes": 80056100,
+            "stage_ms": 48722.9963,
+            "total_migration_ms": 49583.0217
+          },
+          "mode": "migrate",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 165707776,
+          "whole_process_peak_commit_bytes": 364806144,
+          "os_memory_counter_samples": 9175
+        }
+      }
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "canonical_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "source_and_canonical_unchanged": true,
+      "oldest_middle_recent_memory_snapshots_equal": true,
+      "measurements": {
+        "source": {
+          "fixture": "chatgpt-first28d/user.phy",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 62.3466,
+            "memory_history": {
+              "head": 490,
+              "preparation_ms": 6.0503,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.1064,
+                    0.023799999999999998,
+                    0.0191
+                  ],
+                  "rows": 4,
+                  "sha256": "6fad87386aa01cea934a327e355621abd8c62c72abcf631eb32c24b6416a698d"
+                },
+                {
+                  "local_cut": 245,
+                  "lookup_ms": [
+                    2.8826,
+                    2.6763999999999997,
+                    2.6129000000000002
+                  ],
+                  "rows": 659,
+                  "sha256": "1d44c7597b600743cb602a1175cec2c56d5e81ef91c3508c7933170e50aa20c6"
+                },
+                {
+                  "local_cut": 490,
+                  "lookup_ms": [
+                    6.3454999999999995,
+                    6.5912999999999995,
+                    6.0568
+                  ],
+                  "rows": 1225,
+                  "sha256": "4dcb2cce0c3788d4132f94f74b6c68cc8be69c31c0a55fbc5a9b3da432aed55f"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              59.2535,
+              56.5776,
+              59.1842
+            ]
+          },
+          "mode": "source",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 21569536,
+          "whole_process_peak_commit_bytes": 116363264,
+          "os_memory_counter_samples": 58
+        },
+        "canonical": {
+          "fixture": "chatgpt-first28d/user.phy",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 49.5454,
+            "memory_history": {
+              "head": 490,
+              "preparation_ms": 5.4121999999999995,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.112,
+                    0.0203,
+                    0.0174
+                  ],
+                  "rows": 4,
+                  "sha256": "6fad87386aa01cea934a327e355621abd8c62c72abcf631eb32c24b6416a698d"
+                },
+                {
+                  "local_cut": 245,
+                  "lookup_ms": [
+                    2.8371,
+                    2.4279,
+                    2.5739
+                  ],
+                  "rows": 659,
+                  "sha256": "1d44c7597b600743cb602a1175cec2c56d5e81ef91c3508c7933170e50aa20c6"
+                },
+                {
+                  "local_cut": 490,
+                  "lookup_ms": [
+                    6.3732,
+                    6.3020000000000005,
+                    6.8079
+                  ],
+                  "rows": 1225,
+                  "sha256": "4dcb2cce0c3788d4132f94f74b6c68cc8be69c31c0a55fbc5a9b3da432aed55f"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              52.620599999999996,
+              49.683,
+              44.985499999999995
+            ]
+          },
+          "mode": "canonical",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 21909504,
+          "whole_process_peak_commit_bytes": 117415936,
+          "os_memory_counter_samples": 52
+        },
+        "migrate": {
+          "fixture": "chatgpt-first28d/user.phy",
+          "measurement": {
+            "canonical_bytes": 1507220,
+            "plan_ms": 36.971,
+            "source_bytes": 1840755,
+            "stage_ms": 465.5271,
+            "total_migration_ms": 502.4981
+          },
+          "mode": "migrate",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 15503360,
+          "whole_process_peak_commit_bytes": 110559232,
+          "os_memory_counter_samples": 102
+        }
+      }
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "canonical_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "source_and_canonical_unchanged": true,
+      "oldest_middle_recent_memory_snapshots_equal": true,
+      "measurements": {
+        "source": {
+          "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 2177.8529999999996,
+            "memory_history": {
+              "head": 1452,
+              "preparation_ms": 22.2502,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.08009999999999999,
+                    0.0126,
+                    0.0109
+                  ],
+                  "rows": 4,
+                  "sha256": "03897e5c6781c9d9c5a7897a5cd2ee62048a861466a44ecd8c0f01a40e98322d"
+                },
+                {
+                  "local_cut": 726,
+                  "lookup_ms": [
+                    12.1591,
+                    12.1243,
+                    11.8928
+                  ],
+                  "rows": 2760,
+                  "sha256": "dbadbf309b41e9499d23cd8cb5f0072ed67f6bf7aa086a339355dc86650ec8a1"
+                },
+                {
+                  "local_cut": 1452,
+                  "lookup_ms": [
+                    19.410899999999998,
+                    20.500799999999998,
+                    19.5966
+                  ],
+                  "rows": 3627,
+                  "sha256": "cb1005d9c12b956809bc7a3b48b24a5d8d6d2d79226e8fea2efada1e42df7b24"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              2215.0843,
+              2231.8214,
+              2719.6574
+            ]
+          },
+          "mode": "source",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 52883456,
+          "whole_process_peak_commit_bytes": 189796352,
+          "os_memory_counter_samples": 1757
+        },
+        "canonical": {
+          "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 1989.0864000000001,
+            "memory_history": {
+              "head": 1452,
+              "preparation_ms": 36.307,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.0974,
+                    0.0188,
+                    0.0158
+                  ],
+                  "rows": 4,
+                  "sha256": "03897e5c6781c9d9c5a7897a5cd2ee62048a861466a44ecd8c0f01a40e98322d"
+                },
+                {
+                  "local_cut": 726,
+                  "lookup_ms": [
+                    22.662000000000003,
+                    17.341700000000003,
+                    14.5557
+                  ],
+                  "rows": 2760,
+                  "sha256": "dbadbf309b41e9499d23cd8cb5f0072ed67f6bf7aa086a339355dc86650ec8a1"
+                },
+                {
+                  "local_cut": 1452,
+                  "lookup_ms": [
+                    25.1229,
+                    27.1762,
+                    23.184900000000003
+                  ],
+                  "rows": 3627,
+                  "sha256": "cb1005d9c12b956809bc7a3b48b24a5d8d6d2d79226e8fea2efada1e42df7b24"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              1969.1707000000001,
+              1984.0538,
+              2233.248
+            ]
+          },
+          "mode": "canonical",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 58814464,
+          "whole_process_peak_commit_bytes": 193417216,
+          "os_memory_counter_samples": 1549
+        },
+        "migrate": {
+          "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+          "measurement": {
+            "canonical_bytes": 18315280,
+            "plan_ms": 262.3968,
+            "source_bytes": 19561460,
+            "stage_ms": 12901.8228,
+            "total_migration_ms": 13164.2196
+          },
+          "mode": "migrate",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 49405952,
+          "whole_process_peak_commit_bytes": 225914880,
+          "os_memory_counter_samples": 2440
+        }
+      }
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "canonical_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "source_and_canonical_unchanged": true,
+      "oldest_middle_recent_memory_snapshots_equal": true,
+      "measurements": {
+        "source": {
+          "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 151.6557,
+            "memory_history": {
+              "head": 976,
+              "preparation_ms": 15.7243,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.1216,
+                    0.0229,
+                    0.0188
+                  ],
+                  "rows": 4,
+                  "sha256": "8bb909bfdc3629ea04a85eeb39d6d58e02de7d3d2ec5ea9413afa6ae36687af4"
+                },
+                {
+                  "local_cut": 488,
+                  "lookup_ms": [
+                    9.076600000000001,
+                    8.8518,
+                    11.165
+                  ],
+                  "rows": 1879,
+                  "sha256": "916abd1c597a501e44737464b7b2264fe539e5534891ed9ce30a6e48bfc1a87a"
+                },
+                {
+                  "local_cut": 976,
+                  "lookup_ms": [
+                    15.4213,
+                    16.6719,
+                    17.3451
+                  ],
+                  "rows": 2508,
+                  "sha256": "5448924a5c649db7cd3ed92e00463fe123a2a1f140bf318fa20101aef7360a80"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              161.805,
+              150.8786,
+              173.4839
+            ]
+          },
+          "mode": "source",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 35020800,
+          "whole_process_peak_commit_bytes": 156815360,
+          "os_memory_counter_samples": 144
+        },
+        "canonical": {
+          "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+          "measurement": {
+            "first_open_in_fresh_process_ms": 135.98399999999998,
+            "memory_history": {
+              "head": 976,
+              "preparation_ms": 14.6439,
+              "queries": [
+                {
+                  "local_cut": 1,
+                  "lookup_ms": [
+                    0.1391,
+                    0.0163,
+                    0.013900000000000001
+                  ],
+                  "rows": 4,
+                  "sha256": "8bb909bfdc3629ea04a85eeb39d6d58e02de7d3d2ec5ea9413afa6ae36687af4"
+                },
+                {
+                  "local_cut": 488,
+                  "lookup_ms": [
+                    9.3378,
+                    9.6429,
+                    12.8839
+                  ],
+                  "rows": 1879,
+                  "sha256": "916abd1c597a501e44737464b7b2264fe539e5534891ed9ce30a6e48bfc1a87a"
+                },
+                {
+                  "local_cut": 976,
+                  "lookup_ms": [
+                    16.1416,
+                    16.5442,
+                    16.7951
+                  ],
+                  "rows": 2508,
+                  "sha256": "5448924a5c649db7cd3ed92e00463fe123a2a1f140bf318fa20101aef7360a80"
+                }
+              ],
+              "query": "preloaded historical Memory snapshot fingerprint"
+            },
+            "warm_reopen_ms": [
+              163.7587,
+              129.9049,
+              132.1979
+            ]
+          },
+          "mode": "canonical",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 35577856,
+          "whole_process_peak_commit_bytes": 156811264,
+          "os_memory_counter_samples": 131
+        },
+        "migrate": {
+          "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+          "measurement": {
+            "canonical_bytes": 3180063,
+            "plan_ms": 110.43260000000001,
+            "source_bytes": 4070532,
+            "stage_ms": 1108.8352,
+            "total_migration_ms": 1219.2678
+          },
+          "mode": "migrate",
+          "schema": 1,
+          "whole_process_peak_working_set_bytes": 21331968,
+          "whole_process_peak_commit_bytes": 157147136,
+          "os_memory_counter_samples": 234
+        }
+      }
+    }
+  ]
+}

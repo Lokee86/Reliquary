@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Record verified disposable conversion results and complete raw-byte costs before
-the separate historical-equivalence and authoritative-promotion gates.
+Record six-source conversion, historical equivalence, raw-byte costs and
+measurements before authoritative promotion and runtime retirement.
 
 ## Overview
 
@@ -11,8 +11,8 @@ All six pinned development REL/PHY files have disposable canonical V2 copies.
 Every copy reopens through its concrete owner, retains owner identity and all
 owner heads, and passes historical import settlement/completion validation.
 Every authoritative source retains its original SHA-256 and modification time.
-This completes conversion/admission and raw accounting; the remaining owner
-historical equivalence matrix and authoritative promotion are separate gates.
+The six-source historical equivalence matrix has also passed with zero owner
+domain mismatches. Authoritative promotion and legacy retirement remain separate gates.
 
 ## Raw logical history bytes
 
@@ -37,8 +37,9 @@ checkpoint; this cost is included in the totals.
 
 The [conversion artifact](../benchmarks/canonical-history-conversion-2026-10-21.json)
 records source/output hashes, disposable output paths, owner heads, staging
-times and complete physical-family counts. Its explicit flags say that full
-historical equivalence and authoritative promotion are unfinished.
+times and complete physical-family counts. Its historical-equivalence flag now links the subsequent
+[complete historical oracle](../benchmarks/canonical-history-equivalence-2026-10-21.json)
+records all six successful historical comparisons; authoritative promotion remains pending.
 
 ## Resolution history acceptance
 
@@ -77,10 +78,79 @@ Architecture snapshot `dc54dee47978dbf0eaf046cf6fe06a364a9106e5e7b789e6caee10392
 ## Notes
 
 Historical Memory, Archive, Entity, Relationship, Graph, Ego, Freshness, vector,
-Dream and global projection acceptance remains separately recorded by the plan.
+Dream and global projection acceptance now passes and is recorded by the plan.
 These measurements do not authorize deleting legacy readers or promoting an
 unverified authoritative fixture. The temporary converters remain until those
 gates pass.
 
 
 The [original-source preservation manifest](../benchmarks/canonical-history-original-source-preservation-2026-10-21.json) pins exact copies of all six original files and their six authority/checksum metadata files before promotion. It records the fixture repository's preexisting uncommitted state. This preservation does not modify that repository or promote any file.
+
+## Historical equivalence
+
+All six source/output pairs pass in2,338.55seconds. Every Memory, Entity,
+Relationship, Graph, MemoryGraph and Ego cut agrees. Freshness agrees at every
+activity cut and accepted Event coordinate; vector generations and exact matrix
+identities, Dream pairs/processing/proofs and every global ordering point agree.
+Archive publications, origins, dependencies, time/global coordinates and orphan
+behavior agree in order, with exhaustive publication-prefix hashes.
+
+Whole Archive snapshots and whole-owner global snapshots use representative
+recorded cuts when exhaustive materialization would take many hours. This
+sampling applies to combined snapshots only: concrete histories, Archive
+publication prefixes and global ordering remain exhaustive. The oracle records
+the selected cuts. Test-only scan caches are checked against normal queries at
+initial/middle/head cuts; no runtime replay semantics change.
+
+## Reopen and migration measurements
+
+The [performance artifact](../benchmarks/canonical-history-performance-2026-10-21.json)
+contains eighteen isolated optimized processes. First open means a fresh process;
+the operating-system file cache is uncontrolled, so these are not cold-disk
+measurements. Warm open is the mean of three subsequent close/reopens.
+
+| Fixture | First open V1/V2 ms | Warm open V1/V2 ms | Migration ms | Input MiB/s | Migration peak resident MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 14-day REL | 4,274 / 3,197 | 3,947 / 2,885 | 17,426 | 1.74 | 68.80 |
+| 14-day PHY | 22 / 17 | 25 / 18 | 209 | 3.71 | 12.64 |
+| 28-day REL | 8,522 / 7,067 | 8,114 / 7,895 | 49,583 | 1.54 | 158.03 |
+| 28-day PHY | 62 / 50 | 58 / 49 | 502 | 3.49 | 14.79 |
+| Ellis REL | 2,178 / 1,989 | 2,389 / 2,062 | 13,164 | 1.42 | 47.12 |
+| Ellis PHY | 152 / 136 | 162 / 142 | 1,219 | 3.18 | 20.34 |
+
+Oldest, middle and recent preloaded Memory snapshot fingerprints are identical
+for each pair. Three lookup repetitions and preparation time are recorded
+separately. Peak working set and committed bytes come from Windows lifetime
+process counters sampled every5ms; they include fixed harness/startup overhead
+and are not an allocation trace. Neither lookup nor peak memory shows a
+universal improvement.
+
+Derived checkpoints are deferred: the largest warm owner reopen remains about
+7.9seconds, while the measured preloaded Memory lookups remain below a second.
+This work has no defined interactive latency budget requiring a new persisted
+acceleration layer. Revisit with a named workload and latency target rather than
+adding another format during the hard cut. No checkpoint generation/load or
+corruption behavior is introduced; the conditional implementation steps do not
+apply under this measured deferral.
+
+## Maintenance checks collected before promotion
+
+The [repair/rewrite artifact](../benchmarks/canonical-history-repair-rewrite-2026-10-21.json)
+records all six current files. Both an incomplete frame header and an incomplete
+frame body recover to the exact original accepted bytes with identical public
+owner snapshots. Default fresh-history rewrite reopens successfully, emits
+exactly the planner-selected Memory IDs and retains their complete current
+Memory facts after normalizing only revision/global/local coordinates, which
+are intentionally new in a rewrite. Source hashes remain unchanged.
+
+The [frozen reconciliation-policy artifact](../benchmarks/canonical-history-frozen-reconciliation-policy-2026-10-21.json)
+compares the concrete Freshness rebasing decision for each frozen V1 REL with
+its current V2 counterpart. All three agree exactly, including refusal to rebase
+historical checkpoint authority without a verified reconstruction manifest.
+This refusal is preserved behavior. Public identical/extension/divergence and
+reclaim checks are tracked separately until all fixtures finish.
+
+The current-only exhaustive corpus test is independent of the upgrader module.
+It reads the permanent frozen oracle and current fixture hashes, then uses only
+normal current owner opens. It survives removal of conversion tests and V1
+decoders; the full source-versus-output comparison has already passed.
