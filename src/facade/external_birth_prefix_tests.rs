@@ -11,7 +11,7 @@ fn path(name: &str) -> std::path::PathBuf {
     root.join(format!("{name}-{}.rel", uuid::Uuid::new_v4()))
 }
 
-fn prepared(window: [u8; 32], ordinal: u8) -> PreparedExternalMemory {
+pub(super) fn prepared(window: [u8; 32], ordinal: u8) -> PreparedExternalMemory {
     let message = ExternalMessageRef {
         source_namespace: "external:test".into(),
         conversation_id: "conversation".into(),

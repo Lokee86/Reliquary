@@ -328,6 +328,8 @@ mod cva_communities;
 mod cva_compatibility_profiles;
 #[path = "facade/cva_conversation.rs"]
 mod cva_conversation;
+#[path = "facade/cva_dream_population.rs"]
+mod cva_dream_population;
 #[path = "facade/cva_ego.rs"]
 mod cva_ego;
 #[path = "facade/cva_error.rs"]

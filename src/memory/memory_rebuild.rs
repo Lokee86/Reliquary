@@ -32,6 +32,12 @@ impl MemoryOpenState {
         }
     }
 
+    /// Current accepted Memory-local replay head, including native envelopes.
+    /// This can be queried before EOF without finalizing pending physical state.
+    pub(crate) fn memory_version(&self) -> u64 {
+        self.store.memory_version()
+    }
+
     pub(crate) fn ingest(
         &mut self,
         chunk: ObjectRef,

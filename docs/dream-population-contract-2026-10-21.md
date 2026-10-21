@@ -5,11 +5,8 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 
 This is a design contract for the Memory-local identity prefix and its use when
-reconstructing a historical Dream population. It specifies planned behavior
-for the Memory-prefix and accepted-birth/cohort steps in the
-[linear storage plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md);
-it does not claim that compact Memory history currently implements this
-contract. The [storage format](storage-format.md) describes the current
+reconstructing a historical Dream population. The Memory metadata reader and private REL birth/cohort prefix projections implement these authority rules. Compact Dream wire, replay binding and ordinary writer integration remain separate gates in the
+[linear storage plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md). The [storage format](storage-format.md) describes the current
 transitional format and implementation status.
 
 ## Overview
