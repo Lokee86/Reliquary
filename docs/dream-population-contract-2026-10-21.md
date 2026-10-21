@@ -119,6 +119,64 @@ planned explicit-set exception when the original exact set cannot be represented
 These rules do not add rejection conditions to existing explicit-set source
 admission or replace its immutable set with an inferred one.
 
+## Current Begin wire contract
+
+The frozen target is a clock-neutral V2-container Begin payload with magic
+`CVDREAM2`. It allocates no Container global ticket and adds no birth clock.
+Encoder, decoder, owner replay and ordinary writer integration have separate
+acceptance steps; freezing this contract does not enable runtime writing.
+
+All integers are unsigned little-endian. The shared fields occur in this order:
+
+| Field | Encoding |
+| --- | --- |
+| Magic | Eight ASCII bytes `CVDREAM2` |
+| Owner | Sixteen UUID bytes, matched to the containing owner at admission |
+| Population variant | One byte: 0 CompactCut, 1 ExplicitSet |
+| Pass identity | u32 byte length followed by nonempty UTF-8 bytes |
+| Source Memory | Thirty-two raw identity bytes |
+| Original REL turn | u64 |
+| Semantic Graph baseline | u64 |
+
+The first revision is implicitly 1, preserving the only accepted initial-pass
+revision without storing a redundant integer. Initial roots are empty and
+accepted settlement is absent; subsequent journal records retain those facts.
+Pass identity bytes are preserved without normalization or a new length limit
+beyond the existing u32 byte length. Canonical pass/source eligibility remains
+an owner-admission check rather than a new codec restriction on legacy input.
+
+Variant 0 appends a nonzero u64 Memory-local head cut and the 32-byte canonical
+population digest. It stores no duplicate population count: the commitment
+already includes cardinality. At materialization, the cut must equal the
+Memory head immediately before this Begin, the source first publication must
+exist in that prefix, and the exact reconstructed population must hash to the
+stored digest. Framing alone cannot establish these cross-owner facts.
+
+Variant 1 appends a u32 count and that many ascending, strictly unique raw
+32-byte Memory IDs. The source must be absent. The explicit set is direct
+population authority; it stores neither an inferred Memory cut nor a redundant
+digest. It preserves manual/legacy subsets and transformed histories whose
+exact original population is not representable at the destination prefix.
+Do not replace it with a current population or tighten existing explicit-set
+source admission. A later ordinary-writer gate may also select an empty literal
+set when that is the smaller exact representation.
+
+Encoders check u32 string/count representability before emission. Decoders
+validate complete magic, known variant, nonempty UTF-8 identity, nonzero cut,
+checked count/byte arithmetic, explicit-set ordering/uniqueness/source exclusion,
+and exact end of payload. Truncation, trailing bytes and unknown versions/tags
+reject. Decode is independent of Memory/birth materialization; it returns
+population authority requiring the later owner checks, not an invented empty set.
+No digest is a keyed authenticity claim.
+
+Only Begin changes family. Existing `CVDREAM1` roots, settlement, acceptance,
+Intent/Consume and ReplayBirth records retain their current framing and rules.
+The old `CVDREAM1` explicit Begin decoder remains transitional until the
+planned offline conversion and retirement gates; retirement must distinguish
+that obsolete Begin variant from unchanged current journal kinds. A current
+`CVDREAM2` Begin is not admitted in a V1 container. Source inspection and
+conversion must leave source bytes unchanged.
+
 ## Notes
 
 This contract adds no persisted clock and does not alter source admission rules. Runtime writer cutover, migration, destination exceptions and corpus measurements remain separate gates.
