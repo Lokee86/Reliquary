@@ -1433,3 +1433,9 @@ Archive writer gate208 accepted against `2801100`: 113 Archive, 86 import, 50 re
 
 
 Archive gate209 accepted against `ea26adc`: six-source parity passes in 169.26 seconds, all source bytes/hashes/mtimes unchanged. The measured 32,357 Archive publications save 659,536 framed owner bytes; see the tracked Archive envelope migration JSON. This excludes reservations and other owners. The supplemental global-counter preflight and explicit legacy fixture updates pass; 1,988 broad units pass, with five ignored and three long integration sweeps deferred. Next210 freezes the Graph envelope contract.
+
+
+Graph contract210 accepted against `6946ce4` after six-source inventory and concrete codec/replay/proof/migration review. Per-row origins are preserved; no uniform-origin rule is invented. Next211 implements the current single/batch body codec, while Graph ordinary writers remain unchanged until218.
+
+
+Graph body codec211 accepted against `b939ff2`: all 11 compact Graph codec tests pass, including five new native tests covering literal bytes, enum matrix, strict framing and reference adaptation. Next212 adds owner admission and concrete REL/PHY routing; current Graph writers remain unchanged.
