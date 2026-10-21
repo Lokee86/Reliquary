@@ -29,6 +29,7 @@ mod graph_authoritative_tests;
 mod graph_envelope;
 #[cfg(test)]
 mod graph_tests;
+mod import_settlement;
 mod memory;
 mod memory_envelope;
 #[cfg(test)]

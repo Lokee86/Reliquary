@@ -16,6 +16,22 @@ pub(crate) fn encode_complete(value: &ImportComplete) -> Result<Vec<u8>, ImportE
     encode(COMPLETE_MAGIC, value)
 }
 
+/// One-time transport after source completion validation. Only the derived
+/// settlement-byte digest changes; accepted completion facts remain literal.
+pub(crate) fn transport_completion_settlement(
+    payload: &[u8],
+    digests: &std::collections::BTreeMap<String, String>,
+) -> Result<Option<Vec<u8>>, ImportError> {
+    let Some(ImportEpochRecord::Complete(mut complete)) = decode(payload)? else {
+        return Ok(None);
+    };
+    complete.historical_freshness_settlement_digest = digests
+        .get(&complete.import_id)
+        .ok_or(ImportError::Epoch("completion lacks canonical settlement"))?
+        .clone();
+    encode_complete(&complete).map(Some)
+}
+
 fn encode<T: serde::Serialize>(magic: &[u8; 8], value: &T) -> Result<Vec<u8>, ImportError> {
     let body = serde_json::to_vec(value)?;
     let mut bytes = Vec::with_capacity(12 + body.len());

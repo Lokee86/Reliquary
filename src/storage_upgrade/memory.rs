@@ -207,18 +207,28 @@ fn transform_owners(
     migrate_archive_envelopes: bool,
     migrate_graph_envelopes: bool,
 ) -> Result<(), StorageUpgradeError> {
-    let (normalizations, archive_envelope_plan) = if source
+    let (normalizations, archive_envelope_plan, import_settlement_plan) = if source
         .identity()
         .is_some_and(|identity| identity.file_kind == crate::FileKind::Reliquary)
     {
         let mut owner = crate::Cva::open_v1_read_only(source.path())?;
-        let normalizations = owner.prepare_import_settlement_normalizations()?;
+        let (normalizations, import_settlement_plan) = if migrate_graph_envelopes {
+            (
+                Vec::new(),
+                super::import_settlement::prepare(source, &mut owner)?,
+            )
+        } else {
+            (
+                owner.prepare_import_settlement_normalizations()?,
+                super::import_settlement::Plan::default(),
+            )
+        };
         let archive = if migrate_archive_envelopes {
             super::archive_envelope::prepare(source, &owner.archive)?
         } else {
             super::archive_envelope::ArchiveEnvelopePlan::default()
         };
-        (normalizations, archive)
+        (normalizations, archive, import_settlement_plan)
     } else {
         if migrate_archive_envelopes {
             for object in source.chunks()? {
@@ -234,6 +244,7 @@ fn transform_owners(
         (
             Vec::new(),
             super::archive_envelope::ArchiveEnvelopePlan::default(),
+            super::import_settlement::Plan::default(),
         )
     };
     let graph_envelope_plan = if migrate_graph_envelopes {
@@ -382,7 +393,8 @@ fn transform_owners(
         }
         // Only accepted direct carriers are omitted. Orphans remain inert,
         // and each replacement stays at the original publication marker slot.
-        if envelope_plan.carriers.contains(&object)
+        if import_settlement_plan.omitted.contains(&object)
+            || envelope_plan.carriers.contains(&object)
             || entity_envelope_plan.carriers.contains(&object)
             || relationship_envelope_plan.carriers.contains(&object)
             || archive_envelope_plan.carriers.contains(&object)
@@ -390,7 +402,10 @@ fn transform_owners(
         {
             return Ok(());
         }
-        let transformed = if let Some(begin) = dream_begins.get(&object) {
+        let transformed = if let Some(settlement) = import_settlement_plan.replacements.get(&object)
+        {
+            settlement.clone()
+        } else if let Some(begin) = dream_begins.get(&object) {
             begin.clone()
         } else if let Some(envelope) = envelope_plan.markers.get(&object) {
             envelope.clone()

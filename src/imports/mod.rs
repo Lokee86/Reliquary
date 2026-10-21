@@ -3,6 +3,7 @@ mod commit;
 mod completion;
 mod contract;
 mod epoch_codec;
+pub(crate) use epoch_codec::transport_completion_settlement;
 mod epoch_scope;
 mod epoch_store;
 mod hermes;

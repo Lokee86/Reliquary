@@ -377,6 +377,96 @@ fn cvai_legacy2_preserves_exact_legacy_evidence_and_rejects_bad_framing() {
 }
 
 #[test]
+fn latest_upgrade_makes_legacy_import_proof_independent_of_physical_predecessors() {
+    let scratch = Scratch::new();
+    let source = scratch.path("source.rel");
+    let (frame, _, _, _, memory) = owner_with_legacy_epoch(&source, false);
+    let original = fs::read(&source).unwrap();
+    let mut old = Cva::open_v1_read_only(&source).unwrap();
+    old.validate_historical_import_settlements().unwrap();
+    let turn = old.rel_turn_count();
+    let expected = crate::historical_freshness_fingerprint::freshness_at_turn(&mut old, turn)
+        .unwrap()
+        .fingerprint;
+    let expected_record = old.freshness.records_at(turn).unwrap();
+    drop(old);
+    let plan = crate::storage_upgrade::plan_storage_upgrade(
+        crate::storage_upgrade::StorageUpgradeRequest {
+            source: source.clone(),
+            destination: scratch.path("canonical.rel"),
+        },
+    )
+    .unwrap();
+    let stage = crate::storage_upgrade::stage_graph_envelope_storage_upgrade(&plan).unwrap();
+    let mut current = Cva::open(stage.test_path()).unwrap();
+    current.validate_historical_import_settlements().unwrap();
+    assert_eq!(current.freshness.records_at(turn).unwrap(), expected_record);
+    assert!(expected_record.contains_key(&memory));
+    assert_eq!(
+        crate::historical_freshness_fingerprint::freshness_at_turn(&mut current, turn)
+            .unwrap()
+            .fingerprint,
+        expected
+    );
+    let mut settlements = 0;
+    current
+        .container
+        .visit_payloads::<crate::ContainerError>(|_, payload| {
+            for magic in [
+                b"CVAFRS03",
+                b"CVAFRS04",
+                b"CVAFRS05",
+                b"CVAILEG1",
+                b"CVAILEG2",
+            ] {
+                assert!(!payload.starts_with(magic));
+            }
+            if payload.starts_with(b"CVAFRS06") {
+                let settlement =
+                    crate::freshness_storage::HistoricalImportFreshnessSettlement::decode(payload)
+                        .unwrap();
+                assert_eq!(settlement.semantic.unwrap().predecessor_digest, None);
+                settlements += 1;
+            }
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(settlements, 1);
+    assert_eq!(fs::read(&source).unwrap(), original);
+
+    // A valid checksum cannot authorize a false original prefix. Conversion
+    // must validate that evidence before dropping its physical carrier.
+    let damaged = scratch.path("damaged.rel");
+    let mut altered = original.clone();
+    let mut scan = crate::Container::open_v1_read_only(&source).unwrap();
+    let mut offset = None;
+    scan.visit_payloads::<crate::ContainerError>(|object, payload| {
+        if payload.starts_with(b"CVAILEG1") {
+            offset = Some(object.offset() as usize + 8);
+        }
+        Ok(())
+    })
+    .unwrap();
+    let mut bad_frame = frame;
+    bad_frame.source_prefix_digest = "00".repeat(32);
+    let bytes = legacy_frame_bytes(&bad_frame);
+    let offset = offset.unwrap();
+    altered[offset..offset + bytes.len()].copy_from_slice(&bytes);
+    fs::write(&damaged, &altered).unwrap();
+    let destination = scratch.path("refused.rel");
+    let plan = crate::storage_upgrade::plan_storage_upgrade(
+        crate::storage_upgrade::StorageUpgradeRequest {
+            source: damaged.clone(),
+            destination: destination.clone(),
+        },
+    )
+    .unwrap();
+    assert!(crate::storage_upgrade::stage_graph_envelope_storage_upgrade(&plan).is_err());
+    assert!(!destination.exists());
+    assert_eq!(fs::read(damaged).unwrap(), altered);
+}
+
+#[test]
 fn v1_owner_upgrade_rebinds_legacy_epoch_to_relocated_prefix_and_reopens() {
     let scratch = Scratch::new();
     let source_path = scratch.path("legacy-source.rel");

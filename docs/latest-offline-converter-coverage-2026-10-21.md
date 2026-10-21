@@ -154,7 +154,7 @@ claim of conversion support.
 
 | `freshness_events` | `CVAFRS02` | Retain accepted owner facts; existing concrete relocation handles any physical references. Owner replay validates the copied family; no new representation is needed for this phase. |
 
-| `freshness_import_settlement` | `CVAFRS03`, `CVAFRS04`, `CVAFRS05`, `CVAFRS06` | Existing semantic proof normalization emits current settlement authority; no replacement proof is invented from current state. |
+| `freshness_import_settlement` | `CVAFRS03`, `CVAFRS04`, `CVAFRS05`, `CVAFRS06` | Latest conversion validates the original proof, emits one standalone CVAFRS06 at the first settlement slot, clears the physical predecessor digest and omits duplicate normalization carriers. Focused initial-history parity, native completion retry, duplicate normalization removal and damaged-source refusal pass; full-suite and corpus acceptance remain pending. |
 
 | `freshness_legacy_activation` | `CVAFSA01` | Retain accepted owner facts; existing concrete relocation handles any physical references. Owner replay validates the copied family; no new representation is needed for this phase. |
 
@@ -162,7 +162,7 @@ claim of conversion support.
 
 | `import_epoch` | `CVAIEPS1`, `CVAIEPC1` | Retain accepted owner facts; existing concrete relocation handles any physical references. Owner replay validates the copied family; no new representation is needed for this phase. |
 
-| `import_legacy_epoch` | `CVAILEG1`, `CVAILEG2` | Temporary explicit legacy epoch/prefix binding rebases physical transport; removal remains separately gated after corpus promotion. |
+| `import_legacy_epoch` | `CVAILEG1`, `CVAILEG2` | Earlier incremental converters retain temporary physical-prefix bridges. Latest canonical conversion validates and omits both carriers; standalone current semantic proof carries the accepted initial-history scope. |
 
 | `insomnia_format` | `CVAINSF1` | Retain accepted owner facts; existing concrete relocation handles any physical references. Owner replay validates the copied family; no new representation is needed for this phase. |
 
