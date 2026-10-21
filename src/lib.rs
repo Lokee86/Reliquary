@@ -106,6 +106,8 @@ pub use freshness_due::{
 };
 #[path = "freshness/dream_population_digest.rs"]
 mod dream_population_digest;
+#[path = "freshness/dream_begin_codec.rs"]
+mod dream_begin_codec;
 #[path = "freshness_dream_journal.rs"]
 mod freshness_dream_journal;
 #[path = "freshness_storage.rs"]
