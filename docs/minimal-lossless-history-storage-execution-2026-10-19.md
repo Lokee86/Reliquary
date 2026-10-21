@@ -1439,3 +1439,12 @@ Graph contract210 accepted against `6946ce4` after six-source inventory and conc
 
 
 Graph body codec211 accepted against `b939ff2`: all 11 compact Graph codec tests pass, including five new native tests covering literal bytes, enum matrix, strict framing and reference adaptation. Next212 adds owner admission and concrete REL/PHY routing; current Graph writers remain unchanged.
+
+
+Graph admission212 accepted against `aea161e`: 105 publication and 117 Graph regressions pass, one existing Graph case ignored. New tests cover both owners, per-row origin batches, mapping/clock/shape failure atomicity, version format guard, repeated-link rejection and local exhaustion. Next213 updates concrete historical/current readers; Graph ordinary writing remains on the prior carrier/link shape until218.
+
+
+Graph reader gate213 accepted against `e5ec250`: four historical reader tests and 118 Graph regressions pass, with one existing ignored. Populated every-cut parity includes sparse MemoryGraph positions, ordered and one-member batches, per-row origins, mapping/baseline identity, optional time and lifecycle exclusion. Next214 migrates reconciliation/import intervals and normalized evidence.
+
+
+Graph import gate214 accepted against `bfb20d1`: two native interval tests, 56 reconciliation and 99 Graph regressions pass. Exact order, one-member batch shape, optional times, normalized evidence and duplicate no-op are covered; existing mixed-origin replay rejection stays atomic. Next215 binds native Graph source-history and downstream proof consumers.
