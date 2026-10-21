@@ -8,6 +8,12 @@ Describe the implemented per-mention Entity-resolution state owner, deterministi
 
 ## Overview
 
+Current storage uses exact `CVAERS02` unresolved-evidence deltas behind
+EntityResolutionStore. Public states, revisions, decisions, retry suppression,
+retention and endpoint validation are unchanged. The
+[compact contract](entity-resolution-compact-contract-2026-10-21.md) classifies
+every field and documents source materialization and destination import replay.
+
 Entity resolution is tracked per extracted Memory mention. A Memory may therefore contain any mixture of resolved, unresolved, and rejected Entity mentions.
 
 An Entity is a **continuing identity**, not every uniquely referable occurrence. Admission requires a referent that can reasonably recur across Memories and accumulate state, observations, or relationships over time.\n\nAdmission also distinguishes **immediate semantic identities** from **recurrence-gated implementation identities**. Projects, repositories, tools, services, major subsystems, major domain identities, and clearly architectural components may be promoted on first mention. Fine-grained implementation artifacts—functions/methods, fields, constants, enum members, config keys, input actions, ordinary code types, minor files/directories, individual UI controls/nodes/effects, small helper components, and similar details—normally remain `Pending` with reason `recurrence_required` until another compatible Memory demonstrates that the same identity is actually useful across Memories. Immutable historical occurrences and one-off instances—such as individual commits/revisions, builds, benchmark/test runs, snapshots, requests/responses, transactions, deployment instances, or session instances—remain in Memory/provenance rather than becoming durable Entity nodes by default.

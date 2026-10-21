@@ -338,10 +338,15 @@ fn transform_owners(
         Vec::new()
     };
     let mut dream_pairs = crate::dream_pair_history::DreamPairStore::default();
+    let mut resolutions = crate::entity_resolution_store::EntityResolutionStore::default();
     let mut interaction_streams =
         crate::interaction_stream_store::InteractionStreamStore::default();
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
         if migrate_graph_envelopes {
+            if let Some(change) = crate::entity_resolution_codec::decode_resolution(payload)? {
+                resolutions.persist_change(destination, change)?;
+                return Ok(());
+            }
             if payload.starts_with(b"CVAXIDX1") {
                 return Ok(());
             }

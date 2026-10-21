@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-Status: design and source inventory for the Entity Resolution phase; execution
+Status: implemented current writer and replay for the Entity Resolution phase; execution
 acceptance is recorded separately in the linear plan.
 
 ## Purpose

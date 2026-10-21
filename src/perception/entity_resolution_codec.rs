@@ -6,6 +6,13 @@ use crate::{
 
 const MAGIC: [u8; 8] = *b"CVAERS01";
 
+#[path = "entity_resolution_delta_codec.rs"]
+pub(crate) mod delta;
+#[cfg(test)]
+#[path = "entity_resolution_delta_tests.rs"]
+mod delta_tests;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DecodedEntityResolution {
     pub key: MemoryEntityMentionKey,
     pub revision: u32,
@@ -13,6 +20,17 @@ pub(crate) struct DecodedEntityResolution {
     pub status: Option<MemoryEntityResolutionStatus>,
 }
 
+/// Established full-field comparison identity, never an ordinary storage write.
+pub(crate) fn comparison_carrier(value: &DecodedEntityResolution) -> Result<Vec<u8>, MemoryError> {
+    encode_parts(
+        value.key,
+        value.revision,
+        value.updated_at_ns,
+        value.status.as_ref(),
+    )
+}
+
+#[cfg(test)]
 pub(crate) fn encode_resolution(value: &MemoryEntityResolution) -> Result<Vec<u8>, MemoryError> {
     encode_parts(
         value.key,
@@ -22,6 +40,7 @@ pub(crate) fn encode_resolution(value: &MemoryEntityResolution) -> Result<Vec<u8
     )
 }
 
+#[cfg(test)]
 pub(crate) fn encode_tombstone(
     key: MemoryEntityMentionKey,
     revision: u32,

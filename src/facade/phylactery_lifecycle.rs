@@ -194,6 +194,14 @@ impl Phylactery {
                 }
                 dream_pairs.ingest(payload)?;
                 ego.ingest(payload)?;
+                if required_version.is_some_and(|version| version.major == 1)
+                    && crate::entity_resolution_codec::delta::is_current(payload)
+                {
+                    return Err(crate::MemoryError::CorruptRecord(
+                        "compact Entity resolution in V1 input",
+                    )
+                    .into());
+                }
                 entity_resolutions.ingest(payload)?;
                 Ok::<(), PhylacteryError>(())
             },

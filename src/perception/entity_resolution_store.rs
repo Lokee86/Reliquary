@@ -7,7 +7,7 @@ mod write;
 
 use index::{deindex_pending, index_pending};
 
-use crate::entity_resolution_codec::{decode_resolution, encode_resolution, encode_tombstone};
+use crate::entity_resolution_codec::{DecodedEntityResolution, decode_resolution, delta};
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
@@ -25,10 +25,58 @@ pub(crate) struct EntityResolutionStore {
 }
 
 impl EntityResolutionStore {
+    pub(crate) fn materialized_changes(
+        container: &mut Container,
+    ) -> Result<std::collections::BTreeMap<crate::ObjectRef, DecodedEntityResolution>, MemoryError>
+    {
+        let mut projection = Self::default();
+        let mut changes = std::collections::BTreeMap::new();
+        container.visit_payloads::<MemoryError>(|object, payload| {
+            if let Some(change) = projection.decode(payload)? {
+                projection.apply(change.clone())?;
+                changes.insert(object, change);
+            }
+            Ok(())
+        })?;
+        Ok(changes)
+    }
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
-        let Some(decoded) = decode_resolution(payload)? else {
+        let Some(decoded) = self.decode(payload)? else {
             return Ok(());
         };
+        self.apply(decoded)
+    }
+
+    pub(crate) fn decode(
+        &self,
+        payload: &[u8],
+    ) -> Result<Option<DecodedEntityResolution>, MemoryError> {
+        if let Some(decoded) = decode_resolution(payload)? {
+            return Ok(Some(decoded));
+        }
+        delta::decode(payload, |key| self.current.get(&key).map(|v| &v.status))
+    }
+
+    pub(crate) fn persist_change(
+        &mut self,
+        container: &mut Container,
+        decoded: DecodedEntityResolution,
+    ) -> Result<(), MemoryError> {
+        container.require_storage_format_writable()?;
+        let bytes = delta::encode(&decoded, self.current.get(&decoded.key).map(|v| &v.status))?;
+        self.validate_change(&decoded)?;
+        container.append(&bytes)?;
+        self.apply_validated(decoded);
+        Ok(())
+    }
+
+    fn apply(&mut self, decoded: DecodedEntityResolution) -> Result<(), MemoryError> {
+        self.validate_change(&decoded)?;
+        self.apply_validated(decoded);
+        Ok(())
+    }
+
+    fn validate_change(&self, decoded: &DecodedEntityResolution) -> Result<(), MemoryError> {
         let expected = self
             .revisions
             .get(&decoded.key)
@@ -41,6 +89,13 @@ impl EntityResolutionStore {
                 "Entity resolution revision sequence",
             ));
         }
+        if let Some(status) = &decoded.status {
+            validate_status(status)?;
+        }
+        Ok(())
+    }
+
+    fn apply_validated(&mut self, decoded: DecodedEntityResolution) {
         match decoded.status {
             Some(status) => {
                 let value = MemoryEntityResolution {
@@ -49,7 +104,6 @@ impl EntityResolutionStore {
                     updated_at_ns: decoded.updated_at_ns,
                     status,
                 };
-                validate_status(&value.status)?;
                 if let Some(previous) = self.current.get(&value.key) {
                     deindex_pending(&mut self.pending_by_entity, value.key, &previous.status);
                 }
@@ -66,7 +120,6 @@ impl EntityResolutionStore {
                 self.maintenance.remove(&decoded.key);
             }
         }
-        Ok(())
     }
 
     pub(crate) fn validate(
@@ -141,20 +194,15 @@ impl EntityResolutionStore {
             .unwrap_or(0)
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
-        let value = MemoryEntityResolution {
-            key,
-            revision,
-            updated_at_ns,
-            status,
-        };
-        container.append(&encode_resolution(&value)?)?;
-        if let Some(previous) = self.current.get(&key) {
-            deindex_pending(&mut self.pending_by_entity, key, &previous.status);
-        }
-        self.revisions.insert(key, revision);
-        self.track_maintenance(key, &value.status);
-        index_pending(&mut self.pending_by_entity, key, &value.status);
-        self.current.insert(key, value);
+        self.persist_change(
+            container,
+            DecodedEntityResolution {
+                key,
+                revision,
+                updated_at_ns,
+                status: Some(status),
+            },
+        )?;
         Ok(true)
     }
 
@@ -172,12 +220,15 @@ impl EntityResolutionStore {
             .revision
             .checked_add(1)
             .ok_or(MemoryError::VersionExhausted)?;
-        let previous_status = current.status.clone();
-        container.append(&encode_tombstone(key, revision, now_ns)?)?;
-        deindex_pending(&mut self.pending_by_entity, key, &previous_status);
-        self.current.remove(&key);
-        self.revisions.remove(&key);
-        self.maintenance.remove(&key);
+        self.persist_change(
+            container,
+            DecodedEntityResolution {
+                key,
+                revision,
+                updated_at_ns: now_ns,
+                status: None,
+            },
+        )?;
         Ok(true)
     }
 
@@ -200,11 +251,15 @@ impl EntityResolutionStore {
             };
         }
         value.revision = 1;
-        container.append(&encode_resolution(&value)?)?;
-        self.revisions.insert(value.key, 1);
-        self.track_maintenance(value.key, &value.status);
-        index_pending(&mut self.pending_by_entity, value.key, &value.status);
-        self.current.insert(value.key, value);
+        self.persist_change(
+            container,
+            DecodedEntityResolution {
+                key: value.key,
+                revision: 1,
+                updated_at_ns: value.updated_at_ns,
+                status: Some(value.status),
+            },
+        )?;
         Ok(())
     }
 

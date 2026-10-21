@@ -17,6 +17,9 @@ mod graph_envelope_tests;
 #[cfg(test)]
 #[path = "reconciliation_memory_envelope_tests.rs"]
 mod memory_envelope_tests;
+#[cfg(test)]
+#[path = "reconciliation_resolution_delta_tests.rs"]
+mod resolution_delta_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
 use crate::cva_reconcile::{CvaComparison, CvaReconcileResult};
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
@@ -113,6 +116,10 @@ pub(crate) fn reconcile_import_epochs(
 }
 
 fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaReconcileError> {
+    let resolution_changes =
+        crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
+            &mut cva.container,
+        )?;
     let mut positions = BTreeMap::new();
     let mut starts = BTreeMap::new();
     let chunks = cva.container.chunks()?;
@@ -217,8 +224,10 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                         .map_err(crate::CvaError::from)?,
                 );
             }
-            if crate::entity_resolution_codec::decode_resolution(&payload)?.is_some()
-                || crate::memory_routing_codec::decode(&payload)?.is_some()
+            if let Some(change) = resolution_changes.get(&chunk) {
+                owner_evidence.push(crate::entity_resolution_codec::comparison_carrier(change)?);
+            }
+            if crate::memory_routing_codec::decode(&payload)?.is_some()
                 || payload.starts_with(b"CVAPEP01")
             {
                 owner_evidence.push(payload.clone());
@@ -379,6 +388,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::relationship_codec::decode_tombstone(&payload)?.is_some()
             || crate::relationship_compact_codec::publication::coordinates(&payload)?.is_some()
             || crate::entity_resolution_codec::decode_resolution(&payload)?.is_some()
+            || crate::entity_resolution_codec::delta::is_current(&payload)
             || crate::graph_codec::decode_node(&payload)?.is_some()
             || crate::graph_compact_codec::publication::version_at(chunk, &payload)?.is_some()
             || crate::graph_codec::decode_mutation(&payload)?.is_some()

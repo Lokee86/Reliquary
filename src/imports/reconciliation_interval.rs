@@ -5,6 +5,8 @@ use std::collections::BTreeMap;
 
 #[derive(Default)]
 pub(super) struct Coordinates {
+    resolutions:
+        BTreeMap<crate::ObjectRef, crate::entity_resolution_codec::DecodedEntityResolution>,
     pub memory_revisions: usize,
     pub duplicate_memory_revisions: usize,
     pub entity_revisions: usize,
@@ -22,6 +24,10 @@ pub(super) struct Coordinates {
 impl Coordinates {
     pub(super) fn shared(source: &mut Cva, end: usize) -> Result<Self, CvaReconcileError> {
         let mut result = Self::default();
+        result.resolutions =
+            crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
+                &mut source.container,
+            )?;
         result.graph.insert(0, 0);
         result.memory_graph.insert(0, 0);
         for chunk in source.container.chunks()?.into_iter().take(end) {
@@ -325,11 +331,30 @@ pub(super) fn replay_frame(
             }
         }
     }
-    if crate::entity_resolution_codec::decode_resolution(payload)?.is_some() {
-        let mut staged = output.entity_resolutions.clone();
-        staged.ingest(payload)?;
-        output.container.append(payload)?;
-        output.entity_resolutions = staged;
+    if crate::entity_resolution_codec::decode_resolution(payload)?.is_some()
+        || crate::entity_resolution_codec::delta::is_current(payload)
+    {
+        let object = *source
+            .container
+            .chunks()?
+            .get(index)
+            .ok_or_else(|| unsupported("resolution source frame unavailable"))?;
+        // Tests/direct callers may construct empty Coordinates; resolve against
+        // the actual source prefix, never the destination's inherited evidence.
+        if !coordinates.resolutions.contains_key(&object) {
+            coordinates.resolutions =
+                crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
+                    &mut source.container,
+                )?;
+        }
+        let change = coordinates
+            .resolutions
+            .get(&object)
+            .cloned()
+            .ok_or_else(|| unsupported("resolution source postimage unavailable"))?;
+        output
+            .entity_resolutions
+            .persist_change(&mut output.container, change)?;
     }
     Ok(0)
 }

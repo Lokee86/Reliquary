@@ -134,6 +134,18 @@ P5-B changes no schema or persisted journal framing. Dispatch switches/wake stat
 
 ## Overview
 
+Current Entity Resolution history uses `CVAERS02`: stable mention key, literal
+revision/update time and decision tag, followed by exact changed fields for
+Pending/Dormant evidence. First unresolved states carry all applicable fields;
+later omissions inherit only from the same key's previous unresolved state.
+Candidate IDs, fingerprints, reason, timestamps and counts remain authoritative
+retry/maintenance facts. Tombstones retain revision-reset semantics. Owner
+validation happens before persistence or projection mutation. Import comparison
+materializes source postimages, and interval replay re-encodes against destination
+state. Temporary V1 conversion retains every postimage; current carriers reject
+in explicit V1 inspection. See the
+[resolution contract](entity-resolution-compact-contract-2026-10-21.md).
+
 Current REL interaction-stream checkpoints use `CVAISTR2` Begin metadata,
 exact UTF-8 Append suffixes with prior byte lengths, and Interrupted markers
 with current byte lengths. Replay materializes the unchanged public checkpoint

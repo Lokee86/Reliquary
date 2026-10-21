@@ -309,14 +309,20 @@ fn v1_open_preserves_retired_entity_resolution_revision_and_reference() {
         memory_id,
         "Retired Server",
     );
-    rel.put_entity_resolved(
+    // This fixture explicitly inspects V1 stale references. Build the genuine
+    // old resolution carrier; ordinary writers now emit current deltas.
+    let initial = crate::MemoryEntityResolution {
         key,
-        0,
-        retired.id,
-        crate::EntityResolutionReason::ContextMatch,
-        20,
-    )
-    .unwrap();
+        revision: 1,
+        updated_at_ns: 20,
+        status: crate::MemoryEntityResolutionStatus::Resolved {
+            entity_id: retired.id,
+            reason: crate::EntityResolutionReason::ContextMatch,
+        },
+    };
+    let payload = crate::entity_resolution_codec::encode_resolution(&initial).unwrap();
+    rel.container.append(&payload).unwrap();
+    rel.entity_resolutions.ingest(&payload).unwrap();
     // Construct the legacy retirement and its canonical resolution explicitly:
     // ordinary merge also writes a current-format survivor metadata revision.
     let terminal = crate::entity_codec::EntityTombstone {

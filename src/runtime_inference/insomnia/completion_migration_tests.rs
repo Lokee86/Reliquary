@@ -436,11 +436,22 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     let mut legacy_begins = BTreeMap::new();
     let mut legacy_pairs = BTreeMap::new();
     let mut legacy_streams = BTreeMap::new();
+    let mut legacy_resolutions = BTreeMap::new();
+    let mut resolutions = crate::entity_resolution_store::EntityResolutionStore::default();
     let mut legacy_external_indices = BTreeMap::new();
     let mut streams = crate::interaction_stream_store::InteractionStreamStore::default();
     let mut pair_mappings = std::collections::HashSet::new();
     for object in cva.container.chunks().unwrap() {
         let payload = cva.container.read(object).unwrap();
+        if let Some(change) = resolutions.decode(&payload).unwrap() {
+            if crate::entity_resolution_codec::delta::is_current(&payload) {
+                legacy_resolutions.insert(
+                    object,
+                    crate::entity_resolution_codec::comparison_carrier(&change).unwrap(),
+                );
+            }
+            resolutions.ingest(&payload).unwrap();
+        }
         if payload.starts_with(crate::external_source::compact_index::MAGIC) {
             let legacy = match crate::external_source::compact_index::decode(&payload).unwrap() {
                 crate::external_source::compact_index::Record::Snapshot(state) => {
@@ -498,7 +509,9 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
             if pair_mappings.contains(&object) {
                 return Ok(());
             }
-            let transformed = if let Some(index) = legacy_external_indices.get(&object) {
+            let transformed = if let Some(resolution) = legacy_resolutions.get(&object) {
+                resolution.clone()
+            } else if let Some(index) = legacy_external_indices.get(&object) {
                 index.clone()
             } else if let Some(stream) = legacy_streams.get(&object) {
                 stream.clone()
@@ -566,6 +579,65 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
                             record,
                         },
                     )
+                    .to_vec()
+                } else if let Some(entity_publication) =
+                    crate::entity_compact_codec::publication::decode(
+                        envelope.body,
+                        envelope.global_version,
+                    )
+                    .unwrap()
+                {
+                    use crate::entity_compact_codec::publication::EntityPublication;
+                    let (local, carrier) = match entity_publication {
+                        EntityPublication::Creation(creation) => (
+                            creation.record.entity_version,
+                            crate::entity_codec::encode_record(&creation.record).unwrap(),
+                        ),
+                        EntityPublication::Delta(delta) => {
+                            let record = cva
+                                .entities
+                                .records()
+                                .iter()
+                                .find(|record| record.entity_version == delta.entity_version)
+                                .unwrap()
+                                .clone();
+                            (
+                                record.entity_version,
+                                crate::entity_codec::encode_record(&record).unwrap(),
+                            )
+                        }
+                        EntityPublication::DirectTombstone {
+                            id,
+                            revision,
+                            entity_version,
+                        } => (
+                            entity_version,
+                            crate::entity_codec::encode_direct_tombstone(
+                                crate::entity_codec::DirectEntityTombstone { id, revision },
+                            ),
+                        ),
+                        EntityPublication::MergeTombstone {
+                            id,
+                            revision,
+                            replacement_id,
+                            entity_version,
+                        } => (
+                            entity_version,
+                            crate::entity_codec::encode_tombstone(
+                                crate::entity_codec::EntityTombstone {
+                                    id,
+                                    revision,
+                                    replacement_id,
+                                },
+                            ),
+                        ),
+                    };
+                    let record = copied.append(&carrier)?;
+                    crate::entity_codec::encode_version(crate::entity_codec::EntityVersion {
+                        global_version: envelope.global_version,
+                        entity_version: local,
+                        record,
+                    })
                     .to_vec()
                 } else if let Some(graph_publication) =
                     crate::graph_compact_codec::publication::decode(

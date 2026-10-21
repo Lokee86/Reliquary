@@ -217,6 +217,15 @@ The internal reconnect operation reads a fresh authorized snapshot and replaces 
 
 ## P4 exact conversation streams
 
+EntityResolutionStore persists `CVAERS02` literal decisions and exact deltas for
+unchanged unresolved evidence. Candidate/fingerprint/timing/count fields remain
+accepted authority, inherited only from the preceding state of the same mention.
+The owner validates before append and rebuilds its existing reverse/maintenance
+indexes. Completed-import comparison materializes source history before hashing;
+ordered destination replay re-encodes those postimages against destination state.
+No semantic clock or shared delta framework is introduced. The temporary V1
+converter preserves all accepted changes, including revision resets.
+
 ExternalIndexStore persists disposable `CVAXIDX2` current snapshots and explicit
 derived discard barriers. The compact binary representation removes repeated
 namespace/message references and reconstructs contiguous chunk starts. Snapshot

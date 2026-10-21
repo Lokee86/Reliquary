@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-21",
+  "claim": "recorded graph/algorithm/policy coordinates uniquely recover accepted membership",
+  "result": "false",
+  "synthetic": {
+    "owner": "same owner UUID copied before snapshot",
+    "memory_nodes": 3,
+    "topical_edges": 2,
+    "graph_cut": 1,
+    "generation": 1,
+    "algorithm_version": 2,
+    "seed": 5495879477844901889,
+    "resolution": 1.0,
+    "quality": 0.0,
+    "accepted_reopened_partition_sizes": [[3], [1, 1, 1]],
+    "exact_memberships_differ": true
+  },
+  "decision": "retain CVACOMM1 membership and CVACNAM1 name/evidence history",
+  "raw_size_measurement": "not applicable: no compaction strategy accepted",
+  "scope": "independent public owner replay counterexample; canonical sources not modified"
+}

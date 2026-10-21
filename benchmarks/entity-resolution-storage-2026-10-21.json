@@ -1,0 +1,10 @@
+{
+  "date": "2026-10-21",
+  "workload": "one mention, two candidates, 64 pending attempts; context fingerprint, last-attempt time and count change each attempt",
+  "verification": "entity_resolution_codec::delta_tests::entity_resolution_delta_raw_repeated_attempts_measure_all_fields_and_frames",
+  "legacy": {"frames": 64, "payload_bytes": 13440, "framed_bytes": 13952},
+  "current": {"frames": 64, "payload_bytes": 6826, "framed_bytes": 7338},
+  "initial_pending": {"legacy_payload_bytes": 210, "current_payload_bytes": 211},
+  "subsequent_attempt": {"legacy_payload_bytes": 210, "current_payload_bytes": 105},
+  "scope": "synthetic raw resolution-family bytes including all evidence/masks and eight-byte framing; no compression, corpus or universal saving claim"
+}

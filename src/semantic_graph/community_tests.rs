@@ -248,3 +248,58 @@ fn v1_snapshot_reopens_and_explicit_refresh_upgrades_to_v2() {
     assert_eq!(upgraded.generation, 2);
     assert!(reopened.community_stats().current);
 }
+
+#[test]
+fn recorded_coordinates_do_not_uniquely_reconstruct_accepted_membership() {
+    let file = path("reconstruction-counterexample.phy");
+    let mut phy = Phylactery::create(&file).unwrap();
+    let ids = vec![
+        phy_memory(&mut phy, "a"),
+        phy_memory(&mut phy, "b"),
+        phy_memory(&mut phy, "c"),
+    ];
+    phy.set_memory_relations(&[edge(ids[0], ids[1]), edge(ids[1], ids[2])], 0)
+        .unwrap();
+    let owner = phy.owner_uuid().unwrap();
+    let cut = phy.memory_graph_version();
+    phy.sync().unwrap();
+    drop(phy);
+    let make = |mut members: Vec<crate::MemoryId>| {
+        members.sort();
+        crate::Community {
+            id: crate::community_store::community_id(owner, &members),
+            members,
+        }
+    };
+    let grouped = vec![make(ids.clone())];
+    let mut split = ids.into_iter().map(|id| make(vec![id])).collect::<Vec<_>>();
+    split.sort_by_key(|c| c.id);
+    let mut accepted = Vec::new();
+    for (name, communities) in [("grouped", grouped), ("split", split)] {
+        let copy = file.with_extension(format!("{name}.phy"));
+        fs::copy(&file, &copy).unwrap();
+        let snapshot = crate::CommunitySnapshot {
+            generation: 1,
+            derived_graph_version: cut,
+            algorithm_version: COMMUNITY_ALGORITHM_VERSION,
+            seed: crate::COMMUNITY_LEIDEN_SEED,
+            resolution: 1.0,
+            quality: 0.0,
+            communities,
+        };
+        let mut container = crate::Container::open(&copy).unwrap();
+        container
+            .append(&encode_snapshot(&snapshot).unwrap())
+            .unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let reopened = Phylactery::open(&copy).unwrap();
+        assert_eq!(reopened.community_snapshot(), Some(snapshot.clone()));
+        accepted.push(snapshot);
+    }
+    assert_eq!(
+        accepted[0].derived_graph_version,
+        accepted[1].derived_graph_version
+    );
+    assert_ne!(accepted[0].communities, accepted[1].communities);
+}
