@@ -1506,3 +1506,6 @@ Current Begin encoder233 accepted against `17844a3`: four tests pass, with indep
 
 
 Strict decoder234 accepted against `f810554`: nine codec tests pass, covering independent fixtures, all truncated prefixes, invalid framing and bounded count/length rejection. Progress234/357; physical replay/materialization235 is active.
+
+
+Replay235 accepted against `d43d460`: ten focused cases and2,052 broad units pass, five existing ignored and three previously verified exhaustive sweeps filtered. Current Begins materialize from the physical pre-frame prefix into the existing RAM API, while legacy-only replay and EOF Freshness pending-intent recovery keep their semantics. Docs structural/impact checks pass. Progress235/357; root/eligibility236 is active.
