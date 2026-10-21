@@ -69,6 +69,22 @@ matching identity or revision fields is not a substitute for accepted
 birth/cohort evidence. The reconstructed Dream population remains a separate
 historical selection; it does not change the identity-prefix rules above.
 
+## Canonical population digest commitment
+
+The private Dream population codec commits to a materialized set with
+SHA-256 over the ASCII bytes `reliquary:dream-population:v1` and one NUL byte, followed by
+the set cardinality as an unsigned 64-bit little-endian integer, followed by
+the members' raw 32-byte Memory IDs in ascending byte order. The sorted set
+representation gives each population one canonical byte sequence; duplicate
+inputs have set semantics. Empty populations use the same domain and an
+encoded zero count.
+
+The digest covers membership only. Owner, source, Memory cut, and physical
+Begin position remain separate authority fields and are not inputs to this
+hash. The digest does not select, rank, or validate Memories. This is the
+private codec commitment; implementing it does not itself add a wire writer or
+replace an explicit population set as the authority.
+
 ## Accepted birth and cohort visibility
 
 A Begin binds the physical prefix strictly before its own frame. Its Memory
