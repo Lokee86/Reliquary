@@ -1,4 +1,7 @@
-use crate::graph_codec::{GraphVersionPayload, decode_version, encode_version};
+use crate::graph_codec::{GraphVersionPayload, encode_version};
+use crate::graph_compact_codec::publication::{
+    self as graph_publication_codec, GraphPublication, GraphTransaction,
+};
 use crate::graph_compact_codec::{encode_batch, encode_mutation};
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::graph_store::GraphStore;
@@ -40,6 +43,7 @@ fn append_compact_history(
     container: &mut Container,
     graph_version: u64,
     unmarked: &mut Vec<u8>,
+    native: bool,
 ) -> BTreeMap<u64, Vec<u8>> {
     *unmarked = encode_mutation(GraphOrdinalMutation {
         source: u32::MAX,
@@ -64,6 +68,7 @@ fn append_compact_history(
         graph_version + 1,
         710_001,
         &mut carriers,
+        native,
     );
     let batch = encode_batch(&[
         GraphOrdinalMutation {
@@ -82,7 +87,14 @@ fn append_compact_history(
         },
     ])
     .unwrap();
-    append_graph_publication(container, &batch, graph_version + 2, 710_002, &mut carriers);
+    append_graph_publication(
+        container,
+        &batch,
+        graph_version + 2,
+        710_002,
+        &mut carriers,
+        native,
+    );
     carriers
 }
 
@@ -92,7 +104,27 @@ fn append_graph_publication(
     graph_version: u64,
     time: i64,
     carriers: &mut BTreeMap<u64, Vec<u8>>,
+    native: bool,
 ) {
+    if native {
+        let mutations = crate::graph_compact_codec::decode(carrier)
+            .unwrap()
+            .unwrap();
+        let transaction = if mutations.len() == 1 {
+            GraphTransaction::Single(mutations[0])
+        } else {
+            GraphTransaction::Batch(mutations)
+        };
+        let body = graph_publication_codec::encode(&GraphPublication {
+            graph_version,
+            transaction,
+        })
+        .unwrap();
+        container.set_next_transaction_time_override(Some(time));
+        container.append_publication_envelope(&body).unwrap();
+        carriers.insert(graph_version, body);
+        return;
+    }
     let mutation = container.append(carrier).unwrap();
     let global_version = container
         .allocate_version_with_transaction_time(Some(time))
@@ -114,7 +146,7 @@ fn graph_refs(container: &mut Container) -> BTreeMap<u64, crate::ObjectRef> {
         .into_iter()
         .filter_map(|object| {
             let payload = container.read(object).unwrap();
-            decode_version(&payload)
+            graph_publication_codec::version_at(object, &payload)
                 .unwrap()
                 .map(|version| (version.graph_version, version.mutation))
         })
@@ -195,7 +227,7 @@ fn accepted_graph_cuts(
     let mut cuts = vec![(states.clone(), memory_graph_version)];
     for object in container.chunks().unwrap() {
         let payload = container.read(object).unwrap();
-        let Some(version) = decode_version(&payload).unwrap() else {
+        let Some(version) = graph_publication_codec::version_at(object, &payload).unwrap() else {
             continue;
         };
         let bytes = container.read(version.mutation).unwrap();
@@ -220,7 +252,7 @@ fn accepted_graph_cuts(
     cuts
 }
 
-fn append_rel_history(path: &Path) -> (Vec<u8>, BTreeMap<u64, Vec<u8>>) {
+fn append_rel_history(path: &Path, native: bool) -> (Vec<u8>, BTreeMap<u64, Vec<u8>>) {
     let mut rel = Cva::create_project(path).unwrap();
     let ids = [
         crate::cva_reconcile_graph_test_support::publish_memory(&mut rel, "reclaim-a"),
@@ -237,13 +269,13 @@ fn append_rel_history(path: &Path) -> (Vec<u8>, BTreeMap<u64, Vec<u8>>) {
     .unwrap();
     let mut orphan = Vec::new();
     let graph_version = rel.graph_version();
-    let carriers = append_compact_history(&mut rel.container, graph_version, &mut orphan);
+    let carriers = append_compact_history(&mut rel.container, graph_version, &mut orphan, native);
     rel.sync().unwrap();
     drop(rel);
     (orphan, carriers)
 }
 
-fn append_phy_history(path: &Path) -> (Vec<u8>, BTreeMap<u64, Vec<u8>>) {
+fn append_phy_history(path: &Path, native: bool) -> (Vec<u8>, BTreeMap<u64, Vec<u8>>) {
     let mut phy = Phylactery::create(path).unwrap();
     let (first, _) = phy.publish_memory(None, 0, memory_draft("phy-a")).unwrap();
     let (second, _) = phy.publish_memory(None, 0, memory_draft("phy-b")).unwrap();
@@ -258,7 +290,7 @@ fn append_phy_history(path: &Path) -> (Vec<u8>, BTreeMap<u64, Vec<u8>>) {
     .unwrap();
     let mut orphan = Vec::new();
     let graph_version = phy.graph_version();
-    let carriers = append_compact_history(&mut phy.container, graph_version, &mut orphan);
+    let carriers = append_compact_history(&mut phy.container, graph_version, &mut orphan, native);
     phy.sync().unwrap();
     drop(phy);
     (orphan, carriers)
@@ -411,12 +443,18 @@ fn assert_compact_carriers_and_relocated_markers(
             old_ref, new_ref,
             "published carrier should relocate after orphan removal"
         );
-        assert_eq!(output.read(new_ref).unwrap(), *expected_payload);
-        assert!(
-            output_payloads
-                .iter()
-                .any(|payload| payload == expected_payload)
-        );
+        let stored = output.read(new_ref).unwrap();
+        let body = crate::container::publication_envelope::decode(&stored)
+            .unwrap()
+            .map(|envelope| envelope.body)
+            .unwrap_or(&stored);
+        assert_eq!(body, expected_payload.as_slice());
+        assert!(output_payloads.iter().any(|payload| {
+            payload == expected_payload
+                || crate::container::publication_envelope::decode(payload)
+                    .unwrap()
+                    .is_some_and(|envelope| envelope.body == expected_payload)
+        }));
     }
 }
 
@@ -425,7 +463,7 @@ fn rel_compact_graph_reclamation_preserves_all_cuts_and_relocates_only_published
     let scratch = Scratch::new();
     let source = scratch.file("source.rel");
     let output = scratch.file("reclaimed.rel");
-    let (orphan, compact) = append_rel_history(&source);
+    let (orphan, compact) = append_rel_history(&source, false);
     assert_reclaimed_graph(&source, &output, &orphan, &compact, true);
 }
 
@@ -434,15 +472,69 @@ fn phy_compact_graph_reclamation_preserves_all_cuts_and_relocates_only_published
     let scratch = Scratch::new();
     let source = scratch.file("source.phy");
     let output = scratch.file("reclaimed.phy");
-    let (orphan, compact) = append_phy_history(&source);
+    let (orphan, compact) = append_phy_history(&source, false);
     assert_reclaimed_graph(&source, &output, &orphan, &compact, false);
 }
 
 #[test]
+fn native_graph_reclamation_preserves_ordered_single_and_batch_cuts_and_source_bytes() {
+    for rel in [true, false] {
+        let scratch = Scratch::new();
+        let source = scratch.file(if rel {
+            "native-source.rel"
+        } else {
+            "native-source.phy"
+        });
+        let output = scratch.file(if rel {
+            "native-reclaimed.rel"
+        } else {
+            "native-reclaimed.phy"
+        });
+        let (orphan, publications) = if rel {
+            append_rel_history(&source, true)
+        } else {
+            append_phy_history(&source, true)
+        };
+        assert_eq!(publications.len(), 2);
+        let batch_payload = publications.values().nth(1).unwrap();
+        let batch = graph_publication_codec::decode(batch_payload, 2)
+            .unwrap()
+            .unwrap();
+        let GraphTransaction::Batch(batch) = batch.transaction else {
+            panic!("native second publication should preserve its batch shape");
+        };
+        assert_eq!(batch.len(), 2);
+        assert_eq!(
+            batch[0].kind,
+            SemanticGraphRelationKind::Memory(GraphRelationKind::Causal)
+        );
+        assert_eq!(
+            batch[1].kind,
+            SemanticGraphRelationKind::Memory(GraphRelationKind::Topical)
+        );
+        assert_reclaimed_graph(&source, &output, &orphan, &publications, rel);
+    }
+}
+
+#[test]
 fn phy_semantic_migration_resolves_compact_ordinals_to_source_ids_and_clocks() {
+    for native in [false, true] {
+        run_phy_semantic_migration(native);
+    }
+}
+
+fn run_phy_semantic_migration(native: bool) {
     let scratch = Scratch::new();
-    let source_path = scratch.file("legacy-source.phy");
-    let output_path = scratch.file("migrated.phy");
+    let source_path = scratch.file(if native {
+        "native-source.phy"
+    } else {
+        "legacy-source.phy"
+    });
+    let output_path = scratch.file(if native {
+        "native-migrated.phy"
+    } else {
+        "migrated.phy"
+    });
     let mut source = Phylactery::create_legacy_typed(&source_path).unwrap();
     let (first, _) = source
         .publish_memory(None, 0, memory_draft("migration-a"))
@@ -462,7 +554,7 @@ fn phy_semantic_migration_resolves_compact_ordinals_to_source_ids_and_clocks() {
         .unwrap();
     let mut orphan = Vec::new();
     let graph_version = source.graph_version();
-    append_compact_history(&mut source.container, graph_version, &mut orphan);
+    append_compact_history(&mut source.container, graph_version, &mut orphan, native);
     source.sync().unwrap();
     drop(source);
 
@@ -499,14 +591,202 @@ fn phy_semantic_migration_resolves_compact_ordinals_to_source_ids_and_clocks() {
 
 #[test]
 fn compact_graph_cuts_survive_native_rel_principal_and_attachment_repacks() {
+    for native in [false, true] {
+        run_graph_repack_history(native);
+    }
+}
+
+#[test]
+fn native_graph_fresh_rewrite_keeps_baseline_relations_and_accepts_followup_writes() {
+    use crate::rewrite::{RewriteRequest, rewrite_file};
+    for rel_owner in [true, false] {
+        let scratch = Scratch::new();
+        let source = scratch.file(if rel_owner {
+            "rewrite-native.rel"
+        } else {
+            "rewrite-native.phy"
+        });
+        let output = scratch.file(if rel_owner {
+            "rewritten-native.rel"
+        } else {
+            "rewritten-native.phy"
+        });
+        let ids = if rel_owner {
+            let mut owner = Cva::create_project(&source).unwrap();
+            let ids = ["rewrite-native-a", "rewrite-native-b", "rewrite-native-c"].map(|name| {
+                crate::cva_reconcile_graph_test_support::publish_memory(&mut owner, name)
+            });
+            append_native_graph_facts(&mut owner.container, &owner.graph, ids, 90_001);
+            owner.sync().unwrap();
+            ids
+        } else {
+            let mut owner = Phylactery::create(&source).unwrap();
+            let ids = ["rewrite-native-a", "rewrite-native-b", "rewrite-native-c"].map(|name| {
+                owner
+                    .publish_memory(None, 0, memory_draft(name))
+                    .unwrap()
+                    .0
+                    .id
+            });
+            append_native_graph_facts(&mut owner.container, &owner.graph, ids, 90_001);
+            owner.sync().unwrap();
+            ids
+        };
+        rewrite_file(&source, &output, &RewriteRequest::default()).unwrap();
+        if rel_owner {
+            let mut rewritten = Cva::open(&output).unwrap();
+            assert_eq!(rewritten.graph_version(), 1);
+            assert_eq!(
+                rewritten
+                    .graph
+                    .rewrite_baseline_memories()
+                    .unwrap()
+                    .iter()
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>(),
+                ids.into_iter().collect()
+            );
+            assert_eq!(rewritten.semantic_graph_relations().len(), 3);
+            assert!(
+                GraphHistory::read(&rewritten.container, &rewritten.graph)
+                    .unwrap()
+                    .at(0, false)
+                    .unwrap()
+                    .states
+                    .is_empty()
+            );
+            assert_eq!(
+                rewritten
+                    .semantic_graph_relations()
+                    .iter()
+                    .filter(|r| r.active)
+                    .count(),
+                3
+            );
+            rewritten
+                .set_memory_relation_with_origin(
+                    ids[0],
+                    ids[2],
+                    GraphRelationKind::References,
+                    true,
+                    GraphRelationOrigin::User,
+                    rewritten.graph_version(),
+                )
+                .unwrap();
+            assert_eq!(rewritten.graph_version(), 2);
+        } else {
+            let mut rewritten = Phylactery::open(&output).unwrap();
+            assert_eq!(rewritten.graph_version(), 1);
+            assert_eq!(
+                rewritten
+                    .graph
+                    .rewrite_baseline_memories()
+                    .unwrap()
+                    .iter()
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>(),
+                ids.into_iter().collect()
+            );
+            assert_eq!(rewritten.semantic_graph_relations().len(), 3);
+            assert!(
+                GraphHistory::read(&rewritten.container, &rewritten.graph)
+                    .unwrap()
+                    .at(0, false)
+                    .unwrap()
+                    .states
+                    .is_empty()
+            );
+            assert_eq!(
+                rewritten
+                    .semantic_graph_relations()
+                    .iter()
+                    .filter(|r| r.active)
+                    .count(),
+                3
+            );
+            rewritten
+                .set_memory_relation_with_origin(
+                    ids[0],
+                    ids[2],
+                    GraphRelationKind::References,
+                    true,
+                    GraphRelationOrigin::User,
+                    rewritten.graph_version(),
+                )
+                .unwrap();
+            assert_eq!(rewritten.graph_version(), 2);
+        }
+    }
+}
+
+fn append_native_graph_facts(
+    container: &mut Container,
+    graph: &GraphStore,
+    ids: [crate::MemoryId; 3],
+    time: i64,
+) {
+    assert_eq!(graph.stats().nodes, 0);
+    for (ordinal, id) in ids.iter().enumerate() {
+        container
+            .append(&crate::graph_codec::encode_node(
+                crate::graph_codec::GraphNodePayload {
+                    semantic_node: crate::SemanticNodeRef::memory(*id),
+                    node_id: arcana::NodeId(ordinal as u32),
+                },
+            ))
+            .unwrap();
+    }
+    let ordinal = |id| ids.iter().position(|candidate| *candidate == id).unwrap() as u32;
+    let single = encode_mutation(GraphOrdinalMutation {
+        source: ordinal(ids[0]),
+        target: ordinal(ids[1]),
+        kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
+        active: true,
+        origin: GraphRelationOrigin::User,
+    });
+    let batch = encode_batch(&[
+        GraphOrdinalMutation {
+            source: ordinal(ids[1]),
+            target: ordinal(ids[2]),
+            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Causal),
+            active: true,
+            origin: GraphRelationOrigin::User,
+        },
+        GraphOrdinalMutation {
+            source: ordinal(ids[2]),
+            target: ordinal(ids[0]),
+            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Topical),
+            active: true,
+            origin: GraphRelationOrigin::User,
+        },
+    ])
+    .unwrap();
+    let version = graph.graph_version();
+    let mut carriers = BTreeMap::new();
+    append_graph_publication(container, &single, version + 1, time, &mut carriers, true);
+    append_graph_publication(
+        container,
+        &batch,
+        version + 2,
+        time + 1,
+        &mut carriers,
+        true,
+    );
+}
+
+fn run_graph_repack_history(native: bool) {
     use crate::{
         IncomingAttachment, IncomingTurn, ProjectFileRef, ProjectRepositoryKind,
         ProjectRepositoryRef, ProjectRevisionRef,
     };
     use sha2::{Digest, Sha256};
     let scratch = Scratch::new();
-    let source = scratch.file("native-source.rel");
-    append_rel_history(&source);
+    let source = scratch.file(if native {
+        "native-source.rel"
+    } else {
+        "legacy-source.rel"
+    });
+    append_rel_history(&source, native);
     let mut rel = Cva::open(&source).unwrap();
     let attachment_bytes = b"Graph native repack attachment";
     let ingested = rel

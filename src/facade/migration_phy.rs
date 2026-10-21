@@ -1,5 +1,4 @@
 use super::{MigrationError, op, processing_epochs_for_migration, require_same};
-use crate::graph_codec::decode_version;
 use crate::{
     Container, EntityDraft, GraphRelationOrigin, Memory, MemoryDraft, Phylactery,
     RelationshipDraft, SemanticGraphRelationChange,
@@ -129,12 +128,20 @@ pub(super) fn migrate(
     for resolution in entity_resolutions {
         op(output.import_entity_resolution(resolution))?;
     }
-    for (transaction, origin, transaction_time_ns) in graph {
+    for (transaction, origin, transaction_time_ns, single) in graph {
         let graph_version = output.graph_version();
         output
             .container
             .set_next_transaction_time_override(transaction_time_ns);
-        let result = output.set_semantic_relations_with_origin(&transaction, origin, graph_version);
+        let result = output.graph.replay_semantic_transaction(
+            &mut output.container,
+            &output.memories,
+            &output.entities,
+            &transaction,
+            origin,
+            graph_version,
+            single,
+        );
         output.container.clear_next_transaction_time_override();
         op(result)?;
     }
@@ -194,6 +201,7 @@ fn graph_transactions(
         Vec<SemanticGraphRelationChange>,
         GraphRelationOrigin,
         Option<i64>,
+        bool,
     )>,
     MigrationError,
 > {
@@ -201,13 +209,22 @@ fn graph_transactions(
     let mut transactions = Vec::new();
     for chunk in chunks {
         let payload = op(container.read(chunk))?;
-        let Some(version) = op(decode_version(&payload))? else {
+        let Some(version) = op(crate::graph_compact_codec::publication::version_at(
+            chunk, &payload,
+        ))?
+        else {
             continue;
         };
         let mutation_payload = op(container.read(version.mutation))?;
-        let mutations = op(graph.decode_stored_mutations(&mutation_payload))?.ok_or_else(|| {
-            MigrationError::Operation("graph version points at a non-graph mutation".into())
-        })?;
+        let (single, mutations) = op(graph.decode_stored_transaction(&mutation_payload))?
+            .ok_or_else(|| {
+                MigrationError::Operation("graph version points at a non-graph mutation".into())
+            })?;
+        if single && mutations.len() != 1 {
+            return Err(MigrationError::Operation(
+                "single graph transaction has invalid cardinality".into(),
+            ));
+        }
         let origin = mutations
             .first()
             .map(|mutation| mutation.origin)
@@ -230,6 +247,7 @@ fn graph_transactions(
             changes,
             origin,
             container.transaction_time_ns(version.global_version),
+            single,
         ));
     }
     Ok(transactions)
@@ -260,3 +278,7 @@ fn memory_draft(memory: Memory) -> MemoryDraft {
         updated_at_ns: memory.updated_at_ns,
     }
 }
+
+#[cfg(test)]
+#[path = "migration_phy_tests.rs"]
+mod tests;

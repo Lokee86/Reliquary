@@ -255,9 +255,9 @@ pub(crate) fn relocate_payload(
     if let Some(envelope) = crate::container::publication_envelope::decode(payload)
         .map_err(|error| error.to_string())?
     {
-        // The compact Memory and Entity bodies contain stable semantic IDs,
-        // not physical ObjectRefs. Decode it to validate the supported wire
-        // shape, then preserve the complete envelope byte-for-byte.
+        // These owner bodies contain stable IDs or Graph ordinals, never
+        // physical ObjectRefs. Validate the supported body and preserve the
+        // complete envelope byte-for-byte; direct Graph mappings are retained.
         if crate::memory_compact_codec::publication::decode(envelope.body, envelope.global_version)
             .map_err(|error| error.to_string())?
             .is_none()
@@ -276,6 +276,12 @@ pub(crate) fn relocate_payload(
             && crate::archive_codec::publication::decode(envelope.body, envelope.global_version)
                 .map_err(|error| error.to_string())?
                 .is_none()
+            && crate::graph_compact_codec::publication::decode(
+                envelope.body,
+                envelope.global_version,
+            )
+            .map_err(|error| error.to_string())?
+            .is_none()
         {
             return Err("unsupported publication envelope body during relocation".to_owned());
         }
@@ -317,3 +323,7 @@ mod relationship_publication_tests;
 #[cfg(test)]
 #[path = "graph_compact_maintenance_tests.rs"]
 mod compact_graph_tests;
+
+#[cfg(test)]
+#[path = "storage_reclamation_graph_publication_tests.rs"]
+mod graph_publication_tests;

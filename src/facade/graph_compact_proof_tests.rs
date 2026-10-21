@@ -141,6 +141,10 @@ fn swap_valid_memory_mappings(path: &Path) {
 }
 
 fn prune_rel_with_compact_graph(scratch: &Scratch) -> (PathBuf, PathBuf) {
+    prune_rel_with_graph(scratch, false)
+}
+
+fn prune_rel_with_graph(scratch: &Scratch, native: bool) -> (PathBuf, PathBuf) {
     let source = scratch.file("source.rel");
     let output = scratch.file("pruned.rel");
     let mut owner = Cva::create(&source).unwrap();
@@ -151,20 +155,32 @@ fn prune_rel_with_compact_graph(scratch: &Scratch) -> (PathBuf, PathBuf) {
         .publish_memory(None, 0, draft("b-create", "B"))
         .unwrap();
     add_graph_base_rel(&mut owner, a.id, b.id);
+    let target = if native {
+        owner
+            .publish_memory(None, 0, draft("unrelated", "Unrelated"))
+            .unwrap()
+            .0
+    } else {
+        a.clone()
+    };
     owner.sync().unwrap();
     drop(owner);
-    install_compact_graph_tail_rel(&source);
+    if native {
+        install_native_graph_tail(&source);
+    } else {
+        install_compact_graph_tail_rel(&source);
+    }
 
     let mut owner = Cva::open(&source).unwrap();
     assert!(matches!(
-        owner.tombstone_memory(a.id, a.revision).unwrap(),
+        owner.tombstone_memory(target.id, target.revision).unwrap(),
         TombstoneOutcome::Published(_)
     ));
     owner
         .prune_tombstoned_history(
             &output,
             HistoryPruneRequest {
-                targets: vec![LifecycleTarget::Memory(a.id)],
+                targets: vec![LifecycleTarget::Memory(target.id)],
             },
         )
         .unwrap();
@@ -173,6 +189,10 @@ fn prune_rel_with_compact_graph(scratch: &Scratch) -> (PathBuf, PathBuf) {
 }
 
 fn prune_phy_with_compact_graph(scratch: &Scratch) -> (PathBuf, PathBuf) {
+    prune_phy_with_graph(scratch, false)
+}
+
+fn prune_phy_with_graph(scratch: &Scratch, native: bool) -> (PathBuf, PathBuf) {
     let source = scratch.file("source.phy");
     let output = scratch.file("pruned.phy");
     let mut owner = Phylactery::create(&source).unwrap();
@@ -183,20 +203,32 @@ fn prune_phy_with_compact_graph(scratch: &Scratch) -> (PathBuf, PathBuf) {
         .publish_memory(None, 0, draft("b-create", "B"))
         .unwrap();
     add_graph_base_phy(&mut owner, a.id, b.id);
+    let target = if native {
+        owner
+            .publish_memory(None, 0, draft("unrelated", "Unrelated"))
+            .unwrap()
+            .0
+    } else {
+        a.clone()
+    };
     owner.sync().unwrap();
     drop(owner);
-    install_compact_graph_tail_phy(&source);
+    if native {
+        install_native_graph_tail(&source);
+    } else {
+        install_compact_graph_tail_phy(&source);
+    }
 
     let mut owner = Phylactery::open(&source).unwrap();
     assert!(matches!(
-        owner.tombstone_memory(a.id, a.revision).unwrap(),
+        owner.tombstone_memory(target.id, target.revision).unwrap(),
         TombstoneOutcome::Published(_)
     ));
     owner
         .prune_tombstoned_history(
             &output,
             HistoryPruneRequest {
-                targets: vec![LifecycleTarget::Memory(a.id)],
+                targets: vec![LifecycleTarget::Memory(target.id)],
             },
         )
         .unwrap();
@@ -465,4 +497,203 @@ fn legacy_graph_carrier_digest_remains_raw_sha256() {
         expected,
         "legacy full-ID Graph proof digest must remain byte-for-byte compatible"
     );
+}
+#[test]
+fn native_graph_history_proof_matches_legacy_at_every_watermark_and_binds_shape() {
+    use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
+    use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
+    let scratch = Scratch::new();
+    let legacy = scratch.file("legacy-proof.rel");
+    let native = scratch.file("native-proof.rel");
+    let mut owner = Cva::create(&legacy).unwrap();
+    let (a, _) = owner.publish_memory(None, 0, draft("a", "A")).unwrap();
+    let (b, _) = owner.publish_memory(None, 0, draft("b", "B")).unwrap();
+    add_graph_base_rel(&mut owner, a.id, b.id);
+    owner.sync().unwrap();
+    drop(owner);
+    fs::copy(&legacy, &native).unwrap();
+    install_compact_graph_tail_rel(&legacy);
+    let mut container = Container::open(&native).unwrap();
+    let global = container
+        .allocate_version_with_transaction_time(Some(70_000))
+        .unwrap();
+    let row = GraphOrdinalMutation {
+        source: 0,
+        target: 1,
+        kind: SemanticGraphRelationKind::Memory(GraphRelationKind::References),
+        active: true,
+        origin: GraphRelationOrigin::User,
+    };
+    let encode = |transaction| {
+        let body = publication::encode(&GraphPublication {
+            graph_version: 2,
+            transaction,
+        })
+        .unwrap();
+        publication_envelope::encode(PublicationEnvelope {
+            global_version: global,
+            clock: PublicationClock::BindReserved,
+            body: &body,
+        })
+        .unwrap()
+    };
+    let bytes = encode(GraphTransaction::Single(row));
+    container.append(&bytes).unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let mut old = Cva::open(&legacy).unwrap();
+    let mut new = Cva::open(&native).unwrap();
+    for watermark in 0..=global {
+        assert_eq!(
+            super::owner_history_digest(&mut old.container, watermark, &old.graph).unwrap(),
+            super::owner_history_digest(&mut new.container, watermark, &new.graph).unwrap(),
+            "watermark {watermark}",
+        );
+    }
+    assert_eq!(
+        new.graph.compact_carrier_digest(&bytes).unwrap(),
+        new.graph
+            .compact_carrier_digest(&encode_mutation(row))
+            .unwrap()
+    );
+    assert_ne!(
+        new.graph.compact_carrier_digest(&bytes).unwrap(),
+        new.graph
+            .compact_carrier_digest(&encode(GraphTransaction::Batch(vec![row])))
+            .unwrap()
+    );
+    let changed = GraphOrdinalMutation {
+        active: false,
+        ..row
+    };
+    assert_ne!(
+        new.graph.compact_carrier_digest(&bytes).unwrap(),
+        new.graph
+            .compact_carrier_digest(&encode(GraphTransaction::Single(changed)))
+            .unwrap()
+    );
+}
+
+fn install_native_graph_tail(path: &Path) {
+    use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
+    let mut container = Container::open(path).unwrap();
+    let body = publication::encode(&GraphPublication {
+        graph_version: 2,
+        transaction: GraphTransaction::Single(GraphOrdinalMutation {
+            source: 0,
+            target: 1,
+            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::References),
+            active: true,
+            origin: GraphRelationOrigin::User,
+        }),
+    })
+    .unwrap();
+    container.set_next_transaction_time_override(Some(70_000));
+    container.append_publication_envelope(&body).unwrap();
+    container.sync().unwrap();
+}
+
+#[test]
+fn native_graph_prune_proofs_reopen_and_reject_mapping_substitution_for_both_owners() {
+    for phy in [false, true] {
+        let scratch = Scratch::new();
+        let (source, output) = if phy {
+            prune_phy_with_graph(&scratch, true)
+        } else {
+            prune_rel_with_graph(&scratch, true)
+        };
+        if phy {
+            let old = Phylactery::open(&source).unwrap();
+            let new = Phylactery::open(&output).unwrap();
+            assert_eq!(old.graph_version(), new.graph_version());
+            assert_eq!(old.latest_global_version(), new.latest_global_version());
+        } else {
+            let old = Cva::open(&source).unwrap();
+            let new = Cva::open(&output).unwrap();
+            assert_eq!(old.graph_version(), new.graph_version());
+            assert_eq!(old.latest_global_version(), new.latest_global_version());
+        }
+        swap_valid_memory_mappings(&output);
+        let error = if phy {
+            Phylactery::open(&output).err().unwrap().to_string()
+        } else {
+            Cva::open(&output).err().unwrap().to_string()
+        };
+        assert!(error.contains("maintenance proof"), "{error}");
+    }
+}
+#[test]
+fn native_graph_reclamation_keeps_publication_and_mappings_and_drops_orphan_carrier() {
+    for phy in [false, true] {
+        let scratch = Scratch::new();
+        let (source, _) = if phy {
+            prune_phy_with_graph(&scratch, true)
+        } else {
+            prune_rel_with_graph(&scratch, true)
+        };
+        let mut container = Container::open(&source).unwrap();
+        container
+            .append(&encode_mutation(GraphOrdinalMutation {
+                source: 999,
+                target: 998,
+                kind: SemanticGraphRelationKind::Memory(GraphRelationKind::References),
+                active: true,
+                origin: GraphRelationOrigin::User,
+            }))
+            .unwrap();
+        container.sync().unwrap();
+        drop(container);
+        let before = fs::read(&source).unwrap();
+        let output = scratch.file("reclaimed");
+        let report = if phy {
+            Phylactery::open(&source)
+                .unwrap()
+                .reclaim_storage(&output)
+                .unwrap()
+        } else {
+            Cva::open(&source)
+                .unwrap()
+                .reclaim_storage(&output)
+                .unwrap()
+        };
+        assert!(report.unpublished_backing_chunks >= 1);
+        assert_eq!(fs::read(&source).unwrap(), before);
+        let graph_frames = |path: &Path| {
+            let mut container = Container::open(path).unwrap();
+            container
+                .chunks()
+                .unwrap()
+                .into_iter()
+                .filter_map(|object| {
+                    let bytes = container.read(object).unwrap();
+                    let native = crate::container::publication_envelope::decode(&bytes)
+                        .unwrap()
+                        .is_some_and(|envelope| {
+                            crate::graph_compact_codec::publication::decode(
+                                envelope.body,
+                                envelope.global_version,
+                            )
+                            .unwrap()
+                            .is_some()
+                        });
+                    (native || bytes.starts_with(b"CVAGNODE") || bytes.starts_with(b"CVAGNOD2"))
+                        .then_some(bytes)
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(graph_frames(&source), graph_frames(&output));
+        let mut source_container = Container::open(&source).unwrap();
+        let mut output_container = Container::open(&output).unwrap();
+        let graph = if phy {
+            Phylactery::open(&source).unwrap().graph
+        } else {
+            Cva::open(&source).unwrap().graph
+        };
+        for watermark in 0..=source_container.latest_version() {
+            assert_eq!(
+                super::owner_history_digest(&mut source_container, watermark, &graph).unwrap(),
+                super::owner_history_digest(&mut output_container, watermark, &graph).unwrap()
+            );
+        }
+    }
 }

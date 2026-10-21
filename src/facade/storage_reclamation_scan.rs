@@ -65,6 +65,12 @@ impl ReclamationScan {
                 )
                 .map_err(|error| error.to_string())?
                 .is_none()
+                && crate::graph_compact_codec::publication::decode(
+                    envelope.body,
+                    envelope.global_version,
+                )
+                .map_err(|error| error.to_string())?
+                .is_none()
             {
                 return Err("unsupported publication envelope body during reclamation".to_owned());
             }

@@ -1,4 +1,5 @@
 use crate::graph_codec::{GraphVersionPayload, encode_version};
+use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
 use crate::graph_compact_codec::{encode_batch, encode_mutation};
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::{
@@ -67,6 +68,7 @@ fn append_compact_transaction(
         bool,
         GraphRelationOrigin,
     )],
+    native: bool,
 ) {
     let values = changes
         .iter()
@@ -80,30 +82,54 @@ fn append_compact_transaction(
             },
         )
         .collect::<Vec<_>>();
-    let carrier = if values.len() == 1 {
-        rel.container.append(&encode_mutation(values[0])).unwrap()
-    } else {
-        rel.container
-            .append(&encode_batch(&values).unwrap())
-            .unwrap()
-    };
-    let global_version = rel
-        .container
-        .allocate_version_with_transaction_time(Some(9_000 + graph_version as i64))
-        .unwrap();
-    rel.container
-        .append(&encode_version(GraphVersionPayload {
-            global_version,
+    if native {
+        let transaction = if values.len() == 1 {
+            GraphTransaction::Single(values[0])
+        } else {
+            GraphTransaction::Batch(values)
+        };
+        let body = publication::encode(&GraphPublication {
             graph_version,
-            mutation: carrier,
-        }))
+            transaction,
+        })
         .unwrap();
+        rel.container.append_publication_envelope(&body).unwrap();
+    } else {
+        let carrier = if values.len() == 1 {
+            rel.container.append(&encode_mutation(values[0])).unwrap()
+        } else {
+            rel.container
+                .append(&encode_batch(&values).unwrap())
+                .unwrap()
+        };
+        let global_version = rel
+            .container
+            .allocate_version_with_transaction_time(Some(9_000 + graph_version as i64))
+            .unwrap();
+        rel.container
+            .append(&encode_version(GraphVersionPayload {
+                global_version,
+                graph_version,
+                mutation: carrier,
+            }))
+            .unwrap();
+    }
 }
 
 #[test]
 fn compact_dream_reads_accepted_graph_cut_and_filters_by_origin_and_stable_candidates() {
+    for native in [false, true] {
+        run_dream_graph_cut_case(native);
+    }
+}
+
+fn run_dream_graph_cut_case(native: bool) {
     let scratch = Scratch::new();
-    let path = scratch.0.join("compact-dream.rel");
+    let path = scratch.0.join(if native {
+        "native-dream.rel"
+    } else {
+        "compact-dream.rel"
+    });
     let mut rel = Cva::create(&path).unwrap();
     let root = publish(&mut rel, "root", "knowledge");
     let late_candidate = publish(&mut rel, "late-candidate", "knowledge");
@@ -173,6 +199,7 @@ fn compact_dream_reads_accepted_graph_cut_and_filters_by_origin_and_stable_candi
                 GraphRelationOrigin::User,
             ),
         ],
+        native,
     );
     drop(rel);
 
@@ -181,6 +208,9 @@ fn compact_dream_reads_accepted_graph_cut_and_filters_by_origin_and_stable_candi
     assert_eq!(pass.graph_version_before, before);
     rel.record_initial_dream_roots(&pass_id, BTreeSet::from([root]))
         .unwrap();
+    let community = rel.refresh_communities_leiden().unwrap();
+    assert_eq!(community.derived_graph_version, rel.memory_graph_version());
+    assert!(community.community_for(root).is_some());
     rel.accept_initial_dream_settlement(&pass_id, 0).unwrap();
     assert_eq!(rel.graph_version(), before + 1);
 
@@ -196,9 +226,10 @@ fn compact_dream_reads_accepted_graph_cut_and_filters_by_origin_and_stable_candi
             true,
             GraphRelationOrigin::Dream,
         )],
+        native,
     );
     drop(rel);
-    let rel = Cva::open(&path).unwrap();
+    let mut rel = Cva::open(&path).unwrap();
     let pass = rel.pending_initial_dream_pass(source).unwrap();
     let (roots, duplicate_origin) = rel.initial_dream_committed_evidence(&pass).unwrap();
     assert_eq!(roots, BTreeSet::from([root]));
@@ -206,11 +237,42 @@ fn compact_dream_reads_accepted_graph_cut_and_filters_by_origin_and_stable_candi
 
     let (proof, adjacency, memberships) = rel.initial_dream_graph_snapshot(&pass_id).unwrap();
     assert_eq!(proof.graph_version, before + 1);
-    assert_eq!(proof.community_generation, None);
+    assert_eq!(proof.community_generation, Some(community.generation));
+    assert_eq!(
+        proof.community_graph_version,
+        Some(community.derived_graph_version)
+    );
     let neighbors = adjacency.get(&source).cloned().unwrap_or_default();
     assert!(neighbors.contains(&root));
     assert!(neighbors.contains(&late_candidate));
     assert!(!neighbors.contains(&unrelated));
     assert!(!neighbors.contains(&future_neighbor));
-    assert!(memberships.is_empty());
+    assert_eq!(
+        memberships.get(&root).copied(),
+        community.community_for(root).map(|c| c.id)
+    );
+    if native {
+        let mut prune_draft = draft("unrelated-prune", "knowledge");
+        prune_draft.content = "unrelated prune backing ".repeat(2048);
+        let unrelated_prune = rel.publish_memory(None, 0, prune_draft).unwrap().0.id;
+        rel.tombstone_memory(unrelated_prune, 1).unwrap();
+        let output = scratch.0.join("pruned-native-dream.rel");
+        rel.prune_tombstoned_history(
+            &output,
+            crate::HistoryPruneRequest {
+                targets: vec![crate::owner_lifecycle::LifecycleTarget::Memory(
+                    unrelated_prune,
+                )],
+            },
+        )
+        .unwrap();
+        drop(rel);
+        let reopened = Cva::open(&output).unwrap();
+        let actual = reopened.initial_dream_graph_snapshot(&pass_id).unwrap();
+        assert_eq!(actual, (proof, adjacency, memberships));
+        assert_eq!(
+            reopened.initial_dream_committed_evidence(&pass).unwrap(),
+            (roots, duplicate_origin)
+        );
+    }
 }

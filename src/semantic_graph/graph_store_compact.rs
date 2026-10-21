@@ -28,13 +28,31 @@ impl GraphStore {
         bytes: &[u8],
     ) -> Result<Option<[u8; 32]>, GraphError> {
         use sha2::{Digest, Sha256};
-        let Some(ordinals) = crate::graph_compact_codec::decode(bytes)? else {
-            return Ok(None);
-        };
+        let (ordinals, magic) =
+            if let Some(envelope) = crate::container::publication_envelope::decode(bytes)? {
+                let Some(publication) = crate::graph_compact_codec::publication::decode(
+                    envelope.body,
+                    envelope.global_version,
+                )?
+                else {
+                    return Ok(None);
+                };
+                let magic = if publication.is_single() {
+                    b"CVAGCM01"
+                } else {
+                    b"CVAGCB01"
+                };
+                (publication.mutations().to_vec(), magic.as_slice())
+            } else {
+                let Some(ordinals) = crate::graph_compact_codec::decode(bytes)? else {
+                    return Ok(None);
+                };
+                (ordinals, &bytes[..8])
+            };
         let values = self.resolve_compact_mutations(&ordinals)?;
         let mut hash = Sha256::new();
         hash.update(b"Reliquary Graph semantic carrier v1\0");
-        hash.update(&bytes[..8]);
+        hash.update(magic);
         hash.update((values.len() as u64).to_le_bytes());
         for value in values {
             hash.update([value.source.kind.code()]);

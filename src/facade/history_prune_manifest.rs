@@ -242,6 +242,30 @@ pub(crate) fn owner_history_digest(
             }
             continue;
         }
+        if let Some(envelope) = crate::container::publication_envelope::decode(&raw)
+            .map_err(|error| error.to_string())?
+            && let Some(publication) = crate::graph_compact_codec::publication::decode(
+                envelope.body,
+                envelope.global_version,
+            )
+            .map_err(|error| error.to_string())?
+        {
+            if envelope.global_version <= watermark {
+                let marker =
+                    crate::graph_codec::encode_version(crate::graph_codec::GraphVersionPayload {
+                        global_version: envelope.global_version,
+                        graph_version: publication.graph_version,
+                        mutation: crate::ObjectRef::from_legacy_bytes([0; 16]),
+                    });
+                digest_bytes(&mut hash, &marker);
+                let digest = graph
+                    .compact_carrier_digest(&raw)
+                    .map_err(|error| error.to_string())?
+                    .ok_or("missing native Graph proof evidence")?;
+                digest_bytes(&mut hash, &digest);
+            }
+            continue;
+        }
         let publication = if let Some(version) =
             crate::archive_history_codec::decode_record_version(&raw)
                 .map_err(|error| error.to_string())?
