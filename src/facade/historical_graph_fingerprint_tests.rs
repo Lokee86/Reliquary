@@ -12,6 +12,74 @@ fn scratch() -> PathBuf {
 }
 
 #[test]
+fn cached_graph_oracle_matches_original_hash_for_every_mixed_cut() {
+    use crate::{
+        GraphRelationOrigin, SemanticGraphRelation, SemanticGraphRelationKind, SemanticNodeKind,
+        SemanticNodeRef,
+    };
+    let a = SemanticNodeRef::memory(MemoryId([1; 32]));
+    let b = SemanticNodeRef::memory(MemoryId([2; 32]));
+    let relation = SemanticGraphRelation {
+        source: a,
+        target: b,
+        kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Topical),
+        active: true,
+        origin: GraphRelationOrigin::User,
+        global_version: 7,
+        graph_version: 1,
+    };
+    let mut entity = relation;
+    entity.target = SemanticNodeRef {
+        kind: SemanticNodeKind::Entity,
+        id: [3; 32],
+    };
+    entity.kind = SemanticGraphRelationKind::EntityAssociation;
+    entity.global_version = 15;
+    entity.graph_version = 2;
+    let mut retired = relation;
+    retired.active = false;
+    retired.global_version = 19;
+    retired.graph_version = 3;
+    let mut reverse = retired;
+    reverse.source = b;
+    reverse.target = a;
+    reverse.active = true;
+    reverse.origin = GraphRelationOrigin::Dream;
+    let mut again = relation;
+    again.global_version = 21;
+    again.graph_version = 4;
+    let history = GraphHistory {
+        owner: [9; 16],
+        transactions: vec![
+            vec![relation],
+            vec![entity],
+            vec![retired, reverse],
+            vec![again],
+            vec![],
+        ],
+        times: vec![Some(-5), None, Some(99), Some(100), None],
+        baseline_memories: vec![MemoryId([5; 32]), MemoryId([4; 32])],
+    };
+    for memory_only in [false, true] {
+        let cached = history.all_cut_fingerprints(memory_only).unwrap();
+        assert_eq!(cached.len(), if memory_only { 4 } else { 6 });
+        for value in cached {
+            assert_eq!(
+                value,
+                history
+                    .at(value.local_cut, memory_only)
+                    .unwrap()
+                    .fingerprint
+            );
+        }
+    }
+    let mut invalid = history;
+    invalid.baseline_memories.push(MemoryId([5; 32]));
+    assert!(invalid.at(0, false).is_err());
+    assert!(invalid.all_cut_fingerprints(false).is_err());
+}
+
+#[test]
 fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
     use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
     use crate::graph_codec::{GraphMutationPayload, GraphVersionPayload};

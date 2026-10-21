@@ -1,4 +1,6 @@
 use super::*;
+#[path = "evidence_tests.rs"]
+mod evidence;
 use crate::{Container, ContainerIdentity, Cva, FileKind, Phylactery};
 use std::{
     fs,

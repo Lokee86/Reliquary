@@ -24,6 +24,137 @@ pub(crate) struct GraphCut {
 }
 
 impl GraphHistory {
+    /// Disposable acceleration of the existing schema-1 oracle, not a new hash
+    /// scheme or runtime checkpoint. Canonicalize each immutable row once, then
+    /// compute every original cut hash over exactly the original ordered bytes.
+    pub(crate) fn all_cut_fingerprints(
+        &self,
+        memory_only: bool,
+    ) -> Result<Vec<HistoricalFingerprint>, String> {
+        use crate::historical_fingerprint::{canonical_value, hash_field};
+        use sha2::{Digest, Sha256};
+        use std::sync::{
+            atomic::{AtomicUsize, Ordering},
+            mpsc,
+        };
+        fn field(out: &mut Vec<u8>, bytes: &[u8]) {
+            out.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
+            out.extend_from_slice(bytes);
+        }
+        fn row(
+            out: &mut Vec<u8>,
+            family: &str,
+            key: &[u8],
+            value: &serde_json::Value,
+        ) -> Result<(), String> {
+            field(out, family.as_bytes());
+            field(out, key);
+            field(out, &canonical_value(value)?);
+            Ok(())
+        }
+        let mut baseline = Vec::new();
+        let mut ids = std::collections::BTreeSet::new();
+        for id in &self.baseline_memories {
+            if !ids.insert(*id) {
+                return Err("duplicate baseline Memory".into());
+            }
+        }
+        for id in &ids {
+            row(&mut baseline, "baseline_memory", &id.0, &json!(id.0))?;
+        }
+        let mut publications = Vec::new();
+        let mut contexts = vec![(0u64, 0u64, 0usize, 0u64)];
+        let mut clock = 0;
+        let mut count = 0;
+        for (index, transaction) in self.transactions.iter().enumerate() {
+            let cut = index as u64 + 1;
+            let qualifies = transaction
+                .iter()
+                .any(|r| matches!(r.kind, SemanticGraphRelationKind::Memory(_)));
+            if qualifies {
+                clock = cut;
+            }
+            let selected: Vec<_> = transaction
+                .iter()
+                .filter(|r| !memory_only || matches!(r.kind, SemanticGraphRelationKind::Memory(_)))
+                .collect();
+            if !selected.is_empty() {
+                row(
+                    &mut publications,
+                    "publication",
+                    &cut.to_be_bytes(),
+                    &json!({"global_version":transaction[0].global_version,"time_ns":self.times[index],"changes":selected.iter().map(|r|relation_value(**r)).collect::<Vec<_>>()}),
+                )?;
+                count += 1;
+            }
+            if !memory_only || qualifies {
+                contexts.push((cut, clock, publications.len(), count));
+            }
+        }
+        let domain = if memory_only { "memory_graph" } else { "graph" };
+        let workers = std::thread::available_parallelism()
+            .map(usize::from)
+            .unwrap_or(1)
+            .min(8)
+            .min(contexts.len());
+        let cursor = AtomicUsize::new(0);
+        let (sender, receiver) = mpsc::channel();
+        let mut values = vec![None; contexts.len()];
+        std::thread::scope(|scope| {
+            for _ in 0..workers {
+                let sender = sender.clone();
+                let contexts = &contexts;
+                let cursor = &cursor;
+                let baseline = &baseline;
+                let publications = &publications;
+                let baseline_count = ids.len() as u64;
+                scope.spawn(move || {
+                    loop {
+                        let index = cursor.fetch_add(1, Ordering::Relaxed);
+                        let Some(&(cut, clock, end, count)) = contexts.get(index) else {
+                            break;
+                        };
+                        let rows = baseline_count + 1 + count;
+                        let mut hash = Sha256::new();
+                        hash.update(b"reliquary:historical-owner-state:v1\0");
+                        hash.update(1u32.to_le_bytes());
+                        hash.update(self.owner);
+                        hash_field(&mut hash, domain.as_bytes());
+                        hash.update(cut.to_le_bytes());
+                        hash.update([0]);
+                        hash.update(rows.to_le_bytes());
+                        hash.update(baseline);
+                        hash_field(&mut hash, b"clock");
+                        hash_field(&mut hash, b"memory_graph");
+                        hash_field(&mut hash, clock.to_string().as_bytes());
+                        hash.update(&publications[..end]);
+                        sender
+                            .send((
+                                index,
+                                HistoricalFingerprint {
+                                    schema: 1,
+                                    owner_uuid: self.owner,
+                                    domain: domain.into(),
+                                    local_cut: cut,
+                                    event_cut: None,
+                                    rows,
+                                    sha256: hash.finalize().into(),
+                                },
+                            ))
+                            .unwrap();
+                    }
+                });
+            }
+            drop(sender);
+            for (index, value) in receiver {
+                values[index] = Some(value);
+            }
+        });
+        values
+            .into_iter()
+            .map(|v| v.ok_or_else(|| "missing cached Graph cut".into()))
+            .collect()
+    }
     pub(crate) fn use_baseline_from(&mut self, store: &GraphStore) {
         self.baseline_memories = store
             .rewrite_baseline_memories()

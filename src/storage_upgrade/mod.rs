@@ -5,6 +5,9 @@ mod archive_envelope;
 mod archive_envelope_authoritative_tests;
 #[cfg(test)]
 mod archive_envelope_tests;
+mod authority_admission;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+mod canonical_matrix_tests;
 mod dream_begin;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod dream_begin_authoritative_tests;

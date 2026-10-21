@@ -96,14 +96,14 @@ impl OwnerProjection {
     }
 }
 
-fn hash_field(hash: &mut Sha256, bytes: &[u8]) {
+pub(crate) fn hash_field(hash: &mut Sha256, bytes: &[u8]) {
     hash.update((bytes.len() as u64).to_le_bytes());
     hash.update(bytes);
 }
 
 // Explicit key sorting remains deterministic if dependency feature unification
 // ever enables serde_json's insertion-ordered maps. Array order is semantic.
-fn canonical_value(value: &Value) -> Result<Vec<u8>, String> {
+pub(crate) fn canonical_value(value: &Value) -> Result<Vec<u8>, String> {
     fn write(value: &Value, out: &mut Vec<u8>) -> Result<(), String> {
         match value {
             Value::Object(fields) => {

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "baseline_decoder_commit": "444481a",
+  "baseline_recognized_entity_resolution_magic": "CVAERS01",
+  "retained_inert_magic": "CVAERS02",
+  "current_delta_magic": "CVAERS03",
+  "current_retained_evidence_magic": "CVAERL01",
+  "retained_effect": "Frozen decoder does not recognize this family; preserve zero visible state effect. Preserve every original byte without interpreting extra fields.",
+  "all_sources_unchanged": true,
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true,
+      "retained_records": 169,
+      "payload_bytes": 26883,
+      "length_counts": {
+        "95": 117,
+        "410": 36,
+        "63": 16
+      },
+      "ordered_length_prefixed_original_sha256": "e2e954299e773288ca7c0b71c57f7b82628b6c643d86a615da91df373812e50f"
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true,
+      "retained_records": 0,
+      "payload_bytes": 0,
+      "length_counts": {},
+      "ordered_length_prefixed_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true,
+      "retained_records": 0,
+      "payload_bytes": 0,
+      "length_counts": {},
+      "ordered_length_prefixed_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true,
+      "retained_records": 0,
+      "payload_bytes": 0,
+      "length_counts": {},
+      "ordered_length_prefixed_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true,
+      "retained_records": 0,
+      "payload_bytes": 0,
+      "length_counts": {},
+      "ordered_length_prefixed_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true,
+      "retained_records": 0,
+      "payload_bytes": 0,
+      "length_counts": {},
+      "ordered_length_prefixed_original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

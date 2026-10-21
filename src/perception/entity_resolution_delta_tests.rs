@@ -41,7 +41,7 @@ fn scratch() -> PathBuf {
 fn entity_resolution_delta_initial_and_attempt_vectors_are_exact() {
     let initial = change(1, Some(pending()));
     let bytes = delta::encode(&initial, None).unwrap();
-    assert_eq!(&bytes[..8], b"CVAERS02");
+    assert_eq!(&bytes[..8], b"CVAERS03");
     assert_eq!(bytes.len(), 211);
     assert_eq!(bytes[61], 3);
     assert_eq!(bytes[62], 127);
@@ -86,7 +86,7 @@ fn entity_resolution_delta_malformed_and_conflicts_leave_projection_unchanged() 
         bad[offset] = value;
         assert!(delta::decode(&bad, |_| None).is_err());
     }
-    assert!(delta::decode(b"CVAERS03", |_| None).is_err());
+    assert!(delta::decode(b"CVAERS04", |_| None).is_err());
     let mut store = EntityResolutionStore::default();
     store.ingest(&bytes).unwrap();
     let before = store.get(key()).cloned();
@@ -363,6 +363,7 @@ fn entity_resolution_delta_explicit_v1_owner_rejection_is_nonmutating() {
         bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
         fs::write(&path, &bytes).unwrap();
         if phy {
+            assert!(crate::Phylactery::open(&path).is_err());
             assert!(matches!(
                 crate::Phylactery::open_v1_read_only(&path),
                 Err(crate::PhylacteryError::Memories(
@@ -370,6 +371,7 @@ fn entity_resolution_delta_explicit_v1_owner_rejection_is_nonmutating() {
                 ))
             ));
         } else {
+            assert!(crate::Cva::open(&path).is_err());
             assert!(matches!(
                 crate::Cva::open_v1_read_only(&path),
                 Err(crate::CvaError::Memories(MemoryError::CorruptRecord(

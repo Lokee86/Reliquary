@@ -1,6 +1,6 @@
 //! Exact unresolved-evidence deltas; keys, decisions and local revisions stay literal.
 use super::*;
-pub(crate) const MAGIC: &[u8; 8] = b"CVAERS02";
+pub(crate) const MAGIC: &[u8; 8] = b"CVAERS03";
 pub(crate) fn is_current(bytes: &[u8]) -> bool {
     bytes.starts_with(MAGIC)
 }

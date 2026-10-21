@@ -66,7 +66,7 @@ fn dependencies(record: &ArchiveRecord, ids: &mut BTreeSet<[u8; 32]>) {
     }
 }
 
-fn compare_archive(old: &mut Cva, new: &mut Cva) -> serde_json::Value {
+pub(super) fn compare_archive(old: &mut Cva, new: &mut Cva) -> serde_json::Value {
     assert_eq!(old.owner_uuid(), new.owner_uuid());
     assert_eq!(old.archive_version(), new.archive_version());
     assert_eq!(old.latest_global_version(), new.latest_global_version());

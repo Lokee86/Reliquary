@@ -35,6 +35,7 @@ pub(crate) enum StorageUpgradeError {
     MissingOwnerIdentity,
     CopyMismatch,
     UnsupportedAuthority(&'static str),
+    UnknownAuthority([u8; 8]),
     Memory(crate::MemoryError),
     Archive(crate::ArchiveError),
     Entity(crate::EntityError),
@@ -131,6 +132,11 @@ impl fmt::Display for StorageUpgradeError {
                     "upgrade has no canonical converter for authority {family}"
                 )
             }
+            Self::UnknownAuthority(family) => write!(
+                f,
+                "upgrade encountered unknown authority {}",
+                String::from_utf8_lossy(family)
+            ),
         }
     }
 }

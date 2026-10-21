@@ -8,7 +8,7 @@ Describe the implemented per-mention Entity-resolution state owner, deterministi
 
 ## Overview
 
-Current storage uses exact `CVAERS02` unresolved-evidence deltas behind
+Current storage uses exact `CVAERS03` unresolved-evidence deltas behind
 EntityResolutionStore. Public states, revisions, decisions, retry suppression,
 retention and endpoint validation are unchanged. The
 [compact contract](entity-resolution-compact-contract-2026-10-21.md) classifies

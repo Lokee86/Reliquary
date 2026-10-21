@@ -443,6 +443,10 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     let mut pair_mappings = std::collections::HashSet::new();
     for object in cva.container.chunks().unwrap() {
         let payload = cva.container.read(object).unwrap();
+        if let Some(original) = crate::entity_resolution_codec::retained::decode(&payload).unwrap()
+        {
+            legacy_resolutions.insert(object, original.to_vec());
+        }
         if let Some(change) = resolutions.decode(&payload).unwrap() {
             if crate::entity_resolution_codec::delta::is_current(&payload) {
                 legacy_resolutions.insert(

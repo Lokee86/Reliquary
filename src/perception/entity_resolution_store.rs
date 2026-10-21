@@ -51,6 +51,13 @@ impl EntityResolutionStore {
         &self,
         payload: &[u8],
     ) -> Result<Option<DecodedEntityResolution>, MemoryError> {
+        // The frozen V1 decoder never projected CVAERS02. Preserve that fact,
+        // and validate its explicitly retained current evidence without effect.
+        if crate::entity_resolution_codec::retained::is_source(payload)
+            || crate::entity_resolution_codec::retained::decode(payload)?.is_some()
+        {
+            return Ok(None);
+        }
         if let Some(decoded) = decode_resolution(payload)? {
             return Ok(Some(decoded));
         }

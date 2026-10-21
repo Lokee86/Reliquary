@@ -11,6 +11,11 @@ pub(crate) mod delta;
 #[cfg(test)]
 #[path = "entity_resolution_delta_tests.rs"]
 mod delta_tests;
+#[path = "entity_resolution_retained.rs"]
+pub(crate) mod retained;
+#[cfg(test)]
+#[path = "entity_resolution_retained_tests.rs"]
+mod retained_tests;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct DecodedEntityResolution {

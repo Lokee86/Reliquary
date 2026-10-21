@@ -55,7 +55,7 @@ the existing status constraints.
 
 ## Target wire
 
-`CVAERS02` retains the stable mention key, u32 revision, i64 update timestamp and
+`CVAERS03` retains the stable mention key, u32 revision, i64 update timestamp and
 existing status tags. Tombstone, Resolved and Rejected carry their literal status
 fields. Pending and Dormant add an eight-bit changed-field mask:
 
@@ -112,6 +112,11 @@ Temporary legacy decoding is removed only after verified canonical promotion.
 - [Linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md)
 
 ## Notes
+
+The [retained-family correction](retained-entity-resolution-contract-2026-10-21.md)
+reserves `CVAERS03` for these deltas. Frozen `CVAERS02` records remain inert and
+are retained verbatim in the specific checksummed `CVAERL01` evidence variant.
+They are not decoded as these current decisions or assigned a new clock.
 
 The two import consumers are separate execution steps before offline migration.
 This contract removes only repeated physical fields; no accepted decision,

@@ -343,6 +343,23 @@ fn transform_owners(
         crate::interaction_stream_store::InteractionStreamStore::default();
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
         if migrate_graph_envelopes {
+            if crate::entity_resolution_codec::retained::is_source(payload) {
+                let bytes = crate::entity_resolution_codec::retained::encode(payload)?;
+                relocated.insert(object, destination.append(&bytes)?);
+                return Ok(());
+            }
+            if payload.starts_with(b"PRJCOR01") {
+                let record = crate::project_history_codec::decode(payload)
+                    .map_err(StorageUpgradeError::Migration)?
+                    .ok_or_else(|| {
+                        StorageUpgradeError::Migration("missing legacy project correlation".into())
+                    })?;
+                destination.append(
+                    &crate::project_history_codec::encode(&record)
+                        .map_err(StorageUpgradeError::Migration)?,
+                )?;
+                return Ok(());
+            }
             if let Some(change) = crate::entity_resolution_codec::decode_resolution(payload)? {
                 resolutions.persist_change(destination, change)?;
                 return Ok(());

@@ -1,5 +1,9 @@
 # Reliquary Memory v2 Documentation
 
+- [Retained inert Entity Resolution contract](retained-entity-resolution-contract-2026-10-21.md) — frozen behavior, original bytes and distinct format admission.
+
+- [Latest offline converter coverage audit](latest-offline-converter-coverage-2026-10-21.md) — exact durable-family crosswalk and explicit admission boundaries.
+
 - [Archive-vector generation reuse decision](archive-vector-generation-reuse-decision-2026-10-21.md) — measured same-profile duplication and explicit conditional deferral.
 
 - [Development-format interruption execution evidence](development-format-interruption-execution-2026-10-19.md) — freeze/corpus inventory, temporary caller ownership, runtime acceptance design and remaining-step mapping.

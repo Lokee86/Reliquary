@@ -163,6 +163,15 @@ pub(super) fn replay_frame(
     payload: &[u8],
     coordinates: &mut Coordinates,
 ) -> Result<usize, CvaReconcileError> {
+    if crate::entity_resolution_codec::retained::is_source(payload) {
+        let bytes = crate::entity_resolution_codec::retained::encode(payload)?;
+        output.container.append(&bytes)?;
+        return Ok(0);
+    }
+    if crate::entity_resolution_codec::retained::decode(payload)?.is_some() {
+        output.container.append(payload)?;
+        return Ok(0);
+    }
     let archive = crate::cva_reconcile_archive::read_archive_range(source, index, index + 1)?;
     crate::cva_reconcile_archive::replay_archive_tail(output, &archive)?;
     coordinates.file_memory_links +=

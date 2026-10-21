@@ -217,7 +217,7 @@ The internal reconnect operation reads a fresh authorized snapshot and replaces 
 
 ## P4 exact conversation streams
 
-EntityResolutionStore persists `CVAERS02` literal decisions and exact deltas for
+EntityResolutionStore persists `CVAERS03` literal decisions and exact deltas for
 unchanged unresolved evidence. Candidate/fingerprint/timing/count fields remain
 accepted authority, inherited only from the preceding state of the same mention.
 The owner validates before append and rebuilds its existing reverse/maintenance

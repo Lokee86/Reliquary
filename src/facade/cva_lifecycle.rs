@@ -235,7 +235,10 @@ impl Cva {
         path: impl AsRef<Path>,
         required_version: Option<crate::FormatVersion>,
     ) -> Result<Self, CvaError> {
-        let lineage_owner = Container::open_read_only_for_scan(path.as_ref())?.owner_uuid();
+        let header = Container::open_read_only_for_scan(path.as_ref())?;
+        let lineage_owner = header.owner_uuid();
+        let source_format = header.version();
+        drop(header);
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut archive_state = ArchiveOpenState::new();
@@ -317,7 +320,7 @@ impl Cva {
                             .ingest(payload)
                             .map_err(CvaError::Repack)?;
                         import_epochs.ingest_at(Some(chunk), payload)?;
-                        if required_version.is_some_and(|version| version.major == 1)
+                        if source_format.major == 1
                             && payload.starts_with(crate::external_source::compact_index::MAGIC)
                         {
                             return Err(crate::MemoryError::CorruptRecord(
@@ -338,7 +341,7 @@ impl Cva {
                         archive_vector_state.ingest(chunk, payload)?;
                         profile_state.ingest(chunk, payload)?;
                         generation_state.ingest(chunk, payload, latest_global)?;
-                        if required_version.is_some_and(|version| version.major == 1)
+                        if source_format.major == 1
                             && crate::interaction_stream_codec::is_compact(payload)
                         {
                             return Err(CvaError::InteractionStream(
@@ -349,11 +352,21 @@ impl Cva {
                         compaction_state.ingest(chunk, payload)?;
                         echo.ingest(payload)?;
                         ego.ingest(payload)?;
-                        if required_version.is_some_and(|version| version.major == 1)
+                        if source_format.major == 1
                             && crate::entity_resolution_codec::delta::is_current(payload)
                         {
                             return Err(crate::MemoryError::CorruptRecord(
                                 "compact Entity resolution in V1 input",
+                            )
+                            .into());
+                        }
+                        if (source_format.major == 1
+                            && crate::entity_resolution_codec::retained::is_current(payload))
+                            || (source_format.major != 1
+                                && crate::entity_resolution_codec::retained::is_source(payload))
+                        {
+                            return Err(crate::MemoryError::CorruptRecord(
+                                "Entity resolution evidence format boundary",
                             )
                             .into());
                         }
@@ -387,9 +400,7 @@ impl Cva {
                                     "unsupported Dream journal version".into(),
                                 ));
                             }
-                            if required_version.is_some_and(|version| version.major == 1)
-                                || lineage_owner.is_none()
-                            {
+                            if source_format.major == 1 || lineage_owner.is_none() {
                                 return Err(CvaError::Freshness(
                                     "CVDREAM2 Begin requires a versioned V2 owner".into(),
                                 ));
@@ -412,9 +423,7 @@ impl Cva {
                                 .map_err(CvaError::Freshness)?;
                         }
                         processing_epochs.ingest(payload)?;
-                        if required_version.is_some_and(|version| version.major == 1)
-                            && DreamPairStore::is_compact_payload(payload)
-                        {
+                        if source_format.major == 1 && DreamPairStore::is_compact_payload(payload) {
                             return Err(crate::MemoryError::CorruptRecord(
                                 "compact Dream pair in V1 input",
                             )

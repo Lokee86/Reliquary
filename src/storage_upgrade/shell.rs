@@ -49,7 +49,8 @@ pub(crate) fn plan_storage_upgrade(
     request: StorageUpgradeRequest,
 ) -> Result<StorageUpgradePlan, StorageUpgradeError> {
     reject_existing_output(&request.destination)?;
-    let source = Container::open_v1_read_only(&request.source)?;
+    let mut source = Container::open_v1_read_only(&request.source)?;
+    source.visit_payloads(|_, bytes| super::authority_admission::validate(bytes))?;
     let identity = source
         .identity()
         .ok_or(StorageUpgradeError::MissingOwnerIdentity)?;

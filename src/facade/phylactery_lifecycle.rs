@@ -124,7 +124,10 @@ impl Phylactery {
         path: impl AsRef<Path>,
         required_version: Option<crate::FormatVersion>,
     ) -> Result<Self, PhylacteryError> {
-        let lineage_owner = Container::open_read_only_for_scan(path.as_ref())?.owner_uuid();
+        let header = Container::open_read_only_for_scan(path.as_ref())?;
+        let lineage_owner = header.owner_uuid();
+        let source_format = header.version();
+        drop(header);
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
         let mut memory_state = MemoryOpenState::new();
@@ -184,9 +187,7 @@ impl Phylactery {
                     .ingest(payload)
                     .map_err(PhylacteryError::Profile)?;
                 processing_epochs.ingest(payload)?;
-                if required_version.is_some_and(|version| version.major == 1)
-                    && DreamPairStore::is_compact_payload(payload)
-                {
+                if source_format.major == 1 && DreamPairStore::is_compact_payload(payload) {
                     return Err(crate::MemoryError::CorruptRecord(
                         "compact Dream pair in V1 input",
                     )
@@ -194,11 +195,21 @@ impl Phylactery {
                 }
                 dream_pairs.ingest(payload)?;
                 ego.ingest(payload)?;
-                if required_version.is_some_and(|version| version.major == 1)
+                if source_format.major == 1
                     && crate::entity_resolution_codec::delta::is_current(payload)
                 {
                     return Err(crate::MemoryError::CorruptRecord(
                         "compact Entity resolution in V1 input",
+                    )
+                    .into());
+                }
+                if (source_format.major == 1
+                    && crate::entity_resolution_codec::retained::is_current(payload))
+                    || (source_format.major != 1
+                        && crate::entity_resolution_codec::retained::is_source(payload))
+                {
+                    return Err(crate::MemoryError::CorruptRecord(
+                        "Entity resolution evidence format boundary",
                     )
                     .into());
                 }

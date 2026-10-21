@@ -134,7 +134,7 @@ P5-B changes no schema or persisted journal framing. Dispatch switches/wake stat
 
 ## Overview
 
-Current Entity Resolution history uses `CVAERS02`: stable mention key, literal
+Current Entity Resolution history uses `CVAERS03`: stable mention key, literal
 revision/update time and decision tag, followed by exact changed fields for
 Pending/Dormant evidence. First unresolved states carry all applicable fields;
 later omissions inherit only from the same key's previous unresolved state.
@@ -1413,3 +1413,5 @@ Graph source-history proof digests bind native transaction shape, order, stable 
 Ordinary Graph single/batch writers now encode current Graph bodies directly in one allocating publication envelope per transaction. Semantic validation, duplicate/revision checks, ordinal/count/body preparation and local/global successor checks precede physical writes. New mappings precede the publication but install into GraphStore only after envelope append succeeds; transaction state and Graph/MemoryGraph clocks follow the same commit point. No-op writes append nothing. Incomplete final envelopes recover to the previous publication cut and can be retried after reopen. Offline conversion and integrated acceptance remain separately tracked.
 
 The offline native Graph converter composes the prior owner envelope stages, replaces accepted V1 Graph link slots with BindReserved envelopes, and omits only their linked carriers. Existing mappings, orphan mutation backing, global reservations and optional times retain their source authority. Six-source ordered-fact/cut/mapping/time parity and source-integrity verification pass; exact Graph-only frame accounting is recorded in [Graph envelope measurements](../benchmarks/graph-envelope-migration-2026-10-20.json). Corpus promotion and legacy-reader retirement remain later work.
+
+The temporary offline V1 upgrader rejects unknown CVA/CVD/PRJ record identities before creating staging output; recognized identities still pass concrete owner validation. Known untranslatable prune authority (`CVAHPR01`) remains a typed refusal. Latest conversion normalizes `PRJCOR01` to current `PRJCOR02` with the same accepted sequence, REL cuts, repository identity/revision and management. Echo evidence retains its exact existing current carrier and order.
