@@ -456,6 +456,36 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
                         },
                     )
                     .to_vec()
+                } else if let Some(graph_publication) =
+                    crate::graph_compact_codec::publication::decode(
+                        envelope.body,
+                        envelope.global_version,
+                    )
+                    .unwrap()
+                {
+                    // The ordinary Graph writer now emits native envelopes.
+                    // Rebuild a true V1 carrier and link at this exact frame
+                    // slot so migration fixtures remain independent of the
+                    // current writer format.
+                    let (single, mutations) = cva
+                        .graph
+                        .decode_stored_transaction(payload)
+                        .unwrap()
+                        .expect("Graph envelope has an accepted stable-ID transaction");
+                    assert_eq!(graph_publication.is_single(), single);
+                    let carrier = if single {
+                        assert_eq!(mutations.len(), 1);
+                        crate::graph_codec::encode_mutation(mutations[0])
+                    } else {
+                        crate::graph_codec::encode_batch(&mutations)
+                    };
+                    let record = copied.append(&carrier)?;
+                    crate::graph_codec::encode_version(crate::graph_codec::GraphVersionPayload {
+                        global_version: envelope.global_version,
+                        graph_version: graph_publication.graph_version,
+                        mutation: record,
+                    })
+                    .to_vec()
                 } else {
                     let publication = publication::decode(envelope.body, envelope.global_version)
                         .unwrap()

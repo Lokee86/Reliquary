@@ -1,4 +1,5 @@
-use crate::graph_codec::{decode_node, decode_version};
+use crate::graph_codec::decode_node;
+use crate::graph_compact_codec::publication;
 use crate::{
     Container, ContainerError, Cva, EntityDraft, GraphRelationChange, GraphRelationKind,
     GraphRelationOrigin, MemoryDraft, MemoryId, Phylactery, SemanticGraphRelationChange,
@@ -82,11 +83,6 @@ fn payloads(path: &Path) -> Vec<(crate::ObjectRef, Vec<u8>)> {
 
 fn assert_compact_publications(path: &Path, expected_single: usize, expected_batch: usize) {
     let values = payloads(path);
-    let positions = values
-        .iter()
-        .enumerate()
-        .map(|(index, (object, _))| (*object, index))
-        .collect::<BTreeMap<_, _>>();
     let mut mapping_positions = BTreeMap::new();
     let mut compact_single_count = 0;
     let mut compact_batch_count = 0;
@@ -96,47 +92,43 @@ fn assert_compact_publications(path: &Path, expected_single: usize, expected_bat
         }
         if bytes.starts_with(b"CVAGMUT") || bytes.starts_with(b"CVAGBAT") {
             panic!(
-                "legacy Graph carrier found in compact writer fixture: {:?}",
+                "legacy Graph carrier found in native writer fixture: {:?}",
                 &bytes[..8]
             );
         }
-        if bytes.starts_with(b"CVAGCM01") {
-            compact_single_count += 1;
-        } else if bytes.starts_with(b"CVAGCB01") {
-            compact_batch_count += 1;
-        }
+        assert!(!bytes.starts_with(b"CVAGCM01") && !bytes.starts_with(b"CVAGCB01"));
     }
-    let mut marker_count = 0;
-    for (marker_index, (marker_object, bytes)) in values.iter().enumerate() {
-        let Some(marker) = decode_version(bytes).unwrap() else {
+    let mut publication_count = 0;
+    for (index, (_, bytes)) in values.iter().enumerate() {
+        let Some(envelope) = crate::container::publication_envelope::decode(bytes).unwrap() else {
             continue;
         };
-        marker_count += 1;
-        let carrier_index = *positions.get(&marker.mutation).unwrap();
-        assert!(
-            carrier_index < marker_index,
-            "marker must follow its carrier"
-        );
-        let carrier = &values[carrier_index].1;
-        let ordinals = crate::graph_compact_codec::decode(carrier)
-            .unwrap()
-            .unwrap();
-        for mutation in ordinals {
+        let Some(publication) =
+            publication::decode(envelope.body, envelope.global_version).unwrap()
+        else {
+            continue;
+        };
+        publication_count += 1;
+        if publication.is_single() {
+            compact_single_count += 1;
+        } else {
+            compact_batch_count += 1;
+        }
+        for mutation in publication.mutations() {
             for ordinal in [mutation.source, mutation.target] {
                 let mapped_at = mapping_positions.get(&ordinal).unwrap_or_else(|| {
-                    panic!("ordinal {ordinal} has no mapping before graph marker")
+                    panic!("ordinal {ordinal} has no mapping before Graph envelope")
                 });
                 assert!(
-                    *mapped_at < carrier_index,
-                    "every ordinal mapping must precede its carrier"
+                    *mapped_at < index,
+                    "every ordinal mapping precedes publication"
                 );
             }
         }
-        assert_eq!(values[marker_index].0, *marker_object);
     }
     assert_eq!(compact_single_count, expected_single);
     assert_eq!(compact_batch_count, expected_batch);
-    assert_eq!(marker_count, expected_single + expected_batch);
+    assert_eq!(publication_count, expected_single + expected_batch);
 }
 
 fn publish_graph_changes_rel(owner: &mut Cva, ids: [MemoryId; 3]) {
@@ -481,4 +473,79 @@ fn fresh_history_rewrite_emits_compact_graph_and_preserves_graph_zero_isolated_b
     assert!(zero.states.is_empty());
     assert_eq!(zero.memory_graph_version, 0);
     assert_eq!(history.at(1, true).unwrap().memory_graph_version, 1);
+}
+
+#[test]
+fn every_incomplete_native_graph_transaction_envelope_recovers_before_retry() {
+    let scratch = Scratch::new();
+    let complete_path = scratch.file("complete.rel");
+    let mut owner = Cva::create_project(&complete_path).unwrap();
+    let ids = ["partial-a", "partial-b"].map(|name| {
+        owner
+            .publish_memory(None, 0, memory_draft(name))
+            .unwrap()
+            .0
+            .id
+    });
+    let prior_global = owner.latest_global_version();
+    owner
+        .set_memory_relation(
+            ids[0],
+            ids[1],
+            GraphRelationKind::Factual,
+            true,
+            owner.graph_version(),
+        )
+        .unwrap();
+    owner.sync().unwrap();
+    drop(owner);
+
+    let bytes = fs::read(&complete_path).unwrap();
+    let mut container = Container::open(&complete_path).unwrap();
+    let mut envelope_start = None;
+    let mut envelope_len = None;
+    container
+        .visit_payloads::<ContainerError>(|object, payload| {
+            if crate::container::publication_envelope::decode(payload)
+                .unwrap()
+                .is_some_and(|envelope| {
+                    publication::decode(envelope.body, envelope.global_version)
+                        .unwrap()
+                        .is_some()
+                })
+            {
+                let reference = object.legacy_bytes();
+                envelope_start =
+                    Some(u64::from_le_bytes(reference[..8].try_into().unwrap()) as usize);
+                envelope_len = Some(payload.len());
+            }
+            Ok(())
+        })
+        .unwrap();
+    let start = envelope_start.unwrap();
+    let frame_len = 8 + envelope_len.unwrap();
+    assert_eq!(start + frame_len, bytes.len());
+
+    for prefix_len in 0..frame_len {
+        let path = scratch.file(&format!("partial-{prefix_len}.rel"));
+        fs::write(&path, &bytes[..start + prefix_len]).unwrap();
+        let mut reopened = Cva::open(&path).unwrap();
+        assert_eq!(reopened.graph_version(), 0, "prefix {prefix_len}");
+        assert_eq!(reopened.latest_global_version(), prior_global);
+        reopened
+            .set_memory_relation(
+                ids[0],
+                ids[1],
+                GraphRelationKind::Factual,
+                true,
+                reopened.graph_version(),
+            )
+            .unwrap();
+        reopened.sync().unwrap();
+        drop(reopened);
+        let recovered = Cva::open(&path).unwrap();
+        assert_eq!(recovered.graph_version(), 1, "prefix {prefix_len}");
+        assert_eq!(recovered.latest_global_version(), prior_global + 1);
+        assert_eq!(recovered.semantic_graph_relations().len(), 1);
+    }
 }

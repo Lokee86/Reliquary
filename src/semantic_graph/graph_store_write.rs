@@ -1,13 +1,16 @@
 use super::{GraphStore, RelationKey, validation};
 use crate::entity_store::EntityStore;
-use crate::graph_codec::{GraphMutationPayload, GraphVersionPayload, encode_version};
+use crate::graph_codec::{GraphNodePayload, encode_format, encode_node};
+use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
+use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::memory_store::MemoryStore;
 use crate::{
     Container, EntityId, GraphError, GraphRelation, GraphRelationChange, GraphRelationOrigin,
     MemoryId, SemanticGraphRelation, SemanticGraphRelationChange, SemanticGraphRelationKind,
     SemanticNodeRef,
 };
-use std::collections::HashSet;
+use arcana::NodeId;
+use std::collections::{HashMap, HashSet};
 
 impl GraphStore {
     pub(crate) fn set_relation(
@@ -294,30 +297,55 @@ impl GraphStore {
                 .ok_or(GraphError::NodeIdExhausted)?;
             u32::try_from(last).map_err(|_| GraphError::NodeIdExhausted)?;
         }
-        self.ensure_format(container)?;
+        // Prepare ordinal assignments without installing them into the live
+        // store. A failed transaction-envelope append must not publish the
+        // staged Graph mappings or advance in-memory semantic state.
+        let mut staged_nodes = Vec::with_capacity(new_nodes.len());
+        let mut staged_ids = HashMap::with_capacity(new_nodes.len());
+        let mut ordinals = Vec::with_capacity(effective.len());
         for change in &effective {
-            self.ensure_semantic_node(container, change.source)?;
-            self.ensure_semantic_node(container, change.target)?;
-        }
-
-        let payloads: Vec<_> = effective
-            .iter()
-            .map(|change| GraphMutationPayload {
-                source: change.source,
-                target: change.target,
+            let source = planned_node_id(self, change.source, &mut staged_nodes, &mut staged_ids)?;
+            let target = planned_node_id(self, change.target, &mut staged_nodes, &mut staged_ids)?;
+            ordinals.push(GraphOrdinalMutation {
+                source: source.0,
+                target: target.0,
                 kind: change.kind,
                 active: change.active,
                 origin,
-            })
-            .collect();
-        let payload = self.encode_compact_mutations(&payloads, single)?;
-        let mutation = container.append(&payload)?;
-        let global_version = container.allocate_version()?;
-        container.append(&encode_version(GraphVersionPayload {
-            global_version,
+            });
+        }
+        let transaction = if single {
+            if ordinals.len() != 1 {
+                return Err(GraphError::InvalidGraphVersion);
+            }
+            GraphTransaction::Single(ordinals[0])
+        } else {
+            GraphTransaction::Batch(ordinals)
+        };
+        let body = publication::encode(&GraphPublication {
             graph_version,
-            mutation,
-        }))?;
+            transaction,
+        })?;
+
+        if !self.format_initialized {
+            container.append(&encode_format())?;
+        }
+        for node in &staged_nodes {
+            container.append(&encode_node(GraphNodePayload {
+                semantic_node: node.semantic_node,
+                node_id: node.node_id,
+            }))?;
+        }
+        let (global_version, _) = container.append_publication_envelope(&body)?;
+
+        // Commit staged mappings only after the sole transaction publication
+        // has appended successfully.
+        self.format_initialized = true;
+        for node in staged_nodes {
+            self.node_by_semantic
+                .insert(node.semantic_node, node.node_id);
+            self.nodes.push(node);
+        }
 
         let relations: Vec<_> = effective
             .into_iter()
@@ -336,6 +364,32 @@ impl GraphStore {
         self.rebuild_topologies()?;
         Ok(relations)
     }
+}
+
+fn planned_node_id(
+    store: &GraphStore,
+    semantic_node: SemanticNodeRef,
+    staged_nodes: &mut Vec<crate::GraphNodeRecord>,
+    staged_ids: &mut HashMap<SemanticNodeRef, NodeId>,
+) -> Result<NodeId, GraphError> {
+    if let Some(node_id) = store.node_by_semantic.get(&semantic_node) {
+        return Ok(*node_id);
+    }
+    if let Some(node_id) = staged_ids.get(&semantic_node) {
+        return Ok(*node_id);
+    }
+    let index = store
+        .nodes
+        .len()
+        .checked_add(staged_nodes.len())
+        .ok_or(GraphError::NodeIdExhausted)?;
+    let node_id = NodeId(u32::try_from(index).map_err(|_| GraphError::NodeIdExhausted)?);
+    staged_nodes.push(crate::GraphNodeRecord {
+        semantic_node,
+        node_id,
+    });
+    staged_ids.insert(semantic_node, node_id);
+    Ok(node_id)
 }
 
 fn memory_relation(relation: SemanticGraphRelation) -> Option<GraphRelation> {
