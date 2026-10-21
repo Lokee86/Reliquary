@@ -1500,3 +1500,9 @@ REL population coordinator230 accepted against `944231e`: eight focused module c
 
 
 Population digest231 accepted against `99a9e73`: two canonical hash cases pass with independently regenerated literal vectors using one NUL byte. Wire contract232 accepted against `e79cda6`: CVDREAM2 Begin retains common pass/source/turn/graph authority, with cut+digest or exact explicit set and implicit first revision1. Existing journal kinds remain unchanged; V2 owner integration and writing are later gates. Progress232/357; encoder233 is next.
+
+
+Current Begin encoder233 accepted against `17844a3`: four tests pass, with independent literal CompactCut/nonempty/empty ExplicitSet bytes and pre-emission invalid-field checks. No file replay or ordinary writer changed. Progress233/357; strict decoder234 is active.
+
+
+Strict decoder234 accepted against `f810554`: nine codec tests pass, covering independent fixtures, all truncated prefixes, invalid framing and bounded count/length rejection. Progress234/357; physical replay/materialization235 is active.
