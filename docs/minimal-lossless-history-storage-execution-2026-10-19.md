@@ -1494,3 +1494,6 @@ External prefix228 accepted against `ad45319`: populated legacy/current format p
 
 
 Bounded physical reader229 accepted against `aeb7a43`: three new cases and all17 envelope-clock tests pass, including reverse reserved bindings, grouped ranges, malformed/V1 framing, clipped boundary and a valid prefix before a later incomplete tail. Source bytes and live clocks/times remain unchanged. Progress229/357; concrete REL Begin coordinator230 is active.
+
+
+REL population coordinator230 accepted against `944231e`: eight focused module cases,2,036 broad units and root test compilation pass. Five existing ignored and three separately verified exhaustive sweeps remain excluded. The held-container bounded query checks exact Memory head and physical birth/cohort presence without body/current-liveness lookup, with reusable prefix state for later replay integration. Primary architecture/maintainer/population docs describe the focused REL module; owner boundaries and policy are unchanged. Progress230/357; digest231 is active.
