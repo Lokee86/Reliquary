@@ -182,6 +182,46 @@ impl GraphStore {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
+        self.publish_semantic_changes_with_shape(
+            container,
+            changes,
+            origin,
+            expected_graph_version,
+            None,
+        )
+    }
+
+    pub(crate) fn replay_semantic_transaction(
+        &mut self,
+        container: &mut Container,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+        changes: &[SemanticGraphRelationChange],
+        origin: GraphRelationOrigin,
+        expected_graph_version: u64,
+        single: bool,
+    ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
+        container.require_storage_format_writable()?;
+        for change in changes {
+            validation::validate_change(memories, entities, *change, origin)?;
+        }
+        self.publish_semantic_changes_with_shape(
+            container,
+            changes,
+            origin,
+            expected_graph_version,
+            Some(single),
+        )
+    }
+
+    fn publish_semantic_changes_with_shape(
+        &mut self,
+        container: &mut Container,
+        changes: &[SemanticGraphRelationChange],
+        origin: GraphRelationOrigin,
+        expected_graph_version: u64,
+        source_single: Option<bool>,
+    ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
         container.require_storage_format_writable()?;
         let current_version = self.graph_version();
         if expected_graph_version != current_version {
@@ -214,15 +254,46 @@ impl GraphStore {
             return Ok(Vec::new());
         }
 
-        effective.sort_by_key(|change| {
-            (
-                change.source.kind.code(),
-                change.source.id,
-                change.target.kind.code(),
-                change.target.id,
-                change.kind.code(),
-            )
-        });
+        if source_single.is_none() {
+            effective.sort_by_key(|change| {
+                (
+                    change.source.kind.code(),
+                    change.source.id,
+                    change.target.kind.code(),
+                    change.target.id,
+                    change.kind.code(),
+                )
+            });
+        }
+        let single = source_single.unwrap_or(effective.len() == 1);
+        if single && effective.len() != 1 {
+            return Err(GraphError::InvalidGraphVersion);
+        }
+        let graph_version = self.next_graph_version;
+        let next_graph_version = graph_version
+            .checked_add(1)
+            .ok_or(GraphError::GraphVersionExhausted)?;
+        let global = container
+            .latest_version()
+            .checked_add(1)
+            .ok_or(crate::ContainerError::VersionExhausted)?;
+        global
+            .checked_add(1)
+            .ok_or(crate::ContainerError::VersionExhausted)?;
+        let new_nodes = effective
+            .iter()
+            .flat_map(|change| [change.source, change.target])
+            .filter(|node| !self.node_by_semantic.contains_key(node))
+            .collect::<HashSet<_>>();
+        if !new_nodes.is_empty() {
+            let last = self
+                .nodes
+                .len()
+                .checked_add(new_nodes.len())
+                .and_then(|count| count.checked_sub(1))
+                .ok_or(GraphError::NodeIdExhausted)?;
+            u32::try_from(last).map_err(|_| GraphError::NodeIdExhausted)?;
+        }
         self.ensure_format(container)?;
         for change in &effective {
             self.ensure_semantic_node(container, change.source)?;
@@ -239,9 +310,8 @@ impl GraphStore {
                 origin,
             })
             .collect();
-        let payload = self.encode_compact_mutations(&payloads, payloads.len() == 1)?;
+        let payload = self.encode_compact_mutations(&payloads, single)?;
         let mutation = container.append(&payload)?;
-        let graph_version = self.next_graph_version;
         let global_version = container.allocate_version()?;
         container.append(&encode_version(GraphVersionPayload {
             global_version,
@@ -262,10 +332,7 @@ impl GraphStore {
             })
             .collect();
         self.insert_transaction(&relations)?;
-        self.next_graph_version = self
-            .next_graph_version
-            .checked_add(1)
-            .ok_or(GraphError::GraphVersionExhausted)?;
+        self.next_graph_version = next_graph_version;
         self.rebuild_topologies()?;
         Ok(relations)
     }

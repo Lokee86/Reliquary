@@ -26,7 +26,7 @@ impl Coordinates {
         result.memory_graph.insert(0, 0);
         for chunk in source.container.chunks()?.into_iter().take(end) {
             let payload = source.container.read(chunk)?;
-            if let Some(v) = crate::graph_codec::decode_version(&payload)? {
+            if let Some(v) = crate::graph_compact_codec::publication::version_at(chunk, &payload)? {
                 result.graph.insert(v.graph_version, v.graph_version);
                 let mutation = source.container.read(v.mutation)?;
                 let changes = source
@@ -63,7 +63,9 @@ impl Coordinates {
             let mut communities = Vec::new();
             for chunk in cva.container.chunks()?.into_iter().take(end).skip(first) {
                 let payload = cva.container.read(chunk)?;
-                if let Some(version) = crate::graph_codec::decode_version(&payload)? {
+                if let Some(version) =
+                    crate::graph_compact_codec::publication::version_at(chunk, &payload)?
+                {
                     let raw = cva.container.read(version.mutation)?;
                     let changes = cva
                         .graph
@@ -209,7 +211,8 @@ pub(super) fn replay_frame(
         crate::cva_reconcile_relationship::replay_relationship_tail(output, relationships)?;
     coordinates.relationship_revisions += result.revisions;
     coordinates.duplicate_relationship_revisions += result.duplicate_revisions;
-    if let Some(version) = crate::graph_codec::decode_version(payload)? {
+    if let Some((_, graph_version)) = crate::graph_compact_codec::publication::coordinates(payload)?
+    {
         let graph = crate::cva_reconcile_graph::read_graph_range(source, index, index + 1)?;
         let result = crate::cva_reconcile_graph::replay_graph_tail(output, &graph)?;
         coordinates.graph_transactions += result.transactions;
@@ -217,11 +220,11 @@ pub(super) fn replay_frame(
         coordinates.duplicate_graph_mutations += result.duplicate_mutations;
         coordinates
             .graph
-            .insert(version.graph_version, output.graph_version());
+            .insert(graph_version, output.graph_version());
         if result.source_memory_graph_changed {
             coordinates
                 .memory_graph
-                .insert(version.graph_version, output.memory_graph_version());
+                .insert(graph_version, output.memory_graph_version());
         }
     }
     if let Some(mut snapshot) =

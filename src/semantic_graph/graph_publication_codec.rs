@@ -123,6 +123,18 @@ pub(crate) fn version_at(
     }))
 }
 
+/// Coordinates alone are not semantic admission or ordinal-table authority.
+pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, GraphError> {
+    if let Some(version) = crate::graph_codec::decode_version(payload)? {
+        return Ok(Some((version.global_version, version.graph_version)));
+    }
+    let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+        return Ok(None);
+    };
+    Ok(decode(envelope.body, envelope.global_version)?
+        .map(|publication| (envelope.global_version, publication.graph_version)))
+}
+
 fn corrupt(message: &'static str) -> GraphError {
     GraphError::CorruptRecord(message)
 }

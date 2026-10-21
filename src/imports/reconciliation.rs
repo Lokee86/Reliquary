@@ -12,6 +12,9 @@ mod freshness_authority_tests;
 #[path = "reconciliation_graph_compact_tests.rs"]
 mod graph_compact_tests;
 #[cfg(test)]
+#[path = "reconciliation_graph_envelope_tests.rs"]
+mod graph_envelope_tests;
+#[cfg(test)]
 #[path = "reconciliation_memory_envelope_tests.rs"]
 mod memory_envelope_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
@@ -199,7 +202,9 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                     .ok_or(crate::RelationshipError::InvalidVersion)?;
                 owner_evidence.push(publication.normalized_import_evidence()?);
             }
-            if let Some(version) = crate::graph_codec::decode_version(&payload)? {
+            if let Some(version) =
+                crate::graph_compact_codec::publication::version_at(chunk, &payload)?
+            {
                 owner_evidence.push(canonical_graph_publication(cva, version)?);
             }
             if let Some(mut snapshot) =
@@ -368,7 +373,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             || crate::relationship_compact_codec::publication::coordinates(&payload)?.is_some()
             || crate::entity_resolution_codec::decode_resolution(&payload)?.is_some()
             || crate::graph_codec::decode_node(&payload)?.is_some()
-            || crate::graph_codec::decode_version(&payload)?.is_some()
+            || crate::graph_compact_codec::publication::version_at(chunk, &payload)?.is_some()
             || crate::graph_codec::decode_mutation(&payload)?.is_some()
             || crate::graph_codec::decode_batch(&payload)?.is_some()
             || crate::graph_compact_codec::is_compact_record(&payload)?

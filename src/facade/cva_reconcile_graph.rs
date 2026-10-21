@@ -1,5 +1,4 @@
 use crate::cva_reconcile::with_replayed_transaction_time;
-use crate::graph_codec::decode_version;
 use crate::{
     Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationOrigin, SemanticGraphRelationChange,
     SemanticGraphRelationKind, SemanticNodeRef,
@@ -15,6 +14,7 @@ struct GraphKey {
 
 #[derive(Clone, Debug)]
 struct GraphTailTransaction {
+    single: bool,
     changes: Vec<SemanticGraphRelationChange>,
     origin: GraphRelationOrigin,
     transaction_time_ns: Option<i64>,
@@ -31,6 +31,7 @@ impl GraphTail {
             transactions: transactions
                 .into_iter()
                 .map(|changes| GraphTailTransaction {
+                    single: changes.len() == 1,
                     changes: changes.into_iter().map(memory_change).collect(),
                     origin: GraphRelationOrigin::Dream,
                     transaction_time_ns: None,
@@ -69,11 +70,13 @@ pub(crate) fn read_graph_range(
     let mut transactions = Vec::new();
     for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
         let payload = cva.container.read(*chunk)?;
-        let Some(version) = decode_version(&payload)? else {
+        let Some(version) = crate::graph_compact_codec::publication::version_at(*chunk, &payload)?
+        else {
             continue;
         };
         let mutation_payload = cva.container.read(version.mutation)?;
-        let Some(mutations) = cva.graph.decode_stored_mutations(&mutation_payload)? else {
+        let Some((single, mutations)) = cva.graph.decode_stored_transaction(&mutation_payload)?
+        else {
             return Err(CvaReconcileError::InvalidGraphVersionRecord);
         };
         let origin = mutations
@@ -84,6 +87,7 @@ pub(crate) fn read_graph_range(
             return Err(CvaReconcileError::InvalidGraphVersionRecord);
         }
         transactions.push(GraphTailTransaction {
+            single,
             changes: mutations
                 .into_iter()
                 .map(|mutation| SemanticGraphRelationChange {
@@ -195,10 +199,14 @@ fn replay_with_skips(
             destination,
             transaction.transaction_time_ns,
             |destination| {
-                destination.set_semantic_relations_with_origin(
+                destination.graph.replay_semantic_transaction(
+                    &mut destination.container,
+                    &destination.memories,
+                    &destination.entities,
                     &changes,
                     transaction.origin,
                     graph_version,
+                    transaction.single,
                 )
             },
         )?;

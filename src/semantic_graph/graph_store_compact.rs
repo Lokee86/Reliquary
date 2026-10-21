@@ -8,10 +8,9 @@ impl GraphStore {
     /// Stable full-ID evidence for import comparison, never a persisted writer.
     /// Preserve single/batch shape and mutation order while removing ordinal scope.
     pub(crate) fn normalized_import_evidence(&self, bytes: &[u8]) -> Result<Vec<u8>, GraphError> {
-        let values = self
-            .decode_stored_mutations(bytes)?
+        let (single, values) = self
+            .decode_stored_transaction(bytes)?
             .ok_or(GraphError::InvalidGraphVersion)?;
-        let single = bytes.starts_with(b"CVAGCM01") || decode_mutation(bytes)?.is_some();
         if single {
             if values.len() != 1 {
                 return Err(GraphError::InvalidGraphVersion);
@@ -82,6 +81,15 @@ impl GraphStore {
         &self,
         bytes: &[u8],
     ) -> Result<Option<Vec<GraphMutationPayload>>, GraphError> {
+        Ok(self
+            .decode_stored_transaction(bytes)?
+            .map(|(_, values)| values))
+    }
+
+    pub(crate) fn decode_stored_transaction(
+        &self,
+        bytes: &[u8],
+    ) -> Result<Option<(bool, Vec<GraphMutationPayload>)>, GraphError> {
         if let Some(envelope) = crate::container::publication_envelope::decode(bytes)? {
             let Some(publication) = crate::graph_compact_codec::publication::decode(
                 envelope.body,
@@ -92,15 +100,17 @@ impl GraphStore {
             };
             return self
                 .resolve_compact_mutations(publication.mutations())
-                .map(Some);
+                .map(|values| Some((publication.is_single(), values)));
         }
         if let Some(values) = crate::graph_compact_codec::decode(bytes)? {
-            return self.resolve_compact_mutations(&values).map(Some);
+            return self
+                .resolve_compact_mutations(&values)
+                .map(|values| Some((bytes.starts_with(b"CVAGCM01"), values)));
         }
         if let Some(batch) = decode_batch(bytes)? {
-            return Ok(Some(batch));
+            return Ok(Some((false, batch)));
         }
-        Ok(decode_mutation(bytes)?.map(|value| vec![value]))
+        Ok(decode_mutation(bytes)?.map(|value| (true, vec![value])))
     }
 
     pub(crate) fn encode_compact_mutations(
