@@ -217,6 +217,16 @@ The internal reconnect operation reads a fresh authorized snapshot and replaces 
 
 ## P4 exact conversation streams
 
+ExternalIndexStore persists disposable `CVAXIDX2` current snapshots and explicit
+derived discard barriers. The compact binary representation removes repeated
+namespace/message references and reconstructs contiguous chunk starts. Snapshot
+revisions remain writer CAS state; they are not retained semantic history.
+Reclamation retains the latest state per namespace and the required damage
+barrier. Offline conversion replaces legacy index chains while preserving
+`CVAXMEM1`/`CVAXMEM2` publication/evidence authority through the existing Memory converter. Native reclamation retains those payloads byte-for-byte. Existing authorization,
+hydration, backing validation and damaged-cache rebuild behavior remain at
+their concrete owners. See the [index contract](external-index-compact-contract-2026-10-21.md).
+
 InteractionStreamStore owns materialization of REL `CVAISTR2` metadata, exact
 UTF-8 suffixes and irreversible interruption markers. The physical byte position
 is a content coordinate, never a semantic clock. Checkpoint validation and

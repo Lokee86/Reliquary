@@ -11,6 +11,7 @@ pub use model::{
     MAX_EXTERNAL_INDEX_BYTES, MAX_EXTERNAL_MANIFEST, MAX_EXTERNAL_MESSAGE_BYTES,
     MAX_EXTERNAL_RESULTS, external_content_hash,
 };
+pub(crate) mod compact_index;
 pub(crate) mod index;
 mod provenance;
 pub(crate) mod store;

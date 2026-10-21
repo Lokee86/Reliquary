@@ -1596,3 +1596,45 @@ Architecture refresh diagnosis found disposable Rust/repository copies under
 only .test-tmp and .verification-tmp; neither has tracked authored files. Normal
 src/tests/examples/cli source scope remains intact. The scoped refresh is being
 collected; retained-snapshot and fresh results are distinguished explicitly.
+
+
+## Steps 256–265 — Compact interaction streams
+
+Implementation: `bdca9b6`. Separate numbered evidence is in the linear plan.
+CVAISTR2 stores metadata once, exact UTF-8 suffixes with byte positions and
+interruption markers. The public checkpoint/transcript contract and sync
+acknowledgement stay unchanged. Completed turns remain Archive authority.
+
+All 25 interaction/runtime cases pass, including nine new compact cases, V1
+checkpoint conversion, source immutability, exact retry/nonmutation, every torn
+checkpoint tail, reconciliation interruption dominance and wrong-format/owner
+rejection. CLI tests pass 32/32; root/CLI formatting passes. Both documentation
+policy modes pass on a byte-verified 1,783-file independent snapshot. The first
+migration test failure was a test-only wrong staging path and was corrected;
+the expanded rerun passes completely.
+
+The [raw growth artifact](../benchmarks/interaction-stream-storage-2026-10-21.json)
+measures 512 final UTF-8 bytes over 256 appends: 79,925 cumulative framed bytes
+versus 9,809 compact bytes, including all metadata, interruption and framing.
+This is a stream-family synthetic measurement, not a whole-corpus or compression
+claim.
+
+The scoped architecture refresh passed 92 P4 fixtures and 11 ownership fixtures
+plus production boundaries, but timed out at 15 minutes in Rust analysis with
+no new snapshot. A longer bounded refresh is collecting in parallel. Retained
+snapshot evidence is not presented as fresh structural enforcement. Gate F
+behavioral/oracle evidence passes; its fresh structural requirement and final
+promotion/retirement remain outstanding.
+
+
+## Integration Gate F — completed fresh enforcement
+
+The longer scoped architecture refresh completed successfully in2,160.54 seconds.
+Snapshot `ee25c7365267a2dfbcadda0c01b390e45933e102d00beb10bef9a76554d28ee1` passes all23
+Pitlord rules,107,943 source nodes and3,216 relationships, with zero compatibility
+warnings. All20 production Rust paths in Dream/stream commits through `bdca9b6`
+match the captured source mirror after LF/CRLF normalization; zero missing or
+mismatched paths. The92 P4 fixtures,11 external ownership fixtures and production
+source guards pass. Behavioral/oracle evidence recorded above plus this fresh
+structural evidence closes Gate F. Earlier timeout limitations are superseded.
+The later derived-index changes are being captured in a separate refresh.

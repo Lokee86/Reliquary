@@ -1,0 +1,14 @@
+{
+  "date": "2026-10-21",
+  "workload": "one indexed external message with vector routing and term hashes; three unchanged-source rebuilds",
+  "verification": "external_source::tests::compact_tests::compact_external_index_reclaim_keeps_latest_lookup_and_memory_proof",
+  "latest_snapshot": {
+    "legacy_json_payload_bytes": 1429,
+    "legacy_framed_bytes": 1437,
+    "current_binary_payload_bytes": 377,
+    "current_framed_bytes": 385
+  },
+  "native_reclamation": { "superseded_snapshots_removed": 2, "current_snapshots_retained": 1 },
+  "verified": ["same lookup hits", "same current index status", "same global head", "same external Memory/evidence", "source bytes unchanged"],
+  "scope": "raw synthetic index-family payload/framing; external semantic publications, whole-file totals and compression are excluded"
+}

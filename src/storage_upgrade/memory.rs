@@ -332,11 +332,19 @@ fn transform_owners(
         encoded.insert((record.global_version, record.memory_version), bytes);
     }
     let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
+    let external_index = if migrate_graph_envelopes {
+        super::external_index::prepare(source)?
+    } else {
+        Vec::new()
+    };
     let mut dream_pairs = crate::dream_pair_history::DreamPairStore::default();
     let mut interaction_streams =
         crate::interaction_stream_store::InteractionStreamStore::default();
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
         if migrate_graph_envelopes {
+            if payload.starts_with(b"CVAXIDX1") {
+                return Ok(());
+            }
             if let Some(record) = crate::interaction_stream_codec::decode(payload)? {
                 interaction_streams.put(destination, record)?;
                 return Ok(());
@@ -416,6 +424,9 @@ fn transform_owners(
         Ok(())
     })?;
     for payload in normalizations {
+        destination.append(&payload)?;
+    }
+    for payload in external_index {
         destination.append(&payload)?;
     }
     Ok(())

@@ -17,6 +17,7 @@ mod ego_authoritative_tests;
 mod ego_tests;
 mod entity;
 mod entity_envelope;
+mod external_index;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod freshness_authoritative_tests;
 mod graph;

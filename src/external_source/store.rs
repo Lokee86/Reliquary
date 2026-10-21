@@ -97,7 +97,25 @@ pub(crate) struct ExternalIndexStore {
 }
 impl ExternalIndexStore {
     pub(crate) fn ingest(&mut self, bytes: &[u8]) {
+        if bytes.starts_with(super::compact_index::MAGIC) {
+            match super::compact_index::decode(bytes) {
+                Ok(super::compact_index::Record::Snapshot(state)) => {
+                    // Each derived snapshot stands alone. Revisions remain CAS
+                    // state for writers, never authoritative retained history.
+                    self.sources.insert(state.namespace.clone(), state);
+                }
+                Ok(super::compact_index::Record::Discard) | Err(_) => {
+                    self.sources.clear();
+                    self.damaged = true;
+                }
+            }
+            return;
+        }
         if !bytes.starts_with(MAGIC) {
+            if bytes.starts_with(b"CVAXIDX") {
+                self.sources.clear();
+                self.damaged = true;
+            }
             return;
         }
         let decoded = decode(bytes);
@@ -183,6 +201,15 @@ impl ExternalIndexStore {
     }
 }
 pub(crate) fn encode(state: &SourceState) -> Result<Vec<u8>, ExternalSourceError> {
+    super::compact_index::encode(state)
+}
+
+pub(crate) fn discard_payload() -> Vec<u8> {
+    super::compact_index::discard()
+}
+
+#[cfg(test)]
+pub(crate) fn encode_legacy(state: &SourceState) -> Result<Vec<u8>, ExternalSourceError> {
     state.validate()?;
     let json = serde_json::to_vec(state).map_err(|_| ExternalSourceError::InvalidContract)?;
     if json.len() > MAX_EXTERNAL_INDEX_BYTES {

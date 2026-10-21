@@ -18,6 +18,10 @@ pub(crate) struct ReclamationScan {
     memory_vector_packed_refs: HashSet<PackedVectorId>,
     packed_vector_chunks: Vec<(ObjectRef, PackedVectorId)>,
     free_compaction_chunks: HashSet<ObjectRef>,
+    external_snapshot_chunks: Vec<ObjectRef>,
+    external_snapshot_heads: HashMap<String, ObjectRef>,
+    external_discard: Option<ObjectRef>,
+    legacy_external_index: bool,
 }
 
 pub(crate) struct ReclamationPlan {
@@ -28,11 +32,30 @@ pub(crate) struct ReclamationPlan {
     pub(crate) unactivated_archive_vector_chunks: usize,
     pub(crate) unreferenced_packed_vector_chunks: usize,
     pub(crate) free_compaction_chunks: usize,
+    pub(crate) superseded_external_index_chunks: usize,
 }
 
 impl ReclamationScan {
     pub(crate) fn ingest(&mut self, object: ObjectRef, payload: &[u8]) -> Result<(), String> {
         self.external_index.ingest(payload);
+        if payload.starts_with(b"CVAXIDX1") {
+            self.legacy_external_index = true;
+        }
+        if payload.starts_with(crate::external_source::compact_index::MAGIC) {
+            self.external_snapshot_chunks.push(object);
+            match crate::external_source::compact_index::decode(payload) {
+                Ok(crate::external_source::compact_index::Record::Snapshot(state)) => {
+                    self.external_snapshot_heads.insert(state.namespace, object);
+                }
+                Ok(crate::external_source::compact_index::Record::Discard) | Err(_) => {
+                    self.external_snapshot_heads.clear();
+                    self.external_discard = Some(object);
+                }
+            }
+        } else if payload.starts_with(b"CVAXIDX") && !payload.starts_with(b"CVAXIDX1") {
+            self.external_snapshot_heads.clear();
+            self.external_discard = Some(object);
+        }
         if let Some(publication) = crate::external_source::publication::decode(payload)
             .map_err(|error| error.to_string())?
         {
@@ -365,6 +388,21 @@ impl ReclamationScan {
         drop.extend(unactivated_archive_vectors.iter().copied());
         drop.extend(unreferenced_packed.iter().copied());
         drop.extend(self.free_compaction_chunks.iter().copied());
+        // Legacy revisions temporarily retain their replay chain. Current
+        // snapshots stand alone, so only the latest per namespace and last
+        // damage/discard barrier remain required. No semantic prune marker.
+        let retained_external: HashSet<_> = self
+            .external_snapshot_heads
+            .values()
+            .copied()
+            .chain(self.external_discard)
+            .collect();
+        let superseded_external: HashSet<_> = self
+            .external_snapshot_chunks
+            .into_iter()
+            .filter(|object| !self.legacy_external_index && !retained_external.contains(object))
+            .collect();
+        drop.extend(superseded_external.iter().copied());
 
         ReclamationPlan {
             drop,
@@ -374,6 +412,7 @@ impl ReclamationScan {
             unactivated_archive_vector_chunks: unactivated_archive_vectors.len(),
             unreferenced_packed_vector_chunks: unreferenced_packed.len(),
             free_compaction_chunks: self.free_compaction_chunks.len(),
+            superseded_external_index_chunks: superseded_external.len(),
         }
     }
 }

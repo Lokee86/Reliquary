@@ -253,7 +253,7 @@ Recipient adaptation is owned by src/runtime_inference/interaction_live.rs and i
 | Concern | Owner/code | Verification |
 | --- | --- | --- |
 | Host contract, hashes and bounds | `src/external_source/model.rs` | External source contract and hydration tests |
-| Reference-only index, cursor and rebuild | `external_source/store.rs`, `index.rs` | Replay/reopen/edit/visibility/delete/corruption/CAS tests |
+| Reference-only index, cursor and rebuild | `external_source/store.rs`, `compact_index.rs`, `index.rs`; `storage_upgrade/external_index.rs`; `facade/storage_reclamation_scan.rs` | Replay/reopen/edit/visibility/delete/corruption/CAS tests; `external_source/compact_tests.rs` for current snapshots, cleanup and legacy authority parity |
 | Atomic semantic publication and provenance | `external_source/publication.rs`, `provenance.rs` | Memory receipt, body binding and reopen tests |
 | Shared transient Insomnia input | `insomnia/input.rs`, shared extraction/synthesis, `external_source/processing.rs` | External project/private extraction and native Insomnia regressions |
 | Authorized Gateway delivery/publication | `runtime_host_gateway_external*.rs` | Exact grant, private binding, stale-cut and retry tests; P4 coverage guard |

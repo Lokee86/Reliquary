@@ -2,6 +2,9 @@ use super::*;
 use crate::{Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, VectorNormalization};
 use std::sync::Mutex;
 
+#[path = "compact_tests.rs"]
+mod compact_tests;
+
 pub(crate) struct Endpoint;
 impl EmbeddingEndpoint for Endpoint {
     fn dimensions(&self) -> u32 {

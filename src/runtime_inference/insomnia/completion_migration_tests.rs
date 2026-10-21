@@ -436,10 +436,20 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     let mut legacy_begins = BTreeMap::new();
     let mut legacy_pairs = BTreeMap::new();
     let mut legacy_streams = BTreeMap::new();
+    let mut legacy_external_indices = BTreeMap::new();
     let mut streams = crate::interaction_stream_store::InteractionStreamStore::default();
     let mut pair_mappings = std::collections::HashSet::new();
     for object in cva.container.chunks().unwrap() {
         let payload = cva.container.read(object).unwrap();
+        if payload.starts_with(crate::external_source::compact_index::MAGIC) {
+            let legacy = match crate::external_source::compact_index::decode(&payload).unwrap() {
+                crate::external_source::compact_index::Record::Snapshot(state) => {
+                    crate::external_source::store::encode_legacy(&state).unwrap()
+                }
+                crate::external_source::compact_index::Record::Discard => b"CVAXIDX1".to_vec(),
+            };
+            legacy_external_indices.insert(object, legacy);
+        }
         if crate::interaction_stream_codec::is_compact(&payload) {
             streams.ingest(&payload).unwrap();
             let message_id = match crate::interaction_stream_codec::decode_compact(&payload)
@@ -488,12 +498,19 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
             if pair_mappings.contains(&object) {
                 return Ok(());
             }
-            let transformed = if let Some(stream) = legacy_streams.get(&object) {
+            let transformed = if let Some(index) = legacy_external_indices.get(&object) {
+                index.clone()
+            } else if let Some(stream) = legacy_streams.get(&object) {
                 stream.clone()
             } else if let Some(begin) = legacy_begins.get(&object) {
                 begin.clone()
             } else if let Some(pair) = legacy_pairs.get(&object) {
                 pair.clone()
+            } else if payload.starts_with(b"CVAXMEM2") {
+                let publication = crate::external_source::publication::decode(payload)
+                    .unwrap()
+                    .unwrap();
+                crate::external_source::publication::encode_legacy(&publication).unwrap()
             } else if legacy_completion && payload.starts_with(b"CVAINSC7") {
                 completion_count += 1;
                 let decoded = decode_completion(payload).unwrap().unwrap();

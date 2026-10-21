@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 255/357 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; Archive admission202 verified against `ed7e21a`; Archive readers/reconciliation/proofs/reclamation/copies203–207 verified against `9e153aa`; Archive ordinary writers208 verified against `2801100`; Archive offline envelope conversion209 verified against `ea26adc`; Graph envelope contract210 verified against `6946ce4`; Graph publication codecs211 verified against `b939ff2`; Graph native admission212 verified against `aea161e`; Graph historical/current readers213 verified against `e5ec250`; Graph reconciliation/import214 verified against `bfb20d1`; Graph proofs/reclamation/copies215–217 verified against `c0a6b0f`; Graph ordinary allocation writers218 verified against `308e725`; Graph envelope conversion219 verified against `e1e4d9e` and measurement `0113e78`; coverage audit220 complete; supplemental Graph epoch-authority Step221 accepted against 9ce3476; Integration Gate E passed with refreshed architecture snapshot 4cc4320f; Dream reference222 accepted against `37210c8` and Memory prefix contract223 against `24d1c53`; Memory prefix224 accepted against `21b4ec9`; physical Begin authority225 is frozen; direct-birth projection226 accepted against `ccc0c94`; Insomnia prefix227 accepted against `99e7f04`; external prefix228 accepted against `ad45319`; bounded physical scan229 accepted against `aeb7a43`; REL coordination230 accepted against `944231e`; population digest231 accepted against `99a9e73` and Begin wire contract232 against `e79cda6`; encoder233 accepted against `17844a3`; decoder234 accepted against `f810554`; replay235 accepted against `d43d460`; Dream roots/proofs/runtime capture, exact destination transport, writer cutover, offline conversion, adversarial transforms and measurements236–249 accepted against `c320fc6`; Dream pair table/codecs/writers/conversion/tests/measurement250–255 accepted against `d3e48a6`; Gate F behavioral verification passes and fresh scoped architecture verification is collecting. Interaction stream256 follows Gate F. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 265/359 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; Archive admission202 verified against `ed7e21a`; Archive readers/reconciliation/proofs/reclamation/copies203–207 verified against `9e153aa`; Archive ordinary writers208 verified against `2801100`; Archive offline envelope conversion209 verified against `ea26adc`; Graph envelope contract210 verified against `6946ce4`; Graph publication codecs211 verified against `b939ff2`; Graph native admission212 verified against `aea161e`; Graph historical/current readers213 verified against `e5ec250`; Graph reconciliation/import214 verified against `bfb20d1`; Graph proofs/reclamation/copies215–217 verified against `c0a6b0f`; Graph ordinary allocation writers218 verified against `308e725`; Graph envelope conversion219 verified against `e1e4d9e` and measurement `0113e78`; coverage audit220 complete; supplemental Graph epoch-authority Step221 accepted against 9ce3476; Integration Gate E passed with refreshed architecture snapshot 4cc4320f; Dream reference222 accepted against `37210c8` and Memory prefix contract223 against `24d1c53`; Memory prefix224 accepted against `21b4ec9`; physical Begin authority225 is frozen; direct-birth projection226 accepted against `ccc0c94`; Insomnia prefix227 accepted against `99e7f04`; external prefix228 accepted against `ad45319`; bounded physical scan229 accepted against `aeb7a43`; REL coordination230 accepted against `944231e`; population digest231 accepted against `99a9e73` and Begin wire contract232 against `e79cda6`; encoder233 accepted against `17844a3`; decoder234 accepted against `f810554`; replay235 accepted against `d43d460`; Dream roots/proofs/runtime capture, exact destination transport, writer cutover, offline conversion, adversarial transforms and measurements236–249 accepted against `c320fc6`; Dream pair table/codecs/writers/conversion/tests/measurement250–255 accepted against `d3e48a6`; Integration Gate F passes with fresh architecture snapshot `ee25c736` (23 rules; all20 changed Dream/stream production paths match `bdca9b6`). Interaction stream contract/codecs/replay/writer/conversion/measurement256–265 pass against `bdca9b6`; final structural acceptance remains outstanding. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1494,6 +1494,18 @@ Blockers: none for this item; final corpus promotion and legacy decoder retireme
 
 Run Dream/Freshness/import historical suites plus oracle comparison on Dream-bearing fixtures.
 
+Gate F passes against Dream implementations `c320fc6`/`d3e48a6` and the stream
+checkpoint `bdca9b6`. The fresh scoped refresh completed in2,160.54 seconds with
+snapshot `ee25c7365267a2dfbcadda0c01b390e45933e102d00beb10bef9a76554d28ee1`: all23
+rules pass,107,943 source nodes,3,216 relationships, zero compatibility warnings.
+All20 production Rust paths changed by the Dream/stream commits match that
+snapshot's source mirror at `bdca9b6` after LF/CRLF normalization; none are missing
+or mismatched. The92 P4 and11 ownership fixtures plus production boundaries
+also pass. Earlier15-minute timeouts are superseded by this completed refresh.
+Subsequent derived-index changes require their own Gate G evidence and are not
+claimed to be covered by this earlier snapshot.
+
+
 ---
 
 ## Phase P — Interaction Stream
@@ -1510,6 +1522,88 @@ Run Dream/Freshness/import historical suites plus oracle comparison on Dream-bea
 | 263 | Sol | Extend upgrader from cumulative V1.0 checkpoints to compact stream deltas. | Historical checkpoint parity passes. |
 | 264 | Luna | Add long-stream linear-growth benchmark. | Growth is linear in appended text. |
 | 265 | Luna | Add crash/reopen/interruption regressions. | Displayed-text durability invariant remains intact. |
+
+---
+
+### Step 256 execution record
+
+Commit: `bdca9b6`.
+
+Verification: The frozen transition table preserves metadata, exact append-only UTF-8 text, Interrupted-to-Interrupted growth, irreversible interruption and Archive-owned completion. The compact stream contract documents acknowledgement and crash boundaries.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 257 execution record
+
+Commit: `bdca9b6`.
+
+Verification: Independent literal Begin bytes round-trip; strict parent/role flags, negative timestamp, exact EOF and every recognizable truncated prefix are tested. Metadata retries cannot reset text or resume interruption.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 258 execution record
+
+Commit: `bdca9b6`.
+
+Verification: Independent literal Append bytes round-trip. Exact UTF-8 suffixes use checked u32 prior-byte coordinates; empty suffixes, overflow, invalid UTF-8, forward/stale/conflicting bases reject without projection mutation.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 259 execution record
+
+Commit: `bdca9b6`.
+
+Verification: Independent Interrupted marker bytes round-trip. Exact content position is required, repeated markers are inert, and interruption preserves subsequent interrupted text extensions. There is no invented Complete stream event.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 260 execution record
+
+Commit: `bdca9b6`.
+
+Verification: Every complete compact frame prefix materializes exact text/status; Begin-before-Append/Interrupted ordering, metadata retries, append retries, conflicting bases and unknown versions are covered.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 261 execution record
+
+Commit: `bdca9b6`.
+
+Verification: Ordinary checkpoint writing emits only Begin, nonempty exact suffixes and necessary interruption markers. Identical checkpoints append nothing; invalid checkpoints preserve file bytes. No cumulative writer or semantic reservation remains in this owner.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 262 execution record
+
+Commit: `bdca9b6`.
+
+Verification: Destination reconciliation preserves longest compatible text plus interruption dominance through the current owner. Both source files remain byte-identical; existing divergent runtime reconciliation also passes.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 263 execution record
+
+Commit: `bdca9b6`.
+
+Verification: The latest private converter replays each old cumulative checkpoint through the compact owner. Four historical checkpoint postimages preserve exact text/status and source bytes. Genuine V1 fixture construction restores legacy carriers; current stream records reject in V1 and PHY.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 264 execution record
+
+Commit: `bdca9b6`.
+
+Verification: The raw long-stream artifact measures 256 two-byte UTF-8 appends plus interruption: legacy 257 frames/79,925 framed bytes, current 258 frames/9,809 bytes. Growth is one metadata record plus linear suffix and marker cost; compression is excluded.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
+
+### Step 265 execution record
+
+Commit: `bdca9b6`.
+
+Verification: Every torn byte tail following acknowledged UTF-8 text reopens retaining that text; every complete frame prefix has the expected status. Existing displayed-text sync, recovered interruption and completed-turn supersession runtime regressions pass.
+
+Blockers: none for this execution item; fresh Gate F/stream architecture enforcement passes against `ee25c736`; canonical promotion and runtime retirement remain separately gated.
 
 ---
 
@@ -1541,9 +1635,11 @@ Run interaction runtime, external-source index/publication, reconciliation, recl
 | 276 | Sol | Define attempt/status delta record. | Codec tests pass. |
 | 277 | Sol | Implement replay/materialization. | Accepted decisions/retries reconstruct exactly. |
 | 278 | Sol | Hard-cut compact Entity Resolution writer. | No compact repeated full candidate snapshot remains unless classified authoritative. |
-| 279 | Sol | Extend upgrader for V1.0 Entity Resolution history. | Decision/proof parity passes. |
-| 280 | Luna | Add retry/conflict/import-readiness/adversarial resolution fixtures. | Existing Entity effects and readiness decisions remain identical. |
-| 281 | Sol | Measure raw Entity Resolution history before/after. | Size artifact recorded. |
+| 279 | Sol | Materialize Entity Resolution source postimages before normalized import comparison. | Equal histories have identical normalized evidence across full and delta carriers; source bytes remain unchanged. |
+| 280 | Sol | Transport materialized Entity Resolution postimages through completed-import interval replay. | Destination deltas use destination prefix state; replay preserves source decisions/retries and existing conflicts. |
+| 281 | Sol | Extend upgrader for V1.0 Entity Resolution history. | Decision/proof parity passes. |
+| 282 | Luna | Add retry/conflict/import-readiness/adversarial resolution fixtures. | Existing Entity effects and readiness decisions remain identical. |
+| 283 | Sol | Measure raw Entity Resolution history before/after. | Size artifact recorded. |
 
 ---
 
@@ -1551,14 +1647,14 @@ Run interaction runtime, external-source index/publication, reconciliation, recl
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 282 | Luna | Identify every accepted proof that references Community generation/graph version/name. | Consumer inventory complete. |
-| 283 | Sol | Define the exact reconstruction claim required to eliminate repeated membership snapshots. | Claim names graph cut + algorithm/policy version + any non-deterministic retained data. |
-| 284 | Luna | Test that claim against authoritative/synthetic Community histories. | Exact yes/no evidence recorded. |
-| 285 | Sol | If exact reconstruction is proven, define compact Community membership history; otherwise record explicit no-change decision. | One decision closed. |
-| 286 | Sol | If compacting, implement Community codec/replay/writer. | Historical proof identity remains valid. |
-| 287 | Sol | If compacting, extend upgrader. | Community oracle/proof parity passes. |
-| 288 | Luna | If compacting, add semantic-name/non-determinism regressions. | Non-recomputable names/evidence remain retained. |
-| 289 | Sol | If compacting, measure raw Community history before/after; otherwise mark measurement not required. | Evidence recorded. |
+| 284 | Luna | Identify every accepted proof that references Community generation/graph version/name. | Consumer inventory complete. |
+| 285 | Sol | Define the exact reconstruction claim required to eliminate repeated membership snapshots. | Claim names graph cut + algorithm/policy version + any non-deterministic retained data. |
+| 286 | Luna | Test that claim against authoritative/synthetic Community histories. | Exact yes/no evidence recorded. |
+| 287 | Sol | If exact reconstruction is proven, define compact Community membership history; otherwise record explicit no-change decision. | One decision closed. |
+| 288 | Sol | If compacting, implement Community codec/replay/writer. | Historical proof identity remains valid. |
+| 289 | Sol | If compacting, extend upgrader. | Community oracle/proof parity passes. |
+| 290 | Luna | If compacting, add semantic-name/non-determinism regressions. | Non-recomputable names/evidence remain retained. |
+| 291 | Sol | If compacting, measure raw Community history before/after; otherwise mark measurement not required. | Evidence recorded. |
 
 ### Integration Gate H — Proof-boundary stores
 
@@ -1570,16 +1666,16 @@ Run Entity Resolution, Community, Dream/Freshness proof consumers, import readin
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 290 | Luna | Build repeated same-profile Archive-vector-generation workload. | Reproducible workload exists. |
-| 291 | Luna | Measure unchanged exact vector-byte duplication across generations separately from compatibility-profile multiplicity. | Byte-duplication artifact exists. |
-| 292 | Sol | Decide whether row/block reuse is justified by Step 291. | Explicit implement/defer decision recorded. |
-| 293 | Sol | If justified, define immutable exact vector row/block identity preserving byte-distinct compatible embeddings. | Identity contract tests pass. |
-| 294 | Sol | If justified, implement reusable row/block storage. | Exact vector bytes round-trip. |
-| 295 | Sol | If justified, implement generation manifest/delta referencing row/block identities. | Historical generation materialization exact. |
-| 296 | Sol | If justified, hard-cut compact Archive-vector generation writer. | No redundant full-matrix compact writer remains. |
-| 297 | Sol | If justified, extend upgrader for historical generations. | Exact vector-byte/generation parity passes. |
-| 298 | Luna | If justified, add retrieval and corruption regressions. | Retrieval parity and fail-closed behavior pass. |
-| 299 | Sol | If justified, measure raw vector-generation bytes before/after; otherwise mark phase deferred. | Evidence recorded. |
+| 292 | Luna | Build repeated same-profile Archive-vector-generation workload. | Reproducible workload exists. |
+| 293 | Luna | Measure unchanged exact vector-byte duplication across generations separately from compatibility-profile multiplicity. | Byte-duplication artifact exists. |
+| 294 | Sol | Decide whether row/block reuse is justified by Step 291. | Explicit implement/defer decision recorded. |
+| 295 | Sol | If justified, define immutable exact vector row/block identity preserving byte-distinct compatible embeddings. | Identity contract tests pass. |
+| 296 | Sol | If justified, implement reusable row/block storage. | Exact vector bytes round-trip. |
+| 297 | Sol | If justified, implement generation manifest/delta referencing row/block identities. | Historical generation materialization exact. |
+| 298 | Sol | If justified, hard-cut compact Archive-vector generation writer. | No redundant full-matrix compact writer remains. |
+| 299 | Sol | If justified, extend upgrader for historical generations. | Exact vector-byte/generation parity passes. |
+| 300 | Luna | If justified, add retrieval and corruption regressions. | Retrieval parity and fail-closed behavior pass. |
+| 301 | Sol | If justified, measure raw vector-generation bytes before/after; otherwise mark phase deferred. | Evidence recorded. |
 
 ### Integration Gate I — Vectors
 
@@ -1591,14 +1687,14 @@ Run profile, packed-vector, Memory-vector, Archive-vector, generation, retrieval
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 300 | Luna | Re-run durable-family inventory against current source after all codec migrations. | No new/unhandled writer family appears. |
-| 301 | Luna | Audit upgrade coverage for Archive-owned durable families after all earlier migrations. This step performs no implementation. | Either Archive coverage is complete or this plan is expanded with one explicit step per missing family before execution continues. |
-| 302 | Luna | Audit upgrade coverage for import epoch and Historical Freshness settlement families. This step performs no implementation. | Either import-evidence coverage is complete or explicit per-family steps are inserted before execution continues. |
-| 303 | Sol | Add/verify upgrader support for Echo records only. | Echo historical evidence parity passes. |
-| 304 | Sol | Add/verify upgrader support for project-history correlation records only. | Project-history evidence parity passes. |
-| 305 | Sol | Reject unknown/unsupported semantic authority explicitly during upgrade. | Unknown authority fails closed. |
-| 306 | Sol | Reopen upgraded REL and validate all owner invariants. | REL validation passes. |
-| 307 | Sol | Reopen upgraded PHY and validate all owner invariants. | PHY validation passes. |
+| 302 | Luna | Re-run durable-family inventory against current source after all codec migrations. | No new/unhandled writer family appears. |
+| 303 | Luna | Audit upgrade coverage for Archive-owned durable families after all earlier migrations. This step performs no implementation. | Either Archive coverage is complete or this plan is expanded with one explicit step per missing family before execution continues. |
+| 304 | Luna | Audit upgrade coverage for import epoch and Historical Freshness settlement families. This step performs no implementation. | Either import-evidence coverage is complete or explicit per-family steps are inserted before execution continues. |
+| 305 | Sol | Add/verify upgrader support for Echo records only. | Echo historical evidence parity passes. |
+| 306 | Sol | Add/verify upgrader support for project-history correlation records only. | Project-history evidence parity passes. |
+| 307 | Sol | Reject unknown/unsupported semantic authority explicitly during upgrade. | Unknown authority fails closed. |
+| 308 | Sol | Reopen upgraded REL and validate all owner invariants. | REL validation passes. |
+| 309 | Sol | Reopen upgraded PHY and validate all owner invariants. | PHY validation passes. |
 
 ---
 
@@ -1606,13 +1702,13 @@ Run profile, packed-vector, Memory-vector, Archive-vector, generation, retrieval
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 308 | Luna | Upgrade disposable copy of 14-day REL. | Destination reopens; source hash unchanged. |
-| 309 | Luna | Upgrade disposable copy of 14-day PHY. | Destination reopens; source hash unchanged. |
-| 310 | Luna | Upgrade disposable copy of 28-day REL. | Destination reopens; source hash unchanged. |
-| 311 | Luna | Upgrade disposable copy of 28-day PHY. | Destination reopens; source hash unchanged. |
-| 312 | Luna | Upgrade disposable copy of Ellis REL. | Destination reopens; source hash unchanged. |
-| 313 | Luna | Upgrade disposable copy of Ellis PHY. | Destination reopens; source hash unchanged. |
-| 314 | Luna | Produce per-family raw-byte accounting for all six migrations. | Logical-history size report exists; compression excluded. |
+| 310 | Luna | Upgrade disposable copy of 14-day REL. | Destination reopens; source hash unchanged. |
+| 311 | Luna | Upgrade disposable copy of 14-day PHY. | Destination reopens; source hash unchanged. |
+| 312 | Luna | Upgrade disposable copy of 28-day REL. | Destination reopens; source hash unchanged. |
+| 313 | Luna | Upgrade disposable copy of 28-day PHY. | Destination reopens; source hash unchanged. |
+| 314 | Luna | Upgrade disposable copy of Ellis REL. | Destination reopens; source hash unchanged. |
+| 315 | Luna | Upgrade disposable copy of Ellis PHY. | Destination reopens; source hash unchanged. |
+| 316 | Luna | Produce per-family raw-byte accounting for all six migrations. | Logical-history size report exists; compression excluded. |
 
 ---
 
@@ -1620,15 +1716,15 @@ Run profile, packed-vector, Memory-vector, Archive-vector, generation, retrieval
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 315 | Sol | Exhaustively compare Memory historical cuts source vs compact fixtures. | Zero mismatches. |
-| 316 | Sol | Exhaustively compare Archive historical cuts where tractable. | Zero mismatches. |
-| 317 | Sol | Exhaustively compare Entity and Relationship/Observation cuts. | Zero mismatches. |
-| 318 | Sol | Exhaustively compare Graph cuts. | Zero mismatches. |
-| 319 | Sol | Exhaustively compare Ego cuts. | Zero mismatches. |
-| 320 | Sol | Exhaustively compare Freshness activity/event cuts. | Zero mismatches. |
-| 321 | Sol | Compare vector-generation cuts and exact vector bytes. | Zero mismatches. |
-| 322 | Sol | Compare Dream proof state. | Zero mismatches. |
-| 323 | Sol | Compare global ordering points exhaustively where tractable and deterministically sample only where documented runtime makes exhaustive comparison unreasonable. | Zero mismatches; sampling rationale recorded if used. |
+| 317 | Sol | Exhaustively compare Memory historical cuts source vs compact fixtures. | Zero mismatches. |
+| 318 | Sol | Exhaustively compare Archive historical cuts where tractable. | Zero mismatches. |
+| 319 | Sol | Exhaustively compare Entity and Relationship/Observation cuts. | Zero mismatches. |
+| 320 | Sol | Exhaustively compare Graph cuts. | Zero mismatches. |
+| 321 | Sol | Exhaustively compare Ego cuts. | Zero mismatches. |
+| 322 | Sol | Exhaustively compare Freshness activity/event cuts. | Zero mismatches. |
+| 323 | Sol | Compare vector-generation cuts and exact vector bytes. | Zero mismatches. |
+| 324 | Sol | Compare Dream proof state. | Zero mismatches. |
+| 325 | Sol | Compare global ordering points exhaustively where tractable and deterministically sample only where documented runtime makes exhaustive comparison unreasonable. | Zero mismatches; sampling rationale recorded if used. |
 
 ---
 
@@ -1637,14 +1733,14 @@ Run profile, packed-vector, Memory-vector, Archive-vector, generation, retrieval
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
 
-| 324 | Sol | Verify compact-to-compact reconciliation against the frozen V1 semantic decision oracle. | Current-only reconciliation agrees with recorded baseline; no dual-format runtime path. |
+| 326 | Sol | Verify compact-to-compact reconciliation against the frozen V1 semantic decision oracle. | Current-only reconciliation agrees with recorded baseline; no dual-format runtime path. |
 
-| 325 | Sol | Run compact REL prune tests. | Maintenance behavior unchanged. |
-| 326 | Sol | Run compact PHY prune tests. | Maintenance behavior unchanged. |
-| 327 | Sol | Run compact reclaim tests. | Reclamation preserves semantic history. |
-| 328 | Sol | Run compact repair tests. | Repair behavior unchanged. |
-| 329 | Sol | Run fresh-history rewrite from compact sources. | Rewrite semantics unchanged. |
-| 330 | Sol | Reopen all maintenance outputs and rerun relevant oracle checks. | Zero semantic mismatch beyond explicit maintenance policy. |
+| 327 | Sol | Run compact REL prune tests. | Maintenance behavior unchanged. |
+| 328 | Sol | Run compact PHY prune tests. | Maintenance behavior unchanged. |
+| 329 | Sol | Run compact reclaim tests. | Reclamation preserves semantic history. |
+| 330 | Sol | Run compact repair tests. | Repair behavior unchanged. |
+| 331 | Sol | Run fresh-history rewrite from compact sources. | Rewrite semantics unchanged. |
+| 332 | Sol | Reopen all maintenance outputs and rerun relevant oracle checks. | Zero semantic mismatch beyond explicit maintenance policy. |
 
 ---
 
@@ -1652,17 +1748,17 @@ Run profile, packed-vector, Memory-vector, Archive-vector, generation, retrieval
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 331 | Luna | Measure cold reopen old vs compact fixtures. | Results recorded. |
-| 332 | Luna | Measure warm reopen old vs compact fixtures. | Results recorded. |
-| 333 | Luna | Measure recent, middle and oldest historical lookup on frozen V1 and canonical V2 fixtures. | Three distinct cut-age metrics recorded; no runtime V1 reader retained. |
+| 333 | Luna | Measure cold reopen old vs compact fixtures. | Results recorded. |
+| 334 | Luna | Measure warm reopen old vs compact fixtures. | Results recorded. |
+| 335 | Luna | Measure recent, middle and oldest historical lookup on frozen V1 and canonical V2 fixtures. | Three distinct cut-age metrics recorded; no runtime V1 reader retained. |
 
 
-| 334 | Luna | Measure upgrade throughput. | Results recorded. |
-| 335 | Luna | Measure peak migration memory. | Results recorded. |
-| 336 | Sol | Decide whether replay cost justifies derived checkpoints. | Implement/defer decision recorded from measurements. |
-| 337 | Sol | If justified, specify checkpoint semantics under `version-history-plan.md`. | Checkpoint is explicitly disposable/non-authoritative. |
-| 338 | Sol | If justified, implement checkpoint generation/load path. | Deleting checkpoints and rebuilding yields identical state. |
-| 339 | Sol | If justified, add checkpoint corruption/rebuild tests. | Corruption cannot alter authority. |
+| 336 | Luna | Measure upgrade throughput. | Results recorded. |
+| 337 | Luna | Measure peak migration memory. | Results recorded. |
+| 338 | Sol | Decide whether replay cost justifies derived checkpoints. | Implement/defer decision recorded from measurements. |
+| 339 | Sol | If justified, specify checkpoint semantics under `version-history-plan.md`. | Checkpoint is explicitly disposable/non-authoritative. |
+| 340 | Sol | If justified, implement checkpoint generation/load path. | Deleting checkpoints and rebuilding yields identical state. |
+| 341 | Sol | If justified, add checkpoint corruption/rebuild tests. | Corruption cannot alter authority. |
 
 ---
 
@@ -1672,18 +1768,18 @@ Run profile, packed-vector, Memory-vector, Archive-vector, generation, retrieval
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 340 | Sol | Write compact-history ADR capturing only hard-to-reverse decisions. | ADR reviewed against implementation. |
-| 341 | Sol | Update ADR index. | Navigation correct. |
-| 342 | Luna | Update `storage-format.md` with compact record families and migration boundary. | Format doc matches source. |
-| 343 | Luna | Update `architecture.md` and `invariants.md`. | Ownership/history invariants current. |
-| 344 | Luna | Update `current-limitations.md` and `maintainer-map.md`. | Operational limitations/navigation current. |
-| 345 | Luna | Update affected API/development docs and docs index. | Documentation compliance passes. |
-| 346 | Luna | Refresh Lexicon/Arcana from final source. | Fresh snapshot available or explicit bounded limitation recorded. |
-| 347 | Sol | Promote all verified canonical V2 development fixtures; update SHA-256 manifests and commit fixture repository. | All retained inputs migrated and validated before promotion; hash and commit recorded. |
-| 348 | Sol | Remove V1 runtime container reader and dispatch. | Only V2 opens normally; old headers yield typed unsupported error. |
-| 349 | Sol | Remove CVAFRS03/04/05 normalization and CVAILEG1/2 epoch/prefix runtime compatibility. | No reachable legacy codec; CVAFRS06 semantic proof remains valid. |
-| 350 | Sol | Remove temporary upgrader APIs, CLI commands, translation codecs and obsolete tests after promotion. | No migration-only code reachable; negative tests retained. |
-| 351 | Sol | Audit legacy references/mixed writes, verify owner boundaries and rerun root, CLI, history, prune/rewrite, reconcile, Ellis, structural and docs acceptance. | Current-format-only post-retirement verification passes. |
+| 342 | Sol | Write compact-history ADR capturing only hard-to-reverse decisions. | ADR reviewed against implementation. |
+| 343 | Sol | Update ADR index. | Navigation correct. |
+| 344 | Luna | Update `storage-format.md` with compact record families and migration boundary. | Format doc matches source. |
+| 345 | Luna | Update `architecture.md` and `invariants.md`. | Ownership/history invariants current. |
+| 346 | Luna | Update `current-limitations.md` and `maintainer-map.md`. | Operational limitations/navigation current. |
+| 347 | Luna | Update affected API/development docs and docs index. | Documentation compliance passes. |
+| 348 | Luna | Refresh Lexicon/Arcana from final source. | Fresh snapshot available or explicit bounded limitation recorded. |
+| 349 | Sol | Promote all verified canonical V2 development fixtures; update SHA-256 manifests and commit fixture repository. | All retained inputs migrated and validated before promotion; hash and commit recorded. |
+| 350 | Sol | Remove V1 runtime container reader and dispatch. | Only V2 opens normally; old headers yield typed unsupported error. |
+| 351 | Sol | Remove CVAFRS03/04/05 normalization and CVAILEG1/2 epoch/prefix runtime compatibility. | No reachable legacy codec; CVAFRS06 semantic proof remains valid. |
+| 352 | Sol | Remove temporary upgrader APIs, CLI commands, translation codecs and obsolete tests after promotion. | No migration-only code reachable; negative tests retained. |
+| 353 | Sol | Audit legacy references/mixed writes, verify owner boundaries and rerun root, CLI, history, prune/rewrite, reconcile, Ellis, structural and docs acceptance. | Current-format-only post-retirement verification passes. |
 
 ### Final Integration Gate
 
@@ -1707,12 +1803,12 @@ Gate passes with zero task-related failures or with precisely documented environ
 
 | Step | Owner | Work | Gate |
 | ---: | --- | --- | --- |
-| 352 | Sol | Record final implementation commits and changed-file inventory in this plan. | Execution record complete. |
-| 353 | Sol | Record actual raw logical-history savings by family and by fixture. | Logical savings report complete. |
-| 354 | Sol | Record ADR-0004 compression results separately from logical-history savings. | No conflation of compression and logical compaction. |
-| 355 | Sol | Record every measurement-gated defer decision (Community/vector/checkpoints/etc.). | Deferred work has explicit evidence/reason. |
-| 356 | Sol | Update spec status to match shipped architecture and remaining limits. | Spec and implementation agree. |
-| 357 | Sol | Mark complete only after canonical fixture promotion, legacy decoder and upgrader deletion, and post-retirement acceptance. | Final hard-cut acceptance complete. |
+| 354 | Sol | Record final implementation commits and changed-file inventory in this plan. | Execution record complete. |
+| 355 | Sol | Record actual raw logical-history savings by family and by fixture. | Logical savings report complete. |
+| 356 | Sol | Record ADR-0004 compression results separately from logical-history savings. | No conflation of compression and logical compaction. |
+| 357 | Sol | Record every measurement-gated defer decision (Community/vector/checkpoints/etc.). | Deferred work has explicit evidence/reason. |
+| 358 | Sol | Update spec status to match shipped architecture and remaining limits. | Spec and implementation agree. |
+| 359 | Sol | Mark complete only after canonical fixture promotion, legacy decoder and upgrader deletion, and post-retirement acceptance. | Final hard-cut acceptance complete. |
 
 ## Integration Gates
 
@@ -2639,3 +2735,15 @@ This is explicit supplemental Graph Step221 before Integration Gate E acceptance
 ## Physical-prefix scan dependency — 2026-10-21
 
 REL coordination needs the exact accepted global frontier while replaying Memory-local metadata before Begin. The existing bounded visitor is read-only but lacks that frontier; the full versioned scanner can repair a later truncated tail and is not a bounded read-only query. Add explicit Container Step229 for a thin bounded visitor reusing existing version observation, with independent physical-clock and unchanged-source tests. Former future229–356 shift to230–357; accepted1–228 remain unchanged. The Dream block ends249 and vector unchanged-byte measurement becomes291. The current structural requirement is357 consecutive unique rows; integration gates remain unnumbered.
+
+
+### Entity Resolution import-consumer expansion (2026-10-21)
+
+Discovery after stream acceptance found two independent consumers of full
+resolution carriers: normalized completed-import owner evidence and ordered
+interval replay. Delta inheritance must be materialized in source order for
+comparison, then re-encoded against destination state for transport. These are
+separate failure domains from owner replay and offline V1 conversion. New
+279–280 make them explicit before implementation; former pending279–357 become
+281–359. Accepted1–265 are unchanged. The current plan has359 contiguous numbered
+execution rows; integration gates remain unnumbered.

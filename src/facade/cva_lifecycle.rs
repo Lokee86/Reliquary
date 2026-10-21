@@ -317,6 +317,14 @@ impl Cva {
                             .ingest(payload)
                             .map_err(CvaError::Repack)?;
                         import_epochs.ingest_at(Some(chunk), payload)?;
+                        if required_version.is_some_and(|version| version.major == 1)
+                            && payload.starts_with(crate::external_source::compact_index::MAGIC)
+                        {
+                            return Err(crate::MemoryError::CorruptRecord(
+                                "compact external index in V1 input",
+                            )
+                            .into());
+                        }
                         external_index.ingest(payload);
                         archive_state.ingest(chunk, payload, latest_global)?;
                         memory_state.ingest(chunk, payload, latest_global)?;
