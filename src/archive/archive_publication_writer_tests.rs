@@ -106,54 +106,60 @@ fn ordinary_writes_emit_one_native_publication_and_retries_append_nothing() {
 }
 
 #[test]
-fn local_exhaustion_rejects_before_content_or_publication_append() {
-    let dir =
-        std::env::temp_dir().join(format!("archive-native-overflow-{}", uuid::Uuid::new_v4()));
-    std::fs::create_dir_all(&dir).unwrap();
-    let path = dir.join("writer.rel");
-    let mut owner = Cva::create_project(&path).unwrap();
-    owner.sync().unwrap();
-    let before = std::fs::read(&path).unwrap();
-    let chunks = owner.container.chunks().unwrap();
-    let global = owner.latest_global_version();
-    owner.archive.next_archive_version = u64::MAX;
-    assert!(
-        owner
-            .append_node(
-                "n".into(),
-                "c".into(),
-                None,
-                "user".into(),
-                1,
-                "new content"
-            )
-            .is_err()
-    );
-    assert!(owner.store_file("f".into(), None, b"new file").is_err());
-    assert!(
-        owner
-            .ingest_turn(IncomingTurn {
-                id: "t".into(),
-                conversation_id: "c".into(),
-                parent_id: None,
-                role: "user".into(),
-                principal_id: None,
-                timestamp_ns: 2,
-                content: "new turn".into(),
-                attachments: vec![IncomingAttachment {
-                    filename: "a".into(),
-                    mime_type: None,
-                    bytes: b"new attachment".to_vec()
-                }],
-                project_attachments: vec![]
-            })
-            .is_err()
-    );
-    owner.sync().unwrap();
-    assert_eq!(owner.container.chunks().unwrap(), chunks);
-    assert_eq!(owner.latest_global_version(), global);
-    assert!(owner.archive.record_versions().is_empty());
-    assert_eq!(std::fs::read(&path).unwrap(), before);
-    drop(owner);
-    std::fs::remove_dir_all(dir).unwrap();
+fn clock_exhaustion_rejects_before_content_or_publication_append() {
+    for local_exhaustion in [true, false] {
+        let dir =
+            std::env::temp_dir().join(format!("archive-native-overflow-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("writer.rel");
+        let mut owner = Cva::create_project(&path).unwrap();
+        owner.sync().unwrap();
+        let before = std::fs::read(&path).unwrap();
+        let chunks = owner.container.chunks().unwrap();
+        if local_exhaustion {
+            owner.archive.next_archive_version = u64::MAX;
+        } else {
+            owner.container.next_version = u64::MAX;
+        }
+        let global = owner.latest_global_version();
+        assert!(
+            owner
+                .append_node(
+                    "n".into(),
+                    "c".into(),
+                    None,
+                    "user".into(),
+                    1,
+                    "new content"
+                )
+                .is_err()
+        );
+        assert!(owner.store_file("f".into(), None, b"new file").is_err());
+        assert!(
+            owner
+                .ingest_turn(IncomingTurn {
+                    id: "t".into(),
+                    conversation_id: "c".into(),
+                    parent_id: None,
+                    role: "user".into(),
+                    principal_id: None,
+                    timestamp_ns: 2,
+                    content: "new turn".into(),
+                    attachments: vec![IncomingAttachment {
+                        filename: "a".into(),
+                        mime_type: None,
+                        bytes: b"new attachment".to_vec()
+                    }],
+                    project_attachments: vec![]
+                })
+                .is_err()
+        );
+        owner.sync().unwrap();
+        assert_eq!(owner.container.chunks().unwrap(), chunks);
+        assert_eq!(owner.latest_global_version(), global);
+        assert!(owner.archive.record_versions().is_empty());
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        drop(owner);
+        std::fs::remove_dir_all(dir).unwrap();
+    }
 }

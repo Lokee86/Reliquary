@@ -1,5 +1,10 @@
 //! Internal transformed-copy shell. Owner codec migration and semantic parity
 //! must be integrated before this can expose a public upgrade/promotion API.
+mod archive_envelope;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+mod archive_envelope_authoritative_tests;
+#[cfg(test)]
+mod archive_envelope_tests;
 mod ego;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod ego_authoritative_tests;
@@ -29,11 +34,11 @@ pub(crate) use model::{
     StorageUpgradeError, StorageUpgradePlan, StorageUpgradeRequest, StorageUpgradeResult,
 };
 pub(crate) use shell::{
-    plan_storage_upgrade, stage_ego_storage_upgrade, stage_entity_envelope_storage_upgrade,
-    stage_entity_storage_upgrade, stage_graph_storage_upgrade,
-    stage_memory_envelope_storage_upgrade, stage_memory_storage_upgrade,
-    stage_relationship_envelope_storage_upgrade, stage_relationship_storage_upgrade,
-    stage_storage_upgrade,
+    plan_storage_upgrade, stage_archive_envelope_storage_upgrade, stage_ego_storage_upgrade,
+    stage_entity_envelope_storage_upgrade, stage_entity_storage_upgrade,
+    stage_graph_storage_upgrade, stage_memory_envelope_storage_upgrade,
+    stage_memory_storage_upgrade, stage_relationship_envelope_storage_upgrade,
+    stage_relationship_storage_upgrade, stage_storage_upgrade,
 };
 
 #[cfg(all(test, feature = "history-oracle-fixtures"))]

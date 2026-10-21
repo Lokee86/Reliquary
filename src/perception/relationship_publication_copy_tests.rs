@@ -81,7 +81,13 @@ fn envelope_payloads(path: &Path) -> Vec<Vec<u8>> {
         .into_iter()
         .filter_map(|object| {
             let bytes = container.read(object).unwrap();
-            bytes.starts_with(b"CVAPUB01").then_some(bytes)
+            let envelope = crate::container::publication_envelope::decode(&bytes).unwrap()?;
+            crate::relationship_compact_codec::publication::decode(
+                envelope.body,
+                envelope.global_version,
+            )
+            .unwrap()
+            .map(|_| bytes)
         })
         .collect()
 }

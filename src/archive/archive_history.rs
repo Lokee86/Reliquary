@@ -123,6 +123,9 @@ impl Archive {
             .latest_version()
             .checked_add(1)
             .ok_or(crate::ContainerError::VersionExhausted)?;
+        global_version
+            .checked_add(1)
+            .ok_or(crate::ContainerError::VersionExhausted)?;
         let body = crate::archive_codec::publication::encode(
             &crate::archive_codec::publication::ArchivePublication::Record {
                 archive_version,

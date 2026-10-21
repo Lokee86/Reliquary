@@ -159,8 +159,14 @@ fn install_legacy_settlement(path: &Path, version: LegacySettlementVersion) -> V
     if matches!(version, LegacySettlementVersion::V4) {
         return install_v4_import_with_birth(path);
     }
-    let mut cva = Cva::create_project(path).unwrap();
+    let current_path = path.with_file_name("v5-current.rel");
+    let mut cva = Cva::create_project(&current_path).unwrap();
     cva.import_native(&empty_import(), 100).unwrap();
+    crate::insomnia::completion_migration_tests::copy_with_legacy_archive_publications(
+        &mut cva, path,
+    );
+    drop(cva);
+    let mut cva = Cva::open(path).unwrap();
     let physical = cva.import_epoch_scope().unwrap();
     cva.reconstruct_historical_freshness(Default::default())
         .unwrap();

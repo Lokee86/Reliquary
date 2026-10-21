@@ -36,6 +36,7 @@ pub(crate) enum StorageUpgradeError {
     CopyMismatch,
     UnsupportedAuthority(&'static str),
     Memory(crate::MemoryError),
+    Archive(crate::ArchiveError),
     Entity(crate::EntityError),
     Relationship(crate::RelationshipError),
     Ego(crate::EgoError),
@@ -60,6 +61,11 @@ impl From<crate::imports::ImportError> for StorageUpgradeError {
 impl From<crate::MemoryError> for StorageUpgradeError {
     fn from(error: crate::MemoryError) -> Self {
         Self::Memory(error)
+    }
+}
+impl From<crate::ArchiveError> for StorageUpgradeError {
+    fn from(error: crate::ArchiveError) -> Self {
+        Self::Archive(error)
     }
 }
 
@@ -112,6 +118,7 @@ impl fmt::Display for StorageUpgradeError {
             Self::Owner(error) => write!(f, "upgrade owner: {error}"),
             Self::Import(error) => write!(f, "upgrade import proof: {error}"),
             Self::Memory(error) => write!(f, "upgrade Memory: {error}"),
+            Self::Archive(error) => write!(f, "upgrade Archive: {error}"),
             Self::Entity(error) => write!(f, "upgrade Entity: {error}"),
             Self::Relationship(error) => write!(f, "upgrade Relationship: {error}"),
             Self::Ego(error) => write!(f, "upgrade Ego: {error}"),

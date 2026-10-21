@@ -18,6 +18,7 @@ pub(super) fn transform(
         false,
         false,
         false,
+        false,
     )
 }
 
@@ -29,6 +30,7 @@ pub(super) fn transform_with_entities(
         source,
         destination,
         true,
+        false,
         false,
         false,
         false,
@@ -52,6 +54,7 @@ pub(super) fn transform_with_relationships(
         false,
         false,
         false,
+        false,
     )
 }
 
@@ -65,6 +68,7 @@ pub(super) fn transform_with_ego(
         true,
         true,
         true,
+        false,
         false,
         false,
         false,
@@ -86,6 +90,7 @@ pub(super) fn transform_with_graph(
         false,
         false,
         false,
+        false,
     )
 }
 
@@ -101,6 +106,7 @@ pub(super) fn transform_with_memory_envelopes(
         true,
         true,
         true,
+        false,
         false,
         false,
     )
@@ -120,6 +126,7 @@ pub(super) fn transform_with_entity_envelopes(
         true,
         true,
         false,
+        false,
     )
 }
 
@@ -130,6 +137,25 @@ pub(super) fn transform_with_relationship_envelopes(
     transform_owners(
         source,
         destination,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+    )
+}
+
+pub(super) fn transform_with_archive_envelopes(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(
+        source,
+        destination,
+        true,
         true,
         true,
         true,
@@ -150,15 +176,36 @@ fn transform_owners(
     migrate_memory_envelopes: bool,
     migrate_entity_envelopes: bool,
     migrate_relationship_envelopes: bool,
+    migrate_archive_envelopes: bool,
 ) -> Result<(), StorageUpgradeError> {
-    let normalizations = if source
+    let (normalizations, archive_envelope_plan) = if source
         .identity()
         .is_some_and(|identity| identity.file_kind == crate::FileKind::Reliquary)
     {
         let mut owner = crate::Cva::open_v1_read_only(source.path())?;
-        owner.prepare_import_settlement_normalizations()?
+        let normalizations = owner.prepare_import_settlement_normalizations()?;
+        let archive = if migrate_archive_envelopes {
+            super::archive_envelope::prepare(source, &owner.archive)?
+        } else {
+            super::archive_envelope::ArchiveEnvelopePlan::default()
+        };
+        (normalizations, archive)
     } else {
-        Vec::new()
+        if migrate_archive_envelopes {
+            for object in source.chunks()? {
+                if crate::archive_history_codec::decode_record_version(&source.read(object)?)?
+                    .is_some()
+                {
+                    return Err(StorageUpgradeError::Migration(
+                        "Archive publication in PHY input".into(),
+                    ));
+                }
+            }
+        }
+        (
+            Vec::new(),
+            super::archive_envelope::ArchiveEnvelopePlan::default(),
+        )
     };
     let mut state = crate::memory_rebuild::MemoryOpenState::new();
     let mut publications = BTreeMap::new();
@@ -252,6 +299,7 @@ fn transform_owners(
         if envelope_plan.carriers.contains(&object)
             || entity_envelope_plan.carriers.contains(&object)
             || relationship_envelope_plan.carriers.contains(&object)
+            || archive_envelope_plan.carriers.contains(&object)
         {
             return Ok(());
         }
@@ -260,6 +308,8 @@ fn transform_owners(
         } else if let Some(envelope) = entity_envelope_plan.markers.get(&object) {
             envelope.clone()
         } else if let Some(envelope) = relationship_envelope_plan.markers.get(&object) {
+            envelope.clone()
+        } else if let Some(envelope) = archive_envelope_plan.markers.get(&object) {
             envelope.clone()
         } else if let Some(entity) = entity_carriers.get(&object) {
             entity.clone()

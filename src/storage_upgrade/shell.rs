@@ -150,6 +150,12 @@ pub(crate) fn stage_relationship_envelope_storage_upgrade(
     )
 }
 
+pub(crate) fn stage_archive_envelope_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), OwnerMigration::ThroughArchiveEnvelopes)
+}
+
 enum OwnerMigration {
     None,
     Memory,
@@ -160,6 +166,7 @@ enum OwnerMigration {
     ThroughMemoryEnvelopes,
     ThroughEntityEnvelopes,
     ThroughRelationshipEnvelopes,
+    ThroughArchiveEnvelopes,
 }
 
 // The callback is a bounded test seam for aborts and concurrent source/output
@@ -207,6 +214,9 @@ fn stage_impl(
     let mut destination =
         Container::create_with_identity_and_uuid(&staged.path, plan.identity, plan.owner_uuid)?;
     match migration {
+        OwnerMigration::ThroughArchiveEnvelopes => {
+            super::memory::transform_with_archive_envelopes(&mut source, &mut destination)?
+        }
         OwnerMigration::Memory => super::memory::transform(&mut source, &mut destination)?,
         OwnerMigration::ThroughRelationshipEnvelopes => {
             super::memory::transform_with_relationship_envelopes(&mut source, &mut destination)?

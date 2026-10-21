@@ -121,6 +121,10 @@ fn prepruned_legacy_memory_upgrade_rejects_untranslated_history_proof_without_wr
         Err(StorageUpgradeError::UnsupportedAuthority("CVAHPR01"))
     ));
     assert_eq!(Sha256::digest(fs::read(&pruned).unwrap()), source_hash);
+    assert!(matches!(
+        super::stage_archive_envelope_storage_upgrade(&plan),
+        Err(StorageUpgradeError::UnsupportedAuthority("CVAHPR01"))
+    ));
     assert_eq!(fs::read(&pruned).unwrap(), source_bytes);
     assert!(!destination.exists());
     assert!(fs::read_dir(&scratch.0).unwrap().all(|entry| {
