@@ -17,6 +17,7 @@ mod freshness_authoritative_tests;
 mod graph;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod graph_authoritative_tests;
+mod graph_envelope;
 #[cfg(test)]
 mod graph_tests;
 mod memory;
@@ -36,9 +37,10 @@ pub(crate) use model::{
 pub(crate) use shell::{
     plan_storage_upgrade, stage_archive_envelope_storage_upgrade, stage_ego_storage_upgrade,
     stage_entity_envelope_storage_upgrade, stage_entity_storage_upgrade,
-    stage_graph_storage_upgrade, stage_memory_envelope_storage_upgrade,
-    stage_memory_storage_upgrade, stage_relationship_envelope_storage_upgrade,
-    stage_relationship_storage_upgrade, stage_storage_upgrade,
+    stage_graph_envelope_storage_upgrade, stage_graph_storage_upgrade,
+    stage_memory_envelope_storage_upgrade, stage_memory_storage_upgrade,
+    stage_relationship_envelope_storage_upgrade, stage_relationship_storage_upgrade,
+    stage_storage_upgrade,
 };
 
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
@@ -61,3 +63,5 @@ mod relationship_authoritative_tests;
 
 #[cfg(test)]
 mod freshness_synthetic_tests;
+#[cfg(test)]
+mod graph_envelope_tests;

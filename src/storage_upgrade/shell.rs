@@ -156,6 +156,12 @@ pub(crate) fn stage_archive_envelope_storage_upgrade(
     stage_impl(plan, || Ok(()), OwnerMigration::ThroughArchiveEnvelopes)
 }
 
+pub(crate) fn stage_graph_envelope_storage_upgrade(
+    plan: &StorageUpgradePlan,
+) -> Result<StagedStorageUpgrade, StorageUpgradeError> {
+    stage_impl(plan, || Ok(()), OwnerMigration::ThroughGraphEnvelopes)
+}
+
 enum OwnerMigration {
     None,
     Memory,
@@ -167,6 +173,7 @@ enum OwnerMigration {
     ThroughEntityEnvelopes,
     ThroughRelationshipEnvelopes,
     ThroughArchiveEnvelopes,
+    ThroughGraphEnvelopes,
 }
 
 // The callback is a bounded test seam for aborts and concurrent source/output
@@ -216,6 +223,9 @@ fn stage_impl(
     match migration {
         OwnerMigration::ThroughArchiveEnvelopes => {
             super::memory::transform_with_archive_envelopes(&mut source, &mut destination)?
+        }
+        OwnerMigration::ThroughGraphEnvelopes => {
+            super::memory::transform_with_graph_envelopes(&mut source, &mut destination)?
         }
         OwnerMigration::Memory => super::memory::transform(&mut source, &mut destination)?,
         OwnerMigration::ThroughRelationshipEnvelopes => {

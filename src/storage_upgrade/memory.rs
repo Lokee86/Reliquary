@@ -19,6 +19,7 @@ pub(super) fn transform(
         false,
         false,
         false,
+        false,
     )
 }
 
@@ -30,6 +31,7 @@ pub(super) fn transform_with_entities(
         source,
         destination,
         true,
+        false,
         false,
         false,
         false,
@@ -55,6 +57,7 @@ pub(super) fn transform_with_relationships(
         false,
         false,
         false,
+        false,
     )
 }
 
@@ -68,6 +71,7 @@ pub(super) fn transform_with_ego(
         true,
         true,
         true,
+        false,
         false,
         false,
         false,
@@ -91,6 +95,7 @@ pub(super) fn transform_with_graph(
         false,
         false,
         false,
+        false,
     )
 }
 
@@ -106,6 +111,7 @@ pub(super) fn transform_with_memory_envelopes(
         true,
         true,
         true,
+        false,
         false,
         false,
         false,
@@ -127,6 +133,7 @@ pub(super) fn transform_with_entity_envelopes(
         true,
         false,
         false,
+        false,
     )
 }
 
@@ -145,6 +152,7 @@ pub(super) fn transform_with_relationship_envelopes(
         true,
         true,
         false,
+        false,
     )
 }
 
@@ -155,6 +163,26 @@ pub(super) fn transform_with_archive_envelopes(
     transform_owners(
         source,
         destination,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+    )
+}
+
+pub(super) fn transform_with_graph_envelopes(
+    source: &mut Container,
+    destination: &mut Container,
+) -> Result<(), StorageUpgradeError> {
+    transform_owners(
+        source,
+        destination,
+        true,
         true,
         true,
         true,
@@ -177,6 +205,7 @@ fn transform_owners(
     migrate_entity_envelopes: bool,
     migrate_relationship_envelopes: bool,
     migrate_archive_envelopes: bool,
+    migrate_graph_envelopes: bool,
 ) -> Result<(), StorageUpgradeError> {
     let (normalizations, archive_envelope_plan) = if source
         .identity()
@@ -206,6 +235,11 @@ fn transform_owners(
             Vec::new(),
             super::archive_envelope::ArchiveEnvelopePlan::default(),
         )
+    };
+    let graph_envelope_plan = if migrate_graph_envelopes {
+        super::graph_envelope::prepare(source)?
+    } else {
+        super::graph_envelope::GraphEnvelopePlan::default()
     };
     let mut state = crate::memory_rebuild::MemoryOpenState::new();
     let mut publications = BTreeMap::new();
@@ -250,7 +284,7 @@ fn transform_owners(
     } else {
         BTreeMap::new()
     };
-    let graph_carriers = if migrate_graph {
+    let graph_carriers = if migrate_graph && !migrate_graph_envelopes {
         super::graph::prepare(source)?
     } else {
         BTreeMap::new()
@@ -300,6 +334,7 @@ fn transform_owners(
             || entity_envelope_plan.carriers.contains(&object)
             || relationship_envelope_plan.carriers.contains(&object)
             || archive_envelope_plan.carriers.contains(&object)
+            || graph_envelope_plan.carriers.contains(&object)
         {
             return Ok(());
         }
@@ -310,6 +345,8 @@ fn transform_owners(
         } else if let Some(envelope) = relationship_envelope_plan.markers.get(&object) {
             envelope.clone()
         } else if let Some(envelope) = archive_envelope_plan.markers.get(&object) {
+            envelope.clone()
+        } else if let Some(envelope) = graph_envelope_plan.markers.get(&object) {
             envelope.clone()
         } else if let Some(entity) = entity_carriers.get(&object) {
             entity.clone()

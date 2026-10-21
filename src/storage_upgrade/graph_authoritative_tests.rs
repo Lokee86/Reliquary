@@ -181,6 +181,7 @@ struct AcceptedPublication {
     global_version: u64,
     graph_version: u64,
     mutations: Vec<StableMutation>,
+    single: bool,
 }
 
 fn accepted_publications(
@@ -190,14 +191,17 @@ fn accepted_publications(
     let mut result = Vec::new();
     for chunk in container.chunks().unwrap() {
         let payload = container.read(chunk).unwrap();
-        let Some(version) = decode_version(&payload).unwrap() else {
+        let Some(version) =
+            crate::graph_compact_codec::publication::version_at(chunk, &payload).unwrap()
+        else {
             continue;
         };
         let carrier = container.read(version.mutation).unwrap();
-        let mutations = graph
-            .decode_stored_mutations(&carrier)
+        let (single, mutations) = graph
+            .decode_stored_transaction(&carrier)
             .unwrap()
-            .expect("accepted Graph marker must reference a mutation carrier")
+            .expect("accepted Graph marker must reference a mutation carrier");
+        let mutations = mutations
             .into_iter()
             .map(|mutation| StableMutation {
                 source_kind: mutation.source.kind.code(),
@@ -213,6 +217,7 @@ fn accepted_publications(
             global_version: version.global_version,
             graph_version: version.graph_version,
             mutations,
+            single,
         });
     }
     result
@@ -492,3 +497,6 @@ fn authoritative_v1_graph_histories_stage_without_semantic_or_source_changes() {
     )
     .unwrap();
 }
+
+#[path = "graph_envelope_authoritative_tests.rs"]
+mod envelope;
