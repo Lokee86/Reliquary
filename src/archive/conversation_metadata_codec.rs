@@ -7,22 +7,33 @@ pub(crate) const LEGACY_CONVERSATION_METADATA_MAGIC: [u8; 8] = *b"CVACONV1";
 pub(crate) fn encode_conversation_metadata(
     metadata: &ConversationMetadata,
 ) -> Result<Vec<u8>, ArchiveError> {
+    let mut out = Vec::with_capacity(74 + metadata.conversation_id.len());
+    out.extend_from_slice(&CONVERSATION_METADATA_MAGIC);
+    encode_conversation_metadata_fields(&mut out, metadata)?;
+    Ok(out)
+}
+
+/// Encode the current standalone metadata fields without the record magic.
+pub(crate) fn encode_conversation_metadata_fields(
+    out: &mut Vec<u8>,
+    metadata: &ConversationMetadata,
+) -> Result<(), ArchiveError> {
     if metadata.policy_revision == 0 {
         return Err(ArchiveError::CorruptRecord(
             "zero conversation policy revision",
         ));
     }
-    let mut out = Vec::with_capacity(74 + metadata.conversation_id.len());
-    out.extend_from_slice(&CONVERSATION_METADATA_MAGIC);
-    write_string(&mut out, &metadata.conversation_id)?;
-    write_string(&mut out, metadata.title.as_deref().unwrap_or(""))?;
-    out.push(u8::from(metadata.active));
-    out.push(match metadata.policy {
+    let mut fields = Vec::with_capacity(74 + metadata.conversation_id.len());
+    write_string(&mut fields, &metadata.conversation_id)?;
+    write_string(&mut fields, metadata.title.as_deref().unwrap_or(""))?;
+    fields.push(u8::from(metadata.active));
+    fields.push(match metadata.policy {
         ConversationPolicy::SequentialChronological => 1,
         ConversationPolicy::VisibleAutoBranch => 2,
     });
-    out.extend_from_slice(&metadata.policy_revision.to_le_bytes());
-    Ok(out)
+    fields.extend_from_slice(&metadata.policy_revision.to_le_bytes());
+    out.extend_from_slice(&fields);
+    Ok(())
 }
 
 pub(crate) fn decode_conversation_metadata(
@@ -39,6 +50,17 @@ pub(crate) fn decode_conversation_metadata(
         ));
     }
     let mut cursor = 8;
+    if has_policy {
+        let metadata = decode_conversation_metadata_fields(bytes, &mut cursor)?;
+        if cursor != bytes.len() {
+            return Err(ArchiveError::CorruptRecord(
+                "conversation metadata trailing bytes",
+            ));
+        }
+        return Ok(metadata);
+    }
+
+    // V1/V2 remain isolated legacy paths with their historical defaults.
     let conversation_id = read_string(bytes, &mut cursor)?;
     let title = read_string(bytes, &mut cursor)?;
     let active = if has_active {
@@ -54,30 +76,51 @@ pub(crate) fn decode_conversation_metadata(
     } else {
         false
     };
-    let (policy, policy_revision) = if has_policy {
-        let policy = match read_byte(bytes, &mut cursor)? {
-            1 => ConversationPolicy::SequentialChronological,
-            2 => ConversationPolicy::VisibleAutoBranch,
-            _ => return Err(ArchiveError::CorruptRecord("invalid conversation policy")),
-        };
-        let end = cursor + 8;
-        let raw = bytes.get(cursor..end).ok_or(ArchiveError::CorruptRecord(
-            "missing conversation policy revision",
-        ))?;
-        cursor = end;
-        let revision = u64::from_le_bytes(raw.try_into().unwrap());
-        if revision == 0 {
-            return Err(ArchiveError::CorruptRecord(
-                "zero conversation policy revision",
-            ));
-        }
-        (policy, revision)
-    } else {
-        (ConversationPolicy::default(), 1)
-    };
     if cursor != bytes.len() {
         return Err(ArchiveError::CorruptRecord(
             "conversation metadata trailing bytes",
+        ));
+    }
+    Ok(ConversationMetadata {
+        conversation_id,
+        title: (!title.is_empty()).then_some(title),
+        active,
+        policy: ConversationPolicy::default(),
+        policy_revision: 1,
+    })
+}
+
+/// Decode current V3 metadata fields from `bytes`, advancing the caller cursor.
+/// The standalone wrapper owns magic validation and trailing-byte checks.
+pub(crate) fn decode_conversation_metadata_fields(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<ConversationMetadata, ArchiveError> {
+    let conversation_id = read_string(bytes, cursor)?;
+    let title = read_string(bytes, cursor)?;
+    let active = match read_byte(bytes, cursor)? {
+        0 => false,
+        1 => true,
+        _ => {
+            return Err(ArchiveError::CorruptRecord(
+                "invalid conversation active flag",
+            ));
+        }
+    };
+    let policy = match read_byte(bytes, cursor)? {
+        1 => ConversationPolicy::SequentialChronological,
+        2 => ConversationPolicy::VisibleAutoBranch,
+        _ => return Err(ArchiveError::CorruptRecord("invalid conversation policy")),
+    };
+    let end = cursor.checked_add(8).ok_or(ArchiveError::FieldTooLarge)?;
+    let raw = bytes.get(*cursor..end).ok_or(ArchiveError::CorruptRecord(
+        "missing conversation policy revision",
+    ))?;
+    *cursor = end;
+    let policy_revision = u64::from_le_bytes(raw.try_into().unwrap());
+    if policy_revision == 0 {
+        return Err(ArchiveError::CorruptRecord(
+            "zero conversation policy revision",
         ));
     }
     Ok(ConversationMetadata {

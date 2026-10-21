@@ -4,23 +4,54 @@ pub(crate) const IMPORT_MAGIC: &[u8; 8] = b"CVAIMPT1";
 
 pub(crate) fn encode(receipt: &ImportReceipt) -> Result<Vec<u8>, ArchiveError> {
     let mut out = IMPORT_MAGIC.to_vec();
+    encode_import_receipt_fields(&mut out, receipt)?;
+    Ok(out)
+}
+
+pub(crate) fn encode_import_receipt_fields(
+    out: &mut Vec<u8>,
+    receipt: &ImportReceipt,
+) -> Result<(), ArchiveError> {
+    if !valid_receipt_identity(receipt) {
+        return Err(ArchiveError::InvalidField("import receipt identity"));
+    }
     out.extend(
         serde_json::to_vec(receipt).map_err(|_| ArchiveError::InvalidField("import receipt"))?,
     );
-    Ok(out)
+    Ok(())
 }
+
 pub(crate) fn decode(payload: &[u8]) -> Result<ImportReceipt, ArchiveError> {
-    let receipt: ImportReceipt = serde_json::from_slice(&payload[8..])
-        .map_err(|_| ArchiveError::CorruptRecord("import receipt"))?;
-    if receipt.schema_version != 1
-        || receipt.import_key.len() != 64
-        || !receipt.import_key.bytes().all(|b| b.is_ascii_hexdigit())
-        || receipt.source_namespace.is_empty()
-        || receipt.source_format.is_empty()
-    {
+    if payload.len() < IMPORT_MAGIC.len() || payload[..8] != IMPORT_MAGIC[..] {
+        return Err(ArchiveError::CorruptRecord("import receipt"));
+    }
+    let mut cursor = 8;
+    decode_import_receipt_fields(payload, &mut cursor)
+}
+
+pub(crate) fn decode_import_receipt_fields(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<ImportReceipt, ArchiveError> {
+    let receipt: ImportReceipt = serde_json::from_slice(
+        bytes
+            .get(*cursor..)
+            .ok_or(ArchiveError::CorruptRecord("import receipt"))?,
+    )
+    .map_err(|_| ArchiveError::CorruptRecord("import receipt"))?;
+    *cursor = bytes.len();
+    if !valid_receipt_identity(&receipt) {
         return Err(ArchiveError::CorruptRecord("import receipt identity"));
     }
     Ok(receipt)
+}
+
+fn valid_receipt_identity(receipt: &ImportReceipt) -> bool {
+    receipt.schema_version == 1
+        && receipt.import_key.len() == 64
+        && receipt.import_key.bytes().all(|b| b.is_ascii_hexdigit())
+        && !receipt.source_namespace.is_empty()
+        && !receipt.source_format.is_empty()
 }
 impl Archive {
     pub(crate) fn put_import_receipt(

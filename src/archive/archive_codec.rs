@@ -49,23 +49,14 @@ pub fn encode_content(id: ContentId, content: &[u8]) -> Result<Vec<u8>, ArchiveE
 pub fn encode_node(node: &Node) -> Result<Vec<u8>, ArchiveError> {
     let mut out = Vec::with_capacity(96);
     out.extend_from_slice(&NODE_MAGIC);
-    out.extend_from_slice(&node.timestamp_ns.to_le_bytes());
-    out.extend_from_slice(&node.content_id.0);
-    write_string(&mut out, &node.id)?;
-    write_string(&mut out, &node.conversation_id)?;
-    write_string(&mut out, node.parent_id.as_deref().unwrap_or(""))?;
-    write_string(&mut out, &node.role)?;
-    write_string(&mut out, node.principal_id.as_deref().unwrap_or(""))?;
+    encode_node_fields(&mut out, node)?;
     Ok(out)
 }
 
 pub fn encode_branch(branch: &Branch) -> Result<Vec<u8>, ArchiveError> {
     let mut out = Vec::with_capacity(64);
     out.extend_from_slice(&BRANCH_MAGIC);
-    out.push(u8::from(branch.canonical));
-    write_string(&mut out, &branch.id)?;
-    write_string(&mut out, &branch.conversation_id)?;
-    write_string(&mut out, &branch.leaf_node_id)?;
+    encode_branch_fields(&mut out, branch)?;
     Ok(out)
 }
 
@@ -76,47 +67,206 @@ pub fn encode_conversation_tombstone(
     out.extend_from_slice(&CONVERSATION_TOMBSTONE_MAGIC);
     out.extend_from_slice(&tombstone.archive_version.to_le_bytes());
     out.extend_from_slice(&tombstone.global_version.to_le_bytes());
-    write_string(&mut out, &tombstone.conversation_id)?;
-    write_strings(&mut out, &tombstone.closure.node_ids)?;
-    write_strings(&mut out, &tombstone.closure.branch_ids)?;
-    write_ids(
-        &mut out,
-        tombstone.closure.fragment_ids.iter().map(|id| id.0),
-    )?;
-    write_ids(
-        &mut out,
-        tombstone.closure.episode_ids.iter().map(|id| id.0),
-    )?;
-    write_len(&mut out, tombstone.closure.file_ids.len())?;
-    for file_id in &tombstone.closure.file_ids {
-        out.extend_from_slice(&file_id.0);
-    }
-    write_len(&mut out, tombstone.closure.metadata_archive_versions.len())?;
-    for version in &tombstone.closure.metadata_archive_versions {
-        out.extend_from_slice(&version.to_le_bytes());
-    }
+    encode_conversation_tombstone_fields(&mut out, tombstone)?;
     Ok(out)
 }
 
 pub fn encode_fragment(fragment: &Fragment) -> Result<Vec<u8>, ArchiveError> {
     let mut out = Vec::with_capacity(96);
     out.extend_from_slice(&FRAGMENT_MAGIC);
-    out.extend_from_slice(&fragment.id.0);
-    write_string(&mut out, &fragment.conversation_id)?;
-    write_string(&mut out, &fragment.start_node_id)?;
-    write_string(&mut out, &fragment.end_node_id)?;
+    encode_fragment_fields(&mut out, fragment)?;
     Ok(out)
 }
 
 pub fn encode_file(file: &StoredFile) -> Result<Vec<u8>, ArchiveError> {
     let mut out = Vec::with_capacity(128 + file.filename.len());
     out.extend_from_slice(&FILE_MAGIC);
+    encode_file_fields(&mut out, file)?;
+    Ok(out)
+}
+
+pub(crate) fn encode_node_fields(out: &mut Vec<u8>, node: &Node) -> Result<(), ArchiveError> {
+    out.extend_from_slice(&node.timestamp_ns.to_le_bytes());
+    out.extend_from_slice(&node.content_id.0);
+    write_string(out, &node.id)?;
+    write_string(out, &node.conversation_id)?;
+    write_string(out, node.parent_id.as_deref().unwrap_or(""))?;
+    write_string(out, &node.role)?;
+    write_string(out, node.principal_id.as_deref().unwrap_or(""))?;
+    Ok(())
+}
+
+pub(crate) fn decode_node_fields(
+    bytes: &[u8],
+    cursor: &mut usize,
+    has_principal: bool,
+) -> Result<Node, ArchiveError> {
+    let timestamp_ns = read_i64(bytes, cursor)?;
+    let content_id = ContentId(read_fixed(bytes, cursor)?);
+    let id = read_string(bytes, cursor)?;
+    let conversation_id = read_string(bytes, cursor)?;
+    let parent = read_string(bytes, cursor)?;
+    let role = read_string(bytes, cursor)?;
+    let principal_id = if has_principal {
+        let principal = read_string(bytes, cursor)?;
+        (!principal.is_empty()).then_some(principal)
+    } else {
+        None
+    };
+    Ok(Node {
+        id,
+        conversation_id,
+        parent_id: (!parent.is_empty()).then_some(parent),
+        role,
+        principal_id,
+        timestamp_ns,
+        content_id,
+    })
+}
+
+pub(crate) fn encode_branch_fields(out: &mut Vec<u8>, branch: &Branch) -> Result<(), ArchiveError> {
+    out.push(u8::from(branch.canonical));
+    write_string(out, &branch.id)?;
+    write_string(out, &branch.conversation_id)?;
+    write_string(out, &branch.leaf_node_id)?;
+    Ok(())
+}
+
+pub(crate) fn decode_branch_fields(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<Branch, ArchiveError> {
+    let canonical = match read_u8(bytes, cursor)? {
+        0 => false,
+        1 => true,
+        _ => return Err(ArchiveError::CorruptRecord("invalid branch flag")),
+    };
+    Ok(Branch {
+        id: read_string(bytes, cursor)?,
+        conversation_id: read_string(bytes, cursor)?,
+        leaf_node_id: read_string(bytes, cursor)?,
+        canonical,
+    })
+}
+
+pub(crate) fn encode_fragment_fields(
+    out: &mut Vec<u8>,
+    fragment: &Fragment,
+) -> Result<(), ArchiveError> {
+    out.extend_from_slice(&fragment.id.0);
+    write_string(out, &fragment.conversation_id)?;
+    write_string(out, &fragment.start_node_id)?;
+    write_string(out, &fragment.end_node_id)?;
+    Ok(())
+}
+
+pub(crate) fn decode_fragment_fields(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<Fragment, ArchiveError> {
+    Ok(Fragment {
+        id: FragmentId(read_fixed(bytes, cursor)?),
+        conversation_id: read_string(bytes, cursor)?,
+        start_node_id: read_string(bytes, cursor)?,
+        end_node_id: read_string(bytes, cursor)?,
+    })
+}
+
+pub(crate) fn encode_file_fields(out: &mut Vec<u8>, file: &StoredFile) -> Result<(), ArchiveError> {
     out.extend_from_slice(&file.id.0);
     out.extend_from_slice(&file.content_id.0);
     out.extend_from_slice(&file.byte_length.to_le_bytes());
-    write_string(&mut out, &file.filename)?;
-    write_string(&mut out, file.mime_type.as_deref().unwrap_or(""))?;
-    Ok(out)
+    write_string(out, &file.filename)?;
+    write_string(out, file.mime_type.as_deref().unwrap_or(""))?;
+    Ok(())
+}
+
+pub(crate) fn decode_file_fields(
+    bytes: &[u8],
+    cursor: &mut usize,
+) -> Result<StoredFile, ArchiveError> {
+    let id = FileId(read_fixed(bytes, cursor)?);
+    let content_id = ContentId(read_fixed(bytes, cursor)?);
+    let byte_length = read_u64(bytes, cursor)?;
+    let filename = read_string(bytes, cursor)?;
+    let mime_type = read_string(bytes, cursor)?;
+    Ok(StoredFile {
+        id,
+        content_id,
+        filename,
+        mime_type: (!mime_type.is_empty()).then_some(mime_type),
+        byte_length,
+    })
+}
+
+pub(crate) fn encode_conversation_tombstone_fields(
+    out: &mut Vec<u8>,
+    tombstone: &ConversationTombstone,
+) -> Result<(), ArchiveError> {
+    write_string(out, &tombstone.conversation_id)?;
+    write_strings(out, &tombstone.closure.node_ids)?;
+    write_strings(out, &tombstone.closure.branch_ids)?;
+    write_ids(out, tombstone.closure.fragment_ids.iter().map(|id| id.0))?;
+    write_ids(out, tombstone.closure.episode_ids.iter().map(|id| id.0))?;
+    write_len(out, tombstone.closure.file_ids.len())?;
+    for file_id in &tombstone.closure.file_ids {
+        out.extend_from_slice(&file_id.0);
+    }
+    write_len(out, tombstone.closure.metadata_archive_versions.len())?;
+    for version in &tombstone.closure.metadata_archive_versions {
+        out.extend_from_slice(&version.to_le_bytes());
+    }
+    Ok(())
+}
+
+pub(crate) fn decode_conversation_tombstone_fields(
+    bytes: &[u8],
+    cursor: &mut usize,
+    archive_version: u64,
+    global_version: u64,
+) -> Result<ConversationTombstone, ArchiveError> {
+    let conversation_id = read_string(bytes, cursor)?;
+    let node_ids = read_strings(bytes, cursor)?;
+    let branch_ids = read_strings(bytes, cursor)?;
+    let fragment_ids = read_ids(bytes, cursor)?
+        .into_iter()
+        .map(FragmentId)
+        .collect();
+    let episode_ids = read_ids(bytes, cursor)?
+        .into_iter()
+        .map(crate::EpisodeId)
+        .collect();
+    let file_count = read_len(bytes, cursor)?;
+    let mut file_ids = Vec::with_capacity(file_count);
+    for _ in 0..file_count {
+        file_ids.push(FileId(read_fixed_named(
+            bytes,
+            cursor,
+            "truncated tombstone file id",
+        )?));
+    }
+    let metadata_count = read_len(bytes, cursor)?;
+    let mut metadata_archive_versions = Vec::with_capacity(metadata_count);
+    for _ in 0..metadata_count {
+        metadata_archive_versions.push(u64::from_le_bytes(read_fixed_named(
+            bytes,
+            cursor,
+            "truncated tombstone metadata version",
+        )?));
+    }
+    Ok(ConversationTombstone {
+        conversation_id,
+        closure: ConversationTombstoneClosure {
+            node_ids,
+            branch_ids,
+            fragment_ids,
+            episode_ids,
+            file_ids,
+            metadata_archive_versions,
+        },
+        archive_version,
+        global_version,
+    })
 }
 
 pub(crate) fn decode_content_id(bytes: &[u8]) -> Result<Option<ContentId>, ArchiveError> {
@@ -197,51 +347,20 @@ fn decode_node(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 48 {
         return Err(ArchiveError::CorruptRecord("short node record"));
     }
-    let timestamp_ns = i64::from_le_bytes(bytes[8..16].try_into().unwrap());
-    let content_id = ContentId(bytes[16..48].try_into().unwrap());
-    let mut cursor = 48;
-    let id = read_string(bytes, &mut cursor)?;
-    let conversation_id = read_string(bytes, &mut cursor)?;
-    let parent = read_string(bytes, &mut cursor)?;
-    let role = read_string(bytes, &mut cursor)?;
-    let principal_id = if bytes[..8] == NODE_MAGIC {
-        let principal = read_string(bytes, &mut cursor)?;
-        (!principal.is_empty()).then_some(principal)
-    } else {
-        None
-    };
+    let mut cursor = 8;
+    let node = decode_node_fields(bytes, &mut cursor, bytes[..8] == NODE_MAGIC)?;
     require_end(bytes, cursor)?;
-    Ok(ArchiveRecord::Node(Node {
-        id,
-        conversation_id,
-        parent_id: (!parent.is_empty()).then_some(parent),
-        role,
-        principal_id,
-        timestamp_ns,
-        content_id,
-    }))
+    Ok(ArchiveRecord::Node(node))
 }
 
 fn decode_branch(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 9 {
         return Err(ArchiveError::CorruptRecord("short branch record"));
     }
-    let canonical = match bytes[8] {
-        0 => false,
-        1 => true,
-        _ => return Err(ArchiveError::CorruptRecord("invalid branch flag")),
-    };
-    let mut cursor = 9;
-    let id = read_string(bytes, &mut cursor)?;
-    let conversation_id = read_string(bytes, &mut cursor)?;
-    let leaf_node_id = read_string(bytes, &mut cursor)?;
+    let mut cursor = 8;
+    let branch = decode_branch_fields(bytes, &mut cursor)?;
     require_end(bytes, cursor)?;
-    Ok(ArchiveRecord::Branch(Branch {
-        id,
-        conversation_id,
-        leaf_node_id,
-        canonical,
-    }))
+    Ok(ArchiveRecord::Branch(branch))
 }
 
 fn decode_conversation_tombstone(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
@@ -251,91 +370,30 @@ fn decode_conversation_tombstone(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveE
     let archive_version = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
     let global_version = u64::from_le_bytes(bytes[16..24].try_into().unwrap());
     let mut cursor = 24;
-    let conversation_id = read_string(bytes, &mut cursor)?;
-    let node_ids = read_strings(bytes, &mut cursor)?;
-    let branch_ids = read_strings(bytes, &mut cursor)?;
-    let fragment_ids = read_ids(bytes, &mut cursor)?
-        .into_iter()
-        .map(FragmentId)
-        .collect();
-    let episode_ids = read_ids(bytes, &mut cursor)?
-        .into_iter()
-        .map(crate::EpisodeId)
-        .collect();
-    let file_count = read_len(bytes, &mut cursor)?;
-    let mut file_ids = Vec::with_capacity(file_count);
-    for _ in 0..file_count {
-        let end = cursor.checked_add(32).ok_or(ArchiveError::FieldTooLarge)?;
-        let raw = bytes
-            .get(cursor..end)
-            .ok_or(ArchiveError::CorruptRecord("truncated tombstone file id"))?;
-        file_ids.push(FileId(raw.try_into().unwrap()));
-        cursor = end;
-    }
-    let metadata_count = read_len(bytes, &mut cursor)?;
-    let mut metadata_archive_versions = Vec::with_capacity(metadata_count);
-    for _ in 0..metadata_count {
-        let end = cursor.checked_add(8).ok_or(ArchiveError::FieldTooLarge)?;
-        let raw = bytes.get(cursor..end).ok_or(ArchiveError::CorruptRecord(
-            "truncated tombstone metadata version",
-        ))?;
-        metadata_archive_versions.push(u64::from_le_bytes(raw.try_into().unwrap()));
-        cursor = end;
-    }
+    let tombstone =
+        decode_conversation_tombstone_fields(bytes, &mut cursor, archive_version, global_version)?;
     require_end(bytes, cursor)?;
-    Ok(ArchiveRecord::ConversationTombstone(
-        ConversationTombstone {
-            conversation_id,
-            closure: ConversationTombstoneClosure {
-                node_ids,
-                branch_ids,
-                fragment_ids,
-                episode_ids,
-                file_ids,
-                metadata_archive_versions,
-            },
-            archive_version,
-            global_version,
-        },
-    ))
+    Ok(ArchiveRecord::ConversationTombstone(tombstone))
 }
 
 fn decode_fragment(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 40 {
         return Err(ArchiveError::CorruptRecord("short fragment record"));
     }
-    let id = FragmentId(bytes[8..40].try_into().unwrap());
-    let mut cursor = 40;
-    let conversation_id = read_string(bytes, &mut cursor)?;
-    let start_node_id = read_string(bytes, &mut cursor)?;
-    let end_node_id = read_string(bytes, &mut cursor)?;
+    let mut cursor = 8;
+    let fragment = decode_fragment_fields(bytes, &mut cursor)?;
     require_end(bytes, cursor)?;
-    Ok(ArchiveRecord::Fragment(Fragment {
-        id,
-        conversation_id,
-        start_node_id,
-        end_node_id,
-    }))
+    Ok(ArchiveRecord::Fragment(fragment))
 }
 
 fn decode_file(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes.len() < 80 {
         return Err(ArchiveError::CorruptRecord("short file record"));
     }
-    let id = FileId(bytes[8..40].try_into().unwrap());
-    let content_id = ContentId(bytes[40..72].try_into().unwrap());
-    let byte_length = u64::from_le_bytes(bytes[72..80].try_into().unwrap());
-    let mut cursor = 80;
-    let filename = read_string(bytes, &mut cursor)?;
-    let mime_type = read_string(bytes, &mut cursor)?;
+    let mut cursor = 8;
+    let file = decode_file_fields(bytes, &mut cursor)?;
     require_end(bytes, cursor)?;
-    Ok(ArchiveRecord::File(StoredFile {
-        id,
-        content_id,
-        filename,
-        mime_type: (!mime_type.is_empty()).then_some(mime_type),
-        byte_length,
-    }))
+    Ok(ArchiveRecord::File(file))
 }
 
 fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), ArchiveError> {
@@ -368,6 +426,38 @@ fn write_ids(
         out.extend_from_slice(&value);
     }
     Ok(())
+}
+
+fn read_fixed<const N: usize>(bytes: &[u8], cursor: &mut usize) -> Result<[u8; N], ArchiveError> {
+    read_fixed_named(bytes, cursor, "truncated fixed field")
+}
+
+fn read_fixed_named<const N: usize>(
+    bytes: &[u8],
+    cursor: &mut usize,
+    error: &'static str,
+) -> Result<[u8; N], ArchiveError> {
+    let end = cursor.checked_add(N).ok_or(ArchiveError::FieldTooLarge)?;
+    let raw = bytes
+        .get(*cursor..end)
+        .ok_or(ArchiveError::CorruptRecord(error))?;
+    let value = raw
+        .try_into()
+        .map_err(|_| ArchiveError::CorruptRecord("invalid fixed field"))?;
+    *cursor = end;
+    Ok(value)
+}
+
+fn read_u8(bytes: &[u8], cursor: &mut usize) -> Result<u8, ArchiveError> {
+    Ok(read_fixed::<1>(bytes, cursor)?[0])
+}
+
+fn read_u64(bytes: &[u8], cursor: &mut usize) -> Result<u64, ArchiveError> {
+    Ok(u64::from_le_bytes(read_fixed(bytes, cursor)?))
+}
+
+fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, ArchiveError> {
+    Ok(i64::from_le_bytes(read_fixed(bytes, cursor)?))
 }
 
 fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, ArchiveError> {
@@ -424,3 +514,6 @@ fn require_end(bytes: &[u8], cursor: usize) -> Result<(), ArchiveError> {
         Err(ArchiveError::CorruptRecord("trailing bytes"))
     }
 }
+
+#[path = "archive_publication_codec.rs"]
+pub(crate) mod publication;
