@@ -1394,7 +1394,7 @@ Architecture impact:
 
 ## Envelope owner batch — Steps178–199 accepted against `ca60b5c`
 
-The item-specific gates178–199 are accepted; next is Archive Step200. The broader root command is running against the implementation snapshot, with Integration Gate E pending after remaining owner framing. Memory offline conversion replaces accepted direct links with reserved-binding envelopes at their original slots, retains inert backing and grouped publication authority, and rejects legacy `CVAHPR01` rather than inventing replacement proof. The completed-import boundary regression uses a genuine V1 `CVAILEG1` proof whose prefix contains the reserved ticket; migration must rebind that proof into a V2 transport wrapper. V2-only wrappers cannot be used as fabricated V1 inputs.
+The item-specific gates178–199 are accepted; Archive contract Step 200 is accepted against `2597c73`; next is its body codec Step 201. The broader root command is running against the implementation snapshot, with Integration Gate E pending after remaining owner framing. Memory offline conversion replaces accepted direct links with reserved-binding envelopes at their original slots, retains inert backing and grouped publication authority, and rejects legacy `CVAHPR01` rather than inventing replacement proof. The completed-import boundary regression uses a genuine V1 `CVAILEG1` proof whose prefix contains the reserved ticket; migration must rebind that proof into a V2 transport wrapper. V2-only wrappers cannot be used as fabricated V1 inputs.
 
 The optimized authoritative Memory check passed all six pinned files: all owner-local cuts, global frontiers, revision body/routing facts, terminal state, transaction times, source bytes/SHA-256/mtime, and unpublished-stage cleanup. Runtime was 1,178.86 seconds. [Measured results](../benchmarks/memory-envelope-migration-2026-10-20.json) report actual standalone framing separately from grouped/external atomic frames. These results do not claim whole-container savings. Item-specific acceptance is recorded against `ca60b5c`; integrated promotion and retirement remain pending.
 
@@ -1418,3 +1418,6 @@ Architecture impact:
 
 
 The [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) records separate commit/files/verification/blockers for each accepted item. Relationship applicability is measured in [six-source staging evidence](../benchmarks/relationship-envelope-applicability-2026-10-20.json); it establishes zero population, while synthetic tests establish populated runtime/conversion correctness. The full unit sweep passed1,963 tests with5 ignored, exposing one obsolete destination-wire assertion; its corrected focused test passes against identical production code. Full repository verification is running separately.
+
+
+Archive Step 201 accepted against `24572e4`: 15 body codec tests and 106 Archive-filtered regressions pass. Step 202 replay is in progress and unaccepted. The Windows mock-server accepted-socket correction `a65650d` passes its previously failing controller regression; a clean full-root sweep remains required.

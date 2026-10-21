@@ -1,7 +1,7 @@
 # Compact publication envelope — execution contract
 
 Date: 2026-10-20
-Status: Step 167 contract accepted against `b043494`; Memory runtime admission and ordinary writing accepted through Step 177. Offline Memory conversion and Entity/Relationship envelope codecs, consumers, ordinary writing and offline conversion are implemented and in verification. Archive contract freeze and Graph implementation gates, plus final promotion, remain pending.
+Status: Step 167 contract accepted against `b043494`; Memory runtime admission and ordinary writing accepted through Step 177. Offline Memory conversion and Entity/Relationship envelope codecs, consumers, ordinary writing and offline conversion are implemented and in verification. Archive contract Step 200 accepted against `2597c73` and body codecs Step 201 against `24572e4`; Archive replay/consumers/writing/conversion, Graph framing and final promotion remain pending.
 
 ## Overview
 
