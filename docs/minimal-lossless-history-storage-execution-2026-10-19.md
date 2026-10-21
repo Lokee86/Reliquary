@@ -1456,3 +1456,9 @@ Graph checkpoint verification: CLI formatting/check and all 32 CLI tests pass. B
 
 
 Graph writer gate218 accepted against `308e725`: 108 Graph checks pass including every incomplete final-frame prefix/reopen/retry, followed by 110 Graph checks and 2,012 broad units with the converter candidate. Five existing ignored and three long Gate E sweeps remain. Ordinal/body planning precedes writes and GraphStore installs mapping/transaction state only after the native allocation envelope succeeds. Next219 measures the staged native Graph converter against six frozen sources.
+
+
+Graph converter219 accepted against `e1e4d9e`, measured in `0113e78`: six pinned conversions pass in 288.52 seconds, 46,075 publications, unchanged source bytes/hashes/mtimes. Graph native frames save 1,059,725 bytes versus compact carrier/link framing (3,927,132 → 2,867,407); shared reservations, mappings and other owners excluded. Luna audit220 finds no missing selected owner/family/responsibility after this measurement. Integration Gate E remains active: exhaustive recovery, historical-oracle/integration suites and architecture refresh have not all completed. Step221 is not active until that gate passes.
+
+
+Gate E verification progress: 157 integration tests across 24 passing suites; 32 CLI tests; root doctests; and all three long recovery sweeps pass. The exhaustive checkpoint sweep passes all 1,046 non-vector and 1,484 vector byte prefixes on isolated rerun (242.18 seconds); the initial combined run hit Windows access denied during one retry. Archive legacy fixture assumptions were corrected in `cb95e38`; all ten activity contracts and workspace management pass. Historical fixture oracles and architecture refresh are still pending, so Gate E is not accepted yet.
