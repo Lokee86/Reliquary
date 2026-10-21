@@ -1,0 +1,4 @@
+# Verification outputs and disposable repository copies are not authored source.
+# Keep src, tests, examples and cli/src in the normal analysis scope.
+/.test-tmp/
+/.verification-tmp/
