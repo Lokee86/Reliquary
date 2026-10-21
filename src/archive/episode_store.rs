@@ -1,4 +1,4 @@
-use crate::episode_codec::encode_episode;
+use crate::archive_codec::ArchiveRecord;
 use crate::episode_model::episode_id;
 use crate::{Archive, ArchiveError, Container, Episode, EpisodeId, Node};
 use std::collections::HashSet;
@@ -24,8 +24,7 @@ impl Archive {
                 Err(ArchiveError::ConflictingEpisode)
             };
         }
-        let record = container.append(&encode_episode(&episode)?)?;
-        self.publish_record(container, record)?;
+        self.publish_publication(container, ArchiveRecord::Episode(episode.clone()))?;
         self.episodes.insert(episode)
     }
 

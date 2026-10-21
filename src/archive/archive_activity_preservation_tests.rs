@@ -63,6 +63,37 @@ fn orphan(cva: &mut Cva, id: &str) {
 }
 fn repeat(cva: &mut Cva, version: u64) {
     let record = cva.archive.record_version(version).unwrap().record;
+    let payload = cva.container.read(record).unwrap();
+    if crate::container::publication_envelope::decode(&payload)
+        .unwrap()
+        .is_some()
+    {
+        let (_, applying) = cva
+            .archive
+            .read_publication(
+                &mut cva.container,
+                *cva.archive.record_version(version).unwrap(),
+            )
+            .unwrap();
+        let local = cva.archive.next_archive_version;
+        let body = crate::archive_codec::publication::encode(
+            &crate::archive_codec::publication::ArchivePublication::Repeat {
+                archive_version: local,
+                first_applying_archive_version: applying.archive_version,
+            },
+        )
+        .unwrap();
+        let (global_version, record) = cva.container.append_publication_envelope(&body).unwrap();
+        cva.archive
+            .record_versions
+            .push(crate::ArchiveRecordVersion {
+                global_version,
+                archive_version: local,
+                record,
+            });
+        cva.archive.next_archive_version += 1;
+        return;
+    }
     cva.archive
         .publish_record(&mut cva.container, record)
         .unwrap();

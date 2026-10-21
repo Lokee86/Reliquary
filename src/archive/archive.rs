@@ -1,4 +1,4 @@
-use crate::archive_codec::{encode_branch, encode_node};
+use crate::archive_codec::ArchiveRecord;
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::{hash_content, validate_text};
@@ -70,10 +70,10 @@ impl Archive {
             return Ok(self.activity.acceptance(node, ordinal, false));
         };
         let ordinal = self.nodes.len();
-        let payload = encode_node(&node)?;
+        let prepared_publication =
+            self.prepare_publication(container, ArchiveRecord::Node(node.clone()))?;
         self.put_content(container, content_id, content)?;
-        let record = container.append(&payload)?;
-        let version = self.publish_record(container, record)?;
+        let version = self.publish_prepared(container, prepared_publication)?;
         self.nodes.insert(node.clone())?;
         self.activity.commit_new(prepared, version.archive_version);
         Ok(self.activity.acceptance(node, ordinal, true))
@@ -102,8 +102,7 @@ impl Archive {
                 return Err(ArchiveError::InvalidBranchRevision);
             }
         }
-        let record = container.append(&encode_branch(&branch)?)?;
-        self.publish_record(container, record)?;
+        self.publish_publication(container, ArchiveRecord::Branch(branch.clone()))?;
         self.branches.put(branch);
         Ok(())
     }

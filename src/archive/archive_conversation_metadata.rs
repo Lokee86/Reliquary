@@ -1,5 +1,5 @@
+use crate::archive_codec::ArchiveRecord;
 use crate::archive_store::validate_text;
-use crate::conversation_metadata_codec::encode_conversation_metadata;
 use crate::{Archive, ArchiveError, Container, ConversationMetadata, ConversationPolicy};
 
 impl Archive {
@@ -20,8 +20,10 @@ impl Archive {
         if self.conversations.get(&metadata.conversation_id) == Some(&metadata) {
             return Ok(false);
         }
-        let record = container.append(&encode_conversation_metadata(&metadata)?)?;
-        let version = self.publish_record(container, record)?;
+        let version = self.publish_publication(
+            container,
+            ArchiveRecord::ConversationMetadata(metadata.clone()),
+        )?;
         self.conversation_metadata_versions
             .entry(metadata.conversation_id.clone())
             .or_default()

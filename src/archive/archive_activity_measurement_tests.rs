@@ -2,7 +2,7 @@
 //! REL_ACTIVITY_FIXTURES is a semicolon-separated list of frozen REL paths.
 //! Without it, use a disposable 512-turn fixture; no timing threshold is a test gate.
 use super::ArchiveActivityIndex;
-use crate::archive_codec::{ArchiveRecord, decode_record};
+use crate::archive_codec::ArchiveRecord;
 use crate::archive_record_index::NodeIndex;
 use crate::{Cva, IncomingTurn, Node};
 use sha2::{Digest, Sha256};
@@ -80,7 +80,11 @@ fn profile(path: &Path) {
     let mut count = 0_u64;
     for version in versions {
         let bytes = cva.container.read(version.record).unwrap();
-        let node = match decode_record(&bytes).unwrap() {
+        let (record, _) = cva
+            .archive
+            .read_publication(&mut cva.container, version)
+            .unwrap();
+        let node = match record {
             ArchiveRecord::Node(node) => {
                 *formats
                     .entry(String::from_utf8(bytes[..8].to_vec()).unwrap())

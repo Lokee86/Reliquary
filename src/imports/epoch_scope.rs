@@ -238,11 +238,19 @@ impl Cva {
             if offset <= start_offset {
                 return Ok(());
             }
-            if let Some(episode) = crate::episode_codec::decode_episode(payload)? {
-                if episode.origin == EpisodeOrigin::Import
-                    && episode_matches_source(self, &episode, &source_nodes)?
-                {
-                    episodes.insert(episode.id.0);
+            if let Some(version) = crate::archive_codec::publication::version_at(object, payload)? {
+                let (record, applying) = self
+                    .archive
+                    .read_publication(&mut self.container, version)?;
+                if applying.archive_version != version.archive_version {
+                    return Ok(());
+                }
+                if let crate::archive_codec::ArchiveRecord::Episode(episode) = record {
+                    if episode.origin == EpisodeOrigin::Import
+                        && episode_matches_source(self, &episode, &source_nodes)?
+                    {
+                        episodes.insert(episode.id.0);
+                    }
                 }
             }
             Ok(())

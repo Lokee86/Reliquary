@@ -1,6 +1,21 @@
+#[cfg(test)]
+use crate::ObjectRef;
 use crate::archive_codec::{ArchiveRecord, decode_record};
-use crate::archive_history_codec::{encode_archive_format, encode_record_version};
-use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch, Container, ObjectRef};
+use crate::archive_history_codec::encode_archive_format;
+#[cfg(test)]
+use crate::archive_history_codec::encode_record_version;
+use crate::{Archive, ArchiveError, ArchiveRecordVersion, Branch, Container};
+
+pub(crate) struct PreparedArchivePublication {
+    body: Vec<u8>,
+    archive_version: u64,
+    next_archive_version: u64,
+    global_version: u64,
+}
+
+#[cfg(test)]
+#[path = "archive_publication_writer_tests.rs"]
+mod publication_writer_tests;
 
 impl Archive {
     pub(crate) fn initialize_history_format(
@@ -94,6 +109,67 @@ impl Archive {
         Ok(found)
     }
 
+    pub(crate) fn prepare_publication(
+        &self,
+        container: &Container,
+        record: ArchiveRecord,
+    ) -> Result<PreparedArchivePublication, ArchiveError> {
+        container.require_storage_format_writable()?;
+        let archive_version = self.next_archive_version;
+        let next_archive_version = archive_version
+            .checked_add(1)
+            .ok_or(ArchiveError::ArchiveVersionExhausted)?;
+        let global_version = container
+            .latest_version()
+            .checked_add(1)
+            .ok_or(crate::ContainerError::VersionExhausted)?;
+        let body = crate::archive_codec::publication::encode(
+            &crate::archive_codec::publication::ArchivePublication::Record {
+                archive_version,
+                record,
+            },
+        )?;
+        Ok(PreparedArchivePublication {
+            body,
+            archive_version,
+            next_archive_version,
+            global_version,
+        })
+    }
+
+    pub(crate) fn publish_prepared(
+        &mut self,
+        container: &mut Container,
+        prepared: PreparedArchivePublication,
+    ) -> Result<ArchiveRecordVersion, ArchiveError> {
+        if self.next_archive_version != prepared.archive_version
+            || container.latest_version().checked_add(1) != Some(prepared.global_version)
+        {
+            return Err(ArchiveError::InvalidArchiveRecordVersion);
+        }
+        let (global_version, record) = container.append_publication_envelope(&prepared.body)?;
+        let version = ArchiveRecordVersion {
+            global_version,
+            archive_version: prepared.archive_version,
+            record,
+        };
+        self.record_versions.push(version);
+        self.next_archive_version = prepared.next_archive_version;
+        Ok(version)
+    }
+
+    pub(crate) fn publish_publication(
+        &mut self,
+        container: &mut Container,
+        record: ArchiveRecord,
+    ) -> Result<ArchiveRecordVersion, ArchiveError> {
+        let prepared = self.prepare_publication(container, record)?;
+        self.publish_prepared(container, prepared)
+    }
+
+    /// Explicit standalone fixtures retain the old representation for parity
+    /// tests; ordinary writers use the native prepared publication path.
+    #[cfg(test)]
     pub(crate) fn publish_record(
         &mut self,
         container: &mut Container,

@@ -1,7 +1,7 @@
+use crate::archive_codec::ArchiveRecord;
 use crate::archive_store::{hash_content, validate_text};
 use crate::file_store::build_stored_file;
 use crate::project_file_binding_store::ProjectFileStore;
-use crate::turn_ingest_codec::encode_ingested_turn;
 use crate::{Archive, ArchiveError, Container, IncomingTurn, IngestedTurn, Node, StoredFile};
 use std::collections::HashSet;
 
@@ -111,13 +111,13 @@ impl Archive {
             .prepare_node(&mut self.nodes, &ingested.node)?
             .expect("novel turn was validated above");
         let ordinal = self.nodes.len();
-        let payload = encode_ingested_turn(&ingested)?;
+        let prepared_publication =
+            self.prepare_publication(container, ArchiveRecord::IngestedTurn(ingested.clone()))?;
         self.put_content(container, ingested.node.content_id, &incoming.content)?;
         for (file, bytes) in &prepared {
             self.put_content_bytes(container, file.content_id, bytes)?;
         }
-        let record = container.append(&payload)?;
-        let version = self.publish_record(container, record)?;
+        let version = self.publish_prepared(container, prepared_publication)?;
         self.nodes.insert(ingested.node.clone())?;
         for file in &ingested.attachments {
             self.files.insert(file.clone())?;

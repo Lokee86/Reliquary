@@ -68,8 +68,10 @@ impl Archive {
                 Err(ArchiveError::CorruptRecord("conflicting import receipt"))
             };
         }
-        let record = container.append(&encode(&receipt)?)?;
-        self.publish_record(container, record)?;
+        self.publish_publication(
+            container,
+            crate::archive_codec::ArchiveRecord::ImportReceipt(receipt.clone()),
+        )?;
         self.import_receipts
             .insert(receipt.import_key.clone(), receipt);
         Ok(true)

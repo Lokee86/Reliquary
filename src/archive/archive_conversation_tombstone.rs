@@ -1,4 +1,4 @@
-use crate::archive_codec::encode_conversation_tombstone;
+use crate::archive_codec::ArchiveRecord;
 use crate::{
     Archive, ArchiveError, Container, ConversationTombstone, ConversationTombstoneClosure,
     owner_lifecycle::{LifecycleError, LifecycleState, LifecycleTarget, TombstoneCoordinates},
@@ -22,15 +22,17 @@ impl Archive {
         let global_version = container
             .latest_version()
             .checked_add(1)
-            .ok_or(ArchiveError::ArchiveVersionExhausted)?;
+            .ok_or(crate::ContainerError::VersionExhausted)?;
         let tombstone = ConversationTombstone {
             conversation_id: conversation_id.to_owned(),
             closure: self.discover_conversation_tombstone_closure(conversation_id),
             archive_version,
             global_version,
         };
-        let record = container.append(&encode_conversation_tombstone(&tombstone)?)?;
-        let published = self.publish_record(container, record)?;
+        let published = self.publish_publication(
+            container,
+            ArchiveRecord::ConversationTombstone(tombstone.clone()),
+        )?;
         if published.archive_version != archive_version
             || published.global_version != global_version
         {

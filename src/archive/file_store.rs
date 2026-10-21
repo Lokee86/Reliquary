@@ -1,4 +1,4 @@
-use crate::archive_codec::encode_file;
+use crate::archive_codec::ArchiveRecord;
 use crate::archive_store::{hash_content, validate_text};
 use crate::{Archive, ArchiveError, Container, ContentId, FileId, StoredFile};
 use sha2::{Digest, Sha256};
@@ -20,8 +20,11 @@ impl Archive {
                 Err(ArchiveError::ConflictingFile)
             };
         }
+        let prepared = self.prepare_publication(container, ArchiveRecord::File(file.clone()))?;
         self.put_content_bytes(container, file.content_id, bytes)?;
-        self.register_file(container, file)
+        self.publish_prepared(container, prepared)?;
+        self.files.insert(file.clone())?;
+        Ok(file)
     }
 
     pub(crate) fn register_file(
@@ -37,8 +40,7 @@ impl Archive {
                 Err(ArchiveError::ConflictingFile)
             };
         }
-        let record = container.append(&encode_file(&file)?)?;
-        self.publish_record(container, record)?;
+        self.publish_publication(container, ArchiveRecord::File(file.clone()))?;
         self.files.insert(file.clone())?;
         Ok(file)
     }

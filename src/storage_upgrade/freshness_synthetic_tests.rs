@@ -112,6 +112,43 @@ fn append_accepted_use_batch(owner: &mut Cva, use_id: &str, memory: MemoryId) {
     owner.freshness.ingest_appended(&payload).unwrap();
 }
 
+fn append_legacy_activity_turn(owner: &mut Cva, turn: u64) {
+    let content = "Accepted activity advances the legacy baseline to a measurable score.";
+    let content_id = crate::archive_store::hash_content(content.as_bytes());
+    let node = crate::Node {
+        id: format!("synthetic-freshness-turn-{turn}"),
+        conversation_id: "synthetic-freshness".into(),
+        parent_id: None,
+        role: if turn % 2 == 0 { "user" } else { "assistant" }.into(),
+        principal_id: None,
+        timestamp_ns: turn as i64,
+        content_id,
+    };
+    let prepared = owner
+        .archive
+        .activity
+        .prepare_node(&mut owner.archive.nodes, &node)
+        .unwrap()
+        .unwrap();
+    owner
+        .archive
+        .put_content(&mut owner.container, content_id, content)
+        .unwrap();
+    let object = owner
+        .container
+        .append(&crate::archive_codec::encode_node(&node).unwrap())
+        .unwrap();
+    let version = owner
+        .archive
+        .publish_record(&mut owner.container, object)
+        .unwrap();
+    owner.archive.nodes.insert(node).unwrap();
+    owner
+        .archive
+        .activity
+        .commit_new(prepared, version.archive_version);
+}
+
 #[test]
 fn graph_upgrade_preserves_nonempty_legacy_accepted_use_events_and_source() {
     let fixture = Fixture::new();
@@ -152,16 +189,7 @@ fn graph_upgrade_preserves_nonempty_legacy_accepted_use_events_and_source() {
         // One default decay interval takes a baseline from 100 to 99, leaving
         // a measurable accepted-use postimage without a large activity fixture.
         for turn in 0..10 {
-            owner
-                .append_node(
-                    format!("synthetic-freshness-turn-{turn}"),
-                    "synthetic-freshness".into(),
-                    None,
-                    if turn % 2 == 0 { "user" } else { "assistant" }.into(),
-                    turn as i64,
-                    "Accepted activity advances the legacy baseline to a measurable score.",
-                )
-                .unwrap();
+            append_legacy_activity_turn(&mut owner, turn);
         }
         append_accepted_use_batch(&mut owner, "synthetic-use-a", first.id);
         append_accepted_use_batch(&mut owner, "synthetic-use-b", second.id);

@@ -1,4 +1,4 @@
-use crate::archive_codec::encode_fragment;
+use crate::archive_codec::ArchiveRecord;
 use crate::{Archive, ArchiveError, Container, Fragment, FragmentId, Node, ResolvedTurn};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
@@ -19,8 +19,8 @@ impl Archive {
                 Err(ArchiveError::ConflictingFragment)
             };
         }
-        let record = container.append(&encode_fragment(&fragment)?)?;
-        let version = self.publish_record(container, record)?;
+        let version =
+            self.publish_publication(container, ArchiveRecord::Fragment(fragment.clone()))?;
         self.fragments.insert(fragment, version.archive_version)?;
         Ok(true)
     }

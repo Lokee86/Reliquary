@@ -1,4 +1,4 @@
-use crate::file_memory_link_codec::encode_file_memory_link;
+use crate::archive_codec::ArchiveRecord;
 use crate::memory_store::MemoryStore;
 use crate::{Archive, ArchiveError, Container, FileId, FileMemoryLink, MemoryId, StoredFile};
 
@@ -17,8 +17,7 @@ impl Archive {
         if self.file_memory_links.contains(file_id, memory_id) {
             return Ok(link);
         }
-        let record = container.append(&encode_file_memory_link(link))?;
-        self.publish_record(container, record)?;
+        self.publish_publication(container, ArchiveRecord::FileMemoryLink(link))?;
         self.file_memory_links.insert(link);
         Ok(link)
     }
