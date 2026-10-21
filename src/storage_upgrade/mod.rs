@@ -8,6 +8,8 @@ mod archive_envelope_tests;
 mod authority_admission;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod canonical_matrix_tests;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+mod canonical_performance_tests;
 mod dream_begin;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod dream_begin_authoritative_tests;

@@ -1,0 +1,1736 @@
+{
+  "authoritative_promotion": false,
+  "compression_included": false,
+  "date": "2026-10-21",
+  "fixtures": [
+    {
+      "canonical_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-converted-b0a91251-2fc6-4b31-b1d8-571ba4571b76\\chatgpt-first14d/project.prj.rel",
+      "canonical_raw": {
+        "families": {
+          "CVAAFMT2": [
+            1,
+            20
+          ],
+          "CVAAVEC1": [
+            1,
+            33880
+          ],
+          "CVAAVFM1": [
+            1,
+            20
+          ],
+          "CVACOMM1": [
+            3,
+            105780
+          ],
+          "CVACONT1": [
+            5767,
+            9294193
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            2,
+            32968
+          ],
+          "CVACPRT1": [
+            1,
+            48
+          ],
+          "CVADRM01": [
+            314,
+            16328
+          ],
+          "CVADRP02": [
+            428,
+            10272
+          ],
+          "CVAERL01": [
+            169,
+            35671
+          ],
+          "CVAFRP01": [
+            1,
+            50
+          ],
+          "CVAFRS02": [
+            71,
+            1275823
+          ],
+          "CVAFRS06": [
+            1,
+            1830481
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGNOD2": [
+            65,
+            3445
+          ],
+          "CVAGNODE": [
+            1120,
+            58240
+          ],
+          "CVAINSC8": [
+            456,
+            836504
+          ],
+          "CVAINSF1": [
+            1,
+            16
+          ],
+          "CVAINSW1": [
+            1062,
+            142470
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMRTE2": [
+            110,
+            13836
+          ],
+          "CVAMVEC1": [
+            9,
+            71608
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPUB01": [
+            17814,
+            2862808
+          ],
+          "CVAPVEC1": [
+            10,
+            13353680
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS1": [
+            17265,
+            414360
+          ],
+          "CVAVERS2": [
+            550,
+            17600
+          ],
+          "CVAVGEN2": [
+            1,
+            120
+          ],
+          "CVAVGFM2": [
+            1,
+            20
+          ],
+          "CVAVGRC2": [
+            1,
+            48
+          ],
+          "CVDREAM1": [
+            1627,
+            292816
+          ],
+          "CVDREAM2": [
+            36,
+            8496
+          ],
+          "PRJCOR02": [
+            1,
+            168
+          ],
+          "PRJFILE1": [
+            95,
+            30305
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 30742210
+      },
+      "canonical_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "heads": [
+        18938,
+        7526,
+        3348,
+        150,
+        0,
+        7913,
+        7913,
+        1,
+        5857
+      ],
+      "migration_ms": 81957,
+      "owner_admission": true,
+      "source_raw": {
+        "families": {
+          "CVAAFMT2": [
+            1,
+            20
+          ],
+          "CVAAREC1": [
+            7526,
+            361248
+          ],
+          "CVAAVEC1": [
+            1,
+            33880
+          ],
+          "CVAAVFM1": [
+            1,
+            20
+          ],
+          "CVABRCH1": [
+            157,
+            22922
+          ],
+          "CVACOMM1": [
+            3,
+            105780
+          ],
+          "CVACONT1": [
+            5767,
+            9294193
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            2,
+            32968
+          ],
+          "CVACPRT1": [
+            1,
+            48
+          ],
+          "CVADRP01": [
+            428,
+            34240
+          ],
+          "CVAENTR1": [
+            150,
+            46484
+          ],
+          "CVAENTV1": [
+            150,
+            7200
+          ],
+          "CVAEPIS1": [
+            456,
+            84816
+          ],
+          "CVAERS02": [
+            169,
+            28235
+          ],
+          "CVAFRAG1": [
+            1056,
+            177408
+          ],
+          "CVAFRP01": [
+            1,
+            50
+          ],
+          "CVAFRS02": [
+            71,
+            1275823
+          ],
+          "CVAFRS03": [
+            1,
+            97076
+          ],
+          "CVAGBAT1": [
+            4262,
+            749843
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGMUT1": [
+            3571,
+            296445
+          ],
+          "CVAGMUT2": [
+            80,
+            6880
+          ],
+          "CVAGNOD2": [
+            65,
+            3445
+          ],
+          "CVAGNODE": [
+            1120,
+            58240
+          ],
+          "CVAGVER1": [
+            7913,
+            379824
+          ],
+          "CVAILEG1": [
+            1,
+            519
+          ],
+          "CVAINSC3": [
+            85,
+            11823
+          ],
+          "CVAINSC6": [
+            371,
+            833209
+          ],
+          "CVAINSF1": [
+            1,
+            16
+          ],
+          "CVAINSW1": [
+            1062,
+            142470
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMEMR4": [
+            1102,
+            416797
+          ],
+          "CVAMEMR6": [
+            1087,
+            510906
+          ],
+          "CVAMEMR8": [
+            36,
+            13260
+          ],
+          "CVAMEMV1": [
+            2225,
+            106800
+          ],
+          "CVAMRTE2": [
+            110,
+            13836
+          ],
+          "CVAMVEC1": [
+            9,
+            71608
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPVEC1": [
+            10,
+            13353680
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVATURN1": [
+            3049,
+            588349
+          ],
+          "CVATURN2": [
+            2808,
+            658528
+          ],
+          "CVAVERS1": [
+            17265,
+            414360
+          ],
+          "CVAVERS2": [
+            550,
+            17600
+          ],
+          "CVAVGEN2": [
+            1,
+            120
+          ],
+          "CVAVGFM2": [
+            1,
+            20
+          ],
+          "CVAVGRC2": [
+            1,
+            48
+          ],
+          "CVDREAM1": [
+            1663,
+            1571536
+          ],
+          "PRJCOR02": [
+            1,
+            168
+          ],
+          "PRJFILE1": [
+            95,
+            30305
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 31853182
+      },
+      "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true
+    },
+    {
+      "canonical_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-converted-b0a91251-2fc6-4b31-b1d8-571ba4571b76\\chatgpt-first14d/user.phy",
+      "canonical_raw": {
+        "families": {
+          "CVACOMM1": [
+            2,
+            7260
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            1,
+            16484
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGNODE": [
+            104,
+            5408
+          ],
+          "CVAMBDY1": [
+            108,
+            19906
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMRTE2": [
+            1,
+            84
+          ],
+          "CVAMVEC1": [
+            6,
+            4144
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPUB01": [
+            1088,
+            157054
+          ],
+          "CVAPVEC1": [
+            6,
+            438704
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS1": [
+            1087,
+            26088
+          ],
+          "CVAVERS2": [
+            1,
+            32
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 675300
+      },
+      "canonical_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "fixture": "chatgpt-first14d/user.phy",
+      "heads": [
+        1088,
+        421,
+        0,
+        0,
+        667,
+        667
+      ],
+      "migration_ms": 400,
+      "owner_admission": true,
+      "source_raw": {
+        "families": {
+          "CVACOMM1": [
+            2,
+            7260
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            1,
+            16484
+          ],
+          "CVAGBAT1": [
+            479,
+            83079
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGMUT1": [
+            188,
+            15604
+          ],
+          "CVAGNODE": [
+            104,
+            5408
+          ],
+          "CVAGVER1": [
+            667,
+            32016
+          ],
+          "CVAMBDY1": [
+            108,
+            19906
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMEMR4": [
+            214,
+            62689
+          ],
+          "CVAMEMR5": [
+            99,
+            39115
+          ],
+          "CVAMEMR6": [
+            107,
+            42853
+          ],
+          "CVAMEMR8": [
+            1,
+            477
+          ],
+          "CVAMEMV1": [
+            421,
+            20208
+          ],
+          "CVAMRTE2": [
+            1,
+            84
+          ],
+          "CVAMVEC1": [
+            6,
+            4144
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPVEC1": [
+            6,
+            438704
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS1": [
+            1087,
+            26088
+          ],
+          "CVAVERS2": [
+            1,
+            32
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 814287
+      },
+      "source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true
+    },
+    {
+      "canonical_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-converted-b0a91251-2fc6-4b31-b1d8-571ba4571b76\\chatgpt-first28d/project.prj.rel",
+      "canonical_raw": {
+        "families": {
+          "CVAAFMT2": [
+            1,
+            20
+          ],
+          "CVAAVEC1": [
+            1,
+            92312
+          ],
+          "CVAAVFM1": [
+            1,
+            20
+          ],
+          "CVACOMM1": [
+            3,
+            105780
+          ],
+          "CVACONT1": [
+            12532,
+            21616142
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            4,
+            65936
+          ],
+          "CVACPRT1": [
+            3,
+            144
+          ],
+          "CVADRM01": [
+            2600,
+            135200
+          ],
+          "CVADRP02": [
+            20158,
+            483792
+          ],
+          "CVAERS03": [
+            3845,
+            623042
+          ],
+          "CVAFRP01": [
+            1,
+            50
+          ],
+          "CVAFRS02": [
+            57,
+            2768181
+          ],
+          "CVAFRS06": [
+            1,
+            4330853
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGNOD2": [
+            527,
+            27931
+          ],
+          "CVAGNODE": [
+            2844,
+            147888
+          ],
+          "CVAINSC8": [
+            1344,
+            2084453
+          ],
+          "CVAINSF1": [
+            1,
+            16
+          ],
+          "CVAINSW1": [
+            1062,
+            142470
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMRTE2": [
+            2816,
+            336882
+          ],
+          "CVAMVEC1": [
+            25,
+            181400
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPUB01": [
+            49956,
+            6923367
+          ],
+          "CVAPVEC1": [
+            26,
+            34641744
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS1": [
+            42611,
+            1022664
+          ],
+          "CVAVERS2": [
+            7346,
+            235072
+          ],
+          "CVAVGEN2": [
+            1,
+            120
+          ],
+          "CVAVGFM2": [
+            1,
+            20
+          ],
+          "CVAVGRC2": [
+            1,
+            48
+          ],
+          "CVDREAM1": [
+            3281,
+            537383
+          ],
+          "CVDREAM2": [
+            31,
+            7316
+          ],
+          "PRJCOR02": [
+            1,
+            168
+          ],
+          "PRJFILE1": [
+            99,
+            31581
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 76542131
+      },
+      "canonical_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "heads": [
+        52804,
+        21068,
+        5727,
+        671,
+        0,
+        25337,
+        25337,
+        1,
+        16465
+      ],
+      "migration_ms": 124565,
+      "owner_admission": true,
+      "source_raw": {
+        "families": {
+          "CVAAFMT2": [
+            1,
+            20
+          ],
+          "CVAAREC1": [
+            21068,
+            1011264
+          ],
+          "CVAAVEC1": [
+            1,
+            92312
+          ],
+          "CVAAVFM1": [
+            1,
+            20
+          ],
+          "CVABRCH1": [
+            377,
+            55042
+          ],
+          "CVACOMM1": [
+            3,
+            105780
+          ],
+          "CVACONT1": [
+            12532,
+            21616142
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            4,
+            65936
+          ],
+          "CVACPRT1": [
+            3,
+            144
+          ],
+          "CVADRP01": [
+            20158,
+            1612640
+          ],
+          "CVAENTR1": [
+            668,
+            200735
+          ],
+          "CVAENTT1": [
+            3,
+            264
+          ],
+          "CVAENTV1": [
+            671,
+            32208
+          ],
+          "CVAEPIS1": [
+            1344,
+            249984
+          ],
+          "CVAERS01": [
+            3845,
+            625094
+          ],
+          "CVAFRAG1": [
+            2882,
+            484176
+          ],
+          "CVAFRP01": [
+            1,
+            50
+          ],
+          "CVAFRS02": [
+            57,
+            2768181
+          ],
+          "CVAFRS03": [
+            1,
+            232418
+          ],
+          "CVAGBAT1": [
+            11767,
+            1937963
+          ],
+          "CVAGBAT2": [
+            3,
+            2440
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGMUT1": [
+            11661,
+            976005
+          ],
+          "CVAGMUT2": [
+            1906,
+            163916
+          ],
+          "CVAGNOD2": [
+            527,
+            27931
+          ],
+          "CVAGNODE": [
+            2844,
+            147888
+          ],
+          "CVAGVER1": [
+            25337,
+            1216176
+          ],
+          "CVAILEG1": [
+            1,
+            518
+          ],
+          "CVAINSC3": [
+            345,
+            48287
+          ],
+          "CVAINSC6": [
+            999,
+            2057598
+          ],
+          "CVAINSF1": [
+            1,
+            16
+          ],
+          "CVAINSW1": [
+            1062,
+            142470
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMEMR4": [
+            1102,
+            416797
+          ],
+          "CVAMEMR6": [
+            1747,
+            671172
+          ],
+          "CVAMEMR8": [
+            31,
+            11650
+          ],
+          "CVAMEMV1": [
+            2880,
+            138240
+          ],
+          "CVAMRTE2": [
+            2816,
+            336882
+          ],
+          "CVAMVEC1": [
+            25,
+            181400
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPVEC1": [
+            26,
+            34641744
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVATURN1": [
+            16465,
+            3143085
+          ],
+          "CVAVERS1": [
+            42611,
+            1022664
+          ],
+          "CVAVERS2": [
+            7346,
+            235072
+          ],
+          "CVAVGEN2": [
+            1,
+            120
+          ],
+          "CVAVGFM2": [
+            1,
+            20
+          ],
+          "CVAVGRC2": [
+            1,
+            48
+          ],
+          "CVDREAM1": [
+            3312,
+            3351703
+          ],
+          "PRJCOR02": [
+            1,
+            168
+          ],
+          "PRJFILE1": [
+            99,
+            31581
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 80056100
+      },
+      "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true
+    },
+    {
+      "canonical_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-converted-b0a91251-2fc6-4b31-b1d8-571ba4571b76\\chatgpt-first28d/user.phy",
+      "canonical_raw": {
+        "families": {
+          "CVACOMM1": [
+            2,
+            7260
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            1,
+            16484
+          ],
+          "CVADRM01": [
+            213,
+            11076
+          ],
+          "CVADRP02": [
+            1591,
+            38184
+          ],
+          "CVAERS03": [
+            143,
+            13049
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGNOD2": [
+            34,
+            1802
+          ],
+          "CVAGNODE": [
+            242,
+            12584
+          ],
+          "CVAMBDY1": [
+            243,
+            50918
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMRTE2": [
+            246,
+            23612
+          ],
+          "CVAMVEC1": [
+            21,
+            10232
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPUB01": [
+            2215,
+            270499
+          ],
+          "CVAPVEC1": [
+            21,
+            988648
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS1": [
+            1018,
+            24432
+          ],
+          "CVAVERS2": [
+            1197,
+            38304
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 1507220
+      },
+      "canonical_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "fixture": "chatgpt-first28d/user.phy",
+      "heads": [
+        2215,
+        490,
+        35,
+        0,
+        1690,
+        1637
+      ],
+      "migration_ms": 967,
+      "owner_admission": true,
+      "source_raw": {
+        "families": {
+          "CVACOMM1": [
+            2,
+            7260
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            1,
+            16484
+          ],
+          "CVADRP01": [
+            1591,
+            127280
+          ],
+          "CVAENTR1": [
+            35,
+            9148
+          ],
+          "CVAENTV1": [
+            35,
+            1680
+          ],
+          "CVAERS01": [
+            143,
+            13045
+          ],
+          "CVAGBAT1": [
+            982,
+            170387
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGMUT1": [
+            655,
+            54832
+          ],
+          "CVAGMUT2": [
+            53,
+            4558
+          ],
+          "CVAGNOD2": [
+            34,
+            1802
+          ],
+          "CVAGNODE": [
+            242,
+            12584
+          ],
+          "CVAGVER1": [
+            1690,
+            81120
+          ],
+          "CVAMBDY1": [
+            243,
+            50918
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMEMR4": [
+            214,
+            62689
+          ],
+          "CVAMEMR6": [
+            274,
+            117218
+          ],
+          "CVAMEMR8": [
+            2,
+            866
+          ],
+          "CVAMEMV1": [
+            490,
+            23520
+          ],
+          "CVAMRTE2": [
+            246,
+            23612
+          ],
+          "CVAMVEC1": [
+            21,
+            10232
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPVEC1": [
+            21,
+            988648
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS1": [
+            1018,
+            24432
+          ],
+          "CVAVERS2": [
+            1197,
+            38304
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 1840755
+      },
+      "source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true
+    },
+    {
+      "canonical_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-converted-b0a91251-2fc6-4b31-b1d8-571ba4571b76\\rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "canonical_raw": {
+        "families": {
+          "CVAAFMT2": [
+            1,
+            20
+          ],
+          "CVAAVEC1": [
+            2,
+            32048
+          ],
+          "CVAAVFM1": [
+            1,
+            20
+          ],
+          "CVACONT1": [
+            2972,
+            3013401
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            2,
+            32968
+          ],
+          "CVACPRT1": [
+            1,
+            48
+          ],
+          "CVADRM01": [
+            725,
+            37700
+          ],
+          "CVADRP02": [
+            8478,
+            203472
+          ],
+          "CVAENTF1": [
+            1,
+            16
+          ],
+          "CVAERS03": [
+            2455,
+            239926
+          ],
+          "CVAFRP01": [
+            1,
+            50
+          ],
+          "CVAFRS02": [
+            92,
+            1056631
+          ],
+          "CVAFRS06": [
+            1,
+            1254407
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGNOD2": [
+            95,
+            5035
+          ],
+          "CVAGNODE": [
+            722,
+            37544
+          ],
+          "CVAINSC8": [
+            143,
+            604884
+          ],
+          "CVAINSF1": [
+            1,
+            16
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMVEC1": [
+            5,
+            45496
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPUB01": [
+            10998,
+            1282533
+          ],
+          "CVAPVEC1": [
+            7,
+            9826808
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVARELM1": [
+            1,
+            34
+          ],
+          "CVAVERS2": [
+            11000,
+            352000
+          ],
+          "CVAVGEN2": [
+            2,
+            240
+          ],
+          "CVAVGFM2": [
+            1,
+            20
+          ],
+          "CVAVGRC2": [
+            2,
+            96
+          ],
+          "CVDREAM1": [
+            1383,
+            278639
+          ],
+          "CVDREAM2": [
+            47,
+            11092
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 18315280
+      },
+      "canonical_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "heads": [
+        11725,
+        3763,
+        1452,
+        199,
+        0,
+        6309,
+        6309,
+        2,
+        2972
+      ],
+      "migration_ms": 28040,
+      "owner_admission": true,
+      "source_raw": {
+        "families": {
+          "CVAAFMT2": [
+            1,
+            20
+          ],
+          "CVAAREC1": [
+            3763,
+            180624
+          ],
+          "CVAAVEC1": [
+            2,
+            32048
+          ],
+          "CVAAVFM1": [
+            1,
+            20
+          ],
+          "CVABRCH1": [
+            75,
+            5850
+          ],
+          "CVACONT1": [
+            2972,
+            3013401
+          ],
+          "CVACONV2": [
+            75,
+            6750
+          ],
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            2,
+            32968
+          ],
+          "CVACPRT1": [
+            1,
+            48
+          ],
+          "CVADRP01": [
+            8478,
+            678240
+          ],
+          "CVAENTF1": [
+            1,
+            16
+          ],
+          "CVAENTR1": [
+            104,
+            30008
+          ],
+          "CVAENTR2": [
+            88,
+            23109
+          ],
+          "CVAENTT1": [
+            7,
+            616
+          ],
+          "CVAENTV1": [
+            199,
+            9552
+          ],
+          "CVAEPIS1": [
+            143,
+            19734
+          ],
+          "CVAERS01": [
+            2455,
+            244764
+          ],
+          "CVAFRAG1": [
+            498,
+            59760
+          ],
+          "CVAFRP01": [
+            1,
+            50
+          ],
+          "CVAFRS02": [
+            92,
+            1056631
+          ],
+          "CVAFRS03": [
+            1,
+            66039
+          ],
+          "CVAGBAT1": [
+            3746,
+            584444
+          ],
+          "CVAGBAT2": [
+            5,
+            1150
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGMUT1": [
+            1504,
+            126336
+          ],
+          "CVAGMUT2": [
+            1054,
+            90644
+          ],
+          "CVAGNOD2": [
+            95,
+            5035
+          ],
+          "CVAGNODE": [
+            722,
+            37544
+          ],
+          "CVAGVER1": [
+            6309,
+            302832
+          ],
+          "CVAILEG1": [
+            1,
+            514
+          ],
+          "CVAINSC5": [
+            16,
+            4516
+          ],
+          "CVAINSC6": [
+            127,
+            606025
+          ],
+          "CVAINSF1": [
+            1,
+            16
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMEMR7": [
+            680,
+            238463
+          ],
+          "CVAMEMR8": [
+            47,
+            16647
+          ],
+          "CVAMEMV1": [
+            727,
+            34896
+          ],
+          "CVAMVEC1": [
+            5,
+            45496
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPVEC1": [
+            7,
+            9826808
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVARELM1": [
+            1,
+            34
+          ],
+          "CVATURN1": [
+            1486,
+            215470
+          ],
+          "CVATURN2": [
+            1486,
+            272299
+          ],
+          "CVAVERS2": [
+            11000,
+            352000
+          ],
+          "CVAVGEN2": [
+            2,
+            240
+          ],
+          "CVAVGFM2": [
+            1,
+            20
+          ],
+          "CVAVGRC2": [
+            2,
+            96
+          ],
+          "CVDREAM1": [
+            1430,
+            1339551
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 19561460
+      },
+      "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true
+    },
+    {
+      "canonical_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-converted-b0a91251-2fc6-4b31-b1d8-571ba4571b76\\rhelm-david-r-ellis-pre-relationship/user.phy",
+      "canonical_raw": {
+        "families": {
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            1,
+            16484
+          ],
+          "CVADRM01": [
+            464,
+            24128
+          ],
+          "CVADRP02": [
+            5453,
+            130872
+          ],
+          "CVAENTF1": [
+            1,
+            16
+          ],
+          "CVAERS03": [
+            1691,
+            136596
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGNOD2": [
+            41,
+            2173
+          ],
+          "CVAGNODE": [
+            461,
+            23972
+          ],
+          "CVAMBDY1": [
+            510,
+            96512
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMRTE2": [
+            511,
+            62607
+          ],
+          "CVAMVEC1": [
+            4,
+            15296
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPUB01": [
+            5221,
+            607463
+          ],
+          "CVAPVEC1": [
+            4,
+            1896736
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS2": [
+            5221,
+            167072
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 3180063
+      },
+      "canonical_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "heads": [
+        5221,
+        976,
+        86,
+        0,
+        4159,
+        3889
+      ],
+      "migration_ms": 2260,
+      "owner_admission": true,
+      "source_raw": {
+        "families": {
+          "CVACPFM1": [
+            1,
+            20
+          ],
+          "CVACPRO1": [
+            1,
+            16484
+          ],
+          "CVADRP01": [
+            5453,
+            436240
+          ],
+          "CVAENTF1": [
+            1,
+            16
+          ],
+          "CVAENTR1": [
+            45,
+            12311
+          ],
+          "CVAENTR2": [
+            39,
+            9612
+          ],
+          "CVAENTT1": [
+            2,
+            176
+          ],
+          "CVAENTV1": [
+            86,
+            4128
+          ],
+          "CVAERS01": [
+            1691,
+            136897
+          ],
+          "CVAGBAT1": [
+            2711,
+            424888
+          ],
+          "CVAGBAT2": [
+            2,
+            460
+          ],
+          "CVAGFMT1": [
+            1,
+            20
+          ],
+          "CVAGMUT1": [
+            1178,
+            98952
+          ],
+          "CVAGMUT2": [
+            268,
+            23048
+          ],
+          "CVAGNOD2": [
+            41,
+            2173
+          ],
+          "CVAGNODE": [
+            461,
+            23972
+          ],
+          "CVAGVER1": [
+            4159,
+            199632
+          ],
+          "CVAMBDY1": [
+            510,
+            96512
+          ],
+          "CVAMEMF2": [
+            1,
+            16
+          ],
+          "CVAMEMR7": [
+            929,
+            375080
+          ],
+          "CVAMEMR8": [
+            47,
+            21256
+          ],
+          "CVAMEMV1": [
+            976,
+            46848
+          ],
+          "CVAMRTE2": [
+            511,
+            62607
+          ],
+          "CVAMVEC1": [
+            4,
+            15296
+          ],
+          "CVAMVFM1": [
+            1,
+            20
+          ],
+          "CVAPVEC1": [
+            4,
+            1896736
+          ],
+          "CVAPVFM1": [
+            1,
+            20
+          ],
+          "CVAVERS2": [
+            5221,
+            167072
+          ]
+        },
+        "header_bytes": 40,
+        "total_raw_file_bytes": 4070532
+      },
+      "source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true
+    }
+  ],
+  "historical_equivalence_complete": false,
+  "schema": 1
+}

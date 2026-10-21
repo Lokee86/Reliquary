@@ -1,5 +1,6 @@
 # Reliquary Memory v2 Documentation
 
+- [Canonical migration results](canonical-history-migration-results-2026-10-21.md) - six disposable conversions, exact resolution history and full raw-byte accounting.
 - [Retained inert Entity Resolution contract](retained-entity-resolution-contract-2026-10-21.md) — frozen behavior, original bytes and distinct format admission.
 
 - [Latest offline converter coverage audit](latest-offline-converter-coverage-2026-10-21.md) — exact durable-family crosswalk and explicit admission boundaries.

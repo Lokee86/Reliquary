@@ -18,6 +18,20 @@ pub(crate) fn reliquary_global_cuts(cva: &Cva, global: u64) -> Result<GlobalOwne
     if global > cva.latest_global_version() {
         return Err("global cut exceeds retained owner head".into());
     }
+    let history =
+        crate::historical_graph_fingerprint::GraphHistory::read(&cva.container, &cva.graph)?;
+    reliquary_global_cuts_with_positions(cva, global, &history.memory_graph_positions())
+}
+
+/// Same owner cut query with immutable Graph membership read once by a fixture oracle.
+pub(crate) fn reliquary_global_cuts_with_positions(
+    cva: &Cva,
+    global: u64,
+    memory_graph_positions: &[u64],
+) -> Result<GlobalOwnerCuts, String> {
+    if global > cva.latest_global_version() {
+        return Err("global cut exceeds retained owner head".into());
+    }
 
     let archive = cva
         .archive
@@ -85,17 +99,15 @@ pub(crate) fn reliquary_global_cuts(cva: &Cva, global: u64) -> Result<GlobalOwne
         .max()
         .unwrap_or(0);
 
-    let graph_history =
-        crate::historical_graph_fingerprint::GraphHistory::read(&cva.container, &cva.graph)?;
     let graph = cva
         .graph
         .transaction_global_versions()
         .iter()
         .take_while(|version| **version <= global)
         .count() as u64;
-    let memory_graph = graph_history
-        .memory_graph_positions()
-        .into_iter()
+    let memory_graph = memory_graph_positions
+        .iter()
+        .copied()
         .filter(|position| *position <= graph)
         .last()
         .unwrap_or(0);
@@ -123,6 +135,20 @@ pub(crate) fn reliquary_global_cuts(cva: &Cva, global: u64) -> Result<GlobalOwne
 pub(crate) fn phylactery_global_cuts(
     phy: &Phylactery,
     global: u64,
+) -> Result<GlobalOwnerCuts, String> {
+    if global > phy.latest_global_version() {
+        return Err("global cut exceeds retained owner head".into());
+    }
+    let history =
+        crate::historical_graph_fingerprint::GraphHistory::read(&phy.container, &phy.graph)?;
+    phylactery_global_cuts_with_positions(phy, global, &history.memory_graph_positions())
+}
+
+/// Same owner cut query with immutable Graph membership read once by a fixture oracle.
+pub(crate) fn phylactery_global_cuts_with_positions(
+    phy: &Phylactery,
+    global: u64,
+    memory_graph_positions: &[u64],
 ) -> Result<GlobalOwnerCuts, String> {
     if global > phy.latest_global_version() {
         return Err("global cut exceeds retained owner head".into());
@@ -185,17 +211,15 @@ pub(crate) fn phylactery_global_cuts(
         .max()
         .unwrap_or(0);
 
-    let graph_history =
-        crate::historical_graph_fingerprint::GraphHistory::read(&phy.container, &phy.graph)?;
     let graph = phy
         .graph
         .transaction_global_versions()
         .iter()
         .take_while(|version| **version <= global)
         .count() as u64;
-    let memory_graph = graph_history
-        .memory_graph_positions()
-        .into_iter()
+    let memory_graph = memory_graph_positions
+        .iter()
+        .copied()
         .filter(|position| *position <= graph)
         .last()
         .unwrap_or(0);

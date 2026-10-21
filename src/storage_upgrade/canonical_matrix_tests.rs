@@ -225,6 +225,25 @@ fn archive_prefixes(owner: &mut Cva) -> Vec<String> {
     values
 }
 fn rel(owner: &mut Cva, points: &[u64], archive_queries: &[u64]) -> Value {
+    let oracle_cuts = BTreeSet::from([0, owner.rel_turn_count() / 2, owner.rel_turn_count()]);
+    let original_freshness = owner.freshness.clone();
+    let reference: Vec<_> = oracle_cuts
+        .iter()
+        .map(|cut| {
+            crate::historical_freshness_fingerprint::freshness_at_turn(owner, *cut)
+                .unwrap()
+                .fingerprint
+        })
+        .collect();
+    owner.freshness = owner.freshness.with_cached_oracle_journal().unwrap();
+    for (cut, expected) in oracle_cuts.iter().zip(reference) {
+        assert_eq!(
+            crate::historical_freshness_fingerprint::freshness_at_turn(owner, *cut)
+                .unwrap()
+                .fingerprint,
+            expected
+        );
+    }
     let base = common(
         &mut owner.container,
         &owner.memories,
@@ -240,7 +259,7 @@ fn rel(owner: &mut Cva, points: &[u64], archive_queries: &[u64]) -> Value {
             .fingerprint
     });
     let mut events = BTreeSet::new();
-    for entry in owner.freshness.replay_entries().unwrap() {
+    for entry in owner.freshness.retained_history_entries().unwrap() {
         if let crate::freshness_storage::FreshnessReplayEntry::Event {
             event_id,
             source_turn,
@@ -268,14 +287,36 @@ fn rel(owner: &mut Cva, points: &[u64], archive_queries: &[u64]) -> Value {
     );
     let dream =
         fingerprint(crate::historical_dream_proof_fingerprint::dream_proof_state(owner).unwrap());
+    let positions =
+        crate::historical_graph_fingerprint::GraphHistory::read(&owner.container, &owner.graph)
+            .unwrap()
+            .memory_graph_positions();
+    for global in [
+        0,
+        owner.latest_global_version() / 2,
+        owner.latest_global_version(),
+    ] {
+        assert_eq!(
+            crate::historical_global_cuts::reliquary_global_cuts(owner, global).unwrap(),
+            crate::historical_global_cuts::reliquary_global_cuts_with_positions(
+                owner, global, &positions
+            )
+            .unwrap()
+        );
+    }
     let ordering = ordering(owner.latest_global_version(), |g| {
         (
-            crate::historical_global_cuts::reliquary_global_cuts(owner, g).unwrap(),
+            crate::historical_global_cuts::reliquary_global_cuts_with_positions(
+                owner, g, &positions,
+            )
+            .unwrap(),
             owner.transaction_time_ns(g),
         )
     });
     let global: Vec<_> = points.iter().map(|g| whole(owner, *g)).collect();
-    json!({"common":base,"archive":archive,"freshness":freshness,"freshness_events":event_cuts,"vectors":vectors,"dream_pairs":pairs,"dream_processing":processing,"dream_proof":dream,"global_ordering":ordering,"global_projection":global})
+    let result = json!({"common":base,"archive":archive,"freshness":freshness,"freshness_events":event_cuts,"vectors":vectors,"dream_pairs":pairs,"dream_processing":processing,"dream_proof":dream,"global_ordering":ordering,"global_projection":global});
+    owner.freshness = original_freshness;
+    result
 }
 fn phy(owner: &mut Phylactery) -> Value {
     let base = common(
@@ -296,9 +337,29 @@ fn phy(owner: &mut Phylactery) -> Value {
             .unwrap()
             .fingerprint,
     );
+    let positions =
+        crate::historical_graph_fingerprint::GraphHistory::read(&owner.container, &owner.graph)
+            .unwrap()
+            .memory_graph_positions();
+    for global in [
+        0,
+        owner.latest_global_version() / 2,
+        owner.latest_global_version(),
+    ] {
+        assert_eq!(
+            crate::historical_global_cuts::phylactery_global_cuts(owner, global).unwrap(),
+            crate::historical_global_cuts::phylactery_global_cuts_with_positions(
+                owner, global, &positions
+            )
+            .unwrap()
+        );
+    }
     let order = ordering(owner.latest_global_version(), |g| {
         (
-            crate::historical_global_cuts::phylactery_global_cuts(owner, g).unwrap(),
+            crate::historical_global_cuts::phylactery_global_cuts_with_positions(
+                owner, g, &positions,
+            )
+            .unwrap(),
             owner.transaction_time_ns(g),
         )
     });
@@ -351,6 +412,116 @@ fn retained_evidence(path: &Path, legacy: bool) -> Vec<Vec<u8>> {
     })
     .unwrap();
     values
+}
+
+#[test]
+fn canonical_six_source_conversion_and_owner_admission() {
+    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let baseline: Value = serde_json::from_slice(
+        &fs::read(repo.join("benchmarks/authoritative-history-rewrite-step62-2026-10-18.json"))
+            .unwrap(),
+    )
+    .unwrap();
+    let source_root = PathBuf::from(baseline["fixture_root"].as_str().unwrap());
+    let directory = repo
+        .join(".test-tmp")
+        .join(format!("canonical-converted-{}", uuid::Uuid::new_v4()));
+    fs::create_dir_all(&directory).unwrap();
+    let mut rows = Vec::new();
+    for (key, digest) in baseline["authoritative_hashes"].as_object().unwrap() {
+        println!("standalone canonical conversion start {key}");
+        let path = source_root.join(key);
+        let original = fs::read(&path).unwrap();
+        assert_eq!(hex(&Sha256::digest(&original)), digest.as_str().unwrap());
+        let modified = fs::metadata(&path).unwrap().modified().unwrap();
+        let destination = directory.join(key);
+        fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        let plan = plan_storage_upgrade(StorageUpgradeRequest {
+            source: path.clone(),
+            destination: destination.clone(),
+        })
+        .unwrap();
+        let start = Instant::now();
+        let stage = stage_graph_envelope_storage_upgrade(&plan).unwrap();
+        let migration_ms = start.elapsed().as_millis();
+        assert_eq!(
+            retained_evidence(&path, true),
+            retained_evidence(stage.test_path(), false)
+        );
+        let heads = if key.ends_with(".rel") {
+            let old = Cva::open_v1_read_only(&path).unwrap();
+            let mut current = Cva::open(stage.test_path()).unwrap();
+            current.validate_historical_import_settlements().unwrap();
+            current.validate_import_completion_settlements().unwrap();
+            assert_eq!(old.owner_uuid(), current.owner_uuid());
+            let old_heads = (
+                old.latest_global_version(),
+                old.archive_version(),
+                old.memory_version(),
+                old.entities.entity_version(),
+                old.relationships.relationship_version(),
+                old.graph_version(),
+                old.memory_graph_version(),
+                old.vector_version(),
+                old.rel_turn_count(),
+            );
+            let current_heads = (
+                current.latest_global_version(),
+                current.archive_version(),
+                current.memory_version(),
+                current.entities.entity_version(),
+                current.relationships.relationship_version(),
+                current.graph_version(),
+                current.memory_graph_version(),
+                current.vector_version(),
+                current.rel_turn_count(),
+            );
+            assert_eq!(old_heads, current_heads);
+            json!(old_heads)
+        } else {
+            let old = Phylactery::open_v1_read_only(&path).unwrap();
+            let current = Phylactery::open(stage.test_path()).unwrap();
+            assert_eq!(old.owner_uuid(), current.owner_uuid());
+            let old_heads = (
+                old.latest_global_version(),
+                old.memory_version(),
+                old.entities.entity_version(),
+                old.relationships.relationship_version(),
+                old.graph_version(),
+                old.memory_graph_version(),
+            );
+            let current_heads = (
+                current.latest_global_version(),
+                current.memory_version(),
+                current.entities.entity_version(),
+                current.relationships.relationship_version(),
+                current.graph_version(),
+                current.memory_graph_version(),
+            );
+            assert_eq!(old_heads, current_heads);
+            json!(old_heads)
+        };
+        let source_frames = frames(&path, true);
+        let canonical_frames = frames(stage.test_path(), false);
+        for retired in [
+            "CVAFRS03", "CVAFRS04", "CVAFRS05", "CVAILEG1", "CVAILEG2", "CVAERS02",
+        ] {
+            assert!(canonical_frames["families"].get(retired).is_none());
+        }
+        let canonical = fs::read(stage.test_path()).unwrap();
+        fs::write(&destination, &canonical).unwrap();
+        assert_eq!(fs::read(&path).unwrap(), original);
+        assert_eq!(fs::metadata(&path).unwrap().modified().unwrap(), modified);
+        rows.push(json!({"fixture":key,"source_sha256":digest,"canonical_sha256":hex(&Sha256::digest(&canonical)),"canonical_copy":destination,"source_unchanged":true,"owner_admission":true,"heads":heads,"migration_ms":migration_ms,"source_raw":source_frames,"canonical_raw":canonical_frames}));
+        let report = json!({"schema":1,"date":"2026-10-21","historical_equivalence_complete":false,"authoritative_promotion":false,"compression_included":false,"fixtures":rows});
+        fs::write(
+            repo.join("benchmarks/canonical-history-conversion-2026-10-21.json"),
+            serde_json::to_vec_pretty(&report).unwrap(),
+        )
+        .unwrap();
+        println!("standalone canonical conversion admitted {key} in {migration_ms}ms");
+    }
+    assert_eq!(rows.len(), 6);
 }
 
 #[test]

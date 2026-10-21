@@ -16,6 +16,23 @@ pub(crate) struct FreshnessOracleState {
 }
 
 impl FreshnessStore {
+    /// Read-only fixture oracle: scan the exact accepted journal once, then use
+    /// the existing in-memory scan path for repeated cuts. Never publish from
+    /// this disposable clone. Semantic scope reconstruction explicitly rebinds
+    /// its own original physical prefix and therefore bypasses this cache.
+    pub(crate) fn with_cached_oracle_journal(&self) -> Result<Self, String> {
+        let mut entries = std::collections::VecDeque::new();
+        self.scan_entries(|entry| {
+            entries.push_back((entry, 0));
+            Ok(())
+        })?;
+        let mut cached = self.clone();
+        cached.history_path = None;
+        cached.recent = entries;
+        cached.recent_bytes = 0;
+        Ok(cached)
+    }
+
     pub(crate) fn historical_oracle_state(
         &self,
         cut: &FreshnessEventCut,
