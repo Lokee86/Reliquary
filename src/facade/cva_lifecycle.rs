@@ -467,52 +467,14 @@ impl Cva {
                     + u64::from_le_bytes(location[8..].try_into().unwrap());
                 if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
                     .map_err(|message| CvaError::Freshness(message.into()))?
-                    && let Some(turn) = completion.freshness_birth_turn
+                    && let Some(cohort) =
+                        Self::validate_insomnia_birth_cohort(&archive, &memories, &completion)?
                 {
-                    if completion.freshness_policy_version
-                        != Some(crate::freshness::FRESHNESS_POLICY_VERSION as u64)
-                        || turn > archive.rel_turn_count()
-                    {
-                        return Err(CvaError::Freshness(
-                            "grouped birth proof has invalid policy or activity cut".into(),
-                        ));
-                    }
-                    if !completion.freshness_birth_memory_ids.is_empty() {
-                        let archive_version = archive
-                            .record_versions()
-                            .iter()
-                            .filter(|record| {
-                                record.global_version < completion.global_version_start
-                            })
-                            .map(|record| record.archive_version)
-                            .max()
-                            .unwrap_or(0);
-                        if turn != archive.activity_cut_at_archive_version(archive_version)? {
-                            return Err(CvaError::Freshness(
-                                "grouped birth differs from accepted completion activity cut"
-                                    .into(),
-                            ));
-                        }
-                    }
-                    for id in completion.freshness_birth_memory_ids {
-                        let record = completion
-                            .records
-                            .iter()
-                            .find(|record| record.id == id && record.revision == 1)
-                            .ok_or_else(|| {
-                                CvaError::Freshness(
-                                    "grouped birth proof lacks accepted first Memory record".into(),
-                                )
-                            })?;
-                        if memories.first_mutation_id(id) != Some(record.mutation_id.as_str()) {
-                            return Err(CvaError::Freshness(
-                                "grouped birth differs from accepted first Memory identity".into(),
-                            ));
-                        }
+                    for member in cohort.members {
                         freshness
-                            .derive_birth(owner, id, turn, false)
+                            .derive_birth(owner, member.id, cohort.turn, false)
                             .map_err(CvaError::Freshness)?;
-                        dream_freshness.derive_publication_birth(id);
+                        dream_freshness.derive_publication_birth(member.id);
                     }
                 }
                 if let Some(publication) = crate::external_source::publication::decode(payload)? {

@@ -3,9 +3,27 @@ use crate::freshness_dream_journal::DirectBirthPrefix;
 use crate::{Cva, CvaError, MemoryId};
 use std::collections::{BTreeMap, BTreeSet};
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AcceptedInsomniaBirthMember {
+    pub(crate) id: MemoryId,
+    pub(crate) memory_version: u64,
+    pub(crate) global_version: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AcceptedInsomniaBirthCohort {
+    pub(crate) turn: u64,
+    pub(crate) policy_version: u64,
+    pub(crate) global_version_start: u64,
+    pub(crate) members: Vec<AcceptedInsomniaBirthMember>,
+}
+
 #[cfg(test)]
 #[path = "graph_compact_freshness_tests.rs"]
 mod graph_compact_tests;
+#[cfg(test)]
+#[path = "cva_freshness_insomnia_prefix_tests.rs"]
+mod insomnia_prefix_tests;
 #[cfg(test)]
 #[path = "cva_freshness_r2_tests.rs"]
 mod r2_tests;
@@ -27,6 +45,98 @@ pub struct FreshnessEventCut {
 }
 
 impl Cva {
+    /// Validate a decoded grouped completion against the accepted Memory and
+    /// Archive projections. No-proof legacy completions remain non-births.
+    pub(crate) fn validate_insomnia_birth_cohort(
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+        completion: &crate::insomnia::completion::InsomniaCompletion,
+    ) -> Result<Option<AcceptedInsomniaBirthCohort>, CvaError> {
+        let Some(turn) = completion.freshness_birth_turn else {
+            return Ok(None);
+        };
+        let policy_version = completion.freshness_policy_version;
+        if policy_version != Some(crate::freshness::FRESHNESS_POLICY_VERSION as u64)
+            || turn > archive.rel_turn_count()
+        {
+            return Err(CvaError::Freshness(
+                "grouped birth proof has invalid policy or activity cut".into(),
+            ));
+        }
+        if !completion.freshness_birth_memory_ids.is_empty() {
+            let archive_version = archive
+                .record_versions()
+                .iter()
+                .filter(|record| record.global_version < completion.global_version_start)
+                .map(|record| record.archive_version)
+                .max()
+                .unwrap_or(0);
+            if turn != archive.activity_cut_at_archive_version(archive_version)? {
+                return Err(CvaError::Freshness(
+                    "grouped birth differs from accepted completion activity cut".into(),
+                ));
+            }
+        }
+        let mut members = Vec::with_capacity(completion.freshness_birth_memory_ids.len());
+        for id in &completion.freshness_birth_memory_ids {
+            let record = completion
+                .records
+                .iter()
+                .find(|record| record.id == *id && record.revision == 1)
+                .ok_or_else(|| {
+                    CvaError::Freshness(
+                        "grouped birth proof lacks accepted first Memory record".into(),
+                    )
+                })?;
+            if memories.first_mutation_id(*id) != Some(record.mutation_id.as_str()) {
+                return Err(CvaError::Freshness(
+                    "grouped birth differs from accepted first Memory identity".into(),
+                ));
+            }
+            members.push(AcceptedInsomniaBirthMember {
+                id: *id,
+                memory_version: record.memory_version,
+                global_version: record.global_version,
+            });
+        }
+        Ok(Some(AcceptedInsomniaBirthCohort {
+            turn,
+            policy_version: policy_version.unwrap(),
+            global_version_start: completion.global_version_start,
+            members,
+        }))
+    }
+
+    /// Project an already physically selected completion's accepted birth
+    /// cohort through a Memory-local cut. Physical-prefix selection belongs to
+    /// the caller; this method does not scan EOF or consult Dream journal state.
+    pub(crate) fn insomnia_birth_cohort_at_memory_prefix(
+        &self,
+        payload: &[u8],
+        memory_cut: u64,
+    ) -> Result<Option<AcceptedInsomniaBirthCohort>, CvaError> {
+        let first = self
+            .memories
+            .first_publication_prefix(memory_cut)?
+            .into_iter()
+            .collect::<BTreeMap<_, _>>();
+        let Some(completion) = crate::insomnia::completion::decode_completion(payload)
+            .map_err(|message| CvaError::Freshness(message.into()))?
+        else {
+            return Ok(None);
+        };
+        let Some(mut cohort) =
+            Self::validate_insomnia_birth_cohort(&self.archive, &self.memories, &completion)?
+        else {
+            return Ok(None);
+        };
+        cohort.members.retain(|member| {
+            member.memory_version <= memory_cut
+                && first.get(&member.id) == Some(&member.global_version)
+        });
+        Ok(Some(cohort))
+    }
+
     /// Correlate Dream-owned direct birth evidence with accepted first Memory
     /// identities at a Memory-local cut. This deliberately does not consult
     /// current Memory bodies or liveness.

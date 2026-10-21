@@ -334,6 +334,43 @@ fn legacy_completion_variants_migrate_to_compact_records_without_losing_envelope
 }
 
 #[test]
+fn accepted_birth_projection_handles_legacy_v6_proof_and_v5_without_proof() {
+    let (_path, mut cva, _) =
+        crate::insomnia::completion_tests::setup("accepted-legacy-birth-projection.cva");
+    crate::insomnia::completion_tests::process(&mut cva, 2, 110);
+    let payload = cva
+        .container
+        .chunks()
+        .unwrap()
+        .into_iter()
+        .find_map(|object| {
+            let payload = cva.container.read(object).unwrap();
+            decode_completion(&payload).unwrap().map(|_| payload)
+        })
+        .expect("grouped completion");
+    let current = decode_completion(&payload).unwrap().unwrap();
+    let cut = cva.memory_version();
+
+    let legacy_with_proof = legacy_payload(6, &current);
+    let decoded_v6 = decode_completion(&legacy_with_proof).unwrap().unwrap();
+    assert_eq!(decoded_v6.freshness_birth_memory_ids.len(), 2);
+    let projected = cva
+        .insomnia_birth_cohort_at_memory_prefix(&legacy_with_proof, cut)
+        .unwrap()
+        .unwrap();
+    assert_eq!(projected.members.len(), 2);
+
+    let legacy_without_proof = legacy_payload(5, &current);
+    let decoded_v5 = decode_completion(&legacy_without_proof).unwrap().unwrap();
+    assert!(decoded_v5.freshness_birth_turn.is_none());
+    assert!(
+        cva.insomnia_birth_cohort_at_memory_prefix(&legacy_without_proof, cut)
+            .unwrap()
+            .is_none()
+    );
+}
+
+#[test]
 fn compact_legacy_migration_rejects_unknown_original_variants_and_truncated_records() {
     let fixture = fixture_completion(6);
     let valid = legacy_payload(6, &fixture);
