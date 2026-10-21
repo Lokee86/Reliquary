@@ -11,6 +11,10 @@ use crate::source_attachment_index::SourceAttachmentIndex;
 use crate::{Archive, ArchiveError, ArchiveRecordVersion, ObjectRef};
 use std::collections::{HashMap, HashSet};
 
+#[cfg(test)]
+#[path = "archive_publication_replay_tests.rs"]
+mod publication_tests;
+
 pub(crate) struct ArchiveOpenState {
     import_receipts: std::collections::BTreeMap<String, crate::imports::ImportReceipt>,
     contents: ContentIndex,
@@ -28,6 +32,7 @@ pub(crate) struct ArchiveOpenState {
     record_versions: Vec<ArchiveRecordVersion>,
     pending_records: HashMap<ObjectRef, ArchiveRecord>,
     versioned_records: HashSet<ObjectRef>,
+    applying_versions: HashSet<u64>,
     next_archive_version: u64,
     format_seen: bool,
     prune: crate::archive::history_prune::ArchivePruneState,
@@ -52,6 +57,7 @@ impl ArchiveOpenState {
             record_versions: Vec::new(),
             pending_records: HashMap::new(),
             versioned_records: HashSet::new(),
+            applying_versions: HashSet::new(),
             next_archive_version: 1,
             format_seen: false,
             prune: Default::default(),
@@ -64,6 +70,10 @@ impl ArchiveOpenState {
         payload: &[u8],
         latest_global_version: u64,
     ) -> Result<(), ArchiveError> {
+        if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+            self.ingest_publication_envelope(chunk, envelope, latest_global_version)?;
+            return Ok(());
+        }
         if self.prune.ingest(payload)? {
             return Ok(());
         }
@@ -100,6 +110,55 @@ impl ArchiveOpenState {
             ArchiveRecord::Other => {}
         }
         Ok(())
+    }
+
+    pub(crate) fn ingest_publication_envelope(
+        &mut self,
+        chunk: ObjectRef,
+        envelope: crate::container::publication_envelope::PublicationEnvelope<'_>,
+        latest_global_version: u64,
+    ) -> Result<bool, ArchiveError> {
+        use crate::archive_codec::publication::{self, ArchivePublication};
+        let Some(publication) = publication::decode(envelope.body, envelope.global_version)? else {
+            return Ok(false);
+        };
+        let local = publication.archive_version();
+        if local != self.next_archive_version
+            || envelope.global_version > latest_global_version
+            || self
+                .record_versions
+                .last()
+                .is_some_and(|last| last.global_version >= envelope.global_version)
+        {
+            return Err(ArchiveError::InvalidArchiveRecordVersion);
+        }
+        let next = local
+            .checked_add(1)
+            .ok_or(ArchiveError::ArchiveVersionExhausted)?;
+        match publication {
+            ArchivePublication::Record { record, .. } => {
+                self.apply_record(record, local, envelope.global_version)?;
+                self.applying_versions.insert(local);
+            }
+            ArchivePublication::Repeat {
+                first_applying_archive_version,
+                ..
+            } => {
+                if !self
+                    .applying_versions
+                    .contains(&first_applying_archive_version)
+                {
+                    return Err(ArchiveError::InvalidArchiveRecordVersion);
+                }
+            }
+        }
+        self.record_versions.push(ArchiveRecordVersion {
+            archive_version: local,
+            global_version: envelope.global_version,
+            record: chunk,
+        });
+        self.next_archive_version = next;
+        Ok(true)
     }
 
     pub(crate) fn finish(self) -> Result<Archive, ArchiveError> {
@@ -144,18 +203,20 @@ impl ArchiveOpenState {
             return Err(ArchiveError::InvalidArchiveRecordVersion);
         }
 
+        let next = self
+            .next_archive_version
+            .checked_add(1)
+            .ok_or(ArchiveError::ArchiveVersionExhausted)?;
         if let Some(record) = self.pending_records.remove(&version.record) {
             self.apply_record(record, version.archive_version, version.global_version)?;
             self.versioned_records.insert(version.record);
+            self.applying_versions.insert(version.archive_version);
         } else if !self.versioned_records.contains(&version.record) {
             return Err(ArchiveError::InvalidArchiveRecordVersion);
         }
 
         self.record_versions.push(version);
-        self.next_archive_version = self
-            .next_archive_version
-            .checked_add(1)
-            .ok_or(ArchiveError::ArchiveVersionExhausted)?;
+        self.next_archive_version = next;
         Ok(())
     }
 

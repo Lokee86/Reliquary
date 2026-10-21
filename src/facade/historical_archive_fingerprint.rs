@@ -1,6 +1,6 @@
 //! Canonical decoded Archive publication history and payload at a local cut.
 
-use crate::archive_codec::{ArchiveRecord, decode_record};
+use crate::archive_codec::ArchiveRecord;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::{Branch, ContentId, Cva, Node, StoredFile};
 use serde_json::{Value, json};
@@ -28,18 +28,19 @@ pub(crate) fn archive_cut(cva: &mut Cva, cut: u64) -> Result<ArchiveCut, String>
         .into_iter()
         .take_while(|v| v.archive_version <= cut)
     {
-        let payload = cva
-            .container
-            .read(version.record)
+        let (record, applying) = cva
+            .archive
+            .read_publication(&mut cva.container, version)
             .map_err(|e| e.to_string())?;
-        let record = decode_record(&payload).map_err(|e| e.to_string())?;
         let value = match record {
             ArchiveRecord::Node(value) => json!({"node": node(cva, &value, &mut contents)?}),
             ArchiveRecord::Branch(value) => {
-                branches.insert(
-                    (value.conversation_id.clone(), value.id.clone()),
-                    value.clone(),
-                );
+                if applying.archive_version == version.archive_version {
+                    branches.insert(
+                        (value.conversation_id.clone(), value.id.clone()),
+                        value.clone(),
+                    );
+                }
                 json!({"branch": {"id": value.id, "conversation": value.conversation_id,
                     "leaf": value.leaf_node_id, "canonical": value.canonical}})
             }

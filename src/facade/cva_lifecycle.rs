@@ -298,6 +298,11 @@ impl Cva {
                             && !entity_state.ingest_publication_envelope(envelope, latest_global)?
                             && !relationship_state
                                 .ingest_publication_envelope(envelope, latest_global)?
+                            && !archive_state.ingest_publication_envelope(
+                                chunk,
+                                envelope,
+                                latest_global,
+                            )?
                         {
                             return Err(crate::MemoryError::CorruptRecord(
                                 "unsupported publication envelope body",

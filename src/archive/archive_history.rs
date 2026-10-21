@@ -25,6 +25,49 @@ impl Archive {
         self.record_versions.get(index)
     }
 
+    /// Resolve semantic evidence at its first applying coordinates. Repeated
+    /// bindings retain their own cuts, but must not reapply an older mutation.
+    pub(crate) fn read_publication(
+        &self,
+        container: &mut Container,
+        version: ArchiveRecordVersion,
+    ) -> Result<(ArchiveRecord, ArchiveRecordVersion), ArchiveError> {
+        use crate::archive_codec::publication::{self, ArchivePublication};
+        let payload = container.read(version.record)?;
+        if let Some(envelope) = crate::container::publication_envelope::decode(&payload)? {
+            if envelope.global_version != version.global_version {
+                return Err(ArchiveError::InvalidArchiveRecordVersion);
+            }
+            match publication::decode(envelope.body, envelope.global_version)? {
+                Some(ArchivePublication::Record {
+                    archive_version,
+                    record,
+                }) if archive_version == version.archive_version => return Ok((record, version)),
+                Some(ArchivePublication::Repeat {
+                    archive_version,
+                    first_applying_archive_version,
+                }) if archive_version == version.archive_version => {
+                    let first = *self
+                        .record_version(first_applying_archive_version)
+                        .ok_or(ArchiveError::InvalidArchiveRecordVersion)?;
+                    let (record, resolved) = self.read_publication(container, first)?;
+                    if resolved.archive_version != first_applying_archive_version {
+                        return Err(ArchiveError::InvalidArchiveRecordVersion);
+                    }
+                    return Ok((record, resolved));
+                }
+                _ => return Err(ArchiveError::InvalidArchiveRecordVersion),
+            }
+        }
+        let first = self
+            .record_versions
+            .iter()
+            .find(|entry| entry.record == version.record)
+            .copied()
+            .ok_or(ArchiveError::InvalidArchiveRecordVersion)?;
+        Ok((decode_record(&payload)?, first))
+    }
+
     pub(crate) fn branch_at(
         &self,
         container: &mut Container,
@@ -37,7 +80,11 @@ impl Archive {
             if version.archive_version > archive_version {
                 break;
             }
-            if let ArchiveRecord::Branch(branch) = decode_record(&container.read(version.record)?)?
+            let (record, applying) = self.read_publication(container, *version)?;
+            if applying.archive_version != version.archive_version {
+                continue;
+            }
+            if let ArchiveRecord::Branch(branch) = record
                 && branch.conversation_id == conversation_id
                 && branch.id == branch_id
             {
