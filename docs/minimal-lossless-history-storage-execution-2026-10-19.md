@@ -1491,3 +1491,6 @@ Insomnia prefix227 accepted against `99e7f04`: three focused current/legacy proo
 
 
 External prefix228 accepted against `ad45319`: populated legacy/current format parity and2,028 broad units pass, five existing ignored and three separately verified exhaustive sweeps filtered. Before REL coordination, discovery requires a separate Container bounded version-aware reader: new229 owns physical-frontier/no-repair correctness, former229 onward shift byone. Progress228/357; coordinator is230. Accepted1–228 retain their identities.
+
+
+Bounded physical reader229 accepted against `aeb7a43`: three new cases and all17 envelope-clock tests pass, including reverse reserved bindings, grouped ranges, malformed/V1 framing, clipped boundary and a valid prefix before a later incomplete tail. Source bytes and live clocks/times remain unchanged. Progress229/357; concrete REL Begin coordinator230 is active.
