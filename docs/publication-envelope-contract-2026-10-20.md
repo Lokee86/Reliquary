@@ -1,7 +1,7 @@
 # Compact publication envelope — execution contract
 
 Date: 2026-10-20
-Status: Step 167 contract accepted against `b043494`; Memory runtime admission and ordinary writing accepted through Step 177. Offline Memory conversion and Entity/Relationship envelope codecs, consumers, ordinary writing and offline conversion are implemented and in verification. Archive contract Step 200 accepted against `2597c73` and body codecs Step 201 against `24572e4`; Archive replay/consumers/writing/conversion, Graph framing and final promotion remain pending.
+Status: Step 167 contract accepted against `b043494`; Memory runtime admission and ordinary writing accepted through Step 177. Offline Memory conversion and Entity/Relationship envelope codecs, consumers, ordinary writing and offline conversion are implemented and in verification. Archive contract Step 200 accepted against `2597c73` and body codecs Step 201 against `24572e4`; Archive gates through209 are accepted; the Graph contract210 is frozen below, while Graph implementation and final promotion remain pending.
 
 ## Overview
 
@@ -123,6 +123,29 @@ Legacy Node/turn absence of principal stays `None`; legacy metadata keeps the ex
 Archive retains its existing dense local sequence and strictly increasing publication globals; physical reserved clocks do not authorize a decreasing Archive sequence. Prepare the next local coordinate before any semantic state mutation. New `ArchiveRecordVersion.record` references point to the envelope itself. Container reads remain raw: concrete Archive readers resolve applying/repeated publications explicitly. Raw content and unaccepted record-shaped backing stay inert. Only accepted carriers are removable during conversion, after every reference is accounted for.
 
 The concrete consumer inventory is `ArchiveOpenState::ingest_version/apply_record`; `Archive::branch_at/record_version` and Archive/current historical materializers; `cva_reconcile_archive` ranges/receipts and import interval/evidence inventory; `history_prune_manifest::owner_history_digest`, Archive content/conversation pruning and terminal retention; `ReclamationScan` dependency liveness and physical relocation; REL attachment/native repack and rewrite/migration; and every `Archive::publish_record` caller (Node, Branch, metadata, tombstone, Fragment, Episode, File, IngestedTurn, ImportReceipt, FileMemoryLink). Each has an explicit gate in the linear plan. No writer cutover precedes these gates. Native copy must retain content dependencies, repeated anchors, IDs, all cuts and times; semantic rewrite keeps its explicit discard policy. Conversion binds at original marker slots with unchanged standalone reservations, canonical fields, proofs/receipts and source identity/hash/mtime. Per-family measured output bytes, including chunk framing, are required before any savings claim or promotion.
+
+## Graph owner contract (Step 210)
+
+The [complete-frame inventory](../benchmarks/graph-publication-family-inventory-2026-10-20.json) counts 46,075 accepted Graph links across all six pinned REL/PHY sources: 18,757 Mutation v1, 3,361 Mutation v2, 23,947 Batch v1 and 10 Batch v2 carriers. It finds no repeated carrier references or recognized orphan mutation carriers. Those zero cases do not change admission rules: Graph already rejects repeated links, so it gets no Archive-style repeat body.
+
+| Body | Fields after eight-byte magic |
+|---|---|
+| `CVAGCM02` | explicit Graph-local u64, one 12-byte ordinal mutation |
+| `CVAGCB02` | explicit Graph-local u64, nonzero u32 count, ordered 12-byte ordinal mutations |
+
+Each mutation contains source u32, target u32, relation kind u16, active u8 (0/1), origin u8. Share actual field helpers with the current compact Graph codec; do not prepend/strip standalone framing to parse a body. Global and optional time come only from the physical envelope. Zero global/local coordinates, unknown versions/kinds/origin codes, invalid flags/counts, truncation and trailing bytes reject. Ordinal zero is a valid mapped node. Preserve single versus batch shape, including a one-member batch; never flatten a batch or allocate per member.
+
+The admitted `CVAGNODE`/`CVAGNOD2` node table remains the sole ordinal authority. Those direct mapping records, `CVAGFMT1` format and `CVAGBL01` rewrite-baseline/control evidence remain separate and are invalid as envelope bodies. Resolve ordinals using only mappings already admitted at the physical publication slot. Future/absent mappings, duplicate relation keys, invalid endpoint-kind/origin contracts, local gaps, decreasing/duplicate owner globals and next-local exhaustion fail before semantic mutation. Bare native bodies reject. Native admission marks format2 use, and REL/PHY format checks remain fail-closed.
+
+Retain every mutation's origin. Existing V1 replay permits mixed origins when each relation contract is valid; native replay and conversion must preserve those facts. Ordinary APIs use their existing shared origin argument. Reconciliation and owner-ID semantic migration keep their existing mixed-origin rejection instead of flattening a transaction. Legacy omitted-origin defaults normalize through the existing V1 codec, without adding source-format fields to the current body.
+
+Graph-local increments once per accepted transaction. MemoryGraph advances only at transactions containing Memory-kind relations, including deactivation; isolated mapping/baseline records do not create graph publications. Preserve ordered semantic endpoint/kind/active/origin facts at every Graph, MemoryGraph, global and time cut. Rebuilt owner state and current visibility retain the existing lifecycle and rewrite-baseline rules.
+
+Concrete consumers are `GraphOpenState`, REL/PHY publication dispatch, `GraphStore::decode_stored_mutations/normalized_import_evidence/compact_carrier_digest`, `historical_graph_fingerprint`, `cva_freshness` Dream graph windows, `cva_reconcile_graph`, import inventory and `reconciliation_interval`, `history_prune_manifest`, reclamation scan/relocation, native repack/rewrite and `migration_phy::graph_transactions`. A coordinate adapter exposes the envelope itself as the accepted mutation reference; raw Container reads remain physical. Proof hashing preserves the existing current compact single/batch semantic identity even though the persisted body magic advances to `02`. The common upgrader still rejects V1 `CVAHPR01` authority that has no canonical translator.
+
+Ordinary writers must validate all effective changes, successors and planned ordinal mappings before appending format/mapping/content frames. A no-op or retry appends nothing. A successful transaction appends any required direct mappings and exactly one allocation envelope, then installs the transaction at the existing commit boundary. No standalone compact carrier, global ticket or Graph link remains on this ordinary path. Tests must cover both REL/PHY, endpoint domains, batches, inactive facts and incomplete final-envelope recovery.
+
+Offline conversion derives accepted stable/ordinal facts from the validated V1 owner, retains raw mapping/baseline records and standalone reservations, and places one BindReserved body at each original `CVAGVER1` slot. Remove only accepted carriers after accounting for references; inert backing remains nonauthoritative. Preserve one-member batches, all cuts/times, stable endpoint identities, proofs/receipts and source hash/mtime. Require six-source framed-byte measurement plus populated synthetic mapping, batch, mixed-origin, malformed and repeated-link rejection coverage before acceptance. Steps211–219 are separate execution gates; no writer cutover precedes its consumer gates.
 
 ## Measurement and acceptance
 

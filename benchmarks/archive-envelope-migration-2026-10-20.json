@@ -1,0 +1,244 @@
+{
+  "schema": 1,
+  "date": "2026-10-20",
+  "status": "accepted_step209",
+  "verified_commit": "ea26adc7612488dcc63038f4a4d80d211ff412f5",
+  "verification": {
+    "all_pinned_sources_passed": 6,
+    "semantic_mismatches": 0,
+    "source_bytes_hashes_mtimes_unchanged": true,
+    "runtime_seconds": 169.26,
+    "synthetic_all_applying_families": 10,
+    "synthetic_repeat_case": true,
+    "invalid_history_cleanup_passed": true,
+    "unsupported_v1_prune_authority_rejects": true,
+    "broad_unit_passed": 1988,
+    "broad_unit_ignored": 5,
+    "long_sweeps_deferred_to_gate_e": 3
+  },
+  "accounting": {
+    "scope": "Archive accepted carriers and links versus Archive envelopes only; includes eight-byte chunk framing. Standalone reservations, other owners, grouped publications, and whole-container differences excluded.",
+    "accepted_publications": 32357,
+    "applicable_rel_sources": 3,
+    "zero_archive_phy_sources": 3,
+    "before_framed_bytes": 7597309,
+    "after_framed_bytes": 6937773,
+    "framed_bytes_saved": 659536,
+    "inert_orphans_reported_separately": true,
+    "whole_container_savings_claim": false,
+    "destination_published": false
+  },
+  "fixtures": [
+    {
+      "destination_published": false,
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "frames": {
+        "archive_head": 7526,
+        "content_dependencies_checked": 5862,
+        "inert_orphan_carriers": 0,
+        "legacy_accepted_carriers": {
+          "CVABRCH1": {
+            "count": 157,
+            "framed_bytes": 22922
+          },
+          "CVAEPIS1": {
+            "count": 456,
+            "framed_bytes": 84816
+          },
+          "CVAFRAG1": {
+            "count": 1056,
+            "framed_bytes": 177408
+          },
+          "CVATURN1": {
+            "count": 3049,
+            "framed_bytes": 588349
+          },
+          "CVATURN2": {
+            "count": 2808,
+            "framed_bytes": 658528
+          }
+        },
+        "legacy_links": {
+          "count": 7526,
+          "framed_bytes": 361248
+        },
+        "native_envelopes": {
+          "CVABRC02": {
+            "count": 157,
+            "framed_bytes": 26847
+          },
+          "CVAEPI02": {
+            "count": 456,
+            "framed_bytes": 96216
+          },
+          "CVAFRA02": {
+            "count": 1056,
+            "framed_bytes": 203808
+          },
+          "CVATUR03": {
+            "count": 5857,
+            "framed_bytes": 1405498
+          }
+        }
+      },
+      "scope": "Archive owner frames including 8-byte chunk framing; reservations, other owners and grouped payloads excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true
+    },
+    {
+      "destination_published": false,
+      "fixture": "chatgpt-first14d/user.phy",
+      "frames": {
+        "archive_head": 0,
+        "native_archive_envelopes": 0
+      },
+      "scope": "Archive owner frames including 8-byte chunk framing; reservations, other owners and grouped payloads excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true
+    },
+    {
+      "destination_published": false,
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "frames": {
+        "archive_head": 21068,
+        "content_dependencies_checked": 12631,
+        "inert_orphan_carriers": 0,
+        "legacy_accepted_carriers": {
+          "CVABRCH1": {
+            "count": 377,
+            "framed_bytes": 55042
+          },
+          "CVAEPIS1": {
+            "count": 1344,
+            "framed_bytes": 249984
+          },
+          "CVAFRAG1": {
+            "count": 2882,
+            "framed_bytes": 484176
+          },
+          "CVATURN1": {
+            "count": 16465,
+            "framed_bytes": 3143085
+          }
+        },
+        "legacy_links": {
+          "count": 21068,
+          "framed_bytes": 1011264
+        },
+        "native_envelopes": {
+          "CVABRC02": {
+            "count": 377,
+            "framed_bytes": 64467
+          },
+          "CVAEPI02": {
+            "count": 1344,
+            "framed_bytes": 283584
+          },
+          "CVAFRA02": {
+            "count": 2882,
+            "framed_bytes": 556226
+          },
+          "CVATUR03": {
+            "count": 16465,
+            "framed_bytes": 3620570
+          }
+        }
+      },
+      "scope": "Archive owner frames including 8-byte chunk framing; reservations, other owners and grouped payloads excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true
+    },
+    {
+      "destination_published": false,
+      "fixture": "chatgpt-first28d/user.phy",
+      "frames": {
+        "archive_head": 0,
+        "native_archive_envelopes": 0
+      },
+      "scope": "Archive owner frames including 8-byte chunk framing; reservations, other owners and grouped payloads excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true
+    },
+    {
+      "destination_published": false,
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "frames": {
+        "archive_head": 3763,
+        "content_dependencies_checked": 2972,
+        "inert_orphan_carriers": 0,
+        "legacy_accepted_carriers": {
+          "CVABRCH1": {
+            "count": 75,
+            "framed_bytes": 5850
+          },
+          "CVACONV2": {
+            "count": 75,
+            "framed_bytes": 6750
+          },
+          "CVAEPIS1": {
+            "count": 143,
+            "framed_bytes": 19734
+          },
+          "CVAFRAG1": {
+            "count": 498,
+            "framed_bytes": 59760
+          },
+          "CVATURN1": {
+            "count": 1486,
+            "framed_bytes": 215470
+          },
+          "CVATURN2": {
+            "count": 1486,
+            "framed_bytes": 272299
+          }
+        },
+        "legacy_links": {
+          "count": 3763,
+          "framed_bytes": 180624
+        },
+        "native_envelopes": {
+          "CVABRC02": {
+            "count": 75,
+            "framed_bytes": 7725
+          },
+          "CVACON04": {
+            "count": 75,
+            "framed_bytes": 9300
+          },
+          "CVAEPI02": {
+            "count": 143,
+            "framed_bytes": 23309
+          },
+          "CVAFRA02": {
+            "count": 498,
+            "framed_bytes": 72210
+          },
+          "CVATUR03": {
+            "count": 2972,
+            "framed_bytes": 568013
+          }
+        }
+      },
+      "scope": "Archive owner frames including 8-byte chunk framing; reservations, other owners and grouped payloads excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true
+    },
+    {
+      "destination_published": false,
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "frames": {
+        "archive_head": 0,
+        "native_archive_envelopes": 0
+      },
+      "scope": "Archive owner frames including 8-byte chunk framing; reservations, other owners and grouped payloads excluded",
+      "semantic_mismatches": 0,
+      "source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true
+    }
+  ]
+}

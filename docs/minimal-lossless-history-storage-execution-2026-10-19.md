@@ -1430,3 +1430,6 @@ Archive consumer gates203–207 accepted against `9e153aa`: 111 Archive, 86 impo
 
 
 Archive writer gate208 accepted against `2801100`: 113 Archive, 86 import, 50 reconciliation and 30 upgrade tests pass. This also revalidates the additional import Episode-scope consumer exposed by ordinary native writes. Step209 offline conversion and pinned corpus measurement is next; full-root/CLI/architecture integration remains pending Gate E.
+
+
+Archive gate209 accepted against `ea26adc`: six-source parity passes in 169.26 seconds, all source bytes/hashes/mtimes unchanged. The measured 32,357 Archive publications save 659,536 framed owner bytes; see the tracked Archive envelope migration JSON. This excludes reservations and other owners. The supplemental global-counter preflight and explicit legacy fixture updates pass; 1,988 broad units pass, with five ignored and three long integration sweeps deferred. Next210 freezes the Graph envelope contract.
