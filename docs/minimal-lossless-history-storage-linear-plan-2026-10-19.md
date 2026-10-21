@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 201/339 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; next Step 202. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 207/339 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; Archive admission202 verified against `ed7e21a`; Archive readers/reconciliation/proofs/reclamation/copies203–207 verified against `9e153aa`; next Step 208. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -2178,3 +2178,63 @@ Verification: All 15 focused body tests pass, including independent literal byte
 Blockers: None for body codecs. Replay, consumers, writers and migration remain separate unaccepted gates.
 Documentation impact: Native body layout and retained legacy defaults recorded in storage-format.
 Architecture impact: Archive owns body interpretation; shared semantic field helpers avoid nested standalone framing. No Container semantic dispatch added.
+
+
+### Step 202 accepted — Archive native envelope admission
+
+Commit: `ed7e21a`.
+Files: `src/archive/archive_rebuild.rs`; `src/facade/cva_lifecycle.rs`; `src/archive/archive_publication_replay_tests.rs`.
+Verification: 108 Archive-filtered regressions pass. New cases cover mixed legacy/native REL reopen, explicit dense local and strictly increasing owner globals under reserved bindings, rejection without consuming cuts, first-applying repeat anchors and no repeat reapplication, and tombstone envelope-global substitution with exact closure rejection. Existing physical envelope tests retain the V1 boundary. Checked next-local arithmetic precedes owner mutation. Historical resolution implementation is included but Step 203's broader reader parity remains unaccepted.
+Blockers: None for admission. Reader parity and downstream mutation consumers remain pending.
+Documentation impact: Admission and pending consumer gates recorded here and in the execution ledger.
+Architecture impact: REL dispatch delegates body interpretation to ArchiveOpenState; physical envelopes remain Container-owned.
+
+
+### Step 203 accepted — Archive readers at envelope references
+
+Commit: `9e153aa`.
+Files: archive_history.rs; historical_archive_fingerprint.rs; archive_publication_reader_tests.rs.
+Verification: All ten applying families and a repeated binding match standalone evidence at every retained local/global/time cut; current Node, Branch, metadata, Fragment, Episode, File, import receipt, File/Memory and attachment indexes match. Historical branch state does not roll back at an older repeated binding.
+Blockers: None for this gate; ordinary Archive writers and offline conversion remain pending.
+Documentation impact: Concrete consumer and proof behavior recorded in storage-format and this ledger.
+Architecture impact: Archive retains semantic body ownership; concrete consumers resolve it explicitly and Container remains physical framing only.
+
+
+### Step 204 accepted — Archive reconciliation and import evidence
+
+Commit: `9e153aa`.
+Files: cva_reconcile_archive.rs; imports/reconciliation.rs; reconciliation_archive_envelope_tests.rs.
+Verification: 86 import and 50 reconciliation regressions pass. Native reserved-binding interval replay retains timestamp -123 and normalized evidence; repeated source bindings do not reapply older mutations. Every applying family has carrier/envelope evidence parity.
+Blockers: None for this gate; ordinary Archive writers and offline conversion remain pending.
+Documentation impact: Concrete consumer and proof behavior recorded in storage-format and this ledger.
+Architecture impact: Archive retains semantic body ownership; concrete consumers resolve it explicitly and Container remains physical framing only.
+
+
+### Step 205 accepted — Archive pruning and proof identities
+
+Commit: `9e153aa`.
+Files: archive_history_prune.rs; cva_history_prune.rs; history_prune_manifest.rs.
+Verification: All eleven synthetic cuts have identical owner history digests across carrier/link and native forms, including a repeat. Terminal descriptors match. Native Node/tombstone payload pruning reopens with bound proof, exact cuts/times and retained structure. Seven pruning regressions pass. Legacy standalone descriptor bytes remain preserved; unsupported V1 proof conversion is still rejected by the offline authority boundary.
+Blockers: None for this gate; ordinary Archive writers and offline conversion remain pending.
+Documentation impact: Concrete consumer and proof behavior recorded in storage-format and this ledger.
+Architecture impact: Archive retains semantic body ownership; concrete consumers resolve it explicitly and Container remains physical framing only.
+
+
+### Step 206 accepted — Archive reclamation dependencies and relocation
+
+Commit: `9e153aa`.
+Files: storage_reclamation_scan.rs; storage_reclamation.rs; archive_publication_replay_tests.rs.
+Verification: Native Node content survives reclamation while an orphan content object and unpublished carrier are removed. Input bytes, accepted cuts and transaction times remain exact; output reopens. Seventeen reclamation regressions pass. Every native applying family passes byte-preserving relocation validation.
+Blockers: None for this gate; ordinary Archive writers and offline conversion remain pending.
+Documentation impact: Concrete consumer and proof behavior recorded in storage-format and this ledger.
+Architecture impact: Archive retains semantic body ownership; concrete consumers resolve it explicitly and Container remains physical framing only.
+
+
+### Step 207 accepted — Archive native copies and principal migration
+
+Commit: `9e153aa`.
+Files: project_file_attachment_tests.rs; cva_principal_repack.rs; archive_publication_replay_tests.rs.
+Verification: Native File and repeat bodies survive attachment repack byte-for-byte with exact cuts/times and stable source attachments. Native Node principal backfill reopens with unchanged cuts/times; atomic native turn backfill preserves attachments and reserved clock header, retries unchanged and rejects conflicting principal. Three principal repack regressions and all 111 Archive-filtered tests pass.
+Blockers: None for this gate; ordinary Archive writers and offline conversion remain pending.
+Documentation impact: Concrete consumer and proof behavior recorded in storage-format and this ledger.
+Architecture impact: Archive retains semantic body ownership; concrete consumers resolve it explicitly and Container remains physical framing only.

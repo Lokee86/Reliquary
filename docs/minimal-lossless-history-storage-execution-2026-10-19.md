@@ -1421,3 +1421,9 @@ The [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) re
 
 
 Archive Step 201 accepted against `24572e4`: 15 body codec tests and 106 Archive-filtered regressions pass. Step 202 replay is in progress and unaccepted. The Windows mock-server accepted-socket correction `a65650d` passes its previously failing controller regression; a clean full-root sweep remains required.
+
+
+Archive Step 202 accepted against `ed7e21a`: 108 Archive-filtered tests pass, including the four new owner-admission/repeat/terminal cases. Step 203 reader parity is in progress. Ordinary Archive writers and offline conversion remain unchanged until their explicit gates.
+
+
+Archive consumer gates203–207 accepted against `9e153aa`: 111 Archive, 86 import, 50 reconciliation, 3 principal backfill, 7 pruning and 17 reclamation tests pass. All-family historical/current/time parity and eleven-cut proof parity include a repeated binding. Full root/CLI and architecture integration refresh remain Gate E work. Next is ordinary Archive writer cutover208.
