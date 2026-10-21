@@ -132,6 +132,259 @@ fn admission_committed_before_linkage_event_recovers_exactly_once() {
 use crate::{Cva, GraphRelationKind, GraphRelationOrigin};
 use std::collections::BTreeSet;
 
+fn append_ordered_memory_creation(
+    rel: &mut Cva,
+    id: crate::MemoryId,
+    mutation_id: &str,
+    local_version: u64,
+    global_version: u64,
+    lifecycle_state: &str,
+) {
+    let title = mutation_id;
+    let content = format!("Synthetic first revision for {mutation_id}.");
+    let body = crate::memory_model::memory_body_bytes(title, &content);
+    let body_id = crate::memory_model::memory_body_id(title, &content);
+    rel.container
+        .append(&crate::memory_codec::encode_body(body_id, &body).unwrap())
+        .unwrap();
+    let record = crate::memory_model::MemoryRecord {
+        id,
+        revision: 1,
+        body_id,
+        category: "fact".into(),
+        memory_type: "project".into(),
+        authority_kind: "direct".into(),
+        temporal_status: "current".into(),
+        scope: "project".into(),
+        lifecycle_state: lifecycle_state.into(),
+        archived: false,
+        superseded_by: None,
+        parent_id: None,
+        source_node_id: None,
+        content_source_conversation_id: None,
+        content_source_node_id: None,
+        grounding_source_conversation_id: None,
+        grounding_source_node_id: None,
+        source_episode_id: None,
+        source_time_ns: None,
+        source_ref: None,
+        temporal_inference: None,
+        mutation_id: mutation_id.into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+        global_version,
+        memory_version: local_version,
+    };
+    let body = crate::memory_compact_codec::publication::encode(
+        &crate::memory_compact_codec::publication::MemoryPublication::Creation(
+            crate::memory_compact_contract::MemoryCreation::new(record).unwrap(),
+        ),
+    )
+    .unwrap();
+    let envelope = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
+            global_version,
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: &body,
+        },
+    )
+    .unwrap();
+    rel.container.append(&envelope).unwrap();
+}
+
+#[test]
+fn first_dream_population_keeps_older_archived_and_tombstoned_births() {
+    let fixture = Fixture::new();
+    let path = fixture.path("dream-population-archived-tombstoned.rel");
+    let mut rel = Cva::create(&path).unwrap();
+
+    let tombstoned = publish(
+        &mut rel,
+        "population-tombstoned",
+        "knowledge",
+        "Older tombstone.",
+    );
+    assert!(matches!(
+        rel.tombstone_memory(tombstoned, 1).unwrap(),
+        crate::owner_lifecycle::TombstoneOutcome::Published(_)
+    ));
+
+    let mut archived_draft =
+        super::draft("population-archived", "knowledge", "Older archived birth.");
+    archived_draft.archived = true;
+    let (archived_memory, changed) = rel.publish_memory(None, 0, archived_draft).unwrap();
+    assert!(changed);
+    let archived = archived_memory.id;
+
+    let source = publish(&mut rel, "population-source", "extracted", "New source.");
+    let pass = crate::dream_freshness::begin_initial_pass(&mut rel, source, [].into_iter())
+        .unwrap()
+        .unwrap();
+
+    assert_eq!(
+        pass.preexisting_ids,
+        BTreeSet::from([tombstoned, archived]),
+        "the legacy cut is based on durable birth and strictly earlier global first revision, not current liveness"
+    );
+    assert!(matches!(
+        rel.memory_lifecycle_state(tombstoned).unwrap(),
+        crate::owner_lifecycle::LifecycleState::Tombstoned(_)
+    ));
+    assert!(!rel.memory_revision(tombstoned, 1).unwrap().archived);
+    assert!(rel.memory_revision(archived, 1).unwrap().archived);
+}
+
+#[test]
+fn first_dream_population_uses_first_global_order_when_memory_local_order_reverses() {
+    let fixture = Fixture::new();
+    let path = fixture.path("dream-population-reversed-global-local.rel");
+    let mut rel = Cva::create(&path).unwrap();
+
+    // Reserve global order 1, 2, 3, then bind accepted Memory first revisions
+    // in physical/local order 3, 1, 2. The oldest local Memory is therefore
+    // newer than the source by global order, while the next local Memory is
+    // older by global order.
+    for time in [10, 20, 30] {
+        rel.container
+            .allocate_version_with_transaction_time(Some(time))
+            .unwrap();
+    }
+    let local_first_but_globally_later = crate::MemoryId([61; 32]);
+    let globally_earlier = crate::MemoryId([62; 32]);
+    let source = crate::MemoryId([63; 32]);
+    append_ordered_memory_creation(
+        &mut rel,
+        local_first_but_globally_later,
+        "local-first-global-later",
+        1,
+        3,
+        "knowledge",
+    );
+    append_ordered_memory_creation(
+        &mut rel,
+        globally_earlier,
+        "local-second-global-first",
+        2,
+        1,
+        "knowledge",
+    );
+    append_ordered_memory_creation(&mut rel, source, "local-third-source", 3, 2, "extracted");
+    rel.sync().unwrap();
+    drop(rel);
+
+    let mut rel = Cva::open(&path).unwrap();
+    for id in [local_first_but_globally_later, globally_earlier, source] {
+        rel.freshness_replay_publication_birth(id).unwrap();
+    }
+    assert_eq!(
+        rel.memory_revision(local_first_but_globally_later, 1)
+            .unwrap()
+            .global_version,
+        3
+    );
+    assert_eq!(
+        rel.memory_revision(globally_earlier, 1)
+            .unwrap()
+            .global_version,
+        1
+    );
+    assert_eq!(rel.memory_revision(source, 1).unwrap().global_version, 2);
+
+    let pass = crate::dream_freshness::begin_initial_pass(&mut rel, source, [].into_iter())
+        .unwrap()
+        .unwrap();
+    assert_eq!(pass.preexisting_ids, BTreeSet::from([globally_earlier]));
+}
+
+#[test]
+fn first_dream_population_includes_later_local_birth_with_earlier_global_version() {
+    let fixture = Fixture::new();
+    let path = fixture.path("dream-population-later-local-earlier-global.rel");
+    let mut rel = Cva::create(&path).unwrap();
+
+    // Physical/local order puts the source first, but its reserved global
+    // coordinate is later. The candidate is admitted afterward with the
+    // earlier global coordinate and therefore belongs to the legacy set.
+    for time in [10, 20] {
+        rel.container
+            .allocate_version_with_transaction_time(Some(time))
+            .unwrap();
+    }
+    let source = crate::MemoryId([64; 32]);
+    let later_local_candidate = crate::MemoryId([65; 32]);
+    append_ordered_memory_creation(
+        &mut rel,
+        source,
+        "source-local-one-global-two",
+        1,
+        2,
+        "extracted",
+    );
+    append_ordered_memory_creation(
+        &mut rel,
+        later_local_candidate,
+        "candidate-local-two-global-one",
+        2,
+        1,
+        "knowledge",
+    );
+    rel.sync().unwrap();
+    drop(rel);
+
+    let mut rel = Cva::open(&path).unwrap();
+    rel.freshness_replay_publication_birth(source).unwrap();
+    rel.freshness_replay_publication_birth(later_local_candidate)
+        .unwrap();
+    assert_eq!(rel.memory_revision(source, 1).unwrap().global_version, 2);
+    assert_eq!(
+        rel.memory_revision(later_local_candidate, 1)
+            .unwrap()
+            .global_version,
+        1
+    );
+
+    let pass = crate::dream_freshness::begin_initial_pass(&mut rel, source, [].into_iter())
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        pass.preexisting_ids,
+        BTreeSet::from([later_local_candidate])
+    );
+}
+
+#[test]
+fn first_dream_population_excludes_sibling_from_grouped_birth_cohort() {
+    let (path, mut rel, _episode) =
+        crate::insomnia::completion_tests::setup("dream-population-grouped-cohort.rel");
+    let prior = publish(&mut rel, "grouped-prior-root", "knowledge", "Prior root.");
+    let result = crate::insomnia::completion_tests::process(&mut rel, 2, 110);
+    let ids = result
+        .created
+        .iter()
+        .map(|memory| memory.id)
+        .collect::<Vec<_>>();
+    assert_eq!(ids.len(), 2);
+    assert!(
+        rel.freshness_same_publication_cohort(ids[0], ids[1])
+            .unwrap()
+    );
+
+    let pass = crate::dream_freshness::begin_initial_pass(&mut rel, ids[0], [].into_iter())
+        .unwrap()
+        .unwrap();
+    assert_eq!(pass.preexisting_ids, BTreeSet::from([prior]));
+    assert!(!pass.preexisting_ids.contains(&ids[1]));
+    rel.sync().unwrap();
+    drop(rel);
+
+    let reopened = Cva::open(&path).unwrap();
+    assert!(
+        reopened
+            .freshness_same_publication_cohort(ids[0], ids[1])
+            .unwrap()
+    );
+}
+
 #[test]
 fn freshness_recovers_inactivated_link_and_uses_accepted_graph_snapshot() {
     let fixture = Fixture::new();
