@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "snapshot": "sha256:dc54dee47978dbf0eaf046cf6fe06a364a9106e5e7b789e6caee103924ece48e",
+  "architecture_rules_passed": 23,
+  "compatibility_warnings": 0,
+  "source_nodes": 109407,
+  "relationships": 4184,
+  "production_paths_match": true,
+  "files": [
+    {
+      "path": "src/facade/cva_lifecycle.rs",
+      "normalized_sha256": "4aa5ae19c2a74dc76cbc9c617e9bf8dae8abdf32452485b6685217ba513823d0",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/facade/phylactery_lifecycle.rs",
+      "normalized_sha256": "3bd6cadb545657223b25dc02484d650bab61099ecbe6336a8c0cfb96e1dc275a",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/imports/reconciliation_interval.rs",
+      "normalized_sha256": "28cee7a8121eca4be9ca405766730de778d43fd2294816ad150db162872a37d0",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/imports/epoch_codec.rs",
+      "normalized_sha256": "eac5553c5721797ce5b15b73d7dab76df28b8eaa74b3190799d843a53bda1e69",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/imports/mod.rs",
+      "normalized_sha256": "3738d34f81a490144b0a92d8091b3667ff26b29f9a232f5782611cad16117672",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/perception/entity_resolution_codec.rs",
+      "normalized_sha256": "018f33bd112e021df78a54cb1b4ad0b7055471346d04907180a602267fda22bb",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/perception/entity_resolution_delta_codec.rs",
+      "normalized_sha256": "313fd9a89ebf2e85a1528363d437ac015105a57fc1197ed745ddba9d735a63ac",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/perception/entity_resolution_retained.rs",
+      "normalized_sha256": "e6e65326fe8815a8cbb539489c8b98b00ea98714bd90300d4fa7c89633f960c3",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/perception/entity_resolution_store.rs",
+      "normalized_sha256": "13340971e681a251d9cd66079f8b79ed62fb95a1bda4445b51ec85077e386f38",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/storage_upgrade/authority_admission.rs",
+      "normalized_sha256": "339b825b4d5e28434385afb73b8e8041fb1634c560090db7b4a14b5f00bdbd4e",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/storage_upgrade/memory.rs",
+      "normalized_sha256": "9242da749adbd1fe8a17adaf463f809232740b82401dbeb94526ac7931d46fc9",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/storage_upgrade/model.rs",
+      "normalized_sha256": "0b9f8df669459a2b15d6fa1c0d1fe7d22a21064fd2d7db245a086419467f7065",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/storage_upgrade/shell.rs",
+      "normalized_sha256": "3a16db7d15d53fb3f3ed34ce4b0e2f1bbf5f7aaa5f834e911da4bab77efac7dc",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/storage_upgrade/import_settlement.rs",
+      "normalized_sha256": "f49a8ffb09edd7eb50d5f3fcbe2429548fdc7137eba1f8d6a1bf26923cef4e84",
+      "test_only_adjustment": null
+    },
+    {
+      "path": "src/storage_upgrade/mod.rs",
+      "normalized_sha256": "e3d278e19ef6fee01c025bcbf752203ea8635d74622534ca747e302013f0c621",
+      "test_only_adjustment": "Exclude exactly the subsequently added cfg(test) performance-module declaration; all runtime declarations remain compared."
+    }
+  ],
+  "subsequent_test_only_changes": [
+    "src/facade/historical_global_cuts.rs",
+    "src/freshness/historical_oracle.rs",
+    "src/storage_upgrade/canonical_matrix_tests.rs",
+    "src/storage_upgrade/canonical_performance_tests.rs"
+  ],
+  "final_post_retirement_refresh_still_required": true
+}

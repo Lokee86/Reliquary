@@ -1,0 +1,110 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "source_root": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative",
+  "frozen_directory": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba",
+  "fixture_repository_head": "fca1c1d0a1bbb19f56f29c51b080e33185e01899",
+  "preexisting_fixture_worktree_status": [
+    " M local/authoritative/chatgpt-first14d/AUTHORITATIVE.txt",
+    " M local/authoritative/chatgpt-first14d/SHA256SUMS.txt",
+    " M local/authoritative/chatgpt-first14d/project.prj.rel",
+    " M local/authoritative/chatgpt-first14d/user.phy",
+    " M local/authoritative/chatgpt-first28d/AUTHORITATIVE.txt",
+    " M local/authoritative/chatgpt-first28d/SHA256SUMS.txt",
+    " M local/authoritative/chatgpt-first28d/project.prj.rel",
+    " M local/authoritative/chatgpt-first28d/user.phy",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/AUTHORITATIVE.txt",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/SHA256SUMS.txt",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+    " M local/authoritative/rhelm-david-r-ellis-pre-relationship/user.phy"
+  ],
+  "all_pinned_sources_verified": true,
+  "all_original_files_unchanged": true,
+  "authoritative_promotion": false,
+  "files": [
+    {
+      "relative_path": "chatgpt-first14d/AUTHORITATIVE.txt",
+      "sha256": "467fdbddc87a9cc700b5fcf1eb18647fb53ad5e03c2001b307994142fe07d2c4",
+      "bytes": 2151,
+      "original_mtime_ns": 1792364655003868200,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first14d\\AUTHORITATIVE.txt"
+    },
+    {
+      "relative_path": "chatgpt-first14d/SHA256SUMS.txt",
+      "sha256": "71bc4ffe4cc20e3e1a1ac44662b207c8148b6b92239ceb4dee0f3c6665c4fe45",
+      "bytes": 159,
+      "original_mtime_ns": 1792364654994790000,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first14d\\SHA256SUMS.txt"
+    },
+    {
+      "relative_path": "chatgpt-first14d/project.prj.rel",
+      "sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "bytes": 31853182,
+      "original_mtime_ns": 1792364654986357600,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first14d\\project.prj.rel"
+    },
+    {
+      "relative_path": "chatgpt-first14d/user.phy",
+      "sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "bytes": 814287,
+      "original_mtime_ns": 1791904690105188300,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first14d\\user.phy"
+    },
+    {
+      "relative_path": "chatgpt-first28d/AUTHORITATIVE.txt",
+      "sha256": "13406fef9544fa60aeaea6b2c9983dfc0168ef969f975f7a5769c1055ddc6711",
+      "bytes": 2336,
+      "original_mtime_ns": 1792364655117112100,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first28d\\AUTHORITATIVE.txt"
+    },
+    {
+      "relative_path": "chatgpt-first28d/SHA256SUMS.txt",
+      "sha256": "725c219d1c13e51016561015df051f97342c89e1e2b61a51a46953e389ed879e",
+      "bytes": 159,
+      "original_mtime_ns": 1792364655115513000,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first28d\\SHA256SUMS.txt"
+    },
+    {
+      "relative_path": "chatgpt-first28d/project.prj.rel",
+      "sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "bytes": 80056100,
+      "original_mtime_ns": 1792364655107530000,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first28d\\project.prj.rel"
+    },
+    {
+      "relative_path": "chatgpt-first28d/user.phy",
+      "sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "bytes": 1840755,
+      "original_mtime_ns": 1791905109105628000,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\chatgpt-first28d\\user.phy"
+    },
+    {
+      "relative_path": "rhelm-david-r-ellis-pre-relationship/AUTHORITATIVE.txt",
+      "sha256": "020a97f1ce23d8d3a1418149d652c2cd7fa5d1980e98bd1f31ed1aff8dd5bf29",
+      "bytes": 3469,
+      "original_mtime_ns": 1792364655239399700,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\rhelm-david-r-ellis-pre-relationship\\AUTHORITATIVE.txt"
+    },
+    {
+      "relative_path": "rhelm-david-r-ellis-pre-relationship/SHA256SUMS.txt",
+      "sha256": "f0a9815e23308f40ef2fa354249b35221718d9e47a87f224d4ae0f3d506f384d",
+      "bytes": 159,
+      "original_mtime_ns": 1792364655238877500,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\rhelm-david-r-ellis-pre-relationship\\SHA256SUMS.txt"
+    },
+    {
+      "relative_path": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "bytes": 19561460,
+      "original_mtime_ns": 1792364655237300500,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\rhelm-david-r-ellis-pre-relationship\\project.prj.rel"
+    },
+    {
+      "relative_path": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "bytes": 4070532,
+      "original_mtime_ns": 1791904162669630000,
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\canonical-originals-54530ee1-d348-4263-8716-7624c14424ba\\rhelm-david-r-ellis-pre-relationship\\user.phy"
+    }
+  ]
+}

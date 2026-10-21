@@ -64,7 +64,7 @@ documentation checks pass on a byte-verified 1,810-file local snapshot.
 The sandboxed broad run could not reach a localhost mock and could not start one
 Lore child process. The already-built core was rerun locally outside that
 sandbox; all cases pass without changing production behavior or test assertions.
-Architecture refresh for the standalone import converter remains in progress.
+Architecture snapshot `dc54dee47978dbf0eaf046cf6fe06a364a9106e5e7b789e6caee103924ece48e` passes all23 rules with109,407 source nodes,4,184 relationships and zero compatibility warnings. The [source binding](../benchmarks/canonical-history-architecture-binding-2026-10-21.json) verifies15 production paths against the captured mirror and names subsequent test-only changes. A final post-retirement refresh is still required.
 
 ## Related docs
 
@@ -81,3 +81,6 @@ Dream and global projection acceptance remains separately recorded by the plan.
 These measurements do not authorize deleting legacy readers or promoting an
 unverified authoritative fixture. The temporary converters remain until those
 gates pass.
+
+
+The [original-source preservation manifest](../benchmarks/canonical-history-original-source-preservation-2026-10-21.json) pins exact copies of all six original files and their six authority/checksum metadata files before promotion. It records the fixture repository's preexisting uncommitted state. This preservation does not modify that repository or promote any file.
