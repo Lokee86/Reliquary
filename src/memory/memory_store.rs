@@ -514,6 +514,30 @@ impl MemoryStore {
         (record.global_version == global_version).then_some(record)
     }
 
+    /// Return accepted first-publication identities at a Memory-local cut.
+    /// The result is ordered by each identity's first local version and keeps
+    /// that revision's exact global coordinate, independently of current
+    /// liveness, later revisions, and terminal tombstones.
+    pub(crate) fn first_publication_prefix(
+        &self,
+        cut: u64,
+    ) -> Result<Vec<(MemoryId, u64)>, MemoryError> {
+        if cut > self.memory_version() {
+            return Err(MemoryError::InvalidVersion);
+        }
+        let mut prefix = self
+            .records
+            .iter()
+            .filter(|record| record.revision == 1 && record.memory_version <= cut)
+            .map(|record| (record.memory_version, record.id, record.global_version))
+            .collect::<Vec<_>>();
+        prefix.sort_by_key(|(local_version, _, _)| *local_version);
+        Ok(prefix
+            .into_iter()
+            .map(|(_, id, global_version)| (id, global_version))
+            .collect())
+    }
+
     pub(crate) fn current_record_for_replay(
         &self,
         id: MemoryId,

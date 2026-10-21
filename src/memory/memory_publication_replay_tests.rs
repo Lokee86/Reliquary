@@ -76,6 +76,95 @@ fn envelope_creation_delta_and_terminal_replay_with_earlier_reserved_globals() {
 }
 
 #[test]
+fn first_publication_prefix_uses_local_cut_and_preserves_first_global_facts() {
+    let path = test_path("first-publication-prefix.cva");
+    let mut container = initialize_container(&path);
+    let mut first = initial_record();
+    first.body_id = append_body(&mut container, "First", "First accepted identity.");
+    let mut second = initial_record();
+    second.id = MemoryId([51; 32]);
+    second.mutation_id = "second-creation".into();
+    second.body_id = append_body(&mut container, "Second", "Second accepted identity.");
+    let mut third = initial_record();
+    third.id = MemoryId([52; 32]);
+    third.mutation_id = "third-creation".into();
+    third.body_id = append_body(&mut container, "Third", "Third accepted identity.");
+
+    for time in [Some(100), Some(200), Some(300), Some(400), Some(500)] {
+        container.allocate_version_with_transaction_time(time).unwrap();
+    }
+
+    // Accepted local order is 1, 2, 3, 4, 5. First-publication global order
+    // is deliberately 2, 1, 3; revisions and a terminal tombstone follow.
+    first.memory_version = 1;
+    first.global_version = 2;
+    append_publication(
+        &mut container,
+        2,
+        PublicationClock::BindReserved,
+        MemoryPublication::Creation(MemoryCreation::new(first.clone()).unwrap()),
+    );
+    second.memory_version = 2;
+    second.global_version = 1;
+    append_publication(
+        &mut container,
+        1,
+        PublicationClock::BindReserved,
+        MemoryPublication::Creation(MemoryCreation::new(second.clone()).unwrap()),
+    );
+    third.memory_version = 3;
+    third.global_version = 3;
+    append_publication(
+        &mut container,
+        3,
+        PublicationClock::BindReserved,
+        MemoryPublication::Creation(MemoryCreation::new(third.clone()).unwrap()),
+    );
+    let mut revision_two = successor(&first);
+    revision_two.global_version = 4;
+    revision_two.memory_version = 4;
+    append_publication(
+        &mut container,
+        4,
+        PublicationClock::BindReserved,
+        MemoryPublication::Delta(MemoryDelta::between(&first, &revision_two).unwrap()),
+    );
+    append_publication(
+        &mut container,
+        5,
+        PublicationClock::BindReserved,
+        MemoryPublication::Tombstone {
+            id: second.id,
+            revision: 3,
+            memory_version: 5,
+        },
+    );
+    container.sync().unwrap();
+    drop(container);
+
+    let store = replay(&path).unwrap();
+    let expected = [
+        (first.id, 2),
+        (second.id, 1),
+        (third.id, 3),
+    ];
+    assert!(store.first_publication_prefix(0).unwrap().is_empty());
+    assert_eq!(store.first_publication_prefix(1).unwrap(), expected[..1]);
+    assert_eq!(store.first_publication_prefix(2).unwrap(), expected[..2]);
+    assert_eq!(store.first_publication_prefix(3).unwrap(), expected);
+    assert_eq!(store.first_publication_prefix(4).unwrap(), expected);
+    assert_eq!(store.first_publication_prefix(5).unwrap(), expected);
+    assert!(matches!(
+        store.first_publication_prefix(6),
+        Err(MemoryError::InvalidVersion)
+    ));
+    assert!(matches!(
+        store.lifecycle_state(second.id).unwrap(),
+        Some(LifecycleState::Tombstoned(_))
+    ));
+}
+
+#[test]
 fn envelope_rejects_missing_body_invalid_local_and_unsupported_owner() {
     for (name, missing_body, bad_local, unsupported) in [
         ("missing", true, false, false),

@@ -1467,3 +1467,12 @@ Historical-oracle Gate E run passes: 192 tests, one existing ignored, 388.44 sec
 
 
 Read-only Phase N preparation expanded the unexecuted Dream block from11 to27 rows: distinct Memory-local/global order, direct/Insomnia/external prefix birth/cohort authority, concrete REL coordination, exception-capable codec/replay, source/destination consumers and maintenance transforms are now explicit. The current plan is220/355, with accepted1–220 unchanged and Gate E still pending architecture enforcement. No Phase N implementation crossed that gate.
+
+
+Gate E architecture refresh passes: snapshot `4cc4320fdda5709a82b7f7a751a7ee3853248b44fd445e468eb6782d7754f694`, zero Arcana compatibility warnings, 20 areas/23 rules, no violations across 76,739 source nodes and519 relationships. Final audit then identified completed-import Graph duplicate-member authority as supplemental Step221 before gate acceptance. Its partial/full-overlap regressions and correction are now explicit; the plan is220/356 and Dream starts222 after Gate E.
+
+
+Graph supplemental221 accepted against 9ce3476: both completed-epoch overlap regressions fail before and pass after, retaining ordered transaction facts and unchanged inputs through repeat reconciliation. Broad revalidation passes2,014 units with five existing ignored; three exhaustive sweeps already passed and new Dream references are verified separately. The initial sandbox run could not connect to local mock servers; an unrestricted rerun passes. Root test compilation and all23 architecture rules pass. Integration Gate E is accepted with the existing full recovery/integration/CLI/historical-oracle and refreshed architecture evidence. Progress221/356; next222 freezes legacy Dream population semantics.
+
+
+Dream reference222 accepted against `37210c8`: four runtime Begin population tests pass, including archived/terminal births, reversed local/global orders in both directions and grouped siblings. Contract223 accepted against `24d1c53`; the Memory identity prefix is explicitly distinct from final Dream population authority. Progress223/356; reader224 is in progress.
