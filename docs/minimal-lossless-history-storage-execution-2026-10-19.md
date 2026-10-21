@@ -1476,3 +1476,6 @@ Graph supplemental221 accepted against 9ce3476: both completed-epoch overlap reg
 
 
 Dream reference222 accepted against `37210c8`: four runtime Begin population tests pass, including archived/terminal births, reversed local/global orders in both directions and grouped siblings. Contract223 accepted against `24d1c53`; the Memory identity prefix is explicitly distinct from final Dream population authority. Progress223/356; reader224 is in progress.
+
+
+Memory prefix224 accepted against `21b4ec9` (implementation first captured in `1aaf6cd`):22 Memory compact replay/copy/prune tests and the accepted external publication fixture pass. Body pruning preserves first identity/global metadata in REL and PHY. Physical Begin authority225 is frozen in the Dream population contract, including recoverable pending intents and strict physical-prefix evidence. Progress225/356; direct-birth projection226 is active. Documentation validation now uses a verified independent Git snapshot; an earlier missing nested Git directory resolved to the parent and captured the in-progress224 implementation with acceptance docs, without loss or premature step acceptance.
