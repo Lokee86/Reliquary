@@ -1,7 +1,7 @@
 # Compact publication envelope — execution contract
 
 Date: 2026-10-20
-Status: Step 167 contract accepted against `b043494`; Memory runtime admission and ordinary writing accepted through Step 177. Offline Memory conversion and Entity/Relationship envelope codecs, consumers, ordinary writing and offline conversion are implemented and in verification. Archive contract Step 200 accepted against `2597c73` and body codecs Step 201 against `24572e4`; Archive gates through209 are accepted; the Graph contract210 is frozen below, while Graph implementation and final promotion remain pending.
+Status: Step167 contract accepted against `b043494`. Selected Memory, Entity, Relationship, Archive and Graph envelope codec/admission/consumer/writer/offline-conversion gates are accepted through Step219; owner coverage audit220 is complete. Ego remains local-only and not applicable. Integration Gate E, final corpus promotion and runtime legacy-reader retirement remain pending; the linear plan controls acceptance.
 
 ## Overview
 
@@ -51,7 +51,7 @@ This makes the accepted publication self-contained with respect to its binding, 
 
 ## Required owner gates
 
-Memory's current writer includes creation, delta and tombstone paths. Its current replay binds compact carriers through `CVAMEMV1`; replacing that link touches independent consumers. Before ordinary Memory writer cutover, independently implement/verify:
+Memory's accepted writer cutover includes creation, delta and tombstone paths; ordinary replay admits global-free bodies through `CVAPUB01`, while legacy marker-bound `CVAMEMV1` histories remain temporary compatibility input. The following list records the independent gates required before cutover; those gates are accepted through Step177:
 
 1. Container envelope clock/timestamp admission and partial-tail behavior.
 2. Memory body codecs, local sequence/delta-base/terminal admission and explicit V1/V2 boundary.
@@ -67,7 +67,7 @@ The corresponding concrete consumers are `container_version::observe_version_pay
 
 ## Entity envelope migration boundary
 
-The Entity inventory contains 1,141 accepted version links across the six pinned inputs. Ordinary compact revisions still append a carrier, standalone global ticket and `CVAENTV1` link. Entity envelope migration therefore removes actual framing. Entity retains sole authority over global UUID, ID, revision, local sequence, mutation identity, description availability and merge/direct terminal semantics. Observation is not a separate persisted owner.
+The Entity inventory contains 1,141 accepted version links across the six pinned inputs. Those legacy histories use a carrier, standalone global ticket and `CVAENTV1` link; current ordinary revisions use allocation envelopes and global-free Entity bodies, removing that framing while preserving Entity's sole authority over global UUID, ID, revision, local sequence, mutation identity, description availability and merge/direct terminal semantics. Observation is not a separate persisted owner.
 
 Entity bodies use `CVAENC02` for creations and `CVAEND02` for deltas. They preserve the corresponding `01` field order except for the omitted global integer, which comes exclusively from the envelope. Optional authenticated description proof retains its two digests and checksum; the checksum covers the new body bytes. Direct terminal bodies use `CVAETD02` with ID, revision and Entity version; merge terminal bodies use `CVAETM02` with the same fields followed by replacement ID. All integers remain little-endian. Terminal bodies retain no physical reference. Unknown Entity body versions, zero local/global coordinates, invalid base/revision/mask, malformed optional values, invalid proof lengths/checksums and trailing bytes reject. A body alone is inert; only a validated V2 envelope admits it. No new semantic clock or public delta API is introduced.
 
@@ -87,7 +87,7 @@ The concrete acceptance boundaries are:
 | Ordinary publication | `entity_compact_publish`, direct and merge tombstone paths in `entity_store` | One envelope, preflight/no-op/retry atomicity, incomplete-tail recovery |
 | Offline conversion | `storage_upgrade::entity`, staged-copy coordinator | Source identity/hash unchanged; owner/global/time/proof parity |
 
-Implementation must close each boundary before writer cutover; the shared physical codec is not evidence that any of these consumers already supports Entity bodies. Ego has no removable global/link framing, so no Ego envelope is proposed. Archive and Graph applicability remains separately gated by exact inert-backing and local-history equivalence.
+These independent Entity boundaries were closed before writer cutover and are accepted through Step219. The shared physical codec alone was not treated as evidence of consumer support; the owner-specific gates remain in the linear plan as the acceptance record. Ego has no removable global/link framing, so no Ego envelope is proposed. Archive and Graph applicability and equivalence are also accepted through Step219; integration Gate E and promotion remain pending.
 
 ## Relationship envelope migration boundary
 
@@ -95,7 +95,7 @@ Relationship owns creation, delta and direct terminal semantics. It has no optio
 
 Bodies use `CVARNC02` and `CVARND02`, preserving the `01` field order and all canonical participant/evidence collection operations, except that the global integer is supplied only by the envelope. Optional description proof and its checksum cover the new body bytes. `CVARTD02` stores Relationship ID, revision and local Relationship version as little-endian values. The envelope supplies its global coordinate. No body contains a carrier reference. Unknown family versions, zero coordinates, invalid revisions/masks/collections, malformed proof checksums, truncation and trailing bytes reject. Replay must preserve direct terminal authority and dense local sequence under reverse reserved globals.
 
-The implementation gates remain independent: codec (`relationship_compact_codec` and values); replay (`RelationshipOpenState`); historical cuts/fingerprints; reconciliation range and completed-import inventory; authenticated description pruning and owner-history digest; reclamation liveness and relocation; REL/PHY native copies and explicit semantic rewrite policy; ordinary revision/direct terminal writers; and offline accepted-link conversion at original marker slots. Existing raw carriers remain inert unless accepted. Writer cutover waits for those consumers, and a zero-link authoritative corpus cannot substitute for adversarial synthetic parity.
+The Relationship acceptance gates were independent: codec (`relationship_compact_codec` and values); replay (`RelationshipOpenState`); historical cuts/fingerprints; reconciliation range and completed-import inventory; authenticated description pruning and owner-history digest; reclamation liveness and relocation; REL/PHY native copies and explicit semantic rewrite policy; ordinary revision/direct terminal writers; and offline accepted-link conversion at original marker slots. These gates are accepted through Step219. Existing raw carriers remain inert unless accepted, and a zero-link authoritative corpus did not substitute for adversarial synthetic parity. Integration Gate E, corpus promotion and legacy-reader retirement remain pending.
 
 ## Archive envelope contract and repeated bindings
 
@@ -122,7 +122,7 @@ Legacy Node/turn absence of principal stays `None`; legacy metadata keeps the ex
 
 Archive retains its existing dense local sequence and strictly increasing publication globals; physical reserved clocks do not authorize a decreasing Archive sequence. Prepare the next local coordinate before any semantic state mutation. New `ArchiveRecordVersion.record` references point to the envelope itself. Container reads remain raw: concrete Archive readers resolve applying/repeated publications explicitly. Raw content and unaccepted record-shaped backing stay inert. Only accepted carriers are removable during conversion, after every reference is accounted for.
 
-The concrete consumer inventory is `ArchiveOpenState::ingest_version/apply_record`; `Archive::branch_at/record_version` and Archive/current historical materializers; `cva_reconcile_archive` ranges/receipts and import interval/evidence inventory; `history_prune_manifest::owner_history_digest`, Archive content/conversation pruning and terminal retention; `ReclamationScan` dependency liveness and physical relocation; REL attachment/native repack and rewrite/migration; and every `Archive::publish_record` caller (Node, Branch, metadata, tombstone, Fragment, Episode, File, IngestedTurn, ImportReceipt, FileMemoryLink). Each has an explicit gate in the linear plan. No writer cutover precedes these gates. Native copy must retain content dependencies, repeated anchors, IDs, all cuts and times; semantic rewrite keeps its explicit discard policy. Conversion binds at original marker slots with unchanged standalone reservations, canonical fields, proofs/receipts and source identity/hash/mtime. Per-family measured output bytes, including chunk framing, are required before any savings claim or promotion.
+The concrete consumer inventory was `ArchiveOpenState::ingest_version/apply_record`; `Archive::branch_at/record_version` and Archive/current historical materializers; `cva_reconcile_archive` ranges/receipts and import interval/evidence inventory; `history_prune_manifest::owner_history_digest`, Archive content/conversation pruning and terminal retention; `ReclamationScan` dependency liveness and physical relocation; REL attachment/native repack and rewrite/migration; and every `Archive::publish_record` caller (Node, Branch, metadata, tombstone, Fragment, Episode, File, IngestedTurn, ImportReceipt, FileMemoryLink). These gates are accepted through Step209. Native copy retains content dependencies, repeated anchors, IDs, all cuts and times; semantic rewrite keeps its explicit discard policy. Conversion binds at original marker slots with unchanged standalone reservations, canonical fields, proofs/receipts and source identity/hash/mtime. Per-family framed-byte measurements are recorded; integrated promotion and runtime legacy retirement remain pending.
 
 ## Graph owner contract (Step 210)
 
@@ -145,7 +145,7 @@ Concrete consumers are `GraphOpenState`, REL/PHY publication dispatch, `GraphSto
 
 Ordinary writers must validate all effective changes, successors and planned ordinal mappings before appending format/mapping/content frames. A no-op or retry appends nothing. A successful transaction appends any required direct mappings and exactly one allocation envelope, then installs the transaction at the existing commit boundary. No standalone compact carrier, global ticket or Graph link remains on this ordinary path. Tests must cover both REL/PHY, endpoint domains, batches, inactive facts and incomplete final-envelope recovery.
 
-Offline conversion derives accepted stable/ordinal facts from the validated V1 owner, retains raw mapping/baseline records and standalone reservations, and places one BindReserved body at each original `CVAGVER1` slot. Remove only accepted carriers after accounting for references; inert backing remains nonauthoritative. Preserve one-member batches, all cuts/times, stable endpoint identities, proofs/receipts and source hash/mtime. Require six-source framed-byte measurement plus populated synthetic mapping, batch, mixed-origin, malformed and repeated-link rejection coverage before acceptance. Steps211–219 are separate execution gates; no writer cutover precedes its consumer gates.
+Offline conversion derives accepted stable/ordinal facts from the validated V1 owner, retains raw mapping/baseline records and standalone reservations, and places one BindReserved body at each original `CVAGVER1` slot. It removes only accepted carriers after accounting for references; inert backing remains nonauthoritative. The accepted conversion preserves one-member batches, all cuts/times, stable endpoint identities, proofs/receipts and source hash/mtime. Six-source framed-byte measurement and populated synthetic mapping, batch, mixed-origin, malformed and repeated-link rejection coverage passed Steps 211–219. Integration Gate E, corpus promotion and runtime legacy-reader retirement remain pending.
 
 ## Measurement and acceptance
 

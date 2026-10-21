@@ -1462,3 +1462,5 @@ Graph converter219 accepted against `e1e4d9e`, measured in `0113e78`: six pinned
 
 
 Gate E verification progress: 157 integration tests across 24 passing suites; 32 CLI tests; root doctests; and all three long recovery sweeps pass. The exhaustive checkpoint sweep passes all 1,046 non-vector and 1,484 vector byte prefixes on isolated rerun (242.18 seconds); the initial combined run hit Windows access denied during one retry. Archive legacy fixture assumptions were corrected in `cb95e38`; all ten activity contracts and workspace management pass. Historical fixture oracles and architecture refresh are still pending, so Gate E is not accepted yet.
+
+Historical-oracle Gate E run passes: 192 tests, one existing ignored, 388.44 seconds. The pinned baseline comparison and Memory/Archive/Entity/Relationship/Graph/Ego/Dream/Freshness/vector historical fixture checks pass. All source code is committed; refreshed architecture enforcement is the only remaining Gate E requirement.
