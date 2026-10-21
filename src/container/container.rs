@@ -468,6 +468,36 @@ impl Container {
         Ok(())
     }
 
+    /// Visit a complete bounded physical prefix while replaying its container
+    /// version frontier in local state. This read-only query never changes the
+    /// container's live clock, transaction-time map, reservations, or bytes.
+    pub(crate) fn visit_versioned_payloads_through<E>(
+        &mut self,
+        prefix_end: u64,
+        mut visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
+    ) -> Result<(), E>
+    where
+        E: From<ContainerError>,
+    {
+        let allow_envelopes = self.version == COMPACT_VERSION;
+        let mut next_version = 1;
+        let mut transaction_times = BTreeMap::new();
+        let mut standalone_reservations = std::collections::BTreeSet::new();
+        self.visit_payloads_through(prefix_end, |object, payload| {
+            if !allow_envelopes && payload.starts_with(b"CVAPUB") {
+                return Err(E::from(ContainerError::InvalidVersionRecord));
+            }
+            crate::container_version::observe_version_payload_state(
+                &mut next_version,
+                &mut transaction_times,
+                &mut standalone_reservations,
+                payload,
+            )
+            .map_err(E::from)?;
+            visitor(object, payload, next_version.saturating_sub(1))
+        })
+    }
+
     pub fn chunks(&mut self) -> Result<Vec<ObjectRef>, ContainerError> {
         let file_len = self.file.metadata()?.len();
         let mut offset = self.header_len;

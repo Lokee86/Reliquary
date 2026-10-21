@@ -141,6 +141,186 @@ fn reserved_bindings_consume_prior_standalone_tickets_without_advancing_clock() 
 }
 
 #[test]
+fn bounded_versioned_visitor_replays_reserved_reverse_bindings_without_mutation() {
+    let fixture = Fixture::new();
+    let path = fixture.path("bounded-versioned-reservations.cva");
+    let mut container = Container::create(&path).unwrap();
+    let mut ends = Vec::new();
+    for (global, time) in [(1, Some(200)), (2, Some(100)), (3, None)] {
+        container.append(&reservation(global, time)).unwrap();
+        ends.push(fs::metadata(&path).unwrap().len());
+    }
+    container
+        .append(&envelope(2, PublicationClock::BindReserved, &body(2)))
+        .unwrap();
+    ends.push(fs::metadata(&path).unwrap().len());
+    container
+        .append(&envelope(1, PublicationClock::BindReserved, &body(1)))
+        .unwrap();
+    ends.push(fs::metadata(&path).unwrap().len());
+    container.sync().unwrap();
+    drop(container);
+
+    let mut container = Container::open(&path).unwrap();
+    let before_bytes = fs::read(&path).unwrap();
+    let before_times = (1..=3)
+        .map(|global| container.transaction_time_ns(global))
+        .collect::<Vec<_>>();
+    let before_head = container.latest_version();
+    for (index, end) in ends.into_iter().enumerate() {
+        let mut frontiers = Vec::new();
+        container
+            .visit_versioned_payloads_through(end, |_, _, frontier| {
+                frontiers.push(frontier);
+                Ok::<_, ContainerError>(())
+            })
+            .unwrap();
+        assert_eq!(frontiers, [1, 2, 3, 3, 3][..=index]);
+        assert_eq!(container.latest_version(), before_head);
+        assert_eq!(
+            (1..=3)
+                .map(|global| container.transaction_time_ns(global))
+                .collect::<Vec<_>>(),
+            before_times
+        );
+    }
+    assert_eq!(fs::read(&path).unwrap(), before_bytes);
+}
+
+#[test]
+fn bounded_versioned_visitor_handles_grouped_global_range_and_optional_time() {
+    let (_path, mut cva, _) =
+        crate::insomnia::completion_tests::setup("bounded-versioned-grouped-range.cva");
+    crate::insomnia::completion_tests::process(&mut cva, 2, 110);
+    let end = fs::metadata(cva.container.path()).unwrap().len();
+    let before_head = cva.latest_global_version();
+    let before_times = (1..=before_head)
+        .map(|global| cva.container.transaction_time_ns(global))
+        .collect::<Vec<_>>();
+    let mut completion_range = None;
+    let mut final_frontier = 0;
+    cva.container
+        .visit_versioned_payloads_through(end, |_, payload, frontier| {
+            final_frontier = frontier;
+            if let Some((start, count, time)) =
+                crate::insomnia::completion::decode_embedded_version_range(payload)
+                    .map_err(|_| ContainerError::InvalidVersionRecord)?
+            {
+                completion_range = Some((start, count, time, frontier));
+            }
+            Ok::<_, ContainerError>(())
+        })
+        .unwrap();
+    let (start, count, time, frontier) = completion_range.expect("grouped range");
+    assert!(count > 0);
+    assert_eq!(frontier, start + u64::from(count) - 1);
+    assert_eq!(time, before_times[(start - 1) as usize]);
+    for global in start..start + u64::from(count) {
+        assert_eq!(before_times[(global - 1) as usize], time);
+    }
+    assert_eq!(final_frontier, before_head);
+    assert_eq!(cva.latest_global_version(), before_head);
+    assert_eq!(
+        (1..=before_head)
+            .map(|global| cva.container.transaction_time_ns(global))
+            .collect::<Vec<_>>(),
+        before_times
+    );
+}
+
+#[test]
+fn bounded_versioned_visitor_rejects_midframe_malformed_clock_and_v1_envelopes_read_only() {
+    let fixture = Fixture::new();
+    let path = fixture.path("bounded-invalid-prefix.cva");
+    let mut container = Container::create(&path).unwrap();
+    let (_, object) = container.append_publication_envelope(&body(1)).unwrap();
+    container.sync().unwrap();
+    let object_end = object.legacy_offset() + 8 + object.legacy_len();
+    drop(container);
+
+    let mut container = Container::open_read_only_for_scan(&path).unwrap();
+    let original = fs::read(&path).unwrap();
+    assert!(matches!(
+        container.visit_versioned_payloads_through(object_end - 1, |_, _, _| {
+            Ok::<_, ContainerError>(())
+        }),
+        Err(ContainerError::TruncatedChunk(_))
+    ));
+    assert_eq!(fs::read(&path).unwrap(), original);
+    drop(container);
+
+    let truncated_path = fixture.path("bounded-later-truncated-tail.cva");
+    let mut container = Container::create(&truncated_path).unwrap();
+    let (_, valid_object) = container.append_publication_envelope(&body(3)).unwrap();
+    container.sync().unwrap();
+    let valid_end = valid_object.legacy_offset() + 8 + valid_object.legacy_len();
+    drop(container);
+    {
+        use std::io::Write;
+        let mut file = fs::OpenOptions::new()
+            .append(true)
+            .open(&truncated_path)
+            .unwrap();
+        file.write_all(&10_u64.to_le_bytes()).unwrap();
+        file.write_all(b"xx").unwrap();
+    }
+    let original = fs::read(&truncated_path).unwrap();
+    let mut container = Container::open_read_only_for_scan(&truncated_path).unwrap();
+    let mut bounded_frontier = 0;
+    container
+        .visit_versioned_payloads_through(valid_end, |_, _, frontier| {
+            bounded_frontier = frontier;
+            Ok::<_, ContainerError>(())
+        })
+        .unwrap();
+    assert_eq!(bounded_frontier, 1);
+    assert!(matches!(
+        container.visit_versioned_payloads_through(original.len() as u64, |_, _, _| {
+            Ok::<_, ContainerError>(())
+        }),
+        Err(ContainerError::TruncatedChunk(_))
+    ));
+    assert_eq!(fs::read(&truncated_path).unwrap(), original);
+    drop(container);
+
+    let malformed_path = fixture.path("bounded-malformed-clock.cva");
+    let mut container = Container::create(&malformed_path).unwrap();
+    let mut malformed = b"CVAPUB01".to_vec();
+    malformed.extend_from_slice(&1_u64.to_le_bytes());
+    malformed.push(0xFF);
+    malformed.extend_from_slice(b"OWNERCLK");
+    container.append(&malformed).unwrap();
+    container.sync().unwrap();
+    drop(container);
+    let original = fs::read(&malformed_path).unwrap();
+    let mut container = Container::open_read_only_for_scan(&malformed_path).unwrap();
+    assert!(matches!(
+        container.visit_versioned_payloads_through(original.len() as u64, |_, _, _| {
+            Ok::<_, ContainerError>(())
+        }),
+        Err(ContainerError::InvalidVersionRecord)
+    ));
+    assert_eq!(fs::read(&malformed_path).unwrap(), original);
+    drop(container);
+
+    let v1_path = fixture.path("bounded-v1-envelope.cva");
+    let mut container = Container::create(&v1_path).unwrap();
+    container.append_publication_envelope(&body(2)).unwrap();
+    container.sync().unwrap();
+    drop(container);
+    downgrade_header_to_v1(&v1_path);
+    let original = fs::read(&v1_path).unwrap();
+    let mut container = Container::open_read_only_for_scan(&v1_path).unwrap();
+    assert!(matches!(
+        container.visit_versioned_payloads_through(original.len() as u64, |_, _, _| {
+            Ok::<_, ContainerError>(())
+        }),
+        Err(ContainerError::InvalidVersionRecord)
+    ));
+    assert_eq!(fs::read(&v1_path).unwrap(), original);
+}
+
+#[test]
 fn scan_keeps_extreme_and_missing_ticket_times_when_later_tickets_are_bound_first() {
     let fixture = Fixture::new();
     let path = fixture.path("extreme-reservations.cva");
