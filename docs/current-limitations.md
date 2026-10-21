@@ -8,33 +8,39 @@ Completed native import reconciliation may retain the left physical prefix as an
 
 ## Compact-history rollout boundary
 
-Dream Begin capture, replay, completed-proof readers and import transport use
-the accepted physical Memory/birth/cohort prefix. Exact populations use compact
-cut/digest authority; manual subsets and unequal destination populations retain
-explicit sets. Canonical promotion and old Begin decoder retirement remain
-pending. Completed-import comparison still binds independent Freshness recipient
-authority: a destination with an extra birth can preserve the exact Dream set
-while repeat reconciliation rejects a changed recipient base with `ImportEpoch`
-conflict. Compact Dream encoding does not relax that existing restriction.
+All six pinned REL/PHY sources have admitted canonical V2 copies with zero
+historical owner mismatches. Exact raw accounting includes framing, dictionaries
+and larger standalone import evidence: 138,196,316 to130,962,204 bytes, a 5.235%
+reduction. [Results](canonical-history-migration-results-2026-10-21.md) separate
+history, maintenance and performance evidence. Authoritative promotion and
+runtime reader/upgrader retirement are still pending; ordinary V1 inspection
+remains a temporary dependency until that gate.
 
-Dream pair writes use a physical owner-local ID table and compact references.
-Raw measurements include that table, so very small histories can grow before
-reuse amortizes it. Divergent completed-import interval replay still refuses
-pair frames in either legacy or current encoding; that preexisting unsupported
-owner path remains explicit. Ordinary pair union, native copy, pruning,
-reclamation and private format conversion retain the same membership semantics.
+Whole-owner and Archive snapshot queries use recorded representative cuts where
+measured exhaustive materialization is prohibitively expensive. Concrete owner
+histories, Archive publication prefixes and global ordering remain exhaustive.
+Existing unavailable historical reference closures and intra-settlement cuts
+remain unavailable rather than receiving fabricated results.
 
-Publication-envelope conversion remains private disposable staging. Memory and Entity converters preserve original accepted publication slots and reservations; canonical fixture promotion and old-reader retirement are still pending. Native copies preserve retained terminal history. The separate legacy owner-ID migration operation replays supported live Memory/Entity revisions and is not a lossless terminal-history migration route; use the explicitly verified native copy or format-upgrade path for retained terminal authority. This preexisting owner-ID migration limitation is outside the envelope writer cutover and does not authorize dropping terminal facts during canonical corpus promotion.
+Community membership/name reconstruction is rejected by a retained uniqueness
+counterexample. Historical vector row reuse is deferred because the corpus has
+no repeated generations under one profile. Derived checkpoints are deferred
+pending a named workload and latency target; the largest measured warm reopen
+is about 7.9seconds. First open is process-cold only; the OS cache is uncontrolled.
+Bounded pack compression remains separate deferred ADR-0004 work.
 
-Ordinary standalone Memory, Entity, Relationship, Archive and Graph publications use owner bodies in allocation envelopes; grouped Insomnia/external Memory publication remains atomic. Their codecs, admission, consumers, ordinary writers and private conversion gates are accepted through Step219, with owner coverage audit220 complete. This is not full canonical corpus promotion: integration Gate E, promotion and runtime legacy-reader retirement remain pending, and the temporary import-proof bridge increases total REL file size. Memory-only disposable conversion passed all six authoritative Memory histories with zero mismatches; signed raw-byte measurements are recorded in the [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-87-and-integration-gate-c).
+Dream manual subsets and unequal destination populations retain explicit sets.
+Completed-import comparison still refuses changed Freshness recipient authority.
+Divergent historical checkpoint rebasing requires a verified reconstruction
+manifest; divergent completed-import pair replay and cross-owner unsupported
+payloads retain their explicit preexisting restrictions. Compact encoding does
+not relax those semantic policies.
 
-The temporary Memory converter rejects existing `CVAHPR01` maintenance-history proof with typed `StorageUpgradeError::UnsupportedAuthority`. That proof binds original carrier hashes; copying it unchanged after re-encoding would strand a valid pruned source. No replacement proof is fabricated. Source and final destination remain unchanged and owned staging is removed. Any deliberately retained source requiring this translation must receive an explicit owner-specific converter or a documented blocker before the integrated corpus-promotion and retirement gates can complete.
-
-
-The internal mechanical transformed-copy shell can freeze and stage identity-preserving physical carriers with drift detection and abort cleanup. Its temporary Memory-only path converts Memory-owned carriers; a separate private Memory-and-Entity path converts accepted Entity creations and revisions while preserving explicit terminal publications. The Entity path passed all six authoritative Entity histories and raw-carrier measurement; it does not certify later owners. It has no public execution/promotion API and does not certify full-domain canonical equivalence. Identityless legacy headers require separate explicit identity handling; the shell refuses them.
-
-
-New owners use the V2.0 container header. Existing V1.0 REL/PHY files can be inspected read-only; ordinary mutation, including retries, requires an explicit lossless format upgrade. The lossless upgrader and compact semantic owner codecs are still being implemented under the dated storage plan. The format boundary does not provide transparent upgrade; end-to-end migration and measured savings remain pending. Damaged V1 tails are rejected without modifying the source. V1 Entity-resolution reads preserve stored historical references and revisions; they do not append canonical-reference repair records on open.
+The temporary converter rejects existing CVAHPR01 proof authority that cannot be
+translated. None of the six retained sources contains that unsupported authority.
+Conversion validates source proof before emitting standalone CVAFRS06 and removing
+CVAILEG transport/predecessor dependencies. The temporary owner-ID migration is
+not a lossless canonical-history route and is scheduled for deletion.
 
 ## Ordered Historical Freshness settlements
 

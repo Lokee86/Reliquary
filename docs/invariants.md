@@ -6,6 +6,16 @@ An open import epoch cannot resolve as an accepted retry of another import. Attr
 
 Destructive maintenance is authorized by shared owner-maintenance evidence, while Memory, Entity, Relationship, CompatibilityProfile/PackedVector and REL Archive owners retain their own eligibility proofs. Pruning and reclamation operate on separate transformed copies; neither infers destruction from retirement alone. A fresh-history rewrite is distinct: the request/plan explicitly records selected state and closure, execution binds to the frozen source head, and a PreserveOwner result advances history generation. Reconciliation requires matching owner identity and history generation.
 
+## Compact-history acceptance invariant
+
+Physical compaction preserves each owner's exact admitted history, including
+literal evidence, optional time, ordered publication shape and unavailable cuts.
+A derived dictionary or prefix does not introduce a semantic clock. Accepted
+standalone import evidence cannot depend on a deleted legacy predecessor or
+physical-prefix transport. Current-format corpus acceptance compares against a
+frozen oracle through normal current owner opens; conversion success alone does
+not authorize retirement. See [ADR0042](decisions/0042-minimal-lossless-current-history.md).
+
 ## Tombstones and derived Community state
 
 A Community snapshot is current only when its graph version and exact member set match the current graph projection. Memory tombstones can invalidate that membership without advancing the graph clock. Old snapshots remain historical data; current Community/Freshness reads cannot use their deleted members, and refresh must produce a new derived generation.

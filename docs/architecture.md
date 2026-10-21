@@ -6,6 +6,8 @@ Current runtime settlement, normalization, owner maintenance and rewrite behavio
 
 ## Development-format lifecycle
 
+[ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. Canonical promotion and runtime retirement remain the final hard-cut gates.
+
 The target runtime accepts one canonical V2 format. During development, translate retained data with temporary offline tooling, verify exact history and authentic proof on disposable copies, commit canonical corpus and implementation separately, then delete old readers, dispatch and migration APIs/CLI. Old normal-runtime opens must fail closed with typed errors after that transition. There is no approved V1 or CVAFRS03/04/05/CVAILEG1/2 exception. Profile compatibility remains live semantic data.
 
 The [controlling amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) requires complete owner converters and corpus promotion before deletion. The [caller/removal map](development-format-interruption-execution-2026-10-19.md) tags temporary runtime and offline seams. This policy correction does not claim runtime retirement is already implemented.

@@ -154,3 +154,23 @@ The current-only exhaustive corpus test is independent of the upgrader module.
 It reads the permanent frozen oracle and current fixture hashes, then uses only
 normal current owner opens. It survives removal of conversion tests and V1
 decoders; the full source-versus-output comparison has already passed.
+
+## ADR-0004 compression boundary
+
+[Compression status](../benchmarks/canonical-history-compression-status-2026-10-21.json)
+is recorded separately: bounded pack compression remains deferred physical work.
+This hard cut introduces no compressed pack codec/reader and has no compressed
+corpus result. Compression contributes zero bytes to the claimed 7,234,112-byte
+logical reduction. Codec, pack size, decompression throughput/memory and random
+retrieval tradeoffs require their own ADR-0004 workload and measurements; missing
+results are recorded as absent rather than inferred from raw size savings.
+
+Public acceptance subsequently completed for all six files. Every reclaimed output
+is byte-for-byte its canonical input; every identical/extension reconciliation
+output is exactly the selected input, including the literal Echo extension.
+All divergent copies refuse before output with the frozen historical-checkpoint
+rebasing policy. The corpus has no terminal Memory targets, so empty prune
+selection correctly refuses. All53 focused current compact prune cases pass for
+positive REL/PHY pruning and malformed/unauthorized evidence. The
+[public acceptance artifact](../benchmarks/canonical-history-public-acceptance-2026-10-21.json)
+records these proofs, source-integrity checks and complete output hashes.

@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "fixture_repository": "C:\\!bin\\workspace\\reliquary-fixtures",
+  "fixture_commit": "2b170044d3fd6b693baf0dec326c6429c66d8a9f",
+  "implementation_checkpoint": "23346b5",
+  "all_history_and_maintenance_gates_passed": true,
+  "original_source_preservation_manifest": "canonical-history-original-source-preservation-2026-10-21.json",
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "canonical_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "heads": [
+        18938,
+        7526,
+        3348,
+        150,
+        0,
+        7913,
+        7913,
+        1,
+        5857
+      ]
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "canonical_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "heads": [
+        1088,
+        421,
+        0,
+        0,
+        667,
+        667
+      ]
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "canonical_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "heads": [
+        52804,
+        21068,
+        5727,
+        671,
+        0,
+        25337,
+        25337,
+        1,
+        16465
+      ]
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "canonical_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "heads": [
+        2215,
+        490,
+        35,
+        0,
+        1690,
+        1637
+      ]
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "canonical_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "heads": [
+        11725,
+        3763,
+        1452,
+        199,
+        0,
+        6309,
+        6309,
+        2,
+        2972
+      ]
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "canonical_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "heads": [
+        5221,
+        976,
+        86,
+        0,
+        4159,
+        3889
+      ]
+    }
+  ],
+  "windows_file_attributes": "Original Ellis V1 REL/PHY were read-only. Cleared the attribute for exact replacement and normal current V2 writable owner open; original byte copies remain preserved."
+}

@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "decision": "ADR-0004 bounded ancestry-aware packs with pack-level compression",
+  "implementation_status": "Deferred physical packing/compression; no compressor or compressed pack reader is introduced by the minimal lossless history hard cut.",
+  "codec": null,
+  "pack_target_bytes": null,
+  "compressed_corpus_bytes": null,
+  "compression_savings_claimed_bytes": 0,
+  "logical_history": {
+    "frozen_bytes": 138196316,
+    "current_bytes": 130962204,
+    "saved_bytes": 7234112,
+    "compression_included": false
+  },
+  "limitation": "No cold-disk or decompression throughput, random-read granularity, peak decompression memory or vacuum result exists. ADR-0004 requires those measurements when packing/compression is implemented. Raw logical reductions are not attributed to compression.",
+  "sources": [
+    "docs/decisions/0004-bounded-ancestry-aware-packs.md",
+    "benchmarks/canonical-history-family-bytes-2026-10-21.json"
+  ]
+}

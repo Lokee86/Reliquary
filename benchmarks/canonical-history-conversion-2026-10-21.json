@@ -1,5 +1,5 @@
 {
-  "authoritative_promotion": false,
+  "authoritative_promotion": true,
   "compression_included": false,
   "date": "2026-10-21",
   "fixtures": [
@@ -1733,5 +1733,6 @@
   ],
   "historical_equivalence_complete": true,
   "schema": 1,
-  "historical_equivalence_artifact": "canonical-history-equivalence-2026-10-21.json"
+  "historical_equivalence_artifact": "canonical-history-equivalence-2026-10-21.json",
+  "promotion_artifact": "canonical-history-promotion-2026-10-21.json"
 }

@@ -1,0 +1,391 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "temporary_driver": "External client of public Reliquary APIs; pinned workspace dependency patch reused; no shipping code changes",
+  "output_directory": "C:\\!bin\\workspace\\Reliquary\\.test-tmp\\current-public-acceptance-65dac0cd-8bdc-470b-9058-3ce64337c9f4",
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "source_sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "canonical_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "frozen_semantic_reconciliation_decisions": [
+        {
+          "case": "identical",
+          "frozen_v1": {
+            "common_chunks": 64490,
+            "left_chunks": 64490,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Identical",
+            "right_chunks": 64490
+          },
+          "canonical_v2": {
+            "common_chunks": 46989,
+            "left_chunks": 46989,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Identical",
+            "right_chunks": 46989
+          },
+          "current_reconcile": {
+            "ok": true,
+            "relation": "Identical",
+            "result": "CvaReconcileResult { comparison: CvaComparison { owner_id: \"proj-73eff05f-e65e-4fb4-b430-f9af2237b48b\", common_chunk_count: 46989, left_chunk_count: 46989, right_chunk_count: 46989, relation: Identical }, replayed_archive_records: 0, replayed_memory_revisions: 0, duplicate_memory_revisions: 0, replayed_entity_revisions: 0, duplicate_entity_revisions: 0, replayed_relationship_revisions: 0, duplicate_relationship_revisions: 0, replayed_insomnia_completions: 0, replayed_graph_transactions: 0, replayed_graph_mutations: 0, duplicate_graph_mutations: 0, replayed_file_memory_links: 0, canonical_change_required: false, vector_rebuild_required: false }",
+            "public_snapshot_sha256": "bf6caf0e54670deb4bd19a9cef6e3e6ce9e9be4df099a10d3fd7d55adac0744f",
+            "public_memory_rows": 1123,
+            "exact_selected_source_bytes_and_history_preserved": true,
+            "output_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d"
+          }
+        },
+        {
+          "case": "extension",
+          "frozen_v1": {
+            "common_chunks": 64490,
+            "left_chunks": 64490,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "RightExtendsLeft",
+            "right_chunks": 64491
+          },
+          "canonical_v2": {
+            "common_chunks": 46989,
+            "left_chunks": 46989,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "RightExtendsLeft",
+            "right_chunks": 46990
+          },
+          "current_reconcile": {
+            "ok": true,
+            "relation": "RightExtendsLeft",
+            "result": "CvaReconcileResult { comparison: CvaComparison { owner_id: \"proj-73eff05f-e65e-4fb4-b430-f9af2237b48b\", common_chunk_count: 46989, left_chunk_count: 46989, right_chunk_count: 46990, relation: RightExtendsLeft }, replayed_archive_records: 0, replayed_memory_revisions: 0, duplicate_memory_revisions: 0, replayed_entity_revisions: 0, duplicate_entity_revisions: 0, replayed_relationship_revisions: 0, duplicate_relationship_revisions: 0, replayed_insomnia_completions: 0, replayed_graph_transactions: 0, replayed_graph_mutations: 0, duplicate_graph_mutations: 0, replayed_file_memory_links: 0, canonical_change_required: true, vector_rebuild_required: false }",
+            "public_snapshot_sha256": "bf6caf0e54670deb4bd19a9cef6e3e6ce9e9be4df099a10d3fd7d55adac0744f",
+            "public_memory_rows": 1123,
+            "exact_selected_source_bytes_and_history_preserved": true,
+            "output_sha256": "0d3419ed6b61b03264734961d34c4e3720ce320dfc1c0989317008a2c9bca3a9"
+          }
+        },
+        {
+          "case": "divergence",
+          "frozen_v1": {
+            "common_chunks": 64490,
+            "left_chunks": 64491,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Diverged",
+            "right_chunks": 64491
+          },
+          "canonical_v2": {
+            "common_chunks": 46989,
+            "left_chunks": 46990,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Diverged",
+            "right_chunks": 46990
+          },
+          "current_reconcile": {
+            "error": "UnsupportedSemanticOwner(\"historical checkpoint source rebasing without a verified reconstruction manifest\")",
+            "ok": false,
+            "output_exists": false
+          }
+        }
+      ],
+      "reclaim": {
+        "ok": true,
+        "public_memory_and_heads_equal": true,
+        "report": "StorageReclamationReport { copied_chunks: 46989, reclaimed_chunks: 0, unpublished_backing_chunks: 0, orphan_content_chunks: 0, orphan_memory_body_chunks: 0, unactivated_archive_vector_chunks: 0, unreferenced_packed_vector_chunks: 0, free_compaction_chunks: 0, superseded_external_index_chunks: 0, reclaimed_payload_bytes: 0, source_file_bytes: 30742210, output_file_bytes: 30742210 }",
+        "public_snapshot_sha256": "bf6caf0e54670deb4bd19a9cef6e3e6ce9e9be4df099a10d3fd7d55adac0744f",
+        "public_memory_rows": 1123,
+        "output_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+        "exact_source_bytes_and_all_history_preserved": true
+      },
+      "terminal_memory_targets": 0,
+      "prune": {
+        "error": "Repack(\"pruning requires explicitly selected terminal tombstones\")",
+        "ok": false,
+        "output_exists": false
+      },
+      "canonical_input_unchanged": true,
+      "frozen_input_unchanged": true
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "source_sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "canonical_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "reclaim": {
+        "ok": true,
+        "public_memory_and_heads_equal": true,
+        "report": "StorageReclamationReport { copied_chunks: 2409, reclaimed_chunks: 0, unpublished_backing_chunks: 0, orphan_content_chunks: 0, orphan_memory_body_chunks: 0, unactivated_archive_vector_chunks: 0, unreferenced_packed_vector_chunks: 0, free_compaction_chunks: 0, superseded_external_index_chunks: 0, reclaimed_payload_bytes: 0, source_file_bytes: 675300, output_file_bytes: 675300 }",
+        "public_snapshot_sha256": "3b53edfa6e7982972b3281707b2e8c9e8faaa1005b3474fb00876dd276636d21",
+        "public_memory_rows": 108,
+        "output_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+        "exact_source_bytes_and_all_history_preserved": true
+      },
+      "terminal_memory_targets": 0,
+      "prune": {
+        "error": "Repack(\"pruning requires explicitly selected terminal targets\")",
+        "ok": false,
+        "output_exists": false
+      },
+      "canonical_input_unchanged": true,
+      "frozen_input_unchanged": true
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "source_sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "canonical_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "frozen_semantic_reconciliation_decisions": [
+        {
+          "case": "identical",
+          "frozen_v1": {
+            "common_chunks": 198542,
+            "left_chunks": 198542,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Identical",
+            "right_chunks": 198542
+          },
+          "canonical_v2": {
+            "common_chunks": 151185,
+            "left_chunks": 151185,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Identical",
+            "right_chunks": 151185
+          },
+          "current_reconcile": {
+            "ok": true,
+            "relation": "Identical",
+            "result": "CvaReconcileResult { comparison: CvaComparison { owner_id: \"proj-73eff05f-e65e-4fb4-b430-f9af2237b48b\", common_chunk_count: 151185, left_chunk_count: 151185, right_chunk_count: 151185, relation: Identical }, replayed_archive_records: 0, replayed_memory_revisions: 0, duplicate_memory_revisions: 0, replayed_entity_revisions: 0, duplicate_entity_revisions: 0, replayed_relationship_revisions: 0, duplicate_relationship_revisions: 0, replayed_insomnia_completions: 0, replayed_graph_transactions: 0, replayed_graph_mutations: 0, duplicate_graph_mutations: 0, replayed_file_memory_links: 0, canonical_change_required: false, vector_rebuild_required: false }",
+            "public_snapshot_sha256": "f0291f4f36963b9433d8f97541d064ed44300027601983f8e54de62affe8f993",
+            "public_memory_rows": 2847,
+            "exact_selected_source_bytes_and_history_preserved": true,
+            "output_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92"
+          }
+        },
+        {
+          "case": "extension",
+          "frozen_v1": {
+            "common_chunks": 198542,
+            "left_chunks": 198542,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "RightExtendsLeft",
+            "right_chunks": 198543
+          },
+          "canonical_v2": {
+            "common_chunks": 151185,
+            "left_chunks": 151185,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "RightExtendsLeft",
+            "right_chunks": 151186
+          },
+          "current_reconcile": {
+            "ok": true,
+            "relation": "RightExtendsLeft",
+            "result": "CvaReconcileResult { comparison: CvaComparison { owner_id: \"proj-73eff05f-e65e-4fb4-b430-f9af2237b48b\", common_chunk_count: 151185, left_chunk_count: 151185, right_chunk_count: 151186, relation: RightExtendsLeft }, replayed_archive_records: 0, replayed_memory_revisions: 0, duplicate_memory_revisions: 0, replayed_entity_revisions: 0, duplicate_entity_revisions: 0, replayed_relationship_revisions: 0, duplicate_relationship_revisions: 0, replayed_insomnia_completions: 0, replayed_graph_transactions: 0, replayed_graph_mutations: 0, duplicate_graph_mutations: 0, replayed_file_memory_links: 0, canonical_change_required: true, vector_rebuild_required: false }",
+            "public_snapshot_sha256": "f0291f4f36963b9433d8f97541d064ed44300027601983f8e54de62affe8f993",
+            "public_memory_rows": 2847,
+            "exact_selected_source_bytes_and_history_preserved": true,
+            "output_sha256": "6bafbf20403e4e1f334b4b36942055ddf54755f34fb190cc35557bcb62f39650"
+          }
+        },
+        {
+          "case": "divergence",
+          "frozen_v1": {
+            "common_chunks": 198542,
+            "left_chunks": 198543,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Diverged",
+            "right_chunks": 198543
+          },
+          "canonical_v2": {
+            "common_chunks": 151185,
+            "left_chunks": 151186,
+            "ok": true,
+            "owner_id": "proj-73eff05f-e65e-4fb4-b430-f9af2237b48b",
+            "relation": "Diverged",
+            "right_chunks": 151186
+          },
+          "current_reconcile": {
+            "error": "UnsupportedSemanticOwner(\"historical checkpoint source rebasing without a verified reconstruction manifest\")",
+            "ok": false,
+            "output_exists": false
+          }
+        }
+      ],
+      "reclaim": {
+        "ok": true,
+        "public_memory_and_heads_equal": true,
+        "report": "StorageReclamationReport { copied_chunks: 151185, reclaimed_chunks: 0, unpublished_backing_chunks: 0, orphan_content_chunks: 0, orphan_memory_body_chunks: 0, unactivated_archive_vector_chunks: 0, unreferenced_packed_vector_chunks: 0, free_compaction_chunks: 0, superseded_external_index_chunks: 0, reclaimed_payload_bytes: 0, source_file_bytes: 76542131, output_file_bytes: 76542131 }",
+        "public_snapshot_sha256": "f0291f4f36963b9433d8f97541d064ed44300027601983f8e54de62affe8f993",
+        "public_memory_rows": 2847,
+        "output_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+        "exact_source_bytes_and_all_history_preserved": true
+      },
+      "terminal_memory_targets": 0,
+      "prune": {
+        "error": "Repack(\"pruning requires explicitly selected terminal tombstones\")",
+        "ok": false,
+        "output_exists": false
+      },
+      "canonical_input_unchanged": true,
+      "frozen_input_unchanged": true
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "source_sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "canonical_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "reclaim": {
+        "ok": true,
+        "public_memory_and_heads_equal": true,
+        "report": "StorageReclamationReport { copied_chunks: 7192, reclaimed_chunks: 0, unpublished_backing_chunks: 0, orphan_content_chunks: 0, orphan_memory_body_chunks: 0, unactivated_archive_vector_chunks: 0, unreferenced_packed_vector_chunks: 0, free_compaction_chunks: 0, superseded_external_index_chunks: 0, reclaimed_payload_bytes: 0, source_file_bytes: 1507220, output_file_bytes: 1507220 }",
+        "public_snapshot_sha256": "bcb4c8c531c756164a7ab99f2752ebe2dcb69f03bf3e07278fee3e91fcb2768a",
+        "public_memory_rows": 246,
+        "output_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+        "exact_source_bytes_and_all_history_preserved": true
+      },
+      "terminal_memory_targets": 0,
+      "prune": {
+        "error": "Repack(\"pruning requires explicitly selected terminal targets\")",
+        "ok": false,
+        "output_exists": false
+      },
+      "canonical_input_unchanged": true,
+      "frozen_input_unchanged": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "source_sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "canonical_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "frozen_semantic_reconciliation_decisions": [
+        {
+          "case": "identical",
+          "frozen_v1": {
+            "common_chunks": 49418,
+            "left_chunks": 49418,
+            "ok": true,
+            "owner_id": "rel-41fd7fac-75d5-4d05-899c-0dce0823aa36",
+            "relation": "Identical",
+            "right_chunks": 49418
+          },
+          "canonical_v2": {
+            "common_chunks": 39144,
+            "left_chunks": 39144,
+            "ok": true,
+            "owner_id": "rel-41fd7fac-75d5-4d05-899c-0dce0823aa36",
+            "relation": "Identical",
+            "right_chunks": 39144
+          },
+          "current_reconcile": {
+            "ok": true,
+            "relation": "Identical",
+            "result": "CvaReconcileResult { comparison: CvaComparison { owner_id: \"rel-41fd7fac-75d5-4d05-899c-0dce0823aa36\", common_chunk_count: 39144, left_chunk_count: 39144, right_chunk_count: 39144, relation: Identical }, replayed_archive_records: 0, replayed_memory_revisions: 0, duplicate_memory_revisions: 0, replayed_entity_revisions: 0, duplicate_entity_revisions: 0, replayed_relationship_revisions: 0, duplicate_relationship_revisions: 0, replayed_insomnia_completions: 0, replayed_graph_transactions: 0, replayed_graph_mutations: 0, duplicate_graph_mutations: 0, replayed_file_memory_links: 0, canonical_change_required: false, vector_rebuild_required: false }",
+            "public_snapshot_sha256": "8dea992746a42837365d68e29e773f94bc801d45b0778083c1a3ecfb79cf0a1e",
+            "public_memory_rows": 725,
+            "exact_selected_source_bytes_and_history_preserved": true,
+            "output_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab"
+          }
+        },
+        {
+          "case": "extension",
+          "frozen_v1": {
+            "common_chunks": 49418,
+            "left_chunks": 49418,
+            "ok": true,
+            "owner_id": "rel-41fd7fac-75d5-4d05-899c-0dce0823aa36",
+            "relation": "RightExtendsLeft",
+            "right_chunks": 49419
+          },
+          "canonical_v2": {
+            "common_chunks": 39144,
+            "left_chunks": 39144,
+            "ok": true,
+            "owner_id": "rel-41fd7fac-75d5-4d05-899c-0dce0823aa36",
+            "relation": "RightExtendsLeft",
+            "right_chunks": 39145
+          },
+          "current_reconcile": {
+            "ok": true,
+            "relation": "RightExtendsLeft",
+            "result": "CvaReconcileResult { comparison: CvaComparison { owner_id: \"rel-41fd7fac-75d5-4d05-899c-0dce0823aa36\", common_chunk_count: 39144, left_chunk_count: 39144, right_chunk_count: 39145, relation: RightExtendsLeft }, replayed_archive_records: 0, replayed_memory_revisions: 0, duplicate_memory_revisions: 0, replayed_entity_revisions: 0, duplicate_entity_revisions: 0, replayed_relationship_revisions: 0, duplicate_relationship_revisions: 0, replayed_insomnia_completions: 0, replayed_graph_transactions: 0, replayed_graph_mutations: 0, duplicate_graph_mutations: 0, replayed_file_memory_links: 0, canonical_change_required: true, vector_rebuild_required: false }",
+            "public_snapshot_sha256": "8dea992746a42837365d68e29e773f94bc801d45b0778083c1a3ecfb79cf0a1e",
+            "public_memory_rows": 725,
+            "exact_selected_source_bytes_and_history_preserved": true,
+            "output_sha256": "a75bef4f1e631b35c471ba713150093b498b8f3e9fb34fe533593f094d45f5a9"
+          }
+        },
+        {
+          "case": "divergence",
+          "frozen_v1": {
+            "common_chunks": 49418,
+            "left_chunks": 49419,
+            "ok": true,
+            "owner_id": "rel-41fd7fac-75d5-4d05-899c-0dce0823aa36",
+            "relation": "Diverged",
+            "right_chunks": 49419
+          },
+          "canonical_v2": {
+            "common_chunks": 39144,
+            "left_chunks": 39145,
+            "ok": true,
+            "owner_id": "rel-41fd7fac-75d5-4d05-899c-0dce0823aa36",
+            "relation": "Diverged",
+            "right_chunks": 39145
+          },
+          "current_reconcile": {
+            "error": "UnsupportedSemanticOwner(\"historical checkpoint source rebasing without a verified reconstruction manifest\")",
+            "ok": false,
+            "output_exists": false
+          }
+        }
+      ],
+      "reclaim": {
+        "ok": true,
+        "public_memory_and_heads_equal": true,
+        "report": "StorageReclamationReport { copied_chunks: 39144, reclaimed_chunks: 0, unpublished_backing_chunks: 0, orphan_content_chunks: 0, orphan_memory_body_chunks: 0, unactivated_archive_vector_chunks: 0, unreferenced_packed_vector_chunks: 0, free_compaction_chunks: 0, superseded_external_index_chunks: 0, reclaimed_payload_bytes: 0, source_file_bytes: 18315280, output_file_bytes: 18315280 }",
+        "public_snapshot_sha256": "8dea992746a42837365d68e29e773f94bc801d45b0778083c1a3ecfb79cf0a1e",
+        "public_memory_rows": 725,
+        "output_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+        "exact_source_bytes_and_all_history_preserved": true
+      },
+      "terminal_memory_targets": 0,
+      "prune": {
+        "error": "Repack(\"pruning requires explicitly selected terminal tombstones\")",
+        "ok": false,
+        "output_exists": false
+      },
+      "canonical_input_unchanged": true,
+      "frozen_input_unchanged": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "source_sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "canonical_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "reclaim": {
+        "ok": true,
+        "public_memory_and_heads_equal": true,
+        "report": "StorageReclamationReport { copied_chunks: 19588, reclaimed_chunks: 0, unpublished_backing_chunks: 0, orphan_content_chunks: 0, orphan_memory_body_chunks: 0, unactivated_archive_vector_chunks: 0, unreferenced_packed_vector_chunks: 0, free_compaction_chunks: 0, superseded_external_index_chunks: 0, reclaimed_payload_bytes: 0, source_file_bytes: 3180063, output_file_bytes: 3180063 }",
+        "public_snapshot_sha256": "835e8326e1d96b4362c88f21aa90f3506edab03f71de66d9fa530dfbcb1698f3",
+        "public_memory_rows": 511,
+        "output_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+        "exact_source_bytes_and_all_history_preserved": true
+      },
+      "terminal_memory_targets": 0,
+      "prune": {
+        "error": "Repack(\"pruning requires explicitly selected terminal targets\")",
+        "ok": false,
+        "output_exists": false
+      },
+      "canonical_input_unchanged": true,
+      "frozen_input_unchanged": true
+    }
+  ],
+  "all_six_complete": true,
+  "all_reclaim_outputs_byte_identical": true,
+  "all_identical_extension_outputs_exact_selected_source_bytes": true,
+  "all_divergent_refusals_match_frozen_freshness_policy": true,
+  "nonempty_prune_verification": "53 focused current-format prune regressions passed; retained six-file corpus contains zero terminal Memory targets and correctly rejects empty selection before output."
+}
