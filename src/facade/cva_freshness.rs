@@ -1,6 +1,7 @@
 use crate::freshness::FreshnessRecord;
+use crate::freshness_dream_journal::DirectBirthPrefix;
 use crate::{Cva, CvaError, MemoryId};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[cfg(test)]
 #[path = "graph_compact_freshness_tests.rs"]
@@ -26,6 +27,46 @@ pub struct FreshnessEventCut {
 }
 
 impl Cva {
+    /// Correlate Dream-owned direct birth evidence with accepted first Memory
+    /// identities at a Memory-local cut. This deliberately does not consult
+    /// current Memory bodies or liveness.
+    pub(crate) fn direct_birth_ids_at_memory_prefix(
+        &self,
+        prefix: &DirectBirthPrefix,
+        memory_cut: u64,
+    ) -> Result<BTreeSet<MemoryId>, CvaError> {
+        if prefix.owner_uuid().is_none() || prefix.owner_uuid() != self.owner_uuid() {
+            return Err(CvaError::Freshness(
+                "Dream direct-birth prefix belongs to another owner".into(),
+            ));
+        }
+        let first_publications = self.memories.first_publication_prefix(memory_cut)?;
+        let first_ids = first_publications
+            .into_iter()
+            .map(|(id, _)| id)
+            .collect::<BTreeSet<_>>();
+        let mut births = BTreeSet::new();
+        for (id, mutation) in prefix.pending_intents() {
+            if first_ids.contains(id)
+                && self.memories.first_mutation_id(*id) == Some(mutation.as_str())
+            {
+                births.insert(*id);
+            }
+        }
+        for (id, mutations) in prefix.consumed_intents() {
+            if first_ids.contains(id)
+                && self
+                    .memories
+                    .first_mutation_id(*id)
+                    .is_some_and(|first| mutations.contains(first))
+            {
+                births.insert(*id);
+            }
+        }
+        births.extend(prefix.replay_births().intersection(&first_ids).copied());
+        Ok(births)
+    }
+
     pub fn freshness_policy(&self) -> crate::freshness::FreshnessPolicy {
         self.freshness.policy()
     }

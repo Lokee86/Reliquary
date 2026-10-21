@@ -129,8 +129,138 @@ fn admission_committed_before_linkage_event_recovers_exactly_once() {
     assert_eq!(reopened.freshness_record(source).unwrap(), original_source);
 }
 
+use crate::freshness_dream_journal::{DirectBirthPrefix, DreamFreshnessJournal};
 use crate::{Cva, GraphRelationKind, GraphRelationOrigin};
 use std::collections::BTreeSet;
+
+#[test]
+fn direct_birth_prefix_correlates_intent_and_replay_with_memory_first_identity_cut() {
+    let fixture = Fixture::new();
+    let path = fixture.path("direct-birth-memory-prefix.rel");
+    let mut rel = Cva::create(&path).unwrap();
+    let first = publish(&mut rel, "prefix-first", "knowledge", "First.");
+    let later = publish(&mut rel, "prefix-later", "knowledge", "Later.");
+    assert_eq!(rel.memories.first_mutation_id(first), Some("prefix-first"));
+    let owner = rel.owner_uuid().unwrap();
+    let mutation = rel.memories.first_mutation_id(first).unwrap().to_owned();
+
+    let mut source = DreamFreshnessJournal::new(Some(owner));
+    let intent = source
+        .publication_intent_payload(first, &mutation, 0, false)
+        .unwrap();
+    source.ingest(&intent).unwrap();
+    let consume = source
+        .consume_publication_intent_payload(first)
+        .unwrap()
+        .unwrap();
+
+    let mut pending = DirectBirthPrefix::new(owner);
+    pending.ingest(&intent).unwrap();
+    assert_eq!(
+        rel.direct_birth_ids_at_memory_prefix(&pending, 1).unwrap(),
+        BTreeSet::from([first]),
+        "a matching pending intent is sufficient once its first Memory identity is in the cut"
+    );
+    assert_eq!(
+        rel.direct_birth_ids_at_memory_prefix(&pending, 0).unwrap(),
+        BTreeSet::new(),
+        "an intent alone cannot introduce a Memory outside the queried first-identity prefix"
+    );
+
+    let mut mismatched = DirectBirthPrefix::new(owner);
+    let wrong_intent = DreamFreshnessJournal::new(Some(owner))
+        .publication_intent_payload(first, "different-first-mutation", 0, false)
+        .unwrap();
+    mismatched.ingest(&wrong_intent).unwrap();
+    assert!(
+        rel.direct_birth_ids_at_memory_prefix(&mismatched, 1)
+            .unwrap()
+            .is_empty()
+    );
+    let other_owner = [owner[0].wrapping_add(1); 16];
+    let foreign_intent = DreamFreshnessJournal::new(Some(other_owner))
+        .publication_intent_payload(first, &mutation, 0, false)
+        .unwrap();
+    let mut foreign_owner = DirectBirthPrefix::new(other_owner);
+    foreign_owner.ingest(&foreign_intent).unwrap();
+    assert!(
+        rel.direct_birth_ids_at_memory_prefix(&foreign_owner, 1)
+            .is_err()
+    );
+
+    let mut retries = DreamFreshnessJournal::new(Some(owner));
+    let accepted = retries
+        .publication_intent_payload(first, &mutation, 0, false)
+        .unwrap();
+    retries.ingest(&accepted).unwrap();
+    let accepted_receipt = retries
+        .consume_publication_intent_payload(first)
+        .unwrap()
+        .unwrap();
+    retries.ingest(&accepted_receipt).unwrap();
+    let later_retry = retries
+        .publication_intent_payload(first, "later-retry", 1, false)
+        .unwrap();
+    retries.ingest(&later_retry).unwrap();
+    let later_receipt = retries
+        .consume_publication_intent_payload(first)
+        .unwrap()
+        .unwrap();
+    let mut retry_prefix = DirectBirthPrefix::new(owner);
+    for payload in [&accepted, &accepted_receipt, &later_retry, &later_receipt] {
+        retry_prefix.ingest(payload).unwrap();
+    }
+    assert_eq!(
+        rel.direct_birth_ids_at_memory_prefix(&retry_prefix, 1)
+            .unwrap(),
+        BTreeSet::from([first]),
+        "a later admitted retry cannot replace the accepted first mutation evidence"
+    );
+
+    // A delayed Consume does not move the birth later than the matching
+    // Intent plus first Memory facts already visible at the cut.
+    pending.ingest(&consume).unwrap();
+    assert_eq!(
+        rel.direct_birth_ids_at_memory_prefix(&pending, 1).unwrap(),
+        BTreeSet::from([first])
+    );
+
+    let mut replay = DirectBirthPrefix::new(owner);
+    let replay_first = DreamFreshnessJournal::new(Some(owner))
+        .replay_publication_birth_payload(first)
+        .unwrap();
+    let replay_later = DreamFreshnessJournal::new(Some(owner))
+        .replay_publication_birth_payload(later)
+        .unwrap();
+    let missing = crate::MemoryId([241; 32]);
+    let replay_missing = DreamFreshnessJournal::new(Some(owner))
+        .replay_publication_birth_payload(missing)
+        .unwrap();
+    replay.ingest(&replay_first).unwrap();
+    replay.ingest(&replay_first).unwrap();
+    replay.ingest(&replay_later).unwrap();
+    replay.ingest(&replay_missing).unwrap();
+    assert_eq!(
+        rel.direct_birth_ids_at_memory_prefix(&replay, 1).unwrap(),
+        BTreeSet::from([first]),
+        "ReplayBirth is gated by the queried first-identity prefix and deduplicated"
+    );
+    assert!(
+        rel.direct_birth_ids_at_memory_prefix(&replay, 0)
+            .unwrap()
+            .is_empty()
+    );
+    assert_eq!(
+        rel.direct_birth_ids_at_memory_prefix(&replay, 2).unwrap(),
+        BTreeSet::from([first, later])
+    );
+    assert!(
+        !rel.direct_birth_ids_at_memory_prefix(&replay, 2)
+            .unwrap()
+            .contains(&missing)
+    );
+    assert!(rel.direct_birth_ids_at_memory_prefix(&replay, 3).is_err());
+}
 
 fn append_ordered_memory_creation(
     rel: &mut Cva,

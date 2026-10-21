@@ -553,6 +553,83 @@ impl DreamFreshnessJournal {
     }
 }
 
+/// Direct birth evidence visible at one physical Dream-journal prefix. Memory
+/// validates the first-publication identity and mutation; REL combines those
+/// Memory facts with this journal-owned evidence.
+#[derive(Clone, Debug, Default)]
+pub(crate) struct DirectBirthPrefix {
+    journal: DreamFreshnessJournal,
+    pending_intents: BTreeMap<MemoryId, String>,
+    consumed_intents: BTreeMap<MemoryId, BTreeSet<String>>,
+    replay_births: BTreeSet<MemoryId>,
+}
+
+impl DirectBirthPrefix {
+    pub(crate) fn new(owner_uuid: [u8; 16]) -> Self {
+        Self {
+            journal: DreamFreshnessJournal::new(Some(owner_uuid)),
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.journal.owner_uuid
+    }
+
+    /// Ingest one physically ordered Dream payload. Callers stop before the
+    /// Begin frame whose population is being reconstructed.
+    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), String> {
+        if payload.get(..8) != Some(MAGIC.as_slice()) {
+            return Ok(());
+        }
+        let mut reader = Reader {
+            bytes: payload,
+            at: 24,
+        };
+        let entry = decode_entry(&mut reader)?;
+        if reader.at != payload.len() {
+            return Err("trailing Dream Freshness journal bytes".into());
+        }
+
+        let matching_pending = match &entry {
+            DreamEntry::Consume(id, mutation) => self.pending_intents.get(id) == Some(mutation),
+            _ => false,
+        };
+        self.journal.ingest(payload)?;
+        match &entry {
+            DreamEntry::Intent(id, mutation, _, _) => {
+                self.pending_intents.insert(*id, mutation.clone());
+            }
+            DreamEntry::Consume(id, mutation) => {
+                if matching_pending {
+                    self.pending_intents.remove(id);
+                    self.consumed_intents
+                        .entry(*id)
+                        .or_default()
+                        .insert(mutation.clone());
+                }
+            }
+            DreamEntry::ReplayBirth(id) => {
+                self.replay_births.insert(*id);
+            }
+            _ => {}
+        }
+        Ok(())
+    }
+
+    pub(crate) fn pending_intents(&self) -> &BTreeMap<MemoryId, String> {
+        &self.pending_intents
+    }
+
+    pub(crate) fn consumed_intents(&self) -> &BTreeMap<MemoryId, BTreeSet<String>> {
+        &self.consumed_intents
+    }
+
+    pub(crate) fn replay_births(&self) -> &BTreeSet<MemoryId> {
+        &self.replay_births
+    }
+}
+
 enum DreamEntry {
     Begin(InitialDreamPass),
     Roots(String, BTreeSet<MemoryId>),
@@ -768,5 +845,115 @@ mod tests {
             journal.pending("pass").unwrap().accepted_settlement_turn,
             None
         );
+    }
+
+    #[test]
+    fn direct_birth_prefix_keeps_intent_consume_and_replay_facts_at_the_cut() {
+        let owner = [4; 16];
+        let id = MemoryId([5; 32]);
+        let mut source = DreamFreshnessJournal::new(Some(owner));
+        let intent = source
+            .publication_intent_payload(id, "first-mutation", 3, false)
+            .unwrap();
+        source.ingest(&intent).unwrap();
+        let consume = source
+            .consume_publication_intent_payload(id)
+            .unwrap()
+            .unwrap();
+        let replay = DreamFreshnessJournal::new(Some(owner))
+            .replay_publication_birth_payload(id)
+            .unwrap();
+
+        let mut before_consume = DirectBirthPrefix::new(owner);
+        before_consume.ingest(&intent).unwrap();
+        assert_eq!(
+            before_consume.pending_intents().get(&id).unwrap(),
+            "first-mutation"
+        );
+        assert!(before_consume.consumed_intents().is_empty());
+        assert!(before_consume.replay_births().is_empty());
+
+        before_consume.ingest(&consume).unwrap();
+        assert!(before_consume.pending_intents().is_empty());
+        assert!(before_consume.consumed_intents()[&id].contains("first-mutation"));
+
+        before_consume.ingest(&replay).unwrap();
+        assert!(before_consume.replay_births().contains(&id));
+        before_consume.ingest(&replay).unwrap();
+        assert_eq!(before_consume.replay_births().len(), 1);
+    }
+
+    #[test]
+    fn direct_birth_prefix_does_not_promote_a_mismatched_consume() {
+        let owner = [6; 16];
+        let id = MemoryId([8; 32]);
+        let mut source = DreamFreshnessJournal::new(Some(owner));
+        let intent = source
+            .publication_intent_payload(id, "expected", 3, false)
+            .unwrap();
+        let mut wrong_consume = header(owner, 5);
+        wrong_consume.extend_from_slice(&id.0);
+        put_bytes(&mut wrong_consume, b"other");
+
+        let mut prefix = DirectBirthPrefix::new(owner);
+        prefix.ingest(&intent).unwrap();
+        assert!(prefix.ingest(&wrong_consume).is_err());
+        assert_eq!(prefix.pending_intents().get(&id).unwrap(), "expected");
+        assert!(prefix.consumed_intents().is_empty());
+    }
+
+    #[test]
+    fn direct_birth_prefix_retains_every_consumed_mutation_for_an_identity() {
+        let owner = [10; 16];
+        let id = MemoryId([11; 32]);
+        let mut source = DreamFreshnessJournal::new(Some(owner));
+        let first = source
+            .publication_intent_payload(id, "accepted-first", 1, false)
+            .unwrap();
+        source.ingest(&first).unwrap();
+        let first_receipt = source
+            .consume_publication_intent_payload(id)
+            .unwrap()
+            .unwrap();
+        source.ingest(&first_receipt).unwrap();
+        let retry = source
+            .publication_intent_payload(id, "later-retry", 2, false)
+            .unwrap();
+        source.ingest(&retry).unwrap();
+        let retry_receipt = source
+            .consume_publication_intent_payload(id)
+            .unwrap()
+            .unwrap();
+
+        let mut prefix = DirectBirthPrefix::new(owner);
+        for payload in [&first, &first_receipt, &retry, &retry_receipt] {
+            prefix.ingest(payload).unwrap();
+        }
+        assert_eq!(prefix.consumed_intents()[&id].len(), 2);
+        assert!(prefix.consumed_intents()[&id].contains("accepted-first"));
+        assert!(prefix.consumed_intents()[&id].contains("later-retry"));
+    }
+
+    #[test]
+    fn direct_birth_prefix_rejects_foreign_owner_and_truncation_without_facts() {
+        let owner = [12; 16];
+        let id = MemoryId([13; 32]);
+        let foreign_payload = DreamFreshnessJournal::new(Some([14; 16]))
+            .publication_intent_payload(id, "mutation", 1, false)
+            .unwrap();
+        let mut prefix = DirectBirthPrefix::new(owner);
+        assert!(prefix.ingest(&foreign_payload).is_err());
+        assert!(prefix.pending_intents().is_empty());
+
+        let payload = DreamFreshnessJournal::new(Some(owner))
+            .publication_intent_payload(id, "mutation", 1, false)
+            .unwrap();
+        for length in MAGIC.len()..payload.len() {
+            let mut prefix = DirectBirthPrefix::new(owner);
+            assert!(prefix.ingest(&payload[..length]).is_err());
+            assert!(prefix.pending_intents().is_empty());
+            assert!(prefix.consumed_intents().is_empty());
+            assert!(prefix.replay_births().is_empty());
+        }
     }
 }
