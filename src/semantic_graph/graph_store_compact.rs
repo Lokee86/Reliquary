@@ -82,6 +82,18 @@ impl GraphStore {
         &self,
         bytes: &[u8],
     ) -> Result<Option<Vec<GraphMutationPayload>>, GraphError> {
+        if let Some(envelope) = crate::container::publication_envelope::decode(bytes)? {
+            let Some(publication) = crate::graph_compact_codec::publication::decode(
+                envelope.body,
+                envelope.global_version,
+            )?
+            else {
+                return Ok(None);
+            };
+            return self
+                .resolve_compact_mutations(publication.mutations())
+                .map(Some);
+        }
         if let Some(values) = crate::graph_compact_codec::decode(bytes)? {
             return self.resolve_compact_mutations(&values).map(Some);
         }

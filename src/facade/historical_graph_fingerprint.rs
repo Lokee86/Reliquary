@@ -1,6 +1,5 @@
 //! Accepted Graph publications, independent of physical node ordinals and the
 //! current lifecycle exclusions owned by Memory/Entity.
-use crate::graph_codec::decode_version;
 use crate::graph_store::GraphStore;
 use crate::historical_fingerprint::{HistoricalFingerprint, OwnerProjection};
 use crate::{
@@ -40,11 +39,13 @@ impl GraphHistory {
         let mut transactions = Vec::new();
         let mut times = Vec::new();
         scan.visit_payloads::<CvaError>(|chunk, payload| {
-            let Some(version) = decode_version(payload)? else {
+            let Some(version) =
+                crate::graph_compact_codec::publication::version_at(chunk, payload)?
+            else {
                 return Ok(());
             };
             if version.graph_version != transactions.len() as u64 + 1
-                || !version.mutation.precedes(chunk)
+                || (version.mutation != chunk && !version.mutation.precedes(chunk))
                 || store.transaction_global_versions().get(transactions.len())
                     != Some(&version.global_version)
             {

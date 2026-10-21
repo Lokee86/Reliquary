@@ -802,7 +802,7 @@ impl Cva {
             mut trace_community_matches,
             mut trace_filtered,
         ) = (0_u64, 0_u64, 0_u64, 0_u64, 0_u64, 0_u64, 0_u64);
-        scan.visit_payloads::<CvaError>(|_, payload| {
+        scan.visit_payloads::<CvaError>(|object, payload| {
             #[cfg(feature = "freshness-performance-trace")]
             {
                 trace_payload_bytes += payload.len() as u64;
@@ -828,7 +828,9 @@ impl Cva {
                     }
                 }
             }
-            let Some(version) = crate::graph_codec::decode_version(payload)? else {
+            let Some(version) =
+                crate::graph_compact_codec::publication::version_at(object, payload)?
+            else {
                 return Ok(());
             };
             if version.graph_version > cut {
@@ -919,13 +921,15 @@ impl Cva {
             mut trace_mutations,
             mut trace_filtered,
         ) = (0_u64, 0_u64, 0_u64, 0_u64, 0_u64);
-        scan.visit_payloads::<CvaError>(|_, payload| {
+        scan.visit_payloads::<CvaError>(|object, payload| {
             #[cfg(feature = "freshness-performance-trace")]
             {
                 trace_payload_bytes += payload.len() as u64;
                 trace_chunks += 1;
             }
-            let Some(version) = crate::graph_codec::decode_version(payload)? else {
+            let Some(version) =
+                crate::graph_compact_codec::publication::version_at(object, payload)?
+            else {
                 return Ok(());
             };
             let end = self
