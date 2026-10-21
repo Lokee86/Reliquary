@@ -8,7 +8,9 @@ struct Fixture {
 }
 impl Fixture {
     fn new() -> Self {
-        let dir = std::env::temp_dir().join(format!("rel-activity-{}", uuid::Uuid::new_v4()));
+        let dir = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join(".test-tmp")
+            .join(format!("rel-activity-{}", uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let cva = Some(Cva::create(dir.join("clock.rel")).unwrap());
         Self { dir, cva }
@@ -299,12 +301,8 @@ fn distinct_backing_records_deduplicate_identity_and_conflicts_fail_closed() {
             .into_iter()
             .map(|record| container.read(record).unwrap())
             .collect::<Vec<_>>();
-        let original = payloads
-            .iter()
-            .find(|p| p.starts_with(b"CVANODE2"))
-            .unwrap();
         // Node -> legacy IngestedTurn of the same immutable identity, no attachments.
-        let mut duplicate = legacy_payload(original.clone());
+        let mut duplicate = legacy_publication_payload(&payloads, b"CVANOD02", b"CVANODE2");
         duplicate[..8].copy_from_slice(b"CVATURN1");
         duplicate[52] = b'u';
         duplicate.extend_from_slice(&0_u32.to_le_bytes());
@@ -355,16 +353,9 @@ fn invalid_version_link_fails_closed_instead_of_counting_payload() {
         .into_iter()
         .map(|record| container.read(record).unwrap())
         .collect::<Vec<_>>();
-    let mut publication = payloads
-        .iter()
-        .find(|p| p.starts_with(b"CVAAREC1"))
-        .unwrap()
-        .clone();
-    append_fixture_global_version(&mut container, 2);
-    publication[8..16].copy_from_slice(&2_u64.to_le_bytes());
+    let legacy = legacy_publication_payload(&payloads, b"CVANOD02", b"CVANODE2");
     // Archive version 3 skips the required version 2.
-    publication[16..24].copy_from_slice(&3_u64.to_le_bytes());
-    container.append(&publication).unwrap();
+    append_fixture_publication(&mut container, &path, &legacy, 2, 3);
     container.sync().unwrap();
     drop(container);
     assert!(matches!(
@@ -419,6 +410,36 @@ fn legacy_payload(mut bytes: Vec<u8>) -> Vec<u8> {
     bytes
 }
 
+// Native Archive publications wrap the legacy record fields in owner-local
+// publication framing. Rebuild the old standalone record before applying the
+// compatibility transformation so these tests continue to exercise legacy
+// Archive replay after ordinary writers switch to envelopes.
+fn legacy_publication_payload(
+    payloads: &[Vec<u8>],
+    publication_magic: &[u8; 8],
+    record_magic: &[u8; 8],
+) -> Vec<u8> {
+    let body = payloads
+        .iter()
+        .filter_map(|payload| {
+            if !payload.starts_with(b"CVAPUB01") {
+                return None;
+            }
+            let body_at = match payload.get(16).copied()? {
+                0 | 2 => 17,
+                1 => 25,
+                _ => return None,
+            };
+            Some(&payload[body_at..])
+        })
+        .find(|body| body.starts_with(publication_magic))
+        .expect("native Archive publication body");
+    assert!(body.len() >= 16);
+    let mut record = record_magic.to_vec();
+    record.extend_from_slice(&body[16..]);
+    legacy_payload(record)
+}
+
 fn append_fixture_global_version(container: &mut Container, version: u64) {
     let mut bytes = b"CVAVERS1".to_vec();
     bytes.extend_from_slice(&version.to_le_bytes());
@@ -444,22 +465,14 @@ fn validated_history_counts_legacy_records_but_not_orphans_or_repeated_pointers(
         .into_iter()
         .map(|record| container.read(record).unwrap())
         .collect::<Vec<_>>();
-    let node = payloads
-        .iter()
-        .find(|p| p.starts_with(b"CVANODE2"))
-        .unwrap();
-    let ingested = payloads
-        .iter()
-        .find(|p| p.starts_with(b"CVATURN2"))
-        .unwrap();
+    let node = legacy_publication_payload(&payloads, b"CVANOD02", b"CVANODE2");
+    let ingested = legacy_publication_payload(&payloads, b"CVATUR03", b"CVATURN2");
     let mut version = 2_u64;
-    for bytes in [
-        legacy_payload(node.clone()),
-        legacy_payload(ingested.clone()),
-    ] {
+    let mut first_publication = None;
+    for bytes in [node.as_slice(), ingested.as_slice()] {
         // Persist the documented legacy physical pointer layout in test fixtures.
         let offset = std::fs::metadata(&path).unwrap().len();
-        container.append(&bytes).unwrap();
+        container.append(bytes).unwrap();
         version += 1;
         append_fixture_global_version(&mut container, version);
         let mut publication = b"CVAAREC1".to_vec();
@@ -468,18 +481,15 @@ fn validated_history_counts_legacy_records_but_not_orphans_or_repeated_pointers(
         publication.extend_from_slice(&offset.to_le_bytes());
         publication.extend_from_slice(&(bytes.len() as u64).to_le_bytes());
         container.append(&publication).unwrap();
+        first_publication.get_or_insert(publication);
     }
-    let mut repeated = payloads
-        .iter()
-        .find(|p| p.starts_with(b"CVAAREC1"))
-        .unwrap()
-        .clone();
+    let mut repeated = first_publication.unwrap();
     append_fixture_global_version(&mut container, 5);
     repeated[8..16].copy_from_slice(&5_u64.to_le_bytes());
     repeated[16..24].copy_from_slice(&5_u64.to_le_bytes());
     container.append(&repeated).unwrap();
-    for original in [node, ingested] {
-        let mut orphan = original.clone();
+    for original in [node.as_slice(), ingested.as_slice()] {
+        let mut orphan = original.to_vec();
         orphan[52] = b'z';
         container.append(&orphan).unwrap();
     }
