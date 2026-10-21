@@ -1448,3 +1448,8 @@ Graph reader gate213 accepted against `e5ec250`: four historical reader tests an
 
 
 Graph import gate214 accepted against `bfb20d1`: two native interval tests, 56 reconciliation and 99 Graph regressions pass. Exact order, one-member batch shape, optional times, normalized evidence and duplicate no-op are covered; existing mixed-origin replay rejection stays atomic. Next215 binds native Graph source-history and downstream proof consumers.
+
+
+Graph consumer gates215–217 accepted against `c0a6b0f`: 107 Graph tests and 2,009 broad units pass, five ignored and three long sweeps deferred to Gate E. Exact native/compact proof parity, transaction authority, accepted Dream/Community evidence after unrelated prune/reopen, both-owner reclamation, repacks, fresh rewrite/follow-up writes and owner-ID migration are covered. Test compilation and formatting pass. Next218 cuts ordinary Graph single/batch writers over; converter219 and integrated coverage220 remain separate gates.
+
+Graph checkpoint verification: CLI formatting/check and all 32 CLI tests pass. Both structural and change-impact documentation policy checks pass on the isolated tracked-source validation snapshot. Root test compilation passes; the remaining three long integration sweeps and refreshed architecture enforcement stay explicit Gate E work.
