@@ -18,6 +18,23 @@ pub(crate) struct AcceptedInsomniaBirthCohort {
     pub(crate) members: Vec<AcceptedInsomniaBirthMember>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AcceptedExternalBirthMember {
+    pub(crate) id: MemoryId,
+    pub(crate) memory_version: u64,
+    pub(crate) global_version: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct AcceptedExternalBirthCohort {
+    pub(crate) turn: u64,
+    pub(crate) global_version_start: u64,
+    pub(crate) members: Vec<AcceptedExternalBirthMember>,
+}
+
+#[cfg(test)]
+#[path = "external_birth_prefix_tests.rs"]
+mod external_birth_prefix_tests;
 #[cfg(test)]
 #[path = "graph_compact_freshness_tests.rs"]
 mod graph_compact_tests;
@@ -45,6 +62,79 @@ pub struct FreshnessEventCut {
 }
 
 impl Cva {
+    /// Validate an external-source birth receipt against the accepted Archive
+    /// and Memory projections. Publications without a birth turn remain
+    /// non-births, including the shared Phylactery publication format.
+    pub(crate) fn validate_external_birth_cohort(
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+        publication: &crate::external_source::publication::Publication,
+    ) -> Result<Option<AcceptedExternalBirthCohort>, CvaError> {
+        let Some(turn) = publication.birth_turn else {
+            return Ok(None);
+        };
+        let archive_version = archive
+            .record_versions()
+            .iter()
+            .filter(|record| record.global_version < publication.global_start)
+            .map(|record| record.archive_version)
+            .max()
+            .unwrap_or(0);
+        if turn != archive.activity_cut_at_archive_version(archive_version)? {
+            return Err(CvaError::Freshness(
+                "external publication birth activity cut differs".into(),
+            ));
+        }
+        let mut members = Vec::with_capacity(publication.records.len());
+        for record in &publication.records {
+            if memories.first_mutation_id(record.id) != Some(record.mutation_id.as_str()) {
+                return Err(CvaError::Freshness(
+                    "external publication birth identity differs".into(),
+                ));
+            }
+            members.push(AcceptedExternalBirthMember {
+                id: record.id,
+                memory_version: record.memory_version,
+                global_version: record.global_version,
+            });
+        }
+        Ok(Some(AcceptedExternalBirthCohort {
+            turn,
+            global_version_start: publication.global_start,
+            members,
+        }))
+    }
+
+    /// Project an already physically selected external publication through a
+    /// Memory-local identity cut. The caller selects frames before Begin.
+    pub(crate) fn external_birth_cohort_at_memory_prefix(
+        &self,
+        payload: &[u8],
+        memory_cut: u64,
+    ) -> Result<Option<AcceptedExternalBirthCohort>, CvaError> {
+        if memory_cut > self.memories.memory_version() {
+            return Err(crate::MemoryError::InvalidVersion.into());
+        }
+        let Some(publication) = crate::external_source::publication::decode(payload)? else {
+            return Ok(None);
+        };
+        let Some(mut cohort) =
+            Self::validate_external_birth_cohort(&self.archive, &self.memories, &publication)?
+        else {
+            return Ok(None);
+        };
+        let first = self
+            .memories
+            .first_publication_prefix(memory_cut)?
+            .into_iter()
+            .collect::<BTreeMap<_, _>>();
+        cohort.members.retain(|member| {
+            member.memory_version <= memory_cut
+                && first.get(&member.id) == Some(&member.global_version)
+        });
+        Ok(Some(cohort))
+    }
+
     /// Validate a decoded grouped completion against the accepted Memory and
     /// Archive projections. No-proof legacy completions remain non-births.
     pub(crate) fn validate_insomnia_birth_cohort(

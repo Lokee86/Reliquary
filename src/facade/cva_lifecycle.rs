@@ -478,31 +478,14 @@ impl Cva {
                     }
                 }
                 if let Some(publication) = crate::external_source::publication::decode(payload)? {
-                    if let Some(turn) = publication.birth_turn {
-                        let archive_version = archive
-                            .record_versions()
-                            .iter()
-                            .filter(|r| r.global_version < publication.global_start)
-                            .map(|r| r.archive_version)
-                            .max()
-                            .unwrap_or(0);
-                        if turn != archive.activity_cut_at_archive_version(archive_version)? {
-                            return Err(CvaError::Freshness(
-                                "external publication birth activity cut differs".into(),
-                            ));
-                        }
-                        for record in &publication.records {
-                            if memories.first_mutation_id(record.id)
-                                != Some(record.mutation_id.as_str())
-                            {
-                                return Err(CvaError::Freshness(
-                                    "external publication birth identity differs".into(),
-                                ));
-                            }
+                    if let Some(cohort) =
+                        Cva::validate_external_birth_cohort(&archive, &memories, &publication)?
+                    {
+                        for member in cohort.members {
                             freshness
-                                .derive_birth(owner, record.id, turn, false)
+                                .derive_birth(owner, member.id, cohort.turn, false)
                                 .map_err(CvaError::Freshness)?;
-                            dream_freshness.derive_publication_birth(record.id);
+                            dream_freshness.derive_publication_birth(member.id);
                         }
                     }
                 }
