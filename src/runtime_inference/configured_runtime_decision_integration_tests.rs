@@ -89,6 +89,8 @@ fn test_server_responses(status: u16, responses: Vec<Value>, collect_for: Durati
 }
 
 fn read_request(stream: &mut TcpStream) -> String {
+    // Windows may inherit the listener's nonblocking mode on accepted streams.
+    stream.set_nonblocking(false).unwrap();
     let mut request = Vec::new();
     let mut chunk = [0_u8; 4096];
     let mut complete = false;
