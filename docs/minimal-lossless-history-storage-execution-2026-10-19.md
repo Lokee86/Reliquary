@@ -1427,3 +1427,6 @@ Archive Step 202 accepted against `ed7e21a`: 108 Archive-filtered tests pass, in
 
 
 Archive consumer gates203–207 accepted against `9e153aa`: 111 Archive, 86 import, 50 reconciliation, 3 principal backfill, 7 pruning and 17 reclamation tests pass. All-family historical/current/time parity and eleven-cut proof parity include a repeated binding. Full root/CLI and architecture integration refresh remain Gate E work. Next is ordinary Archive writer cutover208.
+
+
+Archive writer gate208 accepted against `2801100`: 113 Archive, 86 import, 50 reconciliation and 30 upgrade tests pass. This also revalidates the additional import Episode-scope consumer exposed by ordinary native writes. Step209 offline conversion and pinned corpus measurement is next; full-root/CLI/architecture integration remains pending Gate E.
