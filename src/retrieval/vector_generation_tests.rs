@@ -4,6 +4,9 @@ use crate::{
 use std::fs;
 use std::path::PathBuf;
 
+#[path = "vector_generation_measurement_tests.rs"]
+mod measurement;
+
 fn test_path(name: &str) -> PathBuf {
     let unique = uuid::Uuid::new_v4();
     let dir = std::env::temp_dir().join(format!("continuity-generations-{unique}"));

@@ -1638,3 +1638,55 @@ mismatched paths. The92 P4 fixtures,11 external ownership fixtures and productio
 source guards pass. Behavioral/oracle evidence recorded above plus this fresh
 structural evidence closes Gate F. Earlier timeout limitations are superseded.
 The later derived-index changes are being captured in a separate refresh.
+
+
+## Steps 266–272 — Current derived external index
+
+Implementation: `444481a`; each numbered item has a separate linear-plan record.
+CVAXIDX2 is a bounded self-contained binary snapshot plus derived discard marker.
+Only current state is required; ordinary writer CAS/sync and source authorization,
+hydration, vector backing and semantic Memory publication authority remain.
+Reclamation removes superseded current snapshots without semantic prune markers.
+Private V1 conversion drops old index chains while retaining their validated
+current projection and damage barrier. Existing CVAXMEM1-to-CVAXMEM2 Memory
+carrier conversion is unchanged. Genuine legacy fixture construction now restores
+that publication family too, rather than reheadering current carriers.
+
+All18 external-source cases pass. Full root verification passes2,091 library
+cases, five existing ignored, no filtered cases, all157 integration cases and
+doctests. This includes all three exhaustive recovery cases. CLI passes32/32;
+root/CLI formatting and compilation pass. Both documentation-policy modes pass
+in a byte-verified1,789-file independent snapshot. The new draft Entity Resolution
+contract initially lacked Overview; that documentation finding was fixed before
+acceptance. Two migration-fixture failures (a completion-only helper assertion
+and a current Memory carrier disguised as V1) were corrected without weakening
+production validation.
+
+The [raw index artifact](../benchmarks/external-index-storage-2026-10-21.json)
+measures a representative latest snapshot:1,429 legacy JSON payload bytes versus
+377 current binary bytes (1,437 versus385 including framing). Native cleanup
+removes two superseded snapshots while preserving lookup/status, global head,
+Memory/evidence and source bytes. No compression or whole-file savings claim.
+
+Gate G behavioral verification passes. A separate fresh architecture capture
+started against the complete index implementation before subsequent owner work;
+its result is collecting and is not substituted with the Gate F snapshot.
+
+The dedicated Gate G capture subsequently passed: snapshot
+`c8968d02d24fcdfbf67d171ad47f6351d8779947bed998fa8864a98377520503`,
+23 architecture rules,108,447 nodes and4,172 relationships, zero compatibility
+warnings. All11 production Rust files changed by the index commit match its
+captured source mirror after line-ending normalization. The capture excludes
+subsequent Entity Resolution changes and is not claimed as their enforcement.
+Gate G is closed.
+
+
+## Entity Resolution, Community and vectors — Steps273–301 (2026-10-21)
+
+Entity Resolution/Community commit `ddde79a` preserves exact evidence while the ordinary writer uses CVAERS02. Source comparison materializes full postimages; destination transport encodes against destination evidence. Genuine V1 fixture construction now restores Entity envelopes too. Every resolution postimage, revision reset, failed inheritance, V1 boundary, source hash and reclamation case passes. Raw64-attempt framed history shrinks13,952 to7,338 bytes; the first payload grows210 to211. See the Entity Resolution contract and benchmark.
+
+Community membership reconstruction is disproven by two accepted partitions with identical graph/generation/algorithm/seed/resolution/quality coordinates. The independent physical probe and durable regression agree. Membership/name codecs remain unchanged; conditional compaction steps are not applicable.
+
+The vector decision retains synthetic and six-source raw-byte evidence. Eight same-profile high-dimensional generations could benefit from new row storage, but tiny rows grow and the retained corpus has no repeated generations within a profile. Separate within-matrix savings are also reported. The optional new format is explicitly deferred, not described as implemented or as a measured current-format saving.
+
+Complete root verification passes2,102 library cases, five existing ignored, no filtered cases, all157 integration cases and doctests, including all three exhaustive recovery cases. Nine latest delta-specific checks pass. An intermediate Lore temporary-repository deletion encountered a Windows file lock; isolated and complete reruns pass. Formatting passes. Root compilation is included in this run; CLI verification is collecting after the new converter admission work. A dedicated architecture capture for the subsequent Entity/admission source is active; the earlier c8968d02 index capture is not substituted for it.

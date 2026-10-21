@@ -1,0 +1,58 @@
+{
+  "candidate_cost": "53 framed row metadata bytes plus row bytes; 61 manifest bytes plus 32-byte exact row identities; existing Archive-vector mapping unchanged and excluded from both sides",
+  "candidate_is_measured_model_not_implemented": true,
+  "compression_included": false,
+  "date": "2026-10-21",
+  "scenarios": [
+    {
+      "candidate_row_and_manifest_framed_bytes": 2448,
+      "current_packed_framed_bytes": 2304,
+      "dimensions": 12,
+      "generations_per_profile": 8,
+      "historical_exact_bytes_equal": true,
+      "matrix_count": 8,
+      "profile_count": 1,
+      "row_occurrences": 36,
+      "unchanged_same_profile_fragment_occurrences": 28,
+      "unique_exact_rows_across_profiles": 8
+    },
+    {
+      "candidate_row_and_manifest_framed_bytes": 4896,
+      "current_packed_framed_bytes": 4608,
+      "dimensions": 12,
+      "generations_per_profile": 8,
+      "historical_exact_bytes_equal": true,
+      "matrix_count": 16,
+      "profile_count": 2,
+      "row_occurrences": 72,
+      "unchanged_same_profile_fragment_occurrences": 56,
+      "unique_exact_rows_across_profiles": 16
+    },
+    {
+      "candidate_row_and_manifest_framed_bytes": 14352,
+      "current_packed_framed_bytes": 55872,
+      "dimensions": 384,
+      "generations_per_profile": 8,
+      "historical_exact_bytes_equal": true,
+      "matrix_count": 8,
+      "profile_count": 1,
+      "row_occurrences": 36,
+      "unchanged_same_profile_fragment_occurrences": 28,
+      "unique_exact_rows_across_profiles": 8
+    },
+    {
+      "candidate_row_and_manifest_framed_bytes": 28704,
+      "current_packed_framed_bytes": 111744,
+      "dimensions": 384,
+      "generations_per_profile": 8,
+      "historical_exact_bytes_equal": true,
+      "matrix_count": 16,
+      "profile_count": 2,
+      "row_occurrences": 72,
+      "unchanged_same_profile_fragment_occurrences": 56,
+      "unique_exact_rows_across_profiles": 16
+    }
+  ],
+  "schema": 1,
+  "workload": "eight independent eight-turn conversations; rebuild every active profile after each materialization"
+}

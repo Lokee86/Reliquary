@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "date": "2026-10-21",
+  "compression_included": false,
+  "all_sources_unchanged": true,
+  "scope": "Only published Archive-vector generations; Memory-vector matrices excluded. Same-profile fragment repetitions require exact literal byte equality. Row identity includes scalar and dimensions. Candidate model matches synthetic artifact and is not implemented.",
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true,
+      "published_generations": 1,
+      "generations_by_profile": {
+        "38b2c3d1ded65fdbc2a76086f1d2875c03eb4470afa63de8bbd0689cbf51c266": 1
+      },
+      "archive_matrix_count": 1,
+      "archive_row_occurrences": 1056,
+      "unchanged_same_profile_fragment_occurrences": 0,
+      "unique_exact_rows_across_profiles": 1056,
+      "current_packed_framed_bytes": 4325448,
+      "candidate_row_and_manifest_framed_bytes": 4415197
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true,
+      "published_generations": 0,
+      "generations_by_profile": {},
+      "archive_matrix_count": 0,
+      "archive_row_occurrences": 0,
+      "unchanged_same_profile_fragment_occurrences": 0,
+      "unique_exact_rows_across_profiles": 0,
+      "current_packed_framed_bytes": 0,
+      "candidate_row_and_manifest_framed_bytes": 0
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true,
+      "published_generations": 1,
+      "generations_by_profile": {
+        "e012fa5173c94058e83749208bd3250628a4d533d01d96fe711c86a813c14258": 1
+      },
+      "archive_matrix_count": 1,
+      "archive_row_occurrences": 2882,
+      "unchanged_same_profile_fragment_occurrences": 0,
+      "unique_exact_rows_across_profiles": 2319,
+      "current_packed_framed_bytes": 11804744,
+      "candidate_row_and_manifest_framed_bytes": 9713816
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true,
+      "published_generations": 0,
+      "generations_by_profile": {},
+      "archive_matrix_count": 0,
+      "archive_row_occurrences": 0,
+      "unchanged_same_profile_fragment_occurrences": 0,
+      "unique_exact_rows_across_profiles": 0,
+      "current_packed_framed_bytes": 0,
+      "candidate_row_and_manifest_framed_bytes": 0
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true,
+      "published_generations": 2,
+      "generations_by_profile": {
+        "2f404c70725ad1162653bf2762c0f5590d0c3f7a1b83c4b9bf87e39091138fa5": 1,
+        "3aad70f4c0083a74be98cc41b51515559c7ed26669597641e562299424ddcd82": 1
+      },
+      "archive_matrix_count": 2,
+      "archive_row_occurrences": 996,
+      "unchanged_same_profile_fragment_occurrences": 0,
+      "unique_exact_rows_across_profiles": 948,
+      "current_packed_framed_bytes": 4079760,
+      "candidate_row_and_manifest_framed_bytes": 3965246
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true,
+      "published_generations": 0,
+      "generations_by_profile": {},
+      "archive_matrix_count": 0,
+      "archive_row_occurrences": 0,
+      "unchanged_same_profile_fragment_occurrences": 0,
+      "unique_exact_rows_across_profiles": 0,
+      "current_packed_framed_bytes": 0,
+      "candidate_row_and_manifest_framed_bytes": 0
+    }
+  ]
+}

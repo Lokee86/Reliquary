@@ -1,7 +1,7 @@
 # Minimal Lossless History Storage — Linear Implementation Plan
 
 Date: 2026-10-19
-Status: 265/359 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; Archive admission202 verified against `ed7e21a`; Archive readers/reconciliation/proofs/reclamation/copies203–207 verified against `9e153aa`; Archive ordinary writers208 verified against `2801100`; Archive offline envelope conversion209 verified against `ea26adc`; Graph envelope contract210 verified against `6946ce4`; Graph publication codecs211 verified against `b939ff2`; Graph native admission212 verified against `aea161e`; Graph historical/current readers213 verified against `e5ec250`; Graph reconciliation/import214 verified against `bfb20d1`; Graph proofs/reclamation/copies215–217 verified against `c0a6b0f`; Graph ordinary allocation writers218 verified against `308e725`; Graph envelope conversion219 verified against `e1e4d9e` and measurement `0113e78`; coverage audit220 complete; supplemental Graph epoch-authority Step221 accepted against 9ce3476; Integration Gate E passed with refreshed architecture snapshot 4cc4320f; Dream reference222 accepted against `37210c8` and Memory prefix contract223 against `24d1c53`; Memory prefix224 accepted against `21b4ec9`; physical Begin authority225 is frozen; direct-birth projection226 accepted against `ccc0c94`; Insomnia prefix227 accepted against `99e7f04`; external prefix228 accepted against `ad45319`; bounded physical scan229 accepted against `aeb7a43`; REL coordination230 accepted against `944231e`; population digest231 accepted against `99a9e73` and Begin wire contract232 against `e79cda6`; encoder233 accepted against `17844a3`; decoder234 accepted against `f810554`; replay235 accepted against `d43d460`; Dream roots/proofs/runtime capture, exact destination transport, writer cutover, offline conversion, adversarial transforms and measurements236–249 accepted against `c320fc6`; Dream pair table/codecs/writers/conversion/tests/measurement250–255 accepted against `d3e48a6`; Integration Gate F passes with fresh architecture snapshot `ee25c736` (23 rules; all20 changed Dream/stream production paths match `bdca9b6`). Interaction stream contract/codecs/replay/writer/conversion/measurement256–265 pass against `bdca9b6`; final structural acceptance remains outstanding. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
+Status: 301/359 execution steps accepted; compatibility-policy interruption I1–I12 complete (`fd61a1e`). Integration Gate C passed. Shared mechanics Steps 88–90 verified against `bafdaae`; guard and Entity contract Steps 91–92 against `3cc6631`; Entity codecs/rebuild and Steps 96–107 revalidated against `73e88ae`; Relationship contract/codecs/rebuild Steps 109–112 against `0650305`; Relationship consumers/writer/pruning/conversion Steps 113–124 and Ego inventory/measurement Steps 125–126 against `41eaa0a`; Ego contract/codecs/replay/consumers/writers/conversion Steps 127–138 against `b10815d`; Integration Gate D passed against `b10815d` and refreshed snapshot `14b14fc5`; Graph inventory Step 139 and measured decision Step 140 use `e9b36e9`; Graph contract/replay/readers/proof/writer Steps 141–153 against `864efe9`; Step 147 supplement and Graph conversion/adversarial Steps 154–155 against `7017965`; Freshness effects-only verification/authority/migration/measurement Steps 156–165, framing inventory166 and envelope contract167 against `b043494`; physical envelope codec/clock/recovery Steps 168–169 against `e438360`; Memory envelope body/replay/history Steps 170–172 against `032530b`; Memory envelope consumers/proof/copies/writer Steps 173–177 against `53e603e`; Memory offline envelope conversion, Entity/Relationship envelope gates178–198 and Ego non-applicability199 verified against `ca60b5c`; Archive contract200 verified against `2597c73`; Archive body codecs201 verified against `24572e4`; Archive admission202 verified against `ed7e21a`; Archive readers/reconciliation/proofs/reclamation/copies203–207 verified against `9e153aa`; Archive ordinary writers208 verified against `2801100`; Archive offline envelope conversion209 verified against `ea26adc`; Graph envelope contract210 verified against `6946ce4`; Graph publication codecs211 verified against `b939ff2`; Graph native admission212 verified against `aea161e`; Graph historical/current readers213 verified against `e5ec250`; Graph reconciliation/import214 verified against `bfb20d1`; Graph proofs/reclamation/copies215–217 verified against `c0a6b0f`; Graph ordinary allocation writers218 verified against `308e725`; Graph envelope conversion219 verified against `e1e4d9e` and measurement `0113e78`; coverage audit220 complete; supplemental Graph epoch-authority Step221 accepted against 9ce3476; Integration Gate E passed with refreshed architecture snapshot 4cc4320f; Dream reference222 accepted against `37210c8` and Memory prefix contract223 against `24d1c53`; Memory prefix224 accepted against `21b4ec9`; physical Begin authority225 is frozen; direct-birth projection226 accepted against `ccc0c94`; Insomnia prefix227 accepted against `99e7f04`; external prefix228 accepted against `ad45319`; bounded physical scan229 accepted against `aeb7a43`; REL coordination230 accepted against `944231e`; population digest231 accepted against `99a9e73` and Begin wire contract232 against `e79cda6`; encoder233 accepted against `17844a3`; decoder234 accepted against `f810554`; replay235 accepted against `d43d460`; Dream roots/proofs/runtime capture, exact destination transport, writer cutover, offline conversion, adversarial transforms and measurements236–249 accepted against `c320fc6`; Dream pair table/codecs/writers/conversion/tests/measurement250–255 accepted against `d3e48a6`; Integration Gate F passes with fresh architecture snapshot `ee25c736` (23 rules; all20 changed Dream/stream production paths match `bdca9b6`). Interaction stream contract/codecs/replay/writer/conversion/measurement256–265 pass against `bdca9b6`; final structural acceptance remains outstanding. Derived ExternalIndex266–272 passes against `444481a`; Gate G behavioral verification passes (2,091 library/157 integration/32 CLI cases), with its dedicated fresh architecture snapshot `c8968d02` passing all23 rules. Entity Resolution273–283 and Community284–291 are accepted against `ddde79a`; Gate H passes2,102 root cases and all integration suites. Vectors292–301 close with the measured conditional deferral. Runtime retirement remains pending. Rebased checkpoint: [handoff](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md).
 Controlling amendment: [Development-format lifecycle hard cut — revised remaining execution](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md). Complete I1–I12 before Step 87; complete the integrated promotion and retirement gates after V2 domain migration and before final acceptance. V1 compatibility is temporary offline migration-only, never permanent. The separately appended R1–R22 checklist is superseded by the integrated closeout gates here. This amendment supersedes conflicting V1 compatibility wording here and in the source specification.
 Source: [Minimal lossless history storage — refactor specification](minimal-lossless-history-storage-spec-2026-10-19.md)
 
@@ -1619,6 +1619,62 @@ Blockers: none for this execution item; fresh Gate F/stream architecture enforce
 | 271 | Sol | Extend upgrader to migrate only the current required derived index state. | External Memory publication history remains untouched. |
 | 272 | Luna | Add damaged-index rebuild/discard regressions. | Existing recovery contract remains intact. |
 
+### Step 266 execution record
+
+Commit: `444481a`.
+
+Verification: The concrete boundary is frozen in the derived-index contract and codec comment: legacy CVAXIDX1/current CVAXIDX2 are disposable cache state; existing CVAXMEM1/CVAXMEM2 Memory publication/evidence remains authority. No semantic history is removed.
+
+Blockers: none for this item; dedicated fresh Gate G architecture enforcement is collecting, and canonical promotion/retirement remain separately gated.
+
+### Step 267 execution record
+
+Commit: `444481a`.
+
+Verification: A self-contained binary current snapshot per namespace was selected from the existing full-state preparation/sync behavior. Writer revision CAS remains; current replay does not require a retained predecessor chain. The explicit discard barrier preserves missing-namespace rebuild behavior.
+
+Blockers: none for this item; dedicated fresh Gate G architecture enforcement is collecting, and canonical promotion/retirement remain separately gated.
+
+### Step 268 execution record
+
+Commit: `444481a`.
+
+Verification: Independent binary offsets, every truncated prefix, checksum/length/kind/mask/UTF-8/count errors and all four roles round-trip/reject correctly. Namespace/message references and contiguous chunk starts reconstruct exactly under existing full-state bounds.
+
+Blockers: none for this item; dedicated fresh Gate G architecture enforcement is collecting, and canonical promotion/retirement remain separately gated.
+
+### Step 269 execution record
+
+Commit: `444481a`.
+
+Verification: All18 external-source tests pass, including reopen, edits, visibility/reactivation/delete, feed gaps, stale preparations, cursor recovery and exact lookup results. Existing profile/vector backing validation remains unchanged.
+
+Blockers: none for this item; dedicated fresh Gate G architecture enforcement is collecting, and canonical promotion/retirement remain separately gated.
+
+### Step 270 execution record
+
+Commit: `444481a`.
+
+Verification: Native reclamation removes two superseded current snapshots and keeps the latest lookup/status, global head and external Memory/evidence. Multiple namespaces and global damage barriers survive; source bytes remain unchanged. Temporary legacy chains are retained conservatively.
+
+Blockers: none for this item; dedicated fresh Gate G architecture enforcement is collecting, and canonical promotion/retirement remain separately gated.
+
+### Step 271 execution record
+
+Commit: `444481a`.
+
+Verification: The private V1 converter emits only surviving current index state plus a required discard barrier. Three legacy snapshots become one current snapshot. Accepted external publication history follows the already-existing CVAXMEM1-to-CVAXMEM2 converter unchanged, with exact current carrier/evidence checks and immutable sources.
+
+Blockers: none for this item; dedicated fresh Gate G architecture enforcement is collecting, and canonical promotion/retirement remain separately gated.
+
+### Step 272 execution record
+
+Commit: `444481a`.
+
+Verification: Damaged index/checksum/body/flags/counts/UTF-8, backing loss, discard/rebuild, stale CAS and interrupted preparation regressions pass. A damaged legacy derived tail converts to a rebuild barrier while accepted Memory authority stays readable; current index records reject in V1 and PHY.
+
+Blockers: none for this item; dedicated fresh Gate G architecture enforcement is collecting, and canonical promotion/retirement remain separately gated.
+
 ### Integration Gate G — Operational/derived stores
 
 Run interaction runtime, external-source index/publication, reconciliation, reclaim, and reopen suites.
@@ -1668,7 +1724,7 @@ Run Entity Resolution, Community, Dream/Freshness proof consumers, import readin
 | ---: | --- | --- | --- |
 | 292 | Luna | Build repeated same-profile Archive-vector-generation workload. | Reproducible workload exists. |
 | 293 | Luna | Measure unchanged exact vector-byte duplication across generations separately from compatibility-profile multiplicity. | Byte-duplication artifact exists. |
-| 294 | Sol | Decide whether row/block reuse is justified by Step 291. | Explicit implement/defer decision recorded. |
+| 294 | Sol | Decide whether row/block reuse is justified by Step 293. | Explicit implement/defer decision recorded. |
 | 295 | Sol | If justified, define immutable exact vector row/block identity preserving byte-distinct compatible embeddings. | Identity contract tests pass. |
 | 296 | Sol | If justified, implement reusable row/block storage. | Exact vector bytes round-trip. |
 | 297 | Sol | If justified, implement generation manifest/delta referencing row/block identities. | Historical generation materialization exact. |
@@ -2747,3 +2803,185 @@ separate failure domains from owner replay and offline V1 conversion. New
 279–280 make them explicit before implementation; former pending279–357 become
 281–359. Accepted1–265 are unchanged. The current plan has359 contiguous numbered
 execution rows; integration gates remain unnumbered.
+
+
+## Proof-store and vector-decision acceptance — 2026-10-21
+
+Entity Resolution and Community implementation/evidence commit: `ddde79a`.
+Vector workload and measured deferral are recorded in their dedicated decision and artifacts.
+
+### Step 273 execution record
+
+Verification: Every persisted field is classified in the committed Entity Resolution contract; candidate IDs, fingerprints, timing and attempt counts stay authoritative.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 274 execution record
+
+Verification: Frozen literal-first/evidence-inheritance contract preserves every accepted field and names source comparison versus destination transport.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 275 execution record
+
+Verification: Independent initial Pending vector carries every required field; initial Dormant includes dormant time. Truncation and illegal field/status/count/reason checks pass.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 276 execution record
+
+Verification: Attempt-only delta has an independently asserted73-byte vector. All evidence fields change literally; status transitions and tombstones round-trip.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 277 execution record
+
+Verification: Every accepted Pending/Dormant/wake/retarget/terminal/tombstone/revision-reset postimage equals its full-field baseline. Missing or terminal inheritance bases reject.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 278 execution record
+
+Verification: Ordinary put, tombstone and import-current writes use CVAERS02. Validation precedes append; replay and failed/conflicting changes preserve projections.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 279 execution record
+
+Verification: Completed-import owner evidence materializes full source changes in physical order and uses the established complete comparison carrier; omission bytes never become identity.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 280 execution record
+
+Verification: Dedicated interval test starts with different destination evidence under the same key/revision; re-encoded output exactly matches the source postimage without source mutation.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 281 execution record
+
+Verification: Genuine V1 REL conversion preserves every resolution change and final state, then native reclamation preserves those postimages. Current resolution carriers explicitly reject in V1 REL and PHY.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 282 execution record
+
+Verification: All71 initial focused cases and nine latest delta-specific cases pass, including the two added inheritance/V1 boundary checks. Full root2,102 cases pass with all three exhaustive recovery cases and no filtered cases.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 283 execution record
+
+Verification: Raw64-attempt/two-candidate workload including every frame measures13,952 legacy bytes versus7,338 current bytes. Initial payload grows210 to211; no whole-file or compression claim.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 284 execution record
+
+Verification: Committed Community decision inventories freshness proof cuts, Dream roots, lineage/split/merge/name inheritance, semantic-name evidence, import normalization and historical manifests.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 285 execution record
+
+Verification: Exact reconstruction would require unique membership/name evidence from the recorded graph cut, algorithm, seed, resolution, quality and retained nondeterministic authority.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 286 execution record
+
+Verification: Independent complete PHY copies and a durable regression accept different one-versus-three-community partitions with identical recorded coordinates. The uniqueness claim is disproven.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 287 execution record
+
+Verification: Explicit no-change Community decision retains membership snapshots and non-recomputable names. No production Community codec changes.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 288 execution record
+
+Verification: Not applicable under the explicit no-change decision; codec/replay/writer remain unchanged.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 289 execution record
+
+Verification: Not applicable under the no-change decision; existing literal membership/name transport remains required.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 290 execution record
+
+Verification: No new compact-name format exists. The uniqueness counterexample plus existing algorithm1/name-lineage/Dream/freshness regressions pass in the root suite.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 291 execution record
+
+Verification: Raw Community compaction measurement is not required for the rejected reconstruction strategy; exact counterexample artifact is retained.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 292 execution record
+
+Verification: Durable reproducible workload builds eight generations under one or two profiles, with independent immutable conversations and12/384 dimensions; every historical matrix reopens byte-exact.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 293 execution record
+
+Verification: Synthetic artifact separates28 same-profile unchanged rows from profile multiplicity. Six pinned sources are independently scanned with before/after hashes, published references, shape and matrix-identity checks; none has repeated generations within a profile.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 294 execution record
+
+Verification: Explicit measured deferral: high-dimensional synthetic row reuse saves74.31%, tiny rows grow6.25%; retained corpus has zero same-profile historical repeats. Separate within-matrix savings and growth are reported without relabeling them historical reuse.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 295 execution record
+
+Verification: Not applicable under the explicit row/block deferral; no new immutable identity is introduced.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 296 execution record
+
+Verification: Not applicable under the deferral; existing exact packed-matrix storage remains.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 297 execution record
+
+Verification: Not applicable under the deferral; no generation manifest/delta family is introduced.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 298 execution record
+
+Verification: Not applicable under the deferral; existing idempotent whole-matrix content identity remains.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 299 execution record
+
+Verification: Not applicable under the deferral; no new vector format requires conversion.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 300 execution record
+
+Verification: No new wire format exists; existing profile, packed/Memory/Archive vector, generation, retrieval and maintenance regressions pass in the complete root run.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+### Step 301 execution record
+
+Verification: Phase deferred explicitly in the vector reuse decision. Both synthetic and authoritative raw-byte models are retained, with modeled metadata/framing and compression excluded.
+
+Blockers: none for this item. Canonical corpus equivalence, promotion and legacy retirement remain separately gated.
+
+Integration Gate H: complete root verification passes2,102 library cases, five existing ignored, zero filtered; all157 integration cases and doctests pass. The latest nine delta-specific cases pass. The intermediate broader run hit one Windows sharing violation in unrelated Lore scratch deletion; its isolated rerun and the complete root rerun pass. Gate I: all unchanged vector/profile/retrieval/maintenance suites and the exact synthetic workload pass. No new vector format is claimed.

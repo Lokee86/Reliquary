@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Archive-vector generation reuse decision](archive-vector-generation-reuse-decision-2026-10-21.md) — measured same-profile duplication and explicit conditional deferral.
+
 - [Development-format interruption execution evidence](development-format-interruption-execution-2026-10-19.md) — freeze/corpus inventory, temporary caller ownership, runtime acceptance design and remaining-step mapping.
 
 - [Minimal lossless history storage — execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md) — frozen baseline, fixture identity and per-step verification.
@@ -7,6 +9,7 @@
 - [Minimal lossless history storage — specification](minimal-lossless-history-storage-spec-2026-10-19.md) — proposed compact owner history and historical equivalence requirements.
 - [Minimal lossless history storage — linear execution plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) — ordered implementation steps and integration gates.
 - [Dream population and Memory identity prefix](dream-population-contract-2026-10-21.md) — planned local identity and physical Begin evidence contract.
+- [Community history reconstruction decision](community-history-reconstruction-decision-2026-10-21.md)
 - [Compact Entity Resolution history contract](entity-resolution-compact-contract-2026-10-21.md)
 - [Compact derived external index contract](external-index-compact-contract-2026-10-21.md)
 - [Compact interaction stream contract](interaction-stream-compact-contract-2026-10-21.md) — frozen checkpoint transitions and exact suffix representation.
