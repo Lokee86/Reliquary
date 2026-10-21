@@ -1497,3 +1497,6 @@ Bounded physical reader229 accepted against `aeb7a43`: three new cases and all17
 
 
 REL population coordinator230 accepted against `944231e`: eight focused module cases,2,036 broad units and root test compilation pass. Five existing ignored and three separately verified exhaustive sweeps remain excluded. The held-container bounded query checks exact Memory head and physical birth/cohort presence without body/current-liveness lookup, with reusable prefix state for later replay integration. Primary architecture/maintainer/population docs describe the focused REL module; owner boundaries and policy are unchanged. Progress230/357; digest231 is active.
+
+
+Population digest231 accepted against `99a9e73`: two canonical hash cases pass with independently regenerated literal vectors using one NUL byte. Wire contract232 accepted against `e79cda6`: CVDREAM2 Begin retains common pass/source/turn/graph authority, with cut+digest or exact explicit set and implicit first revision1. Existing journal kinds remain unchanged; V2 owner integration and writing are later gates. Progress232/357; encoder233 is next.
