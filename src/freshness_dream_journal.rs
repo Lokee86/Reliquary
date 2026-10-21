@@ -47,6 +47,31 @@ pub(crate) struct DreamFreshnessJournal {
 }
 
 impl DreamFreshnessJournal {
+    /// Decode a transitional explicit Begin without admitting it. Destination
+    /// coordinators preserve its literal population before rebasing coordinates.
+    pub(crate) fn decode_explicit_begin(
+        payload: &[u8],
+        owner: [u8; 16],
+    ) -> Result<Option<InitialDreamPass>, String> {
+        if payload.get(..8) != Some(MAGIC.as_slice()) || payload.get(24) != Some(&0) {
+            return Ok(None);
+        }
+        let mut reader = Reader {
+            bytes: payload,
+            at: 8,
+        };
+        if reader.array::<16>()? != owner {
+            return Err("Dream replay owner mismatch".into());
+        }
+        let DreamEntry::Begin(pass) = decode_entry(&mut reader)? else {
+            unreachable!()
+        };
+        if reader.at != payload.len() {
+            return Err("trailing Dream replay bytes".into());
+        }
+        Ok(Some(pass))
+    }
+
     /// Clock-neutral accepted resume state for the test-only equivalence oracle.
     #[cfg(test)]
     pub(crate) fn historical_oracle_value(&self) -> serde_json::Value {
@@ -119,46 +144,24 @@ impl DreamFreshnessJournal {
         staged.ingest(&result)?;
         Ok(result)
     }
-    /// Read-only import evidence projection. Completed roots are retained in the
-    /// journal bytes even though the normal resident projection drops settled passes.
-    pub(crate) fn retained_completed_passes(
-        container: &crate::Container,
-        owner: Option<[u8; 16]>,
-    ) -> Result<BTreeMap<MemoryId, InitialDreamPass>, crate::CvaError> {
-        let mut journal = Self::new(owner);
-        let mut completed = BTreeMap::new();
-        let mut scan = crate::Container::open_read_only_for_scan(container.path())?;
-        scan.visit_payloads::<crate::CvaError>(|_, payload| {
-            if payload.get(..8) != Some(MAGIC.as_slice()) {
-                return Ok(());
-            }
-            let mut reader = Reader {
-                bytes: payload,
-                at: 24,
-            };
-            let entry = decode_entry(&mut reader).map_err(crate::CvaError::Freshness)?;
-            let pass = match entry {
-                DreamEntry::Settled(ref id) => journal.pending(id),
-                _ => None,
-            };
-            journal
-                .ingest(payload)
-                .map_err(crate::CvaError::Freshness)?;
-            if let Some(pass) = pass {
-                // Legacy/replayed settled markers alone cannot prove empty roots.
-                if journal.accepted_graph_cut(&pass.pass_id).is_some() {
-                    if let Some(old) = completed.insert(pass.source_id, pass.clone()) {
-                        if old != pass {
-                            return Err(crate::CvaError::Freshness(
-                                "conflicting retained first-cycle proof".into(),
-                            ));
-                        }
-                    }
-                }
-            }
-            Ok(())
-        })?;
-        Ok(completed)
+    /// Return the pass ID only for a well-framed settled journal event. The
+    /// concrete REL replay coordinator owns retaining completed proof state.
+    pub(crate) fn settled_pass_id(payload: &[u8]) -> Result<Option<String>, String> {
+        if payload.get(..8) != Some(MAGIC.as_slice()) {
+            return Ok(None);
+        }
+        let mut reader = Reader {
+            bytes: payload,
+            at: 24,
+        };
+        let entry = decode_entry(&mut reader)?;
+        if reader.at != payload.len() {
+            return Err("trailing Dream Freshness journal bytes".into());
+        }
+        Ok(match entry {
+            DreamEntry::Settled(pass_id) => Some(pass_id),
+            _ => None,
+        })
     }
 
     pub(crate) fn new(owner_uuid: Option<[u8; 16]>) -> Self {
@@ -665,6 +668,10 @@ impl DirectBirthPrefix {
 
     pub(crate) fn pending_intents(&self) -> &BTreeMap<MemoryId, String> {
         &self.pending_intents
+    }
+
+    pub(crate) fn pending_initializations(&self) -> Vec<(MemoryId, String, u64, bool)> {
+        self.journal.pending_initializations()
     }
 
     pub(crate) fn consumed_intents(&self) -> &BTreeMap<MemoryId, BTreeSet<String>> {

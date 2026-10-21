@@ -1,4 +1,5 @@
-use crate::{Archive, Container, CvaError};
+use crate::{Archive, Container, CvaError, InitialDreamPass, MemoryId};
+use std::collections::BTreeMap;
 
 /// Replay Dream journal records in physical order once Memory and source
 /// admission state are finalized. Current compact Begins bind to the prefix
@@ -10,19 +11,35 @@ pub(crate) fn replay_with_population(
     memories: &crate::memory_store::MemoryStore,
     journal: &mut crate::freshness_dream_journal::DreamFreshnessJournal,
 ) -> Result<(), CvaError> {
-    if container.version().major == 1 {
-        return Err(CvaError::Freshness(
-            "CVDREAM2 Begin is not admitted in a V1 container".into(),
-        ));
-    }
+    replay_with_population_and_visit(container, archive, memories, journal, |_, _| Ok(()))
+}
 
+/// Replay the physical Dream stream, allowing a concrete owner coordinator to
+/// observe each frame immediately before it changes the resident journal.
+pub(crate) fn replay_with_population_and_visit(
+    container: &mut Container,
+    archive: &Archive,
+    memories: &crate::memory_store::MemoryStore,
+    journal: &mut crate::freshness_dream_journal::DreamFreshnessJournal,
+    mut before_frame: impl FnMut(
+        &[u8],
+        &crate::freshness_dream_journal::DreamFreshnessJournal,
+    ) -> Result<(), CvaError>,
+) -> Result<(), CvaError> {
     let mut prefix = container
         .owner_uuid()
         .map(crate::cva_dream_population::DreamPopulationPrefix::new);
     let owner = container.owner_uuid();
+    let is_v1 = container.version().major == 1;
     let end = container.physical_length()?;
     container.visit_versioned_payloads_through(end, |chunk, payload, global_frontier| {
+        before_frame(payload, journal)?;
         if payload.starts_with(b"CVDREAM2") {
+            if is_v1 {
+                return Err(CvaError::Freshness(
+                    "CVDREAM2 Begin is not admitted in a V1 container".into(),
+                ));
+            }
             let owner = owner.ok_or_else(|| {
                 CvaError::Freshness("CVDREAM2 Begin requires a versioned owner identity".into())
             })?;
@@ -77,4 +94,59 @@ pub(crate) fn replay_with_population(
         }
         Ok(())
     })
+}
+
+/// Reconstruct completed first-cycle proofs from the complete REL history.
+/// This deliberately replays the actual legacy/current Begin authority before
+/// collecting settled proofs, so CompactCut uses the same physical prefix
+/// reconstruction as ordinary owner replay.
+pub(crate) fn retained_completed_passes(
+    container: &Container,
+    archive: &Archive,
+    memories: &crate::memory_store::MemoryStore,
+) -> Result<BTreeMap<MemoryId, InitialDreamPass>, CvaError> {
+    let owner = container.owner_uuid();
+    if owner.is_none() {
+        return Err(CvaError::Freshness(
+            "historical Dream proof requires a durable REL owner".into(),
+        ));
+    }
+    let mut scan = Container::open_read_only_for_scan(container.path())?;
+    if scan.owner_uuid() != owner {
+        return Err(CvaError::Freshness(
+            "historical Dream proof owner changed during read".into(),
+        ));
+    }
+    let mut journal = crate::freshness_dream_journal::DreamFreshnessJournal::new(owner);
+    let mut completed = BTreeMap::new();
+    replay_with_population_and_visit(
+        &mut scan,
+        archive,
+        memories,
+        &mut journal,
+        |payload, state| {
+            let Some(pass_id) =
+                crate::freshness_dream_journal::DreamFreshnessJournal::settled_pass_id(payload)
+                    .map_err(CvaError::Freshness)?
+            else {
+                return Ok(());
+            };
+            let Some(pass) = state.pending(&pass_id) else {
+                return Ok(());
+            };
+            // A bare/replayed settled marker is not proof of an empty result.
+            if state.accepted_graph_cut(&pass.pass_id).is_none() {
+                return Ok(());
+            }
+            if let Some(old) = completed.insert(pass.source_id, pass.clone())
+                && old != pass
+            {
+                return Err(CvaError::Freshness(
+                    "conflicting retained first-cycle proof".into(),
+                ));
+            }
+            Ok(())
+        },
+    )?;
+    Ok(completed)
 }

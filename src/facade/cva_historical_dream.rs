@@ -12,9 +12,10 @@ impl Cva {
                 "historical Dream proof requires a durable REL owner".into(),
             ));
         }
-        crate::freshness_dream_journal::DreamFreshnessJournal::retained_completed_passes(
+        crate::cva_dream_journal_replay::retained_completed_passes(
             &self.container,
-            self.owner_uuid(),
+            &self.archive,
+            &self.memories,
         )
     }
 

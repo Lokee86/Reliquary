@@ -6,7 +6,7 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(crate) fn begin_initial_pass(
     cva: &mut Cva,
     source_id: MemoryId,
-    candidate_ids: impl Iterator<Item = MemoryId>,
+    _candidate_ids: impl Iterator<Item = MemoryId>,
 ) -> Result<Option<crate::InitialDreamPass>, crate::CvaError> {
     if let Some(pending) = cva.pending_initial_dream_pass(source_id) {
         return Ok(Some(pending));
@@ -34,24 +34,11 @@ pub(crate) fn begin_initial_pass(
         return Ok(None);
     }
 
-    let mut preexisting_ids = BTreeSet::new();
-    let candidates = candidate_ids
-        .chain(cva.freshness_publication_birth_ids())
-        .collect::<BTreeSet<_>>();
-    for id in candidates {
-        if id == source_id {
-            continue;
-        }
-        let first_memory = cva.memory_revision(id, 1).map_err(crate::CvaError::from)?;
-        let same_grouped_birth = cva.freshness_same_publication_cohort(source_id, id)?;
-        let has_durable_birth = cva.freshness_is_publication_birth(id);
-        if !same_grouped_birth
-            && has_durable_birth
-            && first_memory.global_version < first.global_version
-        {
-            preexisting_ids.insert(id);
-        }
-    }
+    // Ranking inputs cannot narrow durable first-pass authority. Capture the
+    // same accepted physical birth/cohort prefix used by compact Begin replay.
+    let prefix_end = cva.container.physical_length()?;
+    let preexisting_ids =
+        cva.dream_population_at_prefix(prefix_end, cva.memory_version(), source_id)?;
     cva.begin_initial_dream_pass(
         pass_id,
         source_id,

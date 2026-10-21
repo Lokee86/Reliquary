@@ -5,13 +5,13 @@ Parent index: [Documentation index](INDEX.md)
 ## Purpose
 
 This is a design contract for the Memory-local identity prefix and its use when
-reconstructing a historical Dream population. The Memory metadata reader and private REL birth/cohort prefix projections implement these authority rules. Current Begin encoding/decoding and physical-prefix replay are implemented privately; ordinary writer integration remains a separate gate in the
+reconstructing a historical Dream population. The Memory metadata reader and private REL birth/cohort prefix projections implement these authority rules. Current Begin encoding/decoding, physical-prefix replay, ordinary writing and exact destination transport are implemented privately; acceptance and retirement remain tracked in the
 [linear storage plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md). The [storage format](storage-format.md) describes the current
 transitional format and implementation status.
 
 ## Overview
 
-Memory owns the accepted first-publication identity prefix. REL coordination combines that prefix with accepted birth/cohort evidence and the existing Dream source-global predicate. Physical compact encoding remains a separate execution gate.
+Memory owns the accepted first-publication identity prefix. REL coordination combines that prefix with accepted birth/cohort evidence and the existing Dream source-global predicate. Physical compact encoding stores cut/digest authority only after exact population equality is proved; exceptions retain literal sets.
 
 ## Memory-local identity prefix
 
@@ -124,7 +124,7 @@ admission or replace its immutable set with an inferred one.
 The frozen target is a clock-neutral V2-container Begin payload with magic
 `CVDREAM2`. It allocates no Container global ticket and adds no birth clock.
 Encoder, decoder, owner replay and ordinary writer integration have separate
-acceptance steps; freezing this contract does not enable runtime writing.
+acceptance steps; ordinary writing now uses the validated current encoding.
 
 All integers are unsigned little-endian. The shared fields occur in this order:
 
@@ -179,7 +179,7 @@ conversion must leave source bytes unchanged.
 
 ## Notes
 
-This contract adds no persisted clock and does not alter source admission rules. Runtime writer cutover, migration, destination exceptions and corpus measurements remain separate gates.
+This contract adds no persisted clock and does not alter source admission rules. Runtime writing and offline conversion choose CompactCut only after exact prefix equality; unequal destination/legacy populations retain ExplicitSet. Empty populations use the smaller explicit form. Copy, prune and reclaim preserve prefix authority. Fresh-history rewrite intentionally discards old pass history under its existing policy; no obsolete cut is carried into the new generation. Final corpus promotion and legacy retirement remain separately gated.
 
 ## Related docs
 

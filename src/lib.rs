@@ -358,6 +358,8 @@ pub use cva_historical_import::{
     HistoricalEmbeddingLimits, HistoricalEmbeddingReport, HistoricalReconstructionError,
     HistoricalReconstructionOptions, HistoricalReconstructionReport,
 };
+#[path = "facade/cva_dream_begin_transport.rs"]
+mod cva_dream_begin_transport;
 #[path = "facade/cva_dream_journal_replay.rs"]
 mod cva_dream_journal_replay;
 #[path = "facade/cva_historical_freshness.rs"]

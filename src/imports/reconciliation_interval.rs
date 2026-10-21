@@ -254,22 +254,51 @@ pub(super) fn replay_frame(
     crate::cva_reconcile_freshness::replay_freshness_payload(source, output, payload, |p| {
         coordinates.proof(p)
     })?;
-    if payload.starts_with(b"CVDREAM1") {
+    if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
+        let chunk = *source
+            .container
+            .chunks()?
+            .get(index)
+            .ok_or_else(|| unsupported("Dream source physical frame is absent"))?;
+        let explicit = if let Some(pass) = source.materialized_dream_begin(chunk, payload)? {
+            crate::freshness_dream_journal::DreamFreshnessJournal::new(source.owner_uuid())
+                .begin_payload(&pass)
+                .map_err(CvaError::Freshness)?
+        } else {
+            payload.to_vec()
+        };
         let rebased = output
             .dream_freshness
             .replay_payload(
-                payload,
+                &explicit,
                 |cut| turn(source, output, cut),
                 |cut| Coordinates::map(&coordinates.graph, cut).map_err(|e| e.to_string()),
                 |p| coordinates.proof(p).map_err(|e| e.to_string()),
             )
             .map_err(CvaError::Freshness)?;
         if !rebased.is_empty() {
-            output.container.append(&rebased)?;
-            output
-                .dream_freshness
-                .ingest(&rebased)
-                .map_err(CvaError::Freshness)?;
+            let owner = output
+                .owner_uuid()
+                .ok_or_else(|| unsupported("Dream destination lacks owner"))?;
+            if let Some(pass) =
+                crate::freshness_dream_journal::DreamFreshnessJournal::decode_explicit_begin(
+                    &rebased, owner,
+                )
+                .map_err(CvaError::Freshness)?
+            {
+                let current = output.current_dream_begin_payload(&pass)?;
+                output.container.append(&current)?;
+                output
+                    .dream_freshness
+                    .ingest_materialized_begin(owner, pass)
+                    .map_err(CvaError::Freshness)?;
+            } else {
+                output.container.append(&rebased)?;
+                output
+                    .dream_freshness
+                    .ingest(&rebased)
+                    .map_err(CvaError::Freshness)?;
+            }
         }
     }
     if payload.starts_with(b"CVAPEP01") {

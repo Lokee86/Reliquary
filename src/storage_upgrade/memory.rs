@@ -241,6 +241,11 @@ fn transform_owners(
     } else {
         super::graph_envelope::GraphEnvelopePlan::default()
     };
+    let dream_begins = if migrate_graph_envelopes {
+        super::dream_begin::prepare(source)?
+    } else {
+        BTreeMap::new()
+    };
     let mut state = crate::memory_rebuild::MemoryOpenState::new();
     let mut publications = BTreeMap::new();
     let mut imports = crate::imports::ImportEpochStore::default();
@@ -338,7 +343,9 @@ fn transform_owners(
         {
             return Ok(());
         }
-        let transformed = if let Some(envelope) = envelope_plan.markers.get(&object) {
+        let transformed = if let Some(begin) = dream_begins.get(&object) {
+            begin.clone()
+        } else if let Some(envelope) = envelope_plan.markers.get(&object) {
             envelope.clone()
         } else if let Some(envelope) = entity_envelope_plan.markers.get(&object) {
             envelope.clone()

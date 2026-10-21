@@ -166,15 +166,9 @@ fn import_and_finish_with_grouped_memory(cva: &mut Cva, namespace: &str, now_ns:
     // proves that empty roots are accepted source evidence rather than absent data.
     let pass_id = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), memory_id);
     let turn = cva.rel_turn_count();
-    cva.begin_initial_dream_pass(
-        pass_id.clone(),
-        memory_id,
-        1,
-        turn,
-        std::collections::BTreeSet::new(),
-        cva.graph_version(),
-    )
-    .unwrap();
+    crate::dream_freshness::begin_initial_pass(cva, memory_id, std::iter::empty())
+        .unwrap()
+        .unwrap();
     cva.reconcile_dream_lifecycle(memory_id).unwrap();
     cva.mark_dream_processed(memory_id, 0, now_ns + 3).unwrap();
     cva.record_initial_dream_roots(&pass_id, std::collections::BTreeSet::new())
@@ -509,6 +503,96 @@ fn identical_completed_epoch_is_deduplicated_while_archive_tails_merge() {
             .len(),
         1
     );
+}
+
+#[test]
+fn compact_import_dream_population_becomes_explicit_when_destination_has_an_extra_birth() {
+    let f = Fixture::new();
+    let left_path = f.rel("population-left.rel");
+    let right_path = f.rel("population-right.rel");
+    let merged_path = f.rel("population-merged.rel");
+    let mut seed = Cva::create(&left_path).unwrap();
+    import_and_finish_with_grouped_memory(&mut seed, "population/common", 100);
+    let common = seed.memory_ids()[0];
+    seed.sync().unwrap();
+    drop(seed);
+    fs::copy(&left_path, &right_path).unwrap();
+    let mut left = Cva::open(&left_path).unwrap();
+    import_and_finish_with_grouped_memory(&mut left, "population/left", 200);
+    left.sync().unwrap();
+    drop(left);
+    let mut right = Cva::open(&right_path).unwrap();
+    import_and_finish_with_grouped_memory(&mut right, "population/right", 300);
+    let source = right
+        .memory_ids()
+        .into_iter()
+        .find(|id| *id != common)
+        .unwrap();
+    let pass = right
+        .historical_completed_initial_dream_passes()
+        .unwrap()
+        .remove(&source)
+        .unwrap();
+    assert_eq!(
+        pass.preexisting_ids,
+        std::collections::BTreeSet::from([common])
+    );
+    let mut saw_compact = false;
+    right
+        .container
+        .visit_payloads::<crate::CvaError>(|_, payload| {
+            if payload.starts_with(b"CVDREAM2") {
+                let record = crate::dream_begin_codec::decode(payload).unwrap();
+                if record.source_id == source {
+                    saw_compact = matches!(
+                        record.population,
+                        crate::dream_begin_codec::BeginPopulation::CompactCut { .. }
+                    );
+                }
+            }
+            Ok(())
+        })
+        .unwrap();
+    assert!(saw_compact);
+    right.sync().unwrap();
+    drop(right);
+    let left_bytes = fs::read(&left_path).unwrap();
+    let right_bytes = fs::read(&right_path).unwrap();
+    Cva::reconcile(&left_path, &right_path, &merged_path).unwrap();
+    let mut merged = Cva::open(&merged_path).unwrap();
+    let rebased = merged
+        .historical_completed_initial_dream_passes()
+        .unwrap()
+        .remove(&source)
+        .unwrap();
+    assert_eq!(rebased.preexisting_ids, pass.preexisting_ids);
+    assert_eq!(rebased.roots, pass.roots);
+    let mut saw_exception = false;
+    merged.container.visit_payloads::<crate::CvaError>(|_, payload| {
+        if payload.starts_with(b"CVDREAM2") {
+            let record = crate::dream_begin_codec::decode(payload).unwrap();
+            if record.source_id == source {
+                saw_exception = matches!(record.population, crate::dream_begin_codec::BeginPopulation::ExplicitSet(ref ids) if ids == &pass.preexisting_ids);
+            }
+        }
+        Ok(())
+    }).unwrap();
+    assert!(saw_exception);
+    drop(merged);
+    let repeated = f.rel("population-repeated.rel");
+    // The existing completed-import comparison also binds the Freshness
+    // recipient base. A new left birth changes that base, so a repeat remains
+    // an explicit epoch conflict; preserving Dream membership cannot relax
+    // independent settlement authority. Equal-base retries are covered above.
+    assert!(matches!(
+        Cva::reconcile(&merged_path, &right_path, &repeated),
+        Err(crate::CvaReconcileError::Conflict(
+            crate::CvaReconcileConflict::ImportEpoch { .. }
+        ))
+    ));
+    assert!(!repeated.exists());
+    assert_eq!(fs::read(&left_path).unwrap(), left_bytes);
+    assert_eq!(fs::read(&right_path).unwrap(), right_bytes);
 }
 
 #[test]

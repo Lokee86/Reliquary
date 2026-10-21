@@ -550,13 +550,14 @@ impl Cva {
                 .pending_for_source(source_id)
                 .ok_or_else(|| CvaError::Freshness("pass receipt missing".into()));
         }
+        let payload = self.current_dream_begin_payload(&pass)?;
         self.freshness
             .persist_policy_if_needed(&mut self.container, owner)
             .map_err(CvaError::Freshness)?;
         self.container.append(&payload)?;
         self.container.sync()?;
         self.dream_freshness
-            .ingest(&payload)
+            .ingest_materialized_begin(owner, pass)
             .map_err(CvaError::Freshness)?;
         self.dream_freshness
             .pending_for_source(source_id)

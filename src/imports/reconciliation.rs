@@ -229,10 +229,17 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 normalize_event_coordinates(&mut event);
                 events.push(event);
             }
-            if payload.starts_with(b"CVDREAM1") {
+            if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
+                let explicit = if let Some(pass) = cva.materialized_dream_begin(chunk, &payload)? {
+                    crate::freshness_dream_journal::DreamFreshnessJournal::new(cva.owner_uuid())
+                        .begin_payload(&pass)
+                        .map_err(crate::CvaError::Freshness)?
+                } else {
+                    payload.clone()
+                };
                 let normalized = normalized_dream
                     .replay_payload(
-                        &payload,
+                        &explicit,
                         |_| Ok(0),
                         |_| Ok(0),
                         |mut p| {
@@ -384,6 +391,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
                 .map_err(crate::CvaError::Freshness)?
                 .is_empty()
             || payload.starts_with(b"CVDREAM1")
+            || payload.starts_with(b"CVDREAM2")
             || payload.starts_with(b"CVAPEP01")
         {
             continue;

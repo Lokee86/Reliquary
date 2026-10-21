@@ -405,3 +405,11 @@ impl Cva {
         state.materialize(&self.memories, Some(owner), memory_cut, source_id)
     }
 }
+
+#[cfg(test)]
+#[path = "dream_population_authority_tests.rs"]
+mod authority_tests;
+
+#[cfg(test)]
+#[path = "dream_population_proof_tests.rs"]
+mod proof_tests;

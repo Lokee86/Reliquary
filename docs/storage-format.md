@@ -926,7 +926,23 @@ N bytes   contiguous rows
 Packed-vector ID is SHA-256 over `"CVA-PACKED-VECTOR-V1\0"`, dimensions, scalar tag, and exact matrix bytes.
 Freshness P2 changes only transient event scheduling and whether diagnostic counters are collected. P4 adds a fixed 8,192-byte receipt membership bitset and completeness flag as owner-local, rebuildable acceleration state; it is never serialized, and exact positive lookup and canonical replay still read the accepted journal. These phases add no persisted chunk, magic, version, identity encoding, accepted effect, or score-policy change.
 
-### Dream Freshness pass journal (`CVDREAM1`)
+### Dream Freshness pass journal (`CVDREAM1`, `CVDREAM2`)
+
+Current Begin writes use clock-neutral `CVDREAM2`: owner UUID, population tag,
+u32-length pass ID, source Memory ID, original turn and Graph baseline. Revision
+1 is implicit. Tag 0 adds a nonzero Memory-local cut and a 32-byte population
+digest; tag 1 adds a sorted unique explicit ID set. Compact authority requires
+exact population equality at the physical prefix before Begin. Empty populations
+use the smaller explicit encoding; manual subsets and unequal destination
+prefixes also remain explicit. The [population contract](dream-population-contract-2026-10-21.md)
+defines complete wire validation and the digest domain. Runtime capture and
+historical/completed-proof readers use the same accepted birth/cohort prefix.
+Import normalization resolves source authority before rebasing, then checks the
+destination prefix before compact emission. The temporary graph-envelope upgrade
+stage also converts old Begins without changing their evidence positions.
+
+Other journal kinds retain `CVDREAM1` framing. Kind 0 below is transitional
+offline conversion input; ordinary Begin writing no longer emits it.
 
 Each chunk begins with eight-byte magic, sixteen-byte owner UUID and a u8 kind. Strings are u32-length UTF-8; Memory IDs are 32 bytes; numeric turns/versions are little-endian u64; sets are u32-count sorted unique IDs.
 

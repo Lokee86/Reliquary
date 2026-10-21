@@ -430,6 +430,22 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     cva.sync().unwrap();
     let identity = cva.container.identity().unwrap();
     let owner_uuid = cva.container.owner_uuid().unwrap();
+    // Build actual legacy Begin carriers before reheadering the fixture. The
+    // ordinary writer is current-only; changing a header must never disguise
+    // current compact authority as V1 input.
+    let mut legacy_begins = BTreeMap::new();
+    for object in cva.container.chunks().unwrap() {
+        let payload = cva.container.read(object).unwrap();
+        if payload.starts_with(b"CVDREAM2") {
+            let pass = cva
+                .materialized_dream_begin(object, &payload)
+                .unwrap()
+                .unwrap();
+            let journal =
+                crate::freshness_dream_journal::DreamFreshnessJournal::new(Some(owner_uuid));
+            legacy_begins.insert(object, journal.begin_payload(&pass).unwrap());
+        }
+    }
     let mut copied = Container::create_with_identity_and_uuid(path, identity, owner_uuid).unwrap();
     let mut relocated = BTreeMap::new();
     let records = cva.memories.records().to_vec();
@@ -437,7 +453,9 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     let mut archive_applying = BTreeMap::new();
     cva.container
         .visit_payloads::<crate::ContainerError>(|object, payload| {
-            let transformed = if legacy_completion && payload.starts_with(b"CVAINSC7") {
+            let transformed = if let Some(begin) = legacy_begins.get(&object) {
+                begin.clone()
+            } else if legacy_completion && payload.starts_with(b"CVAINSC7") {
                 completion_count += 1;
                 let decoded = decode_completion(payload).unwrap().unwrap();
                 legacy_payload(6, &decoded)

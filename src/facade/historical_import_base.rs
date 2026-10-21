@@ -17,7 +17,7 @@ impl Cva {
         let mut prefix = crate::freshness_storage::FreshnessStore::new(Some(owner));
         prefix.bind_history_path(self.container.path(), 0);
         prefix.begin_rebuild();
-        let mut dream_prefix = crate::freshness_dream_journal::DreamFreshnessJournal::default();
+        let mut dream_prefix = crate::freshness_dream_journal::DirectBirthPrefix::new(owner);
         let mut represented = std::collections::BTreeSet::new();
         let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
         scan.visit_payloads_through::<CvaError>(scope.start_offset, |object, payload| {
