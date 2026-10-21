@@ -8,6 +8,8 @@ mod archive_envelope_tests;
 mod dream_begin;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod dream_begin_authoritative_tests;
+#[cfg(all(test, feature = "history-oracle-fixtures"))]
+mod dream_pair_authoritative_tests;
 mod ego;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 mod ego_authoritative_tests;

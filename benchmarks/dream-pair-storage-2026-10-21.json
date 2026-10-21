@@ -1,0 +1,119 @@
+{
+  "compression_included": false,
+  "date": "2026-10-21",
+  "family": "Dream pair",
+  "fixtures": [
+    {
+      "current_framed_bytes": 26600,
+      "current_pair_records": 428,
+      "current_payload_bytes": 20664,
+      "dream_proof_equal": true,
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "legacy_framed_bytes": 34240,
+      "legacy_pair_records": 428,
+      "legacy_payload_bytes": 30816,
+      "mapping_records": 314,
+      "pair_fingerprint_equal": true,
+      "sha256": "d3a0a8023a91690fd7f9def8ab4b9f8095cb116a422f9cacf564576fd2e41055",
+      "source_unchanged": true
+    },
+    {
+      "current_framed_bytes": 0,
+      "current_pair_records": 0,
+      "current_payload_bytes": 0,
+      "dream_proof_equal": null,
+      "fixture": "chatgpt-first14d/user.phy",
+      "legacy_framed_bytes": 0,
+      "legacy_pair_records": 0,
+      "legacy_payload_bytes": 0,
+      "mapping_records": 0,
+      "pair_fingerprint_equal": true,
+      "sha256": "aa92f99110e55efc0b498b9603a5ffe75b67eb04f0d5ba327cff998c3bc4e130",
+      "source_unchanged": true
+    },
+    {
+      "current_framed_bytes": 618992,
+      "current_pair_records": 20158,
+      "current_payload_bytes": 436928,
+      "dream_proof_equal": true,
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "legacy_framed_bytes": 1612640,
+      "legacy_pair_records": 20158,
+      "legacy_payload_bytes": 1451376,
+      "mapping_records": 2600,
+      "pair_fingerprint_equal": true,
+      "sha256": "de4754f9c7c03022f218dcd3e88a496ce84cc7b6e01e66d3e124278fcfd03d7a",
+      "source_unchanged": true
+    },
+    {
+      "current_framed_bytes": 49260,
+      "current_pair_records": 1591,
+      "current_payload_bytes": 34828,
+      "dream_proof_equal": null,
+      "fixture": "chatgpt-first28d/user.phy",
+      "legacy_framed_bytes": 127280,
+      "legacy_pair_records": 1591,
+      "legacy_payload_bytes": 114552,
+      "mapping_records": 213,
+      "pair_fingerprint_equal": true,
+      "sha256": "b1f37b9a1dd108259754d5eb702e6782eb711f343f7a22b2c1bac7452161a58e",
+      "source_unchanged": true
+    },
+    {
+      "current_framed_bytes": 241172,
+      "current_pair_records": 8478,
+      "current_payload_bytes": 167548,
+      "dream_proof_equal": true,
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "legacy_framed_bytes": 678240,
+      "legacy_pair_records": 8478,
+      "legacy_payload_bytes": 610416,
+      "mapping_records": 725,
+      "pair_fingerprint_equal": true,
+      "sha256": "a14e6b7499731dbf397a2d7d1758c393889b1bc53677b32b9e577fefd7b7a59e",
+      "source_unchanged": true
+    },
+    {
+      "current_framed_bytes": 155000,
+      "current_pair_records": 5453,
+      "current_payload_bytes": 107664,
+      "dream_proof_equal": null,
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "legacy_framed_bytes": 436240,
+      "legacy_pair_records": 5453,
+      "legacy_payload_bytes": 392616,
+      "mapping_records": 464,
+      "pair_fingerprint_equal": true,
+      "sha256": "110301f1f12873b8ac1a2eb5000a004fdcd0287d7e141622e6cd18e7b2afe937",
+      "source_unchanged": true
+    }
+  ],
+  "reference_table_included": true,
+  "schema": 1,
+  "synthetic": [
+    {
+      "current_framed_bytes": 128,
+      "current_payload_bytes": 104,
+      "legacy_framed_bytes": 80,
+      "legacy_payload_bytes": 72,
+      "memories": 2,
+      "pairs": 1
+    },
+    {
+      "current_framed_bytes": 352,
+      "current_payload_bytes": 272,
+      "legacy_framed_bytes": 480,
+      "legacy_payload_bytes": 432,
+      "memories": 4,
+      "pairs": 6
+    },
+    {
+      "current_framed_bytes": 3712,
+      "current_payload_bytes": 2624,
+      "legacy_framed_bytes": 9600,
+      "legacy_payload_bytes": 8640,
+      "memories": 16,
+      "pairs": 120
+    }
+  ]
+}

@@ -49,6 +49,16 @@ C9 fixtures live in `src/facade/historical_matrix_{tests,semantic_tests,dream_te
 
 Retained-REL diagnosis uses `historical_retained_corpus_tests.rs` / `historical_retained_diagnostics.rs` under the same private Cva test owner, orchestrated by `scripts/freshness_historical_corpus.py`. Route clock, legacy-cohort, generation/branch coverage and Dream approximation work to the [C10 diagnosis](freshness-historical-completion-execution-plan-2026-10-12.md#c10-retained-corpus-failure-diagnosis--2026-10-12); current blockers remain in [Current limitations](current-limitations.md). Diagnostic fixtures cannot authorize publication or bypass native gates.
 
+## Dream pair history
+
+`src/runtime_inference/dream_pair_history.rs` owns clock-neutral pair membership
+and its per-owner physical ID table; `dream_pair_codec.rs` owns fixed wire fields
+and `dream_pair_history_tests.rs` covers malformed mappings, retries, both-owner
+reopen/conversion and raw table costs. `src/storage_upgrade/memory.rs` invokes
+this owner while transporting old pair frames, and
+`storage_upgrade/dream_pair_authoritative_tests.rs` compares pinned pair and REL
+Dream proof fingerprints with source-hash and raw-byte accounting.
+
 ## Dream population prefix coordination
 
 `src/facade/cva_dream_population.rs` owns the private REL coordination of Memory first-publication metadata, direct Dream birth evidence, and accepted Insomnia/external birth cohorts at a physical boundary. Memory owns identity/local-version reconstruction; each source retains its birth/cohort proof validation; Container supplies a bounded read-only versioned visitor. The coordinator resolves no bodies and does not use current liveness or end-of-file birth indexes. `src/facade/cva_dream_journal_replay.rs` owns current Begin replay binding after source admission, while the Dream journal retains pass identity, roots and settlement semantics. `src/facade/cva_dream_begin_transport.rs` owns source-prefix materialization and exact destination encoding, used by import normalization/replay and ordinary Begin capture. `src/storage_upgrade/dream_begin.rs` is the temporary V1 converter. `dream_population_authority_tests.rs`, `dream_population_proof_tests.rs`, and `storage_upgrade/dream_begin_authoritative_tests.rs` cover authority, proof parity, transformations and raw-byte measurements. The [population contract](dream-population-contract-2026-10-21.md) defines authority; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) separately tracks compact wire, replay and ordinary writer integration.

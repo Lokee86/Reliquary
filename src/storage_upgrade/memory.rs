@@ -332,7 +332,18 @@ fn transform_owners(
         encoded.insert((record.global_version, record.memory_version), bytes);
     }
     let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
+    let mut dream_pairs = crate::dream_pair_history::DreamPairStore::default();
     source.visit_payloads(|object, payload| -> Result<(), StorageUpgradeError> {
+        if migrate_graph_envelopes {
+            if let Some((left, right)) =
+                crate::dream_pair_history::DreamPairStore::decode_legacy_pair(payload)?
+            {
+                // Pair membership is clock-neutral and has no inbound physical
+                // references. Emit local mappings before its original pair slot.
+                dream_pairs.put(destination, left, right)?;
+                return Ok(());
+            }
+        }
         // Only accepted direct carriers are omitted. Orphans remain inert,
         // and each replacement stays at the original publication marker slot.
         if envelope_plan.carriers.contains(&object)

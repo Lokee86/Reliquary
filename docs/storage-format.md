@@ -849,12 +849,41 @@ u64       last satisfied provenance-relative Dream epoch
 Completed unordered Dream-pair evaluation:
 
 ```text
-8 bytes   "CVADRP01"
-32 bytes  lower canonical MemoryId
-32 bytes  upper canonical MemoryId
+8 bytes   "CVADRM01"
+u32       nonzero owner-local physical reference
+32 bytes  MemoryId
+
+8 bytes   "CVADRP02"
+u32       reference to lower canonical MemoryId
+u32       reference to upper canonical MemoryId
 ```
 
-The two IDs are stored in canonical byte order, so evaluating the pair from either source direction has one identity. Self-pairs are invalid. A record means Dream successfully completed evaluation/publication for that immutable Memory pair, including a `none` classification or withheld relation that produced no Graph edge. Candidate discovery excludes these pairs, as well as pairs already connected by an active Graph edge, before bounded candidate ranking.
+Mapping references start at 1 and grow contiguously in first-use order. One ID has
+one reference; exact mapping retries are idempotent, while aliasing, gaps and
+conflicting bindings reject. Every mapped ID must belong to the containing
+owner's retained Memory history, including a mapping left by an interrupted
+append before its pair. Both mappings must precede use. Numeric references need
+not be sorted: after resolving them, the IDs must be in strict canonical byte
+order. Missing mappings, self-pairs, reversed IDs, malformed framing and unknown
+versions reject before membership changes. References belong only to this
+physical pair stream and are never semantic IDs, Memory versions or clocks.
+
+The resolved two IDs have canonical byte order, so evaluating the pair from
+either source direction has one identity. A record means Dream successfully
+completed evaluation/publication for that immutable Memory pair, including a
+`none` classification or withheld relation that produced no Graph edge.
+Candidate discovery excludes these pairs, as well as pairs already connected by
+an active Graph edge, before bounded candidate ranking.
+
+Ordinary writers emit mappings as needed and only compact pairs. The temporary
+V1 decoder accepts the original 72-byte `CVADRP01` full-ID records for offline
+conversion; the private graph-envelope stage translates those memberships in
+physical order. Current mappings/pairs are rejected by V1 inspection. Explicit
+legacy fixture construction restores full-ID carriers before reheadering.
+Copy/prune/reclaim preserve mapping records; semantic replay builds a fresh
+destination table from stable pair IDs. Mapping overhead can increase tiny
+histories: raw accounting includes 44 payload bytes plus 8 framing bytes per
+distinct endpoint, alongside 16 payload bytes plus 8 framing bytes per pair.
 
 Cooldown records reconstruct the maximum satisfied epoch and latest available successful-processing timestamp per Memory. Pair records reconstruct a set union. Divergent REL reconciliation applies those same monotonic merge rules. Explicit legacy REL/PHY migration copies both record families after their Memory endpoints have been republished. These records consume no `CVAVERS1`, Archive version, Memory version, Graph version, or Vector Generation version.
 

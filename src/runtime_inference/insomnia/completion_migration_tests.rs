@@ -434,8 +434,20 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     // ordinary writer is current-only; changing a header must never disguise
     // current compact authority as V1 input.
     let mut legacy_begins = BTreeMap::new();
+    let mut legacy_pairs = BTreeMap::new();
+    let mut pair_mappings = std::collections::HashSet::new();
     for object in cva.container.chunks().unwrap() {
         let payload = cva.container.read(object).unwrap();
+        if payload.starts_with(b"CVADRM01") {
+            pair_mappings.insert(object);
+        }
+        if payload.starts_with(b"CVADRP02") {
+            let (left, right) = cva.dream_pairs.current_pair(&payload).unwrap().unwrap();
+            let mut legacy = b"CVADRP01".to_vec();
+            legacy.extend_from_slice(&left.0);
+            legacy.extend_from_slice(&right.0);
+            legacy_pairs.insert(object, legacy);
+        }
         if payload.starts_with(b"CVDREAM2") {
             let pass = cva
                 .materialized_dream_begin(object, &payload)
@@ -453,8 +465,13 @@ fn copy_with_legacy_publications(cva: &mut Cva, path: &Path, legacy_completion: 
     let mut archive_applying = BTreeMap::new();
     cva.container
         .visit_payloads::<crate::ContainerError>(|object, payload| {
+            if pair_mappings.contains(&object) {
+                return Ok(());
+            }
             let transformed = if let Some(begin) = legacy_begins.get(&object) {
                 begin.clone()
+            } else if let Some(pair) = legacy_pairs.get(&object) {
+                pair.clone()
             } else if legacy_completion && payload.starts_with(b"CVAINSC7") {
                 completion_count += 1;
                 let decoded = decode_completion(payload).unwrap().unwrap();

@@ -184,6 +184,14 @@ impl Phylactery {
                     .ingest(payload)
                     .map_err(PhylacteryError::Profile)?;
                 processing_epochs.ingest(payload)?;
+                if required_version.is_some_and(|version| version.major == 1)
+                    && DreamPairStore::is_compact_payload(payload)
+                {
+                    return Err(crate::MemoryError::CorruptRecord(
+                        "compact Dream pair in V1 input",
+                    )
+                    .into());
+                }
                 dream_pairs.ingest(payload)?;
                 ego.ingest(payload)?;
                 entity_resolutions.ingest(payload)?;

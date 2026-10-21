@@ -51,6 +51,16 @@ REL's private Dream population coordinator combines accepted first Memory identi
 
 The read-only reconstruction seam is in `facade/cva_dream_population.rs`. Current CVDREAM2 Begin replay is coordinated by `facade/cva_dream_journal_replay.rs` after accepted Memory and source metadata are available. It scans the held container in physical order, checks compact cut/digest authority before each Begin, and admits explicit exception sets literally into the existing materialized journal API. Legacy-only files retain their original replay path; end-of-file pending-intent Freshness recovery remains separate from Begin-prefix reconstruction. Runtime Begin capture now uses that same prefix. `facade/cva_dream_begin_transport.rs` resolves source Begins before import normalization and permits destination compact encoding only after exact set equality; otherwise it emits literal exceptions. Historical completed-proof readers share ordered replay. Copy, prune and reclaim retain prefix facts; fresh-history rewrite intentionally discards old pass history under its existing generation policy. Ordinary Begins now use CVDREAM2; the temporary offline graph-envelope stage converts legacy Begins at their original slots. Further retirement and integration remain tracked in the [linear storage plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md). See the [population contract](dream-population-contract-2026-10-21.md).
 
+## Compact Dream pair history
+
+DreamPairStore owns a per-file physical Memory-ID table and canonical semantic
+pair membership. The private `runtime_inference/dream_pair_codec.rs` encodes
+only mapping and pair fields; the store validates dense unique mappings,
+backward references and resolved identity order before admitting membership.
+Memory remains authority for historical endpoint existence. Reconciliation and
+owner APIs exchange stable Memory IDs and reconstruct destination mappings;
+physical references do not cross owner boundaries or allocate semantic clocks.
+
 ## Freshness retrieval and consumption
 
 All internal Memory retrieval, including content, provenance, graph and Freshness metadata inspection, is non-reinforcing. The [agentic retrieval controller](agentic-memory-retrieval-design-2026-10-15.md) now implements the REL-only three-operation workflow: full lexical/exact-semantic candidate union before the Freshness top-ten cut, deterministic refinement of declined candidates in bounded batches, and concurrent one-hop exploration in both directions per anchor with independent ten-candidate limits. The host owns turn-scoped `CurrentQuery`, `SearchedIDs`, and `SelectedIDs`; only confirmed content handoff qualifies for reinforcement through the existing `Cva::record_accepted_memory_use` boundary. The Warlock `cf41c66` receiver/replay work is an eight-test integration candidate, not a deployed release. The historical Freshness reader is now integrated on the same `main`; the 14-day, 28-day, and Ellis agentic fidelity gates must be rerun against this consolidated implementation; see the [handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md) and [forthcoming retrieval verification](agentic-memory-retrieval-verification-2026-10-16.md).

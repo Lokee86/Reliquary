@@ -17,6 +17,13 @@ authority: a destination with an extra birth can preserve the exact Dream set
 while repeat reconciliation rejects a changed recipient base with `ImportEpoch`
 conflict. Compact Dream encoding does not relax that existing restriction.
 
+Dream pair writes use a physical owner-local ID table and compact references.
+Raw measurements include that table, so very small histories can grow before
+reuse amortizes it. Divergent completed-import interval replay still refuses
+pair frames in either legacy or current encoding; that preexisting unsupported
+owner path remains explicit. Ordinary pair union, native copy, pruning,
+reclamation and private format conversion retain the same membership semantics.
+
 Publication-envelope conversion remains private disposable staging. Memory and Entity converters preserve original accepted publication slots and reservations; canonical fixture promotion and old-reader retirement are still pending. Native copies preserve retained terminal history. The separate legacy owner-ID migration operation replays supported live Memory/Entity revisions and is not a lossless terminal-history migration route; use the explicitly verified native copy or format-upgrade path for retained terminal authority. This preexisting owner-ID migration limitation is outside the envelope writer cutover and does not authorize dropping terminal facts during canonical corpus promotion.
 
 Ordinary standalone Memory, Entity, Relationship, Archive and Graph publications use owner bodies in allocation envelopes; grouped Insomnia/external Memory publication remains atomic. Their codecs, admission, consumers, ordinary writers and private conversion gates are accepted through Step219, with owner coverage audit220 complete. This is not full canonical corpus promotion: integration Gate E, promotion and runtime legacy-reader retirement remain pending, and the temporary import-proof bridge increases total REL file size. Memory-only disposable conversion passed all six authoritative Memory histories with zero mismatches; signed raw-byte measurements are recorded in the [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#step-87-and-integration-gate-c).
