@@ -154,6 +154,16 @@ impl<'a> HistorySource<'a> {
         store.get(self.container, id)
     }
 
+    /// Read one owner-local Archive-vector set through the immutable snapshot.
+    pub(crate) fn archive_vector_set(
+        &self,
+        store: &crate::archive_vector_store::ArchiveVectorStore,
+        id: crate::ArchiveVectorId,
+    ) -> Result<crate::ArchiveVectorSet, crate::ArchiveVectorError> {
+        self.validate().map_err(|error| error.0)?;
+        store.get(self.container, id)
+    }
+
     /// Owner-local Archive interpretation through the held immutable source.
     pub(crate) fn archive_publication(
         &self,

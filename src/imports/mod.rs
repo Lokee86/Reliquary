@@ -2,7 +2,7 @@
 mod commit;
 use epoch_store::completion;
 mod contract;
-mod epoch_codec;
+pub(crate) mod epoch_codec;
 pub(crate) mod epoch_model;
 mod epoch_scope;
 pub(crate) mod epoch_store;

@@ -75,7 +75,7 @@ impl ArchiveVectorStore {
 
     pub(crate) fn get(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: ArchiveVectorId,
     ) -> Result<ArchiveVectorSet, ArchiveVectorError> {
         let entry = self

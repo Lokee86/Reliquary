@@ -156,10 +156,15 @@ fn episode_attribution_requires_every_path_node_to_belong_to_receipt() {
         ),
         (episode.conversation_id.clone(), episode.end_node_id.clone()),
     ]);
-    assert!(!episode_matches_source(&mut cva, &episode, &endpoints_only).unwrap());
+    assert!(
+        !crate::history::episode_matches_source(&cva.archive, &episode, &endpoints_only).unwrap()
+    );
 
     let scope = cva.import_epoch_scope().unwrap();
-    assert!(episode_matches_source(&mut cva, &episode, &scope.source_nodes).unwrap());
+    assert!(
+        crate::history::episode_matches_source(&cva.archive, &episode, &scope.source_nodes)
+            .unwrap()
+    );
 }
 
 #[test]

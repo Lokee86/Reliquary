@@ -32,3 +32,13 @@ pub(crate) use phylactery_prune::{
     relationship_retention as phylactery_relationship_retention,
     validate_phylactery_prune_evidence,
 };
+
+mod completion_proof;
+pub(crate) mod reliquary_description_retention;
+pub(crate) mod reliquary_vector_retention;
+pub(crate) use completion_proof::{completion_epochs, validate_import_binding};
+mod epoch_scope_proof;
+pub(crate) use epoch_scope_proof::{
+    PreparedSemanticImportScope, episode_matches_source, prepare_semantic_import_scope,
+    validate_semantic_import_births,
+};

@@ -30,108 +30,26 @@ impl Cva {
         settlement: &crate::freshness_storage::HistoricalImportFreshnessSettlement,
         scope: &crate::freshness_storage::ImportSemanticScope,
     ) -> Result<(), CvaError> {
-        let fail = |message: &str| CvaError::Freshness(message.into());
-        if self.owner_uuid() != Some(scope.owner) {
-            return Err(fail("semantic import owner mismatch"));
-        }
-        let id: String = scope.import_id.iter().map(|b| format!("{b:02x}")).collect();
-        let start = match self.import_epoch_status(&id) {
-            Some(super::ImportEpochStatus::Open(start))
-            | Some(super::ImportEpochStatus::Completed { start, .. }) => start,
-            None => {
-                // Explicit initial-history settlement, including a normalized
-                // legacy predecessor. It cannot impersonate a later epoch.
-                if scope.base_cut != 0 || scope.born_memories != settlement.cohort {
-                    return Err(fail(
-                        "unframed semantic settlement is not an initial history",
-                    ));
-                }
-                return Ok(());
+        let prepared = crate::history::prepare_semantic_import_scope(
+            self.owner_uuid(),
+            &self.archive,
+            &self.import_epochs,
+            settlement,
+            scope,
+        )?;
+        match prepared {
+            crate::history::PreparedSemanticImportScope::InitialHistory => Ok(()),
+            crate::history::PreparedSemanticImportScope::Framed(facts) => {
+                let source = crate::owner_lifecycle::HistorySource::new(&self.container)
+                    .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+                crate::history::validate_semantic_import_births(
+                    &source,
+                    &self.archive,
+                    &self.memories,
+                    facts,
+                )
             }
-        };
-        let digest: [u8; 32] = Sha256::digest(super::epoch_codec::encode_start(&start)?).into();
-        let base = self
-            .activity_cut_at_archive_version(start.pre.archive_version)
-            .map_err(|e| fail(&e.to_string()))?;
-        let receipt = self
-            .archive
-            .import_receipts
-            .get(&start.import_key)
-            .ok_or_else(|| fail("semantic settlement import receipt missing"))?;
-        let sources: BTreeSet<_> = receipt
-            .conversations
-            .iter()
-            .flat_map(|c| {
-                c.messages.iter().filter_map(|m| {
-                    m.node_id
-                        .as_ref()
-                        .map(|n| (c.conversation_id.clone(), n.clone()))
-                })
-            })
-            .collect();
-        if scope.start_evidence_digest != digest
-            || scope.base_cut != base
-            || scope.source_nodes != sources
-        {
-            return Err(fail("semantic import start/source evidence mismatch"));
         }
-        let mut births = BTreeSet::new();
-        let scan = self.container.read_source()?;
-        {
-            let mut ingest_frame =
-                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
-                    let payload = frame.payload.as_slice();
-                    {
-                        if let Some(completion) =
-                            crate::insomnia::completion::decode_completion(payload)
-                                .map_err(|e| fail(e))?
-                        {
-                            let Some(episode) =
-                                self.archive.episodes.get(completion.episode_id).cloned()
-                            else {
-                                return Ok(());
-                            };
-                            if episode.origin != EpisodeOrigin::Import
-                                || !episode_matches_source(self, &episode, &sources)?
-                            {
-                                return Ok(());
-                            }
-                            for id in completion.freshness_birth_memory_ids {
-                                let record =
-                                    completion.records.iter().find(|r| r.id == id).ok_or_else(
-                                        || fail("semantic import birth lacks publication record"),
-                                    )?;
-                                if record.global_version > start.pre.global_version
-                                    && record.global_version <= settlement.global_version
-                                {
-                                    if record.revision != 1
-                                        || record.source_episode_id != Some(episode.id)
-                                        || self.memories.first_mutation_id(id)
-                                            != Some(record.mutation_id.as_str())
-                                    {
-                                        return Err(fail(
-                                            "semantic import birth publication conflicts",
-                                        ));
-                                    }
-                                    births.insert(id);
-                                }
-                            }
-                        }
-                        Ok(())
-                    }
-                };
-            let mut cursor = scan.physical_cursor()?;
-            (|| {
-                while let Some(frame) = cursor.next_frame()? {
-                    ingest_frame(frame)?;
-                }
-                Ok::<(), CvaError>(())
-            })()
-        }?;
-        if births != scope.born_memories {
-            return Err(fail("semantic import birth cohort mismatch"));
-        }
-        Ok(())
     }
 
     pub(crate) fn validate_import_settlement_scope(
@@ -300,7 +218,11 @@ impl Cva {
                             }
                             if let crate::archive_codec::ArchiveRecord::Episode(episode) = record {
                                 if episode.origin == EpisodeOrigin::Import
-                                    && episode_matches_source(self, &episode, &source_nodes)?
+                                    && crate::history::episode_matches_source(
+                                        &self.archive,
+                                        &episode,
+                                        &source_nodes,
+                                    )?
                                 {
                                     episodes.insert(episode.id.0);
                                 }
@@ -424,42 +346,6 @@ impl Cva {
             outputs,
         })
     }
-}
-
-fn episode_matches_source(
-    cva: &mut Cva,
-    episode: &crate::Episode,
-    source_nodes: &BTreeSet<(String, String)>,
-) -> Result<bool, CvaError> {
-    if !source_nodes.contains(&(
-        episode.conversation_id.clone(),
-        episode.start_node_id.clone(),
-    )) || !source_nodes.contains(&(episode.conversation_id.clone(), episode.end_node_id.clone()))
-    {
-        return Ok(false);
-    }
-    // Reopen authenticates retained evidence even after the conversation becomes
-    // terminal. Current-only Episode hydration would discard that authority.
-    let mut cursor = Some(episode.end_node_id.clone());
-    let mut seen = BTreeSet::new();
-    while let Some(id) = cursor {
-        if !seen.insert(id.clone()) {
-            return Err(CvaError::Freshness("cyclic import Episode path".into()));
-        }
-        if !source_nodes.contains(&(episode.conversation_id.clone(), id.clone())) {
-            return Ok(false);
-        }
-        let node = cva
-            .archive
-            .nodes
-            .get(&episode.conversation_id, &id)
-            .ok_or_else(|| CvaError::Freshness("missing retained import Episode Node".into()))?;
-        if id == episode.start_node_id {
-            return Ok(true);
-        }
-        cursor = node.parent_id.clone();
-    }
-    Ok(false)
 }
 
 #[cfg(test)]

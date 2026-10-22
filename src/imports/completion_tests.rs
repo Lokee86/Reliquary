@@ -294,7 +294,7 @@ fn uncertain_completion_append_is_discovered_and_acknowledged_without_duplicate(
     // Model the uncertain boundary after the completion frame reached the
     // container but before the owner updated its in-memory epoch store or
     // reported success.
-    let payload = super::epoch_codec::encode_complete(&complete).unwrap();
+    let payload = crate::imports::epoch_codec::encode_complete(&complete).unwrap();
     cva.with_import_write_scope(|cva| cva.container.append(&payload).unwrap());
     let marker_bytes = fs::read(&path).unwrap();
     assert!(cva.open_import_epoch().is_some());
@@ -344,7 +344,7 @@ fn reopen_rejects_completion_with_wrong_settlement_digest_without_rewriting() {
     complete
         .historical_freshness_settlement_digest
         .push_str("corrupt");
-    let payload = super::epoch_codec::encode_complete(&complete).unwrap();
+    let payload = crate::imports::epoch_codec::encode_complete(&complete).unwrap();
     cva.with_import_write_scope(|cva| cva.container.append(&payload).unwrap());
     let corrupt_bytes = fs::read(&path).unwrap();
     drop(cva);
@@ -369,7 +369,7 @@ fn missing_receipt_stays_pending_without_changing_bytes() {
         started_at_ns: 100,
         pre: watermarks(&cva),
     };
-    let start_bytes = super::epoch_codec::encode_start(&start).unwrap();
+    let start_bytes = crate::imports::epoch_codec::encode_start(&start).unwrap();
     cva.with_import_write_scope(|cva| cva.container.append(&start_bytes).unwrap());
     let before_bytes = fs::read(&path).unwrap();
 
@@ -499,7 +499,7 @@ fn reopen_rejects_completion_physically_before_its_settlement() {
         .unwrap();
     let mut container = Container::open(&path).unwrap();
     container
-        .append(&super::epoch_codec::encode_complete(&complete).unwrap())
+        .append(&crate::imports::epoch_codec::encode_complete(&complete).unwrap())
         .unwrap();
     container.append(&settlement).unwrap();
     container.sync().unwrap();

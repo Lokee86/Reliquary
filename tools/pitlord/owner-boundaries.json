@@ -1452,6 +1452,26 @@
       "path": "src/owner_lifecycle/freshness_replay.rs",
       "component": "owner-lifecycle",
       "classification": "production"
+    },
+    {
+      "path": "src/history/reliquary_description_retention.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/reliquary_vector_retention.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/completion_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/epoch_scope_proof.rs",
+      "component": "history",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -1565,6 +1585,14 @@
     },
     {
       "module": "imports::epoch_store",
+      "component": "import-store"
+    },
+    {
+      "module": "history::epoch_scope_proof",
+      "component": "history"
+    },
+    {
+      "module": "imports::epoch_codec",
       "component": "import-store"
     }
   ],
@@ -2036,6 +2064,54 @@
       "owner": "vector-store",
       "symbol": "CompatibilityProfileId",
       "reason": "Typed immutable profile identity in External Index status; no vector-store access."
+    },
+    {
+      "consumer": "history",
+      "owner": "pure-codec",
+      "symbol": "LifecycleTarget",
+      "reason": "Immutable REL retention target value; History selects and validates the exact owner descriptor without acquiring owner or facade capability."
+    },
+    {
+      "consumer": "history",
+      "owner": "import-store",
+      "symbol": "ImportEpochStatus",
+      "reason": "Immutable accepted epoch state used to verify historical source bounds."
+    },
+    {
+      "consumer": "history",
+      "owner": "import-store",
+      "symbol": "ImportStart",
+      "reason": "Immutable accepted epoch start coordinates used to verify the semantic import scope."
+    },
+    {
+      "consumer": "history",
+      "owner": "freshness-store",
+      "symbol": "HistoricalImportFreshnessSettlement",
+      "reason": "Immutable accepted settlement facts used to verify the semantic import scope."
+    },
+    {
+      "consumer": "history",
+      "owner": "freshness-store",
+      "symbol": "ImportSemanticScope",
+      "reason": "Immutable accepted scope facts used to verify the semantic import source and births."
+    },
+    {
+      "consumer": "history",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "reason": "Immutable owner-qualified identity used in the accepted birth cohort."
+    },
+    {
+      "consumer": "history",
+      "owner": "archive-store",
+      "symbol": "Episode",
+      "reason": "Immutable Episode facts used to bind physical completion evidence to retained source."
+    },
+    {
+      "consumer": "history",
+      "owner": "archive-store",
+      "symbol": "EpisodeOrigin",
+      "reason": "Immutable Episode origin tag used to identify import publications."
     }
   ],
   "forbidden_symbols": [

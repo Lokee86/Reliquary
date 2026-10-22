@@ -3,11 +3,10 @@
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
 use crate::imports::{
     ImportComplete, ImportCompletionOutcome, ImportCompletionPending, ImportEpochStatus,
-    ImportEpochStore, ImportError, ImportStart, epoch_codec, prepare,
+    ImportEpochStore, ImportError, prepare,
 };
 use crate::{Container, Cva, CvaError};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
 
 fn epoch_error(message: &'static str) -> CvaError {
     CvaError::Import(ImportError::Epoch(message))
@@ -21,15 +20,6 @@ fn settlement_digest(settlement: &HistoricalImportFreshnessSettlement) -> String
     format!("{:x}", Sha256::digest(settlement.encode()))
 }
 
-#[derive(Eq, PartialEq)]
-struct AcceptedSettlement {
-    digest: String,
-    global: u64,
-    archive: u64,
-    graph: u64,
-    memory_graph: u64,
-}
-
 pub(in crate::imports) fn settlement_is_current(
     cva: &Cva,
     settlement: &HistoricalImportFreshnessSettlement,
@@ -40,26 +30,6 @@ pub(in crate::imports) fn settlement_is_current(
         && settlement.archive_version == post.archive_version
         && settlement.graph_version == post.graph_version
         && settlement.memory_graph_version == post.memory_graph_version
-}
-
-fn validate_binding(
-    start: &ImportStart,
-    settlement: &HistoricalImportFreshnessSettlement,
-) -> Result<(), CvaError> {
-    let scope = settlement
-        .scope_identity()
-        .ok_or_else(|| epoch_error("completion requires an epoch-scoped settlement"))?;
-    let start_digest: [u8; 32] = Sha256::digest(epoch_codec::encode_start(start)?).into();
-    if settlement.owner != start.owner_uuid
-        || id_text(&settlement.import_id) != start.import_id
-        || scope.owner != start.owner_uuid
-        || scope.import_id != settlement.import_id
-        || scope.start_evidence_digest != start_digest
-        || settlement.start_evidence_digest != start_digest
-    {
-        return Err(epoch_error("completion settlement/start binding mismatch"));
-    }
-    Ok(())
 }
 
 impl Cva {
@@ -128,7 +98,7 @@ impl Cva {
                 ImportCompletionPending::MissingFreshnessSettlement,
             ));
         };
-        validate_binding(&start, &settlement)?;
+        crate::history::validate_import_binding(&start, &settlement)?;
         let post = self.import_watermarks();
         if !settlement_is_current(self, &settlement) {
             return Err(epoch_error("completion settlement cut is stale"));
@@ -163,79 +133,9 @@ impl Cva {
     pub(in crate::imports) fn completion_epochs_from_bytes(
         &self,
     ) -> Result<ImportEpochStore, CvaError> {
-        let mut epochs = ImportEpochStore::default();
-        let mut settlements = BTreeMap::new();
-        let scan = &self.container;
-        {
-            let mut ingest_frame =
-                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
-                    let payload = frame.payload.as_slice();
-                    {
-                        if payload.starts_with(b"CVAFRS06") {
-                            let settlement = HistoricalImportFreshnessSettlement::decode(payload)
-                                .map_err(CvaError::Freshness)?;
-                            let id = id_text(&settlement.import_id);
-                            let start = match epochs.status(&id) {
-                                Some(ImportEpochStatus::Open(start))
-                                | Some(ImportEpochStatus::Completed { start, .. }) => start,
-                                None if settlement.semantic.is_some() => return Ok(()),
-                                None => {
-                                    return Err(epoch_error(
-                                        "scoped settlement lacks its import start",
-                                    ));
-                                }
-                            };
-                            validate_binding(&start, &settlement)?;
-                            // Retain only small completion evidence, not a second map of
-                            // every historical sparse replacement population.
-                            let evidence = AcceptedSettlement {
-                                digest: format!("{:x}", Sha256::digest(payload)),
-                                global: settlement.global_version,
-                                archive: settlement.archive_version,
-                                graph: settlement.graph_version,
-                                memory_graph: settlement.memory_graph_version,
-                            };
-                            if let Some(previous) = settlements.get(&id) {
-                                if previous != &evidence {
-                                    return Err(epoch_error(
-                                        "conflicting physical import settlements",
-                                    ));
-                                }
-                            } else {
-                                settlements.insert(id, evidence);
-                            }
-                        }
-                        if let Some(epoch_codec::ImportEpochRecord::Complete(complete)) =
-                            epoch_codec::decode(payload)?
-                        {
-                            let settlement =
-                                settlements.get(&complete.import_id).ok_or_else(|| {
-                                    epoch_error("completion lacks a preceding scoped settlement")
-                                })?;
-                            if complete.historical_freshness_settlement_digest != settlement.digest
-                                || complete.post.global_version < settlement.global
-                                || complete.post.archive_version < settlement.archive
-                                || complete.post.graph_version < settlement.graph
-                                || complete.post.memory_graph_version < settlement.memory_graph
-                            {
-                                return Err(epoch_error("completion settlement evidence mismatch"));
-                            }
-                        }
-                        epochs.ingest(payload)?;
-                        Ok(())
-                    }
-                };
-            let mut cursor = scan.physical_cursor()?;
-            (|| {
-                while let Some(frame) = cursor.next_frame()? {
-                    ingest_frame(frame)?;
-                }
-                Ok::<(), CvaError>(())
-            })()
-        }?;
-        epochs.validate_owner(self.owner_uuid())?;
-        crate::owner_lifecycle::validate_import_receipts(&epochs, &self.archive.import_receipts)?;
-        Ok(epochs)
+        let source = crate::owner_lifecycle::HistorySource::new(&self.container)
+            .map_err(|error| CvaError::Container(error.0))?;
+        crate::history::completion_epochs(&source, &self.archive.import_receipts)
     }
 
     pub(crate) fn validate_import_completion_settlements(&self) -> Result<(), CvaError> {
