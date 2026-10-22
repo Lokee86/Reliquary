@@ -14,7 +14,7 @@ Phase 1's physical storage boundary is implemented and accepted locally on
 Windows; its verification record documents platform limits. Its [execution specification](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md)
 and [file lease contract](dependency-convergence-phase1-lock-contract-2026-10-21.md)
 record the cursor, explicit repairs and writer/source publication rules. Later
-owner and domain convergence remains separate work.
+owner and domain convergence remains separate work. The next correction-only implementation target is the [Phase 2 owner-local semantic boundary specification](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md), with 91 bounded tasks. It preserves current owner authority, Phase 1 storage and the deferred Phase 3 settlement correction; it does not implement new Perception, Ego, Context or Warlock features.
 
 The active work is now concentrated in a small number of tracks:
 

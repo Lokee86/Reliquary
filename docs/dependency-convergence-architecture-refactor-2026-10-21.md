@@ -341,6 +341,8 @@ Exit condition:
 
 ### Phase 2 — Owner-local semantic boundaries
 
+Detailed execution specification: [Phase 2 owner-local boundary plan](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks with per-owner, physical-preservation, privacy, ratchet and corpus gates. The accepted DAG is authoritative; Phase 2 is specified, **not implemented**.
+
 Purpose: make each durable semantic owner independently usable through a narrow, owner-correct interface.
 
 Primary areas include:

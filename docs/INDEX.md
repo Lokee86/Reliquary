@@ -1,5 +1,6 @@
 # Reliquary Memory v2 Documentation
 
+- [Phase 2 owner-local boundaries — execution spec](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks to isolate durable semantic ownership without new roadmap work.
 - [Phase 1 implementation evidence and handoff](dependency-convergence-phase1-verification-2026-10-22.md) — source ownership, retained before-image, implementation evidence, completed local acceptance and Phase 2/3 handoff.
 - [Phase 1 convergence ratchet](dependency-convergence-phase1-ratchet-2026-10-22.md) — reviewed active ledger reconciliation and evidence freshness.
 - [Phase 1 storage foundation](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md) — physical boundary implementation and acceptance specification.
@@ -153,6 +154,7 @@
 - [dependency-convergence-phase1-ratchet-2026-10-22.md](dependency-convergence-phase1-ratchet-2026-10-22.md) - Dependency Convergence Phase1 Ratchet 2026 10 22 documentation.
 - [dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md) - Dependency Convergence Phase1 Storage Foundation Spec 2026 10 21 documentation.
 - [dependency-convergence-phase1-verification-2026-10-22.md](dependency-convergence-phase1-verification-2026-10-22.md) - Dependency Convergence Phase1 Verification 2026 10 22 documentation.
+- [dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) - Dependency Convergence Phase2 Owner Local Boundaries Spec 2026 10 22 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
