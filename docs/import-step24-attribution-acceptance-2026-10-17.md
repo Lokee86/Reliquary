@@ -48,7 +48,7 @@ Step 25 must also verify that pre-start recipient proof identities do not replac
 
 ## Related docs
 
-- [Remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md)
+- [Semantic maintenance](subsystems/semantic-maintenance.md)
 - [Architecture](architecture.md)
 - [Invariants](invariants.md)
 - [Current limitations](current-limitations.md)

@@ -26,7 +26,7 @@ Step 22 owns the broader crash-prefix/due-index recovery matrix; Step 23 owns tr
 
 ## Related docs
 
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Frozen manifest policy](freshness-historical-manifest-policy.md)
 - [Storage format](storage-format.md)
 - [API](api.md)

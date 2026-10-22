@@ -81,7 +81,7 @@ Merge-ready describes the reviewed feature scope; it does not assert that a merg
 
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
 - [H1 policy](freshness-historical-manifest-policy.md)
-- [Historical design and H1–H8 phases](freshness-historical-import-reconstruction-spec-2026-10-03.md)
-- [C1–C12 completion ledger](freshness-historical-completion-execution-plan-2026-10-12.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [C10/C11 verification](freshness-retained-normalization-verification-2026-10-13.md)
 - [Current limitations](current-limitations.md)

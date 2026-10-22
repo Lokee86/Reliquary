@@ -32,7 +32,7 @@ Frozen propagation topology/latency is measured by the calibration harness. Grap
 
 ## Related docs
 
-- [Completion execution plan](freshness-completion-execution-plan-2026-10-03.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
 - [Core verification](freshness-core-release-verification-2026-10-03.md)
 - [Development](development.md)
 

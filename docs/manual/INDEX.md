@@ -39,3 +39,29 @@ The manual may tell you to publish an Entity association with the current Graph 
 - [Current limitations](../current-limitations.md)
 - [Roadmap](../roadmap.md)
 - [Architectural decisions](../decisions/INDEX.md)
+
+
+## Direct Files
+
+<!-- doc-ledger:files:start -->
+
+- [core-concepts.md](core-concepts.md) - Core Concepts documentation.
+- [getting-started.md](getting-started.md) - Getting Started documentation.
+- [graph-and-communities.md](graph-and-communities.md) - Graph And Communities documentation.
+- [integration-guide.md](integration-guide.md) - Integration Guide documentation.
+- [memories-and-entities.md](memories-and-entities.md) - Memories And Entities documentation.
+- [migration-and-reconciliation.md](migration-and-reconciliation.md) - Migration And Reconciliation documentation.
+- [processing-pipeline.md](processing-pipeline.md) - Processing Pipeline documentation.
+- [retrieval.md](retrieval.md) - Retrieval documentation.
+- [troubleshooting.md](troubleshooting.md) - Troubleshooting documentation.
+<!-- doc-ledger:files:end -->
+
+## Stub Files
+
+<!-- doc-ledger:stubs:start -->
+<!-- doc-ledger:stubs:end -->
+
+## Direct Folders
+
+<!-- doc-ledger:folders:start -->
+<!-- doc-ledger:folders:end -->

@@ -12,7 +12,7 @@ The H5 fixtures cover +100 saturation, -100 followed by +50, early-versus-late r
 
 ## Related docs
 
-- [Freshness semantic + historical linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Historical Freshness manifest and timeline policy](freshness-historical-manifest-policy.md)
 - [Historical propagation verification](freshness-historical-propagation-verification-2026-10-12.md)
 - [Historical recipient-only bridge oracle verification](freshness-historical-bridge-oracle-verification-2026-10-12.md)

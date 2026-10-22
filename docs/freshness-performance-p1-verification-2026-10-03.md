@@ -1,6 +1,6 @@
 # Freshness P1 — grouped-origin propagation verification (2026-10-03)
 
-Parent: [Documentation index](INDEX.md). Prerequisite: [checksum-frozen P0](freshness-performance-baseline-2026-10-03.md). Governing [performance-hardening plan](freshness-performance-hardening-plan-2026-10-03.md).
+Parent: [Documentation index](INDEX.md). Prerequisite: [checksum-frozen P0](freshness-performance-baseline-2026-10-03.md). Governing [performance-hardening plan](freshness-performance-verification-2026-10-03.md).
 
 ## Purpose
 
@@ -79,7 +79,7 @@ Architecture impact: no new standard, owner, graph cache or persistence boundary
 ## Related docs
 
 - [Frozen P0 benchmark and evidence](freshness-performance-baseline-2026-10-03.md)
-- [Performance hardening execution specification](freshness-performance-hardening-plan-2026-10-03.md)
+- [Performance hardening execution specification](freshness-performance-verification-2026-10-03.md)
 - [Current Freshness implementation](architecture.md)
 - [Freshness public APIs](api.md)
 - [Behavioral contracts and independent oracle](behavioral-contracts.md)

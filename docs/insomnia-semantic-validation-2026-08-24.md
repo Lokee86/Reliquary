@@ -355,7 +355,7 @@ This section records the design question that remained open on 2026-08-24. It ha
 
 Current User publication targets an explicitly attached Phylactery and strips REL-local source/Episode/conversation provenance so the PHY Memory remains valid independently of Project Archive retention. The REL completion records the result through `MemoryRef { owner_id, memory_id }`. With no cross-file transaction manager, PHY is synced first and deterministic mutation IDs make a crash before the REL receipt idempotently recoverable.
 
-The historical question of folding scope into metadata was therefore rejected for the current slice in favor of a separately tunable ownership boundary. Organization routing and richer cross-file lineage remain later work; Connection/relationship routing is currently mothballed rather than an active expansion target. See [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) and [ADR 0023](decisions/0023-insomnia-durable-owner-routing.md).
+The historical question of folding scope into metadata was therefore rejected for the current slice in favor of a separately tunable ownership boundary. Organization routing and richer cross-file lineage remain later work; Connection/relationship routing is currently mothballed rather than an active expansion target. See [REL/PHY scope ownership](subsystems/scope-ownership.md) and [ADR 0023](decisions/0023-insomnia-durable-owner-routing.md).
 
 ## Experimental implementation
 

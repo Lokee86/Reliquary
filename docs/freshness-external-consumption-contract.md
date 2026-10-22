@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-Define the existing passive retrieval boundary and the required, not-yet-implemented external host acceptance integration.
+Define the passive retrieval boundary, successful-handoff reinforcement contract, and the remaining host-specific deployment boundary.
 
 ## Overview
 
@@ -14,13 +14,13 @@ All internal Reliquary retrieval is non-reinforcing. Content/revision fetches, l
 
 Gateway Memory search and management APIs return candidates or inspection data. Even hydrated content and successful authorization/delivery do not establish accepted use. The Warlock `cf41c66` integration candidate now acknowledges exact content transfer at the requesting-context receiver and restores/replays the original manifest after restart; this is integration-candidate evidence, not a deployed production release. `deliver_rel`, stream acknowledgements, transcript admission, generic ConversationExecution/provider success, and conversation completion remain insufficient proof.
 
-## Accepted handoff design and integration-candidate status
+## Accepted handoff contract and consumer-release status
 
-The accepted future agent-facing retrieval architecture is specified in [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md). It replaces the earlier *design requirement* to prove eventual language-model context admission with a host-successful tool-result handoff boundary: after the host successfully receives newly selected Memory content, those IDs enter turn-scoped `SelectedIDs` and qualify for one idempotent accepted-use receipt. Candidate evaluation and failed handoff never reinforce. There is no `SentMemoryIDs` alongside `SelectedIDs`.
+The implemented agent-facing retrieval contract is summarized in [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md). It uses a host-successful tool-result handoff boundary: after the host successfully receives newly selected Memory content, those IDs enter turn-scoped `SelectedIDs` and qualify for one idempotent accepted-use receipt. Candidate evaluation and failed handoff never reinforce. There is no `SentMemoryIDs` alongside `SelectedIDs`.
 
-The existing implementation and F1/F2/F4 evidence below remain valid. The older host acceptance/outbox requirements below are historical F3 assumptions; the current handoff contract is implemented in the Warlock `cf41c66` integration candidate, which uses receiver-owned Echo acknowledgment and exact-manifest replay. Do not treat it as deployed until frozen-corpus and final release disposition gates close.
+Reliquary's non-reinforcing retrieval and accepted-use boundary are implemented. The Warlock `cf41c66` integration candidate demonstrates receiver-owned Echo acknowledgement and exact-manifest replay, but that consumer integration is not a deployed release. The remaining requirements below describe the host obligations that any production consumer must satisfy.
 
-## Required host integration (original F3 contract; superseded where inconsistent)
+## Required production host integration
 
 The host owns one acceptance coordinator at the point where it can verify which exact Memory content entered an external consumer's usable context. It must:
 
@@ -30,7 +30,7 @@ The host owns one acceptance coordinator at the point where it can verify which 
 4. Under the existing authorized owner mutation coordination, construct `AcceptedMemoryUseReceipt` and call `record_accepted_memory_use`. Do not hold owner locks across provider I/O. Revalidate owner authority according to the host's existing accepted-work policy; never retarget a receipt to a selected owner after acceptance.
 5. Mark the handoff complete only after success. An uncertain failure is retried with exactly the same owner, turn, identity and ID set. The existing event path synchronizes before success, de-duplicates Memory IDs and returns zero on identical replay, including after reopen; changed payload reuse is an error. No additional propagation, score cache, event store or retry identity belongs in Reliquary retrieval.
 
-This is an integration requirement, not a claim that the absent host outbox is implemented. PHY has no justified activity-clock reinforcement path in this baseline; do not fabricate one. Client-facing acknowledgement endpoints require their own host-controlled delivery ledger and authorization, rather than exposing the library receipt directly.
+This is a production host requirement, not a claim that every consumer has implemented the required durable acknowledgement/outbox semantics. PHY has no justified activity-clock reinforcement path in this baseline; do not fabricate one. Client-facing acknowledgement endpoints require their own host-controlled delivery ledger and authorization, rather than exposing the library receipt directly.
 
 ## Notes
 
@@ -39,8 +39,8 @@ This contract does not add an authenticated client receipt endpoint, a second re
 ## Related docs
 
 - [Architecture](architecture.md)
-- [Freshness implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md)
+- [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md#freshness-boundary)
 
 ## Verification
 
-The [execution record](freshness-retrieval-boundary-verification-2026-10-15.md) maps concrete production callers and records test results. The [implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md) owns execution status. Ego audit-selection changes are a separate workstream.
+The [execution record](freshness-retrieval-boundary-verification-2026-10-15.md) maps concrete production callers and records test results. [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md#freshness-boundary) owns the current handoff/reinforcement contract. Ego audit-selection changes are a separate workstream.

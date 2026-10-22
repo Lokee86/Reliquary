@@ -78,7 +78,7 @@ The authoritative stored legacy-approximation checkpoint and native actual-proof
 
 ## Related docs
 
-- [Normalization plan and disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md)
-- [Historical completion plan](freshness-historical-completion-execution-plan-2026-10-12.md)
+- [Normalization plan and disposition](freshness-retained-normalization-verification-2026-10-13.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Current API](api.md)
 - [Current limitations](current-limitations.md)

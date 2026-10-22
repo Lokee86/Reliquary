@@ -178,9 +178,9 @@ These ideas may be reconsidered later only if an actual design problem and evide
 
 ## Related docs
 
-- [Memory Freshness policy](memory-staleness-plan.md)
-- [Unified Memory Freshness implementation plan](generic-staleness-implementation-plan.md)
-- [REL activity clock Phase 1 spec](rel-activity-clock-implementation-plan.md)
+- [Memory Freshness policy](subsystems/freshness.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
+- [REL activity clock](subsystems/rel-activity-clock.md)
 - [Ego Cross-chat context plan](ego-cross-chat-context-plan.md)
 - [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md)
 - [Roadmap](roadmap.md)

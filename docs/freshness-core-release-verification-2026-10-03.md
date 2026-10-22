@@ -72,7 +72,7 @@ Recent receipts and sort runs are bounded; birth/first-pass state scales with Me
 
 ## Related docs
 
-- [Execution specification](freshness-completion-execution-plan-2026-10-03.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
 - [R2 verification](freshness-r2-verification-2026-10-03.md)
 - [R3 verification](freshness-r3-verification-2026-10-03.md)
 - [R4 verification](freshness-r4-verification-2026-10-03.md)

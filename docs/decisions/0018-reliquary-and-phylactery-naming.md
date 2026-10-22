@@ -51,7 +51,7 @@ Repository hosting and the local checkout now use the `Reliquary` name. The lega
 
 ## Related docs
 
-- [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
+- [Reliquary and Phylactery scope design record](../subsystems/scope-ownership.md)
 - [Architecture](../architecture.md)
 - [Roadmap](../roadmap.md)
 - [ADR 0017 — CVA workspace and Warlock host application](0017-cva-workspace-and-warlock-host-application.md)

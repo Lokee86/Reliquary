@@ -26,7 +26,7 @@ The recent cache is bounded by 128 entries and conservative 256-KiB receipt acco
 
 ## Related docs
 
-- [Completion execution plan](freshness-completion-execution-plan-2026-10-03.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
 - [Core verification](freshness-core-release-verification-2026-10-03.md)
 - [Development](development.md)
 

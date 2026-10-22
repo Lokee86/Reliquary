@@ -1,5 +1,7 @@
 # Reliquary Storage Format
+
 Parent index: [Documentation index](INDEX.md)
+
 
 ## Development-format lifecycle policy
 
@@ -78,7 +80,7 @@ The binary layout is eight magic bytes; sixteen owner UUID bytes; seven 32-byte 
 
 Accepted-event digests use SHA-256 over `reliquary-import-accepted-event-v1`, owner UUID and the existing canonical immutable event encoding: identity, accepted turn, producer provenance, optional semantic/fragment evidence, graph/community proof and ordered recipient effects. Derived postimages and journal/batch framing are excluded. Accepted evidence is keyed by exact event ID; superseded IDs must name accepted evidence. Event cuts and recipient sets must fit the scope. Born Memories must be in the replacement cohort, which must fit the eligible recipient population; record IDs must exactly equal that cohort. Empty and equal/zero-cut epochs remain representable without an admission anchor. Optional predecessor digests must be nonzero. Decoder checks reject corruption, truncation, trailing bytes, unknown optional tags, duplicate/out-of-order collections, unsupported policies and noncanonical records. Collection lengths never drive an unvalidated allocation.
 
-The input digest is retained construction evidence; this codec does not resolve or authenticate any original file prefix. Reopen resolves accepted event identities and digests against persisted Freshness history. See the [implementation plan](semantic-import-pruning-history-rewrite-implementation-plan-2026-10-18.md) and its [execution evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) for acceptance gates.
+The input digest is retained construction evidence; this codec does not resolve or authenticate any original file prefix. Reopen resolves accepted event identities and digests against persisted Freshness history. See the [Semantic maintenance](subsystems/semantic-maintenance.md) and its [execution evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) for acceptance gates.
 
 ## Legacy scoped Historical Freshness settlements (`CVAFRS05`)
 
@@ -1229,6 +1231,11 @@ This development transport has been retired. Canonical promotion replaced physic
 
 Opt-in Freshness stage samples are process-local JSON diagnostics. They are not Container chunks and add no journal magic, event version, accepted clock or on-disk authority. Historical scan counters distinguish visited payload bytes from separately read mutation-object bytes; these counts describe read work, not new durable indexes. Accepted effects and provenance remain authoritative; per-event postimages are derived by the Freshness reducer. Enrollment, admission and settlement records retain their distinct accepted metadata/proof roles. [Development](development.md) owns capture commands.
 
+## Code Map
+
+- `src/container/**`
+- `src/compact_delta.rs`
+
 ## Related docs
 
 - [Architecture](architecture.md)
@@ -1251,7 +1258,7 @@ P3.8 adds no persistent record, schema, queue, clock or migration. It validates 
 
 ## Historical production review boundary
 
-CVAFRS04 is the current historical settlement publication; CVAFRS03 is read-only legacy compatibility. C2 deletes the duplicate in-memory store and composition API and makes native settlement helpers private to the Cva owner module. Cva::reconstruct_historical_freshness accepts options only and publishes the verified native owner projection through the existing settlement append and sync. The settlement format adds start evidence and a base cut; ordinary receipt identity and automatic activation are unchanged. Supported final credit-excluded replacements may contain only the canonical unadmitted creation record (+100, both activity anchors absent); arbitrary unadmitted scores or partial anchors reject. Full canonical manifest/contribution proof is integrated; C6 records legacy checkpoint recovery; current settlement recovery acceptance is tracked in the remaining execution plan; importer integration and retained-corpus release acceptance remain release blockers. See [completion plan](freshness-historical-completion-execution-plan-2026-10-12.md).
+CVAFRS04 is the current historical settlement publication; CVAFRS03 is read-only legacy compatibility. C2 deletes the duplicate in-memory store and composition API and makes native settlement helpers private to the Cva owner module. Cva::reconstruct_historical_freshness accepts options only and publishes the verified native owner projection through the existing settlement append and sync. The settlement format adds start evidence and a base cut; ordinary receipt identity and automatic activation are unchanged. Supported final credit-excluded replacements may contain only the canonical unadmitted creation record (+100, both activity anchors absent); arbitrary unadmitted scores or partial anchors reject. Full canonical manifest/contribution proof is integrated; C6 records legacy checkpoint recovery; current settlement recovery acceptance is tracked in the remaining execution plan; importer integration and retained-corpus release acceptance remain release blockers. See [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction).
 ## P5-E native receipt reuse
 
 E5 adds no REL/PHY/container/journal codec. Native tool events use the existing immutable Echo source sequence and correlation fields; P3 validates their accepted generation and ordering before synchronized publication. Generated artifacts are existing embedded files/source attachments atomically ingested with the finalized assistant turn. Exact file identity, ordered source attachment receipt and conflicting retry validation survive ordinary reopen. Resume tokens are caller-held hints, not persisted semantic authority. See [E5 acceptance record](multiplexing-implementation-plan.md).

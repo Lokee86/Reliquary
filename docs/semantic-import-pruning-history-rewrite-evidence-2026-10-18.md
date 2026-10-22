@@ -96,7 +96,7 @@ The current manifest digest includes physical-prefix and ImportStart offset toke
 
 ## Related docs
 
-- [Semantic import, pruning and history rewrite — implementation plan](semantic-import-pruning-history-rewrite-implementation-plan-2026-10-18.md)
+- [Semantic maintenance](subsystems/semantic-maintenance.md)
 - [ADR 0041](decisions/0041-semantic-import-boundaries-owner-pruning-history-rewrite.md)
 - [Tombstone/import final verification](tombstone-import-history-final-verification-2026-10-18.md)
 - [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md)
@@ -430,7 +430,7 @@ The structural hard cut is accepted:
 - no `CVAILEG1` writer remains;
 - the final current Rust source graph passes all repository ownership/dependency rules.
 
-Documentation impact: this execution record and the linear-plan state were updated; no persisted-format compatibility documentation was removed. A post-record documentation-policy rerun is currently blocked by the unrelated concurrent `docs/decision-endpoint-inheritance-spec-2026-10-19.md`, which reports four missing required sections plus missing `docs/INDEX.md` indexing; the checker reported no Step 64 document finding. Architecture impact: no policy was relaxed, and the current ownership graph is structurally accepted. Step 65 below closes the final integration and compatibility acceptance gate.
+Documentation impact: this execution record and the linear-plan state were updated; no persisted-format compatibility documentation was removed. A post-record documentation-policy rerun is currently blocked by the unrelated concurrent `docs/architecture.md#decision-endpoint-inheritance`, which reports four missing required sections plus missing `docs/INDEX.md` indexing; the checker reported no Step 64 document finding. Architecture impact: no policy was relaxed, and the current ownership graph is structurally accepted. Step 65 below closes the final integration and compatibility acceptance gate.
 
 ## Step 65 — final integration and compatibility acceptance
 

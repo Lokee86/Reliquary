@@ -114,6 +114,6 @@ Existing `CVA*` record markers and `CVCFG` framing are not changed by this ADR a
 
 - [ADR 0018 — Reliquary and Phylactery naming](0018-reliquary-and-phylactery-naming.md)
 - [ADR 0021 — Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md)
-- [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
+- [Reliquary and Phylactery scope design record](../subsystems/scope-ownership.md)
 - [Storage format](../storage-format.md)
 - [Roadmap](../roadmap.md)

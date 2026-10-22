@@ -241,7 +241,7 @@ Verification: **passed**. The library/integration run passes **1,714 tests acros
 ### Step 22 execution record
 
 Commit: `29ea09a`.
-Files: `src/container/container.rs`, `src/container/container_format_boundary_tests.rs`, [Storage format](storage-format.md#compact-container-version-boundary--staged).
+Files: `src/container/container.rs`, `src/container/container_format_boundary_tests.rs`, [Storage format](storage-format.md#container-version-boundary--implemented).
 Verification: V2.0 identity headers round-trip for REL and PHY, including exact header bytes and owner UUID; shared focused container verification recorded in execution evidence.
 Blockers: none for header encoding. Ordinary creation remains V1 until the read-only/admission cutover in Steps 26–31.
 
@@ -580,7 +580,7 @@ Blockers: none for this item; grouped/external publication and migration remain 
 
 Commit: `9996c28`.
 Files: `src/runtime_inference/insomnia/completion.rs`; `src/runtime_inference/insomnia/completion_compact_legacy.rs`; `src/runtime_inference/insomnia/completion_compact_tests.rs`.
-Verification: Atomic grouped/external publication tests pass **10/10**; existing Insomnia regressions pass **83/83**. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md#steps-63-86--grouped-publication-migration-and-import-proof-transport).
+Verification: Atomic grouped/external publication tests pass **10/10**; existing Insomnia regressions pass **83/83**. See [execution evidence](minimal-lossless-history-storage-execution-2026-10-19.md).
 Blockers: none for this item; migration and integration acceptance are separate gates.
 
 ### Step 64 execution record
@@ -755,7 +755,7 @@ Blockers: none for Memory measurement; canonical whole-corpus migration and read
 
 Commit: `bafdaae`.
 Files: `src/compact_delta.rs`; `src/memory/memory_compact_contract.rs`; `src/lib.rs`; `tools/pitlord/semantic.json`.
-Verification: Extracted only typed unchanged/set diff and known-mask mechanics; Memory field bits, order, tags and errors are unchanged. Focused compact Memory tests **38/38**; root/CLI format and checks pass; CLI **32/32**. No runtime/source-policy difference exists between the implementation and rebased checkpoint `14bcba3`. Current-source ownership: **987 Rust files, 20 areas, zero issues**. See [shared-mechanics evidence](minimal-lossless-history-storage-execution-2026-10-19.md#shared-delta-mechanics-steps-88-90).
+Verification: Extracted only typed unchanged/set diff and known-mask mechanics; Memory field bits, order, tags and errors are unchanged. Focused compact Memory tests **38/38**; root/CLI format and checks pass; CLI **32/32**. No runtime/source-policy difference exists between the implementation and rebased checkpoint `14bcba3`. Current-source ownership: **987 Rust files, 20 areas, zero issues**. See [shared-mechanics evidence](minimal-lossless-history-storage-execution-2026-10-19.md).
 Blockers: none; fresh enforcement for `bafdaae` passes all 23 rules across 20 areas and 91,596 source nodes (`.test-tmp/lossless-shared-delta-architecture-refresh.log`).
 
 ### Step 89 execution record

@@ -82,7 +82,7 @@ Steps 36/50 fast-forward the canonical source into main. All twelve original dir
 
 ## Related docs
 
-- [Remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md)
+- [Semantic maintenance](subsystems/semantic-maintenance.md)
 - [Execution contract](tombstone-import-history-execution-contract.md)
 - [Current limitations](current-limitations.md)
 - [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md)

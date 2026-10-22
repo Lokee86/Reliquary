@@ -44,3 +44,62 @@
 - [ADR 0037: Reliquary owns the Context/Memory/Project Environment](0037-reliquary-context-memory-project-environment.md) — **Accepted and implemented for ownership migration; graph host, Project Environment, conversations, semantic access, Context Engine, and Warlock cleanup complete**, 2026-09-24.
 - [ADR 0038: Gateway and instance runtime multiplexing](0038-gateway-instance-runtime-multiplexing.md) — **Accepted architectural direction; implementation pending; conflicting-write policy remains a Phase 3 decision gate**, 2026-10-02.
 - [ADR 0039: Unified deterministic Memory Freshness](0039-unified-deterministic-memory-freshness.md) — **Accepted direction; initial values and deterministic-concurrency requirements recorded, REL rollout pending**, 2026-10-03.
+
+
+## Direct Files
+
+<!-- doc-ledger:files:start -->
+
+- [0001-purpose-built-database-ownership.md](0001-purpose-built-database-ownership.md) - 0001 Purpose Built Database Ownership documentation.
+- [0002-branching-publication-history.md](0002-branching-publication-history.md) - 0002 Branching Publication History documentation.
+- [0003-layered-version-clocks-and-local-ancestry.md](0003-layered-version-clocks-and-local-ancestry.md) - 0003 Layered Version Clocks And Local Ancestry documentation.
+- [0004-bounded-ancestry-aware-packs.md](0004-bounded-ancestry-aware-packs.md) - 0004 Bounded Ancestry Aware Packs documentation.
+- [0005-cva-composition-and-packed-vector-objects.md](0005-cva-composition-and-packed-vector-objects.md) - 0005 Cva Composition And Packed Vector Objects documentation.
+- [0006-archive-vector-row-bindings.md](0006-archive-vector-row-bindings.md) - 0006 Archive Vector Row Bindings documentation.
+- [0007-compatibility-profiles-and-vector-generations.md](0007-compatibility-profiles-and-vector-generations.md) - 0007 Compatibility Profiles And Vector Generations documentation.
+- [0008-purpose-built-local-configuration.md](0008-purpose-built-local-configuration.md) - 0008 Purpose Built Local Configuration documentation.
+- [0009-expandable-model-switchboard.md](0009-expandable-model-switchboard.md) - 0009 Expandable Model Switchboard documentation.
+- [0010-encrypted-credential-objects.md](0010-encrypted-credential-objects.md) - 0010 Encrypted Credential Objects documentation.
+- [0011-detachable-repo-local-cli.md](0011-detachable-repo-local-cli.md) - 0011 Detachable Repo Local Cli documentation.
+- [0012-deterministic-episodes-and-insomnia-memory-authority.md](0012-deterministic-episodes-and-insomnia-memory-authority.md) - 0012 Deterministic Episodes And Insomnia Memory Authority documentation.
+- [0013-immutable-memory-vector-bindings.md](0013-immutable-memory-vector-bindings.md) - 0013 Immutable Memory Vector Bindings documentation.
+- [0014-echo-historical-reasoning-traces.md](0014-echo-historical-reasoning-traces.md) - 0014 Echo Historical Reasoning Traces documentation.
+- [0015-acp-inline-interaction-stream.md](0015-acp-inline-interaction-stream.md) - 0015 Acp Inline Interaction Stream documentation.
+- [0016-native-product-surface-and-shared-interaction-runtime.md](0016-native-product-surface-and-shared-interaction-runtime.md) - 0016 Native Product Surface And Shared Interaction Runtime documentation.
+- [0017-cva-workspace-and-warlock-host-application.md](0017-cva-workspace-and-warlock-host-application.md) - 0017 Cva Workspace And Warlock Host Application documentation.
+- [0018-reliquary-and-phylactery-naming.md](0018-reliquary-and-phylactery-naming.md) - 0018 Reliquary And Phylactery Naming documentation.
+- [0019-cloud-backed-cva-reconciliation.md](0019-cloud-backed-cva-reconciliation.md) - 0019 Cloud Backed Cva Reconciliation documentation.
+- [0020-reliquary-and-phylactery-file-kinds.md](0020-reliquary-and-phylactery-file-kinds.md) - 0020 Reliquary And Phylactery File Kinds documentation.
+- [0021-typed-reliquary-scopes-and-connections.md](0021-typed-reliquary-scopes-and-connections.md) - 0021 Typed Reliquary Scopes And Connections documentation.
+- [0022-durable-typed-owner-identity.md](0022-durable-typed-owner-identity.md) - 0022 Durable Typed Owner Identity documentation.
+- [0023-insomnia-durable-owner-routing.md](0023-insomnia-durable-owner-routing.md) - 0023 Insomnia Durable Owner Routing documentation.
+- [0024-owner-local-dream-processing.md](0024-owner-local-dream-processing.md) - 0024 Owner Local Dream Processing documentation.
+- [0025-owner-local-derived-communities.md](0025-owner-local-derived-communities.md) - 0025 Owner Local Derived Communities documentation.
+- [0026-community-routed-memory-retrieval.md](0026-community-routed-memory-retrieval.md) - 0026 Community Routed Memory Retrieval documentation.
+- [0027-warlock-project-repositories-and-reliquary-storage-boundary.md](0027-warlock-project-repositories-and-reliquary-storage-boundary.md) - 0027 Warlock Project Repositories And Reliquary Storage Boundary documentation.
+- [0028-project-folder-and-repository-bootstrap-contract.md](0028-project-folder-and-repository-bootstrap-contract.md) - 0028 Project Folder And Repository Bootstrap Contract documentation.
+- [0029-active-rel-hierarchy-and-deferred-connection-scope.md](0029-active-rel-hierarchy-and-deferred-connection-scope.md) - 0029 Active Rel Hierarchy And Deferred Connection Scope documentation.
+- [0030-provenance-anchored-dream-maintenance.md](0030-provenance-anchored-dream-maintenance.md) - 0030 Provenance Anchored Dream Maintenance documentation.
+- [0031-dream-derived-community-semantic-names.md](0031-dream-derived-community-semantic-names.md) - 0031 Dream Derived Community Semantic Names documentation.
+- [0032-community-lineage-and-name-continuity.md](0032-community-lineage-and-name-continuity.md) - 0032 Community Lineage And Name Continuity documentation.
+- [0033-perception-entities-observations-and-ambiguity.md](0033-perception-entities-observations-and-ambiguity.md) - 0033 Perception Entities Observations And Ambiguity documentation.
+- [0034-cross-owner-relationship-graph-and-active-phy-privacy.md](0034-cross-owner-relationship-graph-and-active-phy-privacy.md) - 0034 Cross Owner Relationship Graph And Active Phy Privacy documentation.
+- [0035-chronos-shared-temporal-semantics.md](0035-chronos-shared-temporal-semantics.md) - 0035 Chronos Shared Temporal Semantics documentation.
+- [0036-typed-semantic-graph-endpoints.md](0036-typed-semantic-graph-endpoints.md) - 0036 Typed Semantic Graph Endpoints documentation.
+- [0037-reliquary-context-memory-project-environment.md](0037-reliquary-context-memory-project-environment.md) - 0037 Reliquary Context Memory Project Environment documentation.
+- [0038-gateway-instance-runtime-multiplexing.md](0038-gateway-instance-runtime-multiplexing.md) - 0038 Gateway Instance Runtime Multiplexing documentation.
+- [0039-unified-deterministic-memory-freshness.md](0039-unified-deterministic-memory-freshness.md) - 0039 Unified Deterministic Memory Freshness documentation.
+- [0040-terminal-tombstones-and-import-epochs.md](0040-terminal-tombstones-and-import-epochs.md) - 0040 Terminal Tombstones And Import Epochs documentation.
+- [0041-semantic-import-boundaries-owner-pruning-history-rewrite.md](0041-semantic-import-boundaries-owner-pruning-history-rewrite.md) - 0041 Semantic Import Boundaries Owner Pruning History Rewrite documentation.
+- [0042-minimal-lossless-current-history.md](0042-minimal-lossless-current-history.md) - 0042 Minimal Lossless Current History documentation.
+<!-- doc-ledger:files:end -->
+
+## Stub Files
+
+<!-- doc-ledger:stubs:start -->
+<!-- doc-ledger:stubs:end -->
+
+## Direct Folders
+
+<!-- doc-ledger:folders:start -->
+<!-- doc-ledger:folders:end -->

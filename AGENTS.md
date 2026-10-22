@@ -50,12 +50,12 @@ cargo check --manifest-path cli/Cargo.toml --locked
 cargo test --manifest-path cli/Cargo.toml --locked
 ```
 
-For documentation changes run the shared policy checks and Archivist integrity gate:
+For documentation changes run the shared policy checks and Archivist integrity gate. A fresh clone/worktree has no private Archivist link ledger; initialize it once with `ddocs fix --links` before the first check.
 
 ```text
 python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
-ddocs check --root docs --indexes --links
+ddocs check --indexes --links
 ```
 
 For implementation or architectural/source-ownership changes refresh architecture evidence and enforce Pitlord documentation ownership:

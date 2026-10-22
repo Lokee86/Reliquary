@@ -26,3 +26,5 @@ __pycache__/
 # Repository-local verification artifacts
 .test-tmp/
 .verification-tmp/
+/.ddocs/*
+!/.ddocs/config.toml

@@ -4,11 +4,11 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Freeze Step 2 of the [linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md): the live F8 ownership, policy interface, eligibility and exactly-once event contract.
+Freeze Step 2 of the [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction): the live F8 ownership, policy interface, eligibility and exactly-once event contract.
 
 ## Overview
 
-**Date:** 2026-10-12. **Status:** N2 fragment-source semantics are implemented; live matching is intrinsic REL behavior and remains local/non-propagating. The former prospective opt-in policy is superseded by the post-C12 intrinsic-F8 hard cut. [N2 disposition](freshness-retained-fixture-normalization-plan-2026-10-12.md#n2-disposition--2026-10-12) owns corrected fragment-source verification; [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md) retains earlier mechanics evidence. This document refines [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md). Numerical calibration belongs to Steps 3–4; pure implementation, producer timing, storage encoding and transformation verification belong to Steps 5–11.
+**Date:** 2026-10-12. **Status:** N2 fragment-source semantics are implemented; live matching is intrinsic REL behavior and remains local/non-propagating. The former prospective opt-in policy is superseded by the post-C12 intrinsic-F8 hard cut. [N2 disposition](freshness-retained-normalization-verification-2026-10-13.md) owns corrected fragment-source verification; [Step 12 verification](freshness-semantic-release-verification-2026-10-12.md) retains earlier mechanics evidence. This document refines [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md). Numerical calibration belongs to Steps 3–4; pure implementation, producer timing, storage encoding and transformation verification belong to Steps 5–11.
 
 Live semantic reinforcement changes the existing owner-local Freshness score directly. It never invokes graph propagation, creates accepted-use receipts, launches Dream, or produces recursive activity. A genuine later accepted-use receipt still independently earns the existing +25 propagation; first-cycle Dream retains its +50 contract.
 
@@ -92,11 +92,11 @@ On reconciliation, resolve every represented turn in the destination Archive and
 
 - [Step 4 frozen v1 constants, evidence and activation rules](freshness-semantic-calibration-2026-10-11.md)
 - [Step 1 baseline](freshness-semantic-historical-baseline-2026-10-11.md)
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
 - [Architecture](architecture.md), [invariants](invariants.md), [storage format](storage-format.md) and [maintainer map](maintainer-map.md)
-- [Freshness completion execution plan](freshness-completion-execution-plan-2026-10-03.md)
-- [Historical reconstruction specification](freshness-historical-import-reconstruction-spec-2026-10-03.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 
 ## Notes
 

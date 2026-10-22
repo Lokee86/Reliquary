@@ -1,458 +1,193 @@
-# External Conversation Index Integration Plan
+# External canonical-transcript host integration plan
 
 Parent index: [Documentation index](INDEX.md)
 
+Current implementation: [External sources](subsystems/external-sources.md)
+
 ## Purpose
 
-Define the future Reliquary integration mode for hosts that already own a canonical conversation transcript.
+Track the remaining host-specific integration work for frameworks that already own canonical conversation transcripts.
 
-This is an **additional integration mode**, not a replacement for Reliquary's native Archive-backed interaction model.
-
-Native Warlock/Reliquary operation may continue to persist source turns in the REL Archive. External-derived mode instead treats the host transcript as canonical and stores only rebuildable derived index state plus identifier-only provenance.
-
-The first target host is Hermes. The design must remain reusable for any framework that can provide stable message identity, canonical hydration, and a durable or reconstructable change stream.
+The provider-neutral Reliquary external-source core is implemented. This plan no longer describes that core as future work.
 
 ## Overview
 
-Reliquary gains a second source-ingestion posture without changing native Archive ownership. In native mode, source turns remain durable Archive evidence. In external-derived mode, a host-owned transcript is observed through stable references and an asynchronous change feed; Reliquary persists only rebuildable index state and semantic derivations. Both modes share downstream Memory, Dream, Perception, vector, and Ego machinery where their evidence contracts permit it.
-
-The implementation should prefer shared normalized source-processing inputs over host-specific forks. Hermes is the first adapter and validation target, not the schema authority for the feature.
+Reliquary can already store reference-only external index state, external provenance, rebuild/update cursors, vectors, transient hydration, and Gateway-facing processing/search surfaces without copying canonical host transcript bodies into Archive.
 
-## Ownership model
-
-### Native mode
-
-Existing native ownership remains unchanged:
-
-```text
-Warlock / native host
-      |
-      v
-Reliquary InteractionRuntime
-      |
-      v
-REL Archive owns source turns / conversation history
-      |
-      +--> Insomnia / Memories / vectors / Perception / Ego
-```
+The remaining work is to connect real hosts—first Hermes—to that core and prove the complete operational contract.
 
-The REL may own transcript/source bodies because the host has deliberately chosen Reliquary as the source-history authority.
+## Fixed ownership model
 
-### External-derived mode
+The external host owns:
 
-For an external framework such as Hermes:
+- canonical transcript bodies;
+- native conversation/message/branch identity;
+- authorization;
+- edit/delete/rewind semantics;
+- canonical compaction commit;
+- host routing/session lifecycle; and
+- transcript backup/recovery.
 
-```text
-external host
-    |
-    +--> canonical transcript
-    |        |
-    |        +--> durable change feed
-    |                 |
-    |                 v
-    |        Reliquary external-source adapter
-    |                 |
-    |        ids / hashes / offsets / vectors /
-    |        provenance refs / semantic state
-    |                 |
-    |                 v
-    |              REL / PHY
-    |
-    +<-- hydrate(ref) -------------------+
-    |
-    +<-- search refs / memory / compaction proposals
-```
+Reliquary owns:
 
-The external host remains the sole authority for conversation bodies, authorization, routing, lifecycle, deletion, rewind, compaction commit, and backup.
+- rebuildable derived external index state;
+- external source refs/hashes/offsets/vector bindings;
+- semantic derivations such as Memories;
+- REL/PHY semantic lifecycle under ordinary owner rules; and
+- Gateway/Instance authorization around Reliquary operations.
 
-Reliquary is allowed to hydrate source content transiently for indexing/inference. It must not persist a second canonical transcript body merely because it has seen that content.
+No adapter may make Reliquary a shadow transcript database.
 
-## Governing invariants
+## Implemented Reliquary baseline
 
-1. **Native mode remains first-class.** Existing Archive-backed source ingestion and Warlock semantics are not removed or weakened.
-2. **External mode is reference-backed.** Durable external-source state stores stable source identity, hashes, offsets, vectors, cursors, and semantic derivations, not full host transcript text.
-3. **Derived state is rebuildable.** Loss of the external index lane can be repaired from host canonical history without reconstructing conversation bodies from REL data.
-4. **Host acknowledgement is not required.** Reliquary indexing failure cannot block the host from committing a chat turn.
-5. **No fake Archive provenance.** External messages must not be represented by invented Archive node IDs or synthetic Episode IDs merely to satisfy current REL-local APIs.
-6. **No fake source ownership.** An external source reference remains externally owned even when it supports a REL or PHY Memory.
-7. **Exact provenance survives without payload duplication.** A Memory may retain stable external message/conversation IDs and content hashes even when source text is absent locally.
-8. **Content hashes fence derivation.** If the host message changes, the old derived chunk/vector/reference is stale even if the host reuses the same message ID.
-9. **Deletes and rewinds invalidate derived source state, not semantic history by fiat.** Source disappearance changes evidence availability; it does not automatically erase a Memory unless the semantic owner policy says that Memory must be withdrawn.
-10. **Cross-owner rules remain unchanged.** REL/PHY ownership, Dream, Perception, Ego, and privacy boundaries do not collapse merely because source evidence came from an external host.
-11. **External mode never becomes a second host session database.** Routing, authorization, model state, approvals, billing, and host lifecycle metadata stay outside Reliquary.
-12. **Compaction is proposal-based.** Reliquary may propose semantic compaction; only the canonical host commits transcript mutations.
+The current external-source core includes:
 
-## Required new concepts
+- `ExternalConversationSource`;
+- stable source/message/chunk identity;
+- snapshot/change-feed rebuild/update;
+- durable cursor/index status;
+- content-hash fencing;
+- transient authorized hydration;
+- `ExternalMemoryEvidence` and `SourceEvidenceRef`;
+- external semantic-processing preparation/publication;
+- Gateway integration; and
+- rebuildable search/index semantics.
 
-The current implementation assumes Archive-backed source identity for many provenance paths. External-derived mode needs an explicit source abstraction rather than overloading Archive records.
+See [External sources](subsystems/external-sources.md).
 
-### ExternalSourceNamespace
+## H1 — Hermes source contract
 
-A stable host/source identity, for example:
+Inventory Hermes's real source/session model and freeze the adapter contract for:
 
-```text
-hermes:<profile-id>
-codex:<workspace-or-account-id>
-claude-code:<workspace-or-account-id>
-```
+- profile/source namespace;
+- conversation, branch, and message identity;
+- feed floor/high-water/cursor;
+- create/edit/delete/rewind operations;
+- operation identity and retry behavior;
+- authoritative timestamps;
+- authorization checks;
+- bounded hydration; and
+- snapshot/rebuild.
 
-The exact syntax is adapter-defined, but equality must be stable and explicit. A source namespace is not a REL owner ID.
+Do not invent Reliquary IDs where Hermes already has stable identities.
 
-### ExternalMessageRef
+### Exit
 
-Candidate semantic identity:
+A versioned normalized adapter contract exists and can represent actual Hermes history/replay semantics without transcript duplication.
 
-```rust
-pub struct ExternalMessageRef {
-    pub source_namespace: String,
-    pub conversation_id: String,
-    pub message_id: String,
-    pub content_hash: [u8; 32],
-}
-```
+## H2 — Change-feed adapter
 
-The host's native integer/string message identity is normalized without inventing Reliquary Archive IDs.
+Implement the Hermes-side source adapter against `ExternalConversationSource`.
 
-### ExternalChunkRef
+Requirements:
 
-Derived index rows may point at a range within one canonical external message:
+- monotonic/reconstructable change consumption;
+- idempotent replay;
+- content hashes on every derived source identity;
+- deterministic rebuild from a current snapshot;
+- deletion/rewind invalidation;
+- bounded batching/backpressure; and
+- no acknowledgement dependency from Hermes's normal chat commit path.
 
-```rust
-pub struct ExternalChunkRef {
-    pub message: ExternalMessageRef,
-    pub start: u64,
-    pub end: u64,
-}
-```
+Reliquary outage must not block Hermes transcript durability.
 
-Offsets are defined by the host contract/adapter and must be validated against freshly hydrated canonical content before source text is exposed.
+## H3 — Authorized hydration
 
-### External source cursor
+Hydration must occur through Hermes authority at the point of use.
 
-Each adapter instance persists the last durably applied host change sequence together with source namespace and contract/version identity.
+Prove:
 
-Cursor advancement must be atomic with the corresponding derived index mutation. A crash may cause replay; replay must be idempotent.
+- principal/source authorization before content exposure;
+- message hash verification;
+- range validation;
+- revocation between search and hydration;
+- missing/deleted source behavior; and
+- no durable transcript-body copy left in REL/PHY.
 
-### Generalized Memory provenance
+## H4 — Semantic processing
 
-Current `MemorySourceRef` is explicitly REL-oriented: it contains owner-qualified Episode and Archive node identities. External-derived mode must not fabricate those fields.
+Feed transient external windows into shared semantic extraction rather than a Hermes-specific Memory engine.
 
-Plan a backward-compatible generalized identifier-only provenance representation, conceptually:
+Required behavior:
 
-```rust
-enum SourceEvidenceRef {
-    Reliquary(MemorySourceRef),
-    External(ExternalMemorySourceRef),
-}
-```
+- normalized source chronology/provenance;
+- shared Insomnia extraction semantics;
+- ordinary REL/PHY routing;
+- external evidence retained on produced Memories;
+- no fake Archive Episode/Node identity; and
+- retry/rebuild does not duplicate semantic publication.
 
-where `ExternalMemorySourceRef` can retain the source namespace, conversation/message identities, content hashes, and any exact authority/grounding ranges needed by Insomnia.
+## H5 — Search and source drill-down
 
-Implementation must preserve decoding of current Memory records. The eventual storage-format revision must be documented and migration-tested; do not reinterpret existing `MemorySourceRef` bytes.
+Integrate external derived search with Hermes-facing tools/UI.
 
-## External source adapter boundary
+Search returns refs/metadata. Hermes performs final hydration and authorization. Reliquary-owned Memory/Entity/Observation results remain ordinary semantic objects.
 
-Add a provider-neutral adapter surface that Reliquary can implement against host APIs.
+Prove stale-hash and deleted-source behavior explicitly.
 
-Conceptual operations:
+## H6 — Compaction proposal integration
 
-```rust
-trait ExternalConversationSource {
-    fn source_namespace(&self) -> &str;
-    fn feed_floor(&self) -> Result<u64, ExternalSourceError>;
-    fn feed_watermark(&self) -> Result<u64, ExternalSourceError>;
-    fn changes_after(
-        &self,
-        cursor: u64,
-        limit: usize,
-    ) -> Result<Vec<ExternalConversationChange>, ExternalSourceError>;
-    fn snapshot_manifest(&self) -> Result<ExternalSnapshotManifest, ExternalSourceError>;
-    fn hydrate(
-        &self,
-        refs: &[ExternalMessageRef],
-    ) -> Result<Vec<HydratedExternalMessage>, ExternalSourceError>;
-}
-```
+Reliquary may propose semantic compaction of host history, but Hermes owns commit.
 
-The exact transport may be in-process, plugin callback, local RPC, or another adapter-specific mechanism. Reliquary core should consume normalized source semantics, not Hermes-specific Python objects.
+A proposal must bind:
 
-## Derived index storage
+- exact source range/branch;
+- input message identities and hashes;
+- generated summary/semantic artifact;
+- policy/model identity where relevant; and
+- enough proof for Hermes to reject a stale proposal.
 
-External-derived indexing needs durable state distinct from Archive source history.
+Committing a proposal must never silently mutate Reliquary source authority.
 
-Do **not** insert hydrated external message bodies into:
+## H7 — Gateway/Instance session integration
 
-- Archive nodes;
-- Archive content objects;
-- Episodes;
-- Fragments; or
-- Echo source evidence
+Map real Hermes sessions onto authenticated Gateway/Instance usage.
 
-merely to reuse current native retrieval machinery.
+Validate:
 
-The new lane should persist only what is necessary to rebuild/route semantic work, including:
+- simultaneous sessions;
+- independently selected RELs/branches;
+- same-principal shared PHY behavior;
+- different-principal isolation;
+- cancellation/reconnect;
+- source revocation;
+- Gateway remount/epoch changes; and
+- external-source operations under exact instance grants.
 
-- `ExternalMessageRef`;
-- chunk offsets;
-- content hashes;
-- vector bindings;
-- adapter/source namespace;
-- index contract/version;
-- indexed/reconciled state;
-- source cursor/watermark; and
-- provider-specific derived metadata that is not a copy of source text.
+## H8 — End-to-end recovery
 
-Physical vector storage may reuse `PackedVectorStore`. Source-to-row bindings should use a typed external-source binding rather than pretending an external chunk is an Archive `FragmentId`.
+Exercise:
 
-## Hydration and transient processing
+- Reliquary unavailable while Hermes continues;
+- later catch-up from feed/snapshot;
+- crash between derived mutation and cursor advance;
+- duplicate feed delivery;
+- host edit/delete/rewind after indexing;
+- lost/corrupt derived index rebuild;
+- semantic publication retry; and
+- ambiguous in-flight provider/runtime outcomes independently of source indexing.
 
-Source text is fetched only when a bounded operation needs it.
+## Acceptance
 
-Examples:
+The integration is complete when a real Hermes instance can run concurrent authorized sessions, rebuild/index its canonical history, hydrate exact evidence, derive Memories without source duplication, survive restart/replay/revoke/delete/rewind, and operate while Reliquary indexing is temporarily unavailable.
 
-- embedding a newly changed message;
-- answering a provenance/source drill-down;
-- running Insomnia extraction over a bounded external turn window;
-- building a compaction proposal; or
-- validating a stale search reference.
+## Non-goals
 
-Hydrated content is transient process memory unless it becomes a different legitimate semantic owner, such as a Memory body produced by Insomnia.
-
-A Memory body is not considered duplicate transcript storage: it is a derived semantic proposition with its own ownership/lifecycle. The source transcript body itself remains external.
-
-## Search contract
-
-Reliquary external-source search returns source references plus scores/metadata, not source text.
-
-Conceptually:
-
-```text
-query
-  -> external derived vectors / routing
-  -> ExternalChunkRef[]
-  -> host/core hydration + authorization
-  -> source text
-```
-
-For Hermes, the Hermes core performs the final authorization/hash/range validation before text reaches the caller.
-
-Reliquary may separately return normal Memory/Entity/Observation results from REL/PHY. Those are Reliquary-owned semantic objects and are not hydrated from the host transcript.
-
-## Insomnia in external-derived mode
-
-Existing Insomnia is Archive/Episode-oriented. Reusing it by copying host conversations into Archive would violate the no-duplicate-transcript goal.
-
-The future external path should therefore separate **semantic extraction input** from **Archive persistence**.
-
-Target direction:
-
-1. the adapter consumes host changes;
-2. it groups bounded relevant external turns transiently;
-3. canonical bodies are hydrated only for the processing window;
-4. the existing extraction/classification machinery receives a normalized transient episode/view;
-5. resulting Memories are published to REL/PHY through normal ownership routing;
-6. provenance is stored as generalized external source references plus source chronology; and
-7. hydrated source bodies are discarded.
-
-Do not fork the actual proposition extraction semantics into a Hermes-specific Insomnia implementation. Extract a shared normalized processing input where necessary.
-
-Native Archive-backed Insomnia continues using durable Episodes.
-
-## Dream, Perception, and provenance
-
-Derived Memories from external sources participate in Dream and Perception according to the same Memory authority rules as native-derived Memories.
-
-Differences are limited to source recovery:
-
-- source chronology comes from canonical host metadata captured/validated during processing;
-- source evidence lookup may require external hydration;
-- an unavailable host source can leave a Memory's source reference unresolved without invalidating the Memory automatically;
-- content-hash mismatch marks source evidence stale and triggers reconsideration where the semantic subsystem requires it; and
-- external source identity must not be treated as an owner-local corroborating REL Episode.
-
-PHY privacy rules remain unchanged. An external reference carried into PHY remains identifier-only.
-
-## Edits, rewind, deletion, and staleness
-
-External change events must drive deterministic derived-index invalidation.
-
-### Edit/content replacement
-
-Same host message ID + new content hash:
-
-- invalidate old chunks/vector bindings;
-- index the new canonical content;
-- retain historical derived semantic state only according to normal Memory revision/lifecycle policy;
-- mark provenance evidence bound to the old hash stale.
-
-### Rewind/inactive transition
-
-- remove or deactivate source index rows no longer visible;
-- stale old search refs;
-- reconsider semantic observations only where policy requires;
-- do not blindly delete independent Memories.
-
-### Conversation deletion
-
-- tombstone/remove external index rows for that conversation;
-- preserve semantic objects whose owner policy allows them to outlive missing evidence;
-- make provenance resolution report source unavailable/deleted rather than inventing a replacement source.
-
-## Rebuild protocol
-
-Rebuild must be normal operation.
-
-The host supplies a snapshot manifest containing stable refs, hashes, visibility, and a feed watermark but no duplicate transcript database.
-
-Reliquary:
-
-1. creates a fresh derived index generation;
-2. hydrates manifest refs in bounded batches;
-3. verifies content hashes before indexing;
-4. installs the completed generation atomically;
-5. records the snapshot watermark; and
-6. resumes incremental changes after that watermark.
-
-If the adapter cursor falls behind the host feed floor, incremental processing stops and rebuild is required.
-
-## Semantic compaction service
-
-External-derived mode may provide Reliquary compaction without owning the transcript.
-
-This should be a separate optional service from indexing.
-
-Input:
-
-- canonical conversation identity;
-- host-provided snapshot/fingerprint;
-- bounded hydrated transcript/context;
-- optional Reliquary Memories/Entities/Observations/Ego context;
-- host compaction constraints.
-
-Output:
-
-```text
-CompactionProposal
-  summary
-  compacted source message refs
-  preserved tail refs
-  semantic/provenance metadata
-  source fingerprint
-```
-
-The host validates the fingerprint/active set and performs its own normal canonical compaction mutation.
-
-Reliquary never:
-
-- marks host messages inactive directly;
-- creates host child sessions;
-- rewinds/deletes host history; or
-- treats proposal generation as a durable transcript commit.
-
-If Reliquary is unavailable, the host can use native compaction or defer according to host policy.
-
-## Relationship to existing MemoryProvider-style integrations
-
-An external framework may already have a turn-time memory provider hook.
-
-For Reliquary derived-index mode:
-
-- the durable source-ingestion authority is the host change feed, not a per-turn `sync_turn` callback;
-- turn hooks may still provide recall, UI indicators, or bounded immediate semantic behaviour;
-- the same completed turn must not be durably ingested once through a hook and again through the feed; and
-- adapters should make replay/idempotency identity derive from host source/change identity.
-
-This distinction is important for Hermes, whose current memory-provider API includes `sync_turn`.
-
-# Phase tracker
-
-| Phase | Status | Completion gate |
-| --- | --- | --- |
-| R0. External source contracts | Implemented on P5-G | Stable ref/cursor/hydration model accepted |
-| R1. Reference-only derived index | Implemented on P5-G | Host messages index without durable text duplication |
-| R2. Search + rebuild | Implemented on P5-G | Lost index rebuilds and returns validated refs |
-| R3. External provenance + Insomnia input | Implemented on P5-G | Memories derive from transient host evidence without Archive copies |
-| R4. Lifecycle invalidation | Implemented on P5-G | Edit/rewind/delete semantics are deterministic |
-| R5. Hermes adapter | Planned after Hermes feed API | End-to-end async indexing works |
-| R6. Semantic compaction proposals | Later | Hermes can consume proposals without storage ownership transfer |
-| R7. Additional framework adapters | Later | Second adapter proves contract is not Hermes-specific |
-
-## Implemented framework-neutral R0–R4
-
-The P5-G external core implements normalized host contracts, synchronized reference-only source snapshots, hash-bound lexical/vector search and rebuild, external Memory provenance, shared transient Insomnia input and deterministic edit/visibility/delete invalidation. Current ownership, API, formats and bounds live in [Architecture](architecture.md), [Rust API](api.md), [Storage format](storage-format.md) and [Current limitations](current-limitations.md).
-
-[External-core acceptance](multiplexing-implementation-plan.md) records branch scope, replay/reopen/corruption/privacy/lifecycle evidence, recipient recovery and verification limits. Host-specific adapters, compaction proposals and external polling remain future work below.
-
-## R5 — Hermes adapter
-
-Build the adapter only after the Hermes contract is stable.
-
-Responsibilities:
-
-- consume Hermes feed floor/high-water/changes;
-- hydrate stable message refs through Hermes core;
-- map Hermes profile identity to one external source namespace;
-- persist cursor atomically with Reliquary derived state;
-- expose reference-returning search to Hermes;
-- keep Hermes canonical text out of REL external-index storage; and
-- coexist with normal Reliquary Memory/Perception functionality.
-
-The adapter may live as a separate package/crate/module if that keeps Hermes-specific transport out of Reliquary core.
-
-## R6 — Semantic compaction proposals
-
-Add proposal generation after reference indexing and provenance are proven.
-
-Use exact host snapshot identity and bounded hydration. Return a proposal; do not commit host transcript changes.
-
-Quality tests should compare native Hermes compaction and Reliquary semantic compaction on retained decisions/constraints/provenance, while correctness tests focus on stale-proposal rejection and no lost turns.
-
-## R7 — Additional framework adapters
-
-A second host integration is the portability test.
-
-The shared contract is successful only if a non-Hermes adapter can implement:
-
-- stable source identity;
-- change replay or rebuild;
-- canonical hydration;
-- reference-returning search; and
-- optional proposal services
-
-without adopting Hermes-specific lifecycle types.
-
-## Cross-repository acceptance matrix
-
-Hermes + Reliquary integration is not complete until all of these pass:
-
-1. **Reliquary unavailable at Hermes startup:** Hermes chat/save/resume/rewind/delete/backup continue.
-2. **Reliquary dies after Hermes commit:** on restart, exactly one derived entry exists for exactly one canonical message.
-3. **Index destroyed:** rebuild from Hermes produces the same active source reference set.
-4. **Message edited:** old content-hash refs stop resolving; new content indexes once.
-5. **Message rewound/deleted:** old source refs no longer hydrate through Hermes.
-6. **Profile isolation:** no REL external index for one Hermes profile can hydrate another profile's transcript.
-7. **No duplicate source body:** serialized REL external-index state contains no canonical Hermes message text.
-8. **Memory provenance:** derived Memory can identify exact Hermes source evidence even though that evidence body is absent from REL.
-9. **Canonical-owner composition:** one submitted turn yields one Hermes canonical message, one feed mutation, and one Reliquary derived index update.
-10. **Compaction proposal:** stale source fingerprint is rejected by Hermes; current proposal commits through Hermes and is then observed back through the feed.
-
-## Definition of done
-
-External-derived mode is complete when Reliquary can attach to a host-owned transcript, maintain a crash-safe rebuildable semantic/vector index without copying canonical transcript bodies, create normal REL/PHY semantic state with exact external provenance, survive source edits/deletes/rebuilds, return source references rather than unauthorized text, and optionally provide semantic compaction proposals while the host remains the sole conversation mutation authority.
-
-Native Archive-backed Reliquary operation remains fully supported and semantically unchanged.
+- replacing native Archive-backed operation;
+- persisting Hermes transcript bodies in Archive;
+- creating a Hermes-specific semantic schema;
+- making ACP or another protocol the canonical storage model;
+- requiring host chat commits to wait for Reliquary; or
+- granting Reliquary authority over host compaction commit.
 
 ## Related docs
 
-- [Roadmap](roadmap.md)
+- [External sources](subsystems/external-sources.md)
+- [Runtime multiplexing](subsystems/runtime-multiplexing.md)
+- [Multiplexing release plan](multiplexing-implementation-plan.md)
 - [Architecture](architecture.md)
-- [Architectural invariants](invariants.md)
-- [Storage format](storage-format.md)
-- [Rust API](api.md)
-- [Operator integration guide](manual/integration-guide.md)
-- [Perception subsystem plan](perception-subsystem-plan.md)
-- [Chronos subsystem plan](chronos-subsystem-plan.md)
+- [ADR 0038](decisions/0038-gateway-instance-runtime-multiplexing.md)
 
 ## Notes
 
-Implemented R0–R4 facts have moved to canonical current-state documents. This plan retains host-specific adapters, proposal services and outstanding integration work; the acceptance record preserves the implemented core's evidence. The Hermes adapter must not become a hidden dependency of native Reliquary operation.
+The earlier version of this document mixed implemented core design with future Hermes work. That current-state material has been graduated to the subsystem documentation.

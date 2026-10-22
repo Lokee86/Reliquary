@@ -63,8 +63,8 @@ The restart test must reuse the host's existing configured journal directory, as
 
 ## Related docs
 
-- [Linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
-- [Architecture specification](agentic-memory-retrieval-implementation-plan-2026-10-16.md)
+- [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md)
+- [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md)
 - [Execution evidence](agentic-memory-retrieval-baseline-2026-10-16.md)
 - [External consumption contract](freshness-external-consumption-contract.md)
 

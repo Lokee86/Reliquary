@@ -42,7 +42,7 @@ With v1 semantic bonuses <=10 and local hop cost 5, positive credit can reach at
 
 - [Historical manifest policy](freshness-historical-manifest-policy.md)
 - [Step 16 semantic planning verification](freshness-historical-semantic-event-planner-verification-2026-10-12.md)
-- [Linear implementation sequence](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Linear implementation sequence](subsystems/freshness.md#historical-reconstruction)
 
 ## Notes
 

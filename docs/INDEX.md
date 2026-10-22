@@ -24,8 +24,7 @@
 - [Tombstone/import final verification](tombstone-import-history-final-verification-2026-10-18.md) — implementation, retained fixture promotion, retrieval parity and final acceptance.
 - [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) — terminal lifecycle, owner import identity, explicit pruning and policy v3 decisions.
 - [ADR 0041](decisions/0041-semantic-import-boundaries-owner-pruning-history-rewrite.md) — semantic import boundaries, owner-neutral pruning, and explicit fresh-history rewrite.
-- [Semantic import boundaries, owner-neutral pruning, and history rewrite — implementation plan](semantic-import-pruning-history-rewrite-implementation-plan-2026-10-18.md) — staged hard-cut plan for removing physical-prefix authority, adding PHY pruning/multi-profile repair, and adding REL/PHY rewrite.
-- [Semantic import, pruning and history rewrite — baseline evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) — ongoing baseline fixture hashes, Arcana snapshot limits, source dependency audit and planned focused checks.
+- [Semantic import, pruning and history rewrite — execution evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) — retained implementation and verification history for the completed semantic-import, pruning, repair, and rewrite work.
 - [Development-format compatibility retirement audit (2026-10-19)](development-format-compatibility-retirement-audit-2026-10-19.md) — canonical-format policy, confirmed legacy authoritative fixture inventory, and outstanding migration/retirement gates.
 - [Development format hard cut — interruption specification](development-format-hard-cut-interruption-spec-2026-10-19.md) — canonical runtime-only format lifecycle, migration and legacy-retirement acceptance.
 - [Minimal lossless history storage — format-policy amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) — completed I1–I12 interruption, verified Step 87 and final R1–R22 retirement gates.
@@ -33,20 +32,16 @@
 
 - [Operator and integration manual](manual/INDEX.md) — task-oriented workflows for users, operators, and product integrators.
 - [Architecture](architecture.md) — implemented ownership, state, flows, and code map.
+- [Subsystem documentation](subsystems/INDEX.md) — focused current-state ownership, behavior, lifecycle, failure, and implementation maps.
 - [Architectural invariants](invariants.md) — governing ownership and storage constraints.
 - [Storage format](storage-format.md) — exact current REL/PHY persistent-record format, legacy CVA compatibility, and migration boundary.
 - [Local configuration](configuration.md) — replaceable local config format, durability, and security boundary.
 - [Agentic Memory retrieval design](agentic-memory-retrieval-design-2026-10-15.md) — accepted REL-only three-operation decision-model retrieval, concurrent graph exploration, query refinement, fallback reporting and confirmed-handoff reinforcement (implemented; main frozen functional scenarios pass, evidence-recall comparison is poor).
-- [Agentic Memory retrieval implementation specification — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md) — architecture specification and implementation status for full-pool candidate collection, controller state, decision routing, one-hop traversal, host handoff reinforcement and remaining frozen-fixture gates.
-- [Agentic Memory retrieval — linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md) — 45-step Sol/Luna execution sequence derived from the accepted specification, including per-step completion gates and final integration criteria.
 - [Agentic Memory retrieval verification — 2026-10-16](agentic-memory-retrieval-verification-2026-10-16.md) — final gates, real host candidate proof and explicit frozen-corpus format/fidelity qualification.
 - [Agentic Memory host handoff seam — 2026-10-16](agentic-memory-host-handoff-seam-2026-10-16.md) — real host source trace, receiver acknowledgment and exact-manifest recovery boundary.
 - [Agentic Memory retrieval Luna baseline — 2026-10-16](agentic-memory-retrieval-baseline-2026-10-16.md) — Step 1 snapshot, ownership inspection, commands, and truthful blockers.
-- [Freshness retrieval boundary implementation plan](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md) — ordered F1–F5 scope and gates.
-- [Tombstoning, import epochs, historical pruning, and compatibility-profile upgrade — 2026-10-17](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md) — canonical architectural specification for terminal direct-only tombstones, repeated-import epoch reconstruction, destructive historical pruning/repack, policy v3/profile retirement and retained-REL normalization.
-- [Tombstone/import/history/compatibility remaining execution plan — 2026-10-17](tombstone-import-history-remaining-execution-plan-2026-10-17.md) — execution sequence and historical acceptance checkpoints; final results are linked at the top.
 - [Freshness retrieval boundary execution record](freshness-retrieval-boundary-verification-2026-10-15.md) — caller map, regression evidence and external-host wiring disposition.
-- [External Memory consumption and Freshness](freshness-external-consumption-contract.md) — passive internal retrieval, existing receipts and planned successful-host-handoff integration.
+- [External Memory consumption and Freshness](freshness-external-consumption-contract.md) — passive internal retrieval, implemented successful-handoff reinforcement boundary, and remaining production-host acknowledgement obligations.
 - [Rust API](api.md) — current public library surface and behavior.
 - [Repo-local CLI](cli.md) — detachable development/operator command package and invocation model.
 - [Development](development.md) — repository workflow, tests, and smoke example.
@@ -54,7 +49,6 @@
 - [Community scan-and-merge benchmark — 2026-08-27](community-scan-merge-benchmark-2026-08-27.md) — synthetic scaling and modularity comparison for community algorithm v2 against monolithic Leiden.
 - [Community routing benchmark — 2026-08-28](community-routing-benchmark-2026-08-28.md) — small owner-split routing and synthetic scale evidence that established the requirements for a larger real Memory-Web validation.
 - [Community routing validation — 2026-08-29](community-routing-validation-2026-08-29.md) — five-fold 1,087-Memory validation of four-sub-centroid/top-4 routing, end-to-end traversal quality, vector-work reduction, and context-diversity checks.
-- [Reliquary and Phylactery scope design record](reliquary-phylactery-memory-scope-plan.md) — retained scope-ownership rationale, REL/PHY authority separation, dependency-based REL composition, and ADR 0034 cross-owner relational-Observation privacy/reference rules.
 - [Maintainer map](maintainer-map.md) — change-area routing to code and canonical docs.
 - [Behavioral contracts](behavioral-contracts.md) — critical invariants mapped to tests.
 - [Documentation policy](documentation-policy.md) — repository-local documentation ownership.
@@ -63,16 +57,13 @@
 - [Roadmap](roadmap.md) — future-only product, runtime, semantic-layer, and storage implementation sequence.
 - [Import step 24 attribution acceptance](import-step24-attribution-acceptance-2026-10-17.md) — scoped cohort/source proofs and validation record.
 - [Native historical import](native-import.md) — current provider-normalized offline import API and durability.
-- [Multiplexing implementation plan](multiplexing-implementation-plan.md) — single current cross-repository execution/status plan for Reliquary, Warlock and Hermes multiplexing.
-- [External conversation index integration plan](conversation-index-integration-plan.md) — future reference-only integration mode for host-owned canonical transcripts, asynchronous change-feed indexing, external provenance, rebuild, and compaction proposals.
+- [Multiplexing consumer and release plan](multiplexing-implementation-plan.md) — remaining Warlock production adoption, release verification, legacy-surface cleanup, and Hermes integration.
+- [External canonical-transcript host integration plan](conversation-index-integration-plan.md) — remaining real-host/Hermes feed, hydration, session, compaction-proposal, and recovery integration over the implemented external-source core.
 - [Freshness P6 integrated verification](freshness-performance-verification-2026-10-03.md) — final correctness gates, matched P0/final release measurements and deployment evidence limits.
 - [Freshness P5 breadth assessment](freshness-performance-p5-breadth-2026-10-04.md) — measured +25/+50 reach by roots, topology and membership; retained v1 and remaining semantic-quality limits.
 - [Freshness P4 receipt lookup verification](freshness-performance-p4-verification-2026-10-04.md) — frozen storage diagnosis, bounded negative membership, matched release evidence and final correctness gates.
 - [Freshness P2 scheduling verification](freshness-performance-p2-verification-2026-10-03.md) — fixed conservative 16-event parallel threshold, counterless production accounting, and matched P1/P2 evidence.
-- [Memory Freshness policy](memory-staleness-plan.md) — accepted -100..+100 deterministic event/graph relevance model, owner-REL decay and Fresh/Stale/Dormant thresholds; former audit-based design superseded (planned).
-- [REL activity clock Phase 1 spec](rel-activity-clock-implementation-plan.md) — novel-turn accounting across both Archive write paths, logical historical cuts, reopen, repack and reconciliation gates.
 - [Insomnia explicit Memory commit plan](insomnia-explicit-memory-commit-plan.md) — future stronger explicit-retention contract using existing Episode/Insomnia authority and provenance.
-- [Unified Memory Freshness implementation plan](generic-staleness-implementation-plan.md) — canonical implementation sequence, deterministic parallel propagation and duplicate reinforcement, lazy decay, durable event recovery, retained Archive activity/checkpoint work and separate optional Ego clock utility; core implementation is verified separately; live F8 is intrinsic, while historical reconstruction is explicit/offline.
 - [Freshness semantic policy module — 2026-10-11](freshness-semantic-policy-module-2026-10-11.md) — graph-independent v1 semantic thresholding, compatibility checks, deterministic candidate reduction, and local effect planning.
 - [Freshness R1 verification — 2026-10-03](freshness-r1-verification-2026-10-03.md) — verified buildable checkpoint, 23 focused library passes and one identified integration failure.
 - [Freshness R2 event-contract implementation and verification — 2026-10-03](freshness-r2-verification-2026-10-03.md) — source-level event provenance and validation closure, collected combined compilation and all six focused runtime passes.
@@ -80,13 +71,9 @@
 - [Freshness R4 canonical-history verification](freshness-r4-verification-2026-10-03.md) — bounded sorting, accepted-prefix scans and finite receipt rebuild/retry evidence.
 - [Freshness R5 transformation verification](freshness-r5-verification-2026-10-03.md) — physical copy/repack/reclamation and divergent reconciliation contracts.
 - [Freshness R6 scheduling and consumer verification](freshness-r6-verification-2026-10-03.md) — bounded due delivery, detached Dream propagation and truthful integration scope.
-- [Freshness performance hardening plan](freshness-performance-hardening-plan-2026-10-03.md) — behavior-preserving optimization sequence and full-operation evidence gates.
-- [Freshness P2–P4 completion plan](freshness-performance-p2-p4-execution-plan-2026-10-04.md) — implementation-ready closure for simplified P2, deferred P3, retained tracing, and measured P4 postimage/history optimization.
 - [Freshness performance baseline](freshness-performance-baseline-2026-10-03.md) — frozen, checksum-backed P0 optimized measurements, accepted P1 baseline and explicit production-evidence limits.
 - [Freshness P1 verification](freshness-performance-p1-verification-2026-10-03.md) — grouped-origin traversal, exact oracle and targeted regression evidence, exploratory optimized comparison and outstanding release gates.
 - [Freshness core release verification](freshness-core-release-verification-2026-10-03.md) — consolidated commands, measurements, limitations and release status; F8 excluded.
-- [Memory Freshness remaining-work specification — 2026-10-03](freshness-remaining-work-2026-10-03.md) — frozen partial-implementation checkpoint, outstanding correctness work and ordered verification gates.
-- [Memory Freshness completion execution specification — 2026-10-03](freshness-completion-execution-plan-2026-10-03.md) — implementation-ready R4–R7 closure, F8 semantic reinforcement/import extension, concrete tests and separate release gates.
 - [Historical Freshness manifest and timeline policy](freshness-historical-manifest-policy.md) — Step 13/H1 frozen v1 identity, ancestry/timestamp order, cohorts, availability, recipient-only eligibility and rejection rules; native C3–C6 integration is recorded below the frozen contract.
 - [Historical timeline/provenance planner verification — 2026-10-12](freshness-historical-planner-verification-2026-10-12.md) — Step 14 pure H2 planner fixtures and focused verification; Archive integration and scoring remain later steps.
 - [Historical semantic event planner verification — 2026-10-12](freshness-historical-semantic-event-planner-verification-2026-10-12.md) — Step 16 deterministic import-only semantic events using the frozen F8 policy; application and propagation remain later steps.
@@ -95,24 +82,18 @@
 - [Historical checkpoint recovery model evidence — 2026-10-12](freshness-historical-checkpoint-recovery-verification-2026-10-12.md) — partial Step 22 in-memory model tests; native crash/reopen/retry closure remains open.
 - [Historical import model composition evidence — 2026-10-12](freshness-historical-import-coordinator-verification-2026-10-12.md) — partial Step 24 supplied-plan composition; no native coordinator or importer integration.
 - [Historical reconstruction partial verification — 2026-10-12](freshness-historical-reconstruction-verification-2026-10-12.md) — partial Step 25 primitive/model and selected regression evidence; integrated native acceptance and measurements remain open.
-- [Freshness historical import reconstruction specification — 2026-10-03](freshness-historical-import-reconstruction-spec-2026-10-03.md) — optional single-generation provenance-timed semantic/Dream replay, import-only propagation, chronological lazy scores and atomic owner checkpoint.
-- [Freshness semantic + historical linear implementation plan — 2026-10-11](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md) — original 26-step execution history for live F8 followed by H1–H8; Step 26 audit corrected Steps 22/24/25 to partial.
-- [Historical Freshness completion execution plan — 2026-10-12](freshness-historical-completion-execution-plan-2026-10-12.md) — completed C1–C12 native closure and explicit offline REL release scope.
-- [Retained Freshness fixture normalization plan — 2026-10-12](freshness-retained-fixture-normalization-plan-2026-10-12.md) — disposable N1–N10 plan to correct mixed-fragment semantics/accepted-clock authority, normalize the 14-day/28-day/Ellis retained fixtures in place, rerun C10, then delete the conversion code without creating a maintained pre-release migration framework.
 - [Live semantic Freshness policy/API contract](freshness-live-semantic-policy-contract.md) — Step 2 frozen ownership, eligibility, deterministic selection and local event identity.
 - [Live semantic Freshness v1 calibration and policy — 2026-10-11](freshness-semantic-calibration-2026-10-11.md) — selected constants, retained-vector comparison matrix, intrinsic live semantics and immutable policy transitions.
 - [Freshness semantic calibration harness — 2026-10-11](freshness-semantic-calibration-harness-2026-10-11.md) — reproducible synthetic/retained-corpus threshold, curve, coverage, false-match, candidate-cost and score-trajectory oracle.
 - [Freshness semantic + historical baseline — 2026-10-11](freshness-semantic-historical-baseline-2026-10-11.md) — Step 1 code ownership map and test baseline on the implementation branch.
 - [F8 semantic Freshness release verification — 2026-10-12](freshness-semantic-release-verification-2026-10-12.md) — Step 12 activation/readiness closure, release-gate evidence, synthetic timing and bounded receipt checks.
 - [Ego status and decision inventory — 2026-10-14](ego-status-decision-inventory-2026-10-14.md) — implementation-versus-design matrix, accepted decisions, explicit non-decisions, calibration and dependency order.
-- [Ego Web synthesis plan](ego-web-synthesis-plan.md) — design and remaining work for Web synthesis.
-- [Ego Memory-Web summary plan](ego-web-synthesis-plan.md) — design rationale and calibration record for user-relative working-Web selection, mandatory broad audit, candidate selection, summary generation, refresh policy, measurements, and Personality boundary.
+- [Ego Memory-Web synthesis plan](ego-web-synthesis-plan.md) — future user-relative working-Web selection, broad audit, candidate extraction, summary generation, refresh policy, calibration, and Personality boundary.
 - [Ego Cross-chat context plan](ego-cross-chat-context-plan.md) — deterministic selection of recent active REL conversation compactions within the Ego context budget.
 - [Ego cross-REL summary inclusion plan](ego-cross-rel-summary-inclusion-plan.md) — future selection of existing user-relative summaries across explicitly authorized REL dependency and reverse/dependent scopes; no default combined synthesis.
-- [Dream design and validation record](dream-implementation-plan.md) — retained pair-oriented Dream design rationale, staged implementation history, classifier/verification evidence, lifecycle policy, and validation results; future work is owned by the roadmap.
 - [Dream classifier v2 design](dream-classifier-v2-design.md) — shipped classifier-v2 semantic-workstream boundary, frozen prompt, exact-pair gate, and population validation evidence.
-- [Chronos subsystem plan](chronos-subsystem-plan.md) — shared temporal architecture and implementation status: deterministic core/coverage, corpus-calibrated indication detection, unresolved-only verified inference, and Insomnia Memory persistence are implemented; Perception integration and measured coverage expansion remain.
-- [Perception subsystem plan](perception-subsystem-plan.md) — accepted architecture and staged implementation record; Entity processing is implemented, while propositional-anchor Observation processing, staggered Exploitation/Exploration candidate lanes, contribution/reconsideration, ordinary/relational synthesis, reasoning algorithms, receptors, and ambiguity clarification remain staged work.
+- [Chronos future work](chronos-subsystem-plan.md) — Perception integration, measured grammar/detector calibration, multi-evidence validity composition, and measurement-gated caching.
+- [Perception future implementation plan](perception-subsystem-plan.md) — Observation persistence, bounded Exploitation/Exploration, evidence expansion, reasoning verification, relational Observations, receptors, reconsideration, and ambiguity work atop the implemented Entity foundation.
 - [Entity mention resolution state](entity-resolution-state.md) — current per-mention resolution persistence/lifecycle, evidence-driven wake/retry, and runtime scheduling contract.
 - [Derived semantic nodes exploration](derived-semantic-nodes-exploration.md) — historical pre-Perception exploration of Entity/Observation graph structure, semantic authority, authorship, and derivation provenance; current referential-vs-propositional terminology is superseded by ADRs 0033/0036.
 - [Current limitations](current-limitations.md) — known incomplete or transitional behavior.
@@ -132,6 +113,119 @@
 
 - [Domain tombstone convergence inventory](domain-tombstone-convergence-split-2026-10-17.md)
 
-- [Decision endpoint inheritance execution](decision-endpoint-inheritance-linear-plan-2026-10-19.md) — configured decision precedence, adapter safety and verification.
 
-- [Decision endpoint inheritance specification](decision-endpoint-inheritance-spec-2026-10-19.md) — configured decision precedence, adapter safety and verification.
+## Direct Files
+
+<!-- doc-ledger:files:start -->
+
+- [agentic-memory-host-handoff-seam-2026-10-16.md](agentic-memory-host-handoff-seam-2026-10-16.md) - Agentic Memory Host Handoff Seam 2026 10 16 documentation.
+- [agentic-memory-retrieval-baseline-2026-10-16.md](agentic-memory-retrieval-baseline-2026-10-16.md) - Agentic Memory Retrieval Baseline 2026 10 16 documentation.
+- [agentic-memory-retrieval-design-2026-10-15.md](agentic-memory-retrieval-design-2026-10-15.md) - Agentic Memory Retrieval Design 2026 10 15 documentation.
+- [agentic-memory-retrieval-verification-2026-10-16.md](agentic-memory-retrieval-verification-2026-10-16.md) - Agentic Memory Retrieval Verification 2026 10 16 documentation.
+- [api.md](api.md) - Api documentation.
+- [architecture.md](architecture.md) - Architecture documentation.
+- [archive-vector-generation-reuse-decision-2026-10-21.md](archive-vector-generation-reuse-decision-2026-10-21.md) - Archive Vector Generation Reuse Decision 2026 10 21 documentation.
+- [behavioral-contracts.md](behavioral-contracts.md) - Behavioral Contracts documentation.
+- [canonical-history-migration-results-2026-10-21.md](canonical-history-migration-results-2026-10-21.md) - Canonical History Migration Results 2026 10 21 documentation.
+- [chronos-subsystem-plan.md](chronos-subsystem-plan.md) - Chronos Subsystem Plan documentation.
+- [cli.md](cli.md) - Cli documentation.
+- [community-history-reconstruction-decision-2026-10-21.md](community-history-reconstruction-decision-2026-10-21.md) - Community History Reconstruction Decision 2026 10 21 documentation.
+- [community-routing-benchmark-2026-08-28.md](community-routing-benchmark-2026-08-28.md) - Community Routing Benchmark 2026 08 28 documentation.
+- [community-routing-validation-2026-08-29.md](community-routing-validation-2026-08-29.md) - Community Routing Validation 2026 08 29 documentation.
+- [community-scan-merge-benchmark-2026-08-27.md](community-scan-merge-benchmark-2026-08-27.md) - Community Scan Merge Benchmark 2026 08 27 documentation.
+- [configuration.md](configuration.md) - Configuration documentation.
+- [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
+- [current-limitations.md](current-limitations.md) - Current Limitations documentation.
+- [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
+- [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
+- [development-format-hard-cut-interruption-spec-2026-10-19.md](development-format-hard-cut-interruption-spec-2026-10-19.md) - Development Format Hard Cut Interruption Spec 2026 10 19 documentation.
+- [development-format-interruption-execution-2026-10-19.md](development-format-interruption-execution-2026-10-19.md) - Development Format Interruption Execution 2026 10 19 documentation.
+- [development.md](development.md) - Development documentation.
+- [documentation-coverage.md](documentation-coverage.md) - Documentation Coverage documentation.
+- [documentation-policy.md](documentation-policy.md) - Documentation Policy documentation.
+- [documentation-procedure.md](documentation-procedure.md) - Documentation Procedure documentation.
+- [domain-tombstone-convergence-split-2026-10-17.md](domain-tombstone-convergence-split-2026-10-17.md) - Domain Tombstone Convergence Split 2026 10 17 documentation.
+- [dream-classifier-v2-design.md](dream-classifier-v2-design.md) - Dream Classifier V2 Design documentation.
+- [dream-population-contract-2026-10-21.md](dream-population-contract-2026-10-21.md) - Dream Population Contract 2026 10 21 documentation.
+- [ego-cross-chat-context-plan.md](ego-cross-chat-context-plan.md) - Ego Cross Chat Context Plan documentation.
+- [ego-cross-rel-summary-inclusion-plan.md](ego-cross-rel-summary-inclusion-plan.md) - Ego Cross Rel Summary Inclusion Plan documentation.
+- [ego-status-decision-inventory-2026-10-14.md](ego-status-decision-inventory-2026-10-14.md) - Ego Status Decision Inventory 2026 10 14 documentation.
+- [ego-web-synthesis-plan.md](ego-web-synthesis-plan.md) - Ego Web Synthesis Plan documentation.
+- [entity-resolution-compact-contract-2026-10-21.md](entity-resolution-compact-contract-2026-10-21.md) - Entity Resolution Compact Contract 2026 10 21 documentation.
+- [entity-resolution-state.md](entity-resolution-state.md) - Entity Resolution State documentation.
+- [external-index-compact-contract-2026-10-21.md](external-index-compact-contract-2026-10-21.md) - External Index Compact Contract 2026 10 21 documentation.
+- [freshness-combined-production-review-2026-10-12.md](freshness-combined-production-review-2026-10-12.md) - Freshness Combined Production Review 2026 10 12 documentation.
+- [freshness-core-release-verification-2026-10-03.md](freshness-core-release-verification-2026-10-03.md) - Freshness Core Release Verification 2026 10 03 documentation.
+- [freshness-external-consumption-contract.md](freshness-external-consumption-contract.md) - Freshness External Consumption Contract documentation.
+- [freshness-historical-bridge-oracle-verification-2026-10-12.md](freshness-historical-bridge-oracle-verification-2026-10-12.md) - Freshness Historical Bridge Oracle Verification 2026 10 12 documentation.
+- [freshness-historical-checkpoint-recovery-verification-2026-10-12.md](freshness-historical-checkpoint-recovery-verification-2026-10-12.md) - Freshness Historical Checkpoint Recovery Verification 2026 10 12 documentation.
+- [freshness-historical-checkpoint-verification-2026-10-12.md](freshness-historical-checkpoint-verification-2026-10-12.md) - Freshness Historical Checkpoint Verification 2026 10 12 documentation.
+- [freshness-historical-dream-verification-2026-10-12.md](freshness-historical-dream-verification-2026-10-12.md) - Freshness Historical Dream Verification 2026 10 12 documentation.
+- [freshness-historical-import-coordinator-verification-2026-10-12.md](freshness-historical-import-coordinator-verification-2026-10-12.md) - Freshness Historical Import Coordinator Verification 2026 10 12 documentation.
+- [freshness-historical-manifest-policy.md](freshness-historical-manifest-policy.md) - Freshness Historical Manifest Policy documentation.
+- [freshness-historical-planner-verification-2026-10-12.md](freshness-historical-planner-verification-2026-10-12.md) - Freshness Historical Planner Verification 2026 10 12 documentation.
+- [freshness-historical-production-disposition-2026-10-13.md](freshness-historical-production-disposition-2026-10-13.md) - Freshness Historical Production Disposition 2026 10 13 documentation.
+- [freshness-historical-propagation-verification-2026-10-12.md](freshness-historical-propagation-verification-2026-10-12.md) - Freshness Historical Propagation Verification 2026 10 12 documentation.
+- [freshness-historical-reconstruction-verification-2026-10-12.md](freshness-historical-reconstruction-verification-2026-10-12.md) - Freshness Historical Reconstruction Verification 2026 10 12 documentation.
+- [freshness-historical-scorer-verification-2026-10-12.md](freshness-historical-scorer-verification-2026-10-12.md) - Freshness Historical Scorer Verification 2026 10 12 documentation.
+- [freshness-historical-semantic-event-planner-verification-2026-10-12.md](freshness-historical-semantic-event-planner-verification-2026-10-12.md) - Freshness Historical Semantic Event Planner Verification 2026 10 12 documentation.
+- [freshness-historical-transform-verification-2026-10-12.md](freshness-historical-transform-verification-2026-10-12.md) - Freshness Historical Transform Verification 2026 10 12 documentation.
+- [freshness-live-semantic-policy-contract.md](freshness-live-semantic-policy-contract.md) - Freshness Live Semantic Policy Contract documentation.
+- [freshness-performance-baseline-2026-10-03.md](freshness-performance-baseline-2026-10-03.md) - Freshness Performance Baseline 2026 10 03 documentation.
+- [freshness-performance-p1-verification-2026-10-03.md](freshness-performance-p1-verification-2026-10-03.md) - Freshness Performance P1 Verification 2026 10 03 documentation.
+- [freshness-performance-p2-verification-2026-10-03.md](freshness-performance-p2-verification-2026-10-03.md) - Freshness Performance P2 Verification 2026 10 03 documentation.
+- [freshness-performance-p4-verification-2026-10-04.md](freshness-performance-p4-verification-2026-10-04.md) - Freshness Performance P4 Verification 2026 10 04 documentation.
+- [freshness-performance-p5-breadth-2026-10-04.md](freshness-performance-p5-breadth-2026-10-04.md) - Freshness Performance P5 Breadth 2026 10 04 documentation.
+- [freshness-performance-verification-2026-10-03.md](freshness-performance-verification-2026-10-03.md) - Freshness Performance Verification 2026 10 03 documentation.
+- [freshness-r1-verification-2026-10-03.md](freshness-r1-verification-2026-10-03.md) - Freshness R1 Verification 2026 10 03 documentation.
+- [freshness-r2-verification-2026-10-03.md](freshness-r2-verification-2026-10-03.md) - Freshness R2 Verification 2026 10 03 documentation.
+- [freshness-r3-verification-2026-10-03.md](freshness-r3-verification-2026-10-03.md) - Freshness R3 Verification 2026 10 03 documentation.
+- [freshness-r4-verification-2026-10-03.md](freshness-r4-verification-2026-10-03.md) - Freshness R4 Verification 2026 10 03 documentation.
+- [freshness-r5-verification-2026-10-03.md](freshness-r5-verification-2026-10-03.md) - Freshness R5 Verification 2026 10 03 documentation.
+- [freshness-r6-verification-2026-10-03.md](freshness-r6-verification-2026-10-03.md) - Freshness R6 Verification 2026 10 03 documentation.
+- [freshness-retained-normalization-verification-2026-10-13.md](freshness-retained-normalization-verification-2026-10-13.md) - Freshness Retained Normalization Verification 2026 10 13 documentation.
+- [freshness-retrieval-boundary-verification-2026-10-15.md](freshness-retrieval-boundary-verification-2026-10-15.md) - Freshness Retrieval Boundary Verification 2026 10 15 documentation.
+- [freshness-semantic-calibration-2026-10-11.md](freshness-semantic-calibration-2026-10-11.md) - Freshness Semantic Calibration 2026 10 11 documentation.
+- [freshness-semantic-calibration-harness-2026-10-11.md](freshness-semantic-calibration-harness-2026-10-11.md) - Freshness Semantic Calibration Harness 2026 10 11 documentation.
+- [freshness-semantic-historical-baseline-2026-10-11.md](freshness-semantic-historical-baseline-2026-10-11.md) - Freshness Semantic Historical Baseline 2026 10 11 documentation.
+- [freshness-semantic-policy-module-2026-10-11.md](freshness-semantic-policy-module-2026-10-11.md) - Freshness Semantic Policy Module 2026 10 11 documentation.
+- [freshness-semantic-release-verification-2026-10-12.md](freshness-semantic-release-verification-2026-10-12.md) - Freshness Semantic Release Verification 2026 10 12 documentation.
+- [import-step24-attribution-acceptance-2026-10-17.md](import-step24-attribution-acceptance-2026-10-17.md) - Import Step24 Attribution Acceptance 2026 10 17 documentation.
+- [insomnia-explicit-memory-commit-plan.md](insomnia-explicit-memory-commit-plan.md) - Insomnia Explicit Memory Commit Plan documentation.
+- [insomnia-semantic-validation-2026-08-24.md](insomnia-semantic-validation-2026-08-24.md) - Insomnia Semantic Validation 2026 08 24 documentation.
+- [interaction-stream-compact-contract-2026-10-21.md](interaction-stream-compact-contract-2026-10-21.md) - Interaction Stream Compact Contract 2026 10 21 documentation.
+- [invariants.md](invariants.md) - Invariants documentation.
+- [latest-offline-converter-coverage-2026-10-21.md](latest-offline-converter-coverage-2026-10-21.md) - Latest Offline Converter Coverage 2026 10 21 documentation.
+- [maintainer-map.md](maintainer-map.md) - Maintainer Map documentation.
+- [minimal-lossless-history-storage-execution-2026-10-19.md](minimal-lossless-history-storage-execution-2026-10-19.md) - Minimal Lossless History Storage Execution 2026 10 19 documentation.
+- [minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) - Minimal Lossless History Storage Format Policy Amendment 2026 10 19 documentation.
+- [minimal-lossless-history-storage-linear-plan-2026-10-19.md](minimal-lossless-history-storage-linear-plan-2026-10-19.md) - Minimal Lossless History Storage Linear Plan 2026 10 19 documentation.
+- [minimal-lossless-history-storage-rebased-freeze-2026-10-19.md](minimal-lossless-history-storage-rebased-freeze-2026-10-19.md) - Minimal Lossless History Storage Rebased Freeze 2026 10 19 documentation.
+- [minimal-lossless-history-storage-spec-2026-10-19.md](minimal-lossless-history-storage-spec-2026-10-19.md) - Minimal Lossless History Storage Spec 2026 10 19 documentation.
+- [multiplexing-implementation-plan.md](multiplexing-implementation-plan.md) - Multiplexing Implementation Plan documentation.
+- [native-import.md](native-import.md) - Native Import documentation.
+- [perception-subsystem-plan.md](perception-subsystem-plan.md) - Perception Subsystem Plan documentation.
+- [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.
+- [retained-entity-resolution-contract-2026-10-21.md](retained-entity-resolution-contract-2026-10-21.md) - Retained Entity Resolution Contract 2026 10 21 documentation.
+- [roadmap.md](roadmap.md) - Roadmap documentation.
+- [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.
+- [storage-format.md](storage-format.md) - Storage Format documentation.
+- [tombstone-import-history-execution-contract.md](tombstone-import-history-execution-contract.md) - Tombstone Import History Execution Contract documentation.
+- [tombstone-import-history-final-verification-2026-10-18.md](tombstone-import-history-final-verification-2026-10-18.md) - Tombstone Import History Final Verification 2026 10 18 documentation.
+- [version-history-plan.md](version-history-plan.md) - Version History Plan documentation.
+<!-- doc-ledger:files:end -->
+
+## Stub Files
+
+<!-- doc-ledger:stubs:start -->
+<!-- doc-ledger:stubs:end -->
+
+## Direct Folders
+
+<!-- doc-ledger:folders:start -->
+
+- [decisions](decisions/INDEX.md) - Decisions documentation.
+- [manual](manual/INDEX.md) - Manual documentation.
+- [references](references/INDEX.md) - References documentation.
+- [subsystems](subsystems/INDEX.md) - Subsystems documentation.
+<!-- doc-ledger:folders:end -->

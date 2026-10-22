@@ -53,6 +53,6 @@ These are R3-focused test results on the shared working tree, not evidence that 
 ## Related docs
 
 - [R2 durable event-contract verification](freshness-r2-verification-2026-10-03.md)
-- [Remaining Freshness phases and acceptance gates](freshness-remaining-work-2026-10-03.md)
-- [Unified implementation specification](generic-staleness-implementation-plan.md)
+- [Remaining Freshness phases and acceptance gates](subsystems/freshness.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)

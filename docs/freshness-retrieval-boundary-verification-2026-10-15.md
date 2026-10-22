@@ -1,7 +1,7 @@
 # Freshness retrieval boundary — execution record
 
 Date: 2026-10-15
-Parent plan: [implementation specification](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md)
+Parent plan: [Agentic Memory retrieval Freshness boundary](subsystems/agentic-memory-retrieval.md#freshness-boundary)
 Status: F1, F2, F4, and F5 evidence remains valid. F3's actual receiver/replay seam is implemented and tested in the Warlock `cf41c66` integration candidate, not deployed production. The Reliquary/host receiver evidence is recorded in [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md); frozen-corpus and final disposition gates remain open.
 
 ## Later closeout — 2026-10-16

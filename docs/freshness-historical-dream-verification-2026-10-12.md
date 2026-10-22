@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Record Step 18 / H4 of the [linear implementation sequence](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md).
+Record Step 18 / H4 of the [linear implementation sequence](subsystems/freshness.md#historical-reconstruction).
 
 ## Overview
 

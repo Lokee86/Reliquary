@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Close the integrated local release gate in [the hardening plan](freshness-performance-hardening-plan-2026-10-03.md). Execution date is 2026-10-04; the filename preserves the plan's required report name.
+Close the integrated local release gate in [the hardening plan](freshness-performance-verification-2026-10-03.md). Execution date is 2026-10-04; the filename preserves the plan's required report name.
 
 ## Overview
 

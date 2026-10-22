@@ -123,6 +123,10 @@ Repository verification also performs command-level smoke tests for REL create/i
 
 `set-entity-resolution-decision` / `clear-entity-resolution-decision` and `set-memory-retrieval-decision` / `clear-memory-retrieval-decision` use the same flags and control specialized overrides. Each decision consumer selects specialized → shared `general_decision` → adapted `general`. This is configuration precedence; a failed selected endpoint does not cause another tier to be tried. General-model choice output supplies no calibrated probabilities, so Entity Resolution retains its separate resolver fallback and its existing resolver-route prerequisite. See [Local configuration](configuration.md#modelsgeneral_decision).
 
+## Code Map
+
+- `cli/src/**`
+
 ## Related docs
 
 - [Architecture](architecture.md)

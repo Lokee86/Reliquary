@@ -104,7 +104,7 @@ Community and Memory-retrieval derived state follows the Memory Graph projection
 ## Related docs
 
 - [Insomnia semantic validation](../insomnia-semantic-validation-2026-08-24.md)
-- [Dream design record](../dream-implementation-plan.md)
+- [Dream design record](../subsystems/dream.md)
 - [Perception subsystem plan](../perception-subsystem-plan.md)
 - [Working with Memories and Entities](memories-and-entities.md)
 

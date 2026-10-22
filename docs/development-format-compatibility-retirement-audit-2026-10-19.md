@@ -29,7 +29,7 @@ The Reliquary main checkout currently has 130 modified or untracked paths across
 
 - [Storage format](storage-format.md)
 - [Semantic import and history rewrite evidence](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md)
-- [Semantic import and history rewrite implementation plan](semantic-import-pruning-history-rewrite-implementation-plan-2026-10-18.md)
+- [Semantic maintenance](subsystems/semantic-maintenance.md)
 
 ## Notes
 

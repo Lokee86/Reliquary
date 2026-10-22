@@ -337,6 +337,6 @@ Implementation must protect at minimum:
 - [ADR 0029 — Homogeneous Reliquaries and dependency-based context inheritance](0029-active-rel-hierarchy-and-deferred-connection-scope.md)
 - [ADR 0033 — Perception entities, observations, and ambiguity handling](0033-perception-entities-observations-and-ambiguity.md)
 - [ADR 0036 — Typed semantic Graph endpoints over Arcana](0036-typed-semantic-graph-endpoints.md)
-- [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
+- [Reliquary and Phylactery scope design record](../subsystems/scope-ownership.md)
 - [Perception subsystem plan](../perception-subsystem-plan.md)
 - [Roadmap](../roadmap.md)

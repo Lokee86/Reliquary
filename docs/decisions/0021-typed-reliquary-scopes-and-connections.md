@@ -281,6 +281,6 @@ The scope router should prefer atomic propositions. A single interaction may leg
 ## Related docs
 
 - [ADR 0020 — Reliquary and Phylactery file kinds](0020-reliquary-and-phylactery-file-kinds.md)
-- [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
+- [Reliquary and Phylactery scope design record](../subsystems/scope-ownership.md)
 - [ADR 0029 — Active REL hierarchy and deferred Connection scope](0029-active-rel-hierarchy-and-deferred-connection-scope.md)
 - [Roadmap](../roadmap.md)

@@ -12,7 +12,7 @@ This model is not wired to the real Step 21 Cva/Freshness owner and must not bec
 
 ## Related docs
 
-- [Freshness semantic + historical linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Historical sparse scorer verification](freshness-historical-scorer-verification-2026-10-12.md)
 - [Historical Dream verification](freshness-historical-dream-verification-2026-10-12.md)
 - [Historical propagation verification](freshness-historical-propagation-verification-2026-10-12.md)

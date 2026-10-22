@@ -37,10 +37,10 @@ Two empty-event model tests establish only:
 
 ## Related docs
 
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Historical checkpoint recovery and idempotence verification](freshness-historical-checkpoint-recovery-verification-2026-10-12.md)
 - [Historical sparse scorer verification](freshness-historical-scorer-verification-2026-10-12.md)
-- [Historical import reconstruction specification](freshness-historical-import-reconstruction-spec-2026-10-03.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 
 ## Notes
 

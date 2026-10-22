@@ -84,9 +84,9 @@ Semantic policy version/profile/cut never enters the Step 2 stable accepted-turn
 
 - [Live semantic policy/API contract](freshness-live-semantic-policy-contract.md)
 - [Calibration harness](freshness-semantic-calibration-harness-2026-10-11.md)
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
-- [Freshness completion plan](freshness-completion-execution-plan-2026-10-03.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
 
 ## Notes
 

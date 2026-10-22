@@ -1,0 +1,20 @@
+docs_root = "docs"
+index_file = "INDEX.md"
+
+[index]
+enabled = true
+
+[links]
+enabled = true
+
+[codemap]
+headings = ["Code Map"]
+remove_undiscovered_links = false
+remove_low_score_links = false
+
+[parent_link]
+folder_indexes = false
+indexed_files = false
+
+[editable]
+parent_index_extensions = []

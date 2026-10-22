@@ -37,9 +37,9 @@ Repository: `C:\!bin\workspace\Reliquary`. Branch: `feat/deterministic-memory-fr
 
 ## Related docs
 
-- [R2 remaining-work source specification](freshness-remaining-work-2026-10-03.md)
-- [Main Freshness implementation plan](generic-staleness-implementation-plan.md)
-- [Memory Freshness numerical policy](memory-staleness-plan.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
+- [Memory Freshness numerical policy](subsystems/freshness.md)
 - [Architectural decision 0039](decisions/0039-unified-deterministic-memory-freshness.md)
 - [R1 verification evidence](freshness-r1-verification-2026-10-03.md)
 

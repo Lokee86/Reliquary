@@ -51,12 +51,12 @@ Local verification, with the shared tools available on `PATH`, is:
 ```text
 python ../engineering-standards/tools/docs_policy/check.py --repo .
 python ../engineering-standards/tools/docs_policy/check.py --repo . --changed-from origin/main
-ddocs check --root docs --indexes --links
+ddocs check --indexes --links
 python scripts/check_architecture.py --refresh
 pitlord docs --repo . --ddocs-root docs --changed-from origin/main --timeout 2m
 ```
 
-All of these are blocking gates. The repository must not replace them with ad hoc source-layout scripts. Normal Rust verification remains required in addition to documentation checks.
+All of these are blocking gates. Archivist's link ledger is private, rebuildable state; on a fresh clone/worktree run `ddocs fix --links` once to establish its baseline before the first read-only check. CI performs that initialization and asserts that it produces no documentation diff. The repository must not replace these shared tools with ad hoc source-layout scripts. Normal Rust verification remains required in addition to documentation checks.
 
 ## Related docs
 

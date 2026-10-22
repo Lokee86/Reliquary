@@ -2,7 +2,7 @@
 
 Parent: [Documentation index](INDEX.md).
 
-Current integration base: `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` preserves live Memory mutation retry identity. Existing uncommitted benchmark and Ego documentation work must be preserved. Canonical plan: [implementation plan](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md). Domain convergence split: [2026-10-17 inventory](domain-tombstone-convergence-split-2026-10-17.md).
+Current integration base: `main` at `959e98c556603a0578e39362441c2d3f2901187f`. Lifecycle convergence landed in `d6bbc890214c813e3308f65948b1611369e80c0a`; `959e98c` preserves live Memory mutation retry identity. Existing uncommitted benchmark and Ego documentation work must be preserved. Canonical plan: [Semantic maintenance](subsystems/semantic-maintenance.md). Domain convergence split: [2026-10-17 inventory](domain-tombstone-convergence-split-2026-10-17.md).
 
 ## Purpose
 
@@ -57,7 +57,7 @@ Already landed before convergence: Archive conversation tombstones, shared lifec
 
 ### Remaining execution contract
 
-The authoritative remaining sequence is [steps 13–68](tombstone-import-history-remaining-execution-plan-2026-10-17.md). The order is intentionally convergence-first:
+The authoritative remaining sequence is [steps 13–68](subsystems/semantic-maintenance.md). The order is intentionally convergence-first:
 
 1. lifecycle convergence and its focused matrix are complete;
 2. the audited domain-lifecycle batch is committed;
@@ -91,7 +91,7 @@ At that checkpoint the integration base was frozen at `2fb0501418abccbb6605790d7
 
 ## Related docs
 
-- [Implementation plan](tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md)
+- [Semantic maintenance](subsystems/semantic-maintenance.md)
 - [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md)
 - [Maintainer map](maintainer-map.md)
 
@@ -139,4 +139,4 @@ Steps 18–23 are accepted on the isolated integration branch. Production comple
 
 ### Step 34 source-only reconciliation slice (2026-10-18)
 
-The isolated branch has focused acceptance for completed source-only zero-output right-tail epoch replay with preserved left physical history and regenerated destination start/settlement/completion evidence. The import module passes 56/56 cases, covering exact duplicate/conflicting-ID evidence, ordered epochs, unchanged left queue state and fail-closed unsupported histories. Nonzero grouped Memory and accepted Freshness interval replay remain open in step 34; transform acceptance (35) and main promotion (36) are not accepted by this slice. The [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md) owns detailed verification and impact reports.
+The isolated branch has focused acceptance for completed source-only zero-output right-tail epoch replay with preserved left physical history and regenerated destination start/settlement/completion evidence. The import module passes 56/56 cases, covering exact duplicate/conflicting-ID evidence, ordered epochs, unchanged left queue state and fail-closed unsupported histories. Nonzero grouped Memory and accepted Freshness interval replay remain open in step 34; transform acceptance (35) and main promotion (36) are not accepted by this slice. The [Semantic maintenance](subsystems/semantic-maintenance.md) owns detailed verification and impact reports.

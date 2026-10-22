@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Freeze the first optimized P0 measurements for [Freshness performance hardening](freshness-performance-hardening-plan-2026-10-03.md) before any P1 production-algorithm change. Distinguish end-to-end deterministic **local fixture** operations from prospective propagation on real REL topologies and from unmeasured live-host behavior. Use measured hot paths, rather than the old artificial eight-root mixed benchmark, to decide optimization order.
+Freeze the first optimized P0 measurements for [Freshness performance hardening](freshness-performance-verification-2026-10-03.md) before any P1 production-algorithm change. Distinguish end-to-end deterministic **local fixture** operations from prospective propagation on real REL topologies and from unmeasured live-host behavior. Use measured hot paths, rather than the old artificial eight-root mixed benchmark, to decide optimization order.
 
 ## Overview
 
@@ -100,7 +100,7 @@ Not measured: production frequencies of accepted-use batch sizes or Dream root d
 
 ## Related docs
 
-- [Freshness performance hardening plan](freshness-performance-hardening-plan-2026-10-03.md)
+- [Freshness performance hardening plan](freshness-performance-verification-2026-10-03.md)
 - [Freshness core release verification](freshness-core-release-verification-2026-10-03.md)
 - [Freshness R4 history verification](freshness-r4-verification-2026-10-03.md)
 - [Freshness R6 scheduling and consumer verification](freshness-r6-verification-2026-10-03.md)

@@ -179,7 +179,7 @@ Implementation must protect:
 ## Related docs
 
 - [Chronos subsystem plan](../chronos-subsystem-plan.md)
-- [Dream design and validation record](../dream-implementation-plan.md)
+- [Dream design and validation record](../subsystems/dream.md)
 - [Perception subsystem plan](../perception-subsystem-plan.md)
 - [ADR 0012 — Insomnia Memory authority](0012-deterministic-episodes-and-insomnia-memory-authority.md)
 - [ADR 0024 — owner-local Dream processing](0024-owner-local-dream-processing.md)

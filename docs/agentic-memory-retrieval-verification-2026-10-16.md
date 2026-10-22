@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Record the implementation, real host receiver evidence, frozen-corpus disposition, hard-cut audit, and final integration gates for the 45-step [linear plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md).
+Record the implementation, real host receiver evidence, frozen-corpus disposition, hard-cut audit, and final integration gates for the 45-step [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md).
 
 ## Overview
 
@@ -107,8 +107,8 @@ The main rerun above supersedes the historical format blocker. Useful recall and
 
 ## Related docs
 
-- [Linear implementation plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
-- [Architecture specification](agentic-memory-retrieval-implementation-plan-2026-10-16.md)
+- [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md)
+- [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md)
 - [Design](agentic-memory-retrieval-design-2026-10-15.md)
 - [Execution record](agentic-memory-retrieval-baseline-2026-10-16.md)
 - [Host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md)

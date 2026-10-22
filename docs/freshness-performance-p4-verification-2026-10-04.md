@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Execute measured P4 under the [P2–P4 plan](freshness-performance-p2-p4-execution-plan-2026-10-04.md), after P2/P3 commit `b6a589d85ce3aefd236c0344558f16ee21cfa1a6`.
+Execute measured P4 under the [P2–P4 plan](freshness-performance-verification-2026-10-03.md), after P2/P3 commit `b6a589d85ce3aefd236c0344558f16ee21cfa1a6`.
 
 ## Overview
 
@@ -189,9 +189,9 @@ This is a source-only, disconnected, stationary local storage fixture. Scores sa
 
 ## Related docs
 
-- [Execution plan](freshness-performance-p2-p4-execution-plan-2026-10-04.md)
+- [Execution plan](freshness-performance-verification-2026-10-03.md)
 - [P2 verification](freshness-performance-p2-verification-2026-10-03.md)
-- [Hardening roadmap](freshness-performance-hardening-plan-2026-10-03.md)
+- [Hardening roadmap](freshness-performance-verification-2026-10-03.md)
 
 ## Notes
 

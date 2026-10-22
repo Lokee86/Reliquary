@@ -40,8 +40,8 @@ Required correction under R2/R3: distinguish a first Memory revision from a new 
 
 ## Related docs
 
-- [Remaining-work specification](freshness-remaining-work-2026-10-03.md)
-- [Main implementation specification](generic-staleness-implementation-plan.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
 - [Behavioral contracts](behavioral-contracts.md)
 
 ## Notes

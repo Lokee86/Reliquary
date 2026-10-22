@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Freeze Step 13 / H1 of the [linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md) into a deterministic contract for the timeline planner, historical event producers and superseding Freshness checkpoint.
+Freeze Step 13 / H1 of the [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction) into a deterministic contract for the timeline planner, historical event producers and superseding Freshness checkpoint.
 
 ## Overview
 
@@ -211,7 +211,7 @@ Dream first-cycle roots and duplicate-origin proof are checked against the accep
 
 ## C7 embedding-only handoff
 
-The [active completion plan, C7 frozen embedding-only contract](freshness-historical-completion-execution-plan-2026-10-12.md#c7-frozen-embedding-only-contract) defines bounded source-only fill, profile/generation selection, cancellation/retry, immutable vector reuse and the requested-complete typed embedding_pass proof. C8 implements it through the explicit endpoint/configured-runtime operation; new endpoint-free fill requests still reject. No-fill uses not-requested. H1 top-level schema and numerical policy digest stay unchanged. Final retained coverage, not transient attempt cost/progress, supplies manifest evidence.
+The [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction) defines bounded source-only fill, profile/generation selection, cancellation/retry, immutable vector reuse and the requested-complete typed embedding_pass proof. C8 implements it through the explicit endpoint/configured-runtime operation; new endpoint-free fill requests still reject. No-fill uses not-requested. H1 top-level schema and numerical policy digest stay unchanged. Final retained coverage, not transient attempt cost/progress, supplies manifest evidence.
 
 ## C5 native publication integration
 

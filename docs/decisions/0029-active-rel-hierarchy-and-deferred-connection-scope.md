@@ -91,7 +91,7 @@ Rejected. It creates sibling/project cross-contamination and makes mounting a RE
 ## Related docs
 
 - [ADR 0021 — Typed Reliquary scopes and Connection state](0021-typed-reliquary-scopes-and-connections.md)
-- [Reliquary and Phylactery scope design record](../reliquary-phylactery-memory-scope-plan.md)
+- [Reliquary and Phylactery scope design record](../subsystems/scope-ownership.md)
 - [Roadmap](../roadmap.md)
 - [ADR 0034 — Cross-owner relational Observations and active-PHY privacy boundary](0034-cross-owner-relationship-graph-and-active-phy-privacy.md)
 - [Architecture](../architecture.md)

@@ -217,7 +217,7 @@ The exact vector-search implementation is an indexing choice, not semantic autho
 
 ## Historical stale-Memory audit proposal — superseded by ADR 0039
 
-This ADR once proposed a distinct Perception/Chronos provenance-qualified stale-Memory audit tied to generic REL review deadlines. That proposal is retained here solely as design history and is **not** an implementation requirement. [ADR 0039](0039-unified-deterministic-memory-freshness.md) supersedes it: Memory Freshness is an owner-local deterministic event/graph relevance score with natural REL-turn decay and no required Perception or Chronos gate. Perception's independently justified Observation reasoning and semantic/provenance analysis remain unchanged. The [current Memory Freshness contract](../memory-staleness-plan.md) and [implementation plan](../generic-staleness-implementation-plan.md) are authoritative.
+This ADR once proposed a distinct Perception/Chronos provenance-qualified stale-Memory audit tied to generic REL review deadlines. That proposal is retained here solely as design history and is **not** an implementation requirement. [ADR 0039](0039-unified-deterministic-memory-freshness.md) supersedes it: Memory Freshness is an owner-local deterministic event/graph relevance score with natural REL-turn decay and no required Perception or Chronos gate. Perception's independently justified Observation reasoning and semantic/provenance analysis remain unchanged. The [current Memory Freshness contract](../subsystems/freshness.md) and [implementation plan](../subsystems/freshness.md) are authoritative.
 
 ## Observation lifecycle and reconsideration
 

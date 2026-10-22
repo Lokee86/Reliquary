@@ -20,7 +20,7 @@ For each reconstructed activity source it:
 
 - [Historical manifest and timeline policy](freshness-historical-manifest-policy.md)
 - [Historical timeline/provenance planner verification](freshness-historical-planner-verification-2026-10-12.md)
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 
 ## Notes
 

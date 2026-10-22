@@ -42,8 +42,8 @@ ADR 0039 explicitly labels semantic activity reinforcement accepted design but n
 
 ## Related docs
 
-- [Linear F8 and historical implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
-- [Unified Freshness policy](memory-staleness-plan.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
+- [Unified Freshness policy](subsystems/freshness.md)
 - [ADR 0039 — Unified deterministic Memory Freshness](decisions/0039-unified-deterministic-memory-freshness.md)
 - [Freshness core release verification](freshness-core-release-verification-2026-10-03.md)
 - [Maintainer map](maintainer-map.md)

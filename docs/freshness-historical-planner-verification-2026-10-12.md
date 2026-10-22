@@ -13,7 +13,7 @@ The module has no storage or scoring side effects. Checkpointing, propagation, A
 ## Related docs
 
 - [Historical manifest and timeline policy](freshness-historical-manifest-policy.md)
-- [Historical reconstruction implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 
 ## Notes
 

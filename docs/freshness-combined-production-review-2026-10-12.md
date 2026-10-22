@@ -31,7 +31,7 @@ The in-memory model also mutates its original checkpoint during post-event appli
 
 ## Required work before historical release
 
-The implementation-ready closure sequence is now defined by the [Historical Freshness completion execution plan](freshness-historical-completion-execution-plan-2026-10-12.md). The requirements below remain the audit basis; the completion plan decomposes them into ordered C1–C12 gates.
+The implementation-ready closure sequence is now defined by the [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction). The requirements below remain the audit basis; the completion plan decomposes them into ordered C1–C12 gates.
 
 1. Finish Step 24 through the existing Cva/Freshness owner: construct and verify canonical H1 identity/manifest, complete native generation barrier, original Archive chronology, full owner-authorized graph/Community/vector/body/cohort proofs, source/cohort exclusions and canonical event IDs. Feed verified contributions into the frozen native prepare/commit handle; no model checkpoint may substitute for acceptance.
 2. Close Step 22 with actual Container byte crash prefixes, passive reopen, due-index reconstruction, exact retries after live growth and multi-recipient real accepted-use receipts. Keep the native checkpoint/receipt owner as sole authority.
@@ -77,7 +77,7 @@ Compilation used process-local `CARGO_PROFILE_DEV_DEBUG=0` and `CARGO_PROFILE_TE
 ## Related docs
 
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
-- [Linear plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Frozen H1 policy](freshness-historical-manifest-policy.md)
 - [Live F8 release](freshness-semantic-release-verification-2026-10-12.md)
 - [Native checkpoint](freshness-historical-checkpoint-verification-2026-10-12.md)

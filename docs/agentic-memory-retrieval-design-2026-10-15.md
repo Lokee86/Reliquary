@@ -1,9 +1,11 @@
 # Agentic Memory retrieval architecture — decided design
 
+Parent index: [Documentation index](INDEX.md)
+
 Date: 2026-10-15
 Status: **Design accepted; Reliquary implementation complete through Step 36; main frozen functional verification passed; evidence recall measured at 1/128 (0.78%).** This is the behavioral authority for the REL-only agent-facing retrieval workflow; see the [implementation evidence](agentic-memory-retrieval-baseline-2026-10-16.md), [host handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md), and [frozen-fixture verification](agentic-memory-retrieval-verification-2026-10-16.md).
-Implementation sequence: [Agentic Memory retrieval implementation plan — 2026-10-16](agentic-memory-retrieval-implementation-plan-2026-10-16.md).
-Parent index: [Documentation index](INDEX.md)
+Implementation sequence: [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md).
+
 
 ## Overview
 
@@ -57,7 +59,7 @@ This design changes **agent-facing retrieval**, not Ego's Candidate Selection �
 ## Related docs
 
 - [Passive internal retrieval and host consumption](freshness-external-consumption-contract.md)
-- [F1–F5 Freshness boundary implementation status](freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md)
+- [F1–F5 Freshness boundary implementation status](subsystems/agentic-memory-retrieval.md#freshness-boundary)
 - [F1–F5 verification record](freshness-retrieval-boundary-verification-2026-10-15.md)
 - [Ego Memory-Web summary design](ego-web-synthesis-plan.md)
 

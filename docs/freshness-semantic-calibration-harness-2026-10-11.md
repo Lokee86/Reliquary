@@ -30,7 +30,7 @@ Reports include above-threshold neighbor counts, labeled-only false-match/recall
 
 - [v1 calibration and policy record](freshness-semantic-calibration-2026-10-11.md)
 - [Live semantic policy/API contract](freshness-live-semantic-policy-contract.md)
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
 
 ## Notes

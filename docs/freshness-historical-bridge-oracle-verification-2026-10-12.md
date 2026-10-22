@@ -12,7 +12,7 @@ These tests exercise the frozen recipient-only approximation: authorization cont
 
 ## Related docs
 
-- [Freshness semantic + historical linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Historical Freshness manifest and timeline policy](freshness-historical-manifest-policy.md)
 - [Historical propagation verification](freshness-historical-propagation-verification-2026-10-12.md)
 - [Historical Dream verification](freshness-historical-dream-verification-2026-10-12.md)

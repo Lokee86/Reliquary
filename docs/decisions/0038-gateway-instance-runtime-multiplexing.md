@@ -1,6 +1,8 @@
 # ADR 0038: Gateway and instance runtime multiplexing
 
 Parent index: [Architectural decisions](INDEX.md)
+
+
 Implementation plan: [Multiplexing implementation plan](../multiplexing-implementation-plan.md)
 Baseline evidence: [Multiplexing Phase 0 baseline](../multiplexing-implementation-plan.md)
 

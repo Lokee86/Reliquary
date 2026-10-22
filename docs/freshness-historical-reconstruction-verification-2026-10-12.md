@@ -42,10 +42,10 @@ The bounded coordinator fixture reports a complete projection and idempotent ret
 
 ## Related docs
 
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Historical one-shot import coordinator verification](freshness-historical-import-coordinator-verification-2026-10-12.md)
 - [Historical manifest and timeline policy](freshness-historical-manifest-policy.md)
-- [Historical import reconstruction specification](freshness-historical-import-reconstruction-spec-2026-10-03.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [ADR 0039](decisions/0039-unified-deterministic-memory-freshness.md)
 
 ## Notes

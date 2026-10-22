@@ -37,7 +37,7 @@ Delegated command windows first expired during analysis/building. A timed-out wr
 
 ## Related docs
 
-- [Linear execution plan](agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md)
+- [Agentic Memory retrieval](subsystems/agentic-memory-retrieval.md)
 - [Architecture](architecture.md)
 - [Architectural invariants](invariants.md)
 - [External Memory consumption](freshness-external-consumption-contract.md)

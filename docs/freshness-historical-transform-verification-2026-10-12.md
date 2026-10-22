@@ -37,7 +37,7 @@ The full root run passed 1,159 unit tests (one existing ignored test), integrati
 
 ## Related docs
 
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Frozen manifest policy](freshness-historical-manifest-policy.md)
 - [Atomic checkpoint verification](freshness-historical-checkpoint-verification-2026-10-12.md)
 - [Checkpoint recovery verification](freshness-historical-checkpoint-recovery-verification-2026-10-12.md)

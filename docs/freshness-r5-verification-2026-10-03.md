@@ -35,7 +35,7 @@ Pending first-pass recovery transfer remains unsupported. Safe refusal is the ac
 
 ## Related docs
 
-- [Completion execution plan](freshness-completion-execution-plan-2026-10-03.md)
+- [Memory Freshness current contract](subsystems/freshness.md)
 - [Core verification](freshness-core-release-verification-2026-10-03.md)
 - [Development](development.md)
 

@@ -39,7 +39,7 @@ A raw comparison against current `main` reports 109 changed files because this w
 These worktree artifacts must not be integrated:
 
 - `src/owner_lifecycle.rs` — untracked duplicate. The canonical shared lifecycle vocabulary is already on `main`.
-- `docs/tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md` — untracked duplicate. The canonical plan is already on `main`.
+- `docs/subsystems/semantic-maintenance.md` — untracked duplicate. The canonical plan is already on `main`.
 - Any apparent removal/reversion of Archive `ConversationTombstone`, lifecycle CLI, compatibility-profile retirement, policy v3/0.99, active-profile filtering, or `HistoryPruneManifest` in a `git diff main` comparison. Those are main-forward changes absent only because this worktree has an older base.
 - Any runtime-vector/profile behavior that would replace `get_active(...)`, `active_memory_compatibility_profiles()`, current-generation completeness checks, or retired-profile exclusion with the older pre-retirement behavior.
 
@@ -435,7 +435,7 @@ Verification:
 
 Step 8 is complete.
 
-The authoritative continuation is now the [remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md). The original next action at this checkpoint was step 9; the verified continuation is recorded below.
+The authoritative continuation is now the [Semantic maintenance](subsystems/semantic-maintenance.md). The original next action at this checkpoint was step 9; the verified continuation is recorded below.
 
 ## Step 9 checkpoint — Ego lifecycle reconciliation
 
@@ -453,7 +453,7 @@ The bounded Memory, Entity, Relationship and Ego units converge onto the current
 
 ## Related docs
 
-- [Remaining execution plan](tombstone-import-history-remaining-execution-plan-2026-10-17.md)
+- [Semantic maintenance](subsystems/semantic-maintenance.md)
 - [Execution contract](tombstone-import-history-execution-contract.md)
 
 ## Notes

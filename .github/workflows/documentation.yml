@@ -42,4 +42,8 @@ jobs:
         shell: bash
         working-directory: reliquary
         run: |
-          "${RUNNER_TEMP}/reliquary-tools/ddocs" check --root docs --indexes --links
+          # Archivist link state is private/rebuildable and absent on a fresh CI checkout.
+          # The first fix records a baseline without rewriting links.
+          "${RUNNER_TEMP}/reliquary-tools/ddocs" fix --links
+          git diff --exit-code -- docs
+          "${RUNNER_TEMP}/reliquary-tools/ddocs" check --indexes --links

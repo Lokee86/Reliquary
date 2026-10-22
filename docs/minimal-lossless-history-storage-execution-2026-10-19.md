@@ -1,7 +1,5 @@
 # Minimal lossless history storage — execution evidence
 
-
-
 Date: 2026-10-19
 
 

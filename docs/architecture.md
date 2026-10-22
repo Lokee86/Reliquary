@@ -65,7 +65,7 @@ physical references do not cross owner boundaries or allocate semantic clocks.
 
 ## Freshness retrieval and consumption
 
-All internal Memory retrieval, including content, provenance, graph and Freshness metadata inspection, is non-reinforcing. The [agentic retrieval controller](agentic-memory-retrieval-design-2026-10-15.md) now implements the REL-only three-operation workflow: full lexical/exact-semantic candidate union before the Freshness top-ten cut, deterministic refinement of declined candidates in bounded batches, and concurrent one-hop exploration in both directions per anchor with independent ten-candidate limits. The host owns turn-scoped `CurrentQuery`, `SearchedIDs`, and `SelectedIDs`; only confirmed content handoff qualifies for reinforcement through the existing `Cva::record_accepted_memory_use` boundary. The Warlock `cf41c66` receiver/replay work is an eight-test integration candidate, not a deployed release. The historical Freshness reader is now integrated on the same `main`; the 14-day, 28-day, and Ellis agentic fidelity gates must be rerun against this consolidated implementation; see the [handoff seam](agentic-memory-host-handoff-seam-2026-10-16.md) and [forthcoming retrieval verification](agentic-memory-retrieval-verification-2026-10-16.md).
+All internal Memory retrieval, including content, provenance, graph and Freshness metadata inspection, is non-reinforcing. The [Agentic Memory retrieval subsystem](subsystems/agentic-memory-retrieval.md) implements the REL-only three-operation workflow: full lexical/exact-semantic candidate union before the Freshness top-ten cut, deterministic refinement of declined candidates in bounded batches, and concurrent one-hop exploration in both directions per anchor with independent ten-candidate limits. The host owns turn-scoped `CurrentQuery`, `SearchedIDs`, and `SelectedIDs`; only confirmed content handoff qualifies for reinforcement through the existing `Cva::record_accepted_memory_use` boundary. Reliquary's controller and frozen functional scenarios are implemented; retained-corpus evidence recall remains a product/evaluation limitation, and Warlock handoff/replay remains consumer release work. See the [host handoff evidence](agentic-memory-host-handoff-seam-2026-10-16.md) and [retrieval verification](agentic-memory-retrieval-verification-2026-10-16.md).
 
 ## C8 bounded historical source vectors
 
@@ -302,6 +302,12 @@ The configured-runtime composition boundary owns decision-route precedence for E
 Specialized and shared routes reuse `ConfiguredDecisionEndpoint` and selected API-key authentication. The private `GeneralDecisionEndpoint` wraps the already constructed General endpoint, preserving provider authentication, reasoning and transport. Its choice contract validates exact answer IDs/types/choices and excludes probabilities; the General interface has no calibrated likelihood evidence. Retrieval supplies its own root response schema and retains owner-qualified identity validation. Selection never reacts to inference failure. Entity's existing resolver fallback is a separate operation policy, and its hosted worker still requires the separate general resolver route.
 
 Protecting tests are the selector matrix, runtime decision integration tests, general decision contract tests, both local provider transport suites, and the Entity confidence/guard tests. No semantic state, storage owner, clock or worker lifecycle is added.
+
+## Code Map
+
+Crate-root Rust modules are composition/publication seams owned by the overall architecture; focused subsystem docs additionally own their internal trees.
+
+- `src/*.rs`
 
 ## Related docs
 

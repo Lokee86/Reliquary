@@ -210,6 +210,10 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 - The master key currently lives in temporary plaintext JSON; Windows Credential Manager integration is not implemented yet.
 - No import/export text format exists yet.
 
+## Code Map
+
+- `src/config_security/**`
+
 ## Related docs
 
 - [Architecture](architecture.md)

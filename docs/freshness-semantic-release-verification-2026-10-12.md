@@ -12,7 +12,7 @@ Record Step 12 implementation closure, standalone live F8 verification, syntheti
 
 ## Related docs
 
-- [Linear implementation plan](freshness-semantic-historical-linear-implementation-plan-2026-10-11.md)
+- [Historical Freshness current contract](subsystems/freshness.md#historical-reconstruction)
 - [Frozen v1 constants and transitions](freshness-semantic-calibration-2026-10-11.md)
 - [Live semantic contract](freshness-live-semantic-policy-contract.md)
 - [API](api.md), [storage](storage-format.md), [architecture](architecture.md), [current limitations](current-limitations.md)

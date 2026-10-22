@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Complete P5 of the [performance hardening plan](freshness-performance-hardening-plan-2026-10-03.md) after accepted P4 commit `c7f59dcb0856de43d400ebc105bb34fde84a3ea7`. Assess positive-event reach without changing the accepted v1 policy.
+Complete P5 of the [performance hardening plan](freshness-performance-verification-2026-10-03.md) after accepted P4 commit `c7f59dcb0856de43d400ebc105bb34fde84a3ea7`. Assess positive-event reach without changing the accepted v1 policy.
 
 ## Overview
 
@@ -163,7 +163,7 @@ No production event-frequency distribution, semantic relevance labels, history-b
 
 ## Related docs
 
-- [Hardening plan](freshness-performance-hardening-plan-2026-10-03.md)
+- [Hardening plan](freshness-performance-verification-2026-10-03.md)
 - [P0 evidence](freshness-performance-baseline-2026-10-03.md)
 - [P4 verification](freshness-performance-p4-verification-2026-10-04.md)
 - [Development](development.md)

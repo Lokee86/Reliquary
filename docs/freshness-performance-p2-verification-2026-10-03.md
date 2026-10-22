@@ -4,7 +4,7 @@ Parent: [Documentation index](INDEX.md).
 
 ## Purpose
 
-Freeze acceptance of P2 on accepted P1 `cdb0716412cba07fba61a820b88139e9bccfa19a`, following the [P2–P4 execution plan](freshness-performance-p2-p4-execution-plan-2026-10-04.md).
+Freeze acceptance of P2 on accepted P1 `cdb0716412cba07fba61a820b88139e9bccfa19a`, following the [P2–P4 execution plan](freshness-performance-verification-2026-10-03.md).
 
 ## Overview
 
@@ -76,9 +76,9 @@ P3 is closed as a deferred/no-change checkpoint. P0 measured current graph enume
 
 ## Related docs
 
-- [Execution plan](freshness-performance-p2-p4-execution-plan-2026-10-04.md)
+- [Execution plan](freshness-performance-verification-2026-10-03.md)
 - [P1 verification](freshness-performance-p1-verification-2026-10-03.md)
-- [Performance hardening roadmap](freshness-performance-hardening-plan-2026-10-03.md)
+- [Performance hardening roadmap](freshness-performance-verification-2026-10-03.md)
 
 ## Notes
 
