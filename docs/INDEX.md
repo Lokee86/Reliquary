@@ -144,6 +144,7 @@
 - [documentation-coverage.md](documentation-coverage.md) - Documentation Coverage documentation.
 - [documentation-policy.md](documentation-policy.md) - Documentation Policy documentation.
 - [documentation-procedure.md](documentation-procedure.md) - Documentation Procedure documentation.
+- [documentation-semantic-audit-2026-10-21.md](documentation-semantic-audit-2026-10-21.md) - Documentation Semantic Audit 2026 10 21 documentation.
 - [domain-tombstone-convergence-split-2026-10-17.md](domain-tombstone-convergence-split-2026-10-17.md) - Domain Tombstone Convergence Split 2026 10 17 documentation.
 - [dream-classifier-v2-design.md](dream-classifier-v2-design.md) - Dream Classifier V2 Design documentation.
 - [dream-population-contract-2026-10-21.md](dream-population-contract-2026-10-21.md) - Dream Population Contract 2026 10 21 documentation.
