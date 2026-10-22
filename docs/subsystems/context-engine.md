@@ -41,7 +41,7 @@ Compaction stops when the requested target is satisfied and does not invent cont
 
 Archive/host conversation history remains canonical. Context Engine produces derived views/plans; it does not delete source turns or become a second transcript store.
 
-Ego cross-chat and Memory-Web synthesis are separate future context layers. Current-session compaction belongs to the current conversation context, not Ego.
+Current behavior is limited to conversation views and compaction. **Accepted future boundary (2026-10-21):** Context Engine, not Ego, will own final model-facing context assembly, including selection/budgeting of Ego-produced Memory-Web Summaries, Identity, Personality and Anchors, plus cross-chat/cross-REL inputs. Ego remains the semantic synthesis and persistence producer. Current-session compaction remains a distinct lane within Context Engine; the wider assembly is not yet implemented.
 
 ## Failure behavior
 

@@ -1,14 +1,14 @@
-# Ego Cross-chat context plan
+# Cross-chat context selection plan (Context Engine)
 
 Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-Record the future-only design for deterministic cross-chat context selection inside Ego without creating another summarization system.
+Record the future-only design for deterministic cross-chat context selection **owned by Context Engine**, without creating another summarization system or requiring Ego to assemble conversation context.
 
 ## Overview
 
-Cross-chat context should reuse REL conversation-compaction records that already contain bounded summaries of prior conversations. Ego should select among those existing summaries deterministically, favouring the most recently active conversations in the current REL and filling only the remaining Ego injection budget. Current-session compaction is not part of Ego and is budgeted with the current conversation instead.
+Cross-chat context should reuse REL conversation-compaction records that already contain bounded summaries of prior conversations. **Context Engine** selects among these deterministically, favouring the most recently active conversations in the current REL and filling only the remaining cross-chat allocation within its model-facing context budget. Current-session compaction also belongs to Context Engine but remains a distinct context lane, budgeted with the current conversation instead. Ego does not perform cross-chat selection or final injection.
 
 ## Status
 
@@ -50,9 +50,9 @@ Branch identity must be preserved. A compaction checkpoint belongs to its conver
 
 ## Budget boundary
 
-The intended Ego injection ceiling is approximately 20% of the model's usable input context, subject to provider-specific output reservation and later calibration.
+The previously proposed **Ego-origin context allocation** ceiling is approximately 20% of the model's usable input context, subject to provider-specific output reservation and later calibration. **Context Engine owns this allocation and the global budget**, not Ego.
 
-That Ego budget contains:
+That allocation contains:
 
 - Identity;
 - Personality;
@@ -60,7 +60,7 @@ That Ego budget contains:
 - Memory-Web Summary; and
 - Cross-chat context.
 
-Cross-chat receives the remaining budget after the higher-priority Ego layers are placed. The 20% value is a ceiling, not a target; Ego should not pad context merely to consume the allowance.
+Cross-chat receives the remaining allocation after the higher-priority Ego-produced layers are selected by Context Engine. The 20% value is a ceiling, not a target; Context Engine must not pad context merely to consume the allowance.
 
 Current-session state is outside this budget. In particular:
 

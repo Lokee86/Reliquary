@@ -16,7 +16,7 @@ The design below supersedes premature execution detail that had been treated as 
 
 ## Overview
 
-Ego produces one maximum-detail, itemized Memory-Web Summary per source REL in each active PHY. The exact controller pipeline is **Candidate Selection → Candidate Audit → Summary Extraction → Summary Creation → Storage → Budgeting → Injection**. The controller owns Memory IDs, provenance, metadata, Freshness calculations, and selection; a final text-creation LLM receives extracted summary content, not raw `memoryID` identifiers. Persisted point provenance permits non-reinforcing, current-Freshness evaluation at injection time. There are no three pre-generated summary sizes.
+Ego produces one maximum-detail, itemized Memory-Web Summary per source REL in each active PHY. The end-to-end pipeline remains **Candidate Selection → Candidate Audit → Summary Extraction → Summary Creation → Storage → Budgeting → Injection**; **Ego owns stages 1–5** (summary generation and storage), while the **Context Engine owns stages 6–7** (inference-time selection, budgeting and injection). The Ego synthesis controller owns Memory IDs, provenance, metadata, and generation-time selection; a final text-creation LLM receives extracted summary content, not raw `memoryID` identifiers. Persisted point provenance permits non-reinforcing, current-Freshness evaluation by Context Engine at injection time. There are no three pre-generated summary sizes.
 
 Candidate Selection applies the whole-Web-first, ordered-reduction, mandatory-coverage and batching policy below. Cold source Memories remain searchable; absence from a selected summary is not deletion or loss of source authority.
 
@@ -33,8 +33,8 @@ The pipeline has seven stages:
 3. **Summary Extraction**: extract content to be summarized into `SummaryCandidates` (blocks associated with their pre-existing sections); maintain precise source-`memoryID` provenance as controller metadata.
 4. **Summary Creation**: generate `SummaryPoint` text from extracted content and populate the existing `SummarySection`s from `SummaryProposal`. Do **not** recreate or re-identify sections. The final creation LLM does not need raw `memoryID`s, but the controller retains their associations.
 5. **Storage**: persist one maximum-detail itemized summary per (PHY, source REL), with sections, points, provenance, generation/source-cut metadata, and any token-cost metadata needed for budgeting.
-6. **Budgeting**: retrieve stored items and evaluate current source-Memory Freshness through non-reinforcing reads. Recalculate point and section averages and select coherent items under the *actual* runtime token budget, without summary inference.
-7. **Injection**: project the budgeted content into Ego context.
+6. **Budgeting (Context Engine)**: retrieve Ego's stored items and evaluate current source-Memory Freshness through non-reinforcing reads. Recalculate point and section averages and select coherent items under the *actual* runtime token budget, without summary inference.
+7. **Injection (Context Engine)**: incorporate the selected Ego material into the final model-facing context alongside the other authorized context lanes.
 
 All downstream operations retain `memoryID` metadata even when an LLM need not see it. Subject grouping is inherited from `SummaryProposal`, not invented during Summary Creation.
 
@@ -50,7 +50,7 @@ Project evidence remains REL-owned:
 
 The project summary is user-relative. The target persisted summary perspective belongs to the active PHY and is keyed by REL identity.
 
-Cross-chat selection, cross-REL inclusion, Personality synthesis, and final all-layer Ego context assembly remain separate designs.
+Personality synthesis remains Ego-owned future work. Cross-chat selection, cross-REL summary inclusion, inference-time budgeting and final all-layer context assembly belong to Context Engine, not Ego; their detailed policies remain separate future designs.
 
 ## Working-Web admission and ordered reduction
 
@@ -107,11 +107,11 @@ Both averages are **ordinary arithmetic means**, not weighting, propagation, mod
 
 These values may be recorded as derived/cached metadata, but are not the authoritative source. During budgeting, they can be recalculated from the source REL without regenerating summary text. The retrieval path for Memory, provenance and Freshness metadata must be **non-reinforcing**: no access boost, propagation, persistent mutation, or activity-clock advancement merely from inspection. Lazy score projection is permitted. Source-Memory Freshness is a relevance signal, not truth or lifecycle authority.
 
-### Storage, Budgeting and Injection
+### Ego storage and Context Engine budgeting/injection
 
-Store **one maximum-detail itemized summary per source REL in each PHY**, preserving section identity, standalone points, supporting `memoryID` provenance, source-version/generation cut and enough deterministic formatting/token data for budgeting. Do not discard point provenance after publication.
+Ego stores **one maximum-detail itemized summary per source REL in each PHY**, preserving section identity, standalone points, supporting `memoryID` provenance, source-version/generation cut and enough deterministic formatting/token data for budgeting. Do not discard point provenance after publication.
 
-At runtime Budgeting selects from these same persisted points and sections for any available budget, using their **current** Freshness; there are no fixed small/medium/large summary variants and no summary LLM call on startup. Section and point scores support prioritization, while validation of superseded/archived source state remains distinct from Freshness. Exact handling of item dependencies, ties, lifecycle invalidation, token packing and section representation is still open. Injection simply assembles selected context, without counting internal retrieval as accepted external Memory use.
+At inference time, **Context Engine** selects from these persisted points and sections for the available model-input budget, using their **current** Freshness via non-reinforcing reads; there are no fixed small/medium/large summary variants and no summary LLM call on startup. Section and point scores support prioritization, while validation of superseded/archived source state remains distinct from Freshness. Exact handling of item dependencies, ties, lifecycle invalidation, token packing and section representation is still open. Context Engine injects selected content into the final context, without counting internal retrieval as accepted external Memory use. Ego never receives a backward dependency on Context Engine.
 
 ### Reconciliation limits
 

@@ -16,6 +16,14 @@ Reliquary can already store reference-only external index state, external proven
 
 The remaining work is to connect real hosts—first Hermes—to that core and prove the complete operational contract.
 
+## Future Warlock default and External Sources redesign — decision pending (2026-10-21)
+
+Warlock's intended **default** is to duplicate/copy source material into Warlock for simplicity of Reliquary-side integration and operation, rather than relying exclusively on reference-only access to an upstream source. **External Sources remains a separate supported concept** for externally owned source information, and remains distinct from Project Environment and historical Import; however, it likely needs a substantial redesign to support the intended Warlock posture.
+
+This is a **directional note, not an implementation specification**: clarify where authoritative source truth resides versus the Warlock copy, how identity/provenance/hash fencing works, what edit/delete/rewind/authorization and retention semantics apply, how semantic derivations and recovery work, and which reference-only use cases continue. Do not assume the existing Hermes-specific H1–H8 design or the current provider-neutral reference-only core is the final Warlock contract. No runtime/storage behavior changes are authorized by this note. The redesign is separate roadmap work, outside the correction-only dependency-convergence campaign.
+
+The sections below document the **current** external-source contract and earlier Hermes adapter plan; their constraints should be re-evaluated, rather than silently applied as future Warlock requirements.
+
 ## Fixed ownership model
 
 The external host owns:
