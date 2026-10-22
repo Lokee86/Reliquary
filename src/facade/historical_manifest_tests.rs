@@ -245,3 +245,25 @@ fn historical_manifest_missing_declared_source_rejects_without_projection() {
     );
     assert_eq!(fs::read(&path).unwrap(), before);
 }
+
+#[test]
+fn scoped_corpus_checks_earlier_content_before_later_missing_source() {
+    let (path, mut cva, _) = historical_import_fixture("scoped-corpus-error-order.rel");
+    let node = cva.archive.nodes.iter().next().unwrap().clone();
+    let scope = BTreeSet::from([
+        (node.conversation_id.clone(), node.id.clone()),
+        (format!("{}~", node.conversation_id), "missing".to_owned()),
+    ]);
+    let before = fs::read(&path).unwrap();
+    // Make the first existing source unreadable while a later source is absent.
+    // Neither malformed in-memory proof input may change the durable owner.
+    cva.archive.contents = Default::default();
+    let error = input::scoped_corpus_digest(&mut cva, &scope).unwrap_err();
+    assert!(matches!(
+        error,
+        CvaError::Archive(crate::ArchiveError::MissingContent)
+    ));
+    assert_eq!(fs::read(&path).unwrap(), before);
+    drop(cva);
+    fs::remove_file(path).unwrap();
+}

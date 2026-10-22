@@ -43,7 +43,7 @@ impl Archive {
     /// bindings retain their own cuts, but must not reapply an older mutation.
     pub(crate) fn read_publication(
         &self,
-        container: &mut Container,
+        container: &Container,
         version: ArchiveRecordVersion,
     ) -> Result<(ArchiveRecord, ArchiveRecordVersion), ArchiveError> {
         use crate::archive_codec::publication::{self, ArchivePublication};

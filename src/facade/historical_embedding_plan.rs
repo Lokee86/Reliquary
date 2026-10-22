@@ -178,7 +178,7 @@ pub(super) fn prepare(
         limits.temporary_bytes,
         "owner metadata buffers",
     )?;
-    input::required_nodes(cva, cva.rel_turn_count()).map_err(unsupported)?;
+    input::required_nodes(&cva.archive, cva.rel_turn_count()).map_err(unsupported)?;
     let timeline = cva.historical_freshness_timeline().map_err(unsupported)?;
     report.sources = timeline.activity_order.len();
     report.fragments = cva.archive.fragments.len();

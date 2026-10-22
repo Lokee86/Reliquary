@@ -1,0 +1,68 @@
+{
+  "source_commit": "1380d0b",
+  "spec_commit": "b113bcf",
+  "source_files_verified": 1134,
+  "source_manifest_mismatches": 0,
+  "canonical_sources": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "bytes": 30742210,
+      "last_write_utc": "2026-10-21T19:08:18.8580744Z",
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "matches_phase1": true,
+      "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first14d\\project.prj.rel",
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase3-before\\chatgpt-first14d\\project.prj.rel",
+      "current_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d"
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "bytes": 675300,
+      "last_write_utc": "2026-10-21T19:08:18.9127663Z",
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "matches_phase1": true,
+      "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first14d\\user.phy",
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase3-before\\chatgpt-first14d\\user.phy",
+      "current_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63"
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "bytes": 76542131,
+      "last_write_utc": "2026-10-21T19:08:19.0254778Z",
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "matches_phase1": true,
+      "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first28d\\project.prj.rel",
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase3-before\\chatgpt-first28d\\project.prj.rel",
+      "current_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92"
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "bytes": 1507220,
+      "last_write_utc": "2026-10-21T19:08:19.1592491Z",
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "matches_phase1": true,
+      "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\chatgpt-first28d\\user.phy",
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase3-before\\chatgpt-first28d\\user.phy",
+      "current_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d"
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "bytes": 18315280,
+      "last_write_utc": "2026-10-21T19:08:19.1948592Z",
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "matches_phase1": true,
+      "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\rhelm-david-r-ellis-pre-relationship\\project.prj.rel",
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase3-before\\rhelm-david-r-ellis-pre-relationship\\project.prj.rel",
+      "current_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab"
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "bytes": 3180063,
+      "last_write_utc": "2026-10-21T19:08:56.9607511Z",
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "matches_phase1": true,
+      "source": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative\\rhelm-david-r-ellis-pre-relationship\\user.phy",
+      "frozen_copy": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase3-before\\rhelm-david-r-ellis-pre-relationship\\user.phy",
+      "current_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0"
+    }
+  ]
+}

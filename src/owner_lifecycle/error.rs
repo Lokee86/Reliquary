@@ -6,7 +6,7 @@ use crate::{
 use std::fmt;
 
 #[derive(Debug)]
-pub enum CvaError {
+pub enum OwnerError {
     Container(ContainerError),
     Archive(ArchiveError),
     Memories(MemoryError),
@@ -34,7 +34,7 @@ pub enum CvaError {
     InvalidContainerIdentity(&'static str),
 }
 
-impl fmt::Display for CvaError {
+impl fmt::Display for OwnerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Container(error) => write!(f, "{error}"),
@@ -73,11 +73,11 @@ impl fmt::Display for CvaError {
     }
 }
 
-impl std::error::Error for CvaError {}
+impl std::error::Error for OwnerError {}
 
 macro_rules! from_error {
     ($source:ty, $variant:ident) => {
-        impl From<$source> for CvaError {
+        impl From<$source> for OwnerError {
             fn from(value: $source) -> Self {
                 Self::$variant(value)
             }
@@ -103,7 +103,7 @@ from_error!(ConversationCompactionError, ConversationCompactions);
 from_error!(EchoError, Echo);
 from_error!(EgoError, Ego);
 
-impl From<crate::interaction_stream_error::InteractionStreamError> for CvaError {
+impl From<crate::interaction_stream_error::InteractionStreamError> for OwnerError {
     fn from(value: crate::interaction_stream_error::InteractionStreamError) -> Self {
         match value {
             crate::interaction_stream_error::InteractionStreamError::Container(error) => {

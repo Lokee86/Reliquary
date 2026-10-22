@@ -8,24 +8,19 @@ pub(super) fn scoped_corpus_digest(
     cva: &mut Cva,
     source_nodes: &BTreeSet<(String, String)>,
 ) -> Result<[u8; 32], CvaError> {
-    let mut nodes = Vec::with_capacity(source_nodes.len());
+    let mut bindings = Vec::with_capacity(source_nodes.len());
     for (conversation, id) in source_nodes {
-        let node = cva
-            .archive
-            .nodes
-            .get(conversation, id)
-            .ok_or_else(|| fail("missing import-scoped source Node"))?;
+        let node = crate::history::source_proof::scoped_node(&cva.archive, conversation, id)?;
         let bytes = cva
             .archive
             .content_bytes(&mut cva.container, node.content_id)?;
         if crate::archive_store::hash_content(&bytes) != node.content_id {
             return Err(fail("import-scoped source content proof mismatch"));
         }
-        nodes.push(node_binding(node));
+        bindings.push(node_binding(&node));
     }
-    Value::Array(nodes).digest("reliquary:historical-corpus:v1")
+    crate::history::source_proof::corpus_digest(bindings).map_err(CvaError::from)
 }
-
 pub(super) fn admission_proof_for_scope(
     cva: &mut Cva,
     scope: &crate::imports::ImportEpochScope,

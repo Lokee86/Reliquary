@@ -640,7 +640,11 @@ fn historical_frontier_tracks_direct_allocation_cuts() {
     container.sync().unwrap();
     for (cut, expected_end) in ends.into_iter().enumerate() {
         assert_eq!(
-            crate::historical_global_frontier::frontier_end(&container, cut as u64).unwrap(),
+            crate::history::frontier_end(
+                &crate::owner_lifecycle::HistorySource::new(&container).unwrap(),
+                cut as u64
+            )
+            .unwrap(),
             expected_end,
             "global cut {cut}"
         );
@@ -671,7 +675,11 @@ fn historical_frontier_excludes_late_binding_before_head_cut_only() {
     assert_eq!(container.latest_version(), 3);
     for (cut, expected_end) in ends.into_iter().enumerate() {
         assert_eq!(
-            crate::historical_global_frontier::frontier_end(&container, cut as u64).unwrap(),
+            crate::history::frontier_end(
+                &crate::owner_lifecycle::HistorySource::new(&container).unwrap(),
+                cut as u64
+            )
+            .unwrap(),
             expected_end,
             "global cut {cut}"
         );

@@ -27,6 +27,10 @@ are introduced by this boundary.
 
 Durable owner implementations are being separated from existing cross-owner admission under the [Phase 2 execution ledger](dependency-convergence-phase2-execution-2026-10-22.md). Memory owns grouped body locations and local body validation; existing lifecycle callers dispatch grouped Insomnia/external publications without giving Memory their codecs. Dream and Insomnia persist only their own journal/work/receipt state and receive accepted identity or scheduling values from callers. Maintenance manifest storage is separate from history-policy composition. Current public types, owner identities and V2 bytes are preserved; final owner and corpus acceptance remain explicitly pending.
 
+## Phase 3 History extraction in progress
+
+The [Phase 3 execution ledger](dependency-convergence-phase3-execution-2026-10-22.md) tracks local implementation and pending acceptance. History now owns source-history digest composition, physical frontier selection, owner-local cut composition, retained import/work evidence hashing and pre-import Freshness replay. A bounded immutable owner-lifecycle capability mediates physical access; Container retains framing, extent, lease and clock authority. History receives no Cva or writer handle and performs no publication or accepted-use reinforcement. History also owns canonical source, Graph, vector, Community and prepared-manifest proof encoding. Upper adapters gather owner facts and retain Freshness/Dream service calls; Import owns historical event planning. Higher Maintenance and Import coordination, settlement minimization and final gates remain pending. Runtime still accepts CVAFRS06 only.
+
 ## Development-format lifecycle
 
 [ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. The six canonical files are promoted; reader and upgrader deletion is implemented, with post-retirement acceptance tracked in the linear plan.

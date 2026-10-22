@@ -3,6 +3,7 @@ use crate::freshness::historical_scorer::{HistoricalScoreEvent, score_historical
 use crate::freshness_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
 };
+use crate::history::manifest_encoding as encoding;
 use crate::{
     Cva, CvaError, MemoryId,
     freshness::{FreshnessPolicy, FreshnessRecord},
@@ -18,8 +19,6 @@ mod embedding;
 mod embedding_model;
 #[path = "historical_embedding_plan.rs"]
 mod embedding_plan;
-#[path = "historical_manifest_encoding.rs"]
-mod encoding;
 #[path = "historical_events.rs"]
 mod events;
 pub use embedding_model::{
@@ -184,6 +183,13 @@ impl PreparedHistoricalImport {
 fn fail(message: &str) -> CvaError {
     CvaError::Freshness(message.into())
 }
+
+impl From<crate::history::manifest_encoding::HistoryProofError> for CvaError {
+    fn from(error: crate::history::manifest_encoding::HistoryProofError) -> Self {
+        Self::Freshness(error.to_string())
+    }
+}
+
 fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
     let mut file = std::fs::File::open(path).map_err(|e| fail(&e.to_string()))?;
     let mut hash = Sha256::new();
@@ -350,7 +356,7 @@ impl Cva {
                     .map_err(CvaError::Freshness)?,
             );
         } else {
-            let source_nodes = input::required_nodes(self, frozen.cut())?
+            let source_nodes = input::required_nodes(&self.archive, frozen.cut())?
                 .into_keys()
                 .collect();
             let replay = crate::freshness_storage::ImportEventScope {

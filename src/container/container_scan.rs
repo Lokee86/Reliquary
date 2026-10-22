@@ -9,6 +9,7 @@ pub(crate) struct PhysicalFrame {
     pub object: ObjectRef,
     pub payload: Vec<u8>,
     pub latest_global: u64,
+    pub end: u64,
 }
 
 /// Caller-driven, bounded physical frame reader. It retains only clock metadata and
@@ -268,6 +269,7 @@ impl PhysicalCursor<'_> {
             object: ObjectRef::from_chunk(ChunkRef { offset: start, len }),
             payload,
             latest_global: self.next_version.saturating_sub(1),
+            end,
         }))
     }
 }

@@ -13,40 +13,34 @@ impl Cva {
         use crate::freshness::historical_planner::{
             HistoricalSource, HistoricalTimeline, SourceKey,
         };
-        let sources = self
-            .archive
-            .nodes
-            .iter()
+        let facts = crate::history::source_proof::timeline_facts(&self.archive);
+        let sources = facts
+            .sources
+            .into_iter()
             .map(|node| HistoricalSource {
                 key: SourceKey {
-                    conversation_id: node.conversation_id.clone(),
-                    node_id: node.id.clone(),
+                    conversation_id: node.conversation_id,
+                    node_id: node.id,
                 },
-                parent_id: node.parent_id.clone(),
-                role: node.role.clone(),
+                parent_id: node.parent_id,
+                role: node.role,
                 timestamp_ns: node.timestamp_ns,
             })
             .collect();
-        let positions = self
-            .archive
-            .nodes
-            .iter()
-            .filter(|node| matches!(node.role.as_str(), "user" | "assistant"))
-            .map(|node| SourceKey {
-                conversation_id: node.conversation_id.clone(),
-                node_id: node.id.clone(),
-            })
-            .filter_map(|key| {
-                self.archive
-                    .activity_position_for_turn(&key.conversation_id, &key.node_id)
-                    .map(|position| (key.clone(), position))
+        let positions = facts
+            .positions
+            .into_iter()
+            .map(|((conversation_id, node_id), position)| {
+                (
+                    SourceKey {
+                        conversation_id,
+                        node_id,
+                    },
+                    position,
+                )
             })
             .collect();
-        HistoricalTimeline::from_accepted_archive(
-            sources,
-            &positions,
-            self.archive.rel_turn_count(),
-        )
+        HistoricalTimeline::from_accepted_archive(sources, &positions, facts.activity_count)
     }
 }
 

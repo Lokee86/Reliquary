@@ -1,4 +1,4 @@
-use crate::{ArchiveError, ArchiveRecordVersion};
+use crate::{ArchiveError, ArchiveRecordVersion, ObjectRef};
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVAAFMT2";
 const RECORD_MAGIC: [u8; 8] = *b"CVAAREC1";
@@ -27,6 +27,14 @@ pub(crate) fn encode_record_version(version: ArchiveRecordVersion) -> [u8; 40] {
     out[16..24].copy_from_slice(&version.archive_version.to_le_bytes());
     out[24..40].copy_from_slice(&version.record.legacy_bytes());
     out
+}
+
+pub(crate) fn normalized_record_version(global: u64, local: u64) -> [u8; 40] {
+    encode_record_version(ArchiveRecordVersion {
+        global_version: global,
+        archive_version: local,
+        record: ObjectRef::from_legacy_bytes([0; 16]),
+    })
 }
 
 fn read_u64(bytes: &[u8], start: usize) -> u64 {

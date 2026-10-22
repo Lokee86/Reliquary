@@ -434,7 +434,11 @@ impl Cva {
             .map_err(CvaError::Freshness)?;
         let archive = archive_state.finish()?;
         archive.validate_references(project_files.accepted_facts())?;
-        crate::archive_prune_admission::validate(&archive, &mut container, &owner_maintenance)?;
+        crate::archive_prune_admission::validate(
+            &archive,
+            &crate::owner_lifecycle::HistorySource::new(&container).map_err(|error| error.0)?,
+            &owner_maintenance,
+        )?;
         let memories = memory_state.finish(&mut container)?;
         crate::memory_prune_admission::validate(&memories, &owner_maintenance)?;
         let entities = entity_state.finish(&container)?;
@@ -457,9 +461,10 @@ impl Cva {
         }
         let mut graph = graph_state.finish()?;
         crate::graph_endpoint_admission::validate_rebuilt_graph(&mut graph, &memories, &entities)?;
-        crate::owner_history_proof::validate_source_history(
+        crate::history::validate_source_history(
             &owner_maintenance,
-            &mut container,
+            &crate::owner_lifecycle::HistorySource::new(&container)
+                .map_err(|error| CvaError::Repack(error.to_string()))?,
             &graph,
         )
         .map_err(CvaError::Repack)?;

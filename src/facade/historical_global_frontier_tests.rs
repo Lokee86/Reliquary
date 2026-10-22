@@ -43,10 +43,37 @@ fn clock_neutral_frames_follow_the_existing_post_observation_global_frontier() {
     let after_second_global = file_end(&path);
     container.sync().unwrap();
 
-    assert_eq!(frontier_end(&container, 0).unwrap(), before_any_global);
-    assert_eq!(frontier_end(&container, 1).unwrap(), after_first_global);
-    assert_eq!(frontier_end(&container, 2).unwrap(), after_second_global);
-    assert!(frontier_end(&container, 3).is_err());
+    assert_eq!(
+        frontier_end(
+            &crate::owner_lifecycle::HistorySource::new(&container).unwrap(),
+            0
+        )
+        .unwrap(),
+        before_any_global
+    );
+    assert_eq!(
+        frontier_end(
+            &crate::owner_lifecycle::HistorySource::new(&container).unwrap(),
+            1
+        )
+        .unwrap(),
+        after_first_global
+    );
+    assert_eq!(
+        frontier_end(
+            &crate::owner_lifecycle::HistorySource::new(&container).unwrap(),
+            2
+        )
+        .unwrap(),
+        after_second_global
+    );
+    assert!(
+        frontier_end(
+            &crate::owner_lifecycle::HistorySource::new(&container).unwrap(),
+            3
+        )
+        .is_err()
+    );
 }
 
 #[test]
@@ -73,10 +100,28 @@ fn embedded_version_range_is_atomic_at_its_physical_frame_frontier() {
     // Reopen observes embedded ranges using Container's real version observer.
     let reopened = Container::open(&path).unwrap();
     assert_eq!(reopened.latest_version(), 3);
-    assert_eq!(frontier_end(&reopened, 1).unwrap(), reopened.header_len);
-    assert_eq!(frontier_end(&reopened, 2).unwrap(), reopened.header_len);
     assert_eq!(
-        frontier_end(&reopened, 3).unwrap(),
+        frontier_end(
+            &crate::owner_lifecycle::HistorySource::new(&reopened).unwrap(),
+            1
+        )
+        .unwrap(),
+        reopened.header_len
+    );
+    assert_eq!(
+        frontier_end(
+            &crate::owner_lifecycle::HistorySource::new(&reopened).unwrap(),
+            2
+        )
+        .unwrap(),
+        reopened.header_len
+    );
+    assert_eq!(
+        frontier_end(
+            &crate::owner_lifecycle::HistorySource::new(&reopened).unwrap(),
+            3
+        )
+        .unwrap(),
         following_clock_neutral_end
     );
     assert!(range_end < following_clock_neutral_end);

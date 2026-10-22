@@ -68,9 +68,9 @@ During development, format transitions use temporary offline conversion against 
 
 `src/maintenance/store.rs` and `manifest.rs` own accepted prune manifests, canonical encoding, duplicate refusal and immutable proof reads. They contain no Graph lookup or source-history coordinator. `facade/owner_history_proof.rs` retains the existing source-history digest algorithm and compares those owner-local manifests with accepted Graph/Container evidence before mount or transformation.
 
-Memory produces its own retention proof and unavailable-body markers. `facade/memory_prune_admission.rs` matches those facts against maintenance manifests above both owners, preserving the original target, tombstone, structure and payload digests. Repair, prune/rewrite eligibility policy and transformed-copy publication remain explicit existing higher-level operations.
+Memory produces its own retention proof and unavailable-body markers. `history/memory_retention.rs` matches those facts against maintenance manifests above both owners, preserving the original target, tombstone, structure and payload digests. Repair, prune/rewrite eligibility policy and transformed-copy publication remain explicit existing higher-level operations.
 
-Archive likewise produces an Archive-owned conversation retention proof and unavailable-content markers. `facade/archive_prune_admission.rs` binds those facts to Maintenance manifests and checks that no retained Archive record still requires a selected payload. Maintenance manifest representation and source-history coordination remain above both payload owners.
+Archive likewise produces an Archive-owned conversation retention proof and unavailable-content markers. `history/archive_retention.rs` binds those facts to Maintenance manifests and checks that no retained Archive record still requires a selected payload. Maintenance manifest representation remains owner-neutral evidence. History compares that evidence with retained source history during open using immutable lifecycle access; this comparison does not authorize a new prune. Explicit mutation authorization and publication remain higher Maintenance work.
 
 ## Code Map
 
@@ -82,9 +82,9 @@ Archive likewise produces an Archive-owned conversation retention proof and unav
 - `src/storage_upgrade/**`
 - `src/facade/*prune*`
 - `src/maintenance/**`
-- `src/facade/owner_history_proof.rs`
-- `src/facade/archive_prune_admission.rs`
-- `src/facade/memory_prune_admission.rs`
+- `src/history/source_digest.rs`
+- `src/history/archive_retention.rs`
+- `src/history/memory_retention.rs`
 
 ## Related docs
 

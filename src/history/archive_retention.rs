@@ -2,21 +2,22 @@
 use crate::archive::history_prune::ArchiveRetentionProof;
 use crate::archive::history_prune::PrunedArchiveContent;
 use crate::archive_codec::ArchiveRecord;
+use crate::owner_lifecycle::HistorySource;
 use crate::owner_maintenance::{
     HistoryPruneManifest, HistoryRetentionDescriptor, OwnerMaintenanceStore, PrunedPayload,
     RetentionDomain, RetentionTarget,
 };
-use crate::{Archive, ArchiveError, Container, ContentId};
+use crate::{Archive, ArchiveError, ContentId};
 use std::collections::{BTreeSet, HashMap, HashSet};
 
 pub(crate) fn descriptor(
     archive: &Archive,
-    container: &mut Container,
+    source: &HistorySource<'_>,
     conversation_id: &str,
     watermark: u64,
     lengths: &HashMap<ContentId, u64>,
 ) -> Result<HistoryRetentionDescriptor, ArchiveError> {
-    let proof = archive.retention_proof(container, conversation_id, watermark, lengths)?;
+    let proof = source.archive_retention_proof(archive, conversation_id, watermark, lengths)?;
     Ok(to_descriptor(proof))
 }
 
@@ -42,7 +43,7 @@ fn to_descriptor(proof: ArchiveRetentionProof) -> HistoryRetentionDescriptor {
 
 pub(crate) fn validate(
     archive: &Archive,
-    container: &mut Container,
+    source: &HistorySource<'_>,
     maintenance: &OwnerMaintenanceStore,
 ) -> Result<(), ArchiveError> {
     let invalid = || ArchiveError::CorruptRecord("prune evidence does not match source history");
@@ -87,8 +88,7 @@ pub(crate) fn validate(
             }
             let conversation =
                 std::str::from_utf8(&descriptor.target.identity).map_err(|_| invalid())?;
-            if self_descriptor(archive, container, conversation, manifest, &lengths)? != *descriptor
-            {
+            if self_descriptor(archive, source, conversation, manifest, &lengths)? != *descriptor {
                 return Err(invalid());
             }
         }
@@ -97,7 +97,7 @@ pub(crate) fn validate(
             .iter()
             .filter(|version| version.global_version <= manifest.source_global_version)
         {
-            let (record, _) = archive.read_publication(container, *version)?;
+            let record = source.archive_publication(archive, *version)?;
             let protected = match &record {
                 ArchiveRecord::Node(node) => {
                     lengths.contains_key(&node.content_id)
@@ -149,14 +149,14 @@ fn validate_marker_bindings(
 
 fn self_descriptor(
     archive: &Archive,
-    container: &mut Container,
+    source: &HistorySource<'_>,
     conversation: &str,
     manifest: &HistoryPruneManifest,
     lengths: &HashMap<ContentId, u64>,
 ) -> Result<HistoryRetentionDescriptor, ArchiveError> {
     descriptor(
         archive,
-        container,
+        source,
         conversation,
         manifest.source_global_version,
         lengths,

@@ -498,6 +498,27 @@ impl MemoryStore {
         &self.records
     }
 
+    /// Highest Memory-local version visible at the accepted global cut,
+    /// including an eligible tombstone coordinate.
+    pub(crate) fn local_version_at_global_cut(&self, global: u64) -> u64 {
+        self.records
+            .iter()
+            .filter(|record| record.global_version <= global)
+            .map(|record| record.memory_version)
+            .chain(self.tombstoned_ids().into_iter().filter_map(|id| {
+                match self.lifecycle_state(id).ok()? {
+                    crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
+                        if coordinates.global_version? <= global =>
+                    {
+                        coordinates.domain_version
+                    }
+                    _ => None,
+                }
+            }))
+            .max()
+            .unwrap_or(0)
+    }
+
     pub(crate) fn pruned_body_markers(
         &self,
     ) -> impl Iterator<Item = &history_prune::PrunedMemoryBody> {

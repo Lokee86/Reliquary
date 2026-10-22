@@ -71,9 +71,7 @@ mod historical_freshness_fingerprint;
 #[cfg(test)]
 #[path = "facade/historical_global_cuts.rs"]
 mod historical_global_cuts;
-#[cfg(test)]
-#[path = "facade/historical_global_frontier.rs"]
-mod historical_global_frontier;
+
 #[cfg(test)]
 #[path = "facade/historical_graph_fingerprint.rs"]
 mod historical_graph_fingerprint;
@@ -336,8 +334,7 @@ mod cva_conversation;
 mod cva_dream_population;
 #[path = "facade/cva_ego.rs"]
 mod cva_ego;
-#[path = "facade/cva_error.rs"]
-mod cva_error;
+
 #[path = "facade/cva_file_memory.rs"]
 mod cva_file_memory;
 #[path = "facade/cva_freshness.rs"]
@@ -1148,7 +1145,6 @@ pub use context_engine::{
     plan_session_compaction, render_assistant_content, render_assistant_content_from_echo,
     request_context, request_messages,
 };
-pub use cva_error::CvaError;
 pub use cva_principal_repack::PrincipalBackfillRepackResult;
 pub use cva_reconcile::{CvaComparison, CvaReconcileResult, CvaRelation};
 pub use cva_reconcile_conflict::CvaReconcileConflict;
@@ -1346,6 +1342,7 @@ pub use openai_ready_embedding::{
     OpenAiReadyEmbeddingEndpoint,
 };
 pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
+pub use owner_lifecycle::OwnerError as CvaError;
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
@@ -1813,8 +1810,7 @@ mod dream_current_fixture;
 #[path = "facade/dream_pair_admission.rs"]
 mod dream_pair_admission;
 
-#[path = "facade/owner_history_proof.rs"]
-mod owner_history_proof;
+mod history;
 
 #[path = "facade/insomnia_admission.rs"]
 mod insomnia_admission;
@@ -1830,8 +1826,7 @@ mod memory_provenance_admission;
 #[path = "facade/memory_frame_admission.rs"]
 mod memory_frame_admission;
 
-#[path = "facade/memory_prune_admission.rs"]
-mod memory_prune_admission;
+use history::memory_retention as memory_prune_admission;
 
 #[path = "facade/dream_replay_transport.rs"]
 mod dream_replay_transport;
@@ -1853,8 +1848,7 @@ mod entity_principal_identity;
 #[path = "facade/import_epoch_admission.rs"]
 mod import_epoch_admission;
 
-#[path = "facade/archive_prune_admission.rs"]
-mod archive_prune_admission;
+use history::archive_retention as archive_prune_admission;
 
 #[path = "facade/cva_conversation_tombstone.rs"]
 mod cva_conversation_tombstone;

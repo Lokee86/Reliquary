@@ -123,8 +123,9 @@ impl Phylactery {
         let manifest = HistoryPruneManifest {
             owner_uuid,
             source_global_version: watermark,
-            source_history_digest: crate::owner_history_proof::owner_history_digest(
-                &mut self.container,
+            source_history_digest: crate::history::owner_history_digest(
+                &crate::owner_lifecycle::HistorySource::new(&self.container)
+                    .map_err(|error| PhylacteryError::Repack(error.to_string()))?,
                 watermark,
                 &self.graph,
             )
@@ -277,9 +278,10 @@ impl Phylactery {
 
     pub(crate) fn validate_prune_evidence(&mut self) -> Result<(), PhylacteryError> {
         let invalid = || PhylacteryError::Repack("PHY prune evidence mismatch".into());
-        crate::owner_history_proof::validate_source_history(
+        crate::history::validate_source_history(
             &self.owner_maintenance,
-            &mut self.container,
+            &crate::owner_lifecycle::HistorySource::new(&self.container)
+                .map_err(|error| PhylacteryError::Repack(error.to_string()))?,
             &self.graph,
         )
         .map_err(PhylacteryError::Repack)?;

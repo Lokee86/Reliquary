@@ -97,6 +97,14 @@ pub(crate) fn encode_version(version: GraphVersionPayload) -> [u8; 40] {
     out
 }
 
+pub(crate) fn normalized_version(global: u64, local: u64) -> [u8; 40] {
+    encode_version(GraphVersionPayload {
+        global_version: global,
+        graph_version: local,
+        mutation: ObjectRef::from_legacy_bytes([0; 16]),
+    })
+}
+
 fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, GraphError> {
     let raw = bytes
         .get(offset..offset + 4)

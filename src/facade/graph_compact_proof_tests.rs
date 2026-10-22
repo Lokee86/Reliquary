@@ -414,7 +414,12 @@ fn compact_graph_digest_is_excluded_for_orphan_and_post_watermark_markers() {
     add_graph_base_rel(&mut owner, a.id, b.id);
     let watermark = owner.latest_global_version();
     let graph = &owner.graph;
-    let before = super::owner_history_digest(&mut owner.container, watermark, graph).unwrap();
+    let before = super::owner_history_digest(
+        &crate::owner_lifecycle::HistorySource::new(&owner.container).unwrap(),
+        watermark,
+        graph,
+    )
+    .unwrap();
 
     owner
         .container
@@ -423,8 +428,12 @@ fn compact_graph_digest_is_excluded_for_orphan_and_post_watermark_markers() {
             node_id: NodeId(2),
         }))
         .unwrap();
-    let after_unused_mapping =
-        super::owner_history_digest(&mut owner.container, watermark, &owner.graph).unwrap();
+    let after_unused_mapping = super::owner_history_digest(
+        &crate::owner_lifecycle::HistorySource::new(&owner.container).unwrap(),
+        watermark,
+        &owner.graph,
+    )
+    .unwrap();
     assert_eq!(before, after_unused_mapping);
 
     let orphan = encode_mutation(GraphOrdinalMutation {
@@ -435,8 +444,12 @@ fn compact_graph_digest_is_excluded_for_orphan_and_post_watermark_markers() {
         origin: GraphRelationOrigin::User,
     });
     owner.container.append(&orphan).unwrap();
-    let after_orphan =
-        super::owner_history_digest(&mut owner.container, watermark, &owner.graph).unwrap();
+    let after_orphan = super::owner_history_digest(
+        &crate::owner_lifecycle::HistorySource::new(&owner.container).unwrap(),
+        watermark,
+        &owner.graph,
+    )
+    .unwrap();
     assert_eq!(before, after_orphan);
 
     let mutation = owner.container.append(&orphan).unwrap();
@@ -453,8 +466,12 @@ fn compact_graph_digest_is_excluded_for_orphan_and_post_watermark_markers() {
             mutation,
         }))
         .unwrap();
-    let after_later_marker =
-        super::owner_history_digest(&mut owner.container, watermark, &owner.graph).unwrap();
+    let after_later_marker = super::owner_history_digest(
+        &crate::owner_lifecycle::HistorySource::new(&owner.container).unwrap(),
+        watermark,
+        &owner.graph,
+    )
+    .unwrap();
     assert_eq!(before, after_later_marker);
 }
 
@@ -588,8 +605,18 @@ fn native_graph_reclamation_keeps_publication_and_mappings_and_drops_orphan_carr
         let mut output_container = Container::open(&output).unwrap();
         for watermark in 0..=source_container.latest_version() {
             assert_eq!(
-                super::owner_history_digest(&mut source_container, watermark, &graph).unwrap(),
-                super::owner_history_digest(&mut output_container, watermark, &graph).unwrap()
+                super::owner_history_digest(
+                    &crate::owner_lifecycle::HistorySource::new(&source_container).unwrap(),
+                    watermark,
+                    &graph
+                )
+                .unwrap(),
+                super::owner_history_digest(
+                    &crate::owner_lifecycle::HistorySource::new(&output_container).unwrap(),
+                    watermark,
+                    &graph
+                )
+                .unwrap()
             );
         }
     }

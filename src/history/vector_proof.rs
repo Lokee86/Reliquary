@@ -1,0 +1,284 @@
+//! Canonical, read-only vector coverage proof construction.
+
+use crate::history::manifest_encoding::{HistoryProofError, Value};
+use crate::owner_lifecycle::OwnerError;
+use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
+
+#[derive(Clone, Debug)]
+pub(crate) struct VectorFragmentReadiness {
+    pub(crate) complete: bool,
+    pub(crate) source_digest: [u8; 32],
+    pub(crate) generation_id: [u8; 32],
+    pub(crate) profile_id: [u8; 32],
+    pub(crate) invalid_vectors: u64,
+    pub(crate) rows: Vec<VectorRowFacts>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct VectorRowFacts {
+    pub(crate) fragment_id: [u8; 32],
+    pub(crate) row: u64,
+    pub(crate) component_bytes: Vec<u8>,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct VectorNodeKey {
+    pub(crate) conversation_id: String,
+    pub(crate) node_id: String,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct VectorTargetBinding {
+    pub(crate) memory_id: [u8; 32],
+    pub(crate) body_id: [u8; 32],
+    pub(crate) profile_id: [u8; 32],
+    pub(crate) binding_id: Option<[u8; 32]>,
+    pub(crate) packed_id: Option<[u8; 32]>,
+    pub(crate) row: Option<u64>,
+    pub(crate) row_bytes: Option<Vec<u8>>,
+    pub(crate) usable: bool,
+}
+
+pub(crate) struct VectorProofBuilder {
+    sources: Vec<Value>,
+    fragments: Vec<Value>,
+    profiles: Vec<Value>,
+    targets: Vec<Value>,
+    unavailable: u64,
+    invalid: u64,
+    mixed: u64,
+}
+
+impl VectorProofBuilder {
+    pub(crate) fn new() -> Self {
+        Self {
+            sources: Vec::new(),
+            fragments: Vec::new(),
+            profiles: Vec::new(),
+            targets: Vec::new(),
+            unavailable: 0,
+            invalid: 0,
+            mixed: 0,
+        }
+    }
+
+    pub(crate) fn include_source(
+        key: &VectorNodeKey,
+        position: u64,
+        scoped_nodes: Option<&BTreeSet<(String, String)>>,
+        scoped_base_cut: Option<u64>,
+    ) -> bool {
+        !scoped_nodes.is_some_and(|nodes| {
+            !nodes.contains(&(key.conversation_id.clone(), key.node_id.clone()))
+        }) && !scoped_base_cut.is_some_and(|base_cut| position <= base_cut)
+    }
+
+    pub(crate) fn record_source(&mut self, node: Value, position: u64) {
+        self.sources.push(Value::map([
+            ("node", node),
+            ("position", Value::Unsigned(position)),
+        ]));
+    }
+
+    pub(crate) fn fragment_scope(
+        nodes: &[VectorNodeKey],
+        scoped_nodes: Option<&BTreeSet<(String, String)>>,
+    ) -> Result<bool, OwnerError> {
+        let Some(scope) = scoped_nodes else {
+            return Ok(true);
+        };
+        let overlaps = nodes
+            .iter()
+            .any(|node| scope.contains(&(node.conversation_id.clone(), node.node_id.clone())));
+        let fully_scoped = !nodes.is_empty()
+            && nodes
+                .iter()
+                .all(|node| scope.contains(&(node.conversation_id.clone(), node.node_id.clone())));
+        if overlaps && !fully_scoped {
+            return Err(OwnerError::Freshness(
+                "vector fragment mixes import and external source nodes".into(),
+            ));
+        }
+        Ok(fully_scoped)
+    }
+
+    pub(crate) fn fragment_after_base(position: Option<u64>, base_cut: Option<u64>) -> bool {
+        !base_cut.is_some_and(|cut| position.is_some_and(|at| at <= cut))
+    }
+
+    pub(crate) fn record_fragment(
+        &mut self,
+        fragment_id: [u8; 32],
+        conversation_id: &str,
+        start_node_id: &str,
+        end_node_id: &str,
+        represented_nodes: Vec<Value>,
+        position: Option<u64>,
+        activity_nodes: usize,
+        readiness: Option<VectorFragmentReadiness>,
+    ) -> Result<(), OwnerError> {
+        self.mixed += u64::from(activity_nodes > 1);
+        let (mode, evidence) = match readiness {
+            Some(readiness) if readiness.complete => {
+                self.invalid += readiness.invalid_vectors;
+                let rows = readiness
+                    .rows
+                    .into_iter()
+                    .map(|row| {
+                        Value::map([
+                            ("fragment_id", Value::bytes(row.fragment_id)),
+                            ("row", Value::Unsigned(row.row)),
+                            (
+                                "row_digest",
+                                Value::bytes(Sha256::digest(row.component_bytes)),
+                            ),
+                        ])
+                    })
+                    .collect();
+                (
+                    "complete",
+                    Value::map([
+                        ("source_digest", Value::bytes(readiness.source_digest)),
+                        ("generation_id", Value::bytes(readiness.generation_id)),
+                        ("profile_id", Value::bytes(readiness.profile_id)),
+                        (
+                            "invalid_vectors",
+                            Value::Unsigned(readiness.invalid_vectors),
+                        ),
+                        ("usable_rows", Value::Array(rows)),
+                    ]),
+                )
+            }
+            _ => {
+                self.unavailable += u64::from(position.is_some());
+                (
+                    if position.is_some() {
+                        "unavailable"
+                    } else {
+                        "non-activity-only"
+                    },
+                    Value::map([(
+                        "reason",
+                        Value::text("missing-or-incomplete-fragment-evidence"),
+                    )]),
+                )
+            }
+        };
+        let evidence_digest = evidence
+            .digest("reliquary:historical-fragment-coverage:v1")
+            .map_err(proof_error)?;
+        self.fragments.push(Value::map([
+            ("fragment_id", Value::bytes(fragment_id)),
+            ("conversation_id", Value::text(conversation_id)),
+            ("start_node_id", Value::text(start_node_id)),
+            ("end_node_id", Value::text(end_node_id)),
+            ("represented_nodes", Value::Array(represented_nodes)),
+            (
+                "availability",
+                position.map_or(Value::Null, Value::Unsigned),
+            ),
+            ("mode", Value::text(mode)),
+            ("evidence", evidence),
+            ("coverage_digest", Value::bytes(evidence_digest)),
+        ]));
+        Ok(())
+    }
+
+    pub(crate) fn record_profile(&mut self, profile_id: [u8; 32], descriptor: Vec<u8>) {
+        let descriptor_digest = Sha256::digest(&descriptor);
+        self.profiles.push(Value::map([
+            ("profile_id", Value::bytes(profile_id)),
+            ("descriptor", Value::bytes(descriptor)),
+            ("descriptor_digest", Value::bytes(descriptor_digest)),
+        ]));
+    }
+
+    pub(crate) fn record_target(&mut self, binding: VectorTargetBinding) {
+        let mut fields = vec![
+            ("memory_id".to_owned(), Value::bytes(binding.memory_id)),
+            ("body_id".to_owned(), Value::bytes(binding.body_id)),
+            ("profile_id".to_owned(), Value::bytes(binding.profile_id)),
+        ];
+        match (
+            binding.binding_id,
+            binding.packed_id,
+            binding.row,
+            binding.row_bytes,
+        ) {
+            (Some(binding_id), Some(packed_id), Some(row), Some(row_bytes)) => {
+                fields.extend([
+                    ("binding_id".to_owned(), Value::bytes(binding_id)),
+                    ("packed_id".to_owned(), Value::bytes(packed_id)),
+                    ("row".to_owned(), Value::Unsigned(row)),
+                    (
+                        "row_digest".to_owned(),
+                        Value::bytes(Sha256::digest(row_bytes)),
+                    ),
+                    (
+                        "status".to_owned(),
+                        Value::text(if binding.usable {
+                            "usable"
+                        } else {
+                            "excluded-invalid-or-incompatible"
+                        }),
+                    ),
+                ]);
+            }
+            _ => fields.push(("status".to_owned(), Value::text("missing-binding"))),
+        }
+        self.targets.push(Value::Map(fields));
+    }
+
+    pub(crate) fn fragments_for_embedding(&self) -> &[Value] {
+        &self.fragments
+    }
+
+    pub(crate) fn finish(
+        self,
+        generation: Option<([u8; 32], [u8; 32], [u8; 32], u64, u64)>,
+        embedding_pass: Value,
+    ) -> (Value, Vec<Value>) {
+        let generations = generation.map_or_else(
+            || Value::Array(vec![]),
+            |(id, profile_id, archive_vector_id, source_archive_version, vector_version)| {
+                Value::Array(vec![Value::map([
+                    ("generation_id", Value::bytes(id)),
+                    ("profile_id", Value::bytes(profile_id)),
+                    ("archive_vector_id", Value::bytes(archive_vector_id)),
+                    (
+                        "source_archive_version",
+                        Value::Unsigned(source_archive_version),
+                    ),
+                    ("vector_version", Value::Unsigned(vector_version)),
+                ])])
+            },
+        );
+        let source_count = self.sources.len() as u64;
+        let fragment_count = self.fragments.len() as u64;
+        (
+            Value::map([
+                ("profiles", Value::Array(self.profiles)),
+                ("selected_generations", generations),
+                ("target_bindings", Value::Array(self.targets)),
+                ("fragment_sources", Value::Array(self.fragments)),
+                (
+                    "coverage",
+                    Value::map([
+                        ("activity_sources", Value::Unsigned(source_count)),
+                        ("fragments", Value::Unsigned(fragment_count)),
+                        ("unavailable_fragments", Value::Unsigned(self.unavailable)),
+                        ("invalid_source_rows", Value::Unsigned(self.invalid)),
+                        ("mixed_source_fragments", Value::Unsigned(self.mixed)),
+                    ]),
+                ),
+                ("embedding_pass", embedding_pass),
+            ]),
+            self.sources,
+        )
+    }
+}
+
+fn proof_error(error: HistoryProofError) -> OwnerError {
+    OwnerError::Freshness(error.to_string())
+}

@@ -1,6 +1,6 @@
 //! Native pruning of Relationship envelope publications in REL and PHY owners.
 use crate::container::publication_envelope;
-use crate::owner_history_proof::owner_history_digest;
+use crate::history::owner_history_digest;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_contract::{
@@ -163,7 +163,7 @@ fn write_history(
 fn history_digest(container: &mut Container) -> [u8; 32] {
     let watermark = container.latest_version();
     owner_history_digest(
-        container,
+        &crate::owner_lifecycle::HistorySource::new(container).unwrap(),
         watermark,
         &crate::graph_store::GraphStore::empty(),
     )
@@ -175,7 +175,7 @@ fn history_digests(path: &Path) -> Vec<[u8; 32]> {
     (0..=container.latest_version())
         .map(|watermark| {
             owner_history_digest(
-                &mut container,
+                &crate::owner_lifecycle::HistorySource::new(&container).unwrap(),
                 watermark,
                 &crate::graph_store::GraphStore::empty(),
             )

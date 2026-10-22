@@ -1080,7 +1080,7 @@
     },
     {
       "path": "src/owner_lifecycle.rs",
-      "component": "pure-codec",
+      "component": "owner-lifecycle",
       "classification": "production"
     },
     {
@@ -1136,6 +1136,96 @@
     {
       "path": "src/rewrite_lineage.rs",
       "component": "maintenance-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/cuts.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/freshness_base.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/frontier.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/mod.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/retained_evidence.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/community_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/manifest_encoding.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/source_digest.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/history_source.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/vocabulary.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/error.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_event_plan.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/graph_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/vector_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/source_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/manifest_proof.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/memory_retention.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/archive_retention.rs",
+      "component": "history",
       "classification": "production"
     }
   ],
@@ -1223,6 +1313,22 @@
     {
       "module": "imports",
       "component": "import"
+    },
+    {
+      "module": "entity_description_proof",
+      "component": "perception-store"
+    },
+    {
+      "module": "insomnia::completion",
+      "component": "insomnia-store"
+    },
+    {
+      "module": "owner_lifecycle::history_source",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::vocabulary",
+      "component": "pure-codec"
     }
   ],
   "producer_value_contracts": [
@@ -1573,6 +1679,66 @@
       "owner": "maintenance-store",
       "symbol": "RewriteGenesis",
       "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "HistoricalPayload",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "LifecycleError",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "LifecycleState",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "LifecycleTarget",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "PayloadUnavailable",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "TombstoneCoordinates",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "TombstoneOutcome",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "TombstonePolicy",
+      "reason": "Immutable lifecycle vocabulary re-exported through the owner lifecycle boundary; no persistence or clock authority."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "SemanticPolicy",
+      "reason": "Immutable Freshness-owned policy/profile identity supplied to import historical planning; no store handle, writer, or persistence authority."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "SemanticVectorProfile",
+      "reason": "Immutable Freshness-owned policy/profile identity supplied to import historical planning; no store handle, writer, or persistence authority."
     }
   ],
   "forbidden_symbols": [

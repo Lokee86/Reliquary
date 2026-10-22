@@ -1,6 +1,5 @@
 //! Checkpoint-preserving physical maintenance, without numerical cut conversion.
-use crate::{Container, Cva, CvaError};
-use sha2::{Digest, Sha256};
+use crate::{Cva, CvaError};
 
 impl Cva {
     /// Physical maintenance may relocate objects, but must retain the accepted
@@ -27,8 +26,16 @@ impl Cva {
                     .freshness
                     .records_at(copy.rel_turn_count())
                     .map_err(CvaError::Freshness)?
-            || historical_owner_evidence_digest(&self.container)?
-                != historical_owner_evidence_digest(&copy.container)?
+            || crate::history::historical_owner_evidence_digest(
+                &crate::owner_lifecycle::HistorySource::new(&self.container)
+                    .map_err(|error| CvaError::Container(error.0))?,
+            )
+            .map_err(|error| CvaError::Container(error.0))?
+                != crate::history::historical_owner_evidence_digest(
+                    &crate::owner_lifecycle::HistorySource::new(&copy.container)
+                        .map_err(|error| CvaError::Container(error.0))?,
+                )
+                .map_err(|error| CvaError::Container(error.0))?
         {
             return Err(CvaError::Repack(
                 "physical transformation changed historical checkpoint scoring or receipt/proof authority".into(),
@@ -54,39 +61,4 @@ impl Cva {
         }
         Ok(())
     }
-}
-
-fn historical_owner_evidence_digest(container: &Container) -> Result<[u8; 32], CvaError> {
-    let scan = container;
-    let mut hash = Sha256::new();
-    hash.update(b"reliquary:historical-owner-evidence:v1\0");
-    {
-        let mut ingest_frame = |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
-            let payload = frame.payload.as_slice();
-            {
-                // These concrete owner families have no relocatable ObjectRef fields.
-                // Insomnia completion includes the native grouped publication proof;
-                // Dream includes publication intents and original first-cycle roots.
-                if payload.starts_with(b"CVAFR")
-                    || payload.starts_with(b"CVAFSA")
-                    || payload.starts_with(b"CVDREAM")
-                    || payload.starts_with(b"CVAINSC")
-                    || payload.starts_with(b"CVAIEPS1")
-                    || payload.starts_with(b"CVAIEPC1")
-                {
-                    hash.update((payload.len() as u64).to_le_bytes());
-                    hash.update(payload);
-                }
-                Ok(())
-            }
-        };
-        let mut cursor = scan.physical_cursor()?;
-        (|| {
-            while let Some(frame) = cursor.next_frame()? {
-                ingest_frame(frame)?;
-            }
-            Ok::<(), CvaError>(())
-        })()
-    }?;
-    Ok(hash.finalize().into())
 }

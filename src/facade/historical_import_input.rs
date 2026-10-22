@@ -4,65 +4,10 @@ use crate::{Cva, CvaError, EpisodeOrigin, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(super) fn source_key(conversation: &str, node: &str) -> Value {
-    Value::map([
-        ("conversation_id", Value::text(conversation)),
-        ("node_id", Value::text(node)),
-    ])
-}
-pub(super) fn required_nodes(
-    cva: &Cva,
-    through: u64,
-) -> Result<BTreeMap<(String, String), crate::Node>, CvaError> {
-    let mut required = BTreeMap::new();
-    for node in cva.archive.nodes.iter().filter(|n| {
-        cva.activity_position_for_turn(&n.conversation_id, &n.id)
-            .is_some_and(|p| p <= through)
-    }) {
-        let mut cursor = Some(node.clone());
-        let mut seen = BTreeSet::new();
-        while let Some(node) = cursor {
-            let key = (node.conversation_id.clone(), node.id.clone());
-            if !seen.insert(key.clone()) {
-                return Err(fail("historical source ancestry cycle"));
-            }
-            if required.contains_key(&key) {
-                break;
-            }
-            required.insert(key, node.clone());
-            cursor = match node.parent_id.as_deref() {
-                Some(parent) => Some(
-                    cva.archive
-                        .nodes
-                        .get(&node.conversation_id, parent)
-                        .cloned()
-                        .ok_or_else(|| fail("missing owner-local historical parent"))?,
-                ),
-                None => None,
-            };
-        }
-    }
-    Ok(required)
-}
-pub(super) fn node_binding(node: &crate::Node) -> Value {
-    Value::map([
-        ("conversation_id", Value::text(&node.conversation_id)),
-        ("node_id", Value::text(&node.id)),
-        (
-            "parent_id",
-            node.parent_id.as_ref().map_or(Value::Null, Value::text),
-        ),
-        ("role", Value::text(&node.role)),
-        (
-            "principal_id",
-            node.principal_id.as_ref().map_or(Value::Null, Value::text),
-        ),
-        ("timestamp_ns", Value::Signed(node.timestamp_ns)),
-        ("content_id", Value::bytes(node.content_id.0)),
-    ])
-}
+pub(super) use crate::history::source_proof::{node_binding, required_nodes, source_key};
 pub(super) fn corpus_digest(cva: &mut Cva, through: u64) -> Result<[u8; 32], CvaError> {
-    let nodes = required_nodes(cva, through)?;
+    let nodes = required_nodes(&cva.archive, through)?;
+    let mut bindings = Vec::with_capacity(nodes.len());
     for node in nodes.values() {
         let bytes = cva
             .archive
@@ -70,9 +15,9 @@ pub(super) fn corpus_digest(cva: &mut Cva, through: u64) -> Result<[u8; 32], Cva
         if crate::archive_store::hash_content(&bytes) != node.content_id {
             return Err(fail("import source content proof mismatch"));
         }
+        bindings.push(node_binding(node));
     }
-    Value::Array(nodes.values().map(node_binding).collect())
-        .digest("reliquary:historical-corpus:v1")
+    crate::history::source_proof::corpus_digest(bindings).map_err(CvaError::from)
 }
 pub(super) fn scoped_corpus_digest(
     cva: &mut Cva,
@@ -618,7 +563,7 @@ pub(super) fn validate_settlement(
             "import checkpoint does not cover a proven native import",
         ));
     }
-    let nodes = required_nodes(cva, cp.settlement_cut)?;
+    let nodes = required_nodes(&cva.archive, cp.settlement_cut)?;
     use crate::freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
     let sources = nodes
         .values()

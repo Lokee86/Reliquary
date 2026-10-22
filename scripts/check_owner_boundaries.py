@@ -560,6 +560,30 @@ def production_path_fixture_check() -> None:
                 manifest["owner_files"][0]["component"] = consumer
                 (ROOT / "src/owner.rs").write_text("use crate::memory::MemoryStore;", encoding="utf-8")
                 assert main_check(manifest, dag), consumer
+            # History may read lower owner facts, but must not gain physical,
+            # facade, Import coordination or Maintenance service authority.
+            with (ROOT / "src/lib.rs").open("a", encoding="utf-8") as library:
+                library.write("mod physical; mod import_coordinator; mod maintenance;\n")
+            for module, component, definition in [
+                ("physical", "container", "pub struct Container;"),
+                ("import_coordinator", "import", "pub fn complete_epoch() {}"),
+                ("maintenance", "maintenance", "pub fn authorize() {}"),
+            ]:
+                (ROOT / f"src/{module}.rs").write_text(definition, encoding="utf-8")
+                manifest["module_components"].append({"module": module, "component": component})
+                dag["components"].append({"id": component, "depends_on": []})
+            dag["components"].append({"id": "history", "depends_on": [{"to": "memory-store"}]})
+            manifest["owner_files"][0]["component"] = "history"
+            for source, rejected in [
+                ("use crate::physical::Container as Reader;", True),
+                ("use crate::import_coordinator::complete_epoch as Inspect;", True),
+                ("fn invalid() { crate::maintenance::authorize(); }", True),
+                ("use crate::service::Cva;", True),
+                ("use crate::memory::MemoryStore;", False),
+            ]:
+                (ROOT / "src/owner.rs").write_text(source, encoding="utf-8")
+                errors = main_check(manifest, dag)
+                assert bool(errors) == rejected, ("history", source, errors)
             manifest["owner_files"][0]["component"] = "archive-store"
             (ROOT / "src/child.rs").write_text("pub struct Hidden;", encoding="utf-8")
             (ROOT / "src/owner.rs").write_text('#[path = "child.rs"] mod child;', encoding="utf-8")

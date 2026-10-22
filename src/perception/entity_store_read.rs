@@ -215,6 +215,27 @@ impl EntityStore {
         &self.records
     }
 
+    /// Highest Entity-local version visible at the accepted global cut,
+    /// including an eligible tombstone coordinate.
+    pub(crate) fn local_version_at_global_cut(&self, global: u64) -> u64 {
+        self.records
+            .iter()
+            .filter(|record| record.global_version <= global)
+            .map(|record| record.entity_version)
+            .chain(self.records.iter().filter_map(|record| {
+                match self.lifecycle_state(record.id).ok()? {
+                    crate::owner_lifecycle::LifecycleState::Tombstoned(coordinates)
+                        if coordinates.global_version? <= global =>
+                    {
+                        coordinates.domain_version
+                    }
+                    _ => None,
+                }
+            }))
+            .max()
+            .unwrap_or(0)
+    }
+
     pub(crate) fn tombstone_global_versions(&self) -> impl Iterator<Item = u64> + '_ {
         self.tombstones
             .values()

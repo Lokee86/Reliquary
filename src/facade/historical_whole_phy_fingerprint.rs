@@ -49,7 +49,10 @@ fn replay_prefix(phy: &Phylactery, end: u64) -> Result<(Prefix, Phylactery), Str
 
 pub(crate) fn whole_owner_at_phy(phy: &mut Phylactery, global: u64) -> Result<WholePhyCut, String> {
     let cuts = phylactery_global_cuts(phy, global)?;
-    let end = crate::historical_global_frontier::frontier_end(&phy.container, global)?;
+    let end = crate::history::frontier_end(
+        &crate::owner_lifecycle::HistorySource::new(&phy.container).unwrap(),
+        global,
+    )?;
     let (_guard, prefix) = replay_prefix(phy, end)?;
     let owner = phy
         .owner_uuid()

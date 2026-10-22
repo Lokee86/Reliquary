@@ -87,7 +87,7 @@ impl Archive {
 
     pub(crate) fn retention_proof(
         &self,
-        container: &mut Container,
+        container: &Container,
         conversation_id: &str,
         watermark: u64,
         lengths: &HashMap<ContentId, u64>,

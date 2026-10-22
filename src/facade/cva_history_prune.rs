@@ -222,7 +222,8 @@ impl Cva {
             .map(|id| {
                 crate::archive_prune_admission::descriptor(
                     &self.archive,
-                    &mut self.container,
+                    &crate::owner_lifecycle::HistorySource::new(&self.container)
+                        .map_err(|error| error.0)?,
                     id,
                     watermark,
                     &lengths,
@@ -244,8 +245,9 @@ impl Cva {
         let manifest = HistoryPruneManifest {
             owner_uuid,
             source_global_version: watermark,
-            source_history_digest: crate::owner_history_proof::owner_history_digest(
-                &mut self.container,
+            source_history_digest: crate::history::owner_history_digest(
+                &crate::owner_lifecycle::HistorySource::new(&self.container)
+                    .map_err(|error| CvaError::Repack(error.to_string()))?,
                 watermark,
                 &self.graph,
             )

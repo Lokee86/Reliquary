@@ -30,3 +30,5 @@ mod claude;
 pub use chatgpt::normalize_chatgpt;
 pub use claude::normalize_claude;
 pub use providers::normalize_agent;
+
+pub(crate) mod historical_event_plan;

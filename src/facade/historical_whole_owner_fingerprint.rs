@@ -81,7 +81,10 @@ pub(crate) fn whole_owner_at(
     global: u64,
 ) -> Result<WholeOwnerCut, GlobalProjectionError> {
     let cuts = reliquary_global_cuts(cva, global)?;
-    let end = crate::historical_global_frontier::frontier_end(&cva.container, global)?;
+    let end = crate::history::frontier_end(
+        &crate::owner_lifecycle::HistorySource::new(&cva.container).unwrap(),
+        global,
+    )?;
     let (_guard, prefix) = replay_prefix(cva, end)?;
     let owner = cva
         .owner_uuid()

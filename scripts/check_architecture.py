@@ -148,6 +148,8 @@ def main() -> int:
 
     run([sys.executable, "scripts/check_owner_boundaries.py", "--self-test"])
     run([sys.executable, "scripts/check_owner_boundaries.py"])
+    run([sys.executable, "scripts/check_history_boundaries.py", "--self-test"])
+    run([sys.executable, "scripts/check_history_boundaries.py"])
 
     run([sys.executable, "scripts/check_physical_boundary.py"])
 

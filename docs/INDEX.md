@@ -162,6 +162,9 @@
 - [dependency-convergence-phase2-contracts-2026-10-22.md](dependency-convergence-phase2-contracts-2026-10-22.md) - Dependency Convergence Phase2 Contracts 2026 10 22 documentation.
 - [dependency-convergence-phase2-execution-2026-10-22.md](dependency-convergence-phase2-execution-2026-10-22.md) - Dependency Convergence Phase2 Execution 2026 10 22 documentation.
 - [dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) - Dependency Convergence Phase2 Owner Local Boundaries Spec 2026 10 22 documentation.
+- [dependency-convergence-phase3-baseline-2026-10-22.md](dependency-convergence-phase3-baseline-2026-10-22.md) - Dependency Convergence Phase3 Baseline 2026 10 22 documentation.
+- [dependency-convergence-phase3-contracts-2026-10-22.md](dependency-convergence-phase3-contracts-2026-10-22.md) - Dependency Convergence Phase3 Contracts 2026 10 22 documentation.
+- [dependency-convergence-phase3-execution-2026-10-22.md](dependency-convergence-phase3-execution-2026-10-22.md) - Dependency Convergence Phase3 Execution 2026 10 22 documentation.
 - [dependency-convergence-phase3-handoff-2026-10-22.md](dependency-convergence-phase3-handoff-2026-10-22.md) - Dependency Convergence Phase3 Handoff 2026 10 22 documentation.
 - [dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) - Dependency Convergence Phase3 History Maintenance Import Spec 2026 10 22 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.

@@ -1,10 +1,9 @@
 //! H1 typed canonical encoding. This is an ephemeral proof, never a second store.
-use super::fail;
-use crate::CvaError;
 use sha2::{Digest, Sha256};
+use std::fmt;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(super) enum Value {
+pub(crate) enum Value {
     Null,
     Bool(bool),
     Signed(i64),
@@ -14,14 +13,32 @@ pub(super) enum Value {
     Array(Vec<Value>),
     Map(Vec<(String, Value)>),
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct HistoryProofError(String);
+
+impl HistoryProofError {
+    pub(crate) fn new(message: impl Into<String>) -> Self {
+        Self(message.into())
+    }
+}
+
+impl fmt::Display for HistoryProofError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for HistoryProofError {}
+
 impl Value {
-    pub(super) fn bytes(bytes: impl AsRef<[u8]>) -> Self {
+    pub(crate) fn bytes(bytes: impl AsRef<[u8]>) -> Self {
         Self::Bytes(bytes.as_ref().to_vec())
     }
-    pub(super) fn text(text: impl Into<String>) -> Self {
+    pub(crate) fn text(text: impl Into<String>) -> Self {
         Self::Text(text.into())
     }
-    pub(super) fn map<const N: usize>(fields: [(&str, Self); N]) -> Self {
+    pub(crate) fn map<const N: usize>(fields: [(&str, Self); N]) -> Self {
         Self::Map(
             fields
                 .into_iter()
@@ -29,16 +46,16 @@ impl Value {
                 .collect(),
         )
     }
-    pub(super) fn encoded(&self) -> Result<Vec<u8>, CvaError> {
-        fn len(out: &mut Vec<u8>, count: usize) -> Result<(), CvaError> {
+    pub(crate) fn encoded(&self) -> Result<Vec<u8>, HistoryProofError> {
+        fn len(out: &mut Vec<u8>, count: usize) -> Result<(), HistoryProofError> {
             out.extend(
                 u32::try_from(count)
-                    .map_err(|_| fail("historical canonical length overflow"))?
+                    .map_err(|_| HistoryProofError::new("historical canonical length overflow"))?
                     .to_le_bytes(),
             );
             Ok(())
         }
-        fn encode(value: &Value, out: &mut Vec<u8>) -> Result<(), CvaError> {
+        fn encode(value: &Value, out: &mut Vec<u8>) -> Result<(), HistoryProofError> {
             match value {
                 Value::Null => out.push(0),
                 Value::Bool(value) => out.extend([1, u8::from(*value)]),
@@ -71,7 +88,7 @@ impl Value {
                     let mut fields: Vec<_> = fields.iter().collect();
                     fields.sort_by(|a, b| a.0.as_bytes().cmp(b.0.as_bytes()));
                     if fields.windows(2).any(|pair| pair[0].0 == pair[1].0) {
-                        return Err(fail("duplicate historical canonical key"));
+                        return Err(HistoryProofError::new("duplicate historical canonical key"));
                     }
                     out.push(7);
                     len(out, fields.len())?;
@@ -87,9 +104,9 @@ impl Value {
         encode(self, &mut out)?;
         Ok(out)
     }
-    pub(super) fn digest(&self, domain: &str) -> Result<[u8; 32], CvaError> {
+    pub(crate) fn digest(&self, domain: &str) -> Result<[u8; 32], HistoryProofError> {
         if !domain.is_ascii() || domain.as_bytes().contains(&0) {
-            return Err(fail("invalid historical hash domain"));
+            return Err(HistoryProofError::new("invalid historical hash domain"));
         }
         let mut hash = Sha256::new();
         hash.update(domain.as_bytes());
@@ -98,7 +115,7 @@ impl Value {
         Ok(hash.finalize().into())
     }
 }
-pub(super) fn policy() -> Value {
+pub(crate) fn policy() -> Value {
     Value::map([
         ("version", Value::Unsigned(3)),
         ("timeline", Value::text("accepted-archive-activity-v1")),

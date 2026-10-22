@@ -22,6 +22,16 @@ pub(crate) struct GenerationVersion {
     pub record: ObjectRef,
 }
 
+impl GenerationVersion {
+    pub(crate) fn normalized_history_marker(&self) -> [u8; 40] {
+        encode_version(Self {
+            global_version: self.global_version,
+            vector_version: self.vector_version,
+            record: ObjectRef::from_legacy_bytes([0; 16]),
+        })
+    }
+}
+
 pub(crate) fn encode_format() -> [u8; 12] {
     let mut out = [0_u8; 12];
     out[..8].copy_from_slice(FORMAT_MAGIC);

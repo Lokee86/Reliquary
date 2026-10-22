@@ -15,7 +15,7 @@ pub(crate) use access::PhysicalReadSource;
 mod repair;
 use lease::{Lease, file_identity};
 pub(crate) use repair::TailRepairPlan;
-pub(crate) use scan::PhysicalFrame;
+pub(crate) use scan::{PhysicalCursor, PhysicalFrame};
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -296,6 +296,27 @@ impl Container {
         self.read_exact_at(&mut payload, payload_offset)
             .map_err(|error| map_chunk_read_error(error, chunk.offset))?;
         Ok(payload)
+    }
+
+    /// Read an object only when its complete physical extent is inside an accepted prefix.
+    pub(crate) fn read_through(
+        &self,
+        object: ObjectRef,
+        prefix_end: u64,
+    ) -> Result<Vec<u8>, ContainerError> {
+        let chunk = object.into_chunk();
+        let end = chunk
+            .offset
+            .checked_add(CHUNK_HEADER_LEN)
+            .and_then(|value| value.checked_add(chunk.len))
+            .ok_or(ContainerError::ChunkTooLarge)?;
+        if chunk.offset < self.header_len || end > prefix_end {
+            return Err(ContainerError::InvalidChunkRef(object));
+        }
+        if prefix_end > self.physical_length()? {
+            return Err(ContainerError::TruncatedChunk(prefix_end));
+        }
+        self.read(object)
     }
 
     pub(crate) fn write_chunk_prefix(
