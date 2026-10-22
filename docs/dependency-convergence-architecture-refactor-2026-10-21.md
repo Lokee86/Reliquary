@@ -383,6 +383,8 @@ Exit condition:
 
 ### Phase 3 — Historical, maintenance, import, and reconciliation composition
 
+Detailed correction-only execution spec: [Phase 3 History/Maintenance/Import convergence](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md). It defines 98 bounded tasks with hard-cut gates, the accepted Phase 2 owner proof seams, read-only History, explicit Maintenance/Import coordination, and the preapproved CVAFRS06 semantic-settlement minimization. The spec **does not** alter the accepted DAG or implement the phase.
+
 Purpose: move cross-owner historical/maintenance behavior into explicit domain services above owner stores instead of allowing the facade to become the integration layer.
 
 Required work:
