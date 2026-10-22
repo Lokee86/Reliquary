@@ -211,7 +211,7 @@ impl Cva {
                 selected_bodies.insert(object, (body, bytes.len() as u64));
                 bodies.push(body);
             }
-            memory_descriptors.push(crate::memory_store::history_prune::descriptor(
+            memory_descriptors.push(crate::memory_prune_admission::descriptor(
                 &self.memories,
                 *id,
                 &bodies,
@@ -220,8 +220,13 @@ impl Cva {
         let mut descriptors = selected
             .iter()
             .map(|id| {
-                self.archive
-                    .retention_descriptor(&mut self.container, id, watermark, &lengths)
+                crate::archive_prune_admission::descriptor(
+                    &self.archive,
+                    &mut self.container,
+                    id,
+                    watermark,
+                    &lengths,
+                )
             })
             .collect::<Result<Vec<_>, _>>()?;
         descriptors.extend(memory_descriptors);
@@ -239,7 +244,7 @@ impl Cva {
         let manifest = HistoryPruneManifest {
             owner_uuid,
             source_global_version: watermark,
-            source_history_digest: crate::owner_maintenance::owner_history_digest(
+            source_history_digest: crate::owner_history_proof::owner_history_digest(
                 &mut self.container,
                 watermark,
                 &self.graph,

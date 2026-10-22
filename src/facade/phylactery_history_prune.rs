@@ -102,7 +102,7 @@ impl Phylactery {
                 }
                 bodies.push(body);
             }
-            descriptors.push(crate::memory_store::history_prune::descriptor(
+            descriptors.push(crate::memory_prune_admission::descriptor(
                 &self.memories,
                 *id,
                 &bodies,
@@ -123,7 +123,7 @@ impl Phylactery {
         let manifest = HistoryPruneManifest {
             owner_uuid,
             source_global_version: watermark,
-            source_history_digest: crate::owner_maintenance::owner_history_digest(
+            source_history_digest: crate::owner_history_proof::owner_history_digest(
                 &mut self.container,
                 watermark,
                 &self.graph,
@@ -277,9 +277,12 @@ impl Phylactery {
 
     pub(crate) fn validate_prune_evidence(&mut self) -> Result<(), PhylacteryError> {
         let invalid = || PhylacteryError::Repack("PHY prune evidence mismatch".into());
-        self.owner_maintenance
-            .validate_source_history(&mut self.container, &self.graph)
-            .map_err(PhylacteryError::Repack)?;
+        crate::owner_history_proof::validate_source_history(
+            &self.owner_maintenance,
+            &mut self.container,
+            &self.graph,
+        )
+        .map_err(PhylacteryError::Repack)?;
         for manifest in self.owner_maintenance.manifests().values() {
             if manifest
                 .descriptors
@@ -290,8 +293,7 @@ impl Phylactery {
             }
         }
 
-        self.memories
-            .validate_prune_history(&mut self.container, &self.owner_maintenance)?;
+        crate::memory_prune_admission::validate(&self.memories, &self.owner_maintenance)?;
         let mut authorized = BTreeSet::new();
         let mut seen = BTreeSet::new();
         let manifests = self

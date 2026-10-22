@@ -1,7 +1,5 @@
 use crate::compatibility_profile_probe::{validate_embedding_batch, verify_endpoint};
-use crate::vector_generation_validation::{
-    has_complete_current_coverage, validate_generation_reference, vector_generation_id,
-};
+use crate::vector_generation_validation::{validate_generation_reference, vector_generation_id};
 use crate::{
     CompatibilityProfile, CompatibilityProfileId, Cva, EmbeddingEndpoint, EmbeddingMode,
     PackedVectors, ScalarType, VectorGeneration, VectorGenerationError, VectorGenerationId,
@@ -129,16 +127,19 @@ impl Cva {
             global_version: 0,
             vector_version: 0,
         };
+        if candidate.source_archive_version == 0
+            || candidate.source_archive_version > self.archive.archive_version()
+        {
+            return Err(VectorGenerationError::SourceArchiveVersion);
+        }
         validate_generation_reference(
-            &self.archive,
+            self.archive.archive_version(),
             &self.packed_vectors,
             &self.archive_vectors,
             &self.compatibility_profiles,
             &candidate,
         )?;
-        if require_current_coverage
-            && !has_complete_current_coverage(&self.archive, &self.archive_vectors, &candidate)
-        {
+        if require_current_coverage && !self.has_complete_current_coverage(&candidate) {
             return Err(VectorGenerationError::IncompleteCoverage);
         }
         let generation = self.vector_generations.publish(
@@ -175,7 +176,7 @@ impl Cva {
         let generation = self
             .vector_generations
             .current_generation(compatibility_profile_id)?;
-        has_complete_current_coverage(&self.archive, &self.archive_vectors, &generation)
+        self.has_complete_current_coverage(&generation)
             .then_some(generation)
     }
 
@@ -204,5 +205,18 @@ impl Cva {
         let mut stats = self.vector_generations.stats();
         stats.active_profiles = self.active_archive_compatibility_profiles().len();
         stats
+    }
+
+    fn has_complete_current_coverage(&self, generation: &VectorGeneration) -> bool {
+        generation.source_archive_version == self.archive.archive_version()
+            && self.archive_vectors.has_exact_fragment_coverage(
+                generation.archive_vector_id,
+                &self
+                    .archive
+                    .fragments()
+                    .iter()
+                    .map(|fragment| fragment.id)
+                    .collect::<Vec<_>>(),
+            )
     }
 }

@@ -139,29 +139,19 @@ impl ExternalIndexStore {
         self.sources.insert(state.namespace.clone(), state);
         Ok(())
     }
-    pub(crate) fn validate_backing(
+    pub(crate) fn source_states(&self) -> impl Iterator<Item = &SourceState> {
+        self.sources.values()
+    }
+
+    pub(crate) fn discard_invalid_backing(
         &mut self,
-        packed: &crate::packed_vector_store::PackedVectorStore,
-        profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,
+        namespaces: &std::collections::BTreeSet<String>,
     ) {
-        self.sources.retain(|_, s| {
-            let valid = profiles
-                .get(crate::CompatibilityProfileId(s.profile))
-                .is_some_and(|p| p.dimensions == s.dimensions)
-                && s.messages.iter().flat_map(|m| &m.chunks).all(|c| {
-                    packed
-                        .info(crate::PackedVectorId(c.matrix))
-                        .is_some_and(|i| {
-                            i.schema.dimensions == s.dimensions
-                                && i.schema.scalar == crate::ScalarType::F32
-                                && u64::from(c.row) < i.count
-                        })
-                });
-            if !valid {
-                self.damaged = true;
-            }
-            valid
-        });
+        if !namespaces.is_empty() {
+            self.damaged = true;
+            self.sources
+                .retain(|namespace, _| !namespaces.contains(namespace));
+        }
     }
 }
 pub(crate) fn encode(state: &SourceState) -> Result<Vec<u8>, ExternalSourceError> {

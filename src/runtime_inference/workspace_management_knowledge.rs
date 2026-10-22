@@ -94,7 +94,7 @@ impl WorkspaceManagement {
             .entities_for_owner(&self.instance, owner)
             .map_err(unavailable)?;
         // Reserved human principals are not ordinary knowledge inventory.
-        values.retain(|e| e.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND);
+        values.retain(|e| e.kind != crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND);
         values.sort_by_key(|e| e.id);
         let result = page(values, offset, limit);
         text_bound(

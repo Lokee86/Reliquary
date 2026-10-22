@@ -2,20 +2,20 @@ use crate::archive_vector_store::ArchiveVectorStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    Archive, ArchiveVectorId, CompatibilityProfileId, ScalarType, VectorGeneration,
-    VectorGenerationError, VectorGenerationId,
+    ArchiveVectorId, CompatibilityProfileId, ScalarType, VectorGeneration, VectorGenerationError,
+    VectorGenerationId,
 };
 use sha2::{Digest, Sha256};
 
 pub(crate) fn validate_generation_reference(
-    archive: &Archive,
+    accepted_archive_version: u64,
     packed_vectors: &PackedVectorStore,
     archive_vectors: &ArchiveVectorStore,
     profiles: &CompatibilityProfileStore,
     generation: &VectorGeneration,
 ) -> Result<(), VectorGenerationError> {
     if generation.source_archive_version == 0
-        || generation.source_archive_version > archive.archive_version()
+        || generation.source_archive_version > accepted_archive_version
     {
         return Err(VectorGenerationError::SourceArchiveVersion);
     }
@@ -40,22 +40,6 @@ pub(crate) fn validate_generation_reference(
         ));
     }
     Ok(())
-}
-
-pub(crate) fn has_complete_current_coverage(
-    archive: &Archive,
-    archive_vectors: &ArchiveVectorStore,
-    generation: &VectorGeneration,
-) -> bool {
-    generation.source_archive_version == archive.archive_version()
-        && archive_vectors.has_exact_fragment_coverage(
-            generation.archive_vector_id,
-            &archive
-                .fragments()
-                .iter()
-                .map(|fragment| fragment.id)
-                .collect::<Vec<_>>(),
-        )
 }
 
 pub(crate) fn vector_generation_id(

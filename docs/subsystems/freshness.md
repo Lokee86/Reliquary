@@ -108,6 +108,11 @@ PHY does not inherit the REL activity clock. Any PHY Freshness policy requires a
 
 The retained implementation uses bounded grouped propagation, conservative batch scheduling, bounded receipt residency/history structures, and measured hot-path optimizations. Performance work did not introduce a graph cache or change v1 relevance semantics where measurements did not justify it.
 
+
+## Owner-local proof vocabulary
+
+`freshness/event_proof.rs` owns the immutable `FreshnessEventProof` and `FreshnessEventCut` values used by the journal and its callers. Their crate-root public exports and fields are unchanged. Graph/Community availability and Archive birth/source composition remain in the existing admitting callers. Freshness storage decodes its own journal and settlement records only; proof reads do not reinforce scores. CVAFRS06 fields, event identity and settlement authority remain unchanged.
+
 ## Code Map
 
 - `src/freshness/**`

@@ -8,6 +8,10 @@ pub(crate) struct ProjectFileStore {
 }
 
 impl ProjectFileStore {
+    pub(crate) fn accepted_facts(&self) -> crate::source_identity::ProjectFileFacts<'_> {
+        crate::source_identity::ProjectFileFacts::new(&self.records)
+    }
+
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), CvaError> {
         let Some((file_id, reference)) = decode(payload).map_err(CvaError::ProjectFile)? else {
             return Ok(());

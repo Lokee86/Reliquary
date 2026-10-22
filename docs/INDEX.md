@@ -1,6 +1,8 @@
 # Reliquary Memory v2 Documentation
 
 - [Phase 2 owner-local boundaries — execution spec](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks to isolate durable semantic ownership without new roadmap work.
+- [Phase 2 baseline inventory](dependency-convergence-phase2-baseline-2026-10-22.md) — owner, edge, replay, consumer, test, and retained corpus before-image for B0.
+- [Phase 2 baseline verification](dependency-convergence-phase2-baseline-verification-2026-10-22.md) — exact baseline commands, results, timings, oracle hashes, and pending gates.
 - [Phase 1 implementation evidence and handoff](dependency-convergence-phase1-verification-2026-10-22.md) — source ownership, retained before-image, implementation evidence, completed local acceptance and Phase 2/3 handoff.
 - [Phase 1 convergence ratchet](dependency-convergence-phase1-ratchet-2026-10-22.md) — reviewed active ledger reconciliation and evidence freshness.
 - [Phase 1 storage foundation](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md) — physical boundary implementation and acceptance specification.
@@ -154,7 +156,12 @@
 - [dependency-convergence-phase1-ratchet-2026-10-22.md](dependency-convergence-phase1-ratchet-2026-10-22.md) - Dependency Convergence Phase1 Ratchet 2026 10 22 documentation.
 - [dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md) - Dependency Convergence Phase1 Storage Foundation Spec 2026 10 21 documentation.
 - [dependency-convergence-phase1-verification-2026-10-22.md](dependency-convergence-phase1-verification-2026-10-22.md) - Dependency Convergence Phase1 Verification 2026 10 22 documentation.
+- [dependency-convergence-phase2-baseline-2026-10-22.md](dependency-convergence-phase2-baseline-2026-10-22.md) - Dependency Convergence Phase2 Baseline Inventory 2026 10 22 documentation.
+- [dependency-convergence-phase2-baseline-verification-2026-10-22.md](dependency-convergence-phase2-baseline-verification-2026-10-22.md) - Dependency Convergence Phase2 Baseline Verification 2026 10 22 documentation.
+- [dependency-convergence-phase2-contracts-2026-10-22.md](dependency-convergence-phase2-contracts-2026-10-22.md) - Dependency Convergence Phase2 Contracts 2026 10 22 documentation.
+- [dependency-convergence-phase2-execution-2026-10-22.md](dependency-convergence-phase2-execution-2026-10-22.md) - Dependency Convergence Phase2 Execution 2026 10 22 documentation.
 - [dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) - Dependency Convergence Phase2 Owner Local Boundaries Spec 2026 10 22 documentation.
+- [dependency-convergence-phase3-handoff-2026-10-22.md](dependency-convergence-phase3-handoff-2026-10-22.md) - Dependency Convergence Phase3 Handoff 2026 10 22 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
@@ -251,3 +258,10 @@
 - [references](references/INDEX.md) - References documentation.
 - [subsystems](subsystems/INDEX.md) - Subsystems documentation.
 <!-- doc-ledger:folders:end -->
+
+
+
+
+- [Phase 2 concrete owner contracts](dependency-convergence-phase2-contracts-2026-10-22.md)
+
+- [Phase 2 execution and acceptance ledger](dependency-convergence-phase2-execution-2026-10-22.md)

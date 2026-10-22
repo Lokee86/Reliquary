@@ -1,7 +1,5 @@
-use crate::entity_store::EntityStore;
 use crate::graph_codec::{GraphMutationPayload, decode_format, decode_node};
 use crate::graph_store::GraphStore;
-use crate::memory_store::MemoryStore;
 use crate::{GraphError, GraphNodeRecord, ObjectRef, SemanticGraphRelation};
 use std::collections::HashSet;
 
@@ -84,18 +82,14 @@ impl GraphOpenState {
         Ok(true)
     }
 
-    pub(crate) fn finish(
-        mut self,
-        memories: &MemoryStore,
-        entities: &EntityStore,
-    ) -> Result<GraphStore, GraphError> {
+    pub(crate) fn finish(mut self) -> Result<GraphStore, GraphError> {
         if !self.format_seen {
             if !self.data_seen {
                 return Ok(GraphStore::empty());
             }
             return Err(GraphError::MissingFormat);
         }
-        self.store.finish_rebuild(memories, entities)?;
+        self.store.finish_rebuild()?;
         Ok(self.store)
     }
 

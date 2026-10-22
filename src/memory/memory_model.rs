@@ -1,6 +1,9 @@
 use crate::EpisodeId;
 use crate::memory_routing_model::MemoryRoutingMetadata;
+use crate::source_identity::ExternalChunkRef;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::ops::Range;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct MemoryId(pub [u8; 32]);
@@ -42,6 +45,13 @@ pub struct MemoryRetentionDescriptor {
     /// Bodies exclusively retained by tombstoned Memories; shared live bodies are excluded.
     pub prunable_body_ids: Vec<MemoryBodyId>,
     pub revisions: Vec<MemoryRetainedRevision>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct MemoryRetentionProof {
+    pub(crate) descriptor: MemoryRetentionDescriptor,
+    pub(crate) tombstone_digest: [u8; 32],
+    pub(crate) retained_structure_digest: [u8; 32],
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -165,6 +175,39 @@ pub(crate) struct MemoryRecord {
     pub updated_at_ns: i64,
     pub global_version: u64,
     pub memory_version: u64,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum GroupedBodyEncoding {
+    Raw,
+    JsonByteArray,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct GroupedBodySpan {
+    pub(crate) id: MemoryBodyId,
+    pub(crate) range: Range<usize>,
+    pub(crate) encoding: GroupedBodyEncoding,
+}
+
+/// Identifier-only evidence accepted with a Memory publication.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExternalMemoryEvidence {
+    pub source_owner_id: String,
+    pub principal_id: String,
+    pub processing_window: [u8; 32],
+    pub authority: ExternalChunkRef,
+    pub content: Option<ExternalChunkRef>,
+    pub grounding: Option<ExternalChunkRef>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ExternalMemoryBinding {
+    pub memory: [u8; 32],
+    pub body: [u8; 32],
+    pub evidence: ExternalMemoryEvidence,
 }
 
 pub(crate) fn memory_id(mutation_id: &str) -> MemoryId {

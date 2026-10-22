@@ -1,0 +1,1605 @@
+{
+  "version": 1,
+  "dag": "convergence-component-dag.json",
+  "scope": "Explicit durable owner store, codec, rebuild, and selected directly associated test modules. Bounded lexical import boundary after comment/string masking and cfg(test) item stripping; not compiler-resolved.",
+  "owner_files": [
+    {
+      "path": "src/archive/archive.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_activity.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_conversation.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_conversation_metadata.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_conversation_tombstone.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_error.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_history.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_history_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_history_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_history_prune.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_import.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_import_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_lookup.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_object_index.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_publication_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_rebuild.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_record_index.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/archive_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/conversation_compaction_allocator.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/conversation_compaction_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/conversation_compaction_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/conversation_compaction_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/conversation_metadata_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/conversation_metadata_index.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/conversation_metadata_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/echo_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/echo_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/echo_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/episode_builder.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/episode_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/episode_import.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/episode_index.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/episode_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/episode_policy.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/episode_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/file_index.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/file_memory_link_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/file_memory_link_index.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/file_memory_link_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/file_memory_link_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/file_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/file_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/fragment_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/fragment_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/fragmenter.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/interaction_stream_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/interaction_stream_error.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/interaction_stream_record.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/interaction_stream_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/project_file_binding_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/project_history_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/project_history_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/source_attachment_index.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/turn_ingest_codec.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/turn_ingest_model.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/turn_ingest_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/compact_delta.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_codec.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_codec_scalar.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_compact_apply.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_compact_codec.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_compact_contract.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_compact_delta_codec.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_error.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_model.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_store.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_store_anchors.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_store_compact.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_store_documents.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_store_identities.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_store_read.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/ego/ego_store_validation.rs",
+      "component": "ego-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/dream_begin_codec.rs",
+      "component": "dream-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/dream_population_digest.rs",
+      "component": "dream-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/event_proof.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_import_events.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_import_settlement.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_rewrite_baseline.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_semantic_activation.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_semantic_settlement.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_storage_membership.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_storage_ordering.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_storage_rebuild.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/freshness_storage_stream.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/policy.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/score.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/trace.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness_dream_journal.rs",
+      "component": "dream-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/epoch_codec.rs",
+      "component": "import-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/epoch_store.rs",
+      "component": "import-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/manifest.rs",
+      "component": "maintenance-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/store.rs",
+      "component": "maintenance-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_codec.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_codec_scalar.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_codec_values.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_compact_apply.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_compact_codec.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_compact_contract.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_compact_values.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_error.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_model.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_publication_codec.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_rebuild.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_routing_codec.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_routing_model.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_source_time.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_store/grouped_publish.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_store/history_prune.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_temporal_codec.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/memory_temporal_codec_kind.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/processing_epoch_model.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/processing_epoch_store.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_compact_apply.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_compact_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_compact_contract.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_compact_publish.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_compact_values.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_error.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_model.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_principal_identity.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_publication_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_rebuild.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_delta_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_model.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_retained.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_store.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_store_index.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_store_lifecycle.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_resolution_store_write.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_retained_structure.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_store_read.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_store_validation.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_compact_apply.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_compact_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_compact_contract.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_compact_publish.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_compact_values.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_description_proof.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_description_prune.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_error.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_model.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_publication_codec.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_rebuild.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_retained_structure.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_store.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_store_read.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_store_validation.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/archive_vector_codec.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/archive_vector_error.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/archive_vector_model.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/archive_vector_rebuild.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/archive_vector_store.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_codec.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_error.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_model.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_rebuild.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_store.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_vector.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/memory_vector_codec.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/memory_vector_error.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/memory_vector_model.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/memory_vector_rebuild.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/memory_vector_store.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/packed_vector_codec.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/packed_vector_error.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/packed_vector_model.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/packed_vector_rebuild.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/packed_vector_store.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/vector_generation_codec.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/vector_generation_error.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/vector_generation_model.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/vector_generation_rebuild.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/vector_generation_store.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/vector_generation_validation.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/dream_pair_codec.rs",
+      "component": "dream-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/dream_pair_history.rs",
+      "component": "dream-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_codec.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_error.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_leiden.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_lineage.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_model.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_scan_merge.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_scan_merge_plan.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_scan_merge_reduce.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_scan_merge_workers.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/community_store.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_codec.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_codec_mutation.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_compact_codec.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_compact_contract.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_error.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_model.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_publication_codec.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_query.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_rebuild.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_rewrite_baseline.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_store.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_store_compact.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_store_read.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_store_validation.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/graph_store_write.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/semantic_node_model.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/source_identity.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/dream_pass_identity.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/epoch_model.rs",
+      "component": "import-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness_storage.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/semantic_policy.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/codec.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/model.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/error.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_replay.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_replay.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/rebuild.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/scheduler.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/transitions.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_contract.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_validation.rs",
+      "component": "vector-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/rewrite_lineage.rs",
+      "component": "maintenance-store",
+      "classification": "production"
+    }
+  ],
+  "module_components": [
+    {
+      "module": "dream_freshness",
+      "component": "dream"
+    },
+    {
+      "module": "dream_candidate_ranking",
+      "component": "dream"
+    },
+    {
+      "module": "interaction_session",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "memory_retrieval_index",
+      "component": "retrieval"
+    },
+    {
+      "module": "entity_identity_guard",
+      "component": "perception-store"
+    },
+    {
+      "module": "project_file_binding_store",
+      "component": "project-environment"
+    },
+    {
+      "module": "imports::epoch_store::completion",
+      "component": "import"
+    },
+    {
+      "module": "container",
+      "component": "container"
+    },
+    {
+      "module": "freshness::historical_dream",
+      "component": "freshness"
+    },
+    {
+      "module": "freshness::historical_planner",
+      "component": "freshness"
+    },
+    {
+      "module": "freshness::historical_propagation",
+      "component": "freshness"
+    },
+    {
+      "module": "freshness::historical_scorer",
+      "component": "freshness"
+    },
+    {
+      "module": "freshness::historical_semantic",
+      "component": "freshness"
+    },
+    {
+      "module": "freshness::propagation",
+      "component": "freshness"
+    },
+    {
+      "module": "compatibility_profile_probe",
+      "component": "vectors"
+    },
+    {
+      "module": "embedding_endpoint",
+      "component": "switchboard"
+    },
+    {
+      "module": "interaction_model",
+      "component": "runtime-gateway"
+    },
+    {
+      "module": "chronos_inference_model",
+      "component": "chronos"
+    },
+    {
+      "module": "chronos_detection_model",
+      "component": "chronos"
+    },
+    {
+      "module": "freshness",
+      "component": "freshness"
+    },
+    {
+      "module": "imports",
+      "component": "import"
+    }
+  ],
+  "producer_value_contracts": [
+    {
+      "consumer": "archive-store",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "archive-store",
+      "symbol": "EpisodeId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "perception-store",
+      "symbol": "MemoryEntityMentionKey",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "memory-store",
+      "symbol": "MemoryRef",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "memory-store",
+      "symbol": "MemoryError",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "memory-store",
+      "symbol": "MemoryTextField",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "memory-store",
+      "symbol": "MemoryEntityMention",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "graph-store",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "graph-store",
+      "owner": "perception-store",
+      "symbol": "EntityId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "freshness-store",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "freshness-store",
+      "owner": "graph-store",
+      "symbol": "CommunityId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "dream-store",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "dream-store",
+      "owner": "memory-store",
+      "symbol": "MemoryError",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "dream-store",
+      "owner": "freshness-store",
+      "symbol": "FreshnessEventProof",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "insomnia-store",
+      "owner": "archive-store",
+      "symbol": "EpisodeId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "insomnia-store",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "insomnia-store",
+      "owner": "memory-store",
+      "symbol": "MemoryRef",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "archive-store",
+      "symbol": "FragmentId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "archive-store",
+      "symbol": "ArchiveError",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "memory-store",
+      "symbol": "MemoryBodyId",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "memory-store",
+      "symbol": "MemoryError",
+      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "memory-store",
+      "symbol": "MemoryId",
+      "why": "Stable source identity input for pure Dream pass ID construction."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "archive-store",
+      "symbol": "FileId",
+      "why": "Immutable accepted file binding identity/value, no Store capability."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "archive-store",
+      "symbol": "ProjectFileRef",
+      "why": "Immutable accepted file binding identity/value, no Store capability."
+    },
+    {
+      "consumer": "import-store",
+      "owner": "archive-store",
+      "symbol": "ArchiveError",
+      "reason": "Public error values retain existing native import diagnostics without invoking either foreign owner."
+    },
+    {
+      "consumer": "import-store",
+      "owner": "insomnia-store",
+      "symbol": "InsomniaError",
+      "reason": "Public error values retain existing native import diagnostics without invoking either foreign owner."
+    },
+    {
+      "consumer": "archive-store",
+      "owner": "pure-codec",
+      "symbol": "PayloadUnavailable",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "pure-codec",
+      "symbol": "LifecycleState",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "pure-codec",
+      "symbol": "TombstoneCoordinates",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "pure-codec",
+      "symbol": "TombstoneOutcome",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "pure-codec",
+      "symbol": "PayloadUnavailable",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "pure-codec",
+      "symbol": "LifecycleState",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "pure-codec",
+      "symbol": "TombstoneCoordinates",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "pure-codec",
+      "symbol": "TombstoneOutcome",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "perception-store",
+      "owner": "pure-codec",
+      "symbol": "PayloadUnavailable",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "pure-codec",
+      "symbol": "PayloadUnavailable",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "ego-store",
+      "owner": "pure-codec",
+      "symbol": "LifecycleError",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "ego-store",
+      "owner": "pure-codec",
+      "symbol": "LifecycleTarget",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "ego-store",
+      "owner": "pure-codec",
+      "symbol": "LifecycleState",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "ego-store",
+      "owner": "pure-codec",
+      "symbol": "TombstoneCoordinates",
+      "reason": "Immutable lifecycle identity, coordinate or outcome vocabulary; no shared owner state or clock allocation."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "perception-store",
+      "symbol": "EntityId",
+      "reason": "Typed identifier in shared lifecycle vocabulary; no foreign persistence access."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "perception-store",
+      "symbol": "RelationshipId",
+      "reason": "Typed identifier in shared lifecycle vocabulary; no foreign persistence access."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfileId",
+      "reason": "Typed identifier in shared lifecycle vocabulary; no foreign persistence access."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "ego-store",
+      "symbol": "EgoIdentityId",
+      "reason": "Typed identifier in shared lifecycle vocabulary; no foreign persistence access."
+    },
+    {
+      "consumer": "pure-codec",
+      "owner": "ego-store",
+      "symbol": "EgoAnchorId",
+      "reason": "Typed identifier in shared lifecycle vocabulary; no foreign persistence access."
+    },
+    {
+      "consumer": "freshness-store",
+      "owner": "archive-store",
+      "symbol": "FragmentId",
+      "reason": "Immutable fragment identity in accepted semantic evidence."
+    },
+    {
+      "consumer": "insomnia-store",
+      "owner": "archive-store",
+      "symbol": "EpisodeBuildResult",
+      "reason": "Immutable episode build result in the public scheduling result; no Archive store access."
+    },
+    {
+      "consumer": "archive-store",
+      "owner": "runtime-gateway",
+      "symbol": "InteractionRole",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "chronos",
+      "symbol": "TemporalInference",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "chronos",
+      "symbol": "TemporalInferenceResolution",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "memory-store",
+      "owner": "chronos",
+      "symbol": "TemporalIndicationKind",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "switchboard",
+      "symbol": "EmbeddingMode",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "switchboard",
+      "symbol": "VectorNormalization",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "vector-store",
+      "owner": "switchboard",
+      "symbol": "EmbeddingEndpointError",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "freshness-store",
+      "owner": "maintenance-store",
+      "symbol": "HistoryGenerationId",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "graph-store",
+      "owner": "maintenance-store",
+      "symbol": "HistoryGenerationId",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    },
+    {
+      "consumer": "graph-store",
+      "owner": "maintenance-store",
+      "symbol": "RewriteGenesis",
+      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
+    }
+  ],
+  "forbidden_symbols": [
+    "Cva",
+    "Phylactery",
+    "CvaError",
+    "CvaReconcileError",
+    "CvaReconcileConflict",
+    "CvaOpenOptions",
+    "Runtime",
+    "RuntimeGateway",
+    "GatewayRuntime"
+  ],
+  "forbidden_modules": [
+    "facade",
+    "runtime_inference"
+  ],
+  "forbidden_module_prefixes": [
+    "cva_",
+    "phylactery_",
+    "runtime_"
+  ],
+  "external_value_contracts": [
+    {
+      "consumer": "vector-store",
+      "path": "lodestone_packed::ScalarType",
+      "reason": "Packed vector scalar tag, an immutable external codec value."
+    }
+  ]
+}

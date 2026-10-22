@@ -19,12 +19,6 @@ impl InsomniaOpenState {
         _chunk: ObjectRef,
         payload: &[u8],
     ) -> Result<(), InsomniaError> {
-        if let Some(completion) =
-            super::completion::decode_completion(payload).map_err(InsomniaError::CorruptRecord)?
-        {
-            self.store.apply_completion(&completion)?;
-            return Ok(());
-        }
         if decode_format(payload)? {
             if self.format_seen {
                 return Err(InsomniaError::ConflictingFormat);
@@ -39,6 +33,13 @@ impl InsomniaOpenState {
             }
         }
         Ok(())
+    }
+
+    pub(crate) fn ingest_completion(
+        &mut self,
+        receipt: &crate::InsomniaAttempt,
+    ) -> Result<(), InsomniaError> {
+        self.store.apply_completion(receipt)
     }
 
     pub(crate) fn finish(self) -> Result<super::store::InsomniaStore, InsomniaError> {

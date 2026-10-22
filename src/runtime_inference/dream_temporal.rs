@@ -1,5 +1,5 @@
 use crate::chronos::{analyze, analyze_with_inference};
-use crate::memory_source_time::reliquary_memory_source_timestamp_ns;
+use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;
 use crate::{Cva, DreamTemporalAnalysis, Memory, MemoryError, MemoryId};
 
 impl Cva {

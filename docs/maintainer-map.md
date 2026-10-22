@@ -46,7 +46,7 @@ the `container-no-upward-dependency` Pitlord rule enforces source edges.
 
 ## Owner maintenance and rewrite routing
 
-`facade/owner_maintenance.rs` owns shared prune-manifest ingestion, lookup and source-history validation. REL and PHY facades reconstruct that store on open; `cva_history_prune.rs` and `phylactery_history_prune.rs` coordinate transformed-copy emission while each domain retains its payload-retention proof. `facade/storage_reclamation.rs` remains conservative and separate. `src/rewrite/` owns policy types, planning, frozen source identity and semantic emission; facade entrypoints are in the REL/PHY modules. CLI conversion, policy-file validation and output dispatch live in `cli/src/rewrite_cmd.rs`; repeated profile repair is in `cli/src/repair_cmd.rs`. See [Rust API](api.md), [CLI](cli.md), and [behavioral contracts](behavioral-contracts.md#fresh-history-rewrite-contracts).
+`maintenance/store.rs` and `maintenance/manifest.rs` own prune-manifest ingestion, canonical encoding and immutable lookup. `facade/owner_history_proof.rs` owns the existing source-history digest/comparison above those proofs and Graph. REL and PHY facades reconstruct that store on open; `cva_history_prune.rs` and `phylactery_history_prune.rs` coordinate transformed-copy emission while each domain retains its payload-retention proof. `facade/storage_reclamation.rs` remains conservative and separate. `src/rewrite/` owns policy types, planning, frozen source identity and semantic emission; facade entrypoints are in the REL/PHY modules. CLI conversion, policy-file validation and output dispatch live in `cli/src/rewrite_cmd.rs`; repeated profile repair is in `cli/src/repair_cmd.rs`. See [Rust API](api.md), [CLI](cli.md), and [behavioral contracts](behavioral-contracts.md#fresh-history-rewrite-contracts).
 
 ## Shared lifecycle vocabulary
 
@@ -360,3 +360,11 @@ Phase 0 assigns policy and evidence ownership without moving implementation owne
 | Target direction and campaign scope | [Architecture](architecture.md#dependency-convergence-direction-and-phase-0-boundary) and [refactor specification](dependency-convergence-architecture-refactor-2026-10-21.md) | Layer order is physical → owner stores → domain composition → runtime → public facade; dependency arrows run from consumer to dependency |
 
 The current coarse areas remain mixed. These routes establish enforcement and accountability only; Phase 0 does not move owners or change behavior.
+
+## Phase 2 owner admission routing
+
+The [execution ledger](dependency-convergence-phase2-execution-2026-10-22.md) distinguishes implemented cuts from pending acceptance. REL/PHY lifecycle calls owner-local replay/finish methods and then the existing cross-owner checks. `facade/memory_frame_admission.rs` routes grouped Insomnia/external evidence into Memory-owned frame ranges and records; `memory_provenance_admission.rs` composes Archive provenance; `memory_prune_admission.rs` matches owner retention proofs. `insomnia_admission.rs`, `dream_pair_admission.rs`, `external_index_admission.rs` and `owner_history_proof.rs` retain existing authorized composition above durable stores. These functions add no coordinator state or durable format.
+
+Import epoch record values and errors live in `src/imports/epoch_model.rs`; the private completion append belongs to `epoch_store.rs`. The higher completion coordinator is a child module so Rust visibility restricts the append without a service-owned authority token. Freshness owns shared historical event values and the fixed stored policy digest in `src/freshness/historical_contract.rs`; public historical module paths re-export them.
+
+`retrieval/compatibility_profile_validation.rs` owns stored profile shape, identity and pure comparison. `compatibility_profile_probe.rs` remains higher-level provider composition; durable profile storage does not import provider interfaces. Shared temporal, interaction-role, embedding-tag and lineage records are explicit immutable value contracts in the owner boundary manifest.

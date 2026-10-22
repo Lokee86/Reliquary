@@ -6,7 +6,7 @@ use crate::vector_generation_codec::{
 };
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::vector_generation_validation::{validate_generation_reference, vector_generation_id};
-use crate::{Archive, ObjectRef, VectorGeneration, VectorGenerationError};
+use crate::{ObjectRef, VectorGeneration, VectorGenerationError};
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct VectorGenerationOpenState {
@@ -91,7 +91,7 @@ impl VectorGenerationOpenState {
 
     pub(crate) fn finish(
         self,
-        archive: &Archive,
+        accepted_archive_version: u64,
         packed_vectors: &PackedVectorStore,
         archive_vectors: &ArchiveVectorStore,
         profiles: &CompatibilityProfileStore,
@@ -102,7 +102,7 @@ impl VectorGenerationOpenState {
         let mut store = VectorGenerationStore::empty();
         for generation in self.generations {
             validate_generation_reference(
-                archive,
+                accepted_archive_version,
                 packed_vectors,
                 archive_vectors,
                 profiles,

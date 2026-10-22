@@ -24,3 +24,33 @@ pub(super) fn decode(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
         _ => unreachable!(),
     }
 }
+
+pub(super) fn decode_body_spans(
+    bytes: &[u8],
+) -> Result<Vec<crate::memory_model::GroupedBodySpan>, &'static str> {
+    let shape = layout(bytes)?;
+    let mut fields = vec![0; 8];
+    fields.extend_from_slice(&bytes[9..]);
+    let mut spans = match shape {
+        1 => Ok(Vec::new()),
+        2 => super::completion_body_spans_compact(&fields, false),
+        3 => super::completion_body_spans_compact(&fields, true),
+        4 => super::completion_body_spans_current(&fields, false, false),
+        5 => super::completion_body_spans_current(&fields, true, false),
+        6 => super::completion_body_spans_current(&fields, true, true),
+        _ => unreachable!(),
+    }?;
+    for span in &mut spans {
+        span.range.start = span
+            .range
+            .start
+            .checked_add(1)
+            .ok_or("completion body offset overflow")?;
+        span.range.end = span
+            .range
+            .end
+            .checked_add(1)
+            .ok_or("completion body offset overflow")?;
+    }
+    Ok(spans)
+}

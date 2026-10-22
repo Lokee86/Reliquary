@@ -549,7 +549,7 @@ fn completed_scope_inventory(
     // The real import completion validator requires a settled initial Dream
     // publication for an import-born Memory. Keep that admission path real;
     // otherwise inventory cannot reach the accepted-event authority check.
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), memory);
+    let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), memory);
     let graph_version = cva.graph_version();
     cva.container.set_owner_write_scope(true);
     cva.begin_initial_dream_pass(

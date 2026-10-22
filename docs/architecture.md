@@ -23,6 +23,10 @@ See the [file lease contract](dependency-convergence-phase1-lock-contract-2026-1
 for platform primitives, identity and publication limits. No V2 encoding changes
 are introduced by this boundary.
 
+## Phase 2 owner-local cuts in progress
+
+Durable owner implementations are being separated from existing cross-owner admission under the [Phase 2 execution ledger](dependency-convergence-phase2-execution-2026-10-22.md). Memory owns grouped body locations and local body validation; existing lifecycle callers dispatch grouped Insomnia/external publications without giving Memory their codecs. Dream and Insomnia persist only their own journal/work/receipt state and receive accepted identity or scheduling values from callers. Maintenance manifest storage is separate from history-policy composition. Current public types, owner identities and V2 bytes are preserved; final owner and corpus acceptance remain explicitly pending.
+
 ## Development-format lifecycle
 
 [ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. The six canonical files are promoted; reader and upgrader deletion is implemented, with post-retirement acceptance tracked in the linear plan.
@@ -48,7 +52,7 @@ Import completion publication is confined by Rust visibility and an opaque coord
 
 FreshnessStore owns ordered sparse `HistoricalImportFreshnessSettlement` records, with no singleton ImportCheckpoint. Accepted settlements use standalone `CVAFRS06` semantic evidence. Birth, Dream and accepted-use receipts remain durable. Exact settlement retries preserve later live effects, including accepted use appended at the same activity cut.
 
-Multiple ordered settlements are supported by the codec/store foundation. Native reconstruction resolves retries by the current epoch identity; without an open epoch it retains the legacy latest-settlement retry behavior. Durable import admission and the exclusive completion coordinator are integrated. `Cva::native_import_readiness(import_id)` provides a read-only report for the current open epoch, deriving import-attributed Insomnia/Memory/Dream/Perception blockers from durable owner evidence; routed PHY references are `Memory/Unsupported`. Each nonzero local output is tied to its retained same-epoch Insomnia completion, revision-1 same-Episode Memory record and first mutation. A previously pending import-owned Dream pass remains a blocker even if its Memory is archived or terminal; otherwise archived births follow Dream's no-new-pass eligibility rule. Vector status is `NotRequired` only when no source Nodes and no Memory outputs exist, otherwise `SupportedUnavailable` without completeness certification. Import schedules no Ego work, and unrelated work is outside the query. Production completion append is restricted to the coordinator with an opaque authority. Sequential imports across live activity and reopen are covered by `imports/sequential_completion_tests.rs`. Ordered epoch reconciliation preserves the left physical prefix, replays supported accepted owner frames in physical order, and rebuilds destination settlement/completion evidence. Transform validation retains exact completed epoch markers and settlement authority.
+Multiple ordered settlements are supported by the codec/store foundation. Native reconstruction resolves retries by the current epoch identity; without an open epoch it retains the legacy latest-settlement retry behavior. Durable import admission and the exclusive completion coordinator are integrated. `Cva::native_import_readiness(import_id)` provides a read-only report for the current open epoch, deriving import-attributed Insomnia/Memory/Dream/Perception blockers from durable owner evidence; routed PHY references are `Memory/Unsupported`. Each nonzero local output is tied to its retained same-epoch Insomnia completion, revision-1 same-Episode Memory record and first mutation. A previously pending import-owned Dream pass remains a blocker even if its Memory is archived or terminal; otherwise archived births follow Dream's no-new-pass eligibility rule. Vector status is `NotRequired` only when no source Nodes and no Memory outputs exist, otherwise `SupportedUnavailable` without completeness certification. Import schedules no Ego work, and unrelated work is outside the query. Production completion append is private to the epoch store and its nested completion coordinator. Sequential imports across live activity and reopen are covered by `imports/sequential_completion_tests.rs`. Ordered epoch reconciliation preserves the left physical prefix, replays supported accepted owner frames in physical order, and rebuilds destination settlement/completion evidence. Transform validation retains exact completed epoch markers and settlement authority.
 
 ## Domain tombstone convergence
 
@@ -128,7 +132,7 @@ Fresh admission matches the selected Archive branch head; exact accepted retries
 
 Under VisibleAutoBranch, finalization compares the admitted expected parent with the authoritative selected-branch head. A stale but related parent produces one deterministic non-canonical conflict branch whose stable ID and display label are frozen in FinalizeWon before Archive publication; an unrelated parent fails closed. Recovery reuses the frozen branch identity and never duplicates or rewinds a branch. After the Archive receipt is durable, only the original submitting instance's still-current attachment may move its instance-local selection to the new branch; detached/revoked submitters do not block accepted work and other viewers are never moved. [P3.5 evidence](multiplexing-implementation-plan.md) records the multi-writer and restart gates.
 
-## Branch continuation ownership and scheduling (P3.2–P3.3)
+## Branch continuation ownership and scheduling (P3.2â€“P3.3)
 
 The same coordinator now selects and reserves the oldest eligible journal entry under coordinator-then-journal locks. No duplicate queue is stored. Ordering uses verified receive time, persisted random tie key and admission sequence; completed ancestry is not rewritten. Held host work is skipped by fresh dispatch and resumes only through its existing durable continuation. Fresh exact-entry processing is test-only. [P3.3 evidence](multiplexing-implementation-plan.md) records the API hard cut and verification.
 
@@ -146,39 +150,39 @@ Only ConversationExecution has an executable host payload/receipt path. Explicit
 A homogeneous Reliquary `.rel` is one physical file containing the same explicit concrete owners as the former CVA format. Normal opens require current V2.0 identity regardless of the filename suffix; preserved typed identity discriminators do not enable old-format readers:
 ```text
 Reliquary (internal compatibility type: Cva)
-├── Container
-│   ├── durable typed owner UUID
-│   └── global_version: u64
-├── Archive
-│   ├── archive_version: u64
-│   ├── conversation/session-local ancestry
-│   ├── source turns + native attachments + embedded files
-│   ├── explicit file-to-Memory links
-│   └── immutable Episodes
-├── Memories
-│   └── memory_version: u64 + immutable revisions
-├── EntityStore
-│   └── entity_version: u64 + durable canonical referent revisions
-├── Graph
-│   ├── graph_version: u64 + append-only relationship mutations
-│   ├── persistent typed SemanticNodeRef ↔ dense NodeId catalogue
-│   └── active topology/traversal via Arcana graph kernel
-├── CommunityStore
-│   └── owner-local derived Leiden snapshots keyed to graph_version
-├── InsomniaOperational
-│   └── queue / priority / leases / retries / compact completion receipt
-├── EchoStore
-│   └── ordered turn-attached reasoning / tool / activity evidence
-├── PackedVectorStore
-│   └── immutable numeric matrices
-├── MemoryVectorStore
-│   └── immutable (profile, MemoryBodyId) -> packed row bindings
-├── ArchiveVectorStore
-│   └── immutable row -> FragmentId bindings
-├── CompatibilityProfileStore
-│   └── immutable vector-space compatibility contracts
-└── VectorGenerationStore
-    └── vector_version: u64 + current generation per profile
+â”œâ”€â”€ Container
+â”‚   â”œâ”€â”€ durable typed owner UUID
+â”‚   â””â”€â”€ global_version: u64
+â”œâ”€â”€ Archive
+â”‚   â”œâ”€â”€ archive_version: u64
+â”‚   â”œâ”€â”€ conversation/session-local ancestry
+â”‚   â”œâ”€â”€ source turns + native attachments + embedded files
+â”‚   â”œâ”€â”€ explicit file-to-Memory links
+â”‚   â””â”€â”€ immutable Episodes
+â”œâ”€â”€ Memories
+â”‚   â””â”€â”€ memory_version: u64 + immutable revisions
+â”œâ”€â”€ EntityStore
+â”‚   â””â”€â”€ entity_version: u64 + durable canonical referent revisions
+â”œâ”€â”€ Graph
+â”‚   â”œâ”€â”€ graph_version: u64 + append-only relationship mutations
+â”‚   â”œâ”€â”€ persistent typed SemanticNodeRef â†” dense NodeId catalogue
+â”‚   â””â”€â”€ active topology/traversal via Arcana graph kernel
+â”œâ”€â”€ CommunityStore
+â”‚   â””â”€â”€ owner-local derived Leiden snapshots keyed to graph_version
+â”œâ”€â”€ InsomniaOperational
+â”‚   â””â”€â”€ queue / priority / leases / retries / compact completion receipt
+â”œâ”€â”€ EchoStore
+â”‚   â””â”€â”€ ordered turn-attached reasoning / tool / activity evidence
+â”œâ”€â”€ PackedVectorStore
+â”‚   â””â”€â”€ immutable numeric matrices
+â”œâ”€â”€ MemoryVectorStore
+â”‚   â””â”€â”€ immutable (profile, MemoryBodyId) -> packed row bindings
+â”œâ”€â”€ ArchiveVectorStore
+â”‚   â””â”€â”€ immutable row -> FragmentId bindings
+â”œâ”€â”€ CompatibilityProfileStore
+â”‚   â””â”€â”€ immutable vector-space compatibility contracts
+â””â”€â”€ VectorGenerationStore
+    â””â”€â”€ vector_version: u64 + current generation per profile
 ```
 `Reliquary` is the public product-facing type; `Cva` remains the compatibility/internal implementation name. It owns physical composition and the single Container handle. New REL files carry authoritative Reliquary file identity plus a durable UUID in the header and use canonical owner ID `rel-<uuid>`. Optional `RelMetadata` stores a human-facing type label and directed REL dependency IDs; the type label is organizational metadata only, while dependency topology is the explicit context-inheritance substrate. Legacy typed REL headers retain their historical owner prefixes for compatibility. Filenames may supply display names to the host but are not identity. Physical maintenance follows the same ownership boundary: `reclaim_storage` computes owner-aware reachability above Container, rewrites a separate file, relocates only physical `ObjectRef` metadata, and reopens the result before success; Container itself remains unaware of semantic reachability.
 
@@ -186,22 +190,22 @@ The same low-level container now also backs a distinct `Phylactery` type for use
 
 ```text
 Phylactery (.phy)
-├── Container
-│   └── global_version: u64
-├── Memories
-│   └── memory_version: u64 + immutable revisions
-├── EntityStore
-│   └── entity_version: u64 + durable canonical referent revisions
-├── Graph
-│   └── graph_version: u64 + semantic topology; published relations currently Memory-to-Memory
-├── CommunityStore
-│   └── owner-local derived Leiden snapshots keyed to graph_version
-├── PackedVectorStore
-│   └── immutable numeric matrices
-├── MemoryVectorStore
-│   └── immutable (profile, MemoryBodyId) -> packed row bindings
-└── CompatibilityProfileStore
-    └── immutable vector-space compatibility contracts
+â”œâ”€â”€ Container
+â”‚   â””â”€â”€ global_version: u64
+â”œâ”€â”€ Memories
+â”‚   â””â”€â”€ memory_version: u64 + immutable revisions
+â”œâ”€â”€ EntityStore
+â”‚   â””â”€â”€ entity_version: u64 + durable canonical referent revisions
+â”œâ”€â”€ Graph
+â”‚   â””â”€â”€ graph_version: u64 + semantic topology; published relations currently Memory-to-Memory
+â”œâ”€â”€ CommunityStore
+â”‚   â””â”€â”€ owner-local derived Leiden snapshots keyed to graph_version
+â”œâ”€â”€ PackedVectorStore
+â”‚   â””â”€â”€ immutable numeric matrices
+â”œâ”€â”€ MemoryVectorStore
+â”‚   â””â”€â”€ immutable (profile, MemoryBodyId) -> packed row bindings
+â””â”€â”€ CompatibilityProfileStore
+    â””â”€â”€ immutable vector-space compatibility contracts
 ```
 
 Phylactery does not own Archive/history, Episodes, Files/attachments, Insomnia state, Archive Vectors, Vector Generations, interaction-stream checkpoints, or the Archive lexical index. It does participate in the same disposable owner-local **Memory lexical index** as REL: the index is built lazily from current non-archived Memory title/content after reopen, then follows later Memory revisions incrementally by `memory_version`; it is never persisted in the PHY. Direct PHY Memory publication rejects REL-local provenance fields. A PHY Memory may nevertheless retain an identifier-only `MemorySourceRef` back to an originating REL; that reference does not copy or transfer the source records into PHY.
@@ -213,15 +217,15 @@ Ego persistence is a separate owner-local layer over the same container, not ano
 Machine-local application configuration is a separate owner:
 ```text
 ReliquaryConfig
-└── reliquary.cfg
-    ├── archive.fragments
-    ├── retrieval.default
-    ├── models.general
-    ├── models.insomnia (optional; falls back to general)
-    ├── models.insomnia_metadata (optional)
-    ├── models.dream (optional; falls back to general)
-    ├── models.embedding
-    └── credential.<id> (AES-256-GCM)
+â””â”€â”€ reliquary.cfg
+    â”œâ”€â”€ archive.fragments
+    â”œâ”€â”€ retrieval.default
+    â”œâ”€â”€ models.general
+    â”œâ”€â”€ models.insomnia (optional; falls back to general)
+    â”œâ”€â”€ models.insomnia_metadata (optional)
+    â”œâ”€â”€ models.dream (optional; falls back to general)
+    â”œâ”€â”€ models.embedding
+    â””â”€â”€ credential.<id> (AES-256-GCM)
 ```
 `reliquary.cfg` is current-state configuration only. It is not contained in a `.rel`, consumes no semantic clocks, and has no append-only/history semantics.
 ## P3/P4 internal observation boundary
@@ -341,6 +345,6 @@ Decision inheritance changes configured endpoint composition only; semantic pers
 The import owner persists current standalone semantic evidence. CVAILEG1/2 runtime validation and transport have been removed after source-validated corpus conversion. Container framing does not interpret import semantics.
 ## Dependency convergence direction and Phase 0 boundary
 
-The target layer order is physical storage and persistence mechanics → owner-local stores and durable owner contracts → domain services and owner composition → cross-owner orchestration and runtime coordination → public product facade and host integration. Dependency arrows point from consumer to dependency, so they run in the reverse direction: facade → runtime → domain composition → owner stores → physical mechanics. External providers and host services enter through boundaries owned at the appropriate layer.
+The target layer order is physical storage and persistence mechanics â†’ owner-local stores and durable owner contracts â†’ domain services and owner composition â†’ cross-owner orchestration and runtime coordination â†’ public product facade and host integration. Dependency arrows point from consumer to dependency, so they run in the reverse direction: facade â†’ runtime â†’ domain composition â†’ owner stores â†’ physical mechanics. External providers and host services enter through boundaries owned at the appropriate layer.
 
 This is the target, not a description of the graph already achieved. Current coarse areas remain mixed and may contain dependency cycles. Phase 0 records current edges, establishes explicit policy for new dependencies and classifies existing debt; it does not claim a DAG, move semantic owners, or change runtime behavior. The completed capture measurements, source scope, and adapter caveats are maintained in [Dependency convergence Phase 0 inventory](dependency-convergence-phase0-2026-10-21.md), with the campaign target in the [refactor specification](dependency-convergence-architecture-refactor-2026-10-21.md). The graph is a bounded static view: source review remains necessary for reexports, impl blocks, conditional tests, and inaccurate raw call bindings.

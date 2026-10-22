@@ -119,7 +119,7 @@ fn literal_compact_and_explicit_begin_have_identical_historical_proofs_at_each_s
     fs::copy(&base_path, &compact_path).unwrap();
     fs::copy(&base_path, &explicit_path).unwrap();
 
-    let pass_id = crate::dream_freshness::initial_pass_id(owner, source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(owner, source);
     let initial_roots = BTreeSet::from([root]);
     let mut literal = Cva::open(&literal_path).unwrap();
     let literal_pass = crate::InitialDreamPass {

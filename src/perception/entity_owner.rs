@@ -12,7 +12,7 @@ macro_rules! impl_owner {
                 draft: EntityDraft,
             ) -> Result<(Entity, bool), EntityError> {
                 if $reject_principal
-                    && draft.kind.trim() == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+                    && draft.kind.trim() == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND
                 {
                     return Err(EntityError::InvalidField("Phylactery principal Entity"));
                 }

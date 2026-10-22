@@ -688,7 +688,8 @@ pub(super) fn build_with_fill(
     );
     for &id in &born_ids {
         if !cva.freshness_is_publication_birth(id)
-            || !cva.initial_dream_pass_settled(&crate::dream_freshness::initial_pass_id(owner, id))
+            || !cva
+                .initial_dream_pass_settled(&crate::dream_pass_identity::initial_pass_id(owner, id))
         {
             return Err(fail(
                 "import cohort lacks settled first-cycle/publication evidence",

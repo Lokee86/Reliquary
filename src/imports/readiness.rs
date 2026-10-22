@@ -281,7 +281,7 @@ impl Cva {
             if current.archived {
                 continue;
             }
-            let pass_id = crate::dream_freshness::initial_pass_id(start.owner_uuid, *id);
+            let pass_id = crate::dream_pass_identity::initial_pass_id(start.owner_uuid, *id);
             if !self.initial_dream_pass_settled(&pass_id) {
                 return Ok(Some(blocker(Owner::Dream, pass_id, Status::Pending)));
             }

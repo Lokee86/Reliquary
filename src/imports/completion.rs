@@ -1,16 +1,10 @@
 //! Exclusive import completion composition; stores retain their own evidence.
 
-/// Unforgeable authority for appending an import completion marker.
-/// Its private field confines construction to this coordinator module.
-pub(super) struct CompletionAuthority {
-    _private: (),
-}
-
-use super::{
+use crate::freshness_storage::HistoricalImportFreshnessSettlement;
+use crate::imports::{
     ImportComplete, ImportCompletionOutcome, ImportCompletionPending, ImportEpochStatus,
     ImportEpochStore, ImportError, ImportStart, epoch_codec, prepare,
 };
-use crate::freshness_storage::HistoricalImportFreshnessSettlement;
 use crate::{Container, Cva, CvaError};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -36,7 +30,7 @@ struct AcceptedSettlement {
     memory_graph: u64,
 }
 
-pub(super) fn settlement_is_current(
+pub(in crate::imports) fn settlement_is_current(
     cva: &Cva,
     settlement: &HistoricalImportFreshnessSettlement,
 ) -> bool {
@@ -149,11 +143,7 @@ impl Cva {
             historical_freshness_settlement_digest: settlement_digest(&settlement),
         };
         let result = self.with_import_write_scope(|cva| {
-            epochs.append_complete_coordinated(
-                &mut cva.container,
-                complete.clone(),
-                CompletionAuthority { _private: () },
-            )
+            epochs.append_complete_coordinated(&mut cva.container, complete.clone())
         });
         // Store append changes its own local state and admission. Keep the
         // original owner state and fence until sync-before-acknowledgement.
@@ -170,7 +160,9 @@ impl Cva {
 
     /// Rebuild validates physical settlement-before-completion ordering as well
     /// as exact accepted evidence. This also recovers uncertain append retries.
-    pub(super) fn completion_epochs_from_bytes(&self) -> Result<ImportEpochStore, CvaError> {
+    pub(in crate::imports) fn completion_epochs_from_bytes(
+        &self,
+    ) -> Result<ImportEpochStore, CvaError> {
         let mut epochs = ImportEpochStore::default();
         let mut settlements = BTreeMap::new();
         let scan = &self.container;
@@ -242,7 +234,7 @@ impl Cva {
             })()
         }?;
         epochs.validate_owner(self.owner_uuid())?;
-        epochs.validate_receipts(&self.archive.import_receipts)?;
+        crate::import_epoch_admission::validate_receipts(&epochs, &self.archive.import_receipts)?;
         Ok(epochs)
     }
 

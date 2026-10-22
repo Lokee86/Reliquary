@@ -296,7 +296,7 @@ impl GatewayRuntime {
                     changed,
                     false,
                     vec![super::events::RelInvalidation::PrincipalEntity(
-                        crate::entity_principal::principal_entity_id(&phy.owner_id),
+                        crate::entity_principal_identity::principal_entity_id(&phy.owner_id),
                     )],
                 ))
             },

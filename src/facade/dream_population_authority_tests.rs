@@ -63,7 +63,8 @@ fn append_begin(
     pass_id: Option<String>,
 ) -> String {
     let owner = rel.owner_uuid().unwrap();
-    let pass_id = pass_id.unwrap_or_else(|| crate::dream_freshness::initial_pass_id(owner, source));
+    let pass_id =
+        pass_id.unwrap_or_else(|| crate::dream_pass_identity::initial_pass_id(owner, source));
     let payload = dream_begin_codec::encode(&BeginRecord {
         owner_uuid: owner,
         pass_id: pass_id.clone(),
@@ -219,7 +220,7 @@ fn begin_retry_and_empty_roots_reopen_as_one_valid_no_link_pass() {
     let root = publish(&mut rel, "root", "knowledge", false);
     let source = publish(&mut rel, "source", "extracted", false);
     let owner = rel.owner_uuid().unwrap();
-    let pass_id = crate::dream_freshness::initial_pass_id(owner, source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(owner, source);
     let explicit = BeginPopulation::ExplicitSet(BTreeSet::from([root]));
     append_begin(&mut rel, source, explicit.clone(), Some(pass_id.clone()));
     append_begin(&mut rel, source, explicit, Some(pass_id.clone()));
@@ -251,7 +252,8 @@ fn invalid_first_pass_identity_and_archived_source_are_rejected_without_pending_
     assert!(rel.pending_initial_dream_pass(source).is_none());
 
     let archived = publish(&mut rel, "archived-source", "extracted", true);
-    let archived_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), archived);
+    let archived_id =
+        crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), archived);
     let graph_cut = rel.graph_version();
     let result = rel.begin_initial_dream_pass(
         archived_id,
@@ -306,7 +308,7 @@ fn destination_transport_proves_exactness_or_preserves_a_literal_exception() {
     let second = publish(&mut rel, "destination-second", "knowledge", false);
     let source = publish(&mut rel, "destination-source", "extracted", false);
     let mut pass = crate::InitialDreamPass {
-        pass_id: crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source),
+        pass_id: crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source),
         source_id: source,
         first_revision: 1,
         turn: 0,
@@ -458,7 +460,7 @@ fn dream_begin_raw_byte_measurement_preserves_exact_synthetic_populations() {
             .collect::<BTreeSet<_>>();
         let source = publish(&mut rel, "measurement-source", "extracted", false);
         let pass = crate::InitialDreamPass {
-            pass_id: crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source),
+            pass_id: crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source),
             source_id: source,
             first_revision: 1,
             turn: 0,

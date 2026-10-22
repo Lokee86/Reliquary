@@ -1,17 +1,7 @@
 use super::model::*;
-use serde::{Deserialize, Serialize};
 
-/// Identifier-only evidence; no Episode, Archive node or source quote is stored.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ExternalMemoryEvidence {
-    pub source_owner_id: String,
-    pub principal_id: String,
-    pub processing_window: [u8; 32],
-    pub authority: ExternalChunkRef,
-    pub content: Option<ExternalChunkRef>,
-    pub grounding: Option<ExternalChunkRef>,
-}
+pub use crate::memory_model::ExternalMemoryEvidence;
+
 impl ExternalMemoryEvidence {
     pub(crate) fn validate(&self) -> Result<(), ExternalSourceError> {
         identifier(&self.source_owner_id)?;
@@ -32,6 +22,8 @@ impl ExternalMemoryEvidence {
         Ok(())
     }
 }
+
+/// Identifier-only evidence; no Episode, Archive node or source quote is stored.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SourceEvidenceRef {
     Reliquary(crate::MemorySourceRef),

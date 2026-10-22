@@ -122,7 +122,7 @@ fn historical_embedding_native_fill_manifest_reopen_and_accepted_retry() {
         .unwrap();
     let turns = cva.rel_turn_count();
     let graph = cva.graph_version();
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
+    let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), id);
     assert!(cva.initial_dream_pass_settled(&pass));
     let report = cva
         .reconstruct_historical_freshness_with_endpoint(request(), &endpoint, limits(), &cancel)

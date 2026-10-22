@@ -62,6 +62,13 @@ External-source search returns references and derived metadata. Source text is h
 - Authorization loss prevents hydration/publication.
 - Rebuildable external index loss is recovered from the host source, not from duplicated transcript bodies.
 
+
+## Index backing admission
+
+External Index storage decodes and installs its own cursor/source snapshots. The REL lifecycle checks retained vector/profile backing above that store through `facade/external_index_admission.rs`; invalid derived namespaces are discarded and reported damaged through the same recovery contract. The index store receives no Vector store capability.
+
+External Message/Chunk reference values live in the neutral `source_identity.rs` vocabulary and retain their existing public reexports. Memory owns accepted external Memory evidence and window bindings. The external publication caller validates source contracts and passes Memory-owned records, bindings and exact body locations into Memory. JSON byte arrays remain in the same V2 frames; a transient typed span lets Memory read and hash its own body without an External Source decoder or a second payload copy.
+
 ## Code Map
 
 - `src/external_source/**`

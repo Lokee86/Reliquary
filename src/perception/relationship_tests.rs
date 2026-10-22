@@ -135,3 +135,61 @@ fn local_participant_must_resolve_in_relationship_owner() {
         Err(RelationshipError::MissingLocalEntity(id)) if id == EntityId([99; 32])
     ));
 }
+
+#[test]
+fn relationship_store_keeps_typed_participant_while_owner_rejects_missing_local_entity_atomically()
+{
+    let direct_path = temp_path("relationship-store-local.rel");
+    let mut direct = Cva::create_project(&direct_path).unwrap();
+    let owner_id = direct.owner_id().unwrap();
+    let missing_entity = EntityId([98; 32]);
+    let direct_value = direct
+        .relationships
+        .publish(
+            &mut direct.container,
+            None,
+            0,
+            draft(
+                vec![RelationshipParticipant {
+                    entity: EntityRef {
+                        owner_id: owner_id.clone(),
+                        entity_id: missing_entity,
+                    },
+                    role: None,
+                }],
+                "store-local-missing-target",
+                "direct owner fixture",
+            ),
+        )
+        .unwrap()
+        .0;
+    assert_eq!(
+        direct.relationships.relationship(direct_value.id).unwrap(),
+        direct_value
+    );
+
+    let composed_path = temp_path("relationship-caller-atomic.rel");
+    let mut composed = Cva::create_project(&composed_path).unwrap();
+    let before = composed.container.latest_version();
+    let owner_id = composed.owner_id().unwrap();
+    assert!(matches!(
+        composed.publish_relationship(
+            None,
+            0,
+            draft(
+                vec![RelationshipParticipant {
+                    entity: EntityRef {
+                        owner_id,
+                        entity_id: missing_entity,
+                    },
+                    role: None,
+                }],
+                "caller-rejects-missing-target",
+                "must not publish",
+            ),
+        ),
+        Err(RelationshipError::MissingLocalEntity(id)) if id == missing_entity
+    ));
+    assert_eq!(composed.container.latest_version(), before);
+    assert!(composed.relationships().is_empty());
+}

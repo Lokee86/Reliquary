@@ -91,7 +91,7 @@ fn historical_import_fixture_clock(
         .unwrap();
     assert!(process(&mut cva, 0, 210).created.is_empty());
     for &id in &ids {
-        let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
+        let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), id);
         cva.begin_initial_dream_pass(
             pass.clone(),
             id,
@@ -215,7 +215,7 @@ fn historical_import_settlement_reopens_and_retries_without_erasing_live_use() {
     assert!(cva.commit_historical_import(&prepared).unwrap());
     assert_eq!(cva.freshness_record(id), Some(prepared.records()[&id]));
     assert_eq!(cva.memory(id).unwrap().revision, original_revision);
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
+    let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), id);
     assert!(cva.initial_dream_pass_settled(&pass));
     let before = fs::read(&path).unwrap();
     assert!(!cva.commit_historical_import(&prepared).unwrap());

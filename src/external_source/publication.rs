@@ -1,12 +1,10 @@
 //! One atomic owner-local Memory publication and processing receipt.
 //! Semantic Memory bodies are legitimate derivations, not external index text.
 use super::model::*;
-use super::provenance::ExternalMemoryEvidence;
-use crate::insomnia::completion::InsomniaCompletionBody;
-use crate::memory_model::MemoryRecord;
-use crate::{
-    Container, Memory, MemoryBodyId, MemoryError, MemoryId, MemoryRoutingMetadata, ObjectRef,
+use crate::memory_model::{
+    ExternalMemoryBinding, GroupedBodyEncoding, GroupedBodySpan, MemoryRecord,
 };
+use crate::{Container, Memory, MemoryBodyId, MemoryError, MemoryRoutingMetadata, ObjectRef};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 const MAGIC: &[u8; 8] = b"CVAXMEM2";
@@ -22,12 +20,10 @@ struct WireBody {
     id: [u8; 32],
     bytes: Vec<u8>,
 }
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct Binding {
-    pub memory: [u8; 32],
-    pub body: [u8; 32],
-    pub evidence: ExternalMemoryEvidence,
+#[derive(Clone)]
+pub(crate) struct PublicationBody {
+    pub(crate) id: MemoryBodyId,
+    pub(crate) bytes: Vec<u8>,
 }
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -38,7 +34,7 @@ struct WirePublication<R> {
     birth_turn: Option<u64>,
     records: Vec<R>,
     bodies: Vec<WireBody>,
-    bindings: Vec<Binding>,
+    bindings: Vec<ExternalMemoryBinding>,
     routing: Vec<Vec<u8>>,
 }
 pub(crate) struct Publication {
@@ -47,8 +43,8 @@ pub(crate) struct Publication {
     pub transaction_ns: i64,
     pub birth_turn: Option<u64>,
     pub records: Vec<MemoryRecord>,
-    pub bodies: Vec<InsomniaCompletionBody>,
-    pub bindings: Vec<Binding>,
+    pub bodies: Vec<PublicationBody>,
+    pub bindings: Vec<ExternalMemoryBinding>,
     pub routing: Vec<MemoryRoutingMetadata>,
 }
 pub(crate) fn encode(value: &Publication) -> Result<Vec<u8>, MemoryError> {
@@ -77,9 +73,9 @@ pub(crate) fn encode(value: &Publication) -> Result<Vec<u8>, MemoryError> {
         bodies: value
             .bodies
             .iter()
-            .map(|b| WireBody {
-                id: b.id.0,
-                bytes: b.bytes.clone(),
+            .map(|body| WireBody {
+                id: body.id.0,
+                bytes: body.bytes.clone(),
             })
             .collect(),
         bindings: value.bindings.clone(),
@@ -165,7 +161,7 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
     let bodies = wire
         .bodies
         .into_iter()
-        .map(|b| InsomniaCompletionBody {
+        .map(|b| PublicationBody {
             id: MemoryBodyId(b.id),
             bytes: b.bytes,
         })
@@ -193,35 +189,62 @@ pub(crate) fn decode_embedded_version_range(
     crate::container::grouped_clock::external_range(bytes)
         .map_err(|_| MemoryError::CorruptRecord("external publication"))
 }
-impl crate::memory_store::MemoryStore {
-    pub(crate) fn external_window(
-        &self,
-        container: &mut Container,
-        window: [u8; 32],
-    ) -> Result<Option<Vec<Memory>>, MemoryError> {
-        self.external_windows
-            .get(&window)
-            .map(|ids| ids.iter().map(|id| self.memory(container, *id)).collect())
-            .transpose()
-    }
-    pub(crate) fn apply_external_publication(
-        &mut self,
-        value: &Publication,
-    ) -> Result<(), MemoryError> {
-        if self.external_windows.contains_key(&value.window) {
-            return Err(MemoryError::MutationConflict);
-        }
-        for binding in &value.bindings {
-            self.external_evidence.insert(
-                (MemoryId(binding.memory), MemoryBodyId(binding.body)),
-                binding.evidence.clone(),
-            );
-        }
-        self.external_windows
-            .insert(value.window, value.records.iter().map(|r| r.id).collect());
-        Ok(())
-    }
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct WireBodySpan<'a> {
+    id: [u8; 32],
+    #[serde(borrow)]
+    bytes: &'a serde_json::value::RawValue,
 }
+
+#[derive(Deserialize)]
+struct PublicationBodySpans<'a> {
+    #[serde(borrow)]
+    bodies: Vec<WireBodySpan<'a>>,
+}
+
+/// Return exact JSON byte-array source ranges for bodies in a validated frame.
+pub(crate) fn body_spans(bytes: &[u8]) -> Result<Option<Vec<GroupedBodySpan>>, MemoryError> {
+    if !bytes.starts_with(MAGIC) {
+        return Ok(None);
+    }
+    if bytes.len() < 68 {
+        return Err(MemoryError::CorruptRecord("external publication"));
+    }
+    let json = bytes
+        .get(36..bytes.len() - 32)
+        .ok_or(MemoryError::CorruptRecord("external publication"))?;
+    let parsed: PublicationBodySpans<'_> = serde_json::from_slice(json)
+        .map_err(|_| MemoryError::CorruptRecord("external publication"))?;
+    let base = json.as_ptr() as usize;
+    let mut spans = Vec::with_capacity(parsed.bodies.len());
+    for body in parsed.bodies {
+        let raw = body.bytes.get().as_bytes();
+        let start = (raw.as_ptr() as usize)
+            .checked_sub(base)
+            .ok_or(MemoryError::CorruptRecord("external publication"))?;
+        let end = start
+            .checked_add(raw.len())
+            .ok_or(MemoryError::CorruptRecord("external publication"))?;
+        let frame_start = 36usize
+            .checked_add(start)
+            .ok_or(MemoryError::CorruptRecord("external publication"))?;
+        let frame_end = 36usize
+            .checked_add(end)
+            .ok_or(MemoryError::CorruptRecord("external publication"))?;
+        if json.get(start..end) != Some(raw) || frame_end > bytes.len() - 32 {
+            return Err(MemoryError::CorruptRecord("external publication"));
+        }
+        spans.push(GroupedBodySpan {
+            id: MemoryBodyId(body.id),
+            range: frame_start..frame_end,
+            encoding: GroupedBodyEncoding::JsonByteArray,
+        });
+    }
+    Ok(Some(spans))
+}
+
 pub(crate) fn publish(
     container: &mut Container,
     memories: &mut crate::memory_store::MemoryStore,
@@ -236,7 +259,7 @@ pub(crate) fn publish(
         .iter()
         .map(|m| (m.draft.clone(), m.temporal.clone(), m.routing.clone()))
         .collect();
-    let batch = memories.stage_grouped_insomnia(container, drafts)?;
+    let batch = memories.stage_grouped_publication(container, drafts)?;
     // All accepted external work has an owner-local atomic receipt; loose mutations cannot impersonate it.
     if !batch.existing.is_empty() {
         return Err(MemoryError::MutationConflict);
@@ -249,14 +272,18 @@ pub(crate) fn publish(
         bindings: prepared
             .iter()
             .zip(&batch.records)
-            .map(|(m, r)| Binding {
+            .map(|(m, r)| ExternalMemoryBinding {
                 memory: r.id.0,
                 body: r.body_id.0,
                 evidence: m.evidence.clone(),
             })
             .collect(),
         records: batch.records,
-        bodies: batch.bodies,
+        bodies: batch
+            .bodies
+            .into_iter()
+            .map(|(id, bytes)| PublicationBody { id, bytes })
+            .collect(),
         routing: batch.routing_metadata,
     };
     let bytes = encode(&value)?;
@@ -267,9 +294,44 @@ pub(crate) fn publish(
         Some(value.transaction_ns),
     )?;
     container.sync()?;
-    memories.apply_grouped_bodies(object, &value.bodies)?;
+    let body_spans = body_spans(&bytes)?.ok_or(MemoryError::CorruptBody)?;
+    memories.apply_grouped_spans(object, &bytes, &body_spans)?;
     let results = memories.apply_grouped_records(container, &value.records)?;
     memories.apply_grouped_routing_metadata(&value.routing)?;
-    memories.apply_external_publication(&value)?;
+    memories.apply_external_bindings(value.window, &value.bindings)?;
     Ok(results)
+}
+
+#[cfg(test)]
+mod body_span_tests {
+    use super::*;
+
+    #[test]
+    fn body_spans_preserve_whitespace_inside_json_byte_arrays() {
+        let id = [0x2a; 32];
+        let array = format!(
+            "[  {}  ]",
+            (0..16).map(|_| "7").collect::<Vec<_>>().join(", ")
+        );
+        let json = format!(
+            "{{\"bodies\":[{{\"id\":[{}],\"bytes\":{array}}}]}}",
+            (0..32).map(|_| "42").collect::<Vec<_>>().join(",")
+        );
+        let mut frame = MAGIC.to_vec();
+        frame.extend_from_slice(&(json.len() as u64).to_le_bytes());
+        frame.extend_from_slice(&1u64.to_le_bytes());
+        frame.extend_from_slice(&0u32.to_le_bytes());
+        frame.extend_from_slice(&0i64.to_le_bytes());
+        frame.extend_from_slice(json.as_bytes());
+        frame.extend_from_slice(&Sha256::digest(&frame));
+        let spans = body_spans(&frame).unwrap().unwrap();
+        let start = frame
+            .windows(array.len())
+            .position(|window| window == array.as_bytes())
+            .unwrap();
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans[0].id.0, id);
+        assert_eq!(&frame[spans[0].range.clone()], array.as_bytes());
+        assert_eq!(spans[0].range.start, start);
+    }
 }

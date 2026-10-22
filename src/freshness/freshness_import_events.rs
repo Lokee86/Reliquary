@@ -237,7 +237,7 @@ impl FreshnessStore {
         let passes: BTreeSet<_> = scope
             .born_memories
             .iter()
-            .map(|id| crate::dream_freshness::initial_pass_id(scope.owner, *id))
+            .map(|id| crate::dream_pass_identity::initial_pass_id(scope.owner, *id))
             .collect();
         self.scan_entries(|entry| {
             for_each_event(&entry, &mut |event| {
@@ -306,8 +306,8 @@ impl FreshnessStore {
         scope: &ImportEventScope,
         recipients: &BTreeSet<MemoryId>,
         superseded: &BTreeSet<String>,
-    ) -> Result<Vec<crate::freshness::historical_scorer::HistoricalScoreEvent>, String> {
-        use crate::freshness::historical_scorer::HistoricalScoreEvent;
+    ) -> Result<Vec<crate::freshness::historical_contract::HistoricalScoreEvent>, String> {
+        use crate::freshness::historical_contract::HistoricalScoreEvent;
         use sha2::{Digest, Sha256};
         let mut scores = BTreeMap::new();
         let path = self
@@ -401,7 +401,7 @@ impl FreshnessStore {
         let imported_passes: BTreeSet<_> = scope
             .born_memories
             .iter()
-            .map(|id| crate::dream_freshness::initial_pass_id(scope.owner, *id))
+            .map(|id| crate::dream_pass_identity::initial_pass_id(scope.owner, *id))
             .collect();
         let mut selected = BTreeMap::<String, BTreeSet<MemoryId>>::new();
         let path = self
@@ -540,7 +540,7 @@ mod tests {
             conversation_id: source.0,
             node_id: source.1,
             accepted_turn: turn,
-            base_policy_digest: crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST,
+            base_policy_digest: crate::freshness::historical_contract::HISTORICAL_POLICY_DIGEST,
             semantic_policy_version: crate::freshness::semantic_policy::SEMANTIC_POLICY_VERSION,
             semantic_policy_digest: crate::freshness::semantic_policy::SemanticPolicy::default()
                 .digest()
@@ -592,7 +592,7 @@ mod tests {
         let imported_birth = store.encode_initialize(owner, imported, 100, admitted(100));
         append_accepted(&mut container, &mut store, &imported_birth);
 
-        let unrelated_live_id = crate::dream_freshness::initial_pass_id(owner, unrelated_born);
+        let unrelated_live_id = crate::dream_pass_identity::initial_pass_id(owner, unrelated_born);
         let unrelated_live = store.encode_event(
             owner,
             unrelated_live_id,
@@ -607,7 +607,7 @@ mod tests {
         );
         append_accepted(&mut container, &mut store, &unrelated_live);
 
-        let import_event_id = crate::dream_freshness::initial_pass_id(owner, imported);
+        let import_event_id = crate::dream_pass_identity::initial_pass_id(owner, imported);
         let import_event = store.encode_event(
             owner,
             import_event_id.clone(),

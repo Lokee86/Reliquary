@@ -14,9 +14,18 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        crate::graph_endpoint_admission::validate_memory_changes(
+            &self.memories,
+            &[GraphRelationChange {
+                source,
+                target,
+                kind,
+                active,
+            }],
+            GraphRelationOrigin::Dream,
+        )?;
         self.graph.set_relation(
             &mut self.container,
-            &self.memories,
             source,
             target,
             kind,
@@ -34,9 +43,18 @@ impl Cva {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Option<GraphRelation>, GraphError> {
+        crate::graph_endpoint_admission::validate_memory_changes(
+            &self.memories,
+            &[GraphRelationChange {
+                source,
+                target,
+                kind,
+                active,
+            }],
+            origin,
+        )?;
         self.graph.set_relation_with_origin(
             &mut self.container,
-            &self.memories,
             source,
             target,
             kind,
@@ -51,12 +69,13 @@ impl Cva {
         changes: &[GraphRelationChange],
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
-        self.graph.set_relations(
-            &mut self.container,
+        crate::graph_endpoint_admission::validate_memory_changes(
             &self.memories,
             changes,
-            expected_graph_version,
-        )
+            GraphRelationOrigin::Dream,
+        )?;
+        self.graph
+            .set_relations(&mut self.container, changes, expected_graph_version)
     }
 
     pub fn set_memory_relations_with_origin(
@@ -65,9 +84,9 @@ impl Cva {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<GraphRelation>, GraphError> {
+        crate::graph_endpoint_admission::validate_memory_changes(&self.memories, changes, origin)?;
         self.graph.set_relations_with_origin(
             &mut self.container,
-            &self.memories,
             changes,
             origin,
             expected_graph_version,
@@ -81,10 +100,15 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
-        self.graph.set_entity_association(
-            &mut self.container,
+        let change = SemanticGraphRelationChange::entity_association(memory_id, entity_id, active);
+        crate::graph_endpoint_admission::validate_semantic_changes(
             &self.memories,
             &self.entities,
+            &[change],
+            GraphRelationOrigin::Perception,
+        )?;
+        self.graph.set_entity_association(
+            &mut self.container,
             memory_id,
             entity_id,
             active,
@@ -99,10 +123,16 @@ impl Cva {
         active: bool,
         expected_graph_version: u64,
     ) -> Result<Option<SemanticGraphRelation>, GraphError> {
-        self.graph.set_principal_association(
-            &mut self.container,
+        let change =
+            SemanticGraphRelationChange::principal_association(memory_id, entity_id, active);
+        crate::graph_endpoint_admission::validate_semantic_changes(
             &self.memories,
             &self.entities,
+            &[change],
+            GraphRelationOrigin::Perception,
+        )?;
+        self.graph.set_principal_association(
+            &mut self.container,
             memory_id,
             entity_id,
             active,
@@ -116,10 +146,14 @@ impl Cva {
         origin: GraphRelationOrigin,
         expected_graph_version: u64,
     ) -> Result<Vec<SemanticGraphRelation>, GraphError> {
-        self.graph.set_semantic_relations_with_origin(
-            &mut self.container,
+        crate::graph_endpoint_admission::validate_semantic_changes(
             &self.memories,
             &self.entities,
+            changes,
+            origin,
+        )?;
+        self.graph.set_semantic_relations_with_origin(
+            &mut self.container,
             changes,
             origin,
             expected_graph_version,
@@ -169,12 +203,14 @@ impl Cva {
     }
 
     pub fn principal_entity(&self, principal_id: &str) -> Option<Entity> {
-        if !crate::entity_principal::is_phy_principal_id(principal_id) {
+        if !crate::entity_principal_identity::is_phy_principal_id(principal_id) {
             return None;
         }
-        self.entity(crate::entity_principal::principal_entity_id(principal_id))
-            .ok()
-            .filter(|entity| entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+        self.entity(crate::entity_principal_identity::principal_entity_id(
+            principal_id,
+        ))
+        .ok()
+        .filter(|entity| entity.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND)
     }
 
     pub fn memories_for_phy_principal(&self, principal_id: &str) -> Vec<MemoryId> {

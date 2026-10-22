@@ -87,7 +87,7 @@ fn legacy_baseline_is_explicit_non_birth_idempotent_and_preserved_on_reopen() {
     assert_eq!(rel.latest_global_version(), version);
 
     // A forged first-cycle pass may not use a baseline-enrolled legacy Memory.
-    let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), older.id);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), older.id);
     assert!(
         rel.begin_initial_dream_pass(
             pass_id,

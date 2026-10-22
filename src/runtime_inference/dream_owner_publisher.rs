@@ -73,7 +73,8 @@ where
     if changes.is_empty() {
         return Ok(DreamPublicationOutcome::NoChange);
     }
-    let published = graph.set_relations(container, memories, &changes, expected_graph_version)?;
+    validate_dream_memory_changes(memories, &changes)?;
+    let published = graph.set_relations(container, &changes, expected_graph_version)?;
     if published.is_empty() {
         Ok(DreamPublicationOutcome::NoChange)
     } else {
@@ -87,6 +88,23 @@ pub(crate) fn dream_may_change_relation(graph: &GraphStore, change: GraphRelatio
         .is_some_and(|state| {
             state.origin == GraphRelationOrigin::User && state.active != change.active
         })
+}
+
+pub(crate) fn validate_dream_memory_changes(
+    memories: &MemoryStore,
+    changes: &[GraphRelationChange],
+) -> Result<(), DreamPublicationError> {
+    for change in changes {
+        if change.source == change.target {
+            return Err(crate::GraphError::SelfRelation.into());
+        }
+        for memory_id in [change.source, change.target] {
+            if !memories.contains_memory(memory_id) {
+                return Err(crate::GraphError::MissingMemory(memory_id).into());
+            }
+        }
+    }
+    Ok(())
 }
 
 fn verification_gate(

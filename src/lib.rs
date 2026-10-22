@@ -33,7 +33,7 @@ pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
 mod compact_delta;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
-#[path = "facade/owner_maintenance.rs"]
+#[path = "maintenance/store.rs"]
 mod owner_maintenance;
 #[path = "facade/semantic_maintenance.rs"]
 mod semantic_maintenance;
@@ -368,7 +368,9 @@ mod cva_historical_freshness;
 mod cva_lifecycle;
 #[path = "external_source/mod.rs"]
 pub mod external_source;
-pub use cva_freshness::{FreshnessEventCut, FreshnessEventProof};
+#[path = "freshness/event_proof.rs"]
+mod freshness_event_proof;
+pub use freshness_event_proof::{FreshnessEventCut, FreshnessEventProof};
 #[path = "facade/cva_freshness_due.rs"]
 mod cva_freshness_due;
 pub use cva_freshness_due::FreshnessTransitionNotice;
@@ -1807,3 +1809,60 @@ mod ego_current_fixture;
 #[cfg(test)]
 #[path = "facade/dream_current_fixture.rs"]
 mod dream_current_fixture;
+
+#[path = "facade/dream_pair_admission.rs"]
+mod dream_pair_admission;
+
+#[path = "facade/owner_history_proof.rs"]
+mod owner_history_proof;
+
+#[path = "facade/insomnia_admission.rs"]
+mod insomnia_admission;
+
+#[path = "facade/external_index_admission.rs"]
+mod external_index_admission;
+
+#[path = "facade/graph_endpoint_admission.rs"]
+mod graph_endpoint_admission;
+#[path = "facade/memory_provenance_admission.rs"]
+mod memory_provenance_admission;
+
+#[path = "facade/memory_frame_admission.rs"]
+mod memory_frame_admission;
+
+#[path = "facade/memory_prune_admission.rs"]
+mod memory_prune_admission;
+
+#[path = "facade/dream_replay_transport.rs"]
+mod dream_replay_transport;
+
+mod source_identity;
+
+#[path = "archive/archive_import_model.rs"]
+mod archive_import_model;
+#[path = "facade/cva_episode_policy.rs"]
+mod cva_episode_policy;
+#[path = "facade/interaction_runtime_project_file.rs"]
+mod interaction_runtime_project_file;
+#[path = "archive/interaction_stream_error.rs"]
+mod interaction_stream_error;
+
+#[path = "perception/entity_principal_identity.rs"]
+mod entity_principal_identity;
+
+#[path = "facade/import_epoch_admission.rs"]
+mod import_epoch_admission;
+
+#[path = "facade/archive_prune_admission.rs"]
+mod archive_prune_admission;
+
+#[path = "facade/cva_conversation_tombstone.rs"]
+mod cva_conversation_tombstone;
+#[path = "facade/memory_source_time.rs"]
+mod memory_source_time_admission;
+
+#[path = "freshness/dream_pass_identity.rs"]
+mod dream_pass_identity;
+
+#[path = "retrieval/compatibility_profile_validation.rs"]
+mod compatibility_profile_validation;

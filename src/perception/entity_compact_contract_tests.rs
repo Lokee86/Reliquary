@@ -221,7 +221,7 @@ fn creation_rejects_zero_owner_coordinates_and_invalid_timestamps() {
     assert!(EntityCreation::new(too_long_name).is_err());
 
     let mut bad_principal = record();
-    bad_principal.kind = crate::entity_principal::PRINCIPAL_ENTITY_KIND.into();
+    bad_principal.kind = crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND.into();
     bad_principal.canonical_name = "phy-00000000-0000-0000-0000-0000000000a1".into();
     bad_principal.id = EntityId([0x61; 32]);
     assert!(EntityCreation::new(bad_principal).is_err());

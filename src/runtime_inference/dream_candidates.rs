@@ -2,7 +2,7 @@ use crate::dream_owner_candidates::{
     dream_candidates as dream_candidates_from_parts,
     dream_memory_context as dream_memory_context_from_parts,
 };
-use crate::memory_source_time::reliquary_memory_source_timestamp_ns;
+use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;
 use crate::{
     CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,
     DreamMemoryContext, Memory, MemoryId,

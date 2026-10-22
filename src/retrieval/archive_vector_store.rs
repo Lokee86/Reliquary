@@ -1,8 +1,8 @@
 use crate::archive_vector_codec::{decode_object, encode_format, encode_object};
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
-    Archive, ArchiveVectorError, ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet,
-    ArchiveVectorStats, Container, FragmentId, ObjectRef, PackedVectorId,
+    ArchiveVectorError, ArchiveVectorId, ArchiveVectorInfo, ArchiveVectorSet, ArchiveVectorStats,
+    Container, FragmentId, ObjectRef, PackedVectorId,
 };
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
@@ -28,13 +28,12 @@ impl ArchiveVectorStore {
     pub(crate) fn put(
         &mut self,
         container: &mut Container,
-        archive: &Archive,
         packed_vectors: &PackedVectorStore,
+        max_fragment_archive_version: u64,
         packed_vector_id: PackedVectorId,
         fragment_ids: Vec<FragmentId>,
     ) -> Result<ArchiveVectorId, ArchiveVectorError> {
-        let max_fragment_archive_version =
-            validate_mapping(archive, packed_vectors, packed_vector_id, &fragment_ids)?;
+        validate_mapping(packed_vectors, packed_vector_id, &fragment_ids)?;
         if packed_vectors.is_pruned(packed_vector_id) {
             return Err(crate::PackedVectorError::PayloadUnavailable(
                 crate::owner_lifecycle::PayloadUnavailable::Pruned,
@@ -149,6 +148,12 @@ impl ArchiveVectorStore {
                 .all(|fragment| expected.contains(fragment))
     }
 
+    pub(crate) fn referenced_fragment_ids(&self) -> impl Iterator<Item = FragmentId> + '_ {
+        self.objects
+            .values()
+            .flat_map(|entry| entry.fragment_ids.iter().copied())
+    }
+
     pub(crate) fn infos(&self) -> Vec<ArchiveVectorInfo> {
         let mut infos: Vec<_> = self.objects.values().map(|entry| entry.info).collect();
         infos.sort_by_key(|info| info.id.0);
@@ -164,11 +169,25 @@ impl ArchiveVectorStore {
 }
 
 pub(crate) fn validate_mapping(
-    archive: &Archive,
     packed_vectors: &PackedVectorStore,
     packed_vector_id: PackedVectorId,
     fragment_ids: &[FragmentId],
-) -> Result<u64, ArchiveVectorError> {
+) -> Result<(), ArchiveVectorError> {
+    validate_mapping_shape(packed_vectors, packed_vector_id, fragment_ids)?;
+    let mut seen = HashSet::with_capacity(fragment_ids.len());
+    for fragment_id in fragment_ids {
+        if !seen.insert(*fragment_id) {
+            return Err(ArchiveVectorError::DuplicateFragment);
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_mapping_shape(
+    packed_vectors: &PackedVectorStore,
+    packed_vector_id: PackedVectorId,
+    fragment_ids: &[FragmentId],
+) -> Result<(), ArchiveVectorError> {
     let packed = packed_vectors
         .info(packed_vector_id)
         .ok_or(ArchiveVectorError::MissingPackedVector)?;
@@ -176,19 +195,7 @@ pub(crate) fn validate_mapping(
     if packed.count != rows {
         return Err(ArchiveVectorError::RowCountMismatch);
     }
-    let mut seen = HashSet::with_capacity(fragment_ids.len());
-    let mut max_archive_version = 0_u64;
-    for fragment_id in fragment_ids {
-        let archive_version = archive
-            .fragments
-            .archive_version(*fragment_id)
-            .ok_or(ArchiveVectorError::MissingFragment)?;
-        max_archive_version = max_archive_version.max(archive_version);
-        if !seen.insert(*fragment_id) {
-            return Err(ArchiveVectorError::DuplicateFragment);
-        }
-    }
-    Ok(max_archive_version)
+    Ok(())
 }
 
 pub(crate) fn archive_vector_id(

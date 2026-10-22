@@ -66,7 +66,7 @@ impl Archive {
 
     pub(crate) fn validate_files(
         &self,
-        project_files: &crate::project_file_binding_store::ProjectFileStore,
+        project_files: crate::source_identity::ProjectFileFacts<'_>,
     ) -> Result<(), ArchiveError> {
         for file in self.files.iter() {
             self.validate_file(file, project_files)?;
@@ -77,7 +77,7 @@ impl Archive {
     fn validate_file(
         &self,
         file: &StoredFile,
-        project_files: &crate::project_file_binding_store::ProjectFileStore,
+        project_files: crate::source_identity::ProjectFileFacts<'_>,
     ) -> Result<(), ArchiveError> {
         validate_text(&file.filename, "filename")?;
         if let Some(value) = file.mime_type.as_deref() {

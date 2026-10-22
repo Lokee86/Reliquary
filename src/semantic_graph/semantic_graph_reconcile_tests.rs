@@ -1,5 +1,5 @@
 use crate::cva_reconcile_graph_test_support::{create_workspace, diverge_archive, test_dir};
-use crate::entity_principal::{PRINCIPAL_ENTITY_KIND, principal_entity_id};
+use crate::entity_principal_identity::{PRINCIPAL_ENTITY_KIND, principal_entity_id};
 use crate::{Cva, EntityDraft, GraphRelationOrigin, SemanticGraphRelationKind};
 use std::fs;
 

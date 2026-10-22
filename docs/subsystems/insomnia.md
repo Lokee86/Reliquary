@@ -51,6 +51,13 @@ Retryable model/output/publication failures retain durable work identity. Exhaus
 - duplicate retry cannot duplicate Memory publication; and
 - queue recovery does not infer semantic success from a prior model call alone.
 
+
+## Owner-local persistence boundary
+
+The Insomnia store consumes its own work/attempt records and completion metadata. Its scheduling input is the transient `InsomniaEpisodeSource` coordinate value; it receives no Archive or Memory store. The existing REL admitting caller obtains accepted Episode coordinates, validates historical Episode and Memory references, and supplies those values before queue/replay acceptance. The store keeps lease, attempt, retry, completion and scheduling invariants.
+
+`facade/insomnia_admission.rs` composes these reads and maps grouped completion metadata to an Insomnia attempt receipt. The existing Insomnia author still coordinates atomic Memory publication; this changes no work identity, durable layout, model execution, retry policy or explicit-retention semantics.
+
 ## Code Map
 
 - `src/runtime_inference/insomnia.rs`

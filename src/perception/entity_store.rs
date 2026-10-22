@@ -75,8 +75,9 @@ impl EntityStore {
         requested_global_id: Option<EntityGlobalId>,
     ) -> Result<(Entity, bool), EntityError> {
         normalize_draft(&mut draft)?;
-        let id = if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
-            let principal_id = crate::entity_principal::principal_entity_id(&draft.canonical_name);
+        let id = if draft.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND {
+            let principal_id =
+                crate::entity_principal_identity::principal_entity_id(&draft.canonical_name);
             if id.is_some_and(|id| id != principal_id) {
                 return Err(EntityError::InvalidField("principal Entity ID"));
             }
@@ -114,8 +115,10 @@ impl EntityStore {
                 existing
             }
             None => requested_global_id.unwrap_or_else(|| {
-                if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
-                    crate::entity_principal::principal_entity_global_id(&draft.canonical_name)
+                if draft.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND {
+                    crate::entity_principal_identity::principal_entity_global_id(
+                        &draft.canonical_name,
+                    )
                 } else {
                     EntityGlobalId(*uuid::Uuid::new_v4().as_bytes())
                 }

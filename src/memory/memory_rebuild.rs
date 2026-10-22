@@ -1,5 +1,5 @@
 use crate::memory_codec::{decode_body, decode_format};
-use crate::memory_model::memory_body_id;
+use crate::memory_model::{ExternalMemoryBinding, GroupedBodySpan, MemoryRecord, memory_body_id};
 use crate::{Container, MemoryError, MemoryRoutingMetadata, ObjectRef};
 
 pub(crate) struct MemoryOpenState {
@@ -40,40 +40,6 @@ impl MemoryOpenState {
         if self.store.prune.ingest(chunk, payload)? {
             return Ok(());
         }
-        if let Some(publication) = crate::external_source::publication::decode(payload)? {
-            self.store
-                .apply_grouped_bodies(chunk, &publication.bodies)?;
-            for record in &publication.records {
-                if record.global_version == 0
-                    || record.global_version > latest_global_version
-                    || record.memory_version != self.store.memory_version() + 1
-                {
-                    return Err(MemoryError::InvalidVersion);
-                }
-                self.store.insert_rebuilt(record.clone())?;
-            }
-            self.pending_routing_metadata
-                .extend(publication.routing.clone());
-            self.store.apply_external_publication(&publication)?;
-            return Ok(());
-        }
-        if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-            .map_err(MemoryError::CorruptRecord)?
-        {
-            self.store.apply_grouped_bodies(chunk, &completion.bodies)?;
-            for record in completion.records {
-                if record.global_version == 0 || record.global_version > latest_global_version {
-                    return Err(MemoryError::InvalidVersion);
-                }
-                if record.memory_version != self.store.memory_version() + 1 {
-                    return Err(MemoryError::InvalidVersion);
-                }
-                self.store.insert_rebuilt(record)?;
-            }
-            self.pending_routing_metadata
-                .extend(completion.routing_metadata);
-            return Ok(());
-        }
         if decode_format(payload)? {
             if self.format_seen {
                 return Err(MemoryError::ConflictingFormat);
@@ -93,6 +59,37 @@ impl MemoryOpenState {
             self.pending_routing_metadata.push(metadata);
         }
         Ok(())
+    }
+
+    pub(crate) fn ingest_grouped(
+        &mut self,
+        chunk: ObjectRef,
+        payload: &[u8],
+        records: &[MemoryRecord],
+        bodies: &[GroupedBodySpan],
+        routing: &[MemoryRoutingMetadata],
+        latest_global_version: u64,
+    ) -> Result<(), MemoryError> {
+        self.store.apply_grouped_spans(chunk, payload, bodies)?;
+        for record in records {
+            if record.global_version == 0
+                || record.global_version > latest_global_version
+                || record.memory_version != self.store.memory_version() + 1
+            {
+                return Err(MemoryError::InvalidVersion);
+            }
+            self.store.insert_rebuilt(record.clone())?;
+        }
+        self.pending_routing_metadata.extend_from_slice(routing);
+        Ok(())
+    }
+
+    pub(crate) fn ingest_external_bindings(
+        &mut self,
+        window: [u8; 32],
+        bindings: &[ExternalMemoryBinding],
+    ) -> Result<(), MemoryError> {
+        self.store.apply_external_bindings(window, bindings)
     }
 
     pub(crate) fn ingest_publication_envelope(

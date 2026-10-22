@@ -27,8 +27,13 @@ impl VectorHistory {
             matrices: BTreeMap::new(),
         };
         for generation in cva.vector_generations.generations() {
+            if generation.source_archive_version == 0
+                || generation.source_archive_version > cva.archive.archive_version()
+            {
+                return Err(crate::VectorGenerationError::SourceArchiveVersion.to_string());
+            }
             crate::vector_generation_validation::validate_generation_reference(
-                &cva.archive,
+                cva.archive.archive_version(),
                 &cva.packed_vectors,
                 &cva.archive_vectors,
                 &cva.compatibility_profiles,

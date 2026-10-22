@@ -165,7 +165,7 @@ fn singleton(cva: &mut Cva, name: &str, source: bool) -> MemoryId {
         .unwrap()
         .0
         .id;
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
+    let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), id);
     cva.begin_initial_dream_pass(
         pass.clone(),
         id,

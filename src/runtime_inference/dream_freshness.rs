@@ -1,3 +1,4 @@
+use crate::dream_pass_identity::initial_pass_id;
 use crate::{Cva, DreamPublicationOutcome, GraphRelationOrigin, MemoryId, PropagationEvent};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -332,8 +333,4 @@ fn hex(bytes: &[u8]) -> String {
         let _ = write!(&mut out, "{byte:02x}");
     }
     out
-}
-
-pub(crate) fn initial_pass_id(owner: [u8; 16], source: MemoryId) -> String {
-    format!("dream-initial:{}:{}", hex(&owner), hex(&source.0))
 }

@@ -13,7 +13,7 @@ fn frozen_dream_settlement_can_evaluate_without_owner_and_preserves_accepted_gra
     let later = publish(&mut rel, "detached-later", "knowledge", "Later.");
     let source = publish(&mut rel, "detached-source", "extracted", "Source.");
     turns(&mut rel, 0, 1000);
-    let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source);
     rel.begin_initial_dream_pass(
         pass_id.clone(),
         source,
@@ -78,7 +78,7 @@ fn divergent_pending_dream_history_is_rejected_before_output() {
     let mut left = Cva::create(&left_path).unwrap();
     let source = publish(&mut left, "pending-source", "extracted", "Pending.");
     fs::copy(&left_path, &right_path).unwrap();
-    let pass_id = crate::dream_freshness::initial_pass_id(left.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(left.owner_uuid().unwrap(), source);
     left.begin_initial_dream_pass(pass_id, source, 1, 0, BTreeSet::new(), left.graph_version())
         .unwrap();
     let mut right = Cva::open(&right_path).unwrap();
@@ -223,7 +223,7 @@ fn first_dream_partial_graph_publication_recovers_original_settlement_cut_once()
     turns(&mut rel, 0, 6);
     let begin_turn = rel.rel_turn_count();
     let preexisting = BTreeSet::from([first_root, second_root]);
-    let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source);
     let _pass = rel
         .begin_initial_dream_pass(
             pass_id.clone(),

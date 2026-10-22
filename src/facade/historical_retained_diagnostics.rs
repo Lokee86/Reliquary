@@ -172,7 +172,7 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
         source_episodes += usize::from(memory.source_episode_id.is_some());
         structured_refs += usize::from(memory.source_ref.is_some());
         settled_passes += usize::from(cva.initial_dream_pass_settled(
-            &crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id),
+            &crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), id),
         ));
     }
     let owner_gate = cva

@@ -199,3 +199,43 @@ fn terminal_states_are_not_silently_reopened() {
         Err(MemoryError::InvalidField("terminal Entity resolution"))
     ));
 }
+
+#[test]
+fn entity_resolution_owner_accepts_typed_target_but_owner_admission_rejects_missing_entity_atomically()
+ {
+    let (mut direct, _, keys, _) = rel_with_three_mentions();
+    let key = keys[0];
+    let missing_entity = EntityId([250; 32]);
+    direct
+        .entity_resolutions
+        .put_resolved(
+            &mut direct.container,
+            key,
+            0,
+            missing_entity,
+            EntityResolutionReason::ContextMatch,
+            10,
+        )
+        .unwrap();
+    assert!(matches!(
+        direct.entity_resolution(key).unwrap().status,
+        MemoryEntityResolutionStatus::Resolved { entity_id, .. } if entity_id == missing_entity
+    ));
+
+    let (mut composed, _, keys, _) = rel_with_three_mentions();
+    let before = composed.container.latest_version();
+    assert!(matches!(
+        composed.put_entity_resolved(
+            keys[0],
+            0,
+            missing_entity,
+            EntityResolutionReason::ContextMatch,
+            10,
+        ),
+        Err(MemoryError::InvalidField(
+            "Entity resolution Entity reference"
+        ))
+    ));
+    assert_eq!(composed.container.latest_version(), before);
+    assert!(composed.entity_resolution(keys[0]).is_none());
+}

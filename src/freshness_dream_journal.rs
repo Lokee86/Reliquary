@@ -63,39 +63,36 @@ impl DreamFreshnessJournal {
         })
     }
 
-    /// Re-encode accepted evidence through this owner at destination coordinates.
-    /// The caller supplies mappings derived from already replayed owner records.
-    pub(crate) fn replay_payload(
-        &self,
-        payload: &[u8],
-        mut turn: impl FnMut(u64) -> Result<u64, String>,
-        mut graph: impl FnMut(u64) -> Result<u64, String>,
-        mut proof: impl FnMut(crate::FreshnessEventProof) -> Result<crate::FreshnessEventProof, String>,
-    ) -> Result<Vec<u8>, String> {
+    /// Read owner-validated replay coordinates without invoking semantic mappings.
+    pub(crate) fn replay_entry(&self, payload: &[u8]) -> Result<Option<DreamEntry>, String> {
         if payload.get(..8) != Some(MAGIC.as_slice()) {
-            return Ok(Vec::new());
+            return Ok(None);
         }
         let mut reader = Reader {
             bytes: payload,
             at: 8,
         };
-        let owner = reader.array::<16>()?;
-        if self.owner_uuid != Some(owner) {
+        if self.owner_uuid != Some(reader.array::<16>()?) {
             return Err("Dream replay owner mismatch".into());
         }
         let entry = decode_entry(&mut reader)?;
         if reader.at != payload.len() {
             return Err("trailing Dream replay bytes".into());
         }
+        Ok(Some(entry))
+    }
+
+    /// Re-encode caller-mapped coordinates through local retry and journal rules.
+    pub(crate) fn encode_replay_entry(&self, entry: DreamEntry) -> Result<Vec<u8>, String> {
         let result = match entry {
             DreamEntry::Roots(id, roots) => self.roots_payload(&id, &roots)?,
             DreamEntry::Settled(id) => self.settled_payload(&id)?,
-            DreamEntry::Accept(id, cut) => self.accept_payload(&id, turn(cut)?)?,
+            DreamEntry::Accept(id, cut) => self.accept_payload(&id, cut)?,
             DreamEntry::AcceptGraph(id, cut, version, pinned) => {
-                self.accept_graph_payload(&id, turn(cut)?, graph(version)?, proof(pinned)?)?
+                self.accept_graph_payload(&id, cut, version, pinned)?
             }
             DreamEntry::Intent(id, mutation, cut, admitted) => {
-                self.publication_intent_payload(id, &mutation, turn(cut)?, admitted)?
+                self.publication_intent_payload(id, &mutation, cut, admitted)?
             }
             DreamEntry::Consume(id, mutation) => {
                 if self
@@ -657,7 +654,7 @@ pub(crate) fn begin_comparison_carrier(owner: [u8; 16], pass: &InitialDreamPass)
     out
 }
 
-enum DreamEntry {
+pub(crate) enum DreamEntry {
     Roots(String, BTreeSet<MemoryId>),
     Settled(String),
     Accept(String, u64),

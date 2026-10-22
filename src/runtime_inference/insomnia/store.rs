@@ -1,7 +1,7 @@
 use super::codec::encode_format;
 use crate::{
-    Archive, Container, EpisodeId, InsomniaAttempt, InsomniaError, InsomniaLeaseToken,
-    InsomniaPriority, InsomniaStats, InsomniaWork, InsomniaWorkState,
+    Container, EpisodeId, InsomniaAttempt, InsomniaError, InsomniaLeaseToken, InsomniaPriority,
+    InsomniaStats, InsomniaWork, InsomniaWorkState,
 };
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -14,6 +14,18 @@ mod scheduler;
 mod transitions;
 
 use scheduler::Scheduler;
+
+/// Accepted scheduling coordinates supplied by the admitting Archive caller.
+/// This transient input retains no source body or foreign store capability.
+#[derive(Clone)]
+pub(crate) struct InsomniaEpisodeSource {
+    pub episode_id: EpisodeId,
+    pub priority: InsomniaPriority,
+    pub source_through_ns: i64,
+    pub conversation_id: String,
+    pub start_node_id: String,
+    pub finalized_at_ns: i64,
+}
 
 pub(crate) struct InsomniaStore {
     work: HashMap<EpisodeId, InsomniaWork>,
@@ -40,11 +52,11 @@ impl InsomniaStore {
     pub(crate) fn queue(
         &mut self,
         _container: &mut Container,
-        archive: &Archive,
-        episode_id: EpisodeId,
-        priority: InsomniaPriority,
+        source: &InsomniaEpisodeSource,
         now_ns: i64,
     ) -> Result<(InsomniaWork, bool), InsomniaError> {
+        let episode_id = source.episode_id;
+        let priority = source.priority;
         if let Some(existing) = self.work.get(&episode_id) {
             return Ok((existing.clone(), false));
         }
@@ -60,7 +72,7 @@ impl InsomniaStore {
             last_error: None,
             updated_at_ns: now_ns,
         };
-        self.scheduler.register(archive, &work)?;
+        self.scheduler.register(source, &work)?;
         self.insert_work(work.clone());
         Ok((work, true))
     }
@@ -151,9 +163,12 @@ impl InsomniaStore {
 
     pub(crate) fn apply_completion(
         &mut self,
-        completion: &super::completion::InsomniaCompletion,
+        completion: &InsomniaAttempt,
     ) -> Result<(), InsomniaError> {
-        if completion.attempt == 0 {
+        if completion.attempt == 0
+            || completion.state != InsomniaWorkState::Complete
+            || completion.error.is_some()
+        {
             return Err(InsomniaError::InvalidTransition);
         }
         if let Some(mut work) = self.work.get(&completion.episode_id).cloned() {
@@ -172,48 +187,21 @@ impl InsomniaStore {
         }
         self.attempts
             .retain(|attempt| attempt.episode_id != completion.episode_id);
-        self.attempts.push(InsomniaAttempt {
-            episode_id: completion.episode_id,
-            attempt: completion.attempt,
-            state: InsomniaWorkState::Complete,
-            started_at_ns: completion.started_at_ns,
-            completed_at_ns: completion.completed_at_ns,
-            extractor_model: completion.extractor_model.clone(),
-            extractor_version: completion.extractor_version.clone(),
-            memory_ids: completion.memory_ids.clone(),
-            external_memory_refs: completion.external_memory_refs.clone(),
-            rejected_count: completion.rejected_count,
-            error: None,
-        });
+        self.attempts.push(completion.clone());
         Ok(())
     }
 
-    pub(crate) fn validate(
-        &self,
-        archive: &Archive,
-        memories: &crate::memory_store::MemoryStore,
-    ) -> Result<(), InsomniaError> {
-        if !self
-            .work
+    pub(crate) fn referenced_episodes(&self) -> impl Iterator<Item = EpisodeId> + '_ {
+        self.work
             .keys()
-            .all(|episode_id| archive.historical_episode(*episode_id).is_some())
-            || !self
-                .attempts
-                .iter()
-                .all(|attempt| archive.historical_episode(attempt.episode_id).is_some())
-        {
-            return Err(InsomniaError::MissingEpisode);
-        }
-        if self
-            .attempts
+            .copied()
+            .chain(self.attempts.iter().map(|attempt| attempt.episode_id))
+    }
+
+    pub(crate) fn completed_memory_ids(&self) -> impl Iterator<Item = crate::MemoryId> + '_ {
+        self.attempts
             .iter()
-            .flat_map(|attempt| attempt.memory_ids.iter())
-            .all(|id| memories.contains_historical_memory(*id))
-        {
-            Ok(())
-        } else {
-            Err(InsomniaError::InvalidTransition)
-        }
+            .flat_map(|attempt| attempt.memory_ids.iter().copied())
     }
 
     pub(super) fn active_claim(
@@ -293,3 +281,7 @@ fn lease_token(
     hash.update(now_ns.to_le_bytes());
     InsomniaLeaseToken(hash.finalize().into())
 }
+
+#[cfg(test)]
+#[path = "store/owner_boundary_tests.rs"]
+mod owner_boundary_tests;

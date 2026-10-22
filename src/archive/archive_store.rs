@@ -95,7 +95,7 @@ impl Archive {
 
     pub(crate) fn validate_references(
         &self,
-        project_files: &crate::project_file_binding_store::ProjectFileStore,
+        project_files: crate::source_identity::ProjectFileFacts<'_>,
     ) -> Result<(), ArchiveError> {
         for node in self.nodes.iter() {
             if !self.contents.contains(node.content_id) && !self.prune.node_is_pruned(node) {

@@ -1,5 +1,5 @@
 use crate::freshness::FreshnessRecord;
-use crate::{Cva, CvaError, MemoryId};
+use crate::{Cva, CvaError, FreshnessEventCut, FreshnessEventProof, MemoryId};
 use std::collections::BTreeMap;
 
 #[cfg(test)]
@@ -8,22 +8,6 @@ mod graph_compact_tests;
 #[cfg(test)]
 #[path = "cva_freshness_r2_tests.rs"]
 mod r2_tests;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct FreshnessEventProof {
-    pub graph_version: u64,
-    pub community_generation: Option<u64>,
-    pub community_graph_version: Option<u64>,
-}
-
-/// A precise inclusive cut through the canonical Freshness ledger.
-/// Events at the same REL turn are ordered by their stable event identity.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct FreshnessEventCut {
-    pub rel_turn: u64,
-    pub event_id_inclusive: Option<String>,
-    pub graph_version: u64,
-}
 
 impl Cva {
     pub fn freshness_policy(&self) -> crate::freshness::FreshnessPolicy {
@@ -355,7 +339,7 @@ impl Cva {
         let pass = self.dream_freshness.pending(event_id).ok_or_else(|| {
             CvaError::Freshness("Dream event lacks its accepted initial-pass receipt".into())
         })?;
-        if event_id != crate::dream_freshness::initial_pass_id(owner, pass.source_id)
+        if event_id != crate::dream_pass_identity::initial_pass_id(owner, pass.source_id)
             || pass.accepted_settlement_turn != Some(turn)
             || !self.freshness_is_publication_birth(pass.source_id)
             || !self
@@ -477,7 +461,7 @@ impl Cva {
         let owner = self.owner_uuid().ok_or_else(|| {
             CvaError::Freshness("legacy owner requires explicit migration before Dream pass".into())
         })?;
-        let expected_id = crate::dream_freshness::initial_pass_id(owner, source_id);
+        let expected_id = crate::dream_pass_identity::initial_pass_id(owner, source_id);
         if pass_id != expected_id || !self.freshness_is_publication_birth(source_id) {
             return Err(CvaError::Freshness(
                 "Dream pass lacks canonical first-publication identity".into(),

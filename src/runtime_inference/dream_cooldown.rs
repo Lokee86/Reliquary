@@ -1,7 +1,8 @@
 use crate::chronos_processing_epoch::{
     ProcessingCadence, cadence_elapsed, epoch_has_advanced, processing_epoch,
 };
-use crate::memory_source_time::{memory_source_timestamp_ns, reliquary_memory_source_timestamp_ns};
+use crate::memory_source_time::memory_source_timestamp_ns;
+use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;
 use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::{Cva, Memory, MemoryError, MemoryId, Phylactery};
 use std::time::{SystemTime, UNIX_EPOCH};

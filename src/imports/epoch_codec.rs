@@ -1,4 +1,4 @@
-use super::{ImportComplete, ImportError, ImportStart};
+use super::epoch_model::{ImportComplete, ImportError, ImportStart};
 
 const START_MAGIC: &[u8; 8] = b"CVAIEPS1";
 const COMPLETE_MAGIC: &[u8; 8] = b"CVAIEPC1";
@@ -113,4 +113,10 @@ mod tests {
             assert!(decode(&bad_length).is_err());
         }
     }
+}
+
+/// Canonical digest of this owner's accepted start marker value.
+pub(crate) fn start_digest(start: &ImportStart) -> Result<String, ImportError> {
+    use sha2::{Digest, Sha256};
+    Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(start)?)))
 }

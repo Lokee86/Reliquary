@@ -1,4 +1,5 @@
-use crate::{Archive, EpisodeId, InsomniaError, InsomniaPriority, InsomniaWork, InsomniaWorkState};
+use super::InsomniaEpisodeSource;
+use crate::{EpisodeId, InsomniaError, InsomniaPriority, InsomniaWork, InsomniaWorkState};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -28,15 +29,15 @@ impl PartialOrd for ScheduleKey {
 }
 
 impl ScheduleKey {
-    fn new(archive: &Archive, work: &InsomniaWork) -> Result<Self, InsomniaError> {
-        let episode = archive
-            .episode(work.episode_id)
-            .ok_or(InsomniaError::MissingEpisode)?;
+    fn new(source: &InsomniaEpisodeSource, work: &InsomniaWork) -> Result<Self, InsomniaError> {
+        if source.episode_id != work.episode_id {
+            return Err(InsomniaError::MissingEpisode);
+        }
         Ok(Self {
             priority: work.priority,
-            source_through_ns: episode.source_through_ns,
-            conversation_id: episode.conversation_id.clone(),
-            start_node_id: episode.start_node_id.clone(),
+            source_through_ns: source.source_through_ns,
+            conversation_id: source.conversation_id.clone(),
+            start_node_id: source.start_node_id.clone(),
             episode_id: work.episode_id,
         })
     }
@@ -57,18 +58,22 @@ pub(super) struct Scheduler {
 impl Scheduler {
     pub(super) fn rebuild(
         &mut self,
-        archive: &Archive,
+        sources: &[InsomniaEpisodeSource],
         work: &HashMap<EpisodeId, InsomniaWork>,
     ) -> Result<(), InsomniaError> {
         self.keys.clear();
         self.ready.clear();
         self.retry_at.clear();
         self.lease_expires.clear();
+        let sources: HashMap<_, _> = sources
+            .iter()
+            .map(|source| (source.episode_id, source))
+            .collect();
         for item in work.values() {
-            if archive.episode(item.episode_id).is_none() {
+            let Some(source) = sources.get(&item.episode_id) else {
                 continue;
-            }
-            let key = ScheduleKey::new(archive, item)?;
+            };
+            let key = ScheduleKey::new(source, item)?;
             self.keys.insert(item.episode_id, key.clone());
             self.index(item, key);
         }
@@ -77,10 +82,10 @@ impl Scheduler {
 
     pub(super) fn register(
         &mut self,
-        archive: &Archive,
+        source: &InsomniaEpisodeSource,
         work: &InsomniaWork,
     ) -> Result<(), InsomniaError> {
-        let key = ScheduleKey::new(archive, work)?;
+        let key = ScheduleKey::new(source, work)?;
         self.keys.insert(work.episode_id, key.clone());
         self.index(work, key);
         Ok(())

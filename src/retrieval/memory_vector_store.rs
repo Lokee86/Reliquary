@@ -1,5 +1,4 @@
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::memory_store::MemoryStore;
 use crate::memory_vector_codec::{decode_object, encode_format, encode_object};
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{
@@ -32,7 +31,6 @@ impl MemoryVectorStore {
     pub(crate) fn put(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
         profiles: &CompatibilityProfileStore,
         packed_vectors: &PackedVectorStore,
         compatibility_profile_id: CompatibilityProfileId,
@@ -43,7 +41,6 @@ impl MemoryVectorStore {
             .get_active(compatibility_profile_id)
             .ok_or(MemoryVectorError::MissingProfile)?;
         validate_mapping(
-            memories,
             profiles,
             packed_vectors,
             compatibility_profile_id,
@@ -222,7 +219,29 @@ impl MemoryVectorStore {
 }
 
 pub(crate) fn validate_mapping(
-    memories: &MemoryStore,
+    profiles: &CompatibilityProfileStore,
+    packed_vectors: &PackedVectorStore,
+    compatibility_profile_id: CompatibilityProfileId,
+    packed_vector_id: PackedVectorId,
+    memory_body_ids: &[MemoryBodyId],
+) -> Result<(), MemoryVectorError> {
+    validate_mapping_shape(
+        profiles,
+        packed_vectors,
+        compatibility_profile_id,
+        packed_vector_id,
+        memory_body_ids,
+    )?;
+    let mut seen = HashSet::with_capacity(memory_body_ids.len());
+    for body_id in memory_body_ids {
+        if !seen.insert(*body_id) {
+            return Err(MemoryVectorError::DuplicateMemoryBody);
+        }
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_mapping_shape(
     profiles: &CompatibilityProfileStore,
     packed_vectors: &PackedVectorStore,
     compatibility_profile_id: CompatibilityProfileId,
@@ -244,15 +263,6 @@ pub(crate) fn validate_mapping(
     }
     if packed.schema.scalar != ScalarType::F32 {
         return Err(MemoryVectorError::UnsupportedScalar(packed.schema.scalar));
-    }
-    let mut seen = HashSet::with_capacity(memory_body_ids.len());
-    for body_id in memory_body_ids {
-        if !memories.contains_body(*body_id) {
-            return Err(MemoryVectorError::MissingMemoryBody);
-        }
-        if !seen.insert(*body_id) {
-            return Err(MemoryVectorError::DuplicateMemoryBody);
-        }
     }
     Ok(())
 }

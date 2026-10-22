@@ -663,7 +663,9 @@ impl Cva {
         &mut self,
         record: crate::InteractionStreamRecord,
     ) -> Result<(), CvaError> {
-        self.interaction_streams.put(&mut self.container, record)
+        self.interaction_streams
+            .put(&mut self.container, record)
+            .map_err(CvaError::from)
     }
 
     pub(crate) fn interaction_stream_record(

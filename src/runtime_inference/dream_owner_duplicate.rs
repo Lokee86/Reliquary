@@ -1,5 +1,5 @@
 use crate::dream_duplicate_index::{DuplicateIndex, DuplicateTemporalKey};
-use crate::dream_owner_publisher::dream_may_change_relation;
+use crate::dream_owner_publisher::{dream_may_change_relation, validate_dream_memory_changes};
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::{
@@ -47,7 +47,8 @@ where
     if changes.is_empty() {
         return Ok(DreamPublicationOutcome::NoChange);
     }
-    let published = graph.set_relations(container, memories, &changes, expected_graph_version)?;
+    validate_dream_memory_changes(memories, &changes)?;
+    let published = graph.set_relations(container, &changes, expected_graph_version)?;
     if authority_filtered {
         ensure_duplicate_index(container, memories, graph, duplicate_index, source_time)?;
     } else {

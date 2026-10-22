@@ -16,7 +16,6 @@ use crate::ego_store::EgoStore;
 use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
-use crate::file_memory_link_store::validate_file_memory_targets;
 use crate::freshness_dream_journal::DreamFreshnessJournal;
 use crate::freshness_storage::FreshnessStore;
 use crate::graph_rebuild::GraphOpenState;
@@ -279,7 +278,12 @@ impl Cva {
                         archive_state.ingest(chunk, payload, latest_global)?;
                     }
                     OpenRecordRoute::Memory => {
-                        memory_state.ingest(chunk, payload, latest_global)?;
+                        crate::memory_frame_admission::ingest(
+                            &mut memory_state,
+                            chunk,
+                            payload,
+                            latest_global,
+                        )?;
                     }
                     OpenRecordRoute::Graph => {
                         graph_state.ingest(chunk, payload, latest_global)?;
@@ -315,12 +319,21 @@ impl Cva {
 
                         external_index.ingest(payload);
                         archive_state.ingest(chunk, payload, latest_global)?;
-                        memory_state.ingest(chunk, payload, latest_global)?;
+                        crate::memory_frame_admission::ingest(
+                            &mut memory_state,
+                            chunk,
+                            payload,
+                            latest_global,
+                        )?;
                         graph_state.ingest(chunk, payload, latest_global)?;
                         entity_state.ingest(chunk, payload, latest_global)?;
                         relationship_state.ingest(chunk, payload, latest_global)?;
                         community_state.ingest(payload)?;
-                        insomnia_state.ingest(chunk, payload)?;
+                        crate::insomnia_admission::ingest_frame(
+                            &mut insomnia_state,
+                            chunk,
+                            payload,
+                        )?;
                         packed_state.ingest(chunk, payload)?;
                         memory_vector_state.ingest(chunk, payload)?;
                         archive_vector_state.ingest(chunk, payload)?;
@@ -420,34 +433,42 @@ impl Cva {
             .bind_owner(container.owner_uuid())
             .map_err(CvaError::Freshness)?;
         let archive = archive_state.finish()?;
-        archive.validate_references(&project_files)?;
-        archive.prune.validate_markers(&owner_maintenance)?;
-        archive.validate_prune_history(&mut container, &owner_maintenance)?;
+        archive.validate_references(project_files.accepted_facts())?;
+        crate::archive_prune_admission::validate(&archive, &mut container, &owner_maintenance)?;
         let memories = memory_state.finish(&mut container)?;
-        memories.validate_prune_history(&mut container, &owner_maintenance)?;
+        crate::memory_prune_admission::validate(&memories, &owner_maintenance)?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
-        relationships.validate_local_references(
+        crate::relationship_owner::validate_current_relationship_references(
             container.owner_id().as_deref(),
             &memories,
             &entities,
+            &relationships.current(),
         )?;
 
         ego.validate_memory_version(memories.memory_version())?;
-        memories.validate_provenance(&archive)?;
+        crate::memory_provenance_admission::validate(&memories, &archive)?;
         processing_epochs.validate(&memories)?;
-        dream_pairs.validate(&memories)?;
-        validate_file_memory_targets(&archive, &memories)?;
-        let graph = graph_state.finish(&memories, &entities)?;
-        owner_maintenance
-            .validate_source_history(&mut container, &graph)
-            .map_err(CvaError::Repack)?;
+        crate::dream_pair_admission::validate_dream_pairs(&dream_pairs, &memories)?;
+        for link in archive.file_memory_link_records() {
+            if !memories.contains_historical_memory(link.memory_id) {
+                return Err(crate::ArchiveError::MissingFileMemoryTarget.into());
+            }
+        }
+        let mut graph = graph_state.finish()?;
+        crate::graph_endpoint_admission::validate_rebuilt_graph(&mut graph, &memories, &entities)?;
+        crate::owner_history_proof::validate_source_history(
+            &owner_maintenance,
+            &mut container,
+            &graph,
+        )
+        .map_err(CvaError::Repack)?;
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
         let mut insomnia = insomnia_state.finish()?;
-        insomnia.validate(&archive, &memories)?;
-        insomnia.rebuild_schedule(&archive)?;
+        crate::insomnia_admission::validate_references(&insomnia, &archive, &memories)?;
+        crate::insomnia_admission::rebuild_schedule(&mut insomnia, &archive)?;
         if defer_dream_replay {
             dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
             crate::cva_dream_journal_replay::replay_with_population(
@@ -565,12 +586,31 @@ impl Cva {
         let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
-        external_index.validate_backing(&packed_vectors, &compatibility_profiles);
-        let memory_vectors =
-            memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
-        let archive_vectors = archive_vector_state.finish(&archive, &packed_vectors)?;
+        crate::external_index_admission::validate_backing(
+            &mut external_index,
+            &packed_vectors,
+            &compatibility_profiles,
+        );
+        let accepted_bodies = memory_vector_state
+            .referenced_body_ids()
+            .filter(|body| memories.contains_body(*body))
+            .collect();
+        let memory_vectors = memory_vector_state.finish(
+            &accepted_bodies,
+            &compatibility_profiles,
+            &packed_vectors,
+        )?;
+        let fragment_versions = archive_vector_state
+            .referenced_fragment_ids()
+            .filter_map(|id| {
+                archive
+                    .fragment_archive_version(id)
+                    .map(|version| (id, version))
+            })
+            .collect();
+        let archive_vectors = archive_vector_state.finish(&packed_vectors, &fragment_versions)?;
         let vector_generations = generation_state.finish(
-            &archive,
+            archive.archive_version(),
             &packed_vectors,
             &archive_vectors,
             &compatibility_profiles,
@@ -585,7 +625,7 @@ impl Cva {
         )?;
         let conversation_compactions = compaction_state.finish_unrecovered()?;
         import_epochs.validate_owner(container.owner_uuid())?;
-        import_epochs.validate_receipts(&archive.import_receipts)?;
+        crate::import_epoch_admission::validate_receipts(&import_epochs, &archive.import_receipts)?;
         let mut result = Self {
             owner_maintenance,
             rewrite_lineage,
@@ -625,9 +665,12 @@ impl Cva {
         result.validate_pruned_descriptions()?;
         result.validate_historical_import_settlements()?;
         result.validate_import_completion_settlements()?;
-        result
-            .entity_resolutions
-            .validate(&result.memories, &result.entities)?;
+        result.entity_resolutions.validate_local()?;
+        crate::entity_resolution_owner::validate_entity_resolution_references(
+            &result.memories,
+            &result.entities,
+            &result.entity_resolutions.records(),
+        )?;
         Ok(result)
     }
 }

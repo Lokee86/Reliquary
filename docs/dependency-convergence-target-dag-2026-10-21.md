@@ -1,7 +1,7 @@
 # Accepted target component DAG
 
 Date: 2026-10-21  
-Status: **Accepted logical target** for the correction-only dependency-convergence refactor. Phase 0's **coarse source baseline and ratchet passed locally**; the finer target is partially mapped for the physical boundary; the remaining owners are not yet source-separated.  
+Status: **Accepted logical target** for the correction-only dependency-convergence refactor. Phase 0's coarse baseline remains retained. Phase 1 physical mapping and Phase 2 durable-owner source contracts now have bounded production guards; higher service convergence remains scheduled for later phases.
 Parent: [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md)  
 Machine-readable authority: [Logical DAG allowlist](../tools/pitlord/convergence-component-dag.json)
 
@@ -127,6 +127,21 @@ mapping is complete. Phase 0's original capture remains retained.
 
 ## Phase closure and enforcement
 
+### Phase 2 durable-owner source mapping
+
+`tools/pitlord/owner-boundaries.json` names the production owner files, their
+34-component identities, higher composition modules and exact immutable producer
+contracts. `scripts/check_owner_boundaries.py` resolves reachable modules, imports
+and reexports against that mapping and the component DAG. It rejects unknown
+owner children, foreign store/service authority, crate-root aliases and acyclic
+upward references. Archive/Memory, Graph/Perception, Freshness, vector/profile,
+Dream/Insomnia, Ego, import epoch, external index and Maintenance persistence are
+covered. Higher admission modules remain composition rather than owner storage;
+their concrete seams are listed in the [Phase 3 handoff](dependency-convergence-phase3-handoff-2026-10-22.md).
+
+This lexical source guard supplements Pitlord. It is not a compiler-resolved
+whole-program proof, and does not close later service/runtime convergence.
+
 | Phase | DAG-specific exit |
 | --- | --- |
 | **0 — Evidence and target** | Keep original graph/baseline unchanged. Adopt and validate this complete logical component allowlist; review/classify actual source-level findings, separate real/test-only/analyzer artifacts, and map them to removal/relocation steps. Phase 0's 19-area capture, reviewed debt ledger and source gate have passed locally. Source-to-component mapping and the final 34-component enforcement ratchet remain work for migration and Phase 7 closure. |
@@ -140,7 +155,7 @@ mapping is complete. Phase 0's original capture remains retained.
 
 **Machine checks today:** `python scripts/check_component_dag.py --self-test` validates target acyclicity, strict dependency order, explicit edge mode/reason, unique identities, store independence and History read-only behavior. `python scripts/check_dependency_convergence.py --check-target` runs the integrated fast check. The usual `scripts/check_architecture.py` continues to run the existing Pitlord source analysis and Phase 0 debt gate.
 
-**Enforcement limitation:** the new JSON is the authoritative **logical target**, not yet a Rust symbol/path-level filter. New source dependency edges are currently guarded by the existing 19-area ratchet and the **reviewed** Phase 0 debt ledger: 4,609 records, of which 790 are source-confirmed, 3,683 test-only and 136 analyzer artifacts. Mapping every source module to its target component and tightening Pitlord against the *component* allowlist belongs to the migration phases. A passing logical-target validator **does not mean that the Rust graph is clean, that the new component rules already govern source code, or that the completed Phase 0 19-area source gate enforces the new fine-grained component rules**.
+**Enforcement limitation:** the JSON remains the authoritative logical target. The bounded physical and durable-owner guards supplement the 19-area source ratchet; they do not yet cover every higher service. The reviewed current ledger has 4,630 findings: 793 source-confirmed, 3,703 test-only and 134 analyzer artifacts. The [Phase 2 delta review](../benchmarks/dependency-convergence-phase2-debt-review-2026-10-22.json) preserves the source disposition of every changed finding. The original captured graph remains unchanged. Full source-to-component enforcement remains a migration and Phase 7 obligation; a passing logical validator does not establish that the whole Rust graph is clean.
 
 ## Acceptance examples
 

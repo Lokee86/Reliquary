@@ -18,7 +18,7 @@ impl EmbeddingEndpoint for Replay {
         mode: crate::EmbeddingMode,
         inputs: &[String],
     ) -> Result<Vec<Vec<f32>>, crate::EmbeddingEndpointError> {
-        use crate::compatibility_profile_probe::{DOCUMENT_PROBES, QUERY_PROBES};
+        use crate::compatibility_profile_validation::{DOCUMENT_PROBES, QUERY_PROBES};
         let probes = match mode {
             crate::EmbeddingMode::Query => QUERY_PROBES,
             crate::EmbeddingMode::Document => DOCUMENT_PROBES,

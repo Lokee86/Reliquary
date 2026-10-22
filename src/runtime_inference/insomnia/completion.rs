@@ -1,7 +1,7 @@
 #[path = "completion_compact_retained.rs"]
 mod compact_retained;
 use crate::EpisodeId;
-use crate::memory_model::MemoryRecord;
+use crate::memory_model::{GroupedBodyEncoding, GroupedBodySpan, MemoryRecord};
 use crate::{MemoryBodyId, MemoryRef, MemoryRoutingMetadata};
 
 const COMPLETION_MAGIC_V7: [u8; 8] = *b"CVAINSC7";
@@ -174,6 +174,107 @@ pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletio
         _ => return Err("invalid completion birth proof flag"),
     };
     decode_completion_current(bytes, true, has_birth_proof).map(Some)
+}
+
+pub(crate) fn decode_completion_body_spans(
+    bytes: &[u8],
+) -> Result<Option<Vec<GroupedBodySpan>>, &'static str> {
+    if bytes.starts_with(b"CVAINSC8") {
+        return compact_retained::decode_body_spans(bytes).map(Some);
+    }
+    if !bytes.starts_with(&COMPLETION_MAGIC_V7) {
+        return Ok(None);
+    }
+    let has_birth_proof = match bytes.get(84) {
+        Some(0) => false,
+        Some(1) => true,
+        _ => return Err("invalid completion birth proof flag"),
+    };
+    completion_body_spans_current(bytes, true, has_birth_proof).map(Some)
+}
+
+pub(super) fn completion_body_spans_current(
+    bytes: &[u8],
+    has_routing_metadata: bool,
+    has_birth_proof: bool,
+) -> Result<Vec<GroupedBodySpan>, &'static str> {
+    if bytes.len() < 96 {
+        return Err("short Insomnia current completion");
+    }
+    let mut cursor = if bytes.starts_with(b"CVAINSC7") {
+        85
+    } else {
+        84
+    };
+    let _ = read_string(bytes, &mut cursor)?;
+    let _ = read_string(bytes, &mut cursor)?;
+    let _ = read_memory_ids(bytes, &mut cursor)?;
+    let _ = read_memory_refs(bytes, &mut cursor)?;
+    completion_body_spans_after_refs(bytes, cursor, true, has_routing_metadata, has_birth_proof)
+}
+
+pub(super) fn completion_body_spans_compact(
+    bytes: &[u8],
+    has_external_refs: bool,
+) -> Result<Vec<GroupedBodySpan>, &'static str> {
+    let mut cursor = 76;
+    let _ = read_string(bytes, &mut cursor)?;
+    let _ = read_string(bytes, &mut cursor)?;
+    let _ = read_memory_ids(bytes, &mut cursor)?;
+    if has_external_refs {
+        let _ = read_memory_refs(bytes, &mut cursor)?;
+    }
+    completion_body_spans_after_refs(bytes, cursor, false, false, false)
+}
+
+fn completion_body_spans_after_refs(
+    bytes: &[u8],
+    mut cursor: usize,
+    validate_versions: bool,
+    has_routing_metadata: bool,
+    has_birth_proof: bool,
+) -> Result<Vec<GroupedBodySpan>, &'static str> {
+    let body_count = read_u32(bytes, &mut cursor)? as usize;
+    if body_count > bytes.len().saturating_sub(cursor) / 36 {
+        return Err("truncated completion body framing");
+    }
+    let mut spans = Vec::with_capacity(body_count);
+    for _ in 0..body_count {
+        let id_end = cursor
+            .checked_add(32)
+            .ok_or("completion body id overflow")?;
+        let id_raw = bytes
+            .get(cursor..id_end)
+            .ok_or("truncated completion body id")?;
+        cursor = id_end;
+        let len = read_u32(bytes, &mut cursor)? as usize;
+        let end = cursor.checked_add(len).ok_or("completion body overflow")?;
+        bytes.get(cursor..end).ok_or("truncated completion body")?;
+        spans.push(GroupedBodySpan {
+            id: MemoryBodyId(id_raw.try_into().unwrap()),
+            range: cursor..end,
+            encoding: GroupedBodyEncoding::Raw,
+        });
+        cursor = end;
+    }
+    let records = read_compact_records(bytes, &mut cursor)?;
+    if validate_versions {
+        let global_version_start = u64::from_le_bytes(bytes[64..72].try_into().unwrap());
+        let global_version_count = u32::from_le_bytes(bytes[72..76].try_into().unwrap());
+        validate_record_versions(global_version_start, global_version_count, &records)?;
+    }
+    if has_routing_metadata {
+        let _ = read_routing_metadata(bytes, &mut cursor)?;
+    }
+    if has_birth_proof {
+        let _ = read_u64(bytes, &mut cursor)?;
+        let _ = read_u64(bytes, &mut cursor)?;
+        let _ = read_memory_ids(bytes, &mut cursor)?;
+    }
+    if cursor != bytes.len() {
+        return Err("Insomnia completion trailing bytes");
+    }
+    Ok(spans)
 }
 
 fn decode_completion_current(

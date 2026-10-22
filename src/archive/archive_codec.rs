@@ -18,7 +18,7 @@ const FILE_MAGIC: [u8; 8] = *b"CVAFILE1";
 const CONVERSATION_TOMBSTONE_MAGIC: [u8; 8] = *b"CVACTMB1";
 
 pub enum ArchiveRecord {
-    ImportReceipt(crate::imports::ImportReceipt),
+    ImportReceipt(crate::archive_import_model::ImportReceipt),
     Content(ContentId, Vec<u8>),
     Node(Node),
     Branch(Branch),

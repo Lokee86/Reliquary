@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+pub use crate::source_identity::{ExternalChunkRef, ExternalMessageRef};
+
 pub const EXTERNAL_SOURCE_CONTRACT: u32 = 1;
 pub const MAX_EXTERNAL_BATCH: usize = 64;
 pub const MAX_EXTERNAL_MANIFEST: usize = 8192;
@@ -10,14 +12,6 @@ pub const MAX_EXTERNAL_MESSAGE_BYTES: usize = 64 * 1024;
 pub const MAX_EXTERNAL_INDEX_BYTES: usize = 8 * 1024 * 1024;
 pub const MAX_EXTERNAL_RESULTS: usize = 128;
 
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ExternalMessageRef {
-    pub source_namespace: String,
-    pub conversation_id: String,
-    pub message_id: String,
-    pub content_hash: [u8; 32],
-}
 impl ExternalMessageRef {
     pub fn validate(&self) -> Result<(), ExternalSourceError> {
         for id in [
@@ -29,14 +23,6 @@ impl ExternalMessageRef {
         }
         Ok(())
     }
-}
-#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ExternalChunkRef {
-    pub message: ExternalMessageRef,
-    /// UTF-8 byte offsets, validated against freshly hydrated canonical content.
-    pub start: u64,
-    pub end: u64,
 }
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

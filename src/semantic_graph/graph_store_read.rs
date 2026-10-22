@@ -125,7 +125,6 @@ impl GraphStore {
         &self.memory_nodes
     }
 
-    #[cfg(test)]
     pub(crate) fn semantic_nodes(&self) -> Vec<SemanticNodeRef> {
         self.nodes.iter().map(|node| node.semantic_node).collect()
     }

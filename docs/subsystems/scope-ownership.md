@@ -21,6 +21,8 @@ Routing can classify durable Memory placement as project/REL or user/PHY. The de
 
 A PHY Memory does not require a live pointer to an originating REL. Source references may preserve identifier/provenance evidence without making the source owner a runtime dependency.
 
+Grouped Memory publications retain their existing wire bytes. Memory indexes each body by its owner-qualified ID and an ephemeral location inside the accepted source frame; reads decode that span and verify the Memory body hash through the Memory codec. Raw Memory grouped frames use raw spans, while external publications point at the exact JSON byte-array span and decode that array in Memory. The index does not cache duplicate body bytes or take ownership of External Source’s publication codec or evidence rules.
+
 ## Authority separation
 
 Moving or referencing semantic evidence does not transfer source authority. A REL cannot mutate PHY-private state merely because it can reference it, and a PHY does not inherit REL conversation history.
@@ -65,3 +67,5 @@ REL and PHY are typed file kinds with durable owner identity. Rewrites/rebuilds 
 ## Notes
 
 The former scope design plan is retired. ADRs retain rationale; this document owns the current operational scope model.
+
+Stored vector/profile validation is separate from provider probe execution: `compatibility_profile_validation.rs` performs pure record checks, while `compatibility_profile_probe.rs` calls the embedding endpoint above the store. The Phase 2 source checker rejects provider interfaces in durable owners and permits only the exact reviewed immutable tags, errors and proof coordinates.

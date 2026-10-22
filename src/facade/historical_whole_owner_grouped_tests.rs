@@ -86,7 +86,7 @@ fn whole_owner_cut_inside_grouped_publication_selects_individual_memory_versions
     };
     let batch = cva
         .memories
-        .stage_grouped_insomnia(
+        .stage_grouped_publication(
             &mut cva.container,
             vec![
                 (draft("grouped-one"), None, None),
@@ -110,7 +110,11 @@ fn whole_owner_cut_inside_grouped_publication_selects_individual_memory_versions
         memory_ids: ids.clone(),
         external_memory_refs: Vec::new(),
         global_version_start: batch.global_version_start,
-        bodies: batch.bodies,
+        bodies: batch
+            .bodies
+            .into_iter()
+            .map(|(id, bytes)| crate::insomnia::completion::InsomniaCompletionBody { id, bytes })
+            .collect(),
         records: batch.records,
         routing_metadata: batch.routing_metadata,
         freshness_birth_turn: Some(turn),

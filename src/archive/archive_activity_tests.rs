@@ -62,9 +62,11 @@ fn accept(
     ingest: bool,
 ) -> Result<(bool, Option<u64>, u64), ArchiveError> {
     if ingest {
-        let result = cva
-            .archive
-            .ingest_turn(&mut cva.container, &cva.project_files, incoming)?;
+        let result = cva.archive.ingest_turn(
+            &mut cva.container,
+            cva.project_files.accepted_facts(),
+            incoming,
+        )?;
         Ok((
             result.inserted,
             result.activity_position,

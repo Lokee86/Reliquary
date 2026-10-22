@@ -10,9 +10,11 @@ impl Cva {
         &mut self,
         turn: IncomingTurn,
     ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
-        let accepted = self
-            .archive
-            .ingest_turn(&mut self.container, &self.project_files, turn)?;
+        let accepted = self.archive.ingest_turn(
+            &mut self.container,
+            self.project_files.accepted_facts(),
+            turn,
+        )?;
         let accepted_turn = self.archive.rel_turn_count();
         self.freshness_on_accepted_activity(accepted_turn);
         // Semantic work is rediscovered after vector publication, not attempted

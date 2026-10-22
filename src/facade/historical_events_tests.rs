@@ -148,7 +148,7 @@ pub(super) fn linked_source(cva: &mut Cva, target: MemoryId, duplicate: bool) ->
         .unwrap()
         .0
         .id;
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), source);
+    let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), source);
     cva.begin_initial_dream_pass(
         pass.clone(),
         source,

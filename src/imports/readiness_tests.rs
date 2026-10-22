@@ -209,7 +209,7 @@ fn assert_readiness_pending(
 fn settle_initial_dream_pass(cva: &mut Cva, id: crate::MemoryId) {
     cva.container.set_owner_write_scope(true);
     let result = (|| {
-        let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), id);
+        let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), id);
         cva.begin_initial_dream_pass(
             pass.clone(),
             id,
@@ -784,7 +784,8 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
     cva.container.set_owner_write_scope(false);
 
     // A real accepted initial Dream proof makes the import-born Memory ready.
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), imported_memory);
+    let pass =
+        crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), imported_memory);
     let graph_version = cva.graph_version();
     cva.container.set_owner_write_scope(true);
     cva.begin_initial_dream_pass(
@@ -894,7 +895,7 @@ fn import_born_memory_and_dream_completion_accepts_affected_freshness_result_coh
 
     // Unrelated pending Dream and Perception work is outside this import's scope.
     let unrelated_pass =
-        crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), unrelated);
+        crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), unrelated);
     cva.container.set_owner_write_scope(true);
     cva.begin_initial_dream_pass(
         unrelated_pass.clone(),
@@ -963,7 +964,7 @@ fn pending_import_born_dream_pass_is_reported_by_exact_memory_identity() {
     let before_bytes = fs::read(&path).unwrap();
     let before_clocks = clocks(&cva);
     let pass_id =
-        crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), imported_memory);
+        crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), imported_memory);
     assert!(!cva.initial_dream_pass_settled(&pass_id));
     let readiness = cva.native_import_readiness(&start.import_id).unwrap();
     let blocker = readiness.blocker.unwrap();

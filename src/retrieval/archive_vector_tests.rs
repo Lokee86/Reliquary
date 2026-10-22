@@ -120,6 +120,40 @@ fn binding_requires_real_unique_fragments() {
 }
 
 #[test]
+fn archive_vector_owner_accepts_typed_binding_while_composition_rejects_missing_fragment_atomically()
+ {
+    let path = test_path("owner-local-binding.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    let packed_id = packed(&mut cva, 1);
+    let missing_fragment = FragmentId([0xf2; 32]);
+    let archive_version = cva.archive_version();
+
+    let id = cva
+        .archive_vectors
+        .put(
+            &mut cva.container,
+            &cva.packed_vectors,
+            archive_version,
+            packed_id,
+            vec![missing_fragment],
+        )
+        .unwrap();
+    assert_eq!(cva.archive_vectors.stats().objects, 1);
+    assert!(
+        cva.archive_vectors
+            .has_exact_fragment_coverage(id, &[missing_fragment])
+    );
+    let accepted_version = cva.container.latest_version();
+
+    assert!(matches!(
+        cva.put_archive_vectors(packed_id, vec![missing_fragment]),
+        Err(ArchiveVectorError::MissingFragment)
+    ));
+    assert_eq!(cva.container.latest_version(), accepted_version);
+    assert_eq!(cva.archive_vectors.stats().objects, 1);
+}
+
+#[test]
 fn archive_vector_objects_do_not_advance_semantic_clocks() {
     let path = test_path("clocks.cva");
     let mut cva = Cva::create(path).unwrap();

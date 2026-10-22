@@ -150,7 +150,7 @@ fn run_dream_graph_cut_case(native: bool) {
 
     let before = rel.graph_version();
     assert_eq!(before, 3);
-    let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source);
     let candidates = BTreeSet::from([root, unrelated]);
     rel.begin_initial_dream_pass(pass_id.clone(), source, 1, 0, candidates.clone(), before)
         .unwrap();

@@ -295,15 +295,14 @@ pub(super) fn replay_frame(
                     .map_err(CvaError::Freshness)?;
             }
         } else {
-            let rebased = output
-                .dream_freshness
-                .replay_payload(
-                    payload,
-                    |cut| turn(source, output, cut),
-                    |cut| Coordinates::map(&coordinates.graph, cut).map_err(|e| e.to_string()),
-                    |proof| coordinates.proof(proof).map_err(|e| e.to_string()),
-                )
-                .map_err(CvaError::Freshness)?;
+            let rebased = crate::dream_replay_transport::rebase_payload(
+                &output.dream_freshness,
+                payload,
+                |cut| turn(source, output, cut),
+                |cut| Coordinates::map(&coordinates.graph, cut).map_err(|e| e.to_string()),
+                |proof| coordinates.proof(proof).map_err(|e| e.to_string()),
+            )
+            .map_err(CvaError::Freshness)?;
             if !rebased.is_empty() {
                 output.container.append(&rebased)?;
                 output

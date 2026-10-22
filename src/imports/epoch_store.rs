@@ -1,5 +1,5 @@
 use super::epoch_codec::{ImportEpochRecord, decode, encode_complete, encode_start};
-use super::{ImportComplete, ImportEpochStatus, ImportError, ImportStart};
+use super::epoch_model::{ImportComplete, ImportEpochStatus, ImportError, ImportStart};
 use crate::Container;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -62,12 +62,11 @@ impl ImportEpochStore {
     }
 
     /// Completion markers may only be appended by the completion coordinator.
-    /// The opaque authority can only be constructed inside that coordinator.
-    pub(super) fn append_complete_coordinated(
+    /// The private operation is visible to the nested coordinator only.
+    fn append_complete_coordinated(
         &mut self,
         container: &mut Container,
         complete: ImportComplete,
-        _authority: super::completion::CompletionAuthority,
     ) -> Result<(), ImportError> {
         self.append_complete_inner(container, complete)
     }
@@ -124,22 +123,6 @@ impl ImportEpochStore {
             .collect()
     }
 
-    pub(crate) fn validate_receipts(
-        &self,
-        receipts: &BTreeMap<String, super::ImportReceipt>,
-    ) -> Result<(), ImportError> {
-        for (id, complete) in &self.completions {
-            let start = &self.starts[id];
-            let receipt = receipts
-                .get(&start.import_key)
-                .ok_or(ImportError::Epoch("completed import lacks receipt"))?;
-            if super::prepare::digest(receipt)? != complete.receipt_digest {
-                return Err(ImportError::Epoch("import receipt digest mismatch"));
-            }
-        }
-        Ok(())
-    }
-
     pub(crate) fn validate_owner(&self, owner_uuid: Option<[u8; 16]>) -> Result<(), ImportError> {
         for start in self.starts.values() {
             if Some(start.owner_uuid) != owner_uuid {
@@ -175,7 +158,7 @@ impl ImportEpochStore {
         if self.completions.contains_key(&complete.import_id) {
             return Err(ImportError::Epoch("duplicate import completion"));
         }
-        if complete.start_digest != super::prepare::digest(start)? {
+        if complete.start_digest != super::epoch_codec::start_digest(start)? {
             return Err(ImportError::Epoch("import start digest mismatch"));
         }
         if complete.receipt_digest.is_empty()
@@ -216,7 +199,10 @@ fn valid_source_text(value: &str) -> bool {
 #[path = "epoch_store_tests.rs"]
 mod tests;
 
-fn watermarks_monotone(pre: super::ImportWatermarks, post: super::ImportWatermarks) -> bool {
+fn watermarks_monotone(
+    pre: super::epoch_model::ImportWatermarks,
+    post: super::epoch_model::ImportWatermarks,
+) -> bool {
     post.global_version >= pre.global_version
         && post.archive_version >= pre.archive_version
         && post.memory_version >= pre.memory_version
@@ -241,3 +227,8 @@ pub(crate) fn hash_file_prefix(path: &std::path::Path, len: u64) -> Result<Strin
     }
     Ok(format!("{:x}", hasher.finalize()))
 }
+
+// The coordinator is higher-level code. Nesting gives it access to the private
+// publication operation without a store dependency on a service-owned token.
+#[path = "completion.rs"]
+pub(super) mod completion;

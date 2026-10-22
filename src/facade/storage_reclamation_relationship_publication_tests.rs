@@ -134,7 +134,7 @@ fn history_digests(path: &Path) -> Vec<[u8; 32]> {
     let graph = crate::graph_store::GraphStore::empty();
     (0..=container.latest_version())
         .map(|watermark| {
-            crate::owner_maintenance::owner_history_digest(&mut container, watermark, &graph)
+            crate::owner_history_proof::owner_history_digest(&mut container, watermark, &graph)
                 .unwrap()
         })
         .collect()

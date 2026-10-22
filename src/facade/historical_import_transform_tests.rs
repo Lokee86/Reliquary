@@ -157,7 +157,7 @@ fn assert_preserved(
             );
         }
     }
-    let pass = crate::dream_freshness::initial_pass_id(source.owner_uuid().unwrap(), id);
+    let pass = crate::dream_pass_identity::initial_pass_id(source.owner_uuid().unwrap(), id);
     assert!(copy.initial_dream_pass_settled(&pass));
     assert!(!copy.commit_historical_import(prepared).unwrap());
     let retried = copy

@@ -1,7 +1,8 @@
 use crate::archive_vector_codec::{decode_format, decode_object};
-use crate::archive_vector_store::{ArchiveVectorStore, archive_vector_id, validate_mapping};
+use crate::archive_vector_store::{ArchiveVectorStore, archive_vector_id, validate_mapping_shape};
 use crate::packed_vector_store::PackedVectorStore;
-use crate::{Archive, ArchiveVectorError, ArchiveVectorInfo, FragmentId, ObjectRef};
+use crate::{ArchiveVectorError, ArchiveVectorInfo, FragmentId, ObjectRef};
+use std::collections::HashMap;
 
 pub(crate) struct ArchiveVectorOpenState {
     records: Vec<PendingArchiveVectors>,
@@ -56,8 +57,8 @@ impl ArchiveVectorOpenState {
 
     pub(crate) fn finish(
         self,
-        archive: &Archive,
         packed_vectors: &PackedVectorStore,
+        accepted_fragment_versions: &HashMap<FragmentId, u64>,
     ) -> Result<ArchiveVectorStore, ArchiveVectorError> {
         if !self.format_seen {
             return Err(ArchiveVectorError::MissingFormat);
@@ -65,14 +66,25 @@ impl ArchiveVectorOpenState {
         let mut store = ArchiveVectorStore::default();
         for record in self.records {
             let mut info = record.info;
-            info.max_fragment_archive_version = validate_mapping(
-                archive,
-                packed_vectors,
-                info.packed_vector_id,
-                &record.fragment_ids,
-            )?;
+            validate_mapping_shape(packed_vectors, info.packed_vector_id, &record.fragment_ids)?;
+            let mut seen = std::collections::HashSet::new();
+            for fragment in &record.fragment_ids {
+                let version = accepted_fragment_versions
+                    .get(fragment)
+                    .ok_or(ArchiveVectorError::MissingFragment)?;
+                info.max_fragment_archive_version = info.max_fragment_archive_version.max(*version);
+                if !seen.insert(*fragment) {
+                    return Err(ArchiveVectorError::DuplicateFragment);
+                }
+            }
             store.insert_rebuilt(info, record.chunk, record.fragment_ids)?;
         }
         Ok(store)
+    }
+
+    pub(crate) fn referenced_fragment_ids(&self) -> impl Iterator<Item = FragmentId> + '_ {
+        self.records
+            .iter()
+            .flat_map(|record| record.fragment_ids.iter().copied())
     }
 }

@@ -1,5 +1,5 @@
 use crate::compatibility_profile_codec::{encode_format, encode_profile, encode_retirement};
-use crate::compatibility_profile_probe::{
+use crate::compatibility_profile_validation::{
     compare_profiles, compatibility_profile_id, validate_profile,
 };
 use crate::{

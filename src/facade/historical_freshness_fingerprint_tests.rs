@@ -81,7 +81,7 @@ fn add_accepted_initial_event(
     amount: i16,
 ) -> (String, FreshnessEventProof) {
     let owner = rel.owner_uuid().unwrap();
-    let pass_id = crate::dream_freshness::initial_pass_id(owner, source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(owner, source);
     let turn = rel.rel_turn_count();
     rel.begin_initial_dream_pass(
         pass_id.clone(),
@@ -178,7 +178,8 @@ fn exact_freshness_cuts_order_same_turn_events_and_filter_graph_proofs() {
     // Its accepted admission at turn 0 provides a decaying target while
     // retaining authentic publication provenance for later Dream receipts.
     let target = publish(&mut rel, "initial-target", "knowledge");
-    let target_pass = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), target);
+    let target_pass =
+        crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), target);
     rel.begin_initial_dream_pass(
         target_pass.clone(),
         target,
@@ -221,7 +222,7 @@ fn exact_freshness_cuts_order_same_turn_events_and_filter_graph_proofs() {
     let mut sources = vec![source_a, source_b]
         .into_iter()
         .map(|source| {
-            let id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+            let id = crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source);
             (id, source)
         })
         .collect::<Vec<_>>();

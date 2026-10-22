@@ -202,7 +202,9 @@ fn replay_completion(
     let payload =
         encode_completion(&receipt).map_err(CvaReconcileError::InvalidInsomniaCompletion)?;
     destination.container.append(&payload)?;
-    destination.insomnia.apply_completion(&receipt)?;
+    destination
+        .insomnia
+        .apply_completion(&crate::insomnia_admission::completion_receipt(&receipt))?;
     Ok(true)
 }
 

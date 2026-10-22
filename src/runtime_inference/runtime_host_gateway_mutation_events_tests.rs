@@ -539,7 +539,7 @@ fn private_profile_change_has_no_rel_event_but_projection_has_safe_entity_id() {
         runtime
             .cva
             .publish_entity(
-                Some(crate::entity_principal::principal_entity_id(&phy)),
+                Some(crate::entity_principal_identity::principal_entity_id(&phy)),
                 0,
                 crate::EntityDraft {
                     canonical_name: phy.clone(),
@@ -583,7 +583,7 @@ fn private_profile_change_has_no_rel_event_but_projection_has_safe_entity_id() {
     );
     assert!(events.iter().all(|e| e.invalidations
         == vec![RelInvalidation::PrincipalEntity(
-            crate::entity_principal::principal_entity_id(&phy)
+            crate::entity_principal_identity::principal_entity_id(&phy)
         )]));
     assert!(
         events

@@ -1,15 +1,16 @@
 use super::EntityResolutionStore;
-use crate::memory_store::MemoryStore;
 use crate::{
     Container, DEFAULT_ENTITY_RESOLUTION_DORMANT_TTL_NS, DEFAULT_ENTITY_RESOLUTION_PENDING_TTL_NS,
     EntityResolutionCompaction, EntityResolutionDormant, MemoryEntityResolutionStatus, MemoryError,
+    MemoryId,
 };
+use std::collections::HashSet;
 
 impl EntityResolutionStore {
     pub(crate) fn compact(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
+        inactive_memory_ids: &HashSet<MemoryId>,
         now_ns: i64,
     ) -> Result<EntityResolutionCompaction, MemoryError> {
         let snapshot: Vec<_> = self
@@ -20,7 +21,7 @@ impl EntityResolutionStore {
         let mut result = EntityResolutionCompaction::default();
 
         for value in snapshot {
-            let inactive = memories.resolution_source_inactive(value.key.memory_id);
+            let inactive = inactive_memory_ids.contains(&value.key.memory_id);
             match value.status {
                 MemoryEntityResolutionStatus::Resolved { .. } => {}
                 MemoryEntityResolutionStatus::Rejected { .. } if inactive => {

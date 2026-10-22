@@ -5,7 +5,7 @@ use crate::{
     MAX_RELATIONSHIP_SUMMARY_BYTES, MemoryRef, RelationshipDraft, RelationshipError,
 };
 
-pub(super) fn normalize_draft(draft: &mut RelationshipDraft) -> Result<(), RelationshipError> {
+pub(crate) fn normalize_draft(draft: &mut RelationshipDraft) -> Result<(), RelationshipError> {
     draft.kind = draft.kind.trim().to_owned();
     draft.summary = draft.summary.trim().to_owned();
     draft.mutation_id = draft.mutation_id.trim().to_owned();

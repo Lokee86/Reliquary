@@ -4,13 +4,7 @@ use super::score::{FreshnessError, FreshnessRecord};
 use crate::MemoryId;
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct HistoricalScoreEvent {
-    pub recipient: MemoryId,
-    pub position: u64,
-    pub event_id: [u8; 32],
-    pub amount: i16,
-}
+pub use super::historical_contract::HistoricalScoreEvent;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HistoricalScoreError {

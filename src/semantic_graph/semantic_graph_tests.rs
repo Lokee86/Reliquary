@@ -1,6 +1,6 @@
 use crate::{
     Cva, EntityDraft, EntityId, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphDirection,
-    GraphError, GraphRelationKind, GraphRelationOrigin, MemoryDraft, MemoryId,
+    GraphError, GraphRelationChange, GraphRelationKind, GraphRelationOrigin, MemoryDraft, MemoryId,
     SemanticGraphRelationChange, SemanticGraphRelationKind, SemanticNodeRef,
 };
 use std::{fs, path::PathBuf};
@@ -117,6 +117,23 @@ fn entity_association_validates_endpoint_shape_owner_and_origin() {
     assert!(matches!(
         cva.set_semantic_relations_with_origin(&[valid], GraphRelationOrigin::Dream, 0),
         Err(GraphError::InvalidRelationOrigin)
+    ));
+}
+
+#[test]
+fn memory_endpoint_error_precedes_invalid_origin() {
+    let file = path("memory-endpoint-origin-order.cva");
+    let mut cva = Cva::create(&file).unwrap();
+    let missing = GraphRelationChange {
+        source: MemoryId([98; 32]),
+        target: MemoryId([99; 32]),
+        kind: GraphRelationKind::Factual,
+        active: true,
+    };
+
+    assert!(matches!(
+        cva.set_memory_relations_with_origin(&[missing], GraphRelationOrigin::Perception, 0),
+        Err(GraphError::MissingMemory(id)) if id == missing.source
     ));
 }
 

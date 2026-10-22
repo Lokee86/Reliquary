@@ -160,6 +160,12 @@ fn commit_batch(
     if body_ids.is_empty() {
         return Ok(0);
     }
+    if body_ids
+        .iter()
+        .any(|body_id| !memories.contains_body(*body_id))
+    {
+        return Err(MemoryVectorError::MissingMemoryBody);
+    }
     let schema = VectorSchema::new(batch.profile.dimensions, ScalarType::F32)
         .map_err(|_| MemoryVectorError::InvalidEmbeddingMatrix)?;
     let row_bytes = usize::try_from(batch.profile.dimensions)
@@ -181,7 +187,6 @@ fn commit_batch(
     let packed_vector_id = packed_vectors.put(container, packed)?;
     memory_vectors.put(
         container,
-        memories,
         profiles,
         packed_vectors,
         batch.profile.id,

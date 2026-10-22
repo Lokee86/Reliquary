@@ -47,9 +47,7 @@ fn staged_path(source: &Path) -> PathBuf {
 impl Cva {
     /// Reports whether current resolution rows need explicit retired-Entity canonicalization.
     pub fn entity_resolution_maintenance(&self) -> Result<EntityResolutionMaintenance, CvaError> {
-        let revisions = self
-            .entity_resolutions
-            .pending_retired_entity_reference_repairs(&self.memories, &self.entities)?;
+        let revisions = self.pending_retired_entity_reference_repairs_count()?;
         Ok(if revisions == 0 {
             EntityResolutionMaintenance::NothingToRepair
         } else {
@@ -101,11 +99,7 @@ impl Cva {
     /// Explicitly appends canonical resolution revisions for references to retired Entities.
     /// Opening a REL never invokes this repair automatically.
     pub fn repair_retired_entity_references(&mut self) -> Result<usize, CvaError> {
-        Ok(self.entity_resolutions.repair_retired_entity_references(
-            &mut self.container,
-            &self.memories,
-            &self.entities,
-        )?)
+        Ok(self.apply_retired_entity_reference_repairs()?)
     }
 }
 
@@ -114,9 +108,7 @@ impl Phylactery {
     pub fn entity_resolution_maintenance(
         &self,
     ) -> Result<EntityResolutionMaintenance, PhylacteryError> {
-        let revisions = self
-            .entity_resolutions
-            .pending_retired_entity_reference_repairs(&self.memories, &self.entities)?;
+        let revisions = self.pending_retired_entity_reference_repairs_count()?;
         Ok(if revisions == 0 {
             EntityResolutionMaintenance::NothingToRepair
         } else {
@@ -164,10 +156,6 @@ impl Phylactery {
     /// Explicitly appends canonical resolution revisions for references to retired Entities.
     /// Opening a PHY never invokes this repair automatically.
     pub fn repair_retired_entity_references(&mut self) -> Result<usize, PhylacteryError> {
-        Ok(self.entity_resolutions.repair_retired_entity_references(
-            &mut self.container,
-            &self.memories,
-            &self.entities,
-        )?)
+        Ok(self.apply_retired_entity_reference_repairs()?)
     }
 }

@@ -61,7 +61,7 @@ arcana = { git = "https://github.com/Lokee86/lexicon-arcana.git", rev = "66b4e96
 lodestone-packed = { git = "https://github.com/Lokee86/lodestone.git", rev = "7b4b3e02b2bd3f3e474fef1a31c8632f8bbea49f" }
 lore = { git = "https://github.com/EpicGames/lore.git", rev = "c49390be048fa273ab47ff7d43bc4994ba7be8ce" }
 sha2 = "0.10"
-serde_json = "1"
+serde_json = { version = "1", features = ["raw_value"] }
 aes-gcm = "0.10"
 zeroize = "1"
 reqwest = { version = "=0.12.23", default-features = false, features = ["blocking", "rustls-tls", "json"] }

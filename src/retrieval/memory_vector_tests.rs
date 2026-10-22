@@ -216,6 +216,48 @@ fn memory_body_is_embedded_once_per_profile_across_metadata_revisions() {
 }
 
 #[test]
+fn memory_vector_owner_accepts_typed_binding_while_composition_rejects_missing_body_atomically() {
+    let path = test_path("owner-local-binding.cva");
+    let mut cva = Cva::create(&path).unwrap();
+    let endpoint = SimulatedEmbeddingEndpoint::new(4, VectorNormalization::L2, 31);
+    let profile = cva.establish_compatibility_profile(&endpoint).unwrap();
+    let matrix = crate::PackedVectors::from_bytes(
+        crate::VectorSchema::new(4, crate::ScalarType::F32).unwrap(),
+        vec![0; 16],
+    )
+    .unwrap();
+    let packed_id = cva.put_packed_vectors(matrix).unwrap();
+    let missing_body = crate::MemoryBodyId([0xf1; 32]);
+
+    let id = cva
+        .memory_vectors
+        .put(
+            &mut cva.container,
+            &cva.compatibility_profiles,
+            &cva.packed_vectors,
+            profile.id,
+            packed_id,
+            vec![missing_body],
+        )
+        .unwrap();
+    assert!(
+        cva.memory_vectors
+            .location(profile.id, missing_body)
+            .is_some()
+    );
+    assert_eq!(cva.memory_vectors.stats().objects, 1);
+    let accepted_version = cva.container.latest_version();
+
+    assert!(matches!(
+        cva.put_memory_vectors(profile.id, packed_id, vec![missing_body]),
+        Err(MemoryVectorError::MissingMemoryBody)
+    ));
+    assert_eq!(cva.container.latest_version(), accepted_version);
+    assert_eq!(cva.memory_vectors.stats().objects, 1);
+    assert!(cva.memory_vectors.get(&mut cva.container, id).is_ok());
+}
+
+#[test]
 fn semantic_memory_content_cannot_mutate_in_place() {
     let path = test_path("immutable-body.cva");
     let mut cva = Cva::create(&path).unwrap();

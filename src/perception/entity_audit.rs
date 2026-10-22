@@ -60,7 +60,7 @@ where
 
     let ordinary_entities = entities
         .iter()
-        .filter(|entity| entity.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+        .filter(|entity| entity.kind != crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND)
         .cloned()
         .collect::<Vec<_>>();
     let audit_entities = ordinary_entities

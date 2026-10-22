@@ -1,4 +1,5 @@
-use crate::{CvaError, InteractionRole, InteractionStreamRecord, InteractionStreamStatus};
+use crate::interaction_stream_error::InteractionStreamError;
+use crate::{InteractionRole, InteractionStreamRecord, InteractionStreamStatus};
 
 const COMPACT_MAGIC: &[u8; 8] = b"CVAISTR2";
 
@@ -20,7 +21,7 @@ pub(crate) fn is_compact(bytes: &[u8]) -> bool {
     bytes.starts_with(COMPACT_MAGIC)
 }
 
-pub(crate) fn encode_compact(record: &CompactRecord) -> Result<Vec<u8>, CvaError> {
+pub(crate) fn encode_compact(record: &CompactRecord) -> Result<Vec<u8>, InteractionStreamError> {
     let mut out = COMPACT_MAGIC.to_vec();
     match record {
         CompactRecord::Begin(record) => {
@@ -81,7 +82,9 @@ pub(crate) fn encode_compact(record: &CompactRecord) -> Result<Vec<u8>, CvaError
     Ok(out)
 }
 
-pub(crate) fn decode_compact(bytes: &[u8]) -> Result<Option<CompactRecord>, CvaError> {
+pub(crate) fn decode_compact(
+    bytes: &[u8],
+) -> Result<Option<CompactRecord>, InteractionStreamError> {
     if !is_compact(bytes) {
         if bytes.starts_with(b"CVAISTR") {
             return Err(corrupt("unknown or truncated interaction stream version"));
@@ -159,7 +162,7 @@ pub(crate) fn decode_compact(bytes: &[u8]) -> Result<Option<CompactRecord>, CvaE
     Ok(Some(record))
 }
 
-fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, CvaError> {
+fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, InteractionStreamError> {
     let end = cursor
         .checked_add(4)
         .ok_or_else(|| corrupt("interaction stream position overflow"))?;
@@ -170,7 +173,7 @@ fn read_u32(bytes: &[u8], cursor: &mut usize) -> Result<u32, CvaError> {
     Ok(u32::from_le_bytes(raw.try_into().unwrap()))
 }
 
-fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), CvaError> {
+fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), InteractionStreamError> {
     let len = u32::try_from(value.len())
         .map_err(|_| corrupt("interaction stream field exceeds u32 length"))?;
     out.extend_from_slice(&len.to_le_bytes());
@@ -178,7 +181,7 @@ fn write_string(out: &mut Vec<u8>, value: &str) -> Result<(), CvaError> {
     Ok(())
 }
 
-fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, CvaError> {
+fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, InteractionStreamError> {
     let length_end = cursor
         .checked_add(4)
         .ok_or_else(|| corrupt("interaction stream length overflow"))?;
@@ -198,7 +201,7 @@ fn read_string(bytes: &[u8], cursor: &mut usize) -> Result<String, CvaError> {
         .map_err(|_| corrupt("interaction stream contains invalid UTF-8"))
 }
 
-fn read_byte(bytes: &[u8], cursor: &mut usize) -> Result<u8, CvaError> {
+fn read_byte(bytes: &[u8], cursor: &mut usize) -> Result<u8, InteractionStreamError> {
     let value = *bytes
         .get(*cursor)
         .ok_or_else(|| corrupt("interaction stream truncated byte"))?;
@@ -206,7 +209,7 @@ fn read_byte(bytes: &[u8], cursor: &mut usize) -> Result<u8, CvaError> {
     Ok(value)
 }
 
-fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, CvaError> {
+fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, InteractionStreamError> {
     let end = cursor
         .checked_add(8)
         .ok_or_else(|| corrupt("interaction stream timestamp overflow"))?;
@@ -217,6 +220,6 @@ fn read_i64(bytes: &[u8], cursor: &mut usize) -> Result<i64, CvaError> {
     Ok(i64::from_le_bytes(raw.try_into().unwrap()))
 }
 
-fn corrupt(message: impl Into<String>) -> CvaError {
-    CvaError::InteractionStream(message.into())
+fn corrupt(message: impl Into<String>) -> InteractionStreamError {
+    InteractionStreamError::Invalid(message.into())
 }

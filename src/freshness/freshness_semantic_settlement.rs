@@ -214,7 +214,7 @@ impl SemanticImportFreshnessSettlement {
             self.corpus_digest,
             self.manifest_digest,
             self.input_digest,
-            crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST,
+            crate::freshness::historical_contract::HISTORICAL_POLICY_DIGEST,
             crate::freshness::semantic_policy::SemanticPolicy::default()
                 .digest()
                 .map_err(|e| e.to_string())?,
@@ -281,7 +281,7 @@ impl SemanticImportFreshnessSettlement {
         let corpus_digest = r.array()?;
         let manifest_digest = r.array()?;
         let input_digest = r.array()?;
-        if r.array::<32>()? != crate::freshness::historical_planner::HISTORICAL_POLICY_DIGEST
+        if r.array::<32>()? != crate::freshness::historical_contract::HISTORICAL_POLICY_DIGEST
             || r.array::<32>()?
                 != crate::freshness::semantic_policy::SemanticPolicy::default()
                     .digest()

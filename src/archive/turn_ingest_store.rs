@@ -1,7 +1,7 @@
 use crate::archive_codec::ArchiveRecord;
 use crate::archive_store::{hash_content, validate_text};
 use crate::file_store::build_stored_file;
-use crate::project_file_binding_store::ProjectFileStore;
+use crate::source_identity::ProjectFileFacts;
 use crate::{Archive, ArchiveError, Container, IncomingTurn, IngestedTurn, Node, StoredFile};
 use std::collections::HashSet;
 
@@ -9,7 +9,7 @@ impl Archive {
     pub(crate) fn ingest_turn(
         &mut self,
         container: &mut Container,
-        project_files: &ProjectFileStore,
+        project_files: ProjectFileFacts<'_>,
         incoming: IncomingTurn,
     ) -> Result<crate::archive_activity::TurnAcceptance<IngestedTurn>, ArchiveError> {
         validate_text(&incoming.id, "node id")?;

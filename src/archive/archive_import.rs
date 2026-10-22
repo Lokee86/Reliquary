@@ -1,4 +1,4 @@
-use crate::imports::ImportReceipt;
+use crate::archive_import_model::ImportReceipt;
 use crate::{Archive, ArchiveError, Container};
 pub(crate) const IMPORT_MAGIC: &[u8; 8] = b"CVAIMPT1";
 

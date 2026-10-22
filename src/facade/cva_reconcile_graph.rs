@@ -204,6 +204,12 @@ fn replay_with_skips(
         if changes.is_empty() {
             continue;
         }
+        crate::graph_endpoint_admission::validate_semantic_changes(
+            &destination.memories,
+            &destination.entities,
+            &changes,
+            transaction.origin,
+        )?;
         let graph_version = destination.graph_version();
         let published = with_replayed_transaction_time(
             destination,
@@ -212,8 +218,6 @@ fn replay_with_skips(
                 if preserve_import_postimages {
                     destination.graph.replay_import_semantic_transaction(
                         &mut destination.container,
-                        &destination.memories,
-                        &destination.entities,
                         &changes,
                         transaction.origin,
                         graph_version,
@@ -222,8 +226,6 @@ fn replay_with_skips(
                 } else {
                     destination.graph.replay_semantic_transaction(
                         &mut destination.container,
-                        &destination.memories,
-                        &destination.entities,
                         &changes,
                         transaction.origin,
                         graph_version,

@@ -15,7 +15,8 @@ pub(crate) mod history_prune;
 
 pub struct Archive {
     pub(crate) prune: history_prune::ArchivePruneState,
-    pub(crate) import_receipts: std::collections::BTreeMap<String, crate::imports::ImportReceipt>,
+    pub(crate) import_receipts:
+        std::collections::BTreeMap<String, crate::archive_import_model::ImportReceipt>,
     pub(crate) contents: ContentIndex,
     pub(crate) nodes: NodeIndex,
     pub(crate) activity: crate::archive_activity::ArchiveActivityIndex,

@@ -266,10 +266,8 @@ fn relation_batch_rejects_duplicate_relationship_identity() {
 
 #[test]
 fn pre_graph_cva_state_opens_as_empty_graph() {
-    let memories = crate::memory_store::MemoryStore::empty();
-    let entities = crate::entity_store::EntityStore::empty();
     let graph = crate::graph_rebuild::GraphOpenState::new()
-        .finish(&memories, &entities)
+        .finish()
         .unwrap();
     assert_eq!(graph.graph_version(), 0);
     assert_eq!(graph.stats().nodes, 0);

@@ -1,6 +1,5 @@
 use super::publication::{self, Publication};
 use super::{ExternalChunkRef, ExternalMemoryEvidence, ExternalMessageRef};
-use crate::insomnia::completion::InsomniaCompletionBody;
 use crate::memory_compact_codec::{decode_creation, encode_delta};
 use crate::memory_compact_contract::MemoryDelta;
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id};
@@ -103,11 +102,11 @@ fn sample_publication() -> Publication {
         transaction_ns: 900,
         birth_turn: Some(7),
         records: vec![record.clone()],
-        bodies: vec![InsomniaCompletionBody {
+        bodies: vec![publication::PublicationBody {
             id: record.body_id,
             bytes: body_bytes,
         }],
-        bindings: vec![publication::Binding {
+        bindings: vec![crate::memory_model::ExternalMemoryBinding {
             memory: record.id.0,
             body: record.body_id.0,
             evidence: evidence(window),

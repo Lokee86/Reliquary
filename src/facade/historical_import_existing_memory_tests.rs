@@ -53,7 +53,7 @@ fn native_import_dream_effect_updates_only_eligible_preexisting_memory() {
 
     // Record a complete accepted first-cycle proof for the imported Memory,
     // with the eligible pre-import Memory as its strictly earlier Dream root.
-    let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), source);
+    let pass = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), source);
     let first_graph_version = cva.graph_version();
     cva.container.set_owner_write_scope(true);
     cva.begin_initial_dream_pass(
@@ -128,7 +128,7 @@ fn native_import_dream_effect_updates_only_eligible_preexisting_memory() {
         prepared
             .settlement
             .superseded
-            .contains(&crate::dream_freshness::initial_pass_id(
+            .contains(&crate::dream_pass_identity::initial_pass_id(
                 cva.owner_uuid().unwrap(),
                 source,
             ))

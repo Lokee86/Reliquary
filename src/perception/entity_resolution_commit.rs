@@ -35,7 +35,7 @@ macro_rules! impl_owner {
                 let outcome = match output.decision {
                     EntityResolutionDecision::ResolveExisting(entity_id) => {
                         let entity = self.entity(entity_id)?;
-                        if entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+                        if entity.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND {
                             return Err(EntityResolverError::InvalidOutput(
                                 "principal Entities are reserved for deterministic principal resolution"
                                     .into(),
@@ -111,7 +111,7 @@ macro_rules! impl_owner {
                             )
                         })?;
                         if materialization.kind.trim()
-                            == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+                            == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND
                         {
                             return Err(EntityResolverError::InvalidOutput(
                                 "principal Entities are reserved for deterministic principal resolution"

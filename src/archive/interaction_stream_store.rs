@@ -1,5 +1,6 @@
 use crate::interaction_stream_codec::{CompactRecord, decode_compact, encode_compact};
-use crate::{Container, CvaError, InteractionStreamRecord, InteractionStreamStatus};
+use crate::interaction_stream_error::InteractionStreamError;
+use crate::{Container, InteractionStreamRecord, InteractionStreamStatus};
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
@@ -8,7 +9,7 @@ pub(crate) struct InteractionStreamStore {
 }
 
 impl InteractionStreamStore {
-    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), CvaError> {
+    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), InteractionStreamError> {
         if let Some(record) = decode_compact(payload)? {
             self.apply_compact(record)?;
         }
@@ -19,10 +20,10 @@ impl InteractionStreamStore {
         &mut self,
         container: &mut Container,
         record: InteractionStreamRecord,
-    ) -> Result<(), CvaError> {
+    ) -> Result<(), InteractionStreamError> {
         self.validate_transition(&record)?;
         u32::try_from(record.content.len()).map_err(|_| {
-            CvaError::InteractionStream("interaction stream content exceeds u32 length".into())
+            InteractionStreamError::Invalid("interaction stream content exceeds u32 length".into())
         })?;
         let mut frames = Vec::new();
         let previous = self.records.get(&record.message_id);
@@ -82,18 +83,18 @@ impl InteractionStreamStore {
         self.records.values().cloned().collect()
     }
 
-    fn apply(&mut self, record: InteractionStreamRecord) -> Result<(), CvaError> {
+    fn apply(&mut self, record: InteractionStreamRecord) -> Result<(), InteractionStreamError> {
         self.validate_transition(&record)?;
         self.records.insert(record.message_id.clone(), record);
         Ok(())
     }
 
-    fn apply_compact(&mut self, record: CompactRecord) -> Result<(), CvaError> {
+    fn apply_compact(&mut self, record: CompactRecord) -> Result<(), InteractionStreamError> {
         match record {
             CompactRecord::Begin(begin) => {
                 if let Some(current) = self.records.get(&begin.message_id) {
                     if !same_metadata(current, &begin) {
-                        return Err(CvaError::InteractionStream(
+                        return Err(InteractionStreamError::Invalid(
                             "interaction stream Begin metadata conflict".into(),
                         ));
                     }
@@ -108,18 +109,20 @@ impl InteractionStreamStore {
                 suffix,
             } => {
                 let current = self.records.get_mut(&message_id).ok_or_else(|| {
-                    CvaError::InteractionStream("interaction stream Append before Begin".into())
+                    InteractionStreamError::Invalid("interaction stream Append before Begin".into())
                 })?;
                 let base = base_len as usize;
                 if current.content.len() == base {
                     current.content.try_reserve(suffix.len()).map_err(|_| {
-                        CvaError::InteractionStream("interaction stream allocation failed".into())
+                        InteractionStreamError::Invalid(
+                            "interaction stream allocation failed".into(),
+                        )
                     })?;
                     current.content.push_str(&suffix);
                 } else if base.checked_add(suffix.len()) != Some(current.content.len())
                     || current.content.get(base..) != Some(suffix.as_str())
                 {
-                    return Err(CvaError::InteractionStream(
+                    return Err(InteractionStreamError::Invalid(
                         "interaction stream Append position conflict".into(),
                     ));
                 }
@@ -129,12 +132,12 @@ impl InteractionStreamStore {
                 content_len,
             } => {
                 let current = self.records.get_mut(&message_id).ok_or_else(|| {
-                    CvaError::InteractionStream(
+                    InteractionStreamError::Invalid(
                         "interaction stream Interrupted before Begin".into(),
                     )
                 })?;
                 if current.content.len() != content_len as usize {
-                    return Err(CvaError::InteractionStream(
+                    return Err(InteractionStreamError::Invalid(
                         "interaction stream Interrupted position conflict".into(),
                     ));
                 }
@@ -144,27 +147,30 @@ impl InteractionStreamStore {
         Ok(())
     }
 
-    fn validate_transition(&self, next: &InteractionStreamRecord) -> Result<(), CvaError> {
+    fn validate_transition(
+        &self,
+        next: &InteractionStreamRecord,
+    ) -> Result<(), InteractionStreamError> {
         if next.message_id.is_empty() || next.session_id.is_empty() {
-            return Err(CvaError::InteractionStream(
+            return Err(InteractionStreamError::Invalid(
                 "interaction stream IDs must not be empty".into(),
             ));
         }
         if let Some(current) = self.records.get(&next.message_id) {
             if !same_metadata(current, next) {
-                return Err(CvaError::InteractionStream(
+                return Err(InteractionStreamError::Invalid(
                     "interaction stream metadata changed across checkpoints".into(),
                 ));
             }
             if !next.content.starts_with(&current.content) {
-                return Err(CvaError::InteractionStream(
+                return Err(InteractionStreamError::Invalid(
                     "interaction stream content is not append-only".into(),
                 ));
             }
             if current.status == InteractionStreamStatus::Interrupted
                 && next.status == InteractionStreamStatus::Streaming
             {
-                return Err(CvaError::InteractionStream(
+                return Err(InteractionStreamError::Invalid(
                     "interrupted interaction stream cannot resume".into(),
                 ));
             }

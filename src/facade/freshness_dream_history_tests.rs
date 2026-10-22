@@ -74,7 +74,7 @@ fn admission_committed_before_linkage_event_recovers_exactly_once() {
     let source = publish(&mut rel, "admission-gap-source", "extracted", "Source.");
     turns(&mut rel, 0, 1010);
     let accepted_turn = rel.rel_turn_count();
-    let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source);
     rel.begin_initial_dream_pass(
         pass_id.clone(),
         source,
@@ -524,7 +524,7 @@ fn freshness_recovers_inactivated_link_and_uses_accepted_graph_snapshot() {
     let untouched = publish(&mut rel, "historical-unrelated", "knowledge", "Unrelated.");
     let source = publish(&mut rel, "historical-source", "extracted", "Source.");
     turns(&mut rel, 0, 1000);
-    let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source);
     rel.begin_initial_dream_pass(
         pass_id.clone(),
         source,
@@ -591,7 +591,8 @@ fn historical_dream_retained_completed_proof_survives_reopen_without_writes() {
     let linked = publish(&mut rel, "historical-proof-linked", "extracted", "Linked.");
     let empty = publish(&mut rel, "historical-proof-empty", "extracted", "Empty.");
     for (source, roots) in [(linked, BTreeSet::from([root])), (empty, BTreeSet::new())] {
-        let pass_id = crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source);
+        let pass_id =
+            crate::dream_pass_identity::initial_pass_id(rel.owner_uuid().unwrap(), source);
         rel.begin_initial_dream_pass(
             pass_id.clone(),
             source,

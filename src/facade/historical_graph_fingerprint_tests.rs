@@ -152,7 +152,7 @@ fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
             crate::EntityDraft {
                 canonical_name: "phy-00000000-0000-0000-0000-0000000000a1".into(),
                 aliases: vec![],
-                kind: crate::entity_principal::PRINCIPAL_ENTITY_KIND.into(),
+                kind: crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND.into(),
                 summary: "principal".into(),
                 mutation_id: "principal".into(),
                 created_at_ns: 31,
@@ -460,7 +460,7 @@ fn graph_typed_publications_leave_gaps_in_memory_clock_and_lifecycle_is_owner_lo
             crate::EntityDraft {
                 canonical_name: "phy-00000000-0000-0000-0000-0000000000a1".into(),
                 aliases: vec![],
-                kind: crate::entity_principal::PRINCIPAL_ENTITY_KIND.into(),
+                kind: crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND.into(),
                 summary: "Exact principal".into(),
                 mutation_id: "principal".into(),
                 created_at_ns: 30,

@@ -2,6 +2,19 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Phase 2 owner boundaries
+
+Durable owner rebuilds receive accepted values and frame spans from the REL/PHY
+lifecycle caller. Cross-owner reference and prune-manifest admission is composed
+in `src/facade/`; local replay and publication remain in each owner. The grouped
+Memory span tests cover bounds, body hashes and repeat reads without invoking a
+foreign envelope codec. External publication span tests preserve JSON whitespace.
+`src/runtime_inference/insomnia/store/owner_boundary_tests.rs` exercises scheduling
+and completion receipts without Archive or Memory stores. Existing reopen,
+historical fingerprint, prune and reconciliation tests remain preservation gates.
+The [execution ledger](dependency-convergence-phase2-execution-2026-10-22.md)
+records the acceptance status; source separation alone does not establish parity.
+
 ## Physical storage access contracts
 
 `container/container_tests.rs` protects caller-driven bounded frames, clock-neutral

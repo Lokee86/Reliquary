@@ -369,7 +369,9 @@ impl GatewayRuntime {
                 memories,
                 cva.entities()
                     .into_iter()
-                    .filter(|entity| entity.kind != crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+                    .filter(|entity| {
+                        entity.kind != crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND
+                    })
                     .collect::<Vec<Entity>>(),
                 cva.semantic_graph_relations(),
                 cva.community_snapshot(),

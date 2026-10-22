@@ -133,7 +133,7 @@ impl Fixture {
         let mut cva = Cva::create_project(test_path("private-shared.rel")).unwrap();
         for phy in [&a, &b] {
             cva.publish_entity(
-                Some(crate::entity_principal::principal_entity_id(phy)),
+                Some(crate::entity_principal_identity::principal_entity_id(phy)),
                 0,
                 crate::EntityDraft {
                     canonical_name: phy.clone(),

@@ -1,7 +1,6 @@
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::memory_store::MemoryStore;
 use crate::memory_vector_codec::{decode_format, decode_object};
-use crate::memory_vector_store::{MemoryVectorStore, memory_vector_id, validate_mapping};
+use crate::memory_vector_store::{MemoryVectorStore, memory_vector_id, validate_mapping_shape};
 use crate::packed_vector_store::PackedVectorStore;
 use crate::{MemoryBodyId, MemoryVectorError, MemoryVectorInfo, ObjectRef};
 
@@ -61,9 +60,15 @@ impl MemoryVectorOpenState {
         Ok(())
     }
 
+    pub(crate) fn referenced_body_ids(&self) -> impl Iterator<Item = MemoryBodyId> + '_ {
+        self.records
+            .iter()
+            .flat_map(|record| record.body_ids.iter().copied())
+    }
+
     pub(crate) fn finish(
         self,
-        memories: &MemoryStore,
+        accepted_bodies: &std::collections::HashSet<MemoryBodyId>,
         profiles: &CompatibilityProfileStore,
         packed_vectors: &PackedVectorStore,
     ) -> Result<MemoryVectorStore, MemoryVectorError> {
@@ -72,14 +77,22 @@ impl MemoryVectorOpenState {
         }
         let mut store = MemoryVectorStore::default();
         for record in self.records {
-            validate_mapping(
-                memories,
+            validate_mapping_shape(
                 profiles,
                 packed_vectors,
                 record.info.compatibility_profile_id,
                 record.info.packed_vector_id,
                 &record.body_ids,
             )?;
+            let mut seen = std::collections::HashSet::new();
+            for body in &record.body_ids {
+                if !accepted_bodies.contains(body) {
+                    return Err(MemoryVectorError::MissingMemoryBody);
+                }
+                if !seen.insert(*body) {
+                    return Err(MemoryVectorError::DuplicateMemoryBody);
+                }
+            }
             store.insert_rebuilt(record.info, record.chunk, &record.body_ids)?;
         }
         Ok(store)

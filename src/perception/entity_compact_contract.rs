@@ -145,7 +145,7 @@ impl EntityDelta {
 }
 
 fn validate_pruned_description(record: &EntityRecord) -> Result<(), EntityError> {
-    if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+    if record.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND {
         return Err(EntityError::PayloadRequiredByLiveTarget);
     }
     if record.canonical_name != "[pruned]"

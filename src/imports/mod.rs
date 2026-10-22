@@ -1,8 +1,9 @@
 //! Versioned native historical import. Adapters normalize; Archive remains authoritative.
 mod commit;
-mod completion;
+use epoch_store::completion;
 mod contract;
 mod epoch_codec;
+mod epoch_model;
 mod epoch_scope;
 mod epoch_store;
 mod hermes;

@@ -195,8 +195,6 @@ fn publish_graph_changes_rel(owner: &mut Cva, ids: [MemoryId; 3]) {
         .graph
         .set_semantic_relations_with_origin(
             &mut owner.container,
-            &owner.memories,
-            &owner.entities,
             &changes,
             GraphRelationOrigin::Perception,
             graph_version,
@@ -252,8 +250,6 @@ fn publish_graph_changes_phy(owner: &mut Phylactery, ids: [MemoryId; 3]) {
         .graph
         .set_semantic_relations_with_origin(
             &mut owner.container,
-            &owner.memories,
-            &owner.entities,
             &changes,
             GraphRelationOrigin::Perception,
             graph_version,

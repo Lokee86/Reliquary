@@ -12,16 +12,12 @@ impl Cva {
         priority: InsomniaPriority,
         now_ns: i64,
     ) -> Result<(InsomniaWork, bool), InsomniaError> {
-        if self.archive.episode(episode_id).is_none() {
-            return Err(InsomniaError::MissingEpisode);
-        }
-        self.insomnia.queue(
-            &mut self.container,
-            &self.archive,
-            episode_id,
-            priority,
-            now_ns,
-        )
+        let episode = self
+            .archive
+            .episode(episode_id)
+            .ok_or(InsomniaError::MissingEpisode)?;
+        let source = crate::insomnia_admission::episode_source(&episode, priority);
+        self.insomnia.queue(&mut self.container, &source, now_ns)
     }
 
     pub fn materialize_live_path_and_queue(
@@ -232,7 +228,8 @@ impl Cva {
             .map_err(|_| InsomniaError::InvalidField("completion record"))?;
         self.container.append(&payload)?;
         self.container.sync()?;
-        self.insomnia.apply_completion(&completion)?;
+        self.insomnia
+            .apply_completion(&crate::insomnia_admission::completion_receipt(&completion))?;
         self.insomnia
             .work(episode_id)
             .cloned()

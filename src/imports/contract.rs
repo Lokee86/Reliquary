@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// Schema 1 imports complete, explicitly supplied snapshots. Omission is not deletion.
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -50,97 +49,13 @@ pub struct ImportArtifact {
     pub mime_type: Option<String>,
     pub bytes: Vec<u8>,
 }
-/// Archive-owned source evidence, with references/hashes rather than another transcript copy.
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ImportReceipt {
-    pub schema_version: u32,
-    pub import_key: String,
-    pub source_namespace: String,
-    pub source_format: String,
-    pub conversations: Vec<ImportedConversation>,
-}
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ImportedConversation {
-    pub source_id: String,
-    pub conversation_id: String,
-    pub title: Option<String>,
-    pub messages: Vec<ImportedMessage>,
-    pub branches: Vec<ImportedBranch>,
-}
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ImportedMessage {
-    pub source_id: String,
-    pub revision: String,
-    pub source_parent_id: Option<String>,
-    pub replaces: Option<String>,
-    pub deleted: bool,
-    pub node_id: Option<String>,
-    pub fingerprint: String,
-    pub artifacts: Vec<ImportedArtifact>,
-}
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ImportedArtifact {
-    pub source_id: String,
-    pub source_ref: String,
-    pub sha256: String,
-    pub file_id: String,
-}
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub struct ImportedBranch {
-    pub source_id: String,
-    pub branch_id: String,
-    /// Empty/deleted branch has no native head; its source evidence is still retained.
-    pub leaf_node_id: Option<String>,
-    pub canonical: bool,
-}
+pub use crate::archive_import_model::{
+    ImportReceipt, ImportedArtifact, ImportedBranch, ImportedConversation, ImportedMessage,
+};
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ImportWatermarks {
-    pub global_version: u64,
-    pub archive_version: u64,
-    pub memory_version: u64,
-    pub entity_version: u64,
-    pub relationship_version: u64,
-    pub graph_version: u64,
-    pub memory_graph_version: u64,
-    pub vector_version: u64,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ImportStart {
-    pub owner_uuid: [u8; 16],
-    pub import_id: String,
-    pub import_key: String,
-    pub source_namespace: String,
-    pub source_format: String,
-    pub started_at_ns: i64,
-    pub pre: ImportWatermarks,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ImportComplete {
-    pub owner_uuid: [u8; 16],
-    pub import_id: String,
-    pub start_digest: String,
-    pub receipt_digest: String,
-    pub completed_at_ns: i64,
-    pub post: ImportWatermarks,
-    pub historical_freshness_settlement_digest: String,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ImportEpochStatus {
-    Open(ImportStart),
-    Completed {
-        start: ImportStart,
-        complete: ImportComplete,
-    },
-}
+pub use super::epoch_model::{
+    ImportComplete, ImportEpochStatus, ImportError, ImportStart, ImportWatermarks,
+};
 
 /// Import owner whose exact evidence prevents completion.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -206,41 +121,4 @@ pub enum ImportCompletionOutcome {
         /// False when an already accepted marker was synchronized and reused.
         committed: bool,
     },
-}
-
-#[derive(Debug)]
-pub enum ImportError {
-    Invalid(&'static str),
-    Unsupported(&'static str),
-    Json(serde_json::Error),
-    Archive(crate::ArchiveError),
-    Insomnia(crate::InsomniaError),
-    Container(crate::ContainerError),
-    Epoch(&'static str),
-}
-impl fmt::Display for ImportError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "native import error: {self:?}")
-    }
-}
-impl std::error::Error for ImportError {}
-impl From<serde_json::Error> for ImportError {
-    fn from(e: serde_json::Error) -> Self {
-        Self::Json(e)
-    }
-}
-impl From<crate::ArchiveError> for ImportError {
-    fn from(e: crate::ArchiveError) -> Self {
-        Self::Archive(e)
-    }
-}
-impl From<crate::InsomniaError> for ImportError {
-    fn from(e: crate::InsomniaError) -> Self {
-        Self::Insomnia(e)
-    }
-}
-impl From<crate::ContainerError> for ImportError {
-    fn from(e: crate::ContainerError) -> Self {
-        Self::Container(e)
-    }
 }

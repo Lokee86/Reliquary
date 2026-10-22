@@ -1,5 +1,4 @@
-use crate::memory_store::MemoryStore;
-use crate::{Container, Cva, MemoryError, MemoryId, Phylactery};
+use crate::{Container, MemoryError, MemoryId};
 use std::collections::{HashMap, HashSet};
 
 #[path = "dream_pair_codec.rs"]
@@ -112,22 +111,9 @@ impl DreamPairStore {
         records
     }
 
-    pub(crate) fn validate(&self, memories: &MemoryStore) -> Result<(), MemoryError> {
-        if self
-            .memory_ids
-            .iter()
-            .all(|id| memories.contains_historical_memory(*id))
-            && self.pairs.iter().all(|(left, right)| {
-                memories.contains_historical_memory(*left)
-                    && memories.contains_historical_memory(*right)
-            })
-        {
-            Ok(())
-        } else {
-            Err(MemoryError::CorruptRecord(
-                "Dream pair references a missing Memory",
-            ))
-        }
+    /// Every mapped identity, including unused retained mappings, needs caller validation.
+    pub(crate) fn referenced_memories(&self) -> impl Iterator<Item = MemoryId> + '_ {
+        self.memory_ids.iter().copied()
     }
 
     pub(crate) fn put(
@@ -156,39 +142,5 @@ fn canonical_pair(left: MemoryId, right: MemoryId) -> (MemoryId, MemoryId) {
         (left, right)
     } else {
         (right, left)
-    }
-}
-
-impl Cva {
-    pub(crate) fn mark_dream_pair_evaluated(
-        &mut self,
-        left: MemoryId,
-        right: MemoryId,
-    ) -> Result<bool, MemoryError> {
-        if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
-            return Err(MemoryError::MissingMemory);
-        }
-        self.dream_pairs.put(&mut self.container, left, right)
-    }
-
-    pub(crate) fn dream_pair_records(&self) -> Vec<(MemoryId, MemoryId)> {
-        self.dream_pairs.records()
-    }
-}
-
-impl Phylactery {
-    pub(crate) fn mark_dream_pair_evaluated(
-        &mut self,
-        left: MemoryId,
-        right: MemoryId,
-    ) -> Result<bool, MemoryError> {
-        if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
-            return Err(MemoryError::MissingMemory);
-        }
-        self.dream_pairs.put(&mut self.container, left, right)
-    }
-
-    pub(crate) fn dream_pair_records(&self) -> Vec<(MemoryId, MemoryId)> {
-        self.dream_pairs.records()
     }
 }

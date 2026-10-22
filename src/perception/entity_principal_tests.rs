@@ -1,4 +1,4 @@
-use crate::entity_principal::{
+use crate::entity_principal_identity::{
     PRINCIPAL_ENTITY_KIND, principal_entity_global_id, principal_entity_id,
 };
 use crate::entity_reconciliation_candidates::reconciliation_candidates;

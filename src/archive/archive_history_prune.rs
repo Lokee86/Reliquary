@@ -4,14 +4,22 @@
 //! responsible for validating the manifest against the source history before
 //! publishing a transformed copy.
 use crate::archive_codec::{ArchiveRecord, encode_conversation_tombstone};
-use crate::owner_maintenance::{
-    HistoryRetentionDescriptor, PrunedPayload, RetentionDomain, RetentionTarget,
-};
 use crate::{Archive, ArchiveError, Container, ContentId, Node};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 
 const MARKER_MAGIC: &[u8; 8] = b"CVAPRND1";
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ArchiveRetentionProof {
+    pub(crate) conversation_id: String,
+    pub(crate) source_global_version: u64,
+    pub(crate) tombstone_global_version: u64,
+    pub(crate) tombstone_archive_version: u64,
+    pub(crate) tombstone_digest: [u8; 32],
+    pub(crate) retained_structure_digest: [u8; 32],
+    pub(crate) payloads: Vec<(ContentId, u64)>,
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct PrunedArchiveContent {
@@ -67,47 +75,29 @@ impl ArchivePruneState {
         self.markers.contains_key(&node.content_id)
     }
 
-    pub(crate) fn validate_markers(
-        &self,
-        maintenance: &crate::owner_maintenance::OwnerMaintenanceStore,
-    ) -> Result<(), ArchiveError> {
-        for marker in self.markers.values() {
-            if !maintenance
-                .get(&marker.manifest_digest)
-                .is_some_and(|manifest| {
-                    manifest.descriptors.iter().any(|descriptor| {
-                        descriptor.target.domain == RetentionDomain::Archive
-                            && descriptor
-                                .payloads
-                                .contains(&PrunedPayload::ArchiveContent(marker.id.0))
-                    })
-                })
-            {
-                return Err(ArchiveError::CorruptRecord("unbound pruned content marker"));
-            }
-        }
-        Ok(())
-    }
-
     pub(crate) fn markers(&self) -> &HashMap<ContentId, PrunedArchiveContent> {
         &self.markers
     }
 }
 
 impl Archive {
-    pub(crate) fn retention_descriptor(
+    pub(crate) fn pruned_content_markers(&self) -> impl Iterator<Item = &PrunedArchiveContent> {
+        self.prune.markers.values()
+    }
+
+    pub(crate) fn retention_proof(
         &self,
         container: &mut Container,
         conversation_id: &str,
         watermark: u64,
         lengths: &HashMap<ContentId, u64>,
-    ) -> Result<HistoryRetentionDescriptor, ArchiveError> {
+    ) -> Result<ArchiveRetentionProof, ArchiveError> {
         let tombstone = self
             .conversation_tombstone(conversation_id)
             .filter(|value| value.global_version <= watermark)
             .ok_or(ArchiveError::MissingConversation)?;
         let mut structure = Sha256::new();
-        let mut payloads = std::collections::BTreeSet::new();
+        let mut payloads = std::collections::BTreeSet::<[u8; 32]>::new();
         for version in self
             .record_versions
             .iter()
@@ -153,105 +143,28 @@ impl Archive {
                 if !lengths.contains_key(&node.content_id) {
                     return Err(ArchiveError::MissingContent);
                 }
-                payloads.insert(PrunedPayload::ArchiveContent(node.content_id.0));
+                payloads.insert(node.content_id.0);
             }
         }
-        Ok(HistoryRetentionDescriptor {
-            target: RetentionTarget {
-                domain: RetentionDomain::Archive,
-                identity: conversation_id.as_bytes().to_vec(),
-            },
-            tombstone_global_version: Some(tombstone.global_version),
-            tombstone_domain_version: Some(tombstone.archive_version),
+        Ok(ArchiveRetentionProof {
+            conversation_id: conversation_id.to_owned(),
+            source_global_version: watermark,
+            tombstone_global_version: tombstone.global_version,
+            tombstone_archive_version: tombstone.archive_version,
             tombstone_digest: Sha256::digest(encode_conversation_tombstone(tombstone)?).into(),
             retained_structure_digest: structure.finalize().into(),
-            payloads: payloads.into_iter().collect(),
+            payloads: payloads
+                .into_iter()
+                .map(|raw_id| {
+                    let id = ContentId(raw_id);
+                    lengths
+                        .get(&id)
+                        .copied()
+                        .map(|length| (id, length))
+                        .ok_or(ArchiveError::MissingContent)
+                })
+                .collect::<Result<_, _>>()?,
         })
-    }
-
-    pub(crate) fn validate_prune_history(
-        &self,
-        container: &mut Container,
-        maintenance: &crate::owner_maintenance::OwnerMaintenanceStore,
-    ) -> Result<(), ArchiveError> {
-        let invalid =
-            || ArchiveError::CorruptRecord("prune evidence does not match source history");
-        let mut all_authorized = std::collections::HashSet::<ContentId>::new();
-        for (digest, manifest) in maintenance.manifests() {
-            let mut lengths = HashMap::new();
-            let mut selected = std::collections::BTreeSet::new();
-            for descriptor in &manifest.descriptors {
-                if descriptor.target.domain != RetentionDomain::Archive {
-                    continue;
-                }
-                let conversation =
-                    std::str::from_utf8(&descriptor.target.identity).map_err(|_| invalid())?;
-                if !selected.insert(conversation) {
-                    return Err(invalid());
-                }
-                for payload in &descriptor.payloads {
-                    let PrunedPayload::ArchiveContent(raw_id) = payload else {
-                        return Err(invalid());
-                    };
-                    let id = ContentId(*raw_id);
-                    let marker = self.prune.markers.get(&id).ok_or_else(invalid)?;
-                    if marker.manifest_digest != *digest
-                        || lengths
-                            .insert(id, marker.byte_length)
-                            .is_some_and(|old| old != marker.byte_length)
-                        || !all_authorized.insert(id)
-                    {
-                        return Err(invalid());
-                    }
-                }
-            }
-            for descriptor in &manifest.descriptors {
-                if descriptor.target.domain != RetentionDomain::Archive {
-                    continue;
-                }
-                let conversation =
-                    std::str::from_utf8(&descriptor.target.identity).map_err(|_| invalid())?;
-                if self.retention_descriptor(
-                    container,
-                    conversation,
-                    manifest.source_global_version,
-                    &lengths,
-                )? != *descriptor
-                {
-                    return Err(invalid());
-                }
-            }
-            for version in self
-                .record_versions
-                .iter()
-                .filter(|version| version.global_version <= manifest.source_global_version)
-            {
-                let (record, _) = self.read_publication(container, *version)?;
-                let protected = match &record {
-                    ArchiveRecord::Node(node) => {
-                        lengths.contains_key(&node.content_id)
-                            && !selected.contains(node.conversation_id.as_str())
-                    }
-                    ArchiveRecord::IngestedTurn(turn) => {
-                        (lengths.contains_key(&turn.node.content_id)
-                            && !selected.contains(turn.node.conversation_id.as_str()))
-                            || turn
-                                .attachments
-                                .iter()
-                                .any(|file| lengths.contains_key(&file.content_id))
-                    }
-                    ArchiveRecord::File(file) => lengths.contains_key(&file.content_id),
-                    _ => false,
-                };
-                if protected {
-                    return Err(invalid());
-                }
-            }
-        }
-        if all_authorized.len() != self.prune.markers.len() {
-            return Err(invalid());
-        }
-        Ok(())
     }
 
     pub(crate) fn node_content(
@@ -276,31 +189,13 @@ fn hash_bytes(hash: &mut Sha256, bytes: &[u8]) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::owner_maintenance::{HistoryPruneManifest, HistoryRetentionDescriptor};
 
     #[test]
     fn content_marker_is_checksummed_and_requires_manifest_binding() {
-        let manifest = HistoryPruneManifest {
-            owner_uuid: [1; 16],
-            source_global_version: 2,
-            source_history_digest: [2; 32],
-            descriptors: vec![HistoryRetentionDescriptor {
-                target: RetentionTarget {
-                    domain: RetentionDomain::Archive,
-                    identity: b"retired-conversation".to_vec(),
-                },
-                tombstone_global_version: Some(2),
-                tombstone_domain_version: Some(1),
-                tombstone_digest: [3; 32],
-                retained_structure_digest: [4; 32],
-                payloads: vec![PrunedPayload::ArchiveContent([5; 32])],
-            }],
-        };
-        let digest = manifest.digest().unwrap();
         let marker = PrunedArchiveContent {
             id: ContentId([5; 32]),
             byte_length: 17,
-            manifest_digest: digest,
+            manifest_digest: [6; 32],
         };
         let bytes = marker.encode();
         assert_eq!(PrunedArchiveContent::decode(&bytes).unwrap(), marker);
@@ -311,9 +206,6 @@ mod tests {
 
         let mut state = ArchivePruneState::default();
         assert!(state.ingest(&marker.encode()).unwrap());
-        let mut maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
-        assert!(state.validate_markers(&maintenance).is_err());
-        maintenance.ingest(&manifest.encode().unwrap()).unwrap();
-        assert!(state.validate_markers(&maintenance).is_ok());
+        assert_eq!(state.markers().get(&marker.id), Some(&marker));
     }
 }

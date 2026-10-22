@@ -85,7 +85,12 @@ impl DreamPopulationPrefix {
                 .ingest_publication_envelope(envelope, global_frontier)?;
             envelope.body
         } else {
-            self.memory.ingest(chunk, payload, global_frontier)?;
+            crate::memory_frame_admission::ingest(
+                &mut self.memory,
+                chunk,
+                payload,
+                global_frontier,
+            )?;
             payload
         };
 

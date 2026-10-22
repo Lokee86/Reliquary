@@ -236,7 +236,7 @@ fn write_history(container: &mut Container, format: WireFormat) -> (EntityId, En
 }
 
 fn owner_history_digest(container: &mut Container, watermark: u64) -> [u8; 32] {
-    crate::owner_maintenance::owner_history_digest(
+    crate::owner_history_proof::owner_history_digest(
         container,
         watermark,
         &crate::graph_store::GraphStore::empty(),

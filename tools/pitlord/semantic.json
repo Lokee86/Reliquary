@@ -96,7 +96,9 @@
         "src/facade",
         "src/lib.rs",
         "src/owner_lifecycle.rs",
-        "src/tombstone_import_history_characterization_tests.rs"
+        "src/tombstone_import_history_characterization_tests.rs",
+        "src/maintenance",
+        "src/source_identity.rs"
       ]
     },
     {

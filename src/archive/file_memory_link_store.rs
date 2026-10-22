@@ -1,5 +1,4 @@
 use crate::archive_codec::ArchiveRecord;
-use crate::memory_store::MemoryStore;
 use crate::{Archive, ArchiveError, Container, FileId, FileMemoryLink, MemoryId, StoredFile};
 
 impl Archive {
@@ -25,6 +24,10 @@ impl Archive {
         self.file_memory_links.for_file(file_id).copied().collect()
     }
 
+    pub(crate) fn file_memory_link_records(&self) -> Vec<FileMemoryLink> {
+        self.file_memory_links.iter().copied().collect()
+    }
+
     pub(crate) fn files_for_memory(&self, memory_id: MemoryId) -> Vec<StoredFile> {
         self.file_memory_links
             .for_memory(memory_id)
@@ -40,16 +43,4 @@ impl Archive {
         }
         Ok(())
     }
-}
-
-pub(crate) fn validate_file_memory_targets(
-    archive: &Archive,
-    memories: &MemoryStore,
-) -> Result<(), ArchiveError> {
-    for link in archive.file_memory_links.iter() {
-        if !memories.contains_historical_memory(link.memory_id) {
-            return Err(ArchiveError::MissingFileMemoryTarget);
-        }
-    }
-    Ok(())
 }

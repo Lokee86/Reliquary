@@ -3,6 +3,16 @@
 Parent index: [Documentation index](INDEX.md)
 
 
+## Phase 2 replay implementation
+
+Owner-local replay changes no persistent V2 representation. Grouped Memory bodies
+retain offsets into the accepted publication frame, with explicit raw-byte or JSON
+byte-array encoding. The caller decodes the outer Insomnia or External Sources
+envelope, and Memory validates the referenced slice and its own body hash. JSON
+array whitespace remains part of the retained span. Scheduling receipts and
+accepted reference facts are transient inputs; they do not introduce new frames.
+Final corpus preservation is tracked in the [Phase 2 execution ledger](dependency-convergence-phase2-execution-2026-10-22.md).
+
 ## Development-format lifecycle policy
 
 The final normal-runtime contract is canonical V2-only REL/PHY reads and writes. Development encoding changes require temporary offline conversion, exact retained-history/proof/vector verification, separate implementation and canonical-corpus commits, then removal of obsolete readers, dispatch and converter APIs/CLI. Unsupported old input must fail with typed errors before payload dispatch or repair. No enduring compatibility exception is approved for V1, CVAFRS03/04/05 or CVAILEG1/2. Embedding/profile compatibility is independent semantic data.

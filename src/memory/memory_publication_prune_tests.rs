@@ -65,7 +65,7 @@ fn envelope_history_digest_matches_marker_history_at_every_global_watermark() {
         digests.push(
             (0..=3)
                 .map(|cut| {
-                    crate::owner_maintenance::owner_history_digest(&mut container, cut, &graph)
+                    crate::owner_history_proof::owner_history_digest(&mut container, cut, &graph)
                         .unwrap()
                 })
                 .collect::<Vec<_>>(),

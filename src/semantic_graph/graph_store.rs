@@ -1,6 +1,4 @@
-use crate::entity_store::EntityStore;
 use crate::graph_codec::{GraphNodePayload, encode_format, encode_node};
-use crate::memory_store::MemoryStore;
 use crate::{
     Container, GraphError, GraphNodeRecord, MemoryId, SemanticGraphRelation,
     SemanticGraphRelationKind, SemanticNodeRef,
@@ -56,6 +54,20 @@ pub(crate) struct GraphStore {
 }
 
 impl GraphStore {
+    pub(crate) fn validate_memory_change_shape(
+        change: crate::GraphRelationChange,
+        origin: crate::GraphRelationOrigin,
+    ) -> Result<(), GraphError> {
+        validation::validate_memory_change(change, origin)
+    }
+
+    pub(crate) fn validate_semantic_change_shape(
+        change: crate::SemanticGraphRelationChange,
+        origin: crate::GraphRelationOrigin,
+    ) -> Result<(), GraphError> {
+        validation::validate_change(change, origin)
+    }
+
     pub(crate) fn empty() -> Self {
         Self {
             rewrite_baseline_memories: Vec::new(),
@@ -135,28 +147,38 @@ impl GraphStore {
         Ok(())
     }
 
-    pub(crate) fn finish_rebuild(
-        &mut self,
-        memories: &MemoryStore,
-        entities: &EntityStore,
-    ) -> Result<(), GraphError> {
+    pub(crate) fn finish_rebuild(&mut self) -> Result<(), GraphError> {
         for node in &self.nodes {
-            validation::validate_stored_node(memories, entities, node.semantic_node)?;
+            if node.semantic_node.kind == crate::SemanticNodeKind::Observation {
+                return Err(GraphError::UnsupportedSemanticNode(node.semantic_node));
+            }
+            if self.node_by_semantic.get(&node.semantic_node) != Some(&node.node_id) {
+                return Err(GraphError::InvalidNodeMapping);
+            }
         }
         for relation in self.states.values().filter(|relation| relation.active) {
-            validation::validate_stored_change(memories, entities, *relation)?;
+            validation::validate_stored_change(*relation)?;
         }
-        self.excluded_nodes = self
-            .nodes
-            .iter()
-            .map(|node| node.semantic_node)
-            .filter(|node| validation::validate_node(memories, entities, *node).is_err())
-            .collect();
+        self.excluded_nodes.clear();
         self.rebuild_topologies()
     }
 
     pub(crate) fn exclude_from_current(&mut self, node: SemanticNodeRef) -> Result<(), GraphError> {
         if self.excluded_nodes.insert(node) {
+            self.rebuild_topologies()?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn exclude_from_current_many(
+        &mut self,
+        nodes: &[SemanticNodeRef],
+    ) -> Result<(), GraphError> {
+        let mut changed = false;
+        for node in nodes {
+            changed |= self.excluded_nodes.insert(*node);
+        }
+        if changed {
             self.rebuild_topologies()?;
         }
         Ok(())

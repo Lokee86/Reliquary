@@ -239,21 +239,20 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 events.push(event);
             }
             if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
-                let normalized = if let Some(mut pass) =
-                    cva.materialized_dream_begin(chunk, &payload)?
-                {
-                    pass.turn = 0;
-                    pass.graph_version_before = 0;
-                    let owner = cva
-                        .owner_uuid()
-                        .ok_or(crate::ContainerError::InvalidIdentity)?;
-                    normalized_dream
-                        .ingest_materialized_begin(owner, pass.clone())
-                        .map_err(crate::CvaError::Freshness)?;
-                    crate::freshness_dream_journal::begin_comparison_carrier(owner, &pass)
-                } else {
-                    let bytes = normalized_dream
-                        .replay_payload(
+                let normalized =
+                    if let Some(mut pass) = cva.materialized_dream_begin(chunk, &payload)? {
+                        pass.turn = 0;
+                        pass.graph_version_before = 0;
+                        let owner = cva
+                            .owner_uuid()
+                            .ok_or(crate::ContainerError::InvalidIdentity)?;
+                        normalized_dream
+                            .ingest_materialized_begin(owner, pass.clone())
+                            .map_err(crate::CvaError::Freshness)?;
+                        crate::freshness_dream_journal::begin_comparison_carrier(owner, &pass)
+                    } else {
+                        let bytes = crate::dream_replay_transport::rebase_payload(
+                            &normalized_dream,
                             &payload,
                             |_| Ok(0),
                             |_| Ok(0),
@@ -266,11 +265,11 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                             },
                         )
                         .map_err(crate::CvaError::Freshness)?;
-                    normalized_dream
-                        .ingest(&bytes)
-                        .map_err(crate::CvaError::Freshness)?;
-                    bytes
-                };
+                        normalized_dream
+                            .ingest(&bytes)
+                            .map_err(crate::CvaError::Freshness)?;
+                        bytes
+                    };
                 if !normalized.is_empty() {
                     dream.push(normalized);
                 }

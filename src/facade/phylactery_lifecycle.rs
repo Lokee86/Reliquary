@@ -169,7 +169,12 @@ impl Phylactery {
                         .into());
                     }
                 } else {
-                    memory_state.ingest(chunk, payload, latest_global)?;
+                    crate::memory_frame_admission::ingest(
+                        &mut memory_state,
+                        chunk,
+                        payload,
+                        latest_global,
+                    )?;
                     entity_state.ingest(chunk, payload, latest_global)?;
                     graph_state.ingest(chunk, payload, latest_global)?;
                     relationship_state.ingest(chunk, payload, latest_global)?;
@@ -205,15 +210,16 @@ impl Phylactery {
         let memories = memory_state.finish(&mut container)?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
-        relationships.validate_local_references(
+        crate::relationship_owner::validate_current_relationship_references(
             container.owner_id().as_deref(),
             &memories,
             &entities,
+            &relationships.current(),
         )?;
         if entities
             .records()
             .iter()
-            .any(|entity| entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND)
+            .any(|entity| entity.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND)
         {
             return Err(crate::EntityError::InvalidField("Phylactery principal Entity").into());
         }
@@ -222,16 +228,24 @@ impl Phylactery {
         ego.validate_memory_version(memories.memory_version())?;
         validate_phylactery_provenance(&memories)?;
         processing_epochs.validate(&memories)?;
-        dream_pairs.validate(&memories)?;
-        let graph = graph_state.finish(&memories, &entities)?;
+        crate::dream_pair_admission::validate_dream_pairs(&dream_pairs, &memories)?;
+        let mut graph = graph_state.finish()?;
+        crate::graph_endpoint_admission::validate_rebuilt_graph(&mut graph, &memories, &entities)?;
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
         let communities = community_state.finish(&graph, container.owner_uuid())?;
         validate_global_versions(&memories, &entities, &relationships, &graph)?;
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
-        let memory_vectors =
-            memory_vector_state.finish(&memories, &compatibility_profiles, &packed_vectors)?;
+        let accepted_bodies = memory_vector_state
+            .referenced_body_ids()
+            .filter(|body| memories.contains_body(*body))
+            .collect();
+        let memory_vectors = memory_vector_state.finish(
+            &accepted_bodies,
+            &compatibility_profiles,
+            &packed_vectors,
+        )?;
         let mut result = Self {
             owner_maintenance,
             rewrite_lineage,
@@ -253,9 +267,12 @@ impl Phylactery {
             relationships,
         };
         result.validate_prune_evidence()?;
-        result
-            .entity_resolutions
-            .validate(&result.memories, &result.entities)?;
+        result.entity_resolutions.validate_local()?;
+        crate::entity_resolution_owner::validate_entity_resolution_references(
+            &result.memories,
+            &result.entities,
+            &result.entity_resolutions.records(),
+        )?;
         Ok(result)
     }
 }

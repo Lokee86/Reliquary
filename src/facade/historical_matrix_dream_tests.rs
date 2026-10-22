@@ -178,7 +178,8 @@ fn historical_matrix_native_no_link_and_missing_proof_never_invent_final_graph_f
             !legacy_marker,
         );
         if legacy_marker {
-            let pass = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), source);
+            let pass =
+                crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), source);
             let payload = cva.dream_freshness.replay_settled_payload(&pass).unwrap();
             cva.container.append(&payload).unwrap();
             cva.dream_freshness.ingest(&payload).unwrap();

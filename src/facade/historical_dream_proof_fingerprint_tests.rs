@@ -60,7 +60,7 @@ fn pending_accepted_and_completed_proofs_are_deterministic_and_survive_reopen() 
     let mut cva = Cva::create(&path).unwrap();
     let root = publish(&mut cva, "proof-root");
     let source = publish(&mut cva, "proof-source");
-    let pass_id = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), source);
 
     cva.begin_initial_dream_pass(
         pass_id.clone(),
@@ -134,7 +134,7 @@ fn verified_empty_roots_are_not_a_bare_replay_settled_marker() {
             .contains_key(&source)
     );
 
-    let pass_id = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), source);
     cva.begin_initial_dream_pass(
         pass_id.clone(),
         source,
@@ -166,7 +166,7 @@ fn nonempty_roots_are_retained_in_the_completed_proof() {
     let mut cva = Cva::create(&path).unwrap();
     let root = publish(&mut cva, "nonempty-root");
     let source = publish(&mut cva, "nonempty-source");
-    let pass_id = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), source);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), source);
 
     cva.begin_initial_dream_pass(
         pass_id.clone(),

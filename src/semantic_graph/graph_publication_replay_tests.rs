@@ -208,7 +208,6 @@ fn rel_and_phy_dispatch_admit_single_and_mixed_origin_batch_exactly_once() {
                 .graph
                 .set_relation_with_origin(
                     &mut owner.container,
-                    &owner.memories,
                     a,
                     b,
                     GraphRelationKind::Factual,

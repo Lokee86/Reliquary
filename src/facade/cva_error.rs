@@ -102,3 +102,16 @@ from_error!(VectorGenerationError, VectorGenerations);
 from_error!(ConversationCompactionError, ConversationCompactions);
 from_error!(EchoError, Echo);
 from_error!(EgoError, Ego);
+
+impl From<crate::interaction_stream_error::InteractionStreamError> for CvaError {
+    fn from(value: crate::interaction_stream_error::InteractionStreamError) -> Self {
+        match value {
+            crate::interaction_stream_error::InteractionStreamError::Container(error) => {
+                Self::Container(error)
+            }
+            crate::interaction_stream_error::InteractionStreamError::Invalid(message) => {
+                Self::InteractionStream(message)
+            }
+        }
+    }
+}

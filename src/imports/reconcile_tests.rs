@@ -164,7 +164,7 @@ fn import_and_finish_with_grouped_memory(cva: &mut Cva, namespace: &str, now_ns:
 
     // Retain a completed Dream pass with an explicit empty root set, so replay
     // proves that empty roots are accepted source evidence rather than absent data.
-    let pass_id = crate::dream_freshness::initial_pass_id(cva.owner_uuid().unwrap(), memory_id);
+    let pass_id = crate::dream_pass_identity::initial_pass_id(cva.owner_uuid().unwrap(), memory_id);
     let turn = cva.rel_turn_count();
     crate::dream_freshness::begin_initial_pass(cva, memory_id, std::iter::empty())
         .unwrap()

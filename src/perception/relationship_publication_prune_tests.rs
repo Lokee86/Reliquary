@@ -1,7 +1,7 @@
 //! Native pruning of Relationship envelope publications in REL and PHY owners.
 use crate::container::publication_envelope;
+use crate::owner_history_proof::owner_history_digest;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
-use crate::owner_maintenance::owner_history_digest;
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,

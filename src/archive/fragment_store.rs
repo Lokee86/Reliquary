@@ -216,6 +216,10 @@ impl Archive {
         fragments.sort_by_key(|fragment| fragment.id.0);
         fragments
     }
+
+    pub(crate) fn fragment_archive_version(&self, id: FragmentId) -> Option<u64> {
+        self.fragments.archive_version(id)
+    }
 }
 
 pub(crate) fn fragment_id(

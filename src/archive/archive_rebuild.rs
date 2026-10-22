@@ -16,7 +16,7 @@ use std::collections::HashSet;
 mod publication_tests;
 
 pub(crate) struct ArchiveOpenState {
-    import_receipts: std::collections::BTreeMap<String, crate::imports::ImportReceipt>,
+    import_receipts: std::collections::BTreeMap<String, crate::archive_import_model::ImportReceipt>,
     contents: ContentIndex,
     nodes: NodeIndex,
     activity: crate::archive_activity::ArchiveActivityIndex,

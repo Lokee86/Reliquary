@@ -8,8 +8,6 @@ mod read;
 #[path = "relationship_store_validation.rs"]
 mod validation;
 
-use crate::entity_store::EntityStore;
-use crate::memory_store::MemoryStore;
 use crate::relationship_codec::{RelationshipTombstone, encode_format};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
@@ -17,8 +15,7 @@ use crate::{
 };
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeSet, HashMap};
-use validation::normalize_draft;
-pub(crate) use validation::validate_record;
+pub(crate) use validation::{normalize_draft, validate_record};
 
 pub(crate) struct RelationshipStore {
     records: Vec<RelationshipRecord>,
@@ -53,21 +50,11 @@ impl RelationshipStore {
     pub(crate) fn publish(
         &mut self,
         container: &mut Container,
-        owner_id: &str,
-        memories: &MemoryStore,
-        entities: &EntityStore,
         id: Option<RelationshipId>,
         expected_revision: u64,
         mut draft: RelationshipDraft,
     ) -> Result<(Relationship, bool), RelationshipError> {
         normalize_draft(&mut draft)?;
-        validate_live_local_refs(
-            owner_id,
-            memories,
-            entities,
-            &draft.participants,
-            &draft.evidence,
-        )?;
         self.publish_normalized(container, id, expected_revision, draft)
     }
 
@@ -308,95 +295,6 @@ impl RelationshipStore {
         self.next_relationship_version = next;
         Ok(())
     }
-
-    pub(crate) fn validate_local_references(
-        &self,
-        owner_id: Option<&str>,
-        memories: &MemoryStore,
-        entities: &EntityStore,
-    ) -> Result<(), RelationshipError> {
-        if self.current.is_empty() {
-            return Ok(());
-        }
-        let owner_id = owner_id.ok_or(RelationshipError::MissingOwnerIdentity)?;
-        for index in self.current.values() {
-            let record = &self.records[*index];
-            validate_historical_local_refs(
-                owner_id,
-                memories,
-                entities,
-                &record.participants,
-                &record.evidence,
-            )?;
-        }
-        Ok(())
-    }
-}
-
-fn validate_live_local_refs(
-    owner_id: &str,
-    memories: &MemoryStore,
-    entities: &EntityStore,
-    participants: &[crate::RelationshipParticipant],
-    evidence: &[crate::MemoryRef],
-) -> Result<(), RelationshipError> {
-    validate_live_local_entity_refs(owner_id, entities, participants)?;
-    for value in evidence {
-        if value.owner_id == owner_id && !memories.contains_memory(value.memory_id) {
-            return Err(RelationshipError::MissingLocalMemory(value.memory_id));
-        }
-    }
-    Ok(())
-}
-
-fn validate_historical_local_refs(
-    owner_id: &str,
-    memories: &MemoryStore,
-    entities: &EntityStore,
-    participants: &[crate::RelationshipParticipant],
-    evidence: &[crate::MemoryRef],
-) -> Result<(), RelationshipError> {
-    validate_historical_local_entity_refs(owner_id, entities, participants)?;
-    for value in evidence {
-        if value.owner_id == owner_id && !memories.contains_historical_memory(value.memory_id) {
-            return Err(RelationshipError::MissingLocalMemory(value.memory_id));
-        }
-    }
-    Ok(())
-}
-
-fn validate_live_local_entity_refs(
-    owner_id: &str,
-    entities: &EntityStore,
-    participants: &[crate::RelationshipParticipant],
-) -> Result<(), RelationshipError> {
-    for participant in participants {
-        if participant.entity.owner_id == owner_id
-            && !entities.contains(participant.entity.entity_id)
-        {
-            return Err(RelationshipError::MissingLocalEntity(
-                participant.entity.entity_id,
-            ));
-        }
-    }
-    Ok(())
-}
-
-fn validate_historical_local_entity_refs(
-    owner_id: &str,
-    entities: &EntityStore,
-    participants: &[crate::RelationshipParticipant],
-) -> Result<(), RelationshipError> {
-    for participant in participants {
-        if participant.entity.owner_id == owner_id
-            && !entities.contains_historical(participant.entity.entity_id)
-        {
-            return Err(RelationshipError::MissingLocalEntity(
-                participant.entity.entity_id,
-            ));
-        }
-    }
-    Ok(())
 }
 
 fn relationship_id(mutation_id: &str) -> RelationshipId {

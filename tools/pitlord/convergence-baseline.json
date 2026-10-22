@@ -306,14 +306,6 @@
       "target": "src/facade/cva_reconcile.rs"
     },
     {
-      "fingerprint": "sha256:024c288cc452af0a4e970e8ecd31cd4d1f98ca3061a89ce0d13b05a32203e364",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:024e249af3b63e0aa18c55793f83bdf95a57d706374a57017e36314e8b62c5ab",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -390,14 +382,6 @@
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
       "source": "src/retrieval/vector_generation_measurement_tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:02bca0626b67c7866ac6146fe6eca7091aa7d7aef841a9157f479dfa12fb6072",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
     },
@@ -536,6 +520,14 @@
       "source": "src/runtime_inference/dream_canonical_tests.rs",
       "relation": "calls",
       "target": "src/facade/dream_population_authority_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:03a995e5ce0196d0f486b5957e5997e8ac007481b82b6e759da48a6f40267f11",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:03abb1bd2ad4c6c83c99947ea1c048683d2ff327b12238f44c4182daa07835ed",
@@ -858,12 +850,12 @@
       "target": "src/facade/cva_reconcile_graph_policy_tests.rs"
     },
     {
-      "fingerprint": "sha256:0643769fb6a3056a95a876196ba0778c29b67534b5ef0d260b0cae594b0ee02f",
+      "fingerprint": "sha256:065d0dd0c941936705403ba4f0d24eafa35752a0603e37dfbfb34a721e5fd0ed",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
       "source": "src/imports/tests.rs",
       "relation": "calls",
-      "target": "src/facade/cva.rs"
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:06611f593f54141541131e840a90ec830c97266e3b5148325669131e54d8c4fc",
@@ -888,14 +880,6 @@
       "source": "src/semantic_graph/graph_store.rs",
       "relation": "calls",
       "target": "src/memory/memory_codec.rs"
-    },
-    {
-      "fingerprint": "sha256:0690236af9b9d0f3fd8effcb5215eb83e0a64678a1f908617c280080e0c2d5d1",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:0694adcb9bfde25cb89e6ef21b2ddb7e70b1ce04267d43aa90c16ac71789aeb3",
@@ -976,14 +960,6 @@
       "source": "src/semantic_graph/community_traversal_bench_fixture.rs",
       "relation": "calls",
       "target": "src/retrieval/compatibility_vector.rs"
-    },
-    {
-      "fingerprint": "sha256:07269af81c68e929a37579e2184a147f9c6e90242cfd7dde5b9ae46ab8a4edc4",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_lifecycle.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:072e61d3ef04ef78c48542a14241b61f6e411d87052b1b5b3ce1d947b5cf196c",
@@ -1154,6 +1130,14 @@
       "target": "src/facade/cva.rs"
     },
     {
+      "fingerprint": "sha256:08689cd4194e9655be2149c75d1cd3e91a32346b186f4a7d7346d4b86386be1d",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:08740a61f0feccf34e4e6e5febc56211efc7b61be6909c2be1d98a2bbe215571",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
@@ -1216,14 +1200,6 @@
       "source": "src/runtime_inference/dream_community_naming_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery.rs"
-    },
-    {
-      "fingerprint": "sha256:08d17bb320d35e69c56b9305d2ccf6a2fd1111e27debfd33910c6c517179ac31",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_store.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:08f4352b6dcdb37b934f98e62171766ac35b0f2ae2bfc08eff8cca9b2e99093b",
@@ -1418,6 +1394,14 @@
       "target": "src/memory/memory_model.rs"
     },
     {
+      "fingerprint": "sha256:0a3a508420e89b93c6d77fc7b800bff6e464490eb6000ef09eb6b018a18a09f8",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/memory_vector_tests.rs",
+      "relation": "calls",
+      "target": "src/runtime_inference/embedding_endpoint.rs"
+    },
+    {
       "fingerprint": "sha256:0a3a7fcd16ad8c99281041bab775d523926fc04b1e94996c421bc8971b57862a",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -1472,6 +1456,14 @@
       "source": "src/perception/entity_compact_writer_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery.rs"
+    },
+    {
+      "fingerprint": "sha256:0a930d247195062d3c96b639b46e431d64fe269edaacdb5d8648d34254e3dd08",
+      "rule_id": "convergence-semantic-graph-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/semantic_graph/semantic_graph_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:0aa3a1223a83fda20633ff5aa15924a8306f95b150198af3969a10b344678cb1",
@@ -1608,6 +1600,14 @@
       "source": "src/semantic_graph/graph_error.rs",
       "relation": "imports",
       "target": "src/memory/memory_model.rs"
+    },
+    {
+      "fingerprint": "sha256:0b6a051611b0291f128b9eb68ea4071eeba7848675e8b2018c4e3d19b50866b7",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_freshness.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:0b6b486911d6c8f682940eb2ce6c08474bd4fa4d680cccb99dbdac7756699419",
@@ -1768,14 +1768,6 @@
       "source": "src/retrieval/semantic_search_tests.rs",
       "relation": "imports",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:0c3d49e41408f150eaea16ab1040d1a1f48731456904af05dd78b41a54eaa456",
-      "rule_id": "convergence-retrieval-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/retrieval/vector_generation_validation.rs",
-      "relation": "calls",
-      "target": "src/archive/archive_history.rs"
     },
     {
       "fingerprint": "sha256:0c3e24934e7526cde0f22a881b86d37c6609102403d6482958e8568e979899b5",
@@ -2010,14 +2002,6 @@
       "target": "src/runtime_inference/runtime_host_routes.rs"
     },
     {
-      "fingerprint": "sha256:0e40e8bae6bb3a7dc0671178f1fffa4f40be9299d4ece1ba334c66cde114896f",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_store_validation.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
-    },
-    {
       "fingerprint": "sha256:0e6be8de410f3d06558e1a3c3987497f471c5c11ab521347eed786c5aef7ad5c",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -2146,6 +2130,14 @@
       "target": "src/archive/conversation_tombstone_tests.rs"
     },
     {
+      "fingerprint": "sha256:0f6a7aad2cc8b1084ec2959bd68f03713ee20627b749a1bf32e8b9c3b5644f82",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/relationship_owner.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_store.rs"
+    },
+    {
       "fingerprint": "sha256:0f81bc41331d6dd4f85feba8846485e2477ef669f8b1fcf34191026b99418472",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -2192,6 +2184,14 @@
       "source": "src/perception/entity_resolution_engine.rs",
       "relation": "calls",
       "target": "src/runtime_inference/general_endpoint.rs"
+    },
+    {
+      "fingerprint": "sha256:0fc42cc3d568dad57c3070b623c8cbd2d1dde6968c1ee4b9fd5bffc8d411d4ed",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:0fcb646ee765dd9c87956f0f4e8e0dfa2c5a7e28f4dd900335f1bb58357c1423",
@@ -2610,6 +2610,14 @@
       "target": "src/facade/cva_freshness.rs"
     },
     {
+      "fingerprint": "sha256:1303892f1eb6a491d164c6b11087abe418da46b6f0f7cb6eb289dd45ab69b525",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_freshness.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_error.rs"
+    },
+    {
       "fingerprint": "sha256:130dbb14879bd1f17cbd17fc65328b150eabcfdf0d0944818a7f35ec88e3cb46",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
@@ -2792,6 +2800,14 @@
       "source": "src/ego/ego_lifecycle_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:13fb50444f8907c2a7d16c7a2f980ec7689c054affe5f49e63fc4a0118be2e33",
+      "rule_id": "convergence-memory-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/memory/memory_compact_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/insomnia_admission.rs"
     },
     {
       "fingerprint": "sha256:14019bc1f7bd31b7e1700c51e0eddd9459d2685031730af6be27544664093a1f",
@@ -3062,6 +3078,14 @@
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
       "source": "src/archive/turn_ingest_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:15ee04715fa54b0cda2f327319698e3f37185372e0d1eeae8121356d925b4b62",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
     },
@@ -3434,14 +3458,6 @@
       "target": "src/facade/cva_reconcile_derived_tests.rs"
     },
     {
-      "fingerprint": "sha256:180a215ba0492c79c96e255edf74f6d8f5e88ab01c378ca94a552760a4c0789c",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream.rs",
-      "relation": "calls",
-      "target": "src/facade/cva.rs"
-    },
-    {
       "fingerprint": "sha256:181da4152bf4602fcefaea8162f5031538ec1dad8ee4f83c30fc89ef37647197",
       "rule_id": "convergence-semantic-graph-direction",
       "issue": "forbidden_dependency",
@@ -3512,14 +3528,6 @@
       "source": "src/retrieval/lexical_index_tests.rs",
       "relation": "imports",
       "target": "src/archive/fragment_model.rs"
-    },
-    {
-      "fingerprint": "sha256:1890df5d2ae2ab8b6617e73f2308339c056a8e5993912eb64e4937be4e88aa01",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:189e8a55d8bfdf535d4dbfc35b755ec9ab4ba115823a5688f4d807c1c708086b",
@@ -4554,6 +4562,14 @@
       "target": "src/facade/cva_graph.rs"
     },
     {
+      "fingerprint": "sha256:203afc97fe78f745debd469d5d33a8069b4e2242fd70fffccb2054efe0199b7c",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva.rs"
+    },
+    {
       "fingerprint": "sha256:20411ab4cf8ccb39c8ee9095b8c51fcf3f424da4a3f03560656c909dc8c1906c",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -4690,14 +4706,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:20f37a102229ec29f383c7210c931c20f79c5b05b9a3b816141b06daa430a7f5",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:20f8d80b3dea113d3bec4d0ac641713dfdc688f61dfd550b841f2c9f5f39cb1e",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -4744,14 +4752,6 @@
       "source": "src/perception/relationship_compact_contract_adversarial_tests.rs",
       "relation": "calls",
       "target": "src/memory/memory_compact_apply_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:218b0e9a9945e92da9e94f12698f3e99274e994aa52915d4c4ad9b82d212356a",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_store_validation.rs",
-      "relation": "calls",
-      "target": "src/perception/entity_store_read.rs"
     },
     {
       "fingerprint": "sha256:21991c379a202045df1a2e394e4c18ac675270f284f7dc3584d07c84ce4a6aec",
@@ -4834,14 +4834,6 @@
       "target": "src/facade/phylactery_ego.rs"
     },
     {
-      "fingerprint": "sha256:2248e212bfa26a5862382107906b35e2a3034992d45de49bc2c5e92e8e0adea4",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_rebuild.rs",
-      "relation": "calls",
-      "target": "src/runtime_inference/insomnia/completion.rs"
-    },
-    {
       "fingerprint": "sha256:2258c8a883e7aeda31a9c8d30bb9f11e9d6c6974616b978c796d131c662f91e8",
       "rule_id": "convergence-container-direction",
       "issue": "forbidden_dependency",
@@ -4858,14 +4850,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:22697708b4cb0bd3ef5d9b04a4977766e784b54ff90de0677fe12e772383c20f",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva.rs"
-    },
-    {
       "fingerprint": "sha256:2271617b8cd8277b995897752c68c78d8523540bc2b8dc2c775ecb8f16543b59",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -4879,7 +4863,15 @@
       "issue": "forbidden_dependency",
       "source": "src/memory/memory_lifecycle_tests.rs",
       "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
+      "target": "src/maintenance/manifest.rs"
+    },
+    {
+      "fingerprint": "sha256:2272f75e9fce458df50df67df64ae655a2a85e7e54f6a3a98c705d17e7448ad2",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/relationship_tests.rs",
+      "relation": "calls",
+      "target": "src/config_security/config_io.rs"
     },
     {
       "fingerprint": "sha256:22763e75e20e55f58d1e7e845bcd2801d898151ec4043ca36e0bdd3ae1ab800d",
@@ -4904,6 +4896,14 @@
       "source": "src/retrieval/lexical_index_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:228416837f834ea8ee0e7062e065f603b04b916b107c13020e0ff5852bd74eb5",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/model.rs",
+      "relation": "imports",
+      "target": "src/source_identity.rs"
     },
     {
       "fingerprint": "sha256:228c5aab8fa9cea9e13896e4061606a0c98e844180956e58524dae62cc3c9188",
@@ -4960,6 +4960,14 @@
       "source": "src/container/publication_envelope_tests.rs",
       "relation": "calls",
       "target": "src/archive/archive_import.rs"
+    },
+    {
+      "fingerprint": "sha256:22eb39b1c2bccaf01c7be4f0c354d0a6121bc3fd62a76344e7061e2d2ce4aa83",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:2305b0361ea1ce3e7078843eb07c3ddbc406d1f81214b50c3280c32467fa04f0",
@@ -5066,6 +5074,14 @@
       "target": "src/memory/memory_model.rs"
     },
     {
+      "fingerprint": "sha256:23e2d1ff2728ad7cb31dc4d4cf8734fede0eb7087e09f7d000a74bafd5621ff0",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/cva.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_episode_policy.rs"
+    },
+    {
       "fingerprint": "sha256:23e32172aae9f3dec66686fc802ca2eb100154a1c5baf07fe4a3686fe80bee66",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -5128,14 +5144,6 @@
       "source": "src/perception/relationship_publication_copy_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:244267c5ac4fb515b2650f1899c7adb88f21ec5858ffadde199bc1a37822227b",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:24610fee3db7a5110b793bd56d81eeb8d10861f6444f747f9d1e98ec7100d788",
@@ -5266,22 +5274,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:25198733bc33e4999365a36e29008e0379f3b11cc60fb8cedb454574aa8718ee",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/runtime_inference/general_endpoint.rs"
-    },
-    {
-      "fingerprint": "sha256:251b334ea4b6f12e512c8c36f4b19eca5aed8132ed80dffb3eaa8f176a006935",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/episode_policy.rs",
-      "relation": "imports",
-      "target": "src/facade/cva.rs"
-    },
-    {
       "fingerprint": "sha256:252ae8ad54d7c286c93f2f2178c214fbb7228a397f0b1cc952b7fb550e04a057",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -5320,6 +5312,14 @@
       "source": "src/runtime_inference/dream_duplicate_tests.rs",
       "relation": "calls",
       "target": "src/facade/historical_dream_pair_fingerprint_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:25627c32535b781d47c127dcf59b4dd2bd785b1ae0b59f448d1f351c1777ca12",
+      "rule_id": "convergence-freshness-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/freshness/freshness_rewrite_baseline.rs",
+      "relation": "calls",
+      "target": "src/maintenance/manifest.rs"
     },
     {
       "fingerprint": "sha256:259af265f6dcd1f82ca5beaf7af76c7620989b8cafda66864bc41b90f8009d97",
@@ -5472,14 +5472,6 @@
       "source": "src/retrieval/vector_generation_validation_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:263d1857b4d6d24665d1fdc765b19ec4bff62e924d9061345308f42e0d68c474",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_compact_writer_tests.rs",
-      "relation": "calls",
-      "target": "src/archive/conversation_tombstone_tests.rs"
     },
     {
       "fingerprint": "sha256:263fca87416d23f8ac2ce31d07caa33a6ad1cfe95f39ee7b38e1e00f3a4c1b81",
@@ -5706,6 +5698,14 @@
       "target": "src/facade/cva_reconcile_freshness.rs"
     },
     {
+      "fingerprint": "sha256:27b8d415b4e854b48bfd235e8639fe5caf6b94a60dc8797b8a3944127cae761f",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_cooldown_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/dream_pair_admission.rs"
+    },
+    {
       "fingerprint": "sha256:27c5c8d87536a75a0e93f626454882ad0aced7d65629205daba69c6c68eb43a4",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -5783,7 +5783,7 @@
       "issue": "forbidden_dependency",
       "source": "src/perception/relationship_publication_prune_tests.rs",
       "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
+      "target": "src/facade/owner_history_proof.rs"
     },
     {
       "fingerprint": "sha256:2825332ce894fb97c547f7fa361bfc5ef243ae941b5bd290f0daa848cafa00c9",
@@ -5864,6 +5864,14 @@
       "source": "src/semantic_graph/graph_compact_owner_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:28791319c931951a6fd8393181c356f5dc0bffb74423a69f0341597d92c3bbe8",
+      "rule_id": "convergence-freshness-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/freshness/freshness_rewrite_baseline.rs",
+      "relation": "calls",
+      "target": "src/maintenance/manifest.rs"
     },
     {
       "fingerprint": "sha256:287f7df7ed39d3a4e21a90e8eacf6eb85efff8e274420ba12414b85634ee1774",
@@ -5970,6 +5978,14 @@
       "target": "src/facade/cva_graph.rs"
     },
     {
+      "fingerprint": "sha256:292f781ee084663209320a36019e89d592491b66c57cbb8ef8b5e88062e16f5d",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/relationship_publication_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/insomnia_admission.rs"
+    },
+    {
       "fingerprint": "sha256:2933e8c9c2c9d48dd94bd0e5b5c3995de7af285d023b3a7c815b3e327701c0ba",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -6000,14 +6016,6 @@
       "source": "src/perception/entity_compact_writer_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_ego_compact_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:29612ceb3e5904680282abede0f91623b889e4b51a68d8673543de9b2cfe4924",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_store.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:2961dea439fa56bb56f84f0b96cb9e058124192b9b60cb2957c4ee43631ddcae",
@@ -6394,6 +6402,14 @@
       "target": "src/memory/memory_compact_codec_tests.rs"
     },
     {
+      "fingerprint": "sha256:2c880a15528c4ec529a4ec40e0ce00435005470075a8dd101a4ac798cdd2ad5b",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:2c9046b4cfa5545cfe55f20a9827ba9cc14b05bfbab2bc757189f9df73575033",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -6442,6 +6458,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:2caa0ef41bcdb4479d0388637c32b04de69ace63920a7d1ab361722f9d4810c4",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/cva.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_episode_policy.rs"
+    },
+    {
       "fingerprint": "sha256:2cb05cb6502eaeff5adaae059c05852d4ec82d7b61479a943621a2264b80c8c1",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -6480,6 +6504,14 @@
       "source": "src/ego/ego_lifecycle_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:2ce21bc21ed9e2c678e88e25c48b533208fb10710aa39262a8e8b798f56fdb79",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:2ceb9e5f9dd7efb4b11a6f62346f0b0122647ae1b112125bf55554ed2ad38e26",
@@ -6536,14 +6568,6 @@
       "source": "src/runtime_inference/runtime_host_gateway_conversation_auto_branch_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_promote.rs"
-    },
-    {
-      "fingerprint": "sha256:2d4b7c53c816353e10101441210febc512215f1159dce184ebf0ebfddf64ab43",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:2d4b8b7d7bb2b4b36cf98dd80c8f46af9c1df2fc0f728751336590acfb225c81",
@@ -6863,7 +6887,7 @@
       "issue": "forbidden_dependency",
       "source": "src/semantic_graph/semantic_graph_reconcile_tests.rs",
       "relation": "calls",
-      "target": "src/perception/entity_principal.rs"
+      "target": "src/perception/entity_principal_identity.rs"
     },
     {
       "fingerprint": "sha256:2f9ed2f3a106b1e45bf6c9a4982d337337e3bc47a0a1c83b188c314434592d06",
@@ -6888,6 +6912,14 @@
       "source": "src/perception/entity_resolution_engine.rs",
       "relation": "calls",
       "target": "src/facade/cva_principal_repack.rs"
+    },
+    {
+      "fingerprint": "sha256:2feb6995c93f8d2516e92aa625eef9339b70060dd26c945a5913898be64450a3",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:2ff84ab4a5ee2618f04e6c7f0932ef26d605241d572c2a5c6592cd94b257dac8",
@@ -6920,6 +6952,14 @@
       "source": "src/runtime_inference/dream_cooldown_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:309b5d46707dade7a254babf6139e289cdfb83127feafc21f219300267123d6c",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/interaction_stream_compact_tests.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_rebuild.rs"
     },
     {
       "fingerprint": "sha256:309ec0fb31d9d5acf5d0ed4722983ac1deffecfe4a3ec0da43c5df8b45b9b292",
@@ -7064,14 +7104,6 @@
       "source": "src/archive/archive_activity_preservation_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:312fc12fc356649e29cb2e8b61872d060e644aa4988424bf510e2be929614da4",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_reconcile.rs"
     },
     {
       "fingerprint": "sha256:3145d759559f4f6cd68e13edd592d9906a2e1bb54dd5745974d830b4ad0764df",
@@ -7786,14 +7818,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:3777edaf6cdd4b7123c78bb6abfc003558f2f8beb31324e32a27da345079995d",
-      "rule_id": "convergence-retrieval-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/retrieval/vector_generation_rebuild.rs",
-      "relation": "imports",
-      "target": "src/archive/archive.rs"
-    },
-    {
       "fingerprint": "sha256:3780d36cffaa4bc88f29627c28d15d3294c06bcf3541a0f82bf5999f46e56e47",
       "rule_id": "convergence-history-rewrite-direction",
       "issue": "forbidden_dependency",
@@ -8000,14 +8024,6 @@
       "source": "src/retrieval/vector_generation_validation_tests.rs",
       "relation": "calls",
       "target": "src/archive/archive_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:38f7487d25dff4a19c42d9b5c6e57085ad3baabdbf4b2476064d52c85256c62f",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_store/grouped_publish.rs",
-      "relation": "imports",
-      "target": "src/runtime_inference/insomnia/completion.rs"
     },
     {
       "fingerprint": "sha256:38ff88d3ef7cd3651b9257070f43ca340d2df1c1627ad1be006132734a7baf7e",
@@ -8586,14 +8602,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:3cd44ead50fcbaaa0c07920d4c41f9388a4ca2e196504ea735335f49fdf8e612",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_freshness.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
-    },
-    {
       "fingerprint": "sha256:3cded3ce609626ecd201464458be33e633bf04e075544f08dc96205e6ae891b0",
       "rule_id": "convergence-container-direction",
       "issue": "forbidden_dependency",
@@ -8640,6 +8648,14 @@
       "source": "src/memory/memory_codec.rs",
       "relation": "calls",
       "target": "src/perception/relationship_model.rs"
+    },
+    {
+      "fingerprint": "sha256:3cf7e7665ac8b759d758a0bc29ce760916355f06c80a868c562603403615a978",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/entity_resolution_store_lifecycle.rs",
+      "relation": "imports",
+      "target": "src/memory/memory_model.rs"
     },
     {
       "fingerprint": "sha256:3d0694fb1aaf628aa662170c0d759f9f0c4881c928a8badba18fab3446d4e4a5",
@@ -8736,6 +8752,14 @@
       "source": "src/imports/readiness_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:3d7493b2b6efc5b7f51d4474312f7d9fd59dc306b6e5cc80a3cc87834cd5a047",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/relationship_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_dream_population_tests.rs"
     },
     {
       "fingerprint": "sha256:3d8428fd3db09f4b77686508bdb413043481532b1d2d30e71acefac6f11274da",
@@ -9098,14 +9122,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:40047dbed809d4505d9e6e605c182c7bd0a8faca962d364a84bb1b2f0aff7978",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
-    },
-    {
       "fingerprint": "sha256:40131d4674a887226bc1a77d2ed3511ed309b88437184a9b892d1410368f13c3",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -9120,6 +9136,14 @@
       "source": "src/runtime_inference/insomnia/grounding_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
+    },
+    {
+      "fingerprint": "sha256:405662abe35fe771f2af22a85f2c4288b13cc4427062becfc63ee2c3f790beed",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:405e32ba067246ab69fec0a0da89e0622eb2cf4f1b691ce6976dfa02a45680cd",
@@ -9218,6 +9242,14 @@
       "target": "src/freshness/trace.rs"
     },
     {
+      "fingerprint": "sha256:40c7b03274367b886c00b6a5b9e8d18be545e153944a712f5d1b2035891e76b8",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/entity_resolution_owner.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_store.rs"
+    },
+    {
       "fingerprint": "sha256:40d98b6cd295b1c3e3dddca5e86eeed73c9dacb570ff1f6c46cb2877c7dfc05f",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -9296,6 +9328,14 @@
       "source": "src/config_security/config.rs",
       "relation": "calls",
       "target": "src/runtime_inference/model_switchboard_codec.rs"
+    },
+    {
+      "fingerprint": "sha256:4175c06ad6b1b462190c29ed8f9272be744553e47ab5435efb097123ab87025d",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:418f84c8fb4314d6595a539e3cf3e5be8d35c895a578096cd1f3d4324bec2c8d",
@@ -9738,6 +9778,14 @@
       "target": "src/facade/phylactery_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:4431878eafacb14700bd409f6b69f74bef1ec8eb3196c0c891d00921fb1b9b95",
+      "rule_id": "convergence-ego-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/ego/ego_compact_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/insomnia_admission.rs"
+    },
+    {
       "fingerprint": "sha256:443b8443aebfe422175d80d430261c363fa2af7debd49ad932df0d2f01c9c559",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -9815,14 +9863,6 @@
       "issue": "forbidden_dependency",
       "source": "src/imports/reconciliation_memory_envelope_tests.rs",
       "relation": "imports",
-      "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:44acce08e1fd7fbd3db49d08285c16e666179f0e7cba6c87372f80aee6315ef9",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
       "target": "src/facade/cva.rs"
     },
     {
@@ -10010,14 +10050,6 @@
       "target": "src/memory/memory_compact_apply_tests.rs"
     },
     {
-      "fingerprint": "sha256:45b863c45cbd0ac1cf41499760fd0571de2694cb0651551e4917df898247ab55",
-      "rule_id": "convergence-retrieval-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/retrieval/vector_generation_validation.rs",
-      "relation": "imports",
-      "target": "src/archive/archive.rs"
-    },
-    {
       "fingerprint": "sha256:45c8be9e72c246e4306e9d03599cd8306bd4073e9367f7ba5b862951fdfa1de6",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
@@ -10154,14 +10186,6 @@
       "target": "src/facade/phylactery.rs"
     },
     {
-      "fingerprint": "sha256:46c042a82fb3f0df73c23eefcba1a22d7db01b3984e76b9f8c3a9301d750baec",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:46c7a2592f48a9a95b5acd10c22d5e7803eeff0d10e3d034b7546cc61cda98b4",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -10256,14 +10280,6 @@
       "source": "src/semantic_graph/graph_compact_owner_tests.rs",
       "relation": "imports",
       "target": "src/facade/phylactery.rs"
-    },
-    {
-      "fingerprint": "sha256:47396d3cb1bfb2fb0c09e7d14f34de6767b47ca3a825fde0b9234bbb01792bb2",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:4740b1392490324ee55324a62644f2881aa93bd04ca525b28fd0ad97496be7dc",
@@ -10520,14 +10536,6 @@
       "source": "src/semantic_graph/semantic_graph_reconcile_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_graph.rs"
-    },
-    {
-      "fingerprint": "sha256:494060db196123abb3ca76adf17fec8c04687bb56d90cd0b660997f20aa732cb",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_error.rs"
     },
     {
       "fingerprint": "sha256:49683be53541ee53d07d1bb840c4869322172a62ac4e063c7c21b4426e8f6346",
@@ -10806,6 +10814,14 @@
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
       "source": "src/perception/entity_publication_prune_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:4b7cd94639637102a3102e8f18743575e45d531fc4f107c9d80080cd245e0725",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
     },
@@ -11266,14 +11282,6 @@
       "target": "src/archive/episode_model.rs"
     },
     {
-      "fingerprint": "sha256:4ee6379cd75c615edfcdf9831bad642928e9096a6b2b86352b45dd332877dd82",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_conversation.rs"
-    },
-    {
       "fingerprint": "sha256:4ee796369b9ff26ea7b90cfb99d4b8a5629541c64d234fde0e1439cbd525ff2b",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -11514,14 +11522,6 @@
       "target": "src/facade/cva_reconcile_graph_policy_tests.rs"
     },
     {
-      "fingerprint": "sha256:508994de3ba1040845777825f7f829d900adef25e84a1ac13cc37efc3c49e442",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_source_time.rs",
-      "relation": "imports",
-      "target": "src/archive/archive.rs"
-    },
-    {
       "fingerprint": "sha256:50cab4ee087c05cfd7956540a587901266a8cfa9b8284002707d400beba56800",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -11544,14 +11544,6 @@
       "source": "src/imports/readiness_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:50d75f27e8dc41b0a7f8894dbda623426d57f774e5930089e754e4d4ea7e85cf",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva.rs"
     },
     {
       "fingerprint": "sha256:50dcbb85e394f7f71bd059a75af82a13ae8ec7b9b6c92d4de30a5795a7f23529",
@@ -11714,14 +11706,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:521a4002d3f46c97247d11e9d3df8c263c9474b8fc0cc530f4a53de1b6f9d064",
-      "rule_id": "convergence-retrieval-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/retrieval/vector_generation_validation.rs",
-      "relation": "calls",
-      "target": "src/archive/fragment_store.rs"
-    },
-    {
       "fingerprint": "sha256:5228e22a535aac02c6493ead6d1efd9cc8463e7a18f63435ed40c673970db122",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -11768,6 +11752,14 @@
       "source": "src/retrieval/lexical_index/memory.rs",
       "relation": "calls",
       "target": "src/memory/memory_store.rs"
+    },
+    {
+      "fingerprint": "sha256:52596328e4aed8ce05862e972f6ee49ec3bfd1f608220a1161d3f5ffc615bed6",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_pair_history_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_dream_population_tests.rs"
     },
     {
       "fingerprint": "sha256:526c00a91d71e566bd321c509dd6967224dc5ccb1998b63f260d8a3e3d9070a3",
@@ -12138,14 +12130,6 @@
       "target": "src/archive/archive_import.rs"
     },
     {
-      "fingerprint": "sha256:551df0c3d31d35492e5573932c9efd5e87cb1625221ee281a5589892538363b1",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_error.rs"
-    },
-    {
       "fingerprint": "sha256:5521de3201bb966498beeff040320a22f3a076cf7bb52ca72633ee240e151fe8",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -12162,12 +12146,28 @@
       "target": "src/archive/archive_tests.rs"
     },
     {
+      "fingerprint": "sha256:552dbf27ec8ecae01cfb2c36b886e3ea63570cc7bf79dd946c2558d792944415",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:552e678fde4d85c7ea564c3e49cfc48c8fbc5e9cc9bf4400cf9d884633eab619",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
       "source": "src/memory/memory_tests.rs",
       "relation": "calls",
       "target": "src/archive/archive_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:55323102f42e39beeeaa3a0321213c892f3e7af68855f9da4597b53b94ded665",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_conversation.rs"
     },
     {
       "fingerprint": "sha256:5533f60e7fa9c6b8a75171f705e02eb5492ed3659f30c6566e30750be16df8d2",
@@ -12514,12 +12514,28 @@
       "target": "src/runtime_inference/decision_endpoint.rs"
     },
     {
+      "fingerprint": "sha256:57a6f08262c388b01ef19fd02a44a8d9091ca9867e54fbb14c8843aa9356021f",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/publication_compact_tests.rs",
+      "relation": "imports",
+      "target": "src/source_identity.rs"
+    },
+    {
       "fingerprint": "sha256:57bc6a0866224eb94f47de85456078fef87d306c1d9301befb74d593cf5833eb",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
       "source": "src/perception/entity_resolution_codec.rs",
       "relation": "calls",
       "target": "src/archive/archive_codec.rs"
+    },
+    {
+      "fingerprint": "sha256:57d3eb75835eebb3a90bdfab8e1f1b565edd45d644a93bdbd5dcf24be9a4d207",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_temporal.rs",
+      "relation": "calls",
+      "target": "src/facade/memory_source_time.rs"
     },
     {
       "fingerprint": "sha256:57d89eaeebc94254e83bcb0ecba2ef4f59c9d8d2ff399ea519d36d581c8be1e8",
@@ -12746,14 +12762,6 @@
       "target": "src/facade/cva_reconcile_derived_tests.rs"
     },
     {
-      "fingerprint": "sha256:5962f5b066ea67927c31d76cfbcd82fb480238dead3f67b741072605447518cd",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/archive_history_prune.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
-    },
-    {
       "fingerprint": "sha256:598580a326658f12559527095fb8ad9f605e0dbfb25c759c6e408cb629028452",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -12768,6 +12776,14 @@
       "source": "src/perception/entity_reconciliation_inference.rs",
       "relation": "imports",
       "target": "src/runtime_inference/general_endpoint.rs"
+    },
+    {
+      "fingerprint": "sha256:599d7fa047ba24fdbb8bdebcf758c1b8f57c5a57c375e9384083a4544e71c6e6",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_publisher.rs",
+      "relation": "calls",
+      "target": "src/facade/memory_source_time.rs"
     },
     {
       "fingerprint": "sha256:59af43ba1190c55f034b58eea054a8ac1e27d3f1bf5820d220ba0d4a8393023b",
@@ -12792,6 +12808,14 @@
       "source": "src/imports/readiness_tests.rs",
       "relation": "calls",
       "target": "src/facade/historical_recovery_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:59c9703f9d83925ada52398b430c0b955b1c9589de503661791d083f3a961d6c",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_cooldown_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/dream_pair_admission.rs"
     },
     {
       "fingerprint": "sha256:59d277d35d1a87a578241400c481d96cfc93a72aa3b71073c05fb0a79cba1e3c",
@@ -12874,6 +12898,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:5a6b752494ca85c57d56959396995bf6115438a42b69f4d8acedbd1f0a8d8b0e",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:5a7887d9a1a915e94348fb9a0a835ac912008fa2644f4713cd82ebab66b4e432",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -12952,6 +12984,14 @@
       "source": "src/semantic_graph/graph_codec_tests.rs",
       "relation": "calls",
       "target": "src/memory/memory_model.rs"
+    },
+    {
+      "fingerprint": "sha256:5ad4d82813e956d3fcc3e0aeefd45a520906bc77b65068ef23c59ddd6ab3b179",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/conversation_tombstone_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_conversation_tombstone.rs"
     },
     {
       "fingerprint": "sha256:5aef3069b6cbb87aadeeef974d37df3df2d8d07e27a18e273bb657658ef96116",
@@ -13098,6 +13138,14 @@
       "target": "src/facade/cva.rs"
     },
     {
+      "fingerprint": "sha256:5bc74108a30a574f78d7fd396b4d60904ec405068ae775364e4902d869409565",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/entity_merge.rs",
+      "relation": "imports",
+      "target": "src/memory/memory_error.rs"
+    },
+    {
       "fingerprint": "sha256:5bcb33d44060a5b5f118fea15f15d34b27689043ad96a4858c5dd49e730b0bdc",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -13144,14 +13192,6 @@
       "source": "src/project_environment_tests.rs",
       "relation": "calls",
       "target": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:5bd9a7d4353ebdc429a6bfec7985f9cf19096352be44ab98ed0df0862ae14726",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:5bde4cc422d8546dfae589650aabec3126c0a9722ed814de22fec4bca71b3add",
@@ -13202,6 +13242,14 @@
       "target": "src/archive/conversation_tombstone_tests.rs"
     },
     {
+      "fingerprint": "sha256:5c15fd725d658c3ef77d4fb9fa670bccccbde9833a2bf57d7c051b491c3662ec",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/publication_compact_tests.rs",
+      "relation": "imports",
+      "target": "src/source_identity.rs"
+    },
+    {
       "fingerprint": "sha256:5c1ff86aa4a1351b257b95474c6d4527bd7b33244ae54779dbdd7c419697aa87",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -13216,6 +13264,14 @@
       "source": "src/perception/relationship_publication_replay_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery.rs"
+    },
+    {
+      "fingerprint": "sha256:5c53f1bf8d24c7cfbb060ee11945b8061ddbee60b41de3df02521709df9773f1",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:5c574f989131872b1d405a597611d21796911fc859f28fa74438a1d9c5fd733f",
@@ -13298,14 +13354,6 @@
       "target": "src/config_security/credential_tests.rs"
     },
     {
-      "fingerprint": "sha256:5cbb1dc38f76e9cfdccbace5257aca6118431453439fab8d7130b4c3a2f18ec2",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/reconciliation_freshness_authority_tests.rs",
-      "relation": "imports",
-      "target": "src/facade/cva_freshness.rs"
-    },
-    {
       "fingerprint": "sha256:5cbef8c2e86d6071a6ddc7f846d8d9eee8a8f15ecca9878a73e9dc016e6a152d",
       "rule_id": "convergence-semantic-graph-direction",
       "issue": "forbidden_dependency",
@@ -13336,6 +13384,14 @@
       "source": "src/perception/entity_principal.rs",
       "relation": "imports",
       "target": "src/memory/memory_model.rs"
+    },
+    {
+      "fingerprint": "sha256:5ce9907a2d2ee4b12fca6ad703c6b36336d8ce51504dbeca7c29cf44bcd0e471",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:5d15eabad1934a0eb051cf1e03f0a4f95f49cac7f5d433eb4f6728544f42fd2a",
@@ -13626,14 +13682,6 @@
       "target": "src/config_security/credential_tests.rs"
     },
     {
-      "fingerprint": "sha256:5e68a636f901dd44303ce407e337eedd446ddc2cf6c6dd2fc774b91ae20f1dbb",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_compact_writer_tests.rs",
-      "relation": "calls",
-      "target": "src/archive/conversation_tombstone_tests.rs"
-    },
-    {
       "fingerprint": "sha256:5e84767445a31f58245a9ccdc7fc99e03b53eb3f7e491a136ea8dc37974a2633",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -13704,6 +13752,14 @@
       "source": "src/perception/entity_reconciliation_prepare.rs",
       "relation": "imports",
       "target": "src/facade/cva.rs"
+    },
+    {
+      "fingerprint": "sha256:5ef0db94f035c1dc2e480ea1c82a40c77521cac2394f4ea15eb22ff17b8b2a30",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/entity_compact_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/insomnia_admission.rs"
     },
     {
       "fingerprint": "sha256:5ef3c0016424b0978219b49d810ff1f9a9b6be8b06ed2ecd44ae789d9924957e",
@@ -13822,14 +13878,6 @@
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
       "source": "src/retrieval/vector_generation_validation_tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:5f553fe3de2207212b3005c99abc990dea2f3454e420519851670ff2d4c5c811",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
     },
@@ -14154,6 +14202,14 @@
       "target": "src/facade/phylactery.rs"
     },
     {
+      "fingerprint": "sha256:617e5fb131e170415731fd4fd19a0cf1e6328b42c30336485693ce522b7e014f",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_pair_history_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/dream_pair_admission.rs"
+    },
+    {
       "fingerprint": "sha256:61ce3bf4261f4a7fd9c11001f3b1512192b4cbc425f3cc686eda7bb40ccd6f8e",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -14200,6 +14256,14 @@
       "source": "src/runtime_inference/insomnia/queue_recovery_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:62480577e2be7bd95d442cb36b74b60a39a75b9f72fda02edcf280b0105ac43d",
+      "rule_id": "convergence-semantic-graph-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/semantic_graph/graph_compact_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/archive/conversation_tombstone_tests.rs"
     },
     {
       "fingerprint": "sha256:6265b92baddcbc8856e16d93738c6bdda14be43f7f5cde90eca5a34f717a7c74",
@@ -14362,14 +14426,6 @@
       "target": "src/facade/cva.rs"
     },
     {
-      "fingerprint": "sha256:638fba3721c7491659044d80fa8eeacd0cfb4021be283202a52dedf92d77f691",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/relationship_store.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
-    },
-    {
       "fingerprint": "sha256:639e220c3bee582faf6f2c3af5bb1ad2b2bd8f8ef2ccecbb60d58e68a6da1a4e",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -14405,7 +14461,7 @@
       "fingerprint": "sha256:63b145eb614e976b2e3f6e8a6c0aa739b7897f4ca0b9e5faffb45e746c61dfa3",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
+      "source": "src/perception/entity_resolution_owner.rs",
       "relation": "calls",
       "target": "src/memory/memory_error.rs"
     },
@@ -14570,14 +14626,6 @@
       "target": "src/facade/dream_population_authority_tests.rs"
     },
     {
-      "fingerprint": "sha256:64c84ba7731893fdd668cd9d62753b79b7ee8d303223dffcf984a1a5e15b1d10",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_freshness.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
-    },
-    {
       "fingerprint": "sha256:64cc1d07d14294522cd5e9dd520b651bdd6d748a75c05bfde721f1f79b95cd49",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -14616,6 +14664,14 @@
       "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:652d0be4a95043f3f347cb84b19efbf4a50a175a070b42ab7a73c41bce5f2f13",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/compatibility_profile_validation.rs",
+      "relation": "imports",
+      "target": "src/runtime_inference/embedding_endpoint.rs"
     },
     {
       "fingerprint": "sha256:653376ea581666e33336e11b5ee83d50e536ace89507c43cac38686f25c734b6",
@@ -14816,14 +14872,6 @@
       "source": "src/runtime_inference/interaction_background_tests.rs",
       "relation": "imports",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:6681955f229a96361892a53d0941617307fa20d6bb5c901d0c92887402a164de",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_store_validation.rs",
-      "relation": "calls",
-      "target": "src/perception/entity_store_read.rs"
     },
     {
       "fingerprint": "sha256:669466e7013a3c9a4bdec5053f943fd4f0e89daf3b4ff9abb13f5f5ef4b574a6",
@@ -15250,14 +15298,6 @@
       "target": "src/facade/cva_turn_ingest.rs"
     },
     {
-      "fingerprint": "sha256:69928279bdc99a7d71e6ee2e6594b76b3be60cbc00c0a8ad2c36059a81dac908",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_store.rs",
-      "relation": "calls",
-      "target": "src/archive/episode_store.rs"
-    },
-    {
       "fingerprint": "sha256:69a72314b60d854e171d850e2a4ae0b169ba6d1791a9d7e2d68943442b620f00",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -15434,14 +15474,6 @@
       "target": "src/facade/phylactery.rs"
     },
     {
-      "fingerprint": "sha256:6a8ecb740aea45b084647ccb32050619e2d00d7887e5e5bf426dd945eb386a9a",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_error.rs"
-    },
-    {
       "fingerprint": "sha256:6a9a6d656b680cf26894f41885d3edcad29edb03984957949a38c4094a3d06d4",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -15498,6 +15530,14 @@
       "target": "src/facade/cva_error.rs"
     },
     {
+      "fingerprint": "sha256:6b024d542e4165d0df840bd21efef618551741ab95ae9cc65b514bf73fdd6709",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva.rs"
+    },
+    {
       "fingerprint": "sha256:6b042430b2f83c26bada8997c90739ff2d0ab6f839ff0bf388537cfd065d33cf",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -15520,14 +15560,6 @@
       "source": "src/runtime_inference/dream_cooldown_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery.rs"
-    },
-    {
-      "fingerprint": "sha256:6b23a0a027b055a2b82b422d72fe43760d367d4b7270b359c9ab2b09a8890368",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:6b23a11f1e99d30d7f283ebb032f8a59bf61c1c206ee6663675efb9c25f8123f",
@@ -15642,14 +15674,6 @@
       "target": "src/archive/episode_policy.rs"
     },
     {
-      "fingerprint": "sha256:6bea2b4649cddb2c8c14a9b7b21fdb02d87e74c9f43dcc3e3f5b1ee6dd14dc6e",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_freshness.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
-    },
-    {
       "fingerprint": "sha256:6beae5dc982fbf2e80997601949ec71f2ef7e38cd8d82528a70001623e57d089",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -15688,6 +15712,14 @@
       "source": "src/perception/relationship_publication_writer_tests.rs",
       "relation": "calls",
       "target": "src/ego/ego_compact_writer_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:6c2784b132ea8e119509be01218236a84ec15e44ca6aabe9d216fd887bf1e3f4",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/archive_vector_tests.rs",
+      "relation": "calls",
+      "target": "src/archive/archive_tests.rs"
     },
     {
       "fingerprint": "sha256:6c2a713fd36142be2a2f265e6a5b52a9165a1a5bb2ed5071de39fc83a298c158",
@@ -15858,14 +15890,6 @@
       "target": "src/facade/cva.rs"
     },
     {
-      "fingerprint": "sha256:6d3570cca7a00d1ecea510a7cf5f442de74de2f19fb395d6a6dfc1cd9fec526e",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:6d36bf479fe5fc2e2157c95533bfb3265218501a13277fafe4c545278503b17f",
       "rule_id": "convergence-semantic-graph-direction",
       "issue": "forbidden_dependency",
@@ -15904,14 +15928,6 @@
       "source": "src/runtime_inference/insomnia/ownership_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:6d5e00d0839228e7e2849112a311b748fa74609b91686fe5012daa4a08c5a753",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_freshness.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_freshness.rs"
     },
     {
       "fingerprint": "sha256:6d63235518ed004f3acc292259d0182791b34a4d1dad3bd5f399ee97b8460bf0",
@@ -16008,14 +16024,6 @@
       "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:6deec06b572320bdf2a73f27d1092c0584aefc54d4b396e8d08fb0c6f341b419",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/relationship_store.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:6df16e3ded1b450ef580050ed828102a8a0b069e56bcaa505fd8f4534663c49d",
@@ -16130,14 +16138,6 @@
       "target": "src/semantic_graph/community_model.rs"
     },
     {
-      "fingerprint": "sha256:6e8f09ab6775ada324c00ed3485bb6019f4aef3c30ba18b8b27a17a8dec0f208",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:6e9010d3657618368235570988dcfabe55b9176ecd02997675781788092aab93",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -16152,14 +16152,6 @@
       "source": "src/container/container_tests.rs",
       "relation": "calls",
       "target": "src/archive/archive_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:6edf308be1365e047d383839f96fd8a1b26272b6131dc7995c1169afe26f7e6d",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:6edf5c5993a3b71f8f5e33ea03c8270a365db6c805bf1022f1339308036ae2fb",
@@ -16282,14 +16274,6 @@
       "target": "src/runtime_inference/general_endpoint.rs"
     },
     {
-      "fingerprint": "sha256:6ff635956a50832a914199d4198f7d6d97b05fcfa5dcdae9d5c9763ec45d8147",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_error.rs"
-    },
-    {
       "fingerprint": "sha256:7005e6076a6c0a28c7700a4ad8884fa86ca6f64969c14a1a56f6bc47e6a13d71",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -16371,14 +16355,6 @@
     },
     {
       "fingerprint": "sha256:7068cb680a39a3dfc3966ea38e0d029eead399c741272b45f7b04bb2500c622a",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:70695d586bd83164d8e72a4cdaeaae2bbe42a6a5e169b6b484c0025891c00a48",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
       "source": "src/imports/tests.rs",
@@ -16472,6 +16448,14 @@
       "source": "src/perception/entity_compact_contract_tests.rs",
       "relation": "calls",
       "target": "src/memory/memory_compact_apply_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:70eebbb54ff679997fdce4f791cbb2a84eba5eaefbff51687ed92bad2153bdfd",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/cva.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_episode_policy.rs"
     },
     {
       "fingerprint": "sha256:710b7f39ae20c66e03bf387bc1f985e18721e4d3e473a152b31d012c3189def1",
@@ -16930,6 +16914,14 @@
       "target": "src/memory/memory_model.rs"
     },
     {
+      "fingerprint": "sha256:73e46b51ca9527db520284f412560cb30a6437fb766c041c9eccd26b0d2f59be",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/processor/application.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_error.rs"
+    },
+    {
       "fingerprint": "sha256:74150db8cfb4d48189efb70294a75b4ec356805ad37c794893e4d63c71c47fca",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -17018,6 +17010,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:74c0299629334e2846381e2c962b9d60e4bb99c50535cbc6511222c4dfd853a6",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/publication.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_model.rs"
+    },
+    {
       "fingerprint": "sha256:74cab4599ca3fdbdb61954e72fe9e4a883ac92a164828e36478bcd3ce4e9ae69",
       "rule_id": "convergence-container-direction",
       "issue": "forbidden_dependency",
@@ -17040,6 +17040,14 @@
       "source": "src/perception/entity_publication_replay_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:74ea6eb92e1b67126f3967761cc930e26cec8d229b492cd80b33a6651d969b13",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_pair_history_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/dream_pair_admission.rs"
     },
     {
       "fingerprint": "sha256:74eab084c5fde4348d936f3c40362b75f994d4826794549964f4674eaa0fc1d9",
@@ -17458,14 +17466,6 @@
       "target": "src/semantic_graph/graph_error.rs"
     },
     {
-      "fingerprint": "sha256:77c62d3c101b3ed51f4d3fca4b8f7cada19131f35021248238756bba3f7a34d2",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:77c7093dd07c8cd656a3e5af0149a2c5adc5bb67b6bb9f80a8c8f58325ca49cd",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -17616,14 +17616,6 @@
       "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:786caa3eae8cdd24b4e76280e42052f84acc0d502b0e77c27457c0928c92f63d",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_store.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:788de7d5b3a458ad08e322b1eba4bf673991958d4755293e56724eebfe344d65",
@@ -17898,14 +17890,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:7a4ffcea224890e09ceaf3554eb8b30186389bd6908e817ec3fc41b78188a1e5",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:7a5170446134e75889a67919d5b217e9d40b36aa7d3932d9fe674ad61b2ffb02",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -17994,6 +17978,14 @@
       "target": "src/facade/cva_turn_ingest.rs"
     },
     {
+      "fingerprint": "sha256:7ad782598235a0b021f077ae36cd4a74e795750cd53780d85e4f99a698d5fc5a",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_freshness.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_freshness.rs"
+    },
+    {
       "fingerprint": "sha256:7ad891dd946004d02f15b8308928def2379ac3def172254dacc0cd02623c40fa",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -18080,6 +18072,14 @@
       "source": "src/perception/relationship_compact_contract_adversarial_tests.rs",
       "relation": "calls",
       "target": "src/freshness/dream_begin_codec_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:7b60cf3342baf19e250e4f67b6dd41da388c0b28c72d906a19646530c9308421",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/entity_resolution_owner.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:7b62360800ac6a8b8caab572ee4a296ce8d7cb200a07c9f0785bcc56b5edc7dd",
@@ -18242,6 +18242,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:7cbc3a628eec498b677358054a2b0afc0ebdcda63b8d3757eda24f22ff3bb645",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/entity_resolution_owner.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_error.rs"
+    },
+    {
       "fingerprint": "sha256:7cdb66d4060eb9dd430b8f2ada5200aee9152f725cd88cbf91c0cc7bd857e3fe",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -18394,6 +18402,14 @@
       "target": "src/archive/project_history_model.rs"
     },
     {
+      "fingerprint": "sha256:7dd4dc4ae4ab4ebcb94ff77b9cbfaa54dff0c96337e52e5e513e83ef8811b005",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/relationship_owner.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_store.rs"
+    },
+    {
       "fingerprint": "sha256:7dd96f819b011f80198cea8a43a60847b756833460eaad5fdda88cc6bbf33cec",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
@@ -18490,14 +18506,6 @@
       "target": "src/facade/phylactery.rs"
     },
     {
-      "fingerprint": "sha256:7e53927dfbd25188e7b8d8ade8165e5772126e8fab9be7b7cdd46e2d0e8ce85c",
-      "rule_id": "convergence-retrieval-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/retrieval/archive_vector_store.rs",
-      "relation": "imports",
-      "target": "src/archive/archive.rs"
-    },
-    {
       "fingerprint": "sha256:7e55e347faf9bcde14298e276edceec2d6b2235c407bb80806ebe3a51ab532f9",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -18536,6 +18544,14 @@
       "source": "src/archive/project_file_attachment_tests.rs",
       "relation": "imports",
       "target": "src/runtime_inference/interaction_model.rs"
+    },
+    {
+      "fingerprint": "sha256:7ed616eee5f088597d252103e8640bc37460266184c8763c86afc69a92de5803",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/cva.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_episode_policy.rs"
     },
     {
       "fingerprint": "sha256:7ed9a9ca8ec7e7bcdb4bee6775f137cbfd5683c4e6f2b1ef0fecb3413ec38f90",
@@ -18834,14 +18850,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:80ddba563401e440aa02426cc94fec53cb887fdcab3d71a4afc0da467dfc3f01",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
-    },
-    {
       "fingerprint": "sha256:80ef5465144651bc6fd9a05fedf572d117dab5b967821b5b89142b62bdb3f13d",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
@@ -18906,14 +18914,6 @@
       "target": "src/facade/cva_communities.rs"
     },
     {
-      "fingerprint": "sha256:81226d68e17b5ce184ebe31935b2df1ee1bfec079de1db987dbe752c445df346",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:8152710b207330777cbcd7901083d8207a7235b64e7232fcb7aae6e69535377c",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
@@ -18928,6 +18928,14 @@
       "source": "src/runtime_inference/insomnia/cva.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
+    },
+    {
+      "fingerprint": "sha256:816a53232ed5fc9abcea528583106c68ed03b811a06fe902e89442592a25d191",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:816ff620287a05fb1074ed0078a4b19e95cae4405af00b4b5bb295cb11d3a88a",
@@ -18978,6 +18986,14 @@
       "target": "src/ego/ego_compact_codec.rs"
     },
     {
+      "fingerprint": "sha256:8200585e0935d07849fcc865505c8b4ebb32769678eddb622b0ca48ca4f59865",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_pair_history_tests.rs",
+      "relation": "imports",
+      "target": "src/facade/cva.rs"
+    },
+    {
       "fingerprint": "sha256:8202a1a534baa820cddc5a4ec4e9e547eb0765bf61d61d9d4631f755daaa7cb8",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -18999,7 +19015,7 @@
       "issue": "forbidden_dependency",
       "source": "src/archive/archive_activity.rs",
       "relation": "imports",
-      "target": "src/facade/cva_freshness.rs"
+      "target": "src/freshness/event_proof.rs"
     },
     {
       "fingerprint": "sha256:8216fabac4e22b04181e371a64a1f1e9476c1684961d2980f08a44db8b9abe4f",
@@ -19120,6 +19136,14 @@
       "source": "src/semantic_graph/community_scan_merge.rs",
       "relation": "imports",
       "target": "src/memory/memory_model.rs"
+    },
+    {
+      "fingerprint": "sha256:83144e475a00db470e031f7ecda875790caa60fbeec87d9eda78214ababb4de8",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:833e0323be63958ed1d20eca9ca32c22f600ab2d231acb731795cd7d998b6007",
@@ -19282,6 +19306,14 @@
       "target": "src/facade/cva.rs"
     },
     {
+      "fingerprint": "sha256:842c97624ab97200c1ec9cfdd85ed2221a85995fc49eba0246875506742f7414",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/archive_vector_tests.rs",
+      "relation": "calls",
+      "target": "src/archive/fragment_model.rs"
+    },
+    {
       "fingerprint": "sha256:842e2e8883462cf5edf0142478f6772479ba85b8418070de374c7ea6b6673719",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -19330,12 +19362,12 @@
       "target": "src/runtime_inference/dream_candidate_error.rs"
     },
     {
-      "fingerprint": "sha256:846bf3036a261c67c1e08adcd0de3752a025d9099e227228ae6ed2c9a3ba218d",
-      "rule_id": "convergence-runtime-inference-direction",
+      "fingerprint": "sha256:84699cee49be6c6fc7e7e0e84dbc20e9692d447a830387a64d5ab65484617d61",
+      "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_pair_history.rs",
-      "relation": "imports",
-      "target": "src/facade/phylactery.rs"
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:84755f2e53be52b7e637e658b07caf6e0025335b070eb22707830b08c33c48ab",
@@ -19850,6 +19882,14 @@
       "target": "src/archive/conversation_tombstone_tests.rs"
     },
     {
+      "fingerprint": "sha256:884a54249ec14c7669aa1f65208d1935ea4561db0f3ec7278554c4c38ac86a68",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_freshness.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_error.rs"
+    },
+    {
       "fingerprint": "sha256:885385ab9d817db4e058f1f39f13ed91720d9b56a291a125610d92744124998d",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -19986,14 +20026,6 @@
       "target": "src/facade/cva_dream_begin_transport.rs"
     },
     {
-      "fingerprint": "sha256:89361ec0f2994462d4a2dfd3bd8313b25e4e9e45c451be490ffba290dfec8518",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_store_validation.rs",
-      "relation": "calls",
-      "target": "src/perception/entity_store_read.rs"
-    },
-    {
       "fingerprint": "sha256:8948a07f97293e7ccae9b452c8e43d27761c4fcd324ab2b18fbdf17e963b14d8",
       "rule_id": "convergence-config-security-direction",
       "issue": "forbidden_dependency",
@@ -20106,6 +20138,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:8a064480666197e7512ab1150aa5b994bd1c0d3172288877d6d05726a1cb3b7e",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/conversation_tombstone_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_conversation_tombstone.rs"
+    },
+    {
       "fingerprint": "sha256:8a4ebca0b710f78c6471e93e635925194fbc15c5a6c054f5a0cbc33925028ec8",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -20152,22 +20192,6 @@
       "source": "src/runtime_inference/insomnia/runtime_step.rs",
       "relation": "calls",
       "target": "src/facade/cva_activity.rs"
-    },
-    {
-      "fingerprint": "sha256:8a73712ba1edbdfc7058160e023ba0f408ceda701e8cc9b699fb717613baee6a",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:8a7480dbaa27cc5ddd3e8baa34e1b5c4684ba13f7b843bbbf984a167056aa414",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:8a92dc66f20dc4c7ec158c73485836e9e3768b867f664ba0d6a36528874be812",
@@ -20264,6 +20288,14 @@
       "source": "src/runtime_inference/runtime_host_gateway_publication_tests.rs",
       "relation": "calls",
       "target": "src/facade/external_birth_prefix_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:8b43850d8bc32db03d38843f2f89552643affee3f2ad2210b4064a5dc33de5de",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:8b59c693369f9e8ca26667056d603351ec41de8c03e90516cdc68bbb02442611",
@@ -20386,6 +20418,14 @@
       "target": "src/archive/interaction_stream_compact_tests.rs"
     },
     {
+      "fingerprint": "sha256:8c2282cc9de048714cda86043fbbdf76dc06798bcc2d822225938ce4c3998d85",
+      "rule_id": "convergence-memory-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/memory/memory_publication_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/insomnia_admission.rs"
+    },
+    {
       "fingerprint": "sha256:8c25535cdf7cc0b0f5e71cc35801ff1509aee2b88fc705c4b32e80582592fe2e",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -20432,14 +20472,6 @@
       "source": "src/semantic_graph/semantic_graph_reconcile_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_conflict_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:8c67147add9f24b3e4481da4b9879489c8b2bf263c9f3296783ec3368a218cc0",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/episode_policy.rs",
-      "relation": "calls",
-      "target": "src/facade/cva.rs"
     },
     {
       "fingerprint": "sha256:8c6ff2537bdc4127c7b83a13419c3e55c1a7b7f48be959676283a270129698a9",
@@ -20510,14 +20542,6 @@
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
       "source": "src/runtime_inference/dream_publisher_tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:8cc95b60d05ba561cbebe10f448071b888c034bcf282a478bb5c6520e0d5186b",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
     },
@@ -20610,12 +20634,12 @@
       "target": "src/memory/memory_model.rs"
     },
     {
-      "fingerprint": "sha256:8d302d06b796a58e9ceb46ffd24c8934589d07f2eb58cefa88bf9dc67b46cb29",
+      "fingerprint": "sha256:8d3456754f515a12176bf0360a62380539498036b40f1befd6e091252f869509",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
       "source": "src/imports/tests.rs",
       "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
+      "target": "src/facade/cva_reconcile.rs"
     },
     {
       "fingerprint": "sha256:8d4deecfadc7eb67621f21cd2bedf5155b3302beeb3e92f14160145ad3feeae1",
@@ -20706,6 +20730,14 @@
       "target": "src/memory/memory_codec.rs"
     },
     {
+      "fingerprint": "sha256:8dcf4999f3d59ffd3c85c097bf58b9fe74a8a19dcb4e2170f132206b95bc385d",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/interaction_stream_compact_tests.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_rebuild.rs"
+    },
+    {
       "fingerprint": "sha256:8dd77923b4d8476e9b2a226fc876958ed894cec3e86e7df11878512770e2fd45",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -20752,6 +20784,14 @@
       "source": "src/memory/memory_publication_prune_tests.rs",
       "relation": "calls",
       "target": "src/facade/storage_reclamation_entity_compact_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:8e7e5d1b05d43b8e3fbf3207845c07deb84b26fec9957a0d600919817d51a537",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:8e82bc2ce57d3f09bd215cda239fd4f0a46c4553c4f03573569dfc3bda7c6cce",
@@ -21138,14 +21178,6 @@
       "target": "src/config_security/credential_tests.rs"
     },
     {
-      "fingerprint": "sha256:91ee8b261722d38e5b10883967de54f7bcb323e821b05fc86b9354f6385c6252",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:91f1f286d064427b45e0db963c1d4b2ceb092097bfe29b9b7901086482124ee1",
       "rule_id": "convergence-freshness-direction",
       "issue": "forbidden_dependency",
@@ -21160,6 +21192,14 @@
       "source": "src/perception/relationship_compact_codec_tests.rs",
       "relation": "calls",
       "target": "src/ego/ego_compact_delta_codec.rs"
+    },
+    {
+      "fingerprint": "sha256:92012e36bb248eeb4b3c148e51a9867f719dadfd839a98b0b6342097bbb16cf5",
+      "rule_id": "convergence-semantic-graph-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/semantic_graph/graph_compact_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/archive/conversation_tombstone_tests.rs"
     },
     {
       "fingerprint": "sha256:920d374bded5020458062904598fd0443d7f54974e325bcc6f02fa3273a87b92",
@@ -21314,14 +21354,6 @@
       "target": "src/archive/archive_codec.rs"
     },
     {
-      "fingerprint": "sha256:93721241b58ae09aded781cb7d04fac37e923a46780197c8c4a34fde17efad4a",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:938399839c3305527682ec65efb607c55c4804aaecb9c93fb58974307e88a231",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -21448,14 +21480,6 @@
       "source": "src/imports/reconciliation_memory_envelope_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:942f35d9776e9fe18261e87f78498e0b7095608be9ea1621bcbf1c8d662ffaff",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_freshness.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:944122bcfd91613e7aac512e509025ddd37a87d3eb516c66c95ffa627caeb3c7",
@@ -21642,14 +21666,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:957cc3954c59c5a0c54e8d78837bcba4cb7ac9f2ff5b5e2cd018392c5f7751ab",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva.rs"
-    },
-    {
       "fingerprint": "sha256:958317000a204c2decbe6628769a2770e170203bf877e9d36fcd542c6729557a",
       "rule_id": "convergence-freshness-direction",
       "issue": "forbidden_dependency",
@@ -21704,6 +21720,14 @@
       "source": "src/retrieval/memory_vector_tests.rs",
       "relation": "calls",
       "target": "src/runtime_inference/embedding_endpoint.rs"
+    },
+    {
+      "fingerprint": "sha256:961da49fbcff8013fd4adfd7a8ff3247a502b443894271745198354685fb30fd",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/publication.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_model.rs"
     },
     {
       "fingerprint": "sha256:9631509c30fbc3269eeac152b760430b920a878c5f97024cd17effd16626f906",
@@ -21954,14 +21978,6 @@
       "target": "src/imports/reconciliation_compact_memory_tests.rs"
     },
     {
-      "fingerprint": "sha256:97c81bf0d48c1d03eaf718b714970ef4752671388904239653331a460ec8ddd6",
-      "rule_id": "convergence-retrieval-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/retrieval/vector_generation_validation.rs",
-      "relation": "calls",
-      "target": "src/archive/archive_history.rs"
-    },
-    {
       "fingerprint": "sha256:97d2aed33ce8a42d4843d4815eacb72412865a431fb39fe880456a0d257f50ea",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -22186,6 +22202,14 @@
       "target": "src/facade/cva_reconcile_conflict_tests.rs"
     },
     {
+      "fingerprint": "sha256:995ae62b3446c994f5bd3bf35335ea1bd210863916f7d29473d62916cf479090",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/archive_vector_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:996a61e8877f93bfa5dfe12c0a12d7218666aa7d970c92be5db3f6e0a24b9482",
       "rule_id": "convergence-external-source-direction",
       "issue": "forbidden_dependency",
@@ -22264,14 +22288,6 @@
       "source": "src/retrieval/lexical_index.rs",
       "relation": "imports",
       "target": "src/memory/memory_error.rs"
-    },
-    {
-      "fingerprint": "sha256:99e74b7a6eba9ce8c0c2bc6b08c3e37e83b26cb33a42d89ed995c385bece2a1e",
-      "rule_id": "convergence-freshness-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/freshness/historical_oracle.rs",
-      "relation": "imports",
-      "target": "src/facade/cva_freshness.rs"
     },
     {
       "fingerprint": "sha256:99e8e54d7e9da4cfaefa2a75b0e17b915ba16f9937fbfdbdce1f1e6fd2792b7a",
@@ -22458,6 +22474,14 @@
       "target": "src/facade/cva.rs"
     },
     {
+      "fingerprint": "sha256:9ad7695ad4524cc5fb31b2a9f3169c5b10f1ad20b81dd65adf2a571660412196",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/project_file_attachment_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/interaction_runtime_project_file.rs"
+    },
+    {
       "fingerprint": "sha256:9ad7952af3b7bac22acb5546ac367cf9fa4852fa8f3bb10ca77febd490afdf9e",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -22544,6 +22568,14 @@
       "source": "src/perception/relationship_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_dream_population_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:9b6bcf7169a958a504dc2e8b2b7decabf02551c75be671b35e66b7084c176e07",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/episode_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_episode_policy.rs"
     },
     {
       "fingerprint": "sha256:9b6d576f7302603d7ed7125c019fb5dc542d4328ccfa3bc9072f99c3cc679f84",
@@ -22658,14 +22690,6 @@
       "target": "src/semantic_graph/graph_error.rs"
     },
     {
-      "fingerprint": "sha256:9c5755e4a81b03c13851955907dc32179cf08e69276ffae5bb7983854fd1d4d0",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:9c6a7ec37366ace29081b238525a822f8893506fe9544007398ad7f8f74f9806",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
@@ -22752,14 +22776,6 @@
       "source": "src/perception/entity_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:9cb90317c89ad6bd1b81a36c7fe72cd7862b28e24172da4f2ab4bd08f73b8499",
-      "rule_id": "convergence-freshness-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/freshness/freshness_rewrite_baseline.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
     },
     {
       "fingerprint": "sha256:9cc323d825bb9de44c3fbe29c0cbf2d6095a3262c11cd64428e3c37052036607",
@@ -22994,14 +23010,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:9e9039ee187a879166e18d18e820ce243a43bee2fc4c81c0be13ed609d6a2f91",
-      "rule_id": "convergence-external-source-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/external_source/publication.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_model.rs"
-    },
-    {
       "fingerprint": "sha256:9e9ce5968971c8733cde931ba92b4748ef14ef5c07a8516f8486c65a13301018",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
@@ -23016,14 +23024,6 @@
       "source": "src/retrieval/memory_retrieval_traversal.rs",
       "relation": "imports",
       "target": "src/memory/memory_model.rs"
-    },
-    {
-      "fingerprint": "sha256:9ebf3137c787bdd85aecb57c8e079b5ca81930bac61aee1591500e63397fcc5f",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:9ee0479c344a5a1880083ef8d4adb7c416a7423f900ce6a2308c45087c4fcd2d",
@@ -23104,6 +23104,14 @@
       "source": "src/perception/entity_compact_writer_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_ego_compact_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:9f5cdfd4c4aea97e7f9341b0b0a81ad234091707ff9e0690a34b7c9f818f1f6a",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva.rs"
     },
     {
       "fingerprint": "sha256:9f7332c7461b6e106cbf017457be4cfc2b5a2d2fdca9dfa0d955589ea57cce4d",
@@ -23338,6 +23346,14 @@
       "target": "src/facade/phylactery_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:a0eb64f08c4aa8054e5d9b66e8f967c406e2bbb7cd13821bf0da0bb7d8773490",
+      "rule_id": "convergence-freshness-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/freshness/freshness_rewrite_baseline.rs",
+      "relation": "calls",
+      "target": "src/maintenance/manifest.rs"
+    },
+    {
       "fingerprint": "sha256:a0f0ac27f6461d94d646cad83dd99175ae94c16166cae963c13017f2d735a390",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
@@ -23536,6 +23552,14 @@
       "source": "src/perception/entity_resolution_processor_tests.rs",
       "relation": "calls",
       "target": "src/config_security/config_io.rs"
+    },
+    {
+      "fingerprint": "sha256:a25d06cf8d95e36520718492dba4d50117f0d144f24993f851eb8001b826b38b",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:a262155606896c9919528e18006910355d472ddf023de9ff94b888114a506f9f",
@@ -23738,6 +23762,14 @@
       "target": "src/facade/phylactery.rs"
     },
     {
+      "fingerprint": "sha256:a3af140f861a8905c241b8e4c1ee781cc3abe7f0be780292955489e7a13ff22f",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:a3b00ce6ca5c22011f409db9a86d9ec6c124966d3770d0146bb318d7263f2bca",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -23784,14 +23816,6 @@
       "source": "src/runtime_inference/runtime_host_gateway_conversation_generation.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:a4255f90c9fc2e3050ab60c74a6dc90ae4b329a3d7711ffa0756983222a8abb6",
-      "rule_id": "convergence-retrieval-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/retrieval/archive_vector_rebuild.rs",
-      "relation": "imports",
-      "target": "src/archive/archive.rs"
     },
     {
       "fingerprint": "sha256:a428b8fd89bcd7446cd1c25b5b374c91da9d1def984eaa602b721b1905005d33",
@@ -24010,6 +24034,14 @@
       "target": "src/facade/graph_compact_proof_tests.rs"
     },
     {
+      "fingerprint": "sha256:a56b367e92dc0f0c101aee918c35385c357c1e45e27bbf48b4b56a0ab4892d6b",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:a5717099e6702c72fc7036089037912ff33ebfe8fc2133e6f14dafc81c4e8518",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -24024,14 +24056,6 @@
       "source": "src/runtime_inference/multiplexing_journal_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_dream_population_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:a57f727bf3fc5187543f7e6164f16d8d773128bd758d67b789b5d1ccc68095f1",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/insomnia/processor/application.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:a592881c3f8c2e1536a31e76be194ab1a9a33050cc89424e5346649a2af8660d",
@@ -24146,6 +24170,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:a66dc5d240ec92812bd82743ba43bb5118c72c9222f1af98c4cd7b597d836999",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/interaction_stream_compact_tests.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_error.rs"
+    },
+    {
       "fingerprint": "sha256:a66f2e5a7eea296bcbfc76934af0dde1427797a3a52abd6bbd7c4690161c00d4",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -24208,14 +24240,6 @@
       "source": "src/retrieval/memory_vector_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery.rs"
-    },
-    {
-      "fingerprint": "sha256:a6cb15b7b875a21dd895d1285168e672f25b2160abeff9abbcad51ddb26dc14b",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:a6d265dbaff3f7ccfae4c1d5820f2c41d140ca285121b4b861dcb23181b3607d",
@@ -24330,14 +24354,6 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:a7b49d98773eff26f946185adf3ed45f097606533adbff96d2459fc205b31729",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:a7d32991f72b98cadc7b6eea5af1dedb9dfa973abc08dee5726a2c41956b2ae4",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
@@ -24376,6 +24392,14 @@
       "source": "src/perception/relationship_compact_contract_adversarial_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_derived_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:a836b812fbe5370a0af1e00b97d873e260be6031a37edcdebf12b737e07b5c90",
+      "rule_id": "convergence-memory-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/memory/memory_compact_maintenance_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/insomnia_admission.rs"
     },
     {
       "fingerprint": "sha256:a85daa286a443f688033586716873a5016aff6e3d59526be897c44b06f53dd8b",
@@ -24666,20 +24690,20 @@
       "target": "src/facade/cva_reconcile_graph_policy_tests.rs"
     },
     {
+      "fingerprint": "sha256:aadde9e346fb86f222a138d47bc549f4daa1160419769c8f5b79972bb16efbb2",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/memory_vector_tests.rs",
+      "relation": "calls",
+      "target": "src/archive/archive_tests.rs"
+    },
+    {
       "fingerprint": "sha256:aafdcc2337e54a5ab495603a539f248ade99c40d6646f15147ca57693e4731eb",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
       "source": "src/ego/ego_compact_replay_tests.rs",
       "relation": "calls",
       "target": "src/perception/entity_compact_contract.rs"
-    },
-    {
-      "fingerprint": "sha256:ab187b14840c858121a0021d57e8fee34714dba0779ab96e45ce402e033b7086",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_store.rs",
-      "relation": "calls",
-      "target": "src/runtime_inference/insomnia/completion.rs"
     },
     {
       "fingerprint": "sha256:ab2797efde096b069e410c00a318a1a1f481883e2801c42bc97f44852195d318",
@@ -24741,7 +24765,7 @@
       "fingerprint": "sha256:aba82716cb536a6e12e8178ebbe0fa972c85eb0451ccaa729e7b1a7dac09f452",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
-      "source": "src/retrieval/compatibility_profile_probe.rs",
+      "source": "src/retrieval/compatibility_profile_validation.rs",
       "relation": "calls",
       "target": "src/runtime_inference/embedding_endpoint.rs"
     },
@@ -24882,6 +24906,14 @@
       "target": "src/facade/cva_conversation.rs"
     },
     {
+      "fingerprint": "sha256:aceb73b3483bcbfe5fb4c0214eb491d3157a95956ac5badad1e55aba41e7d52c",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:aceca9dde14f2707d6e83e9e30b0760cba70b2fc412bba6a6321c65fce9f9b3d",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -25008,6 +25040,22 @@
       "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:ae412241487186aab713dec6b94dcfa7406a39f91acc855956fcb5820353c90f",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/memory_vector_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:ae4f62ead646a4e53c66386ef245db38d47b9f358f385f938049f76cb018b3ef",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/cva.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_episode_policy.rs"
     },
     {
       "fingerprint": "sha256:ae50d2cf52cfa9ac0cfc49e3904a3f99c59b852a4c316516730f6d9ff76f50ea",
@@ -25189,7 +25237,7 @@
       "fingerprint": "sha256:afa8c164065f6553485dd46617b0753be13b446eaf2f10bb0f6f3c65cd349137",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
-      "source": "src/retrieval/compatibility_profile_probe.rs",
+      "source": "src/retrieval/compatibility_profile_validation.rs",
       "relation": "calls",
       "target": "src/runtime_inference/embedding_endpoint.rs"
     },
@@ -25538,14 +25586,6 @@
       "target": "src/archive/archive_import.rs"
     },
     {
-      "fingerprint": "sha256:b2065b7bf203f19f6ccddfe04ce5a404b6ccb5817b97ee037005b0fa2a6e6e6d",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/episode_policy.rs",
-      "relation": "calls",
-      "target": "src/facade/cva.rs"
-    },
-    {
       "fingerprint": "sha256:b2078112fd493beb3e6ee39e4191fc9bd0c518b28b170a8ddcb1398858422ecd",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -25642,6 +25682,14 @@
       "target": "src/facade/cva.rs"
     },
     {
+      "fingerprint": "sha256:b2a85ec035fd2626021501c681223f5de1df649bfc6454073199a9a08f8d5f1d",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/interaction_stream_compact_tests.rs",
+      "relation": "calls",
+      "target": "src/runtime_inference/insomnia/completion.rs"
+    },
+    {
       "fingerprint": "sha256:b2cc1e342d215b72aa3ee7b4c01bfebc0c016704ab45912d8be8d868cd114984",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -25664,6 +25712,14 @@
       "source": "src/imports/reconciliation_interval.rs",
       "relation": "calls",
       "target": "src/facade/cva_dream_begin_transport.rs"
+    },
+    {
+      "fingerprint": "sha256:b3182f444d48de4016933372dff84a32b1b649c7f70719b324caeed4c854f079",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:b31f1ce404b9184ed34bc983932fba39ff56669abc7387d2cc181e404e65205a",
@@ -26162,6 +26218,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:b6471ceeb9e7ea1a4454df12aba5727d4d3a708d2dacf6f667ffe7eb38299675",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/model.rs",
+      "relation": "imports",
+      "target": "src/source_identity.rs"
+    },
+    {
       "fingerprint": "sha256:b67865df610e7b87629093468bcb040a44e9372e980e05d87238119739148438",
       "rule_id": "convergence-archive-direction",
       "issue": "forbidden_dependency",
@@ -26210,6 +26274,14 @@
       "target": "src/archive/archive.rs"
     },
     {
+      "fingerprint": "sha256:b6efdc4ff047a4c92c7b35b46b0ff9f34ea877a7dd919408aa1d4d6be6eddd1e",
+      "rule_id": "convergence-retrieval-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/retrieval/memory_vector_tests.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_model.rs"
+    },
+    {
       "fingerprint": "sha256:b6f354a78a46b891daedaa618632e75932231d07c95376c36c83b5c71848af85",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -26224,6 +26296,14 @@
       "source": "src/runtime_inference/dream_community_naming_tests.rs",
       "relation": "calls",
       "target": "src/facade/historical_matrix_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:b706fdef7929897af94653eb60d3227946f33482c0cbec6dc2f9363f55162701",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_cooldown.rs",
+      "relation": "calls",
+      "target": "src/facade/memory_source_time.rs"
     },
     {
       "fingerprint": "sha256:b710a622f6132ed0cf2e2dea1bb4ddc42c9051e46446dd1326d9411424d2edb2",
@@ -26474,14 +26554,6 @@
       "target": "src/facade/cva.rs"
     },
     {
-      "fingerprint": "sha256:b8eb5aec40a2c09b005020e5c29335a3733d6920b0a602d88f3d9802686704ad",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_store.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
-    },
-    {
       "fingerprint": "sha256:b8ef2d83de3e7bf15f39ef75301a1921eb5c59b86c32697a6b88ae45609658ec",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -26504,14 +26576,6 @@
       "source": "src/semantic_graph/community_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:b90491be57ec9c9cd4cbb2f6f97a812c4b424432e6e08f1fe783f3ded8985c8c",
-      "rule_id": "convergence-freshness-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/freshness/freshness_semantic_settlement_tests.rs",
-      "relation": "imports",
-      "target": "src/facade/cva_freshness.rs"
     },
     {
       "fingerprint": "sha256:b90e1966a6d566d82c3829364385996b84c0f67278007d0aaa44c9d3a395d750",
@@ -26754,6 +26818,14 @@
       "target": "src/archive/echo_tests.rs"
     },
     {
+      "fingerprint": "sha256:bb23a112f21ac7797c56c4cc79389ac66662e453b97c14f377634dff3d56e462",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:bb76ced76355cfde71d10a9b325a60e222bfbe1a15fa19ccefeefc5a8e3452f4",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -26768,6 +26840,14 @@
       "source": "src/retrieval/lexical_search.rs",
       "relation": "imports",
       "target": "src/memory/memory_error.rs"
+    },
+    {
+      "fingerprint": "sha256:bb8e1a56d0728524d51ae6b354bd75a4d8e2d2dff4f4233fc353addb4ca572b1",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva.rs"
     },
     {
       "fingerprint": "sha256:bba11fbdfa63debdb229740e351288b49ddcc6cbaaceab57f1a242eab011a108",
@@ -26920,6 +27000,14 @@
       "source": "src/project_environment_tests.rs",
       "relation": "calls",
       "target": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:bcafa1640947daadf460ffa409a003de03de44355c77eea3842c1d47391c17a1",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_pair_history_tests.rs",
+      "relation": "imports",
+      "target": "src/facade/phylactery.rs"
     },
     {
       "fingerprint": "sha256:bcb05fd150a447b511fd6e9dffdac8883e5644f34239b486daecf631e3dc06e0",
@@ -27370,6 +27458,14 @@
       "target": "src/runtime_inference/model_switchboard.rs"
     },
     {
+      "fingerprint": "sha256:bf60952b80e2582efd0617dcd8bb90140c0b9fea4467dc84423df56b52b015b9",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/processor/application.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_error.rs"
+    },
+    {
       "fingerprint": "sha256:bf6335fac89905f543f1bc96c1aa956f5bc9736106d15b99039fe5cd1c1ab72a",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
@@ -27538,28 +27634,12 @@
       "target": "src/facade/cva_reconcile_ego_compact_tests.rs"
     },
     {
-      "fingerprint": "sha256:c04dfd83d8e741c6ac0a0cebdf6ea88fb691c1af00d0bc782959bf6c9ecd0795",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_pair_history_tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_dream_population_tests.rs"
-    },
-    {
       "fingerprint": "sha256:c05da3bafda602c219048bc2210f3132946bc6f8febe3f052ce9e7d3f4082ccb",
       "rule_id": "convergence-freshness-direction",
       "issue": "forbidden_dependency",
       "source": "src/freshness_storage_tests.rs",
       "relation": "calls",
       "target": "src/archive/archive_import.rs"
-    },
-    {
-      "fingerprint": "sha256:c07ea5cd22333bb75480652d0a3fbf1f532c2639e435eb7497e0addc89863988",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/archive_history_prune.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
     },
     {
       "fingerprint": "sha256:c09cce12c4b9d1098fdb0756183c3b1331f1cec879d73f42091b3628c7741832",
@@ -27762,6 +27842,14 @@
       "target": "src/facade/phylactery_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:c2345094aac554e6bd0ae130c8cdf53c714b1421d5366d13edf01e37472fa570",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_canonical.rs",
+      "relation": "calls",
+      "target": "src/facade/memory_source_time.rs"
+    },
+    {
       "fingerprint": "sha256:c235e67c32144ff381e2022db3ab093003897135093ffa3510b6a6b7740ee848",
       "rule_id": "convergence-container-direction",
       "issue": "forbidden_dependency",
@@ -27830,6 +27918,14 @@
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
       "source": "src/runtime_inference/dream_processor_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:c2c6cf5db6cef5b0b37337802adeefc509487d2388601ba5a39045c82157d79b",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
     },
@@ -27967,7 +28063,7 @@
       "issue": "forbidden_dependency",
       "source": "src/memory/memory_lifecycle_tests.rs",
       "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
+      "target": "src/maintenance/manifest.rs"
     },
     {
       "fingerprint": "sha256:c3cb8bfb5e2f18989081c83c86c388b64e3a9cdebb2a6dfab33ff10c2c07e70f",
@@ -28018,7 +28114,7 @@
       "target": "src/perception/entity_compact_codec_tests.rs"
     },
     {
-      "fingerprint": "sha256:c403eb19ef78248e28151f1b03ce87c19d2d686431d81e98312d447f49fe8429",
+      "fingerprint": "sha256:c420066b9751a43da0a21272a921b1077f1c68ef669f03fe526fde76684fb875",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
       "source": "src/imports/tests.rs",
@@ -28200,14 +28296,6 @@
       "source": "src/retrieval/vector_generation_tests.rs",
       "relation": "calls",
       "target": "src/ego/ego_compact_apply.rs"
-    },
-    {
-      "fingerprint": "sha256:c522c363cc919a0e376252474a1ec6cc56a3dd3fb90012495399d7e0ee2dc791",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/archive_history_prune.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
     },
     {
       "fingerprint": "sha256:c52734011e7a0d5bc6fbab3f5169d891bd33d092dc254541c8794f163c8f82d7",
@@ -28415,7 +28503,7 @@
       "issue": "forbidden_dependency",
       "source": "src/perception/relationship_publication_prune_tests.rs",
       "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
+      "target": "src/facade/owner_history_proof.rs"
     },
     {
       "fingerprint": "sha256:c68545b3f2a2252d84248cbe73c2b85fb83698286797e83c8afa9eae9b85cd70",
@@ -28464,14 +28552,6 @@
       "source": "src/runtime_inference/dream_canonical_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:c6a23461e1d6a73c72ac02ad5f1a156097edcdb71ac1cbeb1af36fc22a8bc8e0",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_codec.rs",
-      "relation": "imports",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:c6a369036ef4452b0c6ed80813f7947a9df0d4e5747a118b7e5cc1bfb343fc47",
@@ -28730,6 +28810,14 @@
       "target": "src/config_security/credential_tests.rs"
     },
     {
+      "fingerprint": "sha256:c83f2971ebc1bf918bcbaeea70e4b3fa09a0dc7b5fbfa005581296551db6af13",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/conversation_tombstone_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_conversation_tombstone.rs"
+    },
+    {
       "fingerprint": "sha256:c83f618faac2f993ead9ebf2aecbe00f76287d9291502b8c2f404fa111d1110a",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -28960,14 +29048,6 @@
       "source": "src/perception/entity_resolution_engine.rs",
       "relation": "calls",
       "target": "src/runtime_inference/decision_endpoint.rs"
-    },
-    {
-      "fingerprint": "sha256:c9b68b968be443077487a0a652a74ec72ee935b01c22a6c0c0574b7aec264bc2",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_store.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:c9c05af1f329b3d9d6657a8f8e43b882fae7ebec0208fd8dcd2cb29445a15e3b",
@@ -29290,28 +29370,12 @@
       "target": "src/facade/cva.rs"
     },
     {
-      "fingerprint": "sha256:cc35be418ec23f64f7f55539067f2ff052e9eaa55a10a195d36681f8202a51fb",
-      "rule_id": "convergence-external-source-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/external_source/publication.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_model.rs"
-    },
-    {
       "fingerprint": "sha256:cc3b0d94e325e6d99a4c0bbfc5bff2b99fdc9e764766e3924cd3abb89904e4b5",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
       "source": "src/ego/ego_lifecycle_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery_ego.rs"
-    },
-    {
-      "fingerprint": "sha256:cc4ed95ccff63ddabc4be44069467d3068b9cdbfa67b70ff345e527fc058c624",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_store_validation.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:cc6577287abbfd675942f1ccc774221369e4432780767754cc66510a2e497a62",
@@ -29448,6 +29512,14 @@
       "source": "src/memory/memory_temporal_codec.rs",
       "relation": "calls",
       "target": "src/archive/archive_codec.rs"
+    },
+    {
+      "fingerprint": "sha256:cd6c0ed20aafb67c20c1697c3f15e9d616733bfb2314b64c0102c4bdd0971cfd",
+      "rule_id": "convergence-semantic-graph-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/semantic_graph/graph_compact_writer_tests.rs",
+      "relation": "calls",
+      "target": "src/archive/conversation_tombstone_tests.rs"
     },
     {
       "fingerprint": "sha256:cd7528bcfe20645c2fa0db80deadc0b26c7668704f4532df0168360036f20d79",
@@ -29706,14 +29778,6 @@
       "target": "src/facade/phylactery.rs"
     },
     {
-      "fingerprint": "sha256:cf507bc9c5b989e506c7aa5abeed15c613ab8f05c3906804dc6482ead05a4dfa",
-      "rule_id": "convergence-external-source-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/external_source/publication.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_model.rs"
-    },
-    {
       "fingerprint": "sha256:cf6438bb0a37a88db3e9766fbf9db7a139f06e958ec7aa5a4989721bbb5666d3",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -29754,12 +29818,12 @@
       "target": "src/facade/phylactery_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:d0077d5ea27c17965f1d6657788d7895e82d359ed7f521d8a1c88a3354736c77",
+      "fingerprint": "sha256:d01179b5e8207b03c025a73c3017456b8b9dda885025166d67bdba5e5ca2c1b1",
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
       "source": "src/imports/tests.rs",
       "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
+      "target": "src/runtime_inference/general_endpoint.rs"
     },
     {
       "fingerprint": "sha256:d03366241c7747812542589a44ebcf8dbf3a3a40f8d6aa78fdf0131dd046cc8c",
@@ -29782,6 +29846,14 @@
       "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
       "source": "src/imports/readiness_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:d05970829d5bb0b60eee9e48525fa903f5a21cf60b1f93b29773d9ca3512fb5f",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
     },
@@ -29824,6 +29896,14 @@
       "source": "src/imports/readiness_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "fingerprint": "sha256:d0a4d82ee8f83ac8b3f104b669c6fff050a8cf25b463876670f658c8b85d5e62",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva.rs"
     },
     {
       "fingerprint": "sha256:d0abacf0dc60d934cc72d38447d5031fe4b41debdd168938e8339834d8f6ddca",
@@ -30002,6 +30082,14 @@
       "target": "src/facade/historical_recovery_tests.rs"
     },
     {
+      "fingerprint": "sha256:d1f8153af8b0efda9e563ad56b25397efae492a41285df6c5f99a59f15852fa0",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_turn_ingest.rs"
+    },
+    {
       "fingerprint": "sha256:d203564275e15bff875a86c4f7890a618134aa00e5b158aa361fbc833a614aed",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -30074,6 +30162,14 @@
       "target": "src/runtime_inference/runtime_host_gateway.rs"
     },
     {
+      "fingerprint": "sha256:d290b12ec435ea9f75358e527911c99e2e59b9a4024f1400558b7b27666cea81",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/mod.rs",
+      "relation": "imports",
+      "target": "src/source_identity.rs"
+    },
+    {
       "fingerprint": "sha256:d297f688fc828f90643ac4cded9e8425c9ab5da818e2366d08478473a2679278",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -30098,6 +30194,14 @@
       "target": "src/archive/archive_tests.rs"
     },
     {
+      "fingerprint": "sha256:d2a0d55170c046a8e8e6b2ac1238c55f0d306760dbaab21dbc82b1a38439e748",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_freshness.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_error.rs"
+    },
+    {
       "fingerprint": "sha256:d2a151f887d07fcd8f5e154316a414868b3757dfd22ad7b7baafe667d5acc149",
       "rule_id": "convergence-retrieval-direction",
       "issue": "forbidden_dependency",
@@ -30112,14 +30216,6 @@
       "source": "src/freshness/historical_propagation_tests.rs",
       "relation": "calls",
       "target": "src/config_security/credential_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:d2b985be6585db9717b3970fba32be3a4533c6750b5985a3b1f5a8e7e31fb794",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/insomnia/processor/application.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:d2c23617834c2a89eeba462f685ed5b6002a1642e4e2513f4e081e7e354a9113",
@@ -30378,14 +30474,6 @@
       "target": "src/archive/archive_tests.rs"
     },
     {
-      "fingerprint": "sha256:d4a0da202c9f8f232b279f2a5216341a1ca2c89282a3be9bea2024fdc96af48c",
-      "rule_id": "convergence-perception-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/perception/entity_resolution_store_write.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_error.rs"
-    },
-    {
       "fingerprint": "sha256:d4b7284181b3d8f4a0788c3e3391fe3edb6b376bd9ee9b97249bfa71326ccd8d",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -30490,6 +30578,14 @@
       "target": "src/runtime_inference/embedding_endpoint.rs"
     },
     {
+      "fingerprint": "sha256:d509c483ddbc48af971c8fd349a032fb355bf83b7e2b14230abd206ebb498c53",
+      "rule_id": "convergence-semantic-graph-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/semantic_graph/semantic_graph_tests.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_model.rs"
+    },
+    {
       "fingerprint": "sha256:d50d680bbe114c04ed6b40e3464838021c26683791d8acd8dff7e3b58e4e47c1",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -30562,28 +30658,12 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:d561439a603793319ed79fc80675fe1e5803b8fe1d35a12c478f6cd8247f5d1a",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/archive_history_prune.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
-    },
-    {
       "fingerprint": "sha256:d561546e719a10b67b752e12f87be9e9913d21d2e85dd95afc9b562826e017c0",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
       "source": "src/ego/ego_compact_codec.rs",
       "relation": "calls",
       "target": "src/archive/archive_codec.rs"
-    },
-    {
-      "fingerprint": "sha256:d56650e00fc945da6f65ec21f111a43f0f7361e24a30424fce1c17055e8a93ac",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:d573a5881f202697380e710f989f49f354681abb258a849f529cc4b75cf353e3",
@@ -30928,14 +31008,6 @@
       "source": "src/imports/readiness_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:d7ec879acca708abc9ee768e027364c7e815932ca4c174d632056c6f1fde2338",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:d7ef2900f4ebe761fce2ad9f28f1f2b9ebd0a2058809c9e530ed5e6492161b04",
@@ -31290,14 +31362,6 @@
       "target": "src/config_security/credential_tests.rs"
     },
     {
-      "fingerprint": "sha256:da41816d1cbdf50cd35a124799eb60ef2c980ce9291ea5b87311e2bd62994684",
-      "rule_id": "convergence-freshness-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/freshness/freshness_rewrite_baseline.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
-    },
-    {
       "fingerprint": "sha256:da44630e578799bc720cfccf0c17b7f03fca7393bc3e6eea2c3d0d4dda71e7d1",
       "rule_id": "convergence-semantic-graph-direction",
       "issue": "forbidden_dependency",
@@ -31346,14 +31410,6 @@
       "target": "src/facade/cva.rs"
     },
     {
-      "fingerprint": "sha256:daa37efc7ee8070da95545477245be2738baefc26912144daa37c40968e7b9c2",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_compact_writer_tests.rs",
-      "relation": "calls",
-      "target": "src/archive/conversation_tombstone_tests.rs"
-    },
-    {
       "fingerprint": "sha256:daa5fa1983505a739a53deb08f0106430c430869569fc80f4856b07f00fb1df5",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -31368,6 +31424,14 @@
       "source": "src/semantic_graph/graph_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_derived_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:dadbf4138b429c175523ff33c4c02d773e40f90fcfe2ed5a049347ac6d11a843",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:dadd27a8eebef01dcb44c40aed88a4c9b759132bd98b6a03e59929ab6a8ac2c5",
@@ -31528,6 +31592,14 @@
       "source": "src/perception/entity_compact_writer_tests.rs",
       "relation": "calls",
       "target": "src/archive/interaction_stream_compact_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:dbc880fee75c39ad8c633310e92bb5b2097811c7ec479a5b5295b7ed73dac3ab",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:dbcc0b769ea95cd99cfd36a263a14476acb6cd4abd3b3d542220244d6b30100a",
@@ -31938,12 +32010,12 @@
       "target": "src/memory/memory_model.rs"
     },
     {
-      "fingerprint": "sha256:de05383f0b17c82f8cc148032b2702cb3588715123602c7a84f28f486bc2fc67",
-      "rule_id": "convergence-freshness-direction",
+      "fingerprint": "sha256:de0cd9ac6485ed298f639c2c1d9b792c7e746f3da2501db2cab2192e3b4ba78d",
+      "rule_id": "convergence-native-import-direction",
       "issue": "forbidden_dependency",
-      "source": "src/freshness/freshness_rewrite_baseline.rs",
+      "source": "src/imports/tests.rs",
       "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
+      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:de11741ab6e25ac6cbddc1108a853b6c239feffc9807a3845fb012e8a140e6ed",
@@ -32282,14 +32354,6 @@
       "target": "src/archive/archive_tests.rs"
     },
     {
-      "fingerprint": "sha256:e03aaea5626b6c8a2281970bc33e28e6254d7ddb50ffbcea895b4ebeac7dabec",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:e03bd9b196735725237874c01da3521670c10b36c193ab7e4c56ac067be22f75",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -32458,6 +32522,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:e142a85fd873625b0505236cb8c821fc458a244458a9be81f10344fcfadd75dd",
+      "rule_id": "convergence-external-source-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/external_source/mod.rs",
+      "relation": "imports",
+      "target": "src/source_identity.rs"
+    },
+    {
       "fingerprint": "sha256:e14ed6a587b8f9436de0c65991e2d4d73aff1f70bcae3c6c9367204e8056abad",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -32616,14 +32688,6 @@
       "source": "src/perception/relationship_retained_structure_tests.rs",
       "relation": "calls",
       "target": "src/memory/memory_compact_retry_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:e247d5cef90f0242eaab9700c8e6976799007ef85588bcc994e2abc052f44514",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_store_validation.rs",
-      "relation": "calls",
-      "target": "src/memory/memory_store.rs"
     },
     {
       "fingerprint": "sha256:e25115422a2da225fc6627b7ae4445928e5dc4fe95f7bda9f28c04733095300c",
@@ -32938,6 +33002,14 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
+      "fingerprint": "sha256:e4a0814b80d35418c5e86cee6b48fecfb910f6dce85dbed55cfe4001b63afd39",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/interaction_stream_compact_tests.rs",
+      "relation": "calls",
+      "target": "src/runtime_inference/insomnia/completion.rs"
+    },
+    {
       "fingerprint": "sha256:e4a5248295a89c020fbd8cdbffbfde9ba4f1dc207f80397bb4b884a17f6c8a6f",
       "rule_id": "convergence-container-direction",
       "issue": "forbidden_dependency",
@@ -33000,6 +33072,14 @@
       "source": "src/container/publication_envelope_tests.rs",
       "relation": "calls",
       "target": "src/archive/archive_import.rs"
+    },
+    {
+      "fingerprint": "sha256:e4ef3b46bd819d02cfdbb078a4a79ebd642792df896468a93f4a1480969562cd",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/conversation_tombstone_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_conversation_tombstone.rs"
     },
     {
       "fingerprint": "sha256:e4f0a40d3a9ee2e37c691990a1eba2334cb9a18e9e5eac1166c7e10666c1d74d",
@@ -33682,6 +33762,14 @@
       "target": "src/facade/dream_population_authority_tests.rs"
     },
     {
+      "fingerprint": "sha256:e97bcfaecc4fdd7ad9339da009638881276ea5f63ecb04843c7ab6bc34061832",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/entity_resolution_owner.rs",
+      "relation": "calls",
+      "target": "src/memory/memory_error.rs"
+    },
+    {
       "fingerprint": "sha256:e983002d466e7ad2fe20fe3acfbbaae9b44424acb1978dd9ce49c964432bffc3",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -34082,14 +34170,6 @@
       "target": "src/facade/cva_reconcile_guard_tests.rs"
     },
     {
-      "fingerprint": "sha256:ec75c25c307818e2d8cc32e74146dd6f2ec00c14433773a5eb9270641f6cfa43",
-      "rule_id": "convergence-semantic-graph-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/semantic_graph/graph_store_validation.rs",
-      "relation": "calls",
-      "target": "src/perception/entity_store_read.rs"
-    },
-    {
       "fingerprint": "sha256:ec78a5a737679ff41ec5b1d12e080cd76ed5f6c225b5019d05e54b9cc35c5304",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -34152,14 +34232,6 @@
       "source": "src/perception/entity_compact_writer_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_ego_compact_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:ecf59b8ddd3df5d07d84cdd716200dc4b57643f9905f6c0e6e4bc44572ae4846",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_store.rs",
-      "relation": "calls",
-      "target": "src/archive/archive.rs"
     },
     {
       "fingerprint": "sha256:ed0034efc861554e30d79625fdddedee529023f11714daba7cf47d06afc0e088",
@@ -34594,36 +34666,12 @@
       "target": "src/facade/cva_lifecycle.rs"
     },
     {
-      "fingerprint": "sha256:efb252422e3d3191f7955d8bfef42f230b5128e59c9041331d69ca08ba77b6e1",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:efc0aafd26856d419770d2e20f2295f6cd55cfb9ac41885ac15d372ccf7fe962",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_turn_ingest.rs"
-    },
-    {
       "fingerprint": "sha256:efcf28d758e7f0a49d1d79a418f8aaf7815841d5058af4e284693c7945b4da79",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
       "source": "src/perception/entity_merge.rs",
       "relation": "imports",
       "target": "src/semantic_graph/graph_model.rs"
-    },
-    {
-      "fingerprint": "sha256:efd014a42ee98adcf0d871a0dc954f645be179b93e47bc7391a1521927952299",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_source_time.rs",
-      "relation": "calls",
-      "target": "src/archive/archive_record_index.rs"
     },
     {
       "fingerprint": "sha256:eff59d22421ca0767c9c04e01905d043ea00bf9765dae4b1d010457aa5c21862",
@@ -34922,14 +34970,6 @@
       "target": "src/runtime_inference/runtime_host_gateway_ambient.rs"
     },
     {
-      "fingerprint": "sha256:f285c9ee00d991b71bcd0a3d457d3aa0cb28fd16996d4ee0145440ed5da1fa42",
-      "rule_id": "convergence-memory-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/memory/memory_store/history_prune.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
-    },
-    {
       "fingerprint": "sha256:f289dc69104d0c7c4225dca6e0afa17213b42642115dae9f70cbdd4f9465ed19",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
@@ -34960,14 +35000,6 @@
       "source": "src/perception/relationship_publication_prune_tests.rs",
       "relation": "calls",
       "target": "src/facade/storage_reclamation_entity_compact_tests.rs"
-    },
-    {
-      "fingerprint": "sha256:f2ac5b52a2efb7b4264e96377fa19896cbd761081a465af060983a4ce7fc1802",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:f2ba56807674907856de0d10a23c8cf2bf465ea8947e748afb7c4b445bd7cacb",
@@ -35354,14 +35386,6 @@
       "target": "src/runtime_inference/model_switchboard.rs"
     },
     {
-      "fingerprint": "sha256:f4eb1435131602a6a870e6a7cab49de397fafb181c11157bdd72fefc981c5463",
-      "rule_id": "convergence-runtime-inference-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/runtime_inference/dream_pair_history.rs",
-      "relation": "imports",
-      "target": "src/facade/cva.rs"
-    },
-    {
       "fingerprint": "sha256:f5057a3a6a2ff56c4736694ae0936bd55fc1be353f6fa9de14c9e3c5b5218b9f",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -35394,20 +35418,20 @@
       "target": "src/retrieval/memory_retrieval_build.rs"
     },
     {
+      "fingerprint": "sha256:f55a67659173a0f1cf06f8122bc06ef257cdef5163d248e21d297e093f748450",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/insomnia/cva.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_episode_policy.rs"
+    },
+    {
       "fingerprint": "sha256:f56203c4837fe1463e4290e7732efa29f8e94c49a8e70728d2027b0baa9e9064",
       "rule_id": "convergence-container-direction",
       "issue": "forbidden_dependency",
       "source": "src/container/transaction_time_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
-    },
-    {
-      "fingerprint": "sha256:f563573c10ac613579bf6575e79d7a7c70184bd6eba906a8e26e0abeae0940e9",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_store.rs",
-      "relation": "imports",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:f56ab2cdf84e9bfb9b5e67f206e0f9c56b2df492fdf580ce9004ecd4b55cfb52",
@@ -35458,6 +35482,14 @@
       "target": "src/archive/archive_tests.rs"
     },
     {
+      "fingerprint": "sha256:f5ce1a3c3976d5e34ce96b7fe3f668f6ab1c3ac7c4b4193ddfa3fc2d2959be39",
+      "rule_id": "convergence-native-import-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/imports/tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:f5d05fcf757e1ebab96fdd9e2f36905f5552178f6e4dd4fa379f8a18244c1a24",
       "rule_id": "convergence-perception-direction",
       "issue": "forbidden_dependency",
@@ -35472,14 +35504,6 @@
       "source": "src/perception/entity_replay_retry_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:f5e87bdb97d6ad1b7a2e84432e15543eb4b098c80cef702e6770853efca9fd55",
-      "rule_id": "convergence-freshness-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/freshness/freshness_rewrite_baseline.rs",
-      "relation": "calls",
-      "target": "src/facade/history_prune_manifest.rs"
     },
     {
       "fingerprint": "sha256:f5eba46c9cfabb7416c2610a354efff63910f52cc3c7dd6a55c422df28cbd5a9",
@@ -35554,6 +35578,14 @@
       "target": "src/facade/phylactery.rs"
     },
     {
+      "fingerprint": "sha256:f66ee818af49910a03ada9c0908c4b276e370f9f3c1e340d45509ff52a6b3cc7",
+      "rule_id": "convergence-perception-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/perception/relationship_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_lifecycle.rs"
+    },
+    {
       "fingerprint": "sha256:f67b27f5cb0c676edbf1742794e41cf4815db2ce0bc8046988fad9d2947e629f",
       "rule_id": "convergence-ego-direction",
       "issue": "forbidden_dependency",
@@ -35608,6 +35640,14 @@
       "source": "src/runtime_inference/dream_duplicate_tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_reconcile_derived_tests.rs"
+    },
+    {
+      "fingerprint": "sha256:f6e3d8886eacddacc207e0fe5bbb2333312e00bd659a391c0ce2ce9c510a69dc",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_candidates.rs",
+      "relation": "calls",
+      "target": "src/facade/memory_source_time.rs"
     },
     {
       "fingerprint": "sha256:f6f5ddba13a8c4b807ef01123b2ea14e7e111c455b900e9dcb361e7d82d49402",
@@ -35720,6 +35760,14 @@
       "source": "src/semantic_graph/graph_rewrite_baseline.rs",
       "relation": "calls",
       "target": "src/rewrite_lineage.rs"
+    },
+    {
+      "fingerprint": "sha256:f7798fb143b79c0ef1a4c5b1eb6dd31281a097e3d2d2b8da1ca1e7a8464becf8",
+      "rule_id": "convergence-freshness-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/freshness/dream_pass_identity.rs",
+      "relation": "imports",
+      "target": "src/memory/memory_model.rs"
     },
     {
       "fingerprint": "sha256:f77d35254ab1dae398140275d4e4d6fde240b18fe11049c72bfe5c5efb4ea331",
@@ -35938,6 +35986,14 @@
       "target": "src/runtime_inference/general_endpoint.rs"
     },
     {
+      "fingerprint": "sha256:f966e03b6761a50ad206ea8ca2257c5a396cb990954495fb98b395330fb8b33e",
+      "rule_id": "convergence-runtime-inference-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/runtime_inference/dream_candidates.rs",
+      "relation": "calls",
+      "target": "src/facade/memory_source_time.rs"
+    },
+    {
       "fingerprint": "sha256:f9792f99f4a69828184f7e0a028fe29a93630514a30dc9bf362ad69d6dc6df76",
       "rule_id": "convergence-runtime-inference-direction",
       "issue": "forbidden_dependency",
@@ -35960,6 +36016,14 @@
       "source": "src/runtime_inference/insomnia/cva.rs",
       "relation": "calls",
       "target": "src/facade/cva.rs"
+    },
+    {
+      "fingerprint": "sha256:f996f94c2b24abd6acbad58fd59e82486e45fde1f21c722f02617b5d037e5ad6",
+      "rule_id": "convergence-archive-direction",
+      "issue": "forbidden_dependency",
+      "source": "src/archive/conversation_tombstone_tests.rs",
+      "relation": "calls",
+      "target": "src/facade/cva_conversation_tombstone.rs"
     },
     {
       "fingerprint": "sha256:f99f33532b91540aa848d62e1339c8322359db6e59398cdf61d22540749b91b7",
@@ -36554,14 +36618,6 @@
       "target": "src/config_security/config_io.rs"
     },
     {
-      "fingerprint": "sha256:fd38e49dcb5ef771bf7745c268b51efc1ef25d590be6bf4dbf8335bbb11e1192",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
       "fingerprint": "sha256:fd4c39a4cdbea57cce483383c84fdcc4bef95f9be63c224ddb3597e129e9dd20",
       "rule_id": "convergence-memory-direction",
       "issue": "forbidden_dependency",
@@ -36608,14 +36664,6 @@
       "source": "src/imports/tests.rs",
       "relation": "calls",
       "target": "src/facade/cva_lifecycle.rs"
-    },
-    {
-      "fingerprint": "sha256:fd8e9f69b94d6ab972778d28751ecc7ef03998ff5abcb181f6c2b6dd315ca56e",
-      "rule_id": "convergence-archive-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/archive/interaction_stream_store.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_error.rs"
     },
     {
       "fingerprint": "sha256:fd8eed5d88abd609b055cd5c012587fed3247e78309b2b304246f2515af761e8",
@@ -36776,14 +36824,6 @@
       "source": "src/ego/ego_compact_writer_tests.rs",
       "relation": "calls",
       "target": "src/facade/phylactery_ego.rs"
-    },
-    {
-      "fingerprint": "sha256:fea5d49e70909c0ebe009d4529ffbd251642ea846e097a10f985d2d25bbefe5f",
-      "rule_id": "convergence-native-import-direction",
-      "issue": "forbidden_dependency",
-      "source": "src/imports/tests.rs",
-      "relation": "calls",
-      "target": "src/facade/cva_lifecycle.rs"
     },
     {
       "fingerprint": "sha256:fea9032d6d23af3840b0b28bd58cd970bf7121645866a1fdd65fb87acddc26ef",

@@ -13,9 +13,27 @@ impl Cva {
         packed_vector_id: PackedVectorId,
         memory_body_ids: Vec<MemoryBodyId>,
     ) -> Result<MemoryVectorId, MemoryVectorError> {
+        self.compatibility_profiles
+            .get_active(compatibility_profile_id)
+            .ok_or(MemoryVectorError::MissingProfile)?;
+        crate::memory_vector_store::validate_mapping_shape(
+            &self.compatibility_profiles,
+            &self.packed_vectors,
+            compatibility_profile_id,
+            packed_vector_id,
+            &memory_body_ids,
+        )?;
+        let mut seen = std::collections::HashSet::new();
+        for body in &memory_body_ids {
+            if !self.memories.contains_body(*body) {
+                return Err(MemoryVectorError::MissingMemoryBody);
+            }
+            if !seen.insert(*body) {
+                return Err(MemoryVectorError::DuplicateMemoryBody);
+            }
+        }
         self.memory_vectors.put(
             &mut self.container,
-            &self.memories,
             &self.compatibility_profiles,
             &self.packed_vectors,
             compatibility_profile_id,

@@ -56,6 +56,13 @@ Actual newly established first-cycle relationships may emit the +50 Freshness li
 
 Dream work is durable enough that crash/reopen cannot silently accept a partial first-cycle outcome as complete. Import completion and other coordinators may treat outstanding import-owned first passes as blockers even if later lifecycle changes make the Memory inactive.
 
+
+## Journal and pair ownership
+
+Dream pair persistence accepts Memory identities and exposes its retained mapped identities for caller validation; it has no Memory store or facade dependency. REL/PHY callers validate current endpoints before writes and historical mapped identities before mount.
+
+The Dream journal exposes decoded replay entries and validates re-encoding locally. Import/reconciliation maps accepted turn and Graph coordinates in `facade/dream_replay_transport.rs`; the journal invokes no caller mapping callbacks. This preserves the current Begin/Intent/Consume/ReplayBirth and settlement formats and does not change scheduling or population policy.
+
 ## Code Map
 
 - `src/runtime_inference/dream*`

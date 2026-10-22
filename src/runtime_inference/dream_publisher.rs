@@ -1,5 +1,5 @@
 use crate::dream_owner_publisher::publish_dream_pair as publish_dream_pair_from_parts;
-use crate::memory_source_time::reliquary_memory_source_timestamp_ns;
+use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;
 use crate::{
     Cva, DreamPairClassification, DreamPairVerification, DreamPublicationError,
     DreamPublicationOutcome, DreamVerificationPolicy, Memory,

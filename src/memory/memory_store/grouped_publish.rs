@@ -1,74 +1,32 @@
 use super::*;
-use crate::insomnia::completion::InsomniaCompletionBody;
+use crate::memory_model::GroupedBodySpan;
 use std::collections::{HashMap, HashSet};
 
 pub(crate) struct PreparedMemoryBatch {
     pub(crate) records: Vec<MemoryRecord>,
     pub(crate) existing: Vec<Memory>,
-    pub(crate) bodies: Vec<InsomniaCompletionBody>,
+    pub(crate) bodies: Vec<(MemoryBodyId, Vec<u8>)>,
     pub(crate) routing_metadata: Vec<MemoryRoutingMetadata>,
     pub(crate) global_version_start: u64,
 }
 
 impl MemoryStore {
-    /// Make a grouped completion self-contained for replay from its source
-    /// owner. Native publication can omit body bytes retained by the source
-    /// MemoryStore, while the destination branch may not have that body.
-    pub(crate) fn complete_grouped_replay_bodies(
-        &self,
-        container: &mut Container,
-        completion: &mut crate::insomnia::completion::InsomniaCompletion,
-    ) -> Result<(), MemoryError> {
-        let mut present = completion
-            .bodies
-            .iter()
-            .map(|body| body.id)
-            .collect::<HashSet<_>>();
-        if present.len() != completion.bodies.len() {
-            return Err(MemoryError::CorruptRecord(
-                "duplicate grouped completion body identity",
-            ));
-        }
-        for body in &completion.bodies {
-            let (title, content) = decode_memory_body(&body.bytes)?;
-            if memory_body_id(&title, &content) != body.id {
-                return Err(MemoryError::CorruptBody);
-            }
-        }
-        for record in &completion.records {
-            if present.contains(&record.body_id) {
-                continue;
-            }
-            let bytes = self.body_bytes(container, record.body_id)?;
-            let (title, content) = decode_memory_body(&bytes)?;
-            if memory_body_id(&title, &content) != record.body_id {
-                return Err(MemoryError::CorruptBody);
-            }
-            present.insert(record.body_id);
-            completion.bodies.push(InsomniaCompletionBody {
-                id: record.body_id,
-                bytes,
-            });
-        }
-        Ok(())
-    }
-
     /// Rebase only the storage coordinates of an accepted grouped first
     /// publication. Semantic Memory fields and proof identities remain exact.
     pub(crate) fn rebase_grouped_replay_versions(
         &self,
         container: &Container,
-        completion: &mut crate::insomnia::completion::InsomniaCompletion,
-    ) -> Result<(), MemoryError> {
-        if completion.records.is_empty() {
-            completion.global_version_start = container.next_version_candidate();
-            return Ok(());
+        records: &mut [MemoryRecord],
+        body_ids: &[MemoryBodyId],
+    ) -> Result<u64, MemoryError> {
+        let global_start = container.next_version_candidate();
+        if records.is_empty() {
+            return Ok(global_start);
         }
         let mut memory_ids = HashSet::new();
         let mut mutation_ids = HashSet::new();
-        let global_start = container.next_version_candidate();
         let memory_start = self.next_memory_version;
-        for (index, record) in completion.records.iter_mut().enumerate() {
+        for (index, record) in records.iter_mut().enumerate() {
             if record.revision != 1
                 || !memory_ids.insert(record.id)
                 || !mutation_ids.insert(record.mutation_id.clone())
@@ -79,11 +37,7 @@ impl MemoryStore {
             {
                 return Err(MemoryError::MutationConflict);
             }
-            if !completion
-                .bodies
-                .iter()
-                .any(|body| body.id == record.body_id)
-            {
+            if !body_ids.contains(&record.body_id) && !self.bodies.contains_key(&record.body_id) {
                 return Err(MemoryError::MissingBody);
             }
             record.global_version = global_start
@@ -93,11 +47,10 @@ impl MemoryStore {
                 .checked_add(u64::try_from(index).map_err(|_| MemoryError::VersionExhausted)?)
                 .ok_or(MemoryError::VersionExhausted)?;
         }
-        completion.global_version_start = global_start;
-        Ok(())
+        Ok(global_start)
     }
 
-    pub(crate) fn stage_grouped_insomnia(
+    pub(crate) fn stage_grouped_publication(
         &mut self,
         container: &mut Container,
         drafts: Vec<(
@@ -109,7 +62,7 @@ impl MemoryStore {
         let global_version_start = container.next_version_candidate();
         let mut records = Vec::new();
         let mut existing = Vec::new();
-        let mut bodies: Vec<InsomniaCompletionBody> = Vec::new();
+        let mut bodies: Vec<(MemoryBodyId, Vec<u8>)> = Vec::new();
         let mut routing_metadata = Vec::new();
         let mut body_indexes: HashMap<MemoryBodyId, usize> = HashMap::new();
         let mut seen_mutations = HashSet::new();
@@ -148,15 +101,12 @@ impl MemoryStore {
                     return Err(MemoryError::HashCollision);
                 }
             } else if let Some(index) = body_indexes.get(&body_id).copied() {
-                if bodies[index].bytes != body_bytes {
+                if bodies[index].1 != body_bytes {
                     return Err(MemoryError::HashCollision);
                 }
             } else {
                 body_indexes.insert(body_id, bodies.len());
-                bodies.push(InsomniaCompletionBody {
-                    id: body_id,
-                    bytes: body_bytes,
-                });
+                bodies.push((body_id, body_bytes));
             }
             let offset = u64::try_from(records.len()).map_err(|_| MemoryError::VersionExhausted)?;
             let memory_version = self
@@ -207,17 +157,32 @@ impl MemoryStore {
         })
     }
 
-    pub(crate) fn apply_grouped_bodies(
+    pub(crate) fn apply_grouped_spans(
         &mut self,
         chunk: ObjectRef,
-        bodies: &[InsomniaCompletionBody],
+        payload: &[u8],
+        bodies: &[GroupedBodySpan],
     ) -> Result<(), MemoryError> {
         for body in bodies {
-            let (title, content) = decode_memory_body(&body.bytes)?;
+            let encoded = payload
+                .get(body.range.clone())
+                .ok_or(MemoryError::CorruptBody)?;
+            let raw = match body.encoding {
+                crate::memory_model::GroupedBodyEncoding::Raw => encoded.to_vec(),
+                crate::memory_model::GroupedBodyEncoding::JsonByteArray => {
+                    serde_json::from_slice(encoded).map_err(|_| MemoryError::CorruptBody)?
+                }
+            };
+            let (title, content) = decode_memory_body(&raw)?;
             if memory_body_id(&title, &content) != body.id {
                 return Err(MemoryError::CorruptBody);
             }
-            self.insert_body(body.id, chunk);
+        }
+        let mut seen = HashSet::new();
+        for body in bodies {
+            if seen.insert(body.id) && !self.bodies.contains_key(&body.id) {
+                self.insert_grouped_body_span(body, chunk)?;
+            }
         }
         Ok(())
     }
@@ -282,4 +247,94 @@ fn validate_prepared_routing(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod grouped_span_tests {
+    use super::*;
+    use crate::memory_model::{GroupedBodyEncoding, GroupedBodySpan};
+
+    fn encoded_body(title: &str, content: &str) -> (MemoryBodyId, Vec<u8>) {
+        let id = memory_body_id(title, content);
+        let bytes = memory_body_bytes(title, content);
+        (id, bytes)
+    }
+
+    #[test]
+    fn grouped_span_admission_accepts_raw_and_json_arrays() {
+        let (raw_id, raw) = encoded_body("raw", "frame");
+        let (json_id, json_body) = encoded_body("json", "frame");
+        let json = serde_json::to_vec(&json_body).unwrap();
+        let raw_start = json.iter().position(|byte| *byte == b'[').unwrap();
+        let raw_end = json.iter().rposition(|byte| *byte == b']').unwrap() + 1;
+        let mut memory = MemoryStore::empty();
+        memory
+            .apply_grouped_spans(
+                ObjectRef::from_legacy_bytes([0; 16]),
+                &raw,
+                &[GroupedBodySpan {
+                    id: raw_id,
+                    range: 0..raw.len(),
+                    encoding: GroupedBodyEncoding::Raw,
+                }],
+            )
+            .unwrap();
+        memory
+            .apply_grouped_spans(
+                ObjectRef::from_legacy_bytes([1; 16]),
+                &json,
+                &[GroupedBodySpan {
+                    id: json_id,
+                    range: raw_start..raw_end,
+                    encoding: GroupedBodyEncoding::JsonByteArray,
+                }],
+            )
+            .unwrap();
+        assert_eq!(memory.bodies.len(), 2);
+    }
+
+    #[test]
+    fn grouped_span_validation_is_atomic_for_bad_hash_or_range() {
+        let (good_id, good) = encoded_body("good", "body");
+        let (real_id, bad) = encoded_body("evil", "body");
+        let wrong_id = MemoryBodyId([0xA5; 32]);
+        assert_ne!(real_id, wrong_id);
+        let mut memory = MemoryStore::empty();
+        let chunk = ObjectRef::from_legacy_bytes([2; 16]);
+        assert!(
+            memory
+                .apply_grouped_spans(
+                    chunk,
+                    &good,
+                    &[
+                        GroupedBodySpan {
+                            id: good_id,
+                            range: 0..good.len(),
+                            encoding: GroupedBodyEncoding::Raw,
+                        },
+                        GroupedBodySpan {
+                            id: wrong_id,
+                            range: 0..bad.len(),
+                            encoding: GroupedBodyEncoding::Raw,
+                        },
+                    ],
+                )
+                .is_err()
+        );
+        assert!(memory.bodies.is_empty());
+        assert!(
+            memory
+                .apply_grouped_spans(
+                    chunk,
+                    &good,
+                    &[GroupedBodySpan {
+                        id: good_id,
+                        range: 0..good.len() + 1,
+                        encoding: GroupedBodyEncoding::Raw,
+                    }],
+                )
+                .is_err()
+        );
+        assert!(memory.bodies.is_empty());
+    }
 }

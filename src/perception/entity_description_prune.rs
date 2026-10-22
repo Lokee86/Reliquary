@@ -56,7 +56,7 @@ pub(crate) fn prepare_description_prune(
         let carrier = object;
         match publication {
             EntityReplayPublication::Record(record) if selected.contains(&record.id) => {
-                if record.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
+                if record.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND {
                     return Err(EntityError::PayloadRequiredByLiveTarget);
                 }
                 let body = publication::decode(envelope.body, envelope.global_version)?

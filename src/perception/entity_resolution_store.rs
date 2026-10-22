@@ -8,8 +8,6 @@ mod write;
 use index::{deindex_pending, index_pending};
 
 use crate::entity_resolution_codec::{DecodedEntityResolution, delta};
-use crate::entity_store::EntityStore;
-use crate::memory_store::MemoryStore;
 use crate::{
     Container, EntityId, MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey,
     MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId,
@@ -25,6 +23,13 @@ pub(crate) struct EntityResolutionStore {
 }
 
 impl EntityResolutionStore {
+    pub(crate) fn normalize_candidate_ids(
+        &self,
+        values: &mut Vec<EntityId>,
+    ) -> Result<(), MemoryError> {
+        write::normalize_candidates(values)
+    }
+
     pub(crate) fn materialized_changes(
         container: &mut Container,
     ) -> Result<std::collections::BTreeMap<crate::ObjectRef, DecodedEntityResolution>, MemoryError>
@@ -133,15 +138,9 @@ impl EntityResolutionStore {
         }
     }
 
-    pub(crate) fn validate(
-        &self,
-        memories: &MemoryStore,
-        entities: &EntityStore,
-    ) -> Result<(), MemoryError> {
+    pub(crate) fn validate_local(&self) -> Result<(), MemoryError> {
         for value in self.current.values() {
-            memories.validate_historical_entity_mention_key(value.key)?;
             validate_status(&value.status)?;
-            validate_historical_entity_refs(&value.status, entities)?;
         }
         Ok(())
     }
@@ -245,13 +244,9 @@ impl EntityResolutionStore {
     pub(crate) fn import_current(
         &mut self,
         container: &mut Container,
-        memories: &MemoryStore,
-        entities: &EntityStore,
         mut value: MemoryEntityResolution,
     ) -> Result<(), MemoryError> {
-        memories.validate_entity_mention_key(value.key)?;
         validate_status(&value.status)?;
-        validate_live_entity_refs(&value.status, entities)?;
         if let Some(existing) = self.current.get(&value.key) {
             return if existing.status == value.status {
                 Ok(())
@@ -282,47 +277,6 @@ impl EntityResolutionStore {
         } else {
             self.maintenance.insert(key);
         }
-    }
-}
-
-fn validate_live_entity_refs(
-    status: &MemoryEntityResolutionStatus,
-    entities: &EntityStore,
-) -> Result<(), MemoryError> {
-    validate_entity_refs_with(status, |id| entities.contains(id))
-}
-
-fn validate_historical_entity_refs(
-    status: &MemoryEntityResolutionStatus,
-    entities: &EntityStore,
-) -> Result<(), MemoryError> {
-    validate_entity_refs_with(status, |id| entities.contains_historical(id))
-}
-
-fn validate_entity_refs_with(
-    status: &MemoryEntityResolutionStatus,
-    mut contains: impl FnMut(EntityId) -> bool,
-) -> Result<(), MemoryError> {
-    let valid = match status {
-        MemoryEntityResolutionStatus::Resolved { entity_id, .. } => contains(*entity_id),
-        MemoryEntityResolutionStatus::Pending(value) => value
-            .candidate_entity_ids
-            .iter()
-            .copied()
-            .all(&mut contains),
-        MemoryEntityResolutionStatus::Dormant(value) => value
-            .candidate_entity_ids
-            .iter()
-            .copied()
-            .all(&mut contains),
-        MemoryEntityResolutionStatus::Rejected { .. } => true,
-    };
-    if valid {
-        Ok(())
-    } else {
-        Err(MemoryError::InvalidField(
-            "Entity resolution Entity reference",
-        ))
     }
 }
 

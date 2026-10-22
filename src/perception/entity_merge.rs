@@ -1,7 +1,7 @@
 use crate::{
     Cva, CvaError, EntityDraft, EntityError, EntityId, EntityMergeOutcome, EntityRef,
     GraphRelationOrigin, MAX_ENTITY_ALIASES, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
-    Phylactery, PhylacteryError, RelationshipDraft, SemanticGraphRelationChange,
+    MemoryError, Phylactery, PhylacteryError, RelationshipDraft, SemanticGraphRelationChange,
 };
 
 macro_rules! impl_entity_merge {
@@ -61,13 +61,19 @@ macro_rules! impl_entity_merge {
                     )?;
                 }
 
-                let resolutions_retargeted = self.entity_resolutions.retarget_entity_references(
-                    &mut self.container,
-                    &self.entities,
-                    retired_id,
-                    survivor_id,
-                    now_ns,
-                )?;
+                let resolutions_retargeted = if self.entities.contains(survivor_id) {
+                    self.entity_resolutions.retarget_entity_references(
+                        &mut self.container,
+                        retired_id,
+                        survivor_id,
+                        now_ns,
+                    )?
+                } else {
+                    return Err(MemoryError::InvalidField(
+                        "Entity resolution Entity reference",
+                    )
+                    .into());
+                };
 
                 let memories = self.memories_for_entity(retired_id);
                 let mut changes = Vec::with_capacity(memories.len().saturating_mul(2));
@@ -165,15 +171,20 @@ macro_rules! impl_entity_merge {
                 }
                 let from_entity = self.entity(from)?;
                 let to_entity = self.entity(to)?;
-                if from_entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
-                    || to_entity.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND
+                if from_entity.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND
+                    || to_entity.kind == crate::entity_principal_identity::PRINCIPAL_ENTITY_KIND
                 {
                     return Err(EntityError::InvalidField("principal Entity retarget").into());
                 }
+                self.memories.validate_entity_mention_key(key)?;
+                if !self.entities.contains(to) {
+                    return Err(MemoryError::InvalidField(
+                        "Entity resolution Entity reference",
+                    )
+                    .into());
+                }
                 let resolution_changed = self.entity_resolutions.retarget_resolved(
                     &mut self.container,
-                    &self.memories,
-                    &self.entities,
                     key,
                     from,
                     to,
