@@ -329,3 +329,20 @@ Archive publication framing is owned by `archive_publication_codec`, with field 
 `semantic_graph/graph_publication_codec.rs` owns current single/batch bodies and concrete coordinates. GraphOpenState admits against prior ordinal mappings. `graph_store_write.rs` commits mappings and transaction state after envelope append. Historical, Dream/Freshness, reconciliation/import and prune consumers resolve current publications through Graph adapters. Reclamation preserves native frames/mappings and drops unpublished current bodies. Stable endpoint comparison hashes retain their schema tags without reviving old physical readers.
 
 `scripts/history_writer_inventory.py` rejects reintroduced retired identities and records current lexical identities and append sites. Its evidence supplements, rather than replaces, concrete owner tests and architecture enforcement. `historical_current_corpus_tests.rs` checks the promoted corpus against frozen history; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) owns final acceptance.
+
+## Dependency convergence ownership route
+
+Phase 0 assigns policy and evidence ownership without moving implementation owners:
+
+| Concern | Canonical owner | Route |
+| --- | --- | --- |
+| Allowed dependency direction | `tools/pitlord/convergence-target.json` and `tools/pitlord/convergence.json` | The target matrix states allowed consumer dependencies; policy rules encode forbidden complements |
+| Captured Pitlord findings and reviewed debt | `tools/pitlord/convergence-baseline.json` and `tools/pitlord/convergence-debt.json` | Separate from the existing unbaselined root policy; active ledgers shrink as findings resolve |
+| Original graph evidence | `tools/pitlord/convergence-graph.json` | Retained as the Phase 0 before-image; not regenerated to clear debt |
+| Classification validity and stale-entry detection | `scripts/check_dependency_convergence.py` | Rejects new unclassified reported findings, unreviewed debt, invalid classifications, and stale ledger entries |
+| Source disposition evidence for imported boundaries | `tools/pitlord/convergence-import-audit.json` | Derived import/depends-on review identifies source-confirmed cycles; mixed and test source paths remain in the evidence |
+| Full reviewed boundary disposition export | `tools/pitlord/convergence-boundaries.json` | Retains a disposition for each of the 146 captured domain edges; it supplements the exact active Pitlord finding ledgers |
+| Evidence, inventory method and Phase 0 limits | [Dependency convergence Phase 0 inventory](dependency-convergence-phase0-2026-10-21.md) | Records capture scope and reviewed evidence; does not assert DAG completion |
+| Target direction and campaign scope | [Architecture](architecture.md#dependency-convergence-direction-and-phase-0-boundary) and [refactor specification](dependency-convergence-architecture-refactor-2026-10-21.md) | Layer order is physical → owner stores → domain composition → runtime → public facade; dependency arrows run from consumer to dependency |
+
+The current coarse areas remain mixed. These routes establish enforcement and accountability only; Phase 0 does not move owners or change behavior.

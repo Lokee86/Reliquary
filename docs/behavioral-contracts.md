@@ -506,3 +506,15 @@ N3 historical fragment source ownership resides in `historical_semantic.rs`, `hi
 ## Relationship compact history routing
 
 `perception/relationship_compact_publish.rs` owns validated compact carrier/marker publication for ordinary and exact accepted-history replay. `relationship_replay.rs` owns accepted coordinate lookup, semantic import evidence, retries and terminal handling. `relationship_description_proof.rs` extracts strict opaque proof metadata; `relationship_description_prune.rs` prepares redacted accepted chains and selected orphan removal without source writes. The shared maintenance store authenticates source history; REL/PHY facades authenticate exact retained descriptors and manifest membership before returning an owner. `storage_upgrade/relationship.rs` owns private V1 carrier conversion. Focused coverage is in the neighboring replay/proof tests, facade Relationship compact reconciliation/reclamation/prune tests, and storage-upgrade Relationship tests. These seams preserve the existing Relationship owner and allocate no new semantic authority.
+
+## Dependency convergence Phase 0 contract map
+
+| Contract | Canonical evidence owner |
+| --- | --- |
+| Target layer order is physical → owner stores/contracts → domain composition → runtime orchestration → public facade; dependency arrows point from consumer to dependency in reverse | [Architecture](architecture.md#dependency-convergence-direction-and-phase-0-boundary) and [Invariants](invariants.md#dependency-convergence-baseline-invariant) |
+| Phase 0 describes current mixed areas and does not claim an acyclic graph, move owners, or change behavior | [Current Limitations](current-limitations.md#dependency-convergence-status) and [Phase 0 inventory](dependency-convergence-phase0-2026-10-21.md) |
+| New back-edges reported by configured Pitlord analysis require classification; captured debt requires source review, phase, and removal disposition | [Maintainer Map](maintainer-map.md#dependency-convergence-ownership-route), `tools/pitlord/convergence-target.json`, `tools/pitlord/convergence.json`, `tools/pitlord/convergence-baseline.json`, and `tools/pitlord/convergence-debt.json` |
+| Reviewed findings carry a classification, phase, concrete disposition, `evidence_status`, and nonempty `review_note`; analyzer artifacts are not recorded as fictional architecture dependencies | `scripts/check_dependency_convergence.py` and `tools/pitlord/convergence-debt.json` |
+| Unclassified or unreviewed reported findings and stale debt entries are rejected; this does not prove capture completeness beyond its documented source scope | `scripts/check_dependency_convergence.py`; invocation and evidence are owned by the [Phase 0 inventory](dependency-convergence-phase0-2026-10-21.md) |
+
+This is an architecture-enforcement contract, not a product or persistence behavior contract. The baseline is specific to Pitlord convergence findings and remains separate from the existing unbaselined policy.

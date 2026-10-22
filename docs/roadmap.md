@@ -8,6 +8,8 @@ Own future Reliquary implementation work. Completed behavior belongs in current 
 
 ## Overview
 
+The dependency-convergence architecture refactor is the current structural priority. It is limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md).
+
 The active work is now concentrated in a small number of tracks:
 
 1. finish the current compact/lossless storage-history rewrite;

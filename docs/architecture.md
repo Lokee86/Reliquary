@@ -320,3 +320,8 @@ Crate-root Rust modules are composition/publication seams owned by the overall a
 Decision inheritance changes configured endpoint composition only; semantic persistence and owner lifecycle are unchanged.
 
 The import owner persists current standalone semantic evidence. CVAILEG1/2 runtime validation and transport have been removed after source-validated corpus conversion. Container framing does not interpret import semantics.
+## Dependency convergence direction and Phase 0 boundary
+
+The target layer order is physical storage and persistence mechanics → owner-local stores and durable owner contracts → domain services and owner composition → cross-owner orchestration and runtime coordination → public product facade and host integration. Dependency arrows point from consumer to dependency, so they run in the reverse direction: facade → runtime → domain composition → owner stores → physical mechanics. External providers and host services enter through boundaries owned at the appropriate layer.
+
+This is the target, not a description of the graph already achieved. Current coarse areas remain mixed and may contain dependency cycles. Phase 0 records current edges, establishes explicit policy for new dependencies and classifies existing debt; it does not claim a DAG, move semantic owners, or change runtime behavior. The completed capture measurements, source scope, and adapter caveats are maintained in [Dependency convergence Phase 0 inventory](dependency-convergence-phase0-2026-10-21.md), with the campaign target in the [refactor specification](dependency-convergence-architecture-refactor-2026-10-21.md). The graph is a bounded static view: source review remains necessary for reexports, impl blocks, conditional tests, and inaccurate raw call bindings.

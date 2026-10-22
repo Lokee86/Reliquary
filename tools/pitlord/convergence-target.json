@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "description": "Allowed consumer-to-dependency areas. Forbidden complements are enforced by convergence.json; the checker verifies they agree.",
+  "allowed": {
+    "compact-codec": [
+      "compact-codec"
+    ],
+    "freshness": [
+      "freshness",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "container": [
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "archive": [
+      "archive",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "memory": [
+      "memory",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "retrieval": [
+      "retrieval",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "semantic-graph": [
+      "semantic-graph",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "perception": [
+      "perception",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "chronos": [
+      "chronos",
+      "compact-codec",
+      "staleness"
+    ],
+    "ego": [
+      "ego",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "runtime-inference": [
+      "compact-codec",
+      "freshness",
+      "container",
+      "archive",
+      "memory",
+      "retrieval",
+      "semantic-graph",
+      "perception",
+      "chronos",
+      "ego",
+      "runtime-inference",
+      "config-security",
+      "context-engine",
+      "project-environment",
+      "staleness",
+      "native-import",
+      "external-source",
+      "history-rewrite"
+    ],
+    "config-security": [
+      "config-security",
+      "compact-codec",
+      "staleness"
+    ],
+    "facade": [
+      "compact-codec",
+      "freshness",
+      "container",
+      "archive",
+      "memory",
+      "retrieval",
+      "semantic-graph",
+      "perception",
+      "chronos",
+      "ego",
+      "runtime-inference",
+      "config-security",
+      "facade",
+      "context-engine",
+      "project-environment",
+      "staleness",
+      "native-import",
+      "external-source",
+      "history-rewrite"
+    ],
+    "context-engine": [
+      "context-engine",
+      "archive",
+      "chronos",
+      "compact-codec",
+      "staleness"
+    ],
+    "project-environment": [
+      "project-environment",
+      "archive",
+      "compact-codec",
+      "staleness"
+    ],
+    "staleness": [
+      "staleness"
+    ],
+    "native-import": [
+      "native-import",
+      "container",
+      "archive",
+      "memory",
+      "semantic-graph",
+      "perception",
+      "ego",
+      "freshness",
+      "retrieval",
+      "external-source",
+      "chronos",
+      "project-environment",
+      "compact-codec",
+      "staleness"
+    ],
+    "external-source": [
+      "external-source",
+      "container",
+      "compact-codec",
+      "staleness"
+    ],
+    "history-rewrite": [
+      "history-rewrite",
+      "container",
+      "archive",
+      "memory",
+      "semantic-graph",
+      "perception",
+      "ego",
+      "freshness",
+      "retrieval",
+      "external-source",
+      "chronos",
+      "project-environment",
+      "compact-codec",
+      "staleness"
+    ]
+  }
+}

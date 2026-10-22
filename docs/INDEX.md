@@ -1,5 +1,7 @@
 # Reliquary Memory v2 Documentation
 
+- [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — correction-only high-level architecture campaign to eliminate the core dependency knot, retire obsolete ownership surfaces, absorb directly related architectural corrections, and keep touched documentation current without implementing new roadmap features.
+
 - [Canonical migration results](canonical-history-migration-results-2026-10-21.md) - six disposable conversions, exact resolution history and full raw-byte accounting.
 - [Retained inert Entity Resolution contract](retained-entity-resolution-contract-2026-10-21.md) — frozen behavior, original bytes and distinct format admission.
 
@@ -136,6 +138,8 @@
 - [configuration.md](configuration.md) - Configuration documentation.
 - [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
+- [dependency-convergence-architecture-refactor-2026-10-21.md](dependency-convergence-architecture-refactor-2026-10-21.md) - Dependency Convergence Architecture Refactor 2026 10 21 documentation.
+- [dependency-convergence-phase0-2026-10-21.md](dependency-convergence-phase0-2026-10-21.md) - Dependency Convergence Phase0 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
 - [development-format-hard-cut-interruption-spec-2026-10-19.md](development-format-hard-cut-interruption-spec-2026-10-19.md) - Development Format Hard Cut Interruption Spec 2026 10 19 documentation.

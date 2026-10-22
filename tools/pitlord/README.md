@@ -2,6 +2,8 @@
 
 Reliquary composes the shared Laughing Skull architecture-core Pitlord policy with repository-specific source ownership and static regression rules.
 
+## Overview
+
 `semantic.json` assigns every authored Rust file under `src/` to exactly one architectural owner. The owners describe current responsibility seams inside the still-single Rust crate; they do not claim that those seams are already separate crates:
 
 - `freshness`: REL-local scores, admission, immutable receipts, canonical replay and bounded propagation;
@@ -23,7 +25,27 @@ Reliquary composes the shared Laughing Skull architecture-core Pitlord policy wi
 
 The source tree is physically grouped by the same owners under `src/`. Pitlord owns those directories as coarse regions, with `src/lib.rs` explicitly facade-owned at the crate root. This remains one Rust crate: the directory layout exposes responsibility and makes ownership/dependency analysis cheap without implying a crate split.
 
-The root policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration compatibility boundary. It intentionally does not encode aspirational dependency direction yet. Dependency/cycle rules should be added only after Arcana evidence shows a boundary is both real and currently satisfied; current cross-owner knots are audit evidence for later extraction work, not reasons to baseline violations into policy.
+## Dependency convergence campaign
+
+The root `policy.json` remains the unbaselined architecture policy. The dependency-convergence campaign uses a separate `convergence.json` target policy and separate evidence ledgers; it does not suppress or rebaseline findings from the root policy. The Phase 0 artifact roles are:
+
+- `convergence.json`: target allowed dependency direction, represented as forbidden complements;
+- `convergence-target.json`: explicit allowed consumer-to-dependency area matrix, checked against the forbidden complements;
+- `convergence-baseline.json`: active Pitlord baseline ledger for the 4,609 classified exact findings from the completed capture;
+- `convergence-debt.json`: active finding classifications, categories, removal phases, dispositions, and source-review evidence;
+- `convergence-graph.json`: captured graph and source evidence, retained as the historical capture record.
+- `convergence-import-audit.json`: derived source-review view of cross-area `imports` and `depends-on` edges; it is not fresh analyzer evidence or a complete production graph;
+- `convergence-boundaries.json`: reviewed dispositions for all 146 captured directed domain edges, including permitted dependencies.
+
+The baseline and debt ledgers are active enforcement state and shrink as findings are resolved. When a finding disappears, remove its entry from both active ledgers. Keep the graph capture as the evidence of the original Phase 0 graph; do not regenerate it to clear debt. `--capture` is the explicit initial-capture operation: it refuses to overwrite any existing baseline, debt ledger, or graph capture. It is a reviewed maintainer operation and is never run in CI. There is no automatic refresh, blanket suppression, or recapture to clear resolved debt. Capture-generated category, phase, and disposition values are provisional heuristics based on relation type, source path/name, and coarse area pair. Source review must confirm or correct them. The convergence checker requires `reviewed: true`, a category, phase, concrete disposition, `evidence_status` (`source-confirmed`, `test-only`, or `analyzer-artifact`), and nonempty `review_note`. Proven wrong bindings are recorded as analyzer artifacts, not fictional architecture debts. This separate ledger classifies findings from configured Pitlord analysis; it does not prove every source dependency was detected.
+
+The ordinary `scripts/check_architecture.py` path checks the original unbaselined root policy and then invokes `scripts/check_dependency_convergence.py`, which runs its fixtures followed by the full convergence check. Use `python scripts/check_dependency_convergence.py --self-test` for an isolated fixture-only run. The full convergence check can also be run directly with `python scripts/check_dependency_convergence.py`.
+
+The completed capture is bounded by the configured Rust source scope (`src/`) and Lexicon/Arcana adapter. The whole Arcana snapshot had 109,207 nodes and 297,303 relationships; the configured source scope had 98,633 nodes and 268,391 relationships, with 28,545 selected. All 1,102 source files were assigned once. The capture spans 19 areas/146 area dependencies, has one raw combined SCC spanning 16 areas, 9,537 cross-area module edges, and 298 public crossings. These measurements describe static capture only. The adapter includes colocated test files and does not distinguish `cfg(test)` reachability in its module-edge records. Crate-root reexports, inherent `impl Cva` blocks outside the defining module, trait/dynamic dispatch, macros, external adapters, and runtime callbacks need source review and explicit probes. Proven same-name call-target errors also mean raw call edges and SCCs must not be treated as confirmed production dependencies. Area assignment follows current paths and can differ from semantic responsibility. See the [Phase 0 inventory](../../docs/dependency-convergence-phase0-2026-10-21.md) for import-audit findings and capture limitations; missing static edges do not prove that no dependency exists.
+
+## Existing source-ownership guard
+
+The root policy also prevents the deleted generic `WorkspaceMetadata` / `workspace_type` authority from returning outside the explicit legacy migration compatibility boundary. Policy changes that alter architectural ownership must update `docs/architecture.md` and `docs/maintainer-map.md`; consequential ownership changes also require the appropriate ADR. Do not change ownership merely to silence a Pitlord finding.
 
 Run locally with current evidence:
 
@@ -31,13 +53,12 @@ Run locally with current evidence:
 python scripts/check_architecture.py
 ```
 
-Refresh Lexicon/Arcana evidence and enforce in one command:
+Refresh Lexicon/Arcana evidence and enforce the root policy in one command:
 
 ```text
 python scripts/check_architecture.py --refresh
 ```
 
-The checker resolves Pitlord, Lexicon, Arcana, and adapters from environment overrides, PATH, or the normal sibling development repositories. Reliquary follows the same sibling `engineering-standards` source used by its documentation checker, so the shared architecture-core include must be present there. The push/PR architecture workflow builds the tools, prebuilds the Rust Lexicon adapter in release mode, refreshes evidence, and runs the same policy check.
+The checker resolves Pitlord, Lexicon, Arcana, and adapters from environment overrides, PATH, or the normal sibling development repositories. Reliquary follows the same sibling `engineering-standards` source used by its documentation checker, so the shared architecture-core include must be present there. The push/PR architecture workflow builds the tools, prebuilds the Rust Lexicon adapter in release mode, refreshes evidence, and runs the root policy check. It does not capture or refresh the convergence ledgers.
 
-Policy changes that alter architectural ownership must update `docs/architecture.md` and `docs/maintainer-map.md`; consequential ownership changes also require the appropriate ADR. Do not change ownership merely to silence a Pitlord finding.
-The refresh explicitly selects Lexicon Rust analysis because the ownership policy covers authored Rust files under src/. Python ownership/coverage guards run directly before graph refresh. This prevents unrelated Python-adapter indexing from blocking Rust ownership evidence, while retaining a fresh Arcana sync and complete Pitlord check. This gate does not claim a Python dependency graph.
+The refresh explicitly selects Lexicon Rust analysis because the ownership policy covers authored Rust files under `src/`. Python ownership/coverage guards run directly before graph refresh. This prevents unrelated Python-adapter indexing from blocking Rust ownership evidence, while retaining a fresh Arcana sync and complete root-policy check. This gate does not claim a Python dependency graph.

@@ -1,0 +1,704 @@
+{
+  "version": 1,
+  "areas": [
+    {
+      "id": "compact-codec",
+      "description": "Pure field-change and known-mask value mechanics; no semantic owner, clock, persistence or publication authority",
+      "paths": [
+        "src/compact_delta.rs"
+      ]
+    },
+    {
+      "id": "freshness",
+      "description": "REL-local deterministic relevance scores, decay, event batches and bounded graph propagation; independent of semantic Memory revisions",
+      "paths": [
+        "src/freshness",
+        "src/freshness_storage.rs",
+        "src/freshness_storage_tests.rs",
+        "src/freshness_dream_journal.rs",
+        "src/freshness_due.rs"
+      ]
+    },
+    {
+      "id": "container",
+      "description": "Physical REL/PHY container mechanics and file-global ordering",
+      "paths": [
+        "src/container"
+      ]
+    },
+    {
+      "id": "archive",
+      "description": "Source history, conversations, fragments, episodes, attachments, Echo, and repository correlations",
+      "paths": [
+        "src/archive"
+      ]
+    },
+    {
+      "id": "memory",
+      "description": "Authoritative Memory records, revisions, provenance metadata, and Memory-local state",
+      "paths": [
+        "src/memory"
+      ]
+    },
+    {
+      "id": "retrieval",
+      "description": "Lexical/semantic retrieval, vector bindings, packed vectors, compatibility profiles, and generations",
+      "paths": [
+        "src/retrieval"
+      ]
+    },
+    {
+      "id": "semantic-graph",
+      "description": "Typed semantic graph authority, Communities, and graph traversal",
+      "paths": [
+        "src/semantic_graph"
+      ]
+    },
+    {
+      "id": "perception",
+      "description": "Durable Entity state, admission, candidate routing, resolution state, and resolver processing",
+      "paths": [
+        "src/perception"
+      ]
+    },
+    {
+      "id": "chronos",
+      "description": "Shared deterministic/inference-assisted temporal semantics",
+      "paths": [
+        "src/chronos"
+      ]
+    },
+    {
+      "id": "ego",
+      "description": "Owner-local Identity, Personality, Anchor, and synthesis persistence",
+      "paths": [
+        "src/ego"
+      ]
+    },
+    {
+      "id": "runtime-inference",
+      "description": "Insomnia, Dream, provider endpoints, long-lived runtime host, and background inference composition",
+      "paths": [
+        "src/runtime_inference"
+      ]
+    },
+    {
+      "id": "config-security",
+      "description": "Machine-local configuration, credentials, encryption, and master-key persistence",
+      "paths": [
+        "src/config_security"
+      ]
+    },
+    {
+      "id": "facade",
+      "description": "Public Cva/Reliquary/Phylactery composition, migration, reconciliation, and cross-owner facade methods",
+      "paths": [
+        "src/facade",
+        "src/lib.rs",
+        "src/owner_lifecycle.rs",
+        "src/tombstone_import_history_characterization_tests.rs"
+      ]
+    },
+    {
+      "id": "context-engine",
+      "description": "Provider-neutral context messages, evidence rendering and compaction policy",
+      "paths": [
+        "src/context_engine.rs",
+        "src/context_engine"
+      ]
+    },
+    {
+      "id": "project-environment",
+      "description": "Lore/Git project repository bootstrap, identity validation and attachment ingestion",
+      "paths": [
+        "src/project_environment.rs",
+        "src/project_environment",
+        "src/project_environment_git_tests.rs",
+        "src/project_environment_lore_tests.rs",
+        "src/project_environment_tests.rs"
+      ]
+    },
+    {
+      "id": "staleness",
+      "description": "Pure owner-qualified typed clocks and review-threshold arithmetic; no persistence or scoring authority",
+      "paths": [
+        "src/staleness"
+      ]
+    },
+    {
+      "id": "native-import",
+      "description": "Versioned historical normalization, exclusive Cva import composition and completion coordination; Archive retains source/receipt authority and Freshness owns settlement replay",
+      "paths": [
+        "src/imports"
+      ]
+    },
+    {
+      "id": "external-source",
+      "description": "Host canonical reference contracts and derived index; external semantic publication composes MemoryStore without creating Archive source history",
+      "paths": [
+        "src/external_source"
+      ]
+    },
+    {
+      "id": "history-rewrite",
+      "description": "Intentional fresh-history selection, closure, emission and generation lineage",
+      "paths": [
+        "src/rewrite.rs",
+        "src/rewrite",
+        "src/rewrite_lineage.rs"
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "convergence-compact-codec-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "compact-codec"
+      ],
+      "to_areas": [
+        "freshness",
+        "container",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "staleness",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-freshness-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "freshness"
+      ],
+      "to_areas": [
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-container-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "container"
+      ],
+      "to_areas": [
+        "freshness",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-archive-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "archive"
+      ],
+      "to_areas": [
+        "freshness",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-memory-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "memory"
+      ],
+      "to_areas": [
+        "freshness",
+        "archive",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-retrieval-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "retrieval"
+      ],
+      "to_areas": [
+        "freshness",
+        "archive",
+        "memory",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-semantic-graph-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "semantic-graph"
+      ],
+      "to_areas": [
+        "freshness",
+        "archive",
+        "memory",
+        "retrieval",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-perception-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "perception"
+      ],
+      "to_areas": [
+        "freshness",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-chronos-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "chronos"
+      ],
+      "to_areas": [
+        "freshness",
+        "container",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-ego-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "ego"
+      ],
+      "to_areas": [
+        "freshness",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-runtime-inference-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "runtime-inference"
+      ],
+      "to_areas": [
+        "facade"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-config-security-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "config-security"
+      ],
+      "to_areas": [
+        "freshness",
+        "container",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-context-engine-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "context-engine"
+      ],
+      "to_areas": [
+        "freshness",
+        "container",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-project-environment-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "project-environment"
+      ],
+      "to_areas": [
+        "freshness",
+        "container",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-staleness-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "staleness"
+      ],
+      "to_areas": [
+        "compact-codec",
+        "freshness",
+        "container",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "external-source",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-native-import-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "native-import"
+      ],
+      "to_areas": [
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-external-source-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "external-source"
+      ],
+      "to_areas": [
+        "freshness",
+        "archive",
+        "memory",
+        "retrieval",
+        "semantic-graph",
+        "perception",
+        "chronos",
+        "ego",
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "native-import",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-history-rewrite-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "history-rewrite"
+      ],
+      "to_areas": [
+        "runtime-inference",
+        "config-security",
+        "facade",
+        "context-engine",
+        "native-import"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    }
+  ]
+}

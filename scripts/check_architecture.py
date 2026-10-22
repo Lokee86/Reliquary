@@ -177,6 +177,7 @@ def main() -> int:
             "2m",
         ]
     )
+    run([sys.executable, "scripts/check_dependency_convergence.py"])
     return 0
 
 
