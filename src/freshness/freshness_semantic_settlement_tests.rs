@@ -12,7 +12,7 @@ fn record_at(turn: u64) -> FreshnessRecord {
     record
 }
 
-fn fixture(predecessor_digest: Option<[u8; 32]>) -> SemanticImportFreshnessSettlement {
+fn fixture() -> SemanticImportFreshnessSettlement {
     let first = id(2);
     let second = id(3);
     let mut first_record = record_at(10);
@@ -55,7 +55,6 @@ fn fixture(predecessor_digest: Option<[u8; 32]>) -> SemanticImportFreshnessSettl
                 ),
             ]),
             superseded: BTreeSet::from(["semantic-event-1".into()]),
-            predecessor_digest,
         },
         corpus_digest: [6; 32],
         manifest_digest: [7; 32],
@@ -82,7 +81,6 @@ fn empty_zero_activity() -> SemanticImportFreshnessSettlement {
             settlement_cut: 0,
             accepted_events: BTreeMap::new(),
             superseded: BTreeSet::new(),
-            predecessor_digest: None,
         },
         corpus_digest: [6; 32],
         manifest_digest: [7; 32],
@@ -193,9 +191,9 @@ fn assert_decode_error(bytes: &[u8], expected: &str) {
 }
 
 #[test]
-fn sparse_settlement_roundtrips_with_and_without_predecessor() {
-    for predecessor in [None, Some([11; 32])] {
-        let settlement = fixture(predecessor);
+fn standalone_sparse_settlement_roundtrips() {
+    {
+        let settlement = fixture();
         let bytes = settlement.encode().unwrap();
         assert!(bytes.starts_with(SEMANTIC_SETTLEMENT_MAGIC));
         assert_eq!(
@@ -216,7 +214,7 @@ fn empty_zero_activity_settlement_roundtrips() {
 
 #[test]
 fn checksum_truncation_and_trailing_bytes_are_rejected() {
-    let bytes = fixture(None).encode().unwrap();
+    let bytes = fixture().encode().unwrap();
     let mut bad_checksum = bytes.clone();
     bad_checksum[20] ^= 1;
     assert!(SemanticImportFreshnessSettlement::decode(&bad_checksum).is_err());
@@ -233,7 +231,7 @@ fn checksum_truncation_and_trailing_bytes_are_rejected() {
 
 #[test]
 fn authenticated_unsorted_and_duplicate_ids_are_rejected() {
-    let bytes = fixture(None).encode().unwrap();
+    let bytes = fixture().encode().unwrap();
     let sections = encoded_sections(&bytes);
 
     let mut unsorted = bytes.clone();
@@ -253,7 +251,7 @@ fn authenticated_unsorted_and_duplicate_ids_are_rejected() {
 
 #[test]
 fn authenticated_event_source_and_record_order_are_rejected() {
-    let bytes = fixture(None).encode().unwrap();
+    let bytes = fixture().encode().unwrap();
     let sections = encoded_sections(&bytes);
 
     let mut events = bytes.clone();
@@ -286,13 +284,16 @@ fn authenticated_event_source_and_record_order_are_rejected() {
 
 #[test]
 fn authenticated_invalid_predecessor_policy_and_bounded_lengths_are_rejected() {
-    let bytes = fixture(None).encode().unwrap();
+    let bytes = fixture().encode().unwrap();
     let sections = encoded_sections(&bytes);
 
     let mut predecessor = bytes.clone();
     predecessor[sections.predecessor_tag] = 2;
     resign(&mut predecessor);
-    assert_decode_error(&predecessor, "invalid semantic import predecessor tag");
+    assert_decode_error(
+        &predecessor,
+        "invalid semantic import predecessor reserved tag",
+    );
 
     let mut policy = bytes.clone();
     let historical_policy_digest = 8 + 16 + 5 * 32;
@@ -317,31 +318,31 @@ fn authenticated_invalid_predecessor_policy_and_bounded_lengths_are_rejected() {
 fn inconsistent_settlement_identity_cuts_cohort_membership_and_records_are_rejected() {
     let mut cases = Vec::new();
 
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.scope.owner = [0; 16];
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.scope.import_id = [0; 32];
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.scope.base_cut = 13;
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.archive_version = value.global_version + 1;
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.graph_version = value.global_version + 1;
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.memory_graph_version = value.graph_version + 1;
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.cohort.remove(&id(3));
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.scope.superseded.insert("unknown-event".into());
     cases.push(value);
-    let mut value = fixture(None);
+    let mut value = fixture();
     value.records.get_mut(&id(2)).unwrap().score = -9999;
     cases.push(value);
 

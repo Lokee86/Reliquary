@@ -2,7 +2,16 @@ use super::*;
 use crate::entity_codec::{
     DirectEntityTombstone, EntityTombstone, encode_direct_tombstone, encode_tombstone,
 };
-use crate::entity_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    )
+}
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    )
+}
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::{Cva, EntityId};
@@ -88,8 +97,8 @@ fn replay_interval_rejects_unknown_truncated_and_reserved_mask_compact_entity_fr
     let valid_delta = encode_delta(&EntityDelta::between(&first, &next).unwrap()).unwrap();
 
     let mut reserved_mask = valid_delta.clone();
-    let mutation_len = u32::from_le_bytes(reserved_mask[72..76].try_into().unwrap()) as usize;
-    let mask_offset = 76 + mutation_len;
+    let mutation_len = u32::from_le_bytes(reserved_mask[64..68].try_into().unwrap()) as usize;
+    let mask_offset = 68 + mutation_len;
     let mask = u64::from_le_bytes(
         reserved_mask[mask_offset..mask_offset + 8]
             .try_into()

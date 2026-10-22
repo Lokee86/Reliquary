@@ -21,7 +21,6 @@ struct PackedVectorEntry {
 
 impl PackedVectorStore {
     pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), PackedVectorError> {
-        container.require_storage_format_writable()?;
         container.append(&encode_format())?;
         Ok(())
     }
@@ -31,7 +30,6 @@ impl PackedVectorStore {
         container: &mut Container,
         packed: PackedVectors,
     ) -> Result<PackedVectorId, PackedVectorError> {
-        container.require_storage_format_writable()?;
         let id = packed_vector_id(packed.schema(), packed.bytes());
         if let Some(existing) = self.objects.get(&id).copied() {
             let Some(chunk) = existing.chunk else {

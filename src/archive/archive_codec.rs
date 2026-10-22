@@ -1,12 +1,9 @@
 use crate::conversation_metadata_codec::{
-    ACTIVE_CONVERSATION_METADATA_MAGIC, CONVERSATION_METADATA_MAGIC,
-    LEGACY_CONVERSATION_METADATA_MAGIC, decode_conversation_metadata,
+    CONVERSATION_METADATA_MAGIC, decode_conversation_metadata,
 };
 use crate::episode_codec::{EPISODE_MAGIC, decode_episode};
 use crate::file_memory_link_codec::{FILE_MEMORY_LINK_MAGIC, decode_file_memory_link};
-use crate::turn_ingest_codec::{
-    INGESTED_TURN_MAGIC, LEGACY_INGESTED_TURN_MAGIC, decode_ingested_turn,
-};
+use crate::turn_ingest_codec::{INGESTED_TURN_MAGIC, decode_ingested_turn};
 use crate::{
     ArchiveError, Branch, ContentId, ConversationMetadata, ConversationTombstone,
     ConversationTombstoneClosure, Episode, FileId, FileMemoryLink, Fragment, FragmentId,
@@ -14,7 +11,6 @@ use crate::{
 };
 
 const CONTENT_MAGIC: [u8; 8] = *b"CVACONT1";
-const LEGACY_NODE_MAGIC: [u8; 8] = *b"CVANODE1";
 const NODE_MAGIC: [u8; 8] = *b"CVANODE2";
 const BRANCH_MAGIC: [u8; 8] = *b"CVABRCH1";
 const FRAGMENT_MAGIC: [u8; 8] = *b"CVAFRAG1";
@@ -96,23 +92,15 @@ pub(crate) fn encode_node_fields(out: &mut Vec<u8>, node: &Node) -> Result<(), A
     Ok(())
 }
 
-pub(crate) fn decode_node_fields(
-    bytes: &[u8],
-    cursor: &mut usize,
-    has_principal: bool,
-) -> Result<Node, ArchiveError> {
+pub(crate) fn decode_node_fields(bytes: &[u8], cursor: &mut usize) -> Result<Node, ArchiveError> {
     let timestamp_ns = read_i64(bytes, cursor)?;
     let content_id = ContentId(read_fixed(bytes, cursor)?);
     let id = read_string(bytes, cursor)?;
     let conversation_id = read_string(bytes, cursor)?;
     let parent = read_string(bytes, cursor)?;
     let role = read_string(bytes, cursor)?;
-    let principal_id = if has_principal {
-        let principal = read_string(bytes, cursor)?;
-        (!principal.is_empty()).then_some(principal)
-    } else {
-        None
-    };
+    let principal = read_string(bytes, cursor)?;
+    let principal_id = (!principal.is_empty()).then_some(principal);
     Ok(Node {
         id,
         conversation_id,
@@ -293,7 +281,7 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes[..8] == CONTENT_MAGIC {
         return decode_content(bytes);
     }
-    if bytes[..8] == NODE_MAGIC || bytes[..8] == LEGACY_NODE_MAGIC {
+    if bytes[..8] == NODE_MAGIC {
         return decode_node(bytes);
     }
     if bytes[..8] == BRANCH_MAGIC {
@@ -302,10 +290,7 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes[..8] == CONVERSATION_TOMBSTONE_MAGIC {
         return decode_conversation_tombstone(bytes);
     }
-    if bytes[..8] == CONVERSATION_METADATA_MAGIC
-        || bytes[..8] == ACTIVE_CONVERSATION_METADATA_MAGIC
-        || bytes[..8] == LEGACY_CONVERSATION_METADATA_MAGIC
-    {
+    if bytes[..8] == CONVERSATION_METADATA_MAGIC {
         return decode_conversation_metadata(bytes).map(ArchiveRecord::ConversationMetadata);
     }
     if bytes[..8] == FRAGMENT_MAGIC {
@@ -314,7 +299,7 @@ pub fn decode_record(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
     if bytes[..8] == FILE_MAGIC {
         return decode_file(bytes);
     }
-    if bytes[..8] == INGESTED_TURN_MAGIC || bytes[..8] == LEGACY_INGESTED_TURN_MAGIC {
+    if bytes[..8] == INGESTED_TURN_MAGIC {
         return decode_ingested_turn(bytes).map(ArchiveRecord::IngestedTurn);
     }
     if bytes[..8] == FILE_MEMORY_LINK_MAGIC {
@@ -348,7 +333,7 @@ fn decode_node(bytes: &[u8]) -> Result<ArchiveRecord, ArchiveError> {
         return Err(ArchiveError::CorruptRecord("short node record"));
     }
     let mut cursor = 8;
-    let node = decode_node_fields(bytes, &mut cursor, bytes[..8] == NODE_MAGIC)?;
+    let node = decode_node_fields(bytes, &mut cursor)?;
     require_end(bytes, cursor)?;
     Ok(ArchiveRecord::Node(node))
 }

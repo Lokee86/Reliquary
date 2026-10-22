@@ -92,9 +92,6 @@ impl Cva {
         started_at_ns: i64,
         completed_at_ns: i64,
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
-        self.container
-            .require_storage_format_writable()
-            .map_err(crate::InsomniaError::from)?;
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
         let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
         let mut prepared = prepare_application(

@@ -16,7 +16,7 @@ fn grouped_completion_versions_share_explicit_transaction_time() {
     let path = test_dir().join("grouped.cva");
     let mut container = Container::create(&path).unwrap();
     let mut payload = vec![0_u8; 84];
-    payload[..8].copy_from_slice(b"CVAINSC4");
+    payload[..8].copy_from_slice(b"CVAINSC7");
     payload[52..60].copy_from_slice(&777_i64.to_le_bytes());
     payload[64..72].copy_from_slice(&1_u64.to_le_bytes());
     payload[72..76].copy_from_slice(&2_u32.to_le_bytes());

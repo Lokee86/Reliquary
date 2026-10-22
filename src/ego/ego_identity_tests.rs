@@ -1,5 +1,6 @@
 use super::test_path;
-use crate::ego_codec::{EgoRecord, encode};
+use crate::ego_codec::EgoRecord;
+use crate::ego_current_fixture::encode_postimage;
 use crate::{EgoError, Phylactery, PhylacteryError};
 
 #[test]
@@ -68,28 +69,6 @@ fn identities_update_independently_and_active_deletion_requires_swap() {
     assert!(phy.delete_ego_identity(first.id, first.revision).unwrap());
     assert_eq!(phy.ego_identities(), vec![updated.clone()]);
     assert_eq!(phy.ego_identity().unwrap(), updated);
-}
-
-#[test]
-fn legacy_single_identity_reopens_as_active_default_identity() {
-    let path = test_path("legacy-identity.phy");
-    let mut phy = Phylactery::create(&path).unwrap();
-    let payload = encode(&EgoRecord::LegacyIdentity {
-        ego_version: 1,
-        revision: 1,
-        text: "You are the legacy identity.".into(),
-    })
-    .unwrap();
-    phy.container.append(&payload).unwrap();
-    phy.sync().unwrap();
-    drop(phy);
-
-    let reopened = Phylactery::open(path).unwrap();
-    let identity = reopened.ego_identity().unwrap();
-    assert_eq!(identity.name, "Default");
-    assert_eq!(identity.text, "You are the legacy identity.");
-    assert_eq!(reopened.ego_identities(), vec![identity.clone()]);
-    assert_eq!(reopened.active_ego_identity_id(), Some(identity.id));
 }
 
 #[test]

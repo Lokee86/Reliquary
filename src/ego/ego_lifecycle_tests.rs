@@ -1,5 +1,6 @@
 use super::test_path;
-use crate::ego_codec::{EgoRecord, encode};
+use crate::ego_codec::EgoRecord;
+use crate::ego_current_fixture::encode_postimage;
 use crate::owner_lifecycle::{
     LifecycleError, LifecycleState, LifecycleTarget, TombstoneCoordinates,
 };
@@ -233,15 +234,15 @@ fn replay_rejects_identity_and_anchor_revisions_that_follow_tombstones() {
             text: "This revision follows a terminal deletion.".into(),
         },
     ] {
-        phy.container.append(&encode(&record).unwrap()).unwrap();
+        phy.container
+            .append(&encode_postimage(&record).unwrap())
+            .unwrap();
     }
     phy.sync().unwrap();
     drop(phy);
     assert!(matches!(
         Phylactery::open(identity_path),
-        Err(PhylacteryError::Ego(EgoError::Lifecycle(
-            LifecycleError::TerminalTombstone(LifecycleTarget::EgoIdentity(id))
-        ))) if id == identity_id
+        Err(PhylacteryError::Ego(EgoError::InvalidRecord(_)))
     ));
 
     let anchor_path = test_path("anchor-invalid-replay.rel");
@@ -273,14 +274,14 @@ fn replay_rejects_identity_and_anchor_revisions_that_follow_tombstones() {
             text: "This revision follows a terminal deletion.".into(),
         },
     ] {
-        rel.container.append(&encode(&record).unwrap()).unwrap();
+        rel.container
+            .append(&encode_postimage(&record).unwrap())
+            .unwrap();
     }
     rel.sync().unwrap();
     drop(rel);
     assert!(matches!(
         Cva::open(anchor_path),
-        Err(crate::CvaError::Ego(EgoError::Lifecycle(
-            LifecycleError::TerminalTombstone(LifecycleTarget::EgoAnchor(id))
-        ))) if id == anchor_id
+        Err(crate::CvaError::Ego(EgoError::InvalidRecord(_)))
     ));
 }

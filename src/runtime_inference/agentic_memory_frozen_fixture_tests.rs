@@ -187,6 +187,9 @@ fn agentic_frozen_fixture_acceptance() {
         {
             corpus_format_limitation(&path, &phase, &message)
         }
+        Err(crate::CvaError::Container(crate::ContainerError::UnsupportedVersion(version))) => {
+            json!({"status":"corpus_limitation","phase":phase,"reason":format!("unsupported container {}.{}",version.major,version.minor),"functional_scenarios_executed":0,"retrieval_calls":0})
+        }
         Err(error) => panic!("unexpected fixture open failure: {error}"),
     };
     std::fs::write(
@@ -214,15 +217,9 @@ fn corpus_format_limitation(path: &std::path::Path, phase: &str, message: &str) 
         "this limitation is for current-owner prototype inputs"
     );
     drop(container);
-    let migration = crate::migrate_file(
-        path,
-        path.parent().unwrap().join("legacy-migration-output.rel"),
-    )
-    .unwrap_err();
-    assert!(matches!(migration, crate::MigrationError::AlreadyCurrent));
     json!({"status":"corpus_limitation","phase":phase,"reason":message,"physical_chunks":count,
         "freshness_formats":formats,"required_freshness_format":"CVAFRS02","current_owner_uuid":true,
-        "existing_migration":"migrate_file rejects AlreadyCurrent; it is not a prototype Freshness converter",
+        "format_policy":"current format only; obsolete codecs and migration APIs have been removed",
         "functional_scenarios_executed":0,"retrieval_calls":0,"candidate_counts":null,
         "evidence_recall":null,"answer_recall":null,"latency_us":null,
         "blocked_scenarios":["Freshness ordering","more-than-ten one-hop neighbors","repeat traversal","refinement",

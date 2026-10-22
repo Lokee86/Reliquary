@@ -240,18 +240,15 @@ fn codec_rejects_malformed_or_unsupported_archive_bodies() {
         _ => panic!("expected Node publication"),
     }
 
-    let mut legacy_node = b"CVANODE1".to_vec();
-    legacy_node.extend_from_slice(&1_i64.to_le_bytes());
-    legacy_node.extend_from_slice(&[0xA5; 32]);
-    for field in ["legacy", "c", "", "user"] {
-        string_field(&mut legacy_node, field);
-    }
-    let ArchiveRecord::Node(legacy_decoded) =
-        crate::archive_codec::decode_record(&legacy_node).unwrap()
-    else {
-        panic!("expected legacy Node");
+    let legacy_decoded = crate::Node {
+        id: "literal-none".into(),
+        conversation_id: "c".into(),
+        parent_id: None,
+        role: "user".into(),
+        principal_id: None,
+        timestamp_ns: 1,
+        content_id: crate::ContentId([0xA5; 32]),
     };
-    assert_eq!(legacy_decoded.principal_id, None);
     let canonical = encode(&record(3, ArchiveRecord::Node(legacy_decoded))).unwrap();
     match decode(&canonical, 1).unwrap().unwrap() {
         ArchivePublication::Record {

@@ -146,10 +146,10 @@ fn entity_resolution_delta_dormant_wake_retarget_terminal_reset_preserve_full_po
             }),
         ),
     ];
+    let mut reference_changes = Vec::new();
     for change in changes {
-        legacy
-            .ingest(&comparison_carrier(&change).unwrap())
-            .unwrap();
+        reference_changes.push(change.clone());
+        legacy = EntityResolutionStore::from_fixture_changes(reference_changes.clone()).unwrap();
         writer.persist_change(&mut container, change).unwrap();
         assert_eq!(writer.records(), legacy.records());
     }
@@ -195,86 +195,6 @@ fn entity_resolution_delta_all_evidence_fields_change_literally() {
         delta::decode(&bytes, |_| Some(&initial)).unwrap(),
         Some(decoded)
     );
-}
-
-#[test]
-fn entity_resolution_delta_rel_history_upgrade_and_reclaim_match_every_postimage() {
-    use crate::storage_upgrade::{
-        StorageUpgradeRequest, plan_storage_upgrade, stage_graph_envelope_storage_upgrade,
-    };
-    let root = scratch();
-    let (mut rel, _, keys, source) =
-        crate::entity_resolution_test_support::rel_with_three_mentions();
-    let key = keys[0];
-    let mut expected = Vec::new();
-    for (revision, fp, time) in [(0, 1, 10), (1, 2, 20), (2, 3, 30)] {
-        rel.put_entity_unresolved(
-            key,
-            revision,
-            vec![EntityId([1; 32]), EntityId([2; 32])],
-            EntityResolutionReason::Ambiguous,
-            [fp; 32],
-            [9; 32],
-            time,
-        )
-        .unwrap();
-        expected.push(rel.entity_resolution(key).unwrap().clone());
-    }
-    rel.put_entity_resolved(
-        key,
-        3,
-        EntityId([2; 32]),
-        EntityResolutionReason::ContextMatch,
-        40,
-    )
-    .unwrap();
-    expected.push(rel.entity_resolution(key).unwrap().clone());
-    rel.sync().unwrap();
-    let before = fs::read(&source).unwrap();
-    let changes = EntityResolutionStore::materialized_changes(&mut rel.container).unwrap();
-    assert_eq!(
-        changes
-            .values()
-            .map(|v| MemoryEntityResolution {
-                key: v.key,
-                revision: v.revision,
-                updated_at_ns: v.updated_at_ns,
-                status: v.status.clone().unwrap()
-            })
-            .collect::<Vec<_>>(),
-        expected
-    );
-    let legacy = root.join("legacy.rel");
-    crate::insomnia::completion_migration_tests::copy_with_legacy_archive_publications(
-        &mut rel, &legacy,
-    );
-    let mut bytes = fs::read(&legacy).unwrap();
-    bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
-    fs::write(&legacy, &bytes).unwrap();
-    let plan = plan_storage_upgrade(StorageUpgradeRequest {
-        source: legacy.clone(),
-        destination: root.join("stage.rel"),
-    })
-    .unwrap();
-    let stage = stage_graph_envelope_storage_upgrade(&plan).unwrap();
-    let mut upgraded = crate::Cva::open(stage.test_path()).unwrap();
-    let converted = EntityResolutionStore::materialized_changes(&mut upgraded.container).unwrap();
-    assert_eq!(
-        changes.values().collect::<Vec<_>>(),
-        converted.values().collect::<Vec<_>>()
-    );
-    assert_eq!(upgraded.entity_resolution(key), expected.last());
-    assert_eq!(fs::read(&legacy).unwrap(), bytes);
-    assert_eq!(fs::read(&source).unwrap(), before);
-    let reclaimed = root.join("reclaimed.rel");
-    rel.reclaim_storage(&reclaimed).unwrap();
-    let reopened = crate::Cva::open(&reclaimed).unwrap();
-    assert_eq!(reopened.entity_resolution(key), expected.last());
-    drop(reopened);
-    drop(upgraded);
-    drop(stage);
-    drop(rel);
-    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
@@ -364,20 +284,10 @@ fn entity_resolution_delta_explicit_v1_owner_rejection_is_nonmutating() {
         fs::write(&path, &bytes).unwrap();
         if phy {
             assert!(crate::Phylactery::open(&path).is_err());
-            assert!(matches!(
-                crate::Phylactery::open_v1_read_only(&path),
-                Err(crate::PhylacteryError::Memories(
-                    MemoryError::CorruptRecord("compact Entity resolution in V1 input")
-                ))
-            ));
+            assert!(crate::Phylactery::open(&path).is_err());
         } else {
             assert!(crate::Cva::open(&path).is_err());
-            assert!(matches!(
-                crate::Cva::open_v1_read_only(&path),
-                Err(crate::CvaError::Memories(MemoryError::CorruptRecord(
-                    "compact Entity resolution in V1 input"
-                )))
-            ));
+            assert!(crate::Cva::open(&path).is_err());
         }
         assert_eq!(fs::read(&path).unwrap(), bytes);
     }

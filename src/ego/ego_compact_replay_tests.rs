@@ -104,7 +104,7 @@ fn interleaved_rel_and_phy_compact_histories_match_legacy_replay_publications() 
             Some(record.clone())
         );
         rel_legacy
-            .ingest(&ego_codec::encode(&record).unwrap())
+            .ingest(&rel_legacy.encode_compact_publication(&record).unwrap())
             .unwrap();
     }
     assert_eq!(rel_compact.version(), rel_legacy.version());
@@ -140,7 +140,7 @@ fn interleaved_rel_and_phy_compact_histories_match_legacy_replay_publications() 
             Some(record.clone())
         );
         phy_legacy
-            .ingest(&ego_codec::encode(&record).unwrap())
+            .ingest(&phy_legacy.encode_compact_publication(&record).unwrap())
             .unwrap();
     }
     assert_eq!(phy_compact.version(), phy_legacy.version());
@@ -202,16 +202,19 @@ fn compact_history_preserves_activation_only_and_zero_change_publications() {
     assert_eq!(materialized, identity(5, second_id, 4, false, "second"));
     assert_eq!(store.version(), 5);
 
-    // The admitted legacy minimal carrier normalizes to the stable Default
-    // Identity and can immediately serve as a compact delta base.
-    let legacy_id = crate::ego_store::LEGACY_IDENTITY_ID;
-    let mut legacy_store = EgoStore::phylactery();
-    legacy_store
+    // An explicit current Default Identity is a valid compact delta base.
+    let default_id = crate::ego_store::DEFAULT_IDENTITY_ID;
+    let mut default_store = EgoStore::phylactery();
+    default_store
         .ingest(
-            &ego_codec::encode(&EgoRecord::LegacyIdentity {
+            &crate::ego_current_fixture::encode_postimage(&EgoRecord::Identity {
                 ego_version: 1,
                 revision: 1,
                 text: "legacy default".into(),
+                id: crate::ego_store::DEFAULT_IDENTITY_ID,
+                deleted: false,
+                activate: true,
+                name: "Default".into(),
             })
             .unwrap(),
         )
@@ -221,17 +224,17 @@ fn compact_history_preserves_activation_only_and_zero_change_publications() {
         previous_revision: 1,
         revision: 2,
         changes: EgoChanges::Identity {
-            id: legacy_id,
+            id: default_id,
             activate: true,
             name: FieldChange::Unchanged,
             text: FieldChange::Unchanged,
         },
     };
     assert_eq!(
-        legacy_store
+        default_store
             .ingest_publication(&compact::encode_delta(&activation_only).unwrap())
             .unwrap(),
-        Some(identity(2, legacy_id, 2, true, "legacy default"))
+        Some(identity(2, default_id, 2, true, "legacy default"))
     );
 }
 
@@ -341,45 +344,4 @@ fn compact_replay_rejects_missing_wrong_terminal_owner_and_sequence_bases() {
         Err(EgoError::InvalidOwnerRecord(_))
     ));
     assert_eq!(rel.version(), 1);
-}
-
-#[test]
-fn compact_publications_require_storage_v2_after_first_compact_frame() {
-    let record = anchor(
-        1,
-        EgoAnchorId([0x61; 16]),
-        1,
-        false,
-        EgoAnchorPriority::Normal,
-        "context",
-    );
-    let mut store = EgoStore::reliquary();
-    store.ingest_publication(&creation(record)).unwrap();
-    assert!(matches!(
-        store.validate_storage_version(FormatVersion { major: 1, minor: 0 }),
-        Err(EgoError::InvalidRecord(_))
-    ));
-    assert!(
-        store
-            .validate_storage_version(FormatVersion { major: 2, minor: 0 })
-            .is_ok()
-    );
-
-    let mut legacy_only = EgoStore::reliquary();
-    legacy_only
-        .ingest(
-            &ego_codec::encode(&EgoRecord::Synthesis {
-                ego_version: 1,
-                revision: 1,
-                source_memory_version: 0,
-                text: "legacy".into(),
-            })
-            .unwrap(),
-        )
-        .unwrap();
-    assert!(
-        legacy_only
-            .validate_storage_version(FormatVersion { major: 1, minor: 0 })
-            .is_ok()
-    );
 }

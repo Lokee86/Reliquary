@@ -152,28 +152,31 @@ fn divergent_reconcile_replays_right_entity_revision() {
 }
 
 #[test]
-fn legacy_entity_record_can_be_backfilled_once_with_global_uuid() {
+fn current_entity_without_global_uuid_can_be_backfilled_once() {
     let path = temp_path("entity-global-id-backfill.rel");
     let mut rel = Cva::create_project(&path).unwrap();
     let id = EntityId([7; 32]);
-    let payload = legacy_entity_record(
+    let record = crate::entity_model::EntityRecord {
         id,
-        "Legacy",
-        "project",
-        "Legacy Entity.",
-        "legacy-entity-record",
-    );
-    let record = rel.container.append(&payload).unwrap();
-    let global_version = rel.container.allocate_version().unwrap();
-    rel.container
-        .append(&crate::entity_codec::encode_version(
-            crate::entity_codec::EntityVersion {
-                global_version,
-                entity_version: 1,
-                record,
-            },
-        ))
-        .unwrap();
+        global_id: None,
+        revision: 1,
+        canonical_name: "Unassigned".into(),
+        aliases: vec![],
+        kind: "project".into(),
+        summary: "Entity without global UUID".into(),
+        mutation_id: "unassigned-entity".into(),
+        created_at_ns: 1,
+        updated_at_ns: 1,
+        global_version: 1,
+        entity_version: 1,
+    };
+    let body = crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Creation(
+            crate::entity_compact_contract::EntityCreation::new(record).unwrap(),
+        ),
+    )
+    .unwrap();
+    rel.container.append_publication_envelope(&body).unwrap();
     rel.sync().unwrap();
     drop(rel);
 
@@ -190,31 +193,6 @@ fn legacy_entity_record_can_be_backfilled_once_with_global_uuid() {
 
     let reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.entity(id).unwrap().global_id, Some(global_id));
-}
-
-fn legacy_entity_record(
-    id: EntityId,
-    canonical_name: &str,
-    kind: &str,
-    summary: &str,
-    mutation_id: &str,
-) -> Vec<u8> {
-    let mut out = b"CVAENTR1".to_vec();
-    out.extend_from_slice(&id.0);
-    out.extend_from_slice(&1_u64.to_le_bytes());
-    out.extend_from_slice(&1_i64.to_le_bytes());
-    out.extend_from_slice(&1_i64.to_le_bytes());
-    write_legacy_string(&mut out, canonical_name);
-    out.extend_from_slice(&0_u16.to_le_bytes());
-    write_legacy_string(&mut out, kind);
-    write_legacy_string(&mut out, summary);
-    write_legacy_string(&mut out, mutation_id);
-    out
-}
-
-fn write_legacy_string(out: &mut Vec<u8>, value: &str) {
-    out.extend_from_slice(&(value.len() as u32).to_le_bytes());
-    out.extend_from_slice(value.as_bytes());
 }
 
 #[test]

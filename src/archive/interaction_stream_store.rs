@@ -1,4 +1,4 @@
-use crate::interaction_stream_codec::{CompactRecord, decode, decode_compact, encode_compact};
+use crate::interaction_stream_codec::{CompactRecord, decode_compact, encode_compact};
 use crate::{Container, CvaError, InteractionStreamRecord, InteractionStreamStatus};
 use std::collections::HashMap;
 
@@ -9,9 +9,7 @@ pub(crate) struct InteractionStreamStore {
 
 impl InteractionStreamStore {
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), CvaError> {
-        if let Some(record) = decode(payload)? {
-            self.apply(record)?;
-        } else if let Some(record) = decode_compact(payload)? {
+        if let Some(record) = decode_compact(payload)? {
             self.apply_compact(record)?;
         }
         Ok(())
@@ -22,7 +20,6 @@ impl InteractionStreamStore {
         container: &mut Container,
         record: InteractionStreamRecord,
     ) -> Result<(), CvaError> {
-        container.require_storage_format_writable()?;
         self.validate_transition(&record)?;
         u32::try_from(record.content.len()).map_err(|_| {
             CvaError::InteractionStream("interaction stream content exceeds u32 length".into())

@@ -23,7 +23,6 @@ impl Cva {
         &mut self,
         output_path: impl AsRef<Path>,
     ) -> Result<ProjectAttachmentRepackResult, CvaError> {
-        self.container.require_storage_format_writable()?;
         let output_path = output_path.as_ref();
         self.container.sync()?;
         let source_file_bytes = fs::metadata(self.container.path())
@@ -60,9 +59,6 @@ impl Cva {
 
                 let payload = crate::storage_reclamation::relocate_payload(&payload, &relocated)
                     .map_err(CvaError::Repack)?;
-                let payload =
-                    crate::imports::legacy_epoch_transport::rebind_copy(&payload, &output)
-                        .map_err(CvaError::Import)?;
                 let destination_ref = output.append(&payload)?;
                 relocated.insert(source_ref, destination_ref);
                 copied_chunks += 1;
@@ -163,64 +159,10 @@ mod tests {
     }
 
     #[test]
-    fn relocate_payload_rewrites_every_durable_object_ref_record() {
+    fn relocate_payload_rewrites_current_vector_generation_object_ref() {
         let old = object(100, 24);
         let new = object(80, 24);
         let relocated = BTreeMap::from([(old, new)]);
-
-        let archive = crate::ArchiveRecordVersion {
-            global_version: 3,
-            archive_version: 2,
-            record: old,
-        };
-        let archive = crate::storage_reclamation::relocate_payload(
-            &crate::archive_history_codec::encode_record_version(archive),
-            &relocated,
-        )
-        .unwrap();
-        assert_eq!(
-            crate::archive_history_codec::decode_record_version(&archive)
-                .unwrap()
-                .unwrap()
-                .record,
-            new
-        );
-
-        let memory = crate::memory_codec::MemoryVersion {
-            global_version: 3,
-            memory_version: 2,
-            record: old,
-        };
-        let memory = crate::storage_reclamation::relocate_payload(
-            &crate::memory_codec::encode_version(memory),
-            &relocated,
-        )
-        .unwrap();
-        assert_eq!(
-            crate::memory_codec::decode_version(&memory)
-                .unwrap()
-                .unwrap()
-                .record,
-            new
-        );
-
-        let graph = crate::graph_codec::GraphVersionPayload {
-            global_version: 3,
-            graph_version: 2,
-            mutation: old,
-        };
-        let graph = crate::storage_reclamation::relocate_payload(
-            &crate::graph_codec::encode_version(graph),
-            &relocated,
-        )
-        .unwrap();
-        assert_eq!(
-            crate::graph_codec::decode_version(&graph)
-                .unwrap()
-                .unwrap()
-                .mutation,
-            new
-        );
 
         let generation = crate::vector_generation_codec::GenerationVersion {
             global_version: 3,

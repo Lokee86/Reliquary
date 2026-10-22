@@ -59,7 +59,7 @@ fn embedded_version_range_is_atomic_at_its_physical_frame_frontier() {
     // Container replay. The payload represents a three-version completion
     // range in one physical frame; it is deliberately not a fake CVAVERS tag.
     let mut completion = vec![0_u8; 84];
-    completion[..8].copy_from_slice(b"CVAINSC5");
+    completion[..8].copy_from_slice(b"CVAINSC7");
     completion[64..72].copy_from_slice(&1_u64.to_le_bytes());
     completion[72..76].copy_from_slice(&3_u32.to_le_bytes());
     completion[76..84].copy_from_slice(&100_i64.to_le_bytes());

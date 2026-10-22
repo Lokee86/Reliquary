@@ -140,7 +140,7 @@ fn import_interval_explicitly_rejects_all_ego_compact_publication_kinds_and_acti
         assert_unhandled_interval(&mut cva, &bytes);
     }
 
-    let activation = ego_codec::encode(&EgoRecord::IdentityActive {
+    let activation = crate::ego_current_fixture::encode_postimage(&EgoRecord::IdentityActive {
         ego_version: 1,
         id: EgoIdentityId([0x33; 16]),
     })

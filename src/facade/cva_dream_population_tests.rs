@@ -192,7 +192,7 @@ fn replay_birth_after_boundary_is_visible_only_to_later_physical_prefixes() {
     let mut owner = Cva::create(&path).unwrap();
     let candidate = owner
         .memories
-        .publish_legacy_fixture(
+        .publish(
             &mut owner.container,
             None,
             0,
@@ -549,7 +549,7 @@ fn compact_begin_rejects_wrong_cut_digest_and_owner_without_rewriting_bytes() {
 }
 
 #[test]
-fn mixed_legacy_and_current_begins_keep_later_settlement_replay() {
+fn mixed_literal_and_prefix_begins_keep_later_settlement_replay() {
     let temp = Temp::new();
     let path = temp.owner_path();
     let mut owner = Cva::create(&path).unwrap();
@@ -569,11 +569,12 @@ fn mixed_legacy_and_current_begins_keep_later_settlement_replay() {
         graph_version_before: 0,
         roots: BTreeSet::new(),
     };
-    let legacy_journal =
-        crate::freshness_dream_journal::DreamFreshnessJournal::new(Some(owner_uuid));
     owner
         .container
-        .append(&legacy_journal.begin_payload(&legacy_pass).unwrap())
+        .append(&crate::dream_current_fixture::explicit(
+            owner_uuid,
+            &legacy_pass,
+        ))
         .unwrap();
     let pass_id = "current-after-legacy";
     append_v2_begin(
@@ -620,6 +621,6 @@ fn unknown_dream_version_and_current_begin_in_v1_reject_without_byte_changes() {
     bytes.extend_from_slice(&14_u64.to_le_bytes());
     bytes.extend_from_slice(b"CVDREAM2forged");
     std::fs::write(&v1, &bytes).unwrap();
-    assert!(Cva::open_v1_read_only(&v1).is_err());
+    assert!(Cva::open(&v1).is_err());
     assert_eq!(std::fs::read(&v1).unwrap(), bytes);
 }

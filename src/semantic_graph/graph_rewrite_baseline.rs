@@ -18,7 +18,6 @@ impl GraphStore {
         policy: [u8; 32],
         memories: &[MemoryId],
     ) -> Result<(), GraphError> {
-        container.require_storage_format_writable()?;
         if self.rewrite_baseline.is_some() || self.graph_version() != 0 {
             return Err(GraphError::InvalidGraphVersion);
         }

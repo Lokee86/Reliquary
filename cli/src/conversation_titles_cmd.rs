@@ -1,6 +1,6 @@
 use anyhow::Result;
 use flate2::read::GzDecoder;
-use reliquary_memory::{Cva, FileKind, migrate_file};
+use reliquary_memory::Cva;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::fs::File;
@@ -11,26 +11,6 @@ use std::path::Path;
 struct ConversationTitleRow {
     conversation_id: String,
     title: String,
-}
-
-pub fn run(source: &Path, output: &Path) -> Result<()> {
-    let result = migrate_file(source, output)?;
-    let kind = match result.file_kind {
-        FileKind::Reliquary => "REL",
-        FileKind::Phylactery => "PHY",
-    };
-    let identity = if result.derived_from_legacy_workspace_id {
-        "legacy-workspace-id"
-    } else {
-        "generated"
-    };
-    println!(
-        "migrated {kind}: {} -> {} id={} identity_source={identity}",
-        source.display(),
-        output.display(),
-        result.owner_id
-    );
-    Ok(())
 }
 
 pub fn run_conversation_titles(source: &Path, rel: &Path) -> Result<()> {

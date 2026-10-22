@@ -13,13 +13,11 @@ impl Cva {
             .owner_uuid()
             .ok_or_else(|| CvaError::Freshness("Dream Begin transport requires an owner".into()))?;
         if !payload.starts_with(b"CVDREAM2") {
-            return crate::freshness_dream_journal::DreamFreshnessJournal::decode_explicit_begin(
-                payload, owner,
-            )
-            .map_err(CvaError::Freshness);
+            return Ok(None);
         }
+
         let record = dream_begin_codec::decode(payload).map_err(CvaError::Freshness)?;
-        if record.owner_uuid != owner || self.container.version().major == 1 {
+        if record.owner_uuid != owner {
             return Err(CvaError::Freshness(
                 "Dream Begin source owner/format mismatch".into(),
             ));
@@ -55,7 +53,6 @@ impl Cva {
         &mut self,
         pass: &InitialDreamPass,
     ) -> Result<Vec<u8>, CvaError> {
-        self.container.require_storage_format_writable()?;
         if pass.first_revision != 1
             || !pass.roots.is_empty()
             || pass.accepted_settlement_turn.is_some()

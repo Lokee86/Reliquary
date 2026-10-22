@@ -160,7 +160,7 @@ pub(crate) fn decode(
         }
     } else {
         let record = if magic == NODE {
-            ArchiveRecord::Node(super::decode_node_fields(bytes, &mut cursor, true)?)
+            ArchiveRecord::Node(super::decode_node_fields(bytes, &mut cursor)?)
         } else if magic == BRANCH {
             ArchiveRecord::Branch(super::decode_branch_fields(bytes, &mut cursor)?)
         } else if magic == METADATA {
@@ -190,7 +190,6 @@ pub(crate) fn decode(
             ArchiveRecord::IngestedTurn(crate::turn_ingest_codec::decode_ingested_turn_fields(
                 bytes,
                 &mut cursor,
-                true,
             )?)
         } else if magic == IMPORT {
             ArchiveRecord::ImportReceipt(crate::archive_import::decode_import_receipt_fields(
@@ -236,9 +235,6 @@ pub(crate) fn version_at(
     object: ObjectRef,
     payload: &[u8],
 ) -> Result<Option<ArchiveRecordVersion>, ArchiveError> {
-    if let Some(version) = crate::archive_history_codec::decode_record_version(payload)? {
-        return Ok(Some(version));
-    }
     let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

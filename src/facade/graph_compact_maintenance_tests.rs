@@ -45,13 +45,17 @@ fn append_compact_history(
     unmarked: &mut Vec<u8>,
     native: bool,
 ) -> BTreeMap<u64, Vec<u8>> {
-    *unmarked = encode_mutation(GraphOrdinalMutation {
-        source: u32::MAX,
-        target: u32::MAX - 1,
-        kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
-        active: true,
-        origin: GraphRelationOrigin::Dream,
-    });
+    *unmarked = graph_publication_codec::encode(&GraphPublication {
+        graph_version: graph_version + 1000,
+        transaction: GraphTransaction::Single(GraphOrdinalMutation {
+            source: u32::MAX,
+            target: u32::MAX - 1,
+            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
+            active: true,
+            origin: GraphRelationOrigin::Dream,
+        }),
+    })
+    .unwrap();
     container.append(unmarked).unwrap();
 
     let mut carriers = BTreeMap::new();
@@ -106,7 +110,7 @@ fn append_graph_publication(
     carriers: &mut BTreeMap<u64, Vec<u8>>,
     native: bool,
 ) {
-    if native {
+    {
         let mutations = crate::graph_compact_codec::decode(carrier)
             .unwrap()
             .unwrap();
@@ -125,18 +129,6 @@ fn append_graph_publication(
         carriers.insert(graph_version, body);
         return;
     }
-    let mutation = container.append(carrier).unwrap();
-    let global_version = container
-        .allocate_version_with_transaction_time(Some(time))
-        .unwrap();
-    container
-        .append(&encode_version(GraphVersionPayload {
-            global_version,
-            graph_version,
-            mutation,
-        }))
-        .unwrap();
-    carriers.insert(graph_version, carrier.to_vec());
 }
 
 fn graph_refs(container: &mut Container) -> BTreeMap<u64, crate::ObjectRef> {
@@ -513,79 +505,6 @@ fn native_graph_reclamation_preserves_ordered_single_and_batch_cuts_and_source_b
             SemanticGraphRelationKind::Memory(GraphRelationKind::Topical)
         );
         assert_reclaimed_graph(&source, &output, &orphan, &publications, rel);
-    }
-}
-
-#[test]
-fn phy_semantic_migration_resolves_compact_ordinals_to_source_ids_and_clocks() {
-    for native in [false, true] {
-        run_phy_semantic_migration(native);
-    }
-}
-
-fn run_phy_semantic_migration(native: bool) {
-    let scratch = Scratch::new();
-    let source_path = scratch.file(if native {
-        "native-source.phy"
-    } else {
-        "legacy-source.phy"
-    });
-    let output_path = scratch.file(if native {
-        "native-migrated.phy"
-    } else {
-        "migrated.phy"
-    });
-    let mut source = Phylactery::create_legacy_typed(&source_path).unwrap();
-    let (first, _) = source
-        .publish_memory(None, 0, memory_draft("migration-a"))
-        .unwrap();
-    let (second, _) = source
-        .publish_memory(None, 0, memory_draft("migration-b"))
-        .unwrap();
-    source
-        .set_memory_relation_with_origin(
-            first.id,
-            second.id,
-            GraphRelationKind::Causal,
-            true,
-            GraphRelationOrigin::User,
-            source.graph_version(),
-        )
-        .unwrap();
-    let mut orphan = Vec::new();
-    let graph_version = source.graph_version();
-    append_compact_history(&mut source.container, graph_version, &mut orphan, native);
-    source.sync().unwrap();
-    drop(source);
-
-    let mut source = Phylactery::open(&source_path).unwrap();
-    let result = crate::migrate_file(&source_path, &output_path).unwrap();
-    assert!(result.owner_id.starts_with("phy-"));
-    let migrated = Phylactery::open(&output_path).unwrap();
-    let migrated_history = GraphHistory::read(&migrated.container, &migrated.graph).unwrap();
-    assert_eq!(source.graph_version(), migrated.graph_version());
-    assert_eq!(
-        source.graph.transaction_global_versions(),
-        migrated.graph.transaction_global_versions()
-    );
-    let source_cuts = accepted_graph_cuts(&mut source.container, &source.graph);
-    for (cut, (source_states, source_memory_graph_version)) in source_cuts.iter().enumerate() {
-        let migrated_cut = migrated_history.at(cut as u64, false).unwrap();
-        assert_eq!(
-            *source_states, migrated_cut.states,
-            "Graph state at cut {cut}"
-        );
-        assert_eq!(
-            *source_memory_graph_version, migrated_cut.memory_graph_version,
-            "MemoryGraph head at cut {cut}"
-        );
-        for relation in source_states.values() {
-            assert_eq!(
-                source.transaction_time_ns(relation.global_version),
-                migrated.transaction_time_ns(relation.global_version),
-                "transaction time at Graph cut {cut}"
-            );
-        }
     }
 }
 

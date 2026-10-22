@@ -1,6 +1,5 @@
 use super::{
-    CHUNK_HEADER_LEN, COMPACT_VERSION, ChunkRef, Container, ContainerError, FormatVersion,
-    LEGACY_VERSION, ObjectRef, read_header, read_header_for_version, truncated_or_io,
+    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header, truncated_or_io,
 };
 use crate::container_version::observe_version_payload_state;
 use std::collections::{BTreeMap, BTreeSet};
@@ -36,39 +35,8 @@ impl Container {
         Self::open_scanned(path, |_, _, _| Ok(()))
     }
 
-    /// Opens a V1 source for inspection without repair or write access.
-    pub(crate) fn open_v1_read_only(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
-        Self::open_scanned_version(path, Some(LEGACY_VERSION), |_, _, _| Ok(()))
-    }
-
     pub(crate) fn open_scanned<E>(
         path: impl AsRef<Path>,
-        visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
-    ) -> Result<Self, E>
-    where
-        E: From<ContainerError>,
-    {
-        Self::open_scanned_version(path, None, visitor)
-    }
-
-    /// Opens the compact physical format explicitly. The legacy route rejects it.
-    pub(crate) fn open_compact(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
-        Self::open_compact_scanned(path, |_, _, _| Ok(()))
-    }
-
-    pub(crate) fn open_compact_scanned<E>(
-        path: impl AsRef<Path>,
-        visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
-    ) -> Result<Self, E>
-    where
-        E: From<ContainerError>,
-    {
-        Self::open_scanned_version(path, Some(COMPACT_VERSION), visitor)
-    }
-
-    pub(crate) fn open_scanned_version<E>(
-        path: impl AsRef<Path>,
-        expected_version: Option<FormatVersion>,
         mut visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
     ) -> Result<Self, E>
     where
@@ -79,23 +47,16 @@ impl Container {
             .read(true)
             .open(path)
             .map_err(ContainerError::Io)?;
-        let read_selected = |file: &mut std::fs::File| match expected_version {
-            Some(version) => read_header_for_version(file, version),
-            None => read_header(file),
-        };
         let (version, identity, owner_uuid, header_len) =
-            read_selected(&mut file).map_err(E::from)?;
-        if version != LEGACY_VERSION {
-            file = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(path)
-                .map_err(ContainerError::Io)?;
-            // Validate the actual writable handle as well as the routing probe.
-            let actual = read_selected(&mut file).map_err(E::from)?;
-            if actual != (version, identity, owner_uuid, header_len) {
-                return Err(E::from(ContainerError::InvalidIdentity));
-            }
+            read_header(&mut file).map_err(E::from)?;
+        file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)
+            .map_err(ContainerError::Io)?;
+        let actual = read_header(&mut file).map_err(E::from)?;
+        if actual != (version, identity, owner_uuid, header_len) {
+            return Err(E::from(ContainerError::InvalidIdentity));
         }
         let mut container = Self {
             file,
@@ -130,7 +91,6 @@ impl Container {
             .map_err(ContainerError::Io)?;
 
         let mut truncate_at = None;
-        let allow_envelopes = self.version == COMPACT_VERSION;
         let mut standalone_reservations = BTreeSet::new();
         {
             let file = &mut self.file;
@@ -165,9 +125,7 @@ impl Container {
                     .map_err(|error| E::from(truncated_or_io(error, offset)))?;
 
                 let object = ObjectRef::from_chunk(ChunkRef { offset, len });
-                if !allow_envelopes && payload.starts_with(b"CVAPUB") {
-                    return Err(E::from(ContainerError::InvalidVersionRecord));
-                }
+
                 observe_version_payload_state(
                     next_version,
                     transaction_times,
@@ -181,9 +139,6 @@ impl Container {
         }
 
         if let Some(offset) = truncate_at {
-            if self.version == LEGACY_VERSION {
-                return Err(E::from(ContainerError::TruncatedChunk(offset)));
-            }
             self.recover_truncated_tail(offset).map_err(E::from)?;
         }
         Ok(())

@@ -15,9 +15,9 @@ const TERMINAL_MAGIC: &[u8; 8] = b"CVAETM01";
 
 /// Fresh-history rewrite emits only first revisions and independent activation.
 pub(crate) fn encode_initial(record: &EgoRecord) -> Result<Vec<u8>, EgoError> {
-    if matches!(record, EgoRecord::IdentityActive { .. }) {
+    if let EgoRecord::IdentityActive { ego_version, id } = record {
         crate::ego_compact_contract::validate(record)?;
-        super::encode(record)
+        Ok(super::encode_activation(*ego_version, *id))
     } else {
         encode_creation(&EgoCreation::new(record.clone())?)
     }

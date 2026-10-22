@@ -376,7 +376,7 @@ fn unknown_entity_body_and_v1_envelope_reject_facade_open() {
     bytes[8..10].copy_from_slice(&1_u16.to_le_bytes());
     bytes[10..12].copy_from_slice(&0_u16.to_le_bytes());
     fs::write(&v1_path, bytes).unwrap();
-    assert!(Cva::open_v1_read_only(&v1_path).is_err());
+    assert!(Cva::open(&v1_path).is_err());
 }
 
 fn memory_draft(mutation_id: &str) -> MemoryDraft {

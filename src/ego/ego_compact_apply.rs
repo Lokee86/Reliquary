@@ -2,12 +2,10 @@
 use crate::EgoError;
 use crate::compact_delta::apply_field;
 use crate::ego_codec::{EgoRecord, record_ego_version};
-use crate::ego_compact_contract::{
-    EgoChanges, EgoDelta, is_terminal, normalize, revision, validate,
-};
+use crate::ego_compact_contract::{EgoChanges, EgoDelta, is_terminal, revision, validate};
 
 pub(crate) fn materialize(previous: &EgoRecord, delta: &EgoDelta) -> Result<EgoRecord, EgoError> {
-    let previous = normalize(previous.clone());
+    let previous = previous.clone();
     validate(&previous)?;
     if revision(&previous) != Some(delta.previous_revision)
         || delta.previous_revision.checked_add(1) != Some(delta.revision)

@@ -121,35 +121,6 @@ fn turn_ingestion_rejects_duplicate_attachment_identity() {
 }
 
 #[test]
-fn legacy_ingested_turn_decodes_without_principal() {
-    let legacy = IngestedTurn {
-        node: Node {
-            id: "legacy".into(),
-            conversation_id: "c1".into(),
-            parent_id: None,
-            role: "user".into(),
-            principal_id: None,
-            timestamp_ns: 1,
-            content_id: ContentId([3; 32]),
-        },
-        attachments: Vec::new(),
-    };
-    let mut bytes = encode_ingested_turn(&legacy).unwrap();
-    let mut cursor = 48;
-    for _ in 0..4 {
-        let len = u32::from_le_bytes(bytes[cursor..cursor + 4].try_into().unwrap()) as usize;
-        cursor += 4 + len;
-    }
-    assert_eq!(&bytes[cursor..cursor + 4], &[0, 0, 0, 0]);
-    bytes.drain(cursor..cursor + 4);
-    bytes[..8].copy_from_slice(b"CVATURN1");
-
-    let decoded = decode_ingested_turn(&bytes).unwrap();
-    assert_eq!(decoded.node.principal_id, None);
-    assert_eq!(decoded.node.id, "legacy");
-}
-
-#[test]
 fn unversioned_ingested_turn_is_inert_on_reopen() {
     let path = test_path();
     let mut cva = Cva::create(&path).unwrap();

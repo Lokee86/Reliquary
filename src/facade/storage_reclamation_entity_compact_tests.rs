@@ -1,9 +1,14 @@
 //! Storage reclamation retains accepted compact Entity history and drops inert carriers.
-use crate::entity_codec::{
-    DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone,
-    encode_tombstone, encode_version,
-};
-use crate::entity_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    )
+}
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    )
+}
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
@@ -51,15 +56,16 @@ fn record(id: u8, mutation_id: &str, revision: u64, global: u64, local: u64) -> 
     }
 }
 
-fn append_publication(container: &mut Container, payload: &[u8], global: u64, local: u64) {
-    let carrier = container.append(payload).unwrap();
-    container
-        .append(&encode_version(EntityVersion {
+fn append_publication(container: &mut Container, payload: &[u8], global: u64, _local: u64) {
+    let bytes = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            entity_version: local,
-            record: carrier,
-        }))
-        .unwrap();
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: payload,
+        },
+    )
+    .unwrap();
+    container.append(&bytes).unwrap();
 }
 
 fn build_history(path: &Path) -> (Vec<EntityRecord>, Vec<Option<i64>>) {
@@ -106,20 +112,16 @@ fn build_history(path: &Path) -> (Vec<EntityRecord>, Vec<Option<i64>>) {
     container
         .allocate_version_with_transaction_time(Some(1_005))
         .unwrap();
-    let merge = container
-        .append(&encode_tombstone(EntityTombstone {
+    let body = crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
             id: a1.id,
             revision: 3,
-            replacement_id: b1.id,
-        }))
-        .unwrap();
-    container
-        .append(&encode_version(EntityVersion {
-            global_version: 5,
             entity_version: 5,
-            record: merge,
-        }))
-        .unwrap();
+            replacement_id: b1.id,
+        },
+    )
+    .unwrap();
+    append_publication(&mut container, &body, 5, 5);
 
     let c1 = record(3, "c-create", 1, 6, 6);
     let c1_bytes = encode_creation(&EntityCreation::new(c1.clone()).unwrap()).unwrap();
@@ -143,19 +145,15 @@ fn build_history(path: &Path) -> (Vec<EntityRecord>, Vec<Option<i64>>) {
     container
         .allocate_version_with_transaction_time(Some(1_008))
         .unwrap();
-    let direct = container
-        .append(&encode_direct_tombstone(DirectEntityTombstone {
+    let body = crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
             id: c1.id,
             revision: 3,
-        }))
-        .unwrap();
-    container
-        .append(&encode_version(EntityVersion {
-            global_version: 8,
             entity_version: 8,
-            record: direct,
-        }))
-        .unwrap();
+        },
+    )
+    .unwrap();
+    append_publication(&mut container, &body, 8, 8);
 
     // These structurally valid compact carriers have no matching version
     // markers. Reclamation should classify them as unpublished backing data.
@@ -191,7 +189,11 @@ fn payloads(path: &Path) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
     container
         .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
+            if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+                result.push(envelope.body.to_vec());
+            } else {
+                result.push(payload.to_vec());
+            }
             Ok(())
         })
         .unwrap();
@@ -203,28 +205,28 @@ fn assert_compact_counts(path: &Path) {
     assert_eq!(
         payloads
             .iter()
-            .filter(|p| p.starts_with(b"CVAENC01"))
+            .filter(|p| p.starts_with(b"CVAENC02"))
             .count(),
         3
     );
     assert_eq!(
         payloads
             .iter()
-            .filter(|p| p.starts_with(b"CVAEND01"))
+            .filter(|p| p.starts_with(b"CVAEND02"))
             .count(),
         3
     );
     assert_eq!(
         payloads
             .iter()
-            .filter(|p| p.starts_with(b"CVAENTT1"))
+            .filter(|p| p.starts_with(b"CVAETM02"))
             .count(),
         1
     );
     assert_eq!(
         payloads
             .iter()
-            .filter(|p| p.starts_with(b"CVAENTT2"))
+            .filter(|p| p.starts_with(b"CVAETD02"))
             .count(),
         1
     );
@@ -234,7 +236,7 @@ fn assert_compact_counts(path: &Path) {
             .any(|p| p.starts_with(b"CVAENTR1") || p.starts_with(b"CVAENTR2"))
     );
     assert!(!payloads.iter().any(|p| {
-        p.starts_with(b"CVAENC01")
+        p.starts_with(b"CVAENC02")
             && p.get(8..40)
                 .is_some_and(|id| id.iter().all(|byte| *byte == 9))
     }));

@@ -508,7 +508,11 @@ pub(super) fn validate_settlement(
     {
         return Err(fail("import checkpoint input cut is unavailable"));
     }
-    if let Some(scope) = &cp.semantic {
+    {
+        let scope = cp
+            .semantic
+            .as_ref()
+            .ok_or_else(|| fail("accepted settlement lacks semantic authority"))?;
         cp.validate().map_err(CvaError::Freshness)?;
         cva.validate_semantic_import_scope(cp, scope)?;
         cva.freshness
@@ -525,16 +529,7 @@ pub(super) fn validate_settlement(
         // An initial unframed V6 settlement retains the same exact publication
         // cohort and birth-proof requirements as its persisted predecessors.
     }
-    if let Some(scope) = &cp.epoch {
-        cp.validate().map_err(CvaError::Freshness)?;
-        cva.validate_import_settlement_scope(scope)?;
-        if super::legacy_immutable_prefix_digest(cva.container.path(), cp.input_bytes)?
-            != cp.epoch_prefix_digest
-        {
-            return Err(fail("import settlement immutable prefix evidence mismatch"));
-        }
-        return Ok(());
-    }
+
     let original: BTreeSet<_> = cva
         .memory_ids()
         .into_iter()

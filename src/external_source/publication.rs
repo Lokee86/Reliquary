@@ -10,15 +10,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 const MAGIC: &[u8; 8] = b"CVAXMEM2";
-const LEGACY_MAGIC: &[u8; 8] = b"CVAXMEM1";
 
-#[derive(Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct LegacyWireRecord {
-    global: u64,
-    memory: u64,
-    bytes: Vec<u8>,
-}
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct WireRecord {
@@ -108,44 +100,19 @@ pub(crate) fn encode(value: &Publication) -> Result<Vec<u8>, MemoryError> {
     Ok(bytes)
 }
 pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
-    if !bytes.starts_with(MAGIC) && !bytes.starts_with(LEGACY_MAGIC) {
+    if !bytes.starts_with(MAGIC) {
         return Ok(None);
     }
     let invalid = || MemoryError::CorruptRecord("external publication");
     let (start, count, transaction_ns) =
         decode_embedded_version_range(bytes)?.ok_or_else(invalid)?;
-    let compact = bytes.starts_with(MAGIC);
-    let wire: WirePublication<MemoryRecord> = if compact {
+    let wire: WirePublication<MemoryRecord> = {
         let raw: WirePublication<WireRecord> =
             serde_json::from_slice(&bytes[36..bytes.len() - 32]).map_err(|_| invalid())?;
         let records = raw
             .records
             .into_iter()
             .map(|r| crate::memory_compact_codec::decode_creation(&r.bytes).map(|v| v.record))
-            .collect::<Result<Vec<_>, MemoryError>>()?;
-        WirePublication {
-            window: raw.window,
-            global_start: raw.global_start,
-            transaction_ns: raw.transaction_ns,
-            birth_turn: raw.birth_turn,
-            records,
-            bodies: raw.bodies,
-            bindings: raw.bindings,
-            routing: raw.routing,
-        }
-    } else {
-        let raw: WirePublication<LegacyWireRecord> =
-            serde_json::from_slice(&bytes[36..bytes.len() - 32]).map_err(|_| invalid())?;
-        let records = raw
-            .records
-            .into_iter()
-            .map(|r| {
-                let mut record =
-                    crate::memory_codec::decode_record(&r.bytes)?.ok_or_else(invalid)?;
-                record.global_version = r.global;
-                record.memory_version = r.memory;
-                Ok(record)
-            })
             .collect::<Result<Vec<_>, MemoryError>>()?;
         WirePublication {
             window: raw.window,
@@ -220,57 +187,10 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
     }))
 }
 
-/// Genuine V1 fixtures must restore full-ID carriers before changing the header.
-#[cfg(test)]
-pub(crate) fn encode_legacy(value: &Publication) -> Result<Vec<u8>, MemoryError> {
-    let records = value
-        .records
-        .iter()
-        .map(|record| {
-            Ok(LegacyWireRecord {
-                global: record.global_version,
-                memory: record.memory_version,
-                bytes: crate::memory_codec::encode_record(record)?,
-            })
-        })
-        .collect::<Result<Vec<_>, MemoryError>>()?;
-    let wire = WirePublication {
-        window: value.window,
-        global_start: value.global_start,
-        transaction_ns: value.transaction_ns,
-        birth_turn: value.birth_turn,
-        records,
-        bodies: value
-            .bodies
-            .iter()
-            .map(|body| WireBody {
-                id: body.id.0,
-                bytes: body.bytes.clone(),
-            })
-            .collect(),
-        bindings: value.bindings.clone(),
-        routing: value
-            .routing
-            .iter()
-            .map(crate::memory_routing_codec::encode)
-            .collect::<Result<Vec<_>, _>>()?,
-    };
-    let json = serde_json::to_vec(&wire)
-        .map_err(|_| MemoryError::CorruptRecord("legacy external fixture"))?;
-    let mut bytes = LEGACY_MAGIC.to_vec();
-    bytes.extend_from_slice(&(json.len() as u64).to_le_bytes());
-    bytes.extend_from_slice(&value.global_start.to_le_bytes());
-    bytes.extend_from_slice(&(value.records.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(&value.transaction_ns.to_le_bytes());
-    bytes.extend_from_slice(&json);
-    let digest = Sha256::digest(&bytes);
-    bytes.extend_from_slice(&digest);
-    Ok(bytes)
-}
 pub(crate) fn decode_embedded_version_range(
     bytes: &[u8],
 ) -> Result<Option<(u64, u32, i64)>, MemoryError> {
-    if !bytes.starts_with(MAGIC) && !bytes.starts_with(LEGACY_MAGIC) {
+    if !bytes.starts_with(MAGIC) {
         return Ok(None);
     }
     let invalid = || MemoryError::CorruptRecord("external publication");

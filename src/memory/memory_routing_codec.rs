@@ -3,9 +3,7 @@ use crate::memory_routing_model::{
 };
 use crate::{MemoryBodyId, MemoryError, MemoryId};
 
-const ROUTING_MAGIC_V1: [u8; 8] = *b"CVAMRTE1";
 const ROUTING_MAGIC_V2: [u8; 8] = *b"CVAMRTE2";
-const MAX_LEGACY_LEXICAL_TERMS: usize = 64;
 
 pub(crate) fn encode(value: &MemoryRoutingMetadata) -> Result<Vec<u8>, MemoryError> {
     let mention_count =
@@ -26,9 +24,6 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<MemoryRoutingMetadata>, Memo
     if bytes[..8] == ROUTING_MAGIC_V2 {
         return decode_v2(bytes).map(Some);
     }
-    if bytes[..8] == ROUTING_MAGIC_V1 {
-        return decode_v1(bytes).map(Some);
-    }
     Ok(None)
 }
 
@@ -40,33 +35,6 @@ fn decode_v2(bytes: &[u8]) -> Result<MemoryRoutingMetadata, MemoryError> {
     let body_id = MemoryBodyId(bytes[40..72].try_into().unwrap());
     let mut cursor = 72;
     let entity_mentions = read_mentions(bytes, &mut cursor)?;
-    if cursor != bytes.len() {
-        return Err(MemoryError::CorruptRecord(
-            "Memory routing metadata trailing bytes",
-        ));
-    }
-    Ok(MemoryRoutingMetadata {
-        memory_id,
-        body_id,
-        entity_mentions,
-    })
-}
-
-fn decode_v1(bytes: &[u8]) -> Result<MemoryRoutingMetadata, MemoryError> {
-    if bytes.len() < 80 {
-        return Err(MemoryError::CorruptRecord("short Memory routing metadata"));
-    }
-    let memory_id = MemoryId(bytes[8..40].try_into().unwrap());
-    let body_id = MemoryBodyId(bytes[40..72].try_into().unwrap());
-    let mut cursor = 72;
-    let entity_mentions = read_mentions(bytes, &mut cursor)?;
-    let term_count = read_u32(bytes, &mut cursor)? as usize;
-    if term_count > MAX_LEGACY_LEXICAL_TERMS {
-        return Err(MemoryError::CorruptRecord("too many Memory lexical terms"));
-    }
-    for _ in 0..term_count {
-        let _ = read_string(bytes, &mut cursor)?;
-    }
     if cursor != bytes.len() {
         return Err(MemoryError::CorruptRecord(
             "Memory routing metadata trailing bytes",

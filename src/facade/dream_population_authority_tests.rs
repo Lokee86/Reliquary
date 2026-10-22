@@ -340,85 +340,6 @@ fn destination_transport_proves_exactness_or_preserves_a_literal_exception() {
 }
 
 #[test]
-fn v1_dream_begin_upgrade_proves_exact_sets_and_keeps_subset_and_late_proof_exceptions() {
-    for mode in ["exact", "subset", "late-proof"] {
-        let scratch = Scratch::new();
-        let path = scratch.0.join("legacy.rel");
-        let mut rel = Cva::create(&path).unwrap();
-        let [first, second, source] = ["first", "second", "source"].map(|name| {
-            rel.memories
-                .publish_legacy_fixture(
-                    &mut rel.container,
-                    None,
-                    0,
-                    draft(name, "knowledge", false),
-                )
-                .unwrap()
-                .0
-                .id
-        });
-        for id in [first, source] {
-            rel.freshness_replay_publication_birth(id).unwrap();
-        }
-        if mode != "late-proof" {
-            rel.freshness_replay_publication_birth(second).unwrap();
-        }
-        let population = if mode == "subset" {
-            BTreeSet::from([first])
-        } else {
-            BTreeSet::from([first, second])
-        };
-        let pass = crate::InitialDreamPass {
-            pass_id: crate::dream_freshness::initial_pass_id(rel.owner_uuid().unwrap(), source),
-            source_id: source,
-            first_revision: 1,
-            turn: 0,
-            accepted_settlement_turn: None,
-            preexisting_ids: population.clone(),
-            graph_version_before: 0,
-            roots: BTreeSet::new(),
-        };
-        let legacy = rel.dream_freshness.begin_payload(&pass).unwrap();
-        rel.container.append(&legacy).unwrap();
-        if mode == "late-proof" {
-            rel.freshness_replay_publication_birth(second).unwrap();
-        }
-        rel.sync().unwrap();
-        drop(rel);
-        let mut bytes = fs::read(&path).unwrap();
-        bytes[8..10].copy_from_slice(&1_u16.to_le_bytes());
-        fs::write(&path, &bytes).unwrap();
-        let request = crate::storage_upgrade::StorageUpgradeRequest {
-            source: path.clone(),
-            destination: scratch.0.join("unpublished.rel"),
-        };
-        let plan = crate::storage_upgrade::plan_storage_upgrade(request).unwrap();
-        let staged = crate::storage_upgrade::stage_graph_envelope_storage_upgrade(&plan).unwrap();
-        let upgraded = Cva::open(staged.test_path()).unwrap();
-        assert_eq!(upgraded.pending_initial_dream_pass(source), Some(pass));
-        let mut scan = crate::Container::open(staged.test_path()).unwrap();
-        let mut begins = Vec::new();
-        scan.visit_payloads::<crate::CvaError>(|_, payload| {
-            if payload.starts_with(b"CVDREAM2") {
-                begins.push(dream_begin_codec::decode(payload).unwrap());
-            }
-            assert!(!(payload.starts_with(b"CVDREAM1") && payload.get(24) == Some(&0)));
-            Ok(())
-        })
-        .unwrap();
-        assert_eq!(begins.len(), 1);
-        match &begins[0].population {
-            BeginPopulation::CompactCut { .. } => assert_eq!(mode, "exact"),
-            BeginPopulation::ExplicitSet(ids) => {
-                assert_ne!(mode, "exact");
-                assert_eq!(*ids, population);
-            }
-        }
-        assert_eq!(fs::read(&path).unwrap(), bytes);
-    }
-}
-
-#[test]
 fn fresh_history_rewrite_discards_old_begin_authority_under_its_existing_policy() {
     let scratch = Scratch::new();
     let path = scratch.0.join("rewrite-source.rel");
@@ -535,7 +456,7 @@ fn dream_begin_raw_byte_measurement_preserves_exact_synthetic_populations() {
             graph_version_before: 0,
             roots: BTreeSet::new(),
         };
-        let legacy = rel.dream_freshness.begin_payload(&pass).unwrap();
+        let prior_payload_bytes = 89 + pass.pass_id.len() + count * 32;
         let current = rel.current_dream_begin_payload(&pass).unwrap();
         let object = rel.container.append(&current).unwrap();
         assert_eq!(
@@ -550,10 +471,9 @@ fn dream_begin_raw_byte_measurement_preserves_exact_synthetic_populations() {
         );
         println!(
             "Dream Begin population={count}: legacy_payload={} current_payload={} framing_bytes=8",
-            legacy.len(),
+            prior_payload_bytes,
             current.len()
         );
-        assert_eq!(legacy.len(), 89 + pass.pass_id.len() + count * 32);
         assert_eq!(
             current.len(),
             pass.pass_id.len() + if count == 0 { 81 } else { 117 }

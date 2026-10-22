@@ -109,7 +109,7 @@ fn compact_external_index_reclaim_keeps_latest_lookup_and_memory_proof() {
     let evidence = rel.external_memory_evidence(memory.id).unwrap();
     let expected_hits = hits(&mut rel);
     let latest = rel.external_index.sources["host:test"].clone();
-    let legacy = store::encode_legacy(&latest).unwrap().len();
+    let legacy = serde_json::to_vec(&latest).unwrap().len() + 48;
     let current = store::encode(&latest).unwrap().len();
     assert!(current < legacy);
     eprintln!("external-index payload bytes legacy={legacy} current={current}");
@@ -192,115 +192,6 @@ fn compact_external_index_reclaim_preserves_global_damage_and_multiple_namespace
     state.revision += 1;
     owner.ingest(&store::encode(&state).unwrap());
     assert_eq!(owner.sources["y"].revision, state.revision - 1);
-}
-
-#[test]
-fn compact_external_index_v1_upgrade_retains_only_current_cache_and_publication_authority() {
-    use crate::storage_upgrade::{
-        StorageUpgradeRequest, plan_storage_upgrade, stage_graph_envelope_storage_upgrade,
-    };
-    let scratch = Scratch::new();
-    let source = scratch.0.join("source.rel");
-    let legacy = scratch.0.join("legacy.rel");
-    let destination = scratch.0.join("destination.rel");
-    let host = Host::new("secret canonical evidence");
-    let mut rel = Cva::create(&source).unwrap();
-    rebuild(&mut rel, &host);
-    rebuild(&mut rel, &host);
-    let expected = rebuild(&mut rel, &host);
-    let window = [41; 32];
-    let mut prepared = prepared_memory(window, "A retained independent semantic decision.");
-    prepared.evidence.authority.message = host.refs()[0].clone();
-    let memory = rel
-        .publish_external_window(window, &[prepared])
-        .unwrap()
-        .remove(0);
-    let evidence = rel.external_memory_evidence(memory.id).unwrap();
-    crate::insomnia::completion_migration_tests::copy_with_legacy_archive_publications(
-        &mut rel, &legacy,
-    );
-    let mut header = fs::read(&legacy).unwrap();
-    header[8..10].copy_from_slice(&1u16.to_le_bytes());
-    fs::write(&legacy, header).unwrap();
-    let before = fs::read(&legacy).unwrap();
-    let mut old = crate::Container::open_v1_read_only(&legacy).unwrap();
-    let mut publications = Vec::new();
-    let mut old_rows = 0;
-    old.visit_payloads::<crate::CvaError>(|_, payload| {
-        if payload.starts_with(b"CVAXIDX1") {
-            old_rows += 1;
-        }
-        if payload.starts_with(b"CVAXMEM1") {
-            let decoded = crate::external_source::publication::decode(payload)
-                .unwrap()
-                .unwrap();
-            publications.push(crate::external_source::publication::encode(&decoded).unwrap());
-        }
-        Ok(())
-    })
-    .unwrap();
-    assert_eq!(old_rows, 3);
-    let plan = plan_storage_upgrade(StorageUpgradeRequest {
-        source: legacy.clone(),
-        destination,
-    })
-    .unwrap();
-    let stage = stage_graph_envelope_storage_upgrade(&plan).unwrap();
-    let mut upgraded = Cva::open(stage.test_path()).unwrap();
-    assert_eq!(
-        upgraded
-            .external_index_state("host:test")
-            .unwrap()
-            .unwrap()
-            .status(),
-        expected
-    );
-    assert_eq!(
-        upgraded.external_memory_evidence(memory.id).unwrap(),
-        evidence
-    );
-    assert_eq!(upgraded.memory(memory.id).unwrap().content, memory.content);
-    let mut actual = Vec::new();
-    let mut rows = 0;
-    upgraded
-        .container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            assert!(!payload.starts_with(b"CVAXIDX1"));
-            if payload.starts_with(b"CVAXIDX2") {
-                rows += 1;
-            }
-            if payload.starts_with(b"CVAXMEM2") {
-                actual.push(payload.to_vec());
-            }
-            Ok(())
-        })
-        .unwrap();
-    assert_eq!(rows, 1);
-    assert_eq!(actual, publications);
-    assert_eq!(fs::read(&legacy).unwrap(), before);
-
-    // A damaged derived tail must survive conversion as a rebuild barrier,
-    // while the accepted external Memory publication remains readable.
-    let mut damaged = before.clone();
-    damaged.extend_from_slice(&8u64.to_le_bytes());
-    damaged.extend_from_slice(b"CVAXIDX1");
-    fs::write(&legacy, &damaged).unwrap();
-    let plan = plan_storage_upgrade(StorageUpgradeRequest {
-        source: legacy.clone(),
-        destination: scratch.0.join("damaged-output.rel"),
-    })
-    .unwrap();
-    let stage = stage_graph_envelope_storage_upgrade(&plan).unwrap();
-    let upgraded = Cva::open(stage.test_path()).unwrap();
-    assert_eq!(
-        upgraded.external_index_state("host:test"),
-        Err(ExternalSourceError::RebuildRequired)
-    );
-    assert_eq!(
-        upgraded.external_memory_evidence(memory.id).unwrap(),
-        evidence
-    );
-    assert_eq!(fs::read(&legacy).unwrap(), damaged);
 }
 
 #[test]
@@ -412,7 +303,7 @@ fn compact_external_index_current_records_reject_in_v1_and_phy() {
     let mut bytes = fs::read(&path).unwrap();
     bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
     fs::write(&path, &bytes).unwrap();
-    assert!(Cva::open_v1_read_only(&path).is_err());
+    assert!(Cva::open(&path).is_err());
     assert_eq!(fs::read(&path).unwrap(), bytes);
     let path = scratch.0.join("wrong.phy");
     let mut phy = crate::Phylactery::create(&path).unwrap();

@@ -29,7 +29,10 @@ pub(crate) fn load_fixture() -> RoutingFixture {
         .expect("set RELIQUARY_ROUTING_REL to the current owner-split Dream Project REL; there is intentionally no default fixture");
     let mut rel = Cva::open(&rel_path)
         .unwrap_or_else(|error| panic!("open routing REL {} failed: {error}", rel_path.display()));
-    assert!(!rel.is_legacy_cva(), "routing fixture must be a typed REL");
+    assert!(
+        rel.owner_uuid().is_some(),
+        "routing fixture requires a durable current owner"
+    );
 
     let snapshot = rel.refresh_communities_leiden().unwrap();
     rel.sync().unwrap();

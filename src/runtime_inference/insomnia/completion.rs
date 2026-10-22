@@ -1,18 +1,10 @@
-#[path = "completion_compact_legacy.rs"]
-mod compact_legacy;
+#[path = "completion_compact_retained.rs"]
+mod compact_retained;
 use crate::EpisodeId;
-use crate::memory_codec::decode_record;
 use crate::memory_model::MemoryRecord;
 use crate::{MemoryBodyId, MemoryRef, MemoryRoutingMetadata};
-pub(crate) use compact_legacy::encode_legacy_compact;
 
-const COMPLETION_MAGIC_V1: [u8; 8] = *b"CVAINSC1";
-const COMPLETION_MAGIC_V2: [u8; 8] = *b"CVAINSC2";
-const COMPLETION_MAGIC_V3: [u8; 8] = *b"CVAINSC3";
-const COMPLETION_MAGIC_V4: [u8; 8] = *b"CVAINSC4";
-const COMPLETION_MAGIC_V5: [u8; 8] = *b"CVAINSC5";
 const COMPLETION_MAGIC_V7: [u8; 8] = *b"CVAINSC7";
-const COMPLETION_MAGIC_V6: [u8; 8] = *b"CVAINSC6";
 
 #[derive(Clone, Debug)]
 pub(crate) struct InsomniaCompletionBody {
@@ -167,82 +159,44 @@ pub(crate) fn decode_embedded_version_range(
     bytes: &[u8],
 ) -> Result<Option<(u64, u32, Option<i64>)>, &'static str> {
     if bytes.starts_with(b"CVAINSC8") {
-        return compact_legacy::decode_range(bytes);
+        return compact_retained::decode_range(bytes);
     }
-    if bytes.len() < 8
-        || (bytes[..8] != COMPLETION_MAGIC_V2
-            && bytes[..8] != COMPLETION_MAGIC_V3
-            && bytes[..8] != COMPLETION_MAGIC_V4
-            && bytes[..8] != COMPLETION_MAGIC_V5
-            && bytes[..8] != COMPLETION_MAGIC_V6
-            && bytes[..8] != COMPLETION_MAGIC_V7)
-    {
+    if !bytes.starts_with(&COMPLETION_MAGIC_V7) {
         return Ok(None);
     }
-    if bytes.len() < 76 {
-        return Err("short Insomnia completion");
+    if bytes.len() < 84 {
+        return Err("short compact Insomnia completion");
     }
     let start = u64::from_le_bytes(bytes[64..72].try_into().unwrap());
     let count = u32::from_le_bytes(bytes[72..76].try_into().unwrap());
     if count > 0 && start == 0 {
         return Err("invalid completion global version range");
     }
-    let transaction_time_ns = if bytes[..8] == COMPLETION_MAGIC_V4
-        || bytes[..8] == COMPLETION_MAGIC_V5
-        || bytes[..8] == COMPLETION_MAGIC_V6
-        || bytes[..8] == COMPLETION_MAGIC_V7
-    {
-        if bytes.len() < 84 {
-            return Err("short Insomnia completion with transaction time");
-        }
-        Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap()))
-    } else {
-        None
-    };
-    Ok(Some((start, count, transaction_time_ns)))
+    Ok(Some((
+        start,
+        count,
+        Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap())),
+    )))
 }
-
 pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletion>, &'static str> {
     if bytes.starts_with(b"CVAINSC8") {
-        return compact_legacy::decode(bytes).map(Some);
+        return compact_retained::decode(bytes).map(Some);
     }
-    if bytes.len() < 8 {
+    if !bytes.starts_with(&COMPLETION_MAGIC_V7) {
         return Ok(None);
     }
-    if bytes[..8] == COMPLETION_MAGIC_V7 {
-        let has_birth_proof = match bytes.get(84) {
-            Some(0) => false,
-            Some(1) => true,
-            _ => return Err("invalid completion birth proof flag"),
-        };
-        return decode_completion_current(bytes, true, has_birth_proof, true).map(Some);
-    }
-    if bytes[..8] == COMPLETION_MAGIC_V6 {
-        return decode_completion_current(bytes, true, true, false).map(Some);
-    }
-    if bytes[..8] == COMPLETION_MAGIC_V5 {
-        return decode_completion_current(bytes, true, false, false).map(Some);
-    }
-    if bytes[..8] == COMPLETION_MAGIC_V4 {
-        return decode_completion_current(bytes, false, false, false).map(Some);
-    }
-    if bytes[..8] == COMPLETION_MAGIC_V3 {
-        return decode_completion_v3(bytes, false).map(Some);
-    }
-    if bytes[..8] == COMPLETION_MAGIC_V2 {
-        return decode_completion_v2(bytes, false).map(Some);
-    }
-    if bytes[..8] == COMPLETION_MAGIC_V1 {
-        return decode_completion_v1(bytes, false).map(Some);
-    }
-    Ok(None)
+    let has_birth_proof = match bytes.get(84) {
+        Some(0) => false,
+        Some(1) => true,
+        _ => return Err("invalid completion birth proof flag"),
+    };
+    decode_completion_current(bytes, true, has_birth_proof).map(Some)
 }
 
 fn decode_completion_current(
     bytes: &[u8],
     has_routing_metadata: bool,
     has_birth_proof: bool,
-    compact: bool,
 ) -> Result<InsomniaCompletion, &'static str> {
     if bytes.len() < 96 {
         return Err("short Insomnia current completion");
@@ -292,11 +246,7 @@ fn decode_completion_current(
             bytes: body,
         });
     }
-    let records = if compact {
-        read_compact_records(bytes, &mut cursor)?
-    } else {
-        read_records(bytes, &mut cursor)?
-    };
+    let records = read_compact_records(bytes, &mut cursor)?;
     validate_record_versions(global_version_start, global_version_count, &records)?;
     let routing_metadata = if has_routing_metadata {
         read_routing_metadata(bytes, &mut cursor)?
@@ -351,7 +301,7 @@ fn decode_completion_current(
     })
 }
 
-fn decode_completion_v3(bytes: &[u8], compact: bool) -> Result<InsomniaCompletion, &'static str> {
+fn decode_external_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
     if bytes.len() < 88 {
         return Err("short Insomnia v3 completion");
     }
@@ -395,11 +345,7 @@ fn decode_completion_v3(bytes: &[u8], compact: bool) -> Result<InsomniaCompletio
             bytes: body,
         });
     }
-    let records = if compact {
-        read_compact_records(bytes, &mut cursor)?
-    } else {
-        read_records(bytes, &mut cursor)?
-    };
+    let records = read_compact_records(bytes, &mut cursor)?;
     validate_record_versions(global_version_start, global_version_count, &records)?;
     if cursor != bytes.len() {
         return Err("Insomnia completion trailing bytes");
@@ -425,7 +371,7 @@ fn decode_completion_v3(bytes: &[u8], compact: bool) -> Result<InsomniaCompletio
     })
 }
 
-fn decode_completion_v2(bytes: &[u8], compact: bool) -> Result<InsomniaCompletion, &'static str> {
+fn decode_local_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
     if bytes.len() < 84 {
         return Err("short Insomnia v2 completion");
     }
@@ -468,11 +414,7 @@ fn decode_completion_v2(bytes: &[u8], compact: bool) -> Result<InsomniaCompletio
             bytes: body,
         });
     }
-    let records = if compact {
-        read_compact_records(bytes, &mut cursor)?
-    } else {
-        read_records(bytes, &mut cursor)?
-    };
+    let records = read_compact_records(bytes, &mut cursor)?;
     if global_version_count as usize != records.len() {
         return Err("completion global version count mismatch");
     }
@@ -508,7 +450,7 @@ fn decode_completion_v2(bytes: &[u8], compact: bool) -> Result<InsomniaCompletio
     })
 }
 
-fn decode_completion_v1(bytes: &[u8], compact: bool) -> Result<InsomniaCompletion, &'static str> {
+fn decode_implicit_range_compact(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
     if bytes.len() < 72 {
         return Err("short Insomnia completion");
     }
@@ -521,11 +463,7 @@ fn decode_completion_v1(bytes: &[u8], compact: bool) -> Result<InsomniaCompletio
     let extractor_model = read_string(bytes, &mut cursor)?;
     let extractor_version = read_string(bytes, &mut cursor)?;
     let memory_ids = read_memory_ids(bytes, &mut cursor)?;
-    let records = if compact {
-        read_compact_records(bytes, &mut cursor)?
-    } else {
-        read_records(bytes, &mut cursor)?
-    };
+    let records = read_compact_records(bytes, &mut cursor)?;
     if cursor != bytes.len() {
         return Err("Insomnia completion trailing bytes");
     }
@@ -642,33 +580,6 @@ fn read_compact_records(
     Ok(records)
 }
 
-fn read_records(bytes: &[u8], cursor: &mut usize) -> Result<Vec<MemoryRecord>, &'static str> {
-    let count = read_u32(bytes, cursor)? as usize;
-    if count > bytes.len().saturating_sub(*cursor) / 20 {
-        return Err("truncated completion record framing");
-    }
-    let mut records = Vec::with_capacity(count);
-    for _ in 0..count {
-        let global_version = read_u64(bytes, cursor)?;
-        let memory_version = read_u64(bytes, cursor)?;
-        let len = read_u32(bytes, cursor)? as usize;
-        let end = cursor
-            .checked_add(len)
-            .ok_or("completion record overflow")?;
-        let encoded = bytes
-            .get(*cursor..end)
-            .ok_or("truncated completion record")?;
-        *cursor = end;
-        let mut record = decode_record(encoded)
-            .map_err(|_| "invalid completion memory record")?
-            .ok_or("missing completion memory record")?;
-        record.global_version = global_version;
-        record.memory_version = memory_version;
-        records.push(record);
-    }
-    Ok(records)
-}
-
 fn read_routing_metadata(
     bytes: &[u8],
     cursor: &mut usize,
@@ -727,3 +638,7 @@ fn read_u64(bytes: &[u8], cursor: &mut usize) -> Result<u64, &'static str> {
     *cursor = end;
     Ok(u64::from_le_bytes(raw.try_into().unwrap()))
 }
+
+#[cfg(test)]
+#[path = "completion_retained_tests.rs"]
+mod retained_tests;

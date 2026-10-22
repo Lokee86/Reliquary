@@ -6,7 +6,10 @@ const PRODUCTION_SOURCES: &[(&str, &str)] = &[
     ("dev_cmd.rs", include_str!("dev_cmd.rs")),
     ("import_cmd.rs", include_str!("import_cmd.rs")),
     ("insomnia_cmd.rs", include_str!("insomnia_cmd.rs")),
-    ("migration_cmd.rs", include_str!("migration_cmd.rs")),
+    (
+        "conversation_titles_cmd.rs",
+        include_str!("conversation_titles_cmd.rs"),
+    ),
     ("phy_cmd.rs", include_str!("phy_cmd.rs")),
     ("rel_cmd.rs", include_str!("rel_cmd.rs")),
     ("util.rs", include_str!("util.rs")),

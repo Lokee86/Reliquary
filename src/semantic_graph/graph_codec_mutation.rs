@@ -18,7 +18,7 @@ pub(crate) struct GraphMutationPayload {
 }
 
 pub(crate) fn encode_mutation(mutation: GraphMutationPayload) -> Vec<u8> {
-    if let Some((source, target, kind)) = legacy_memory_parts(mutation) {
+    if let Some((source, target, kind)) = memory_comparison_parts(mutation) {
         let mut out = vec![0_u8; 76];
         out[..8].copy_from_slice(MUTATION_V1_MAGIC);
         out[8..40].copy_from_slice(&source.0);
@@ -41,12 +41,10 @@ pub(crate) fn encode_mutation(mutation: GraphMutationPayload) -> Vec<u8> {
 
 pub(crate) fn decode_mutation(bytes: &[u8]) -> Result<Option<GraphMutationPayload>, GraphError> {
     if bytes.starts_with(MUTATION_V1_MAGIC) {
-        let has_origin = match bytes.len() {
-            75 => false,
-            76 => true,
-            _ => return Err(GraphError::CorruptRecord("relationship mutation")),
-        };
-        return Ok(Some(decode_legacy_body(bytes, 8, has_origin)?));
+        if bytes.len() != 76 {
+            return Err(GraphError::CorruptRecord("relationship mutation"));
+        }
+        return Ok(Some(decode_memory_comparison_body(bytes, 8)?));
     }
     if !bytes.starts_with(MUTATION_V2_MAGIC) {
         return Ok(None);
@@ -60,13 +58,13 @@ pub(crate) fn decode_mutation(bytes: &[u8]) -> Result<Option<GraphMutationPayloa
 pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
     if mutations
         .iter()
-        .all(|mutation| legacy_memory_parts(*mutation).is_some())
+        .all(|mutation| memory_comparison_parts(*mutation).is_some())
     {
         let mut out = Vec::with_capacity(12 + mutations.len() * 68);
         out.extend_from_slice(BATCH_V1_MAGIC);
         out.extend_from_slice(&(mutations.len() as u32).to_le_bytes());
         for mutation in mutations {
-            let (source, target, kind) = legacy_memory_parts(*mutation).unwrap();
+            let (source, target, kind) = memory_comparison_parts(*mutation).unwrap();
             out.extend_from_slice(&source.0);
             out.extend_from_slice(&target.0);
             out.extend_from_slice(&kind.code().to_le_bytes());
@@ -93,7 +91,7 @@ pub(crate) fn encode_batch(mutations: &[GraphMutationPayload]) -> Vec<u8> {
 
 pub(crate) fn decode_batch(bytes: &[u8]) -> Result<Option<Vec<GraphMutationPayload>>, GraphError> {
     if bytes.starts_with(BATCH_V1_MAGIC) {
-        return decode_legacy_batch(bytes).map(Some);
+        return decode_memory_comparison_batch(bytes).map(Some);
     }
     if bytes.starts_with(BATCH_V2_MAGIC) {
         return decode_typed_batch(bytes).map(Some);
@@ -101,7 +99,7 @@ pub(crate) fn decode_batch(bytes: &[u8]) -> Result<Option<Vec<GraphMutationPaylo
     Ok(None)
 }
 
-fn decode_legacy_batch(bytes: &[u8]) -> Result<Vec<GraphMutationPayload>, GraphError> {
+fn decode_memory_comparison_batch(bytes: &[u8]) -> Result<Vec<GraphMutationPayload>, GraphError> {
     if bytes.len() < 12 {
         return Err(GraphError::CorruptRecord("relationship batch"));
     }
@@ -109,23 +107,15 @@ fn decode_legacy_batch(bytes: &[u8]) -> Result<Vec<GraphMutationPayload>, GraphE
     if count == 0 {
         return Err(GraphError::CorruptRecord("relationship batch"));
     }
-    let legacy = 12
-        + count
-            .checked_mul(67)
-            .ok_or(GraphError::CorruptRecord("relationship batch"))?;
-    let current = 12
+    let expected = 12
         + count
             .checked_mul(68)
             .ok_or(GraphError::CorruptRecord("relationship batch"))?;
-    let (stride, has_origin) = if bytes.len() == current {
-        (68, true)
-    } else if bytes.len() == legacy {
-        (67, false)
-    } else {
+    if bytes.len() != expected {
         return Err(GraphError::CorruptRecord("relationship batch"));
-    };
+    }
     (0..count)
-        .map(|index| decode_legacy_body(bytes, 12 + index * stride, has_origin))
+        .map(|index| decode_memory_comparison_body(bytes, 12 + index * 68))
         .collect()
 }
 
@@ -146,10 +136,9 @@ fn decode_typed_batch(bytes: &[u8]) -> Result<Vec<GraphMutationPayload>, GraphEr
         .collect()
 }
 
-fn decode_legacy_body(
+fn decode_memory_comparison_body(
     bytes: &[u8],
     offset: usize,
-    has_origin: bool,
 ) -> Result<GraphMutationPayload, GraphError> {
     let source = MemoryId(
         bytes[offset..offset + 32]
@@ -165,11 +154,7 @@ fn decode_legacy_body(
     let kind = GraphRelationKind::from_code(kind_code)
         .ok_or(GraphError::UnknownRelationKind(kind_code))?;
     let active = read_active(bytes, offset + 66)?;
-    let origin = if has_origin {
-        read_origin(bytes, offset + 67)?
-    } else {
-        GraphRelationOrigin::Dream
-    };
+    let origin = read_origin(bytes, offset + 67)?;
     Ok(GraphMutationPayload {
         source: SemanticNodeRef::memory(source),
         target: SemanticNodeRef::memory(target),
@@ -191,7 +176,7 @@ fn decode_typed_body(bytes: &[u8], offset: usize) -> Result<GraphMutationPayload
     })
 }
 
-fn legacy_memory_parts(
+fn memory_comparison_parts(
     mutation: GraphMutationPayload,
 ) -> Option<(MemoryId, MemoryId, GraphRelationKind)> {
     Some((

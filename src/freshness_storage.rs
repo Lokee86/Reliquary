@@ -248,8 +248,6 @@ mod activation;
 #[path = "freshness/freshness_import_events.rs"]
 mod import_events_storage;
 pub(crate) use import_events_storage::ImportEventScope;
-#[path = "freshness/freshness_import_compatibility.rs"]
-mod import_compatibility;
 #[path = "freshness/freshness_import_settlement.rs"]
 mod import_settlement_storage;
 #[path = "freshness/freshness_semantic_settlement.rs"]
@@ -257,8 +255,6 @@ mod semantic_settlement;
 pub(crate) use semantic_settlement::{AcceptedImportEventEvidence, ImportSemanticScope};
 #[path = "freshness/freshness_rewrite_baseline.rs"]
 mod rewrite_baseline;
-#[cfg(test)]
-pub(crate) use import_settlement_storage::encode_legacy_test_fixture;
 pub(crate) use import_settlement_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
 };
@@ -348,9 +344,6 @@ impl FreshnessStore {
         container: &mut crate::Container,
         owner: [u8; 16],
     ) -> Result<(), String> {
-        container
-            .require_storage_format_writable()
-            .map_err(|error| error.to_string())?;
         if self.durable_policy_seen {
             return Ok(());
         }
@@ -527,11 +520,7 @@ impl FreshnessStore {
         if payload.starts_with(rewrite_baseline::BASELINE_MAGIC) {
             return self.ingest_rewrite_baseline(payload);
         }
-        if payload.starts_with(semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC)
-            || payload.starts_with(import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
-            || payload.starts_with(import_settlement_storage::SETTLEMENT_MAGIC)
-            || payload.starts_with(import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
-        {
+        if payload.starts_with(semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC) {
             return self.ingest_import_settlement(payload);
         }
         if payload.starts_with(activation::ACTIVATION_MAGIC) {

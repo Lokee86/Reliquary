@@ -123,25 +123,6 @@ impl Cva {
         Self::initialize(container)
     }
 
-    #[cfg(test)]
-    pub(crate) fn create_legacy_cva(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::initialize(Container::create(path)?)
-    }
-
-    #[cfg(test)]
-    pub(crate) fn create_legacy_typed(
-        path: impl AsRef<Path>,
-        scope: crate::ReliquaryScopeKind,
-    ) -> Result<Self, CvaError> {
-        Self::initialize(Container::create_with_legacy_identity(
-            path,
-            crate::ContainerIdentity {
-                file_kind: crate::FileKind::Reliquary,
-                scope: Some(scope),
-            },
-        )?)
-    }
-
     fn initialize(mut container: Container) -> Result<Self, CvaError> {
         let owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
@@ -222,22 +203,18 @@ impl Cva {
         })
     }
 
-    /// Opens a V1 owner for inspection or lossless-upgrade planning only.
-    pub fn open_v1_read_only(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::open_with_version(path, Some(crate::FormatVersion { major: 1, minor: 0 }))
-    }
-
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
-        Self::open_with_version(path, None)
-    }
-
-    fn open_with_version(
-        path: impl AsRef<Path>,
-        required_version: Option<crate::FormatVersion>,
-    ) -> Result<Self, CvaError> {
         let header = Container::open_read_only_for_scan(path.as_ref())?;
+        if header.owner_uuid().is_none() {
+            return Err(crate::ContainerError::InvalidIdentity.into());
+        }
+        if header.identity().map(|identity| identity.file_kind) != Some(crate::FileKind::Reliquary)
+        {
+            return Err(CvaError::InvalidContainerIdentity(
+                "file is not a Reliquary",
+            ));
+        }
         let lineage_owner = header.owner_uuid();
-        let source_format = header.version();
         drop(header);
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
@@ -269,10 +246,8 @@ impl Cva {
         let mut processing_epochs = ProcessingEpochStore::default();
         let mut dream_pairs = DreamPairStore::default();
         let mut external_index = crate::external_source::store::ExternalIndexStore::default();
-        let mut container = Container::open_scanned_version(
-            path.as_ref(),
-            required_version,
-            |chunk, payload, latest_global| {
+        let mut container =
+            Container::open_scanned(path.as_ref(), |chunk, payload, latest_global| {
                 if let Some(owner_uuid) = lineage_owner {
                     rewrite_lineage
                         .ingest(payload, owner_uuid)
@@ -319,15 +294,8 @@ impl Cva {
                         owner_maintenance
                             .ingest(payload)
                             .map_err(CvaError::Repack)?;
-                        import_epochs.ingest_at(Some(chunk), payload)?;
-                        if source_format.major == 1
-                            && payload.starts_with(crate::external_source::compact_index::MAGIC)
-                        {
-                            return Err(crate::MemoryError::CorruptRecord(
-                                "compact external index in V1 input",
-                            )
-                            .into());
-                        }
+                        import_epochs.ingest(payload)?;
+
                         external_index.ingest(payload);
                         archive_state.ingest(chunk, payload, latest_global)?;
                         memory_state.ingest(chunk, payload, latest_global)?;
@@ -341,35 +309,12 @@ impl Cva {
                         archive_vector_state.ingest(chunk, payload)?;
                         profile_state.ingest(chunk, payload)?;
                         generation_state.ingest(chunk, payload, latest_global)?;
-                        if source_format.major == 1
-                            && crate::interaction_stream_codec::is_compact(payload)
-                        {
-                            return Err(CvaError::InteractionStream(
-                                "compact interaction stream in V1 input".into(),
-                            ));
-                        }
+
                         interaction_streams.ingest(payload)?;
                         compaction_state.ingest(chunk, payload)?;
                         echo.ingest(payload)?;
                         ego.ingest(payload)?;
-                        if source_format.major == 1
-                            && crate::entity_resolution_codec::delta::is_current(payload)
-                        {
-                            return Err(crate::MemoryError::CorruptRecord(
-                                "compact Entity resolution in V1 input",
-                            )
-                            .into());
-                        }
-                        if (source_format.major == 1
-                            && crate::entity_resolution_codec::retained::is_current(payload))
-                            || (source_format.major != 1
-                                && crate::entity_resolution_codec::retained::is_source(payload))
-                        {
-                            return Err(crate::MemoryError::CorruptRecord(
-                                "Entity resolution evidence format boundary",
-                            )
-                            .into());
-                        }
+
                         entity_resolutions.ingest(payload)?;
                         project_history.ingest(payload)?;
                         project_files.ingest(payload)?;
@@ -400,7 +345,7 @@ impl Cva {
                                     "unsupported Dream journal version".into(),
                                 ));
                             }
-                            if source_format.major == 1 || lineage_owner.is_none() {
+                            if lineage_owner.is_none() {
                                 return Err(CvaError::Freshness(
                                     "CVDREAM2 Begin requires a versioned V2 owner".into(),
                                 ));
@@ -423,19 +368,12 @@ impl Cva {
                                 .map_err(CvaError::Freshness)?;
                         }
                         processing_epochs.ingest(payload)?;
-                        if source_format.major == 1 && DreamPairStore::is_compact_payload(payload) {
-                            return Err(crate::MemoryError::CorruptRecord(
-                                "compact Dream pair in V1 input",
-                            )
-                            .into());
-                        }
+
                         dream_pairs.ingest(payload)?;
                     }
                 }
                 Ok::<(), CvaError>(())
-            },
-        )?;
-        import_epochs.validate_legacy_frames(&mut container)?;
+            })?;
         if let Some(identity) = container.identity()
             && identity.file_kind != crate::FileKind::Reliquary
         {
@@ -482,13 +420,12 @@ impl Cva {
             &memories,
             &entities,
         )?;
-        ego.validate_storage_version(container.version())?;
+
         ego.validate_memory_version(memories.memory_version())?;
         memories.validate_provenance(&archive)?;
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
         validate_file_memory_targets(&archive, &memories)?;
-        graph_state.validate_storage_version(container.version())?;
         let graph = graph_state.finish(&memories, &entities)?;
         owner_maintenance
             .validate_source_history(&mut container, &graph)
@@ -629,11 +566,7 @@ impl Cva {
             &graph,
             &vector_generations,
         )?;
-        let conversation_compactions = if container.version().major == 1 {
-            compaction_state.finish_without_reclaim()?
-        } else {
-            compaction_state.finish_unrecovered()?
-        };
+        let conversation_compactions = compaction_state.finish_unrecovered()?;
         import_epochs.validate_owner(container.owner_uuid())?;
         import_epochs.validate_receipts(&archive.import_receipts)?;
         let mut result = Self {
@@ -673,23 +606,17 @@ impl Cva {
         };
         result.validate_pruned_packed_vectors()?;
         result.validate_pruned_descriptions()?;
-        if result.container.version().major != 1 {
-            result
-                .conversation_compactions
-                .recover(&mut result.container)?;
-        }
+        result
+            .conversation_compactions
+            .recover(&mut result.container)?;
         result.validate_historical_import_settlements()?;
         result.validate_import_completion_settlements()?;
-        let repaired_entity_resolutions = if result.container.version().major == 1 {
-            // Inspection preserves stored revisions; historical references remain validated below.
-            0
-        } else {
+        let repaired_entity_resolutions =
             result.entity_resolutions.repair_retired_entity_references(
                 &mut result.container,
                 &result.memories,
                 &result.entities,
-            )?
-        };
+            )?;
         result
             .entity_resolutions
             .validate(&result.memories, &result.entities)?;

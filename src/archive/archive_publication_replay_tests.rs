@@ -55,14 +55,17 @@ fn native_node_and_terminal_prune_only_payload_and_reopen_with_bound_proof() {
         .unwrap();
     cva.container
         .append(
-            &crate::archive_codec::encode_node(&crate::Node {
-                id: "orphan".into(),
-                conversation_id: "unused".into(),
-                parent_id: None,
-                role: "user".into(),
-                principal_id: None,
-                timestamp_ns: 2,
-                content_id: orphan_id,
+            &publication::encode(&ArchivePublication::Record {
+                archive_version: 1000,
+                record: ArchiveRecord::Node(crate::Node {
+                    id: "orphan".into(),
+                    conversation_id: "unused".into(),
+                    parent_id: None,
+                    role: "user".into(),
+                    principal_id: None,
+                    timestamp_ns: 2,
+                    content_id: orphan_id,
+                }),
             })
             .unwrap(),
         )

@@ -59,7 +59,6 @@ impl Archive {
         container: &mut Container,
         receipt: ImportReceipt,
     ) -> Result<bool, ArchiveError> {
-        container.require_storage_format_writable()?;
         self.validate_import_receipt(&receipt)?;
         if let Some(existing) = self.import_receipts.get(&receipt.import_key) {
             return if existing == &receipt {

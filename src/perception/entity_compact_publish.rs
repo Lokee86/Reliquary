@@ -13,7 +13,6 @@ impl EntityStore {
         container: &mut Container,
         mut record: EntityRecord,
     ) -> Result<Entity, EntityError> {
-        container.require_storage_format_writable()?;
         if self.tombstones.contains_key(&record.id) {
             return Err(EntityError::TerminalTombstone);
         }

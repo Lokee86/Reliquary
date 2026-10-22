@@ -177,9 +177,6 @@ fn validate_terminal(revision: u64, relationship_version: u64) -> Result<(), Rel
 
 /// Publication coordinates only; consumers resolve semantic facts in the owner store.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, RelationshipError> {
-    if let Some(version) = crate::relationship_codec::decode_version(payload)? {
-        return Ok(Some((version.global_version, version.relationship_version)));
-    }
     let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

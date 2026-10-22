@@ -1,6 +1,4 @@
 use crate::memory_codec::{MemoryTombstone, decode_body, encode_body, encode_format};
-#[cfg(test)]
-use crate::memory_codec::{MemoryVersion, encode_version};
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id, memory_id};
 use crate::{
@@ -45,41 +43,6 @@ pub(crate) enum PublishPreflight {
 }
 
 impl MemoryStore {
-    /// Explicit V1 fixture construction only. Production publication has one
-    /// compact writer; compatibility tests must not disguise compact bytes by
-    /// merely changing their container header.
-    #[cfg(test)]
-    pub(crate) fn publish_legacy_fixture(
-        &mut self,
-        container: &mut Container,
-        id: Option<MemoryId>,
-        expected_revision: u64,
-        draft: MemoryDraft,
-    ) -> Result<(Memory, bool), MemoryError> {
-        let preflight =
-            self.preflight_publish(container, id, expected_revision, &draft, None, None)?;
-        let (mut record, next_memory_version) = match preflight {
-            PublishPreflight::Retry(existing) => return Ok((existing, false)),
-            PublishPreflight::New {
-                record,
-                next_memory_version,
-                ..
-            } => (record, next_memory_version),
-        };
-        self.put_body(container, &draft.title, &draft.content)?;
-        let chunk = container.append(&crate::memory_codec::encode_record(&record)?)?;
-        record.global_version = container.allocate_version()?;
-        container.append(&encode_version(MemoryVersion {
-            global_version: record.global_version,
-            memory_version: record.memory_version,
-            record: chunk,
-        }))?;
-        self.insert(record.clone())?;
-        self.next_memory_version = next_memory_version;
-        self.resolve_record(container, &record)
-            .map(|memory| (memory, true))
-    }
-
     pub(crate) fn empty() -> Self {
         Self {
             external_evidence: HashMap::new(),
@@ -146,7 +109,6 @@ impl MemoryStore {
         source_ref: Option<MemorySourceRef>,
         temporal_inference: Option<MemoryTemporalInference>,
     ) -> Result<(Memory, bool), MemoryError> {
-        container.require_storage_format_writable()?;
         let preflight = self.preflight_publish(
             container,
             id,
@@ -328,7 +290,6 @@ impl MemoryStore {
         id: MemoryId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
-        container.require_storage_format_writable()?;
         if let Some(&coordinates) = self.tombstones.get(&id) {
             if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
                 return Err(MemoryError::RevisionConflict);
@@ -702,7 +663,6 @@ impl MemoryStore {
         container: &mut Container,
         metadata: MemoryRoutingMetadata,
     ) -> Result<bool, MemoryError> {
-        container.require_storage_format_writable()?;
         self.current_body_id(metadata.memory_id)?;
         self.validate_routing_binding(&metadata)?;
         self.validate_routing_text(container, &metadata)?;
@@ -1176,7 +1136,3 @@ fn same_draft(memory: &Memory, draft: &MemoryDraft) -> bool {
 #[cfg(test)]
 #[path = "memory_publication_writer_tests.rs"]
 mod publication_writer_tests;
-
-#[cfg(test)]
-#[path = "memory_legacy_terminal_fixture.rs"]
-mod legacy_terminal_fixture;

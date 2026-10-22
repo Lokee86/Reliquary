@@ -1,6 +1,5 @@
 use crate::{ArchiveError, ContentId, FileId, IngestedTurn, Node, StoredFile};
 
-pub(crate) const LEGACY_INGESTED_TURN_MAGIC: [u8; 8] = *b"CVATURN1";
 pub(crate) const INGESTED_TURN_MAGIC: [u8; 8] = *b"CVATURN2";
 
 pub(crate) fn encode_ingested_turn(turn: &IngestedTurn) -> Result<Vec<u8>, ArchiveError> {
@@ -41,7 +40,7 @@ pub(crate) fn decode_ingested_turn(bytes: &[u8]) -> Result<IngestedTurn, Archive
         return Err(ArchiveError::CorruptRecord("short ingested turn"));
     }
     let mut cursor = 8;
-    let turn = decode_ingested_turn_fields(bytes, &mut cursor, bytes[..8] == INGESTED_TURN_MAGIC)?;
+    let turn = decode_ingested_turn_fields(bytes, &mut cursor)?;
     if cursor != bytes.len() {
         return Err(ArchiveError::CorruptRecord("ingested turn trailing bytes"));
     }
@@ -53,7 +52,6 @@ pub(crate) fn decode_ingested_turn(bytes: &[u8]) -> Result<IngestedTurn, Archive
 pub(crate) fn decode_ingested_turn_fields(
     bytes: &[u8],
     cursor: &mut usize,
-    has_principal: bool,
 ) -> Result<IngestedTurn, ArchiveError> {
     let mut offset = *cursor;
     let timestamp_ns = read_i64(bytes, &mut offset)?;
@@ -66,12 +64,8 @@ pub(crate) fn decode_ingested_turn_fields(
     let conversation_id = read_string(bytes, &mut offset)?;
     let parent = read_string(bytes, &mut offset)?;
     let role = read_string(bytes, &mut offset)?;
-    let principal_id = if has_principal {
-        let principal = read_string(bytes, &mut offset)?;
-        (!principal.is_empty()).then_some(principal)
-    } else {
-        None
-    };
+    let principal = read_string(bytes, &mut offset)?;
+    let principal_id = (!principal.is_empty()).then_some(principal);
     let count = read_u32(bytes, &mut offset)? as usize;
     let mut attachments = Vec::with_capacity(count);
     for _ in 0..count {

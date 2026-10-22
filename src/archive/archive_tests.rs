@@ -142,7 +142,7 @@ fn identical_node_append_is_idempotent() {
 }
 
 #[test]
-fn principal_id_round_trips_and_legacy_node_decodes_without_one() {
+fn principal_id_round_trips_and_current_node_preserves_none() {
     let path = test_path();
     let principal = "phy-00000000-0000-0000-0000-000000000001".to_owned();
     let mut archive = Cva::create(&path).unwrap();
@@ -175,8 +175,7 @@ fn principal_id_round_trips_and_legacy_node_decodes_without_one() {
         content_id: node.content_id,
     };
     let mut bytes = encode_node(&legacy).unwrap();
-    bytes[..8].copy_from_slice(b"CVANODE1");
-    bytes.truncate(bytes.len() - 4);
+
     let ArchiveRecord::Node(decoded) = decode_record(&bytes).unwrap() else {
         panic!("legacy node did not decode as a node");
     };

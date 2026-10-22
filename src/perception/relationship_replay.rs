@@ -141,7 +141,6 @@ impl RelationshipStore {
         container: &mut Container,
         publication: RelationshipReplayPublication,
     ) -> Result<bool, RelationshipError> {
-        container.require_storage_format_writable()?;
         match publication {
             RelationshipReplayPublication::Record(record) => {
                 validate_record(&record)?;

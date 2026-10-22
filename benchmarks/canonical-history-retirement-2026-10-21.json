@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "status": "steps 361-370 accepted; final gates pending",
+  "head_before_retirement": "dbe15d017f392e335a7d75b2a37c228da6743c41",
+  "retained_evidence": {
+    "raw_family_bytes": "benchmarks/canonical-history-family-bytes-2026-10-21.json",
+    "raw_fixture_bytes": "benchmarks/canonical-history-conversion-2026-10-21.json",
+    "compression": "benchmarks/canonical-history-compression-status-2026-10-21.json",
+    "measurements_and_deferrals": "benchmarks/canonical-history-performance-2026-10-21.json",
+    "promotion": "benchmarks/canonical-history-promotion-2026-10-21.json"
+  },
+  "raw_totals": {
+    "source_bytes": 138196316,
+    "canonical_bytes": 130962204,
+    "saved_bytes": 7234112,
+    "compression_bytes_claimed": 0
+  },
+  "comparison_boundary": "Stable comparison encodings remain evidence schemas. Runtime physical dispatch uses current owner bodies/envelopes; old container readers and migration orchestration are deleted. Lexical identities alone do not prove runtime admission.",
+  "plan_rows": 377,
+  "gates": {
+    "cli_tests": {
+      "passed": 32,
+      "failed": 0
+    },
+    "archive_roundtrip": {
+      "nodes": 5,
+      "branches": 2,
+      "fragments": 2,
+      "content_objects": 5,
+      "expanded_refs": 6,
+      "file_bytes": 1819
+    },
+    "library": {
+      "passed": 1942,
+      "failed": 0,
+      "ignored": 5,
+      "filtered": 0,
+      "seconds": 635.61
+    },
+    "integration": "serial retry pending",
+    "current_corpus_oracle": "pending",
+    "architecture": "pending fresh capture",
+    "documentation": "pending final snapshot",
+    "promoted_owner_admission": {
+      "fixtures": 6,
+      "tests_passed": 1,
+      "failed": 0,
+      "source_hashes_and_modification_times_unchanged": true
+    },
+    "doctests": {
+      "passed": 0,
+      "failed": 0
+    },
+    "cli_check": "passed",
+    "current_family_inventory": {
+      "identities": 146,
+      "families": 61,
+      "retired_absent": 18
+    }
+  },
+  "static_retirement_audit": {
+    "forbidden_api_tokens": [
+      "open_v1_read_only",
+      "normalize_import_settlements",
+      "StorageFormatUpgradeRequired",
+      "mod storage_upgrade",
+      "mod container_upgrade",
+      "mod migration_cmd",
+      "pub fn migrate_file"
+    ],
+    "hits": [],
+    "removed_paths": [
+      "src/storage_upgrade",
+      "src/container/container_upgrade.rs",
+      "src/facade/migration.rs",
+      "src/facade/migration_phy.rs",
+      "src/facade/migration_rel.rs",
+      "src/freshness/freshness_import_compatibility.rs",
+      "src/imports/legacy_epoch.rs",
+      "src/imports/legacy_epoch_transport.rs",
+      "cli/src/migration_cmd.rs"
+    ]
+  }
+}

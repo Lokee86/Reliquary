@@ -47,7 +47,6 @@ pub fn run_rel(
                 );
             }
         }
-        let migrated = rel.normalize_import_settlements()?;
         let mut retired = Vec::new();
         for profile in rel.compatibility_profiles() {
             if !keep.contains(&profile.id) && rel.retire_compatibility_profile(profile.id)? {
@@ -129,7 +128,7 @@ pub fn run_rel(
             "{}",
             serde_json::json!({
                 "source":source, "output":output, "keep_profiles":keep.iter().map(|id| crate::util::hex32(&id.0)).collect::<Vec<_>>(),
-                "retired_profiles":retired, "import_settlements_normalized":migrated,
+                "retired_profiles":retired,
                 "pruned_retired":prune_retired, "reclaimed":reclaim, "verified":true,
                 "source_bytes":fs::metadata(source)?.len(), "output_bytes":fs::metadata(output)?.len(),
             })

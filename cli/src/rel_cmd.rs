@@ -50,12 +50,11 @@ pub fn run(command: RelCommand) -> Result<()> {
             let rel = Reliquary::open(&path)?;
             let metadata = rel.rel_metadata();
             println!(
-                "REL ok: {} id={} type={} dependencies={} legacy_cva={} archive_version={} relationship_version={} vector_version={}",
+                "REL ok: {} id={} type={} dependencies={} archive_version={} relationship_version={} vector_version={}",
                 path.display(),
                 rel.owner_id().as_deref().unwrap_or("none"),
                 metadata.type_label.as_deref().unwrap_or("none"),
                 metadata.dependencies.len(),
-                rel.is_legacy_cva(),
                 rel.archive_version(),
                 rel.relationship_version(),
                 rel.vector_version()
@@ -107,7 +106,6 @@ fn info(path: &std::path::Path) -> Result<()> {
     let metadata = rel.rel_metadata();
     println!("type: {}", metadata.type_label.as_deref().unwrap_or("none"));
     println!("dependencies: {}", metadata.dependencies.join(", "));
-    println!("legacy_cva: {}", rel.is_legacy_cva());
     println!("archive_version: {}", rel.archive_version());
     println!("memory_version: {}", rel.memory_version());
     println!("relationship_version: {}", rel.relationship_version());

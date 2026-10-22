@@ -10,12 +10,6 @@ use crate::{MemoryBodyId, MemoryError, MemoryId, ObjectRef};
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVAMEMF2";
 const BODY_MAGIC: [u8; 8] = *b"CVAMBDY1";
-const RECORD_MAGIC_V2: [u8; 8] = *b"CVAMEMR2";
-const RECORD_MAGIC_V3: [u8; 8] = *b"CVAMEMR3";
-const RECORD_MAGIC_V4: [u8; 8] = *b"CVAMEMR4";
-const RECORD_MAGIC_V5: [u8; 8] = *b"CVAMEMR5";
-const RECORD_MAGIC_V6: [u8; 8] = *b"CVAMEMR6";
-const RECORD_MAGIC_V7: [u8; 8] = *b"CVAMEMR7";
 const RECORD_MAGIC_V8: [u8; 8] = *b"CVAMEMR8";
 const VERSION_MAGIC: [u8; 8] = *b"CVAMEMV1";
 const TOMBSTONE_MAGIC: [u8; 8] = *b"CVAMEMT1";
@@ -104,27 +98,15 @@ pub(crate) fn encode_record(record: &MemoryRecord) -> Result<Vec<u8>, MemoryErro
     Ok(out)
 }
 
+/// Decode the fixed full comparison carrier used by current proof/history code.
+/// Physical publication admission uses only native bodies and grouped creations.
 pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, MemoryError> {
     if bytes.len() < 8 {
         return Ok(None);
     }
-    let version = if bytes[..8] == RECORD_MAGIC_V8 {
-        8
-    } else if bytes[..8] == RECORD_MAGIC_V7 {
-        7
-    } else if bytes[..8] == RECORD_MAGIC_V6 {
-        6
-    } else if bytes[..8] == RECORD_MAGIC_V5 {
-        5
-    } else if bytes[..8] == RECORD_MAGIC_V4 {
-        4
-    } else if bytes[..8] == RECORD_MAGIC_V3 {
-        3
-    } else if bytes[..8] == RECORD_MAGIC_V2 {
-        2
-    } else {
+    if bytes[..8] != RECORD_MAGIC_V8 {
         return Ok(None);
-    };
+    }
     if bytes.len() < 123 {
         return Err(MemoryError::CorruptRecord("short memory record"));
     }
@@ -140,43 +122,23 @@ pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<MemoryRecord>, Memory
     let superseded_by = read_optional_id(bytes, &mut cursor)?;
     let parent_id = read_optional_id(bytes, &mut cursor)?;
     let source_episode_id = read_optional_episode(bytes, &mut cursor)?;
-    let source_time_ns = if version >= 4 {
-        read_optional_i64(bytes, &mut cursor)?
-    } else {
-        None
-    };
-    let source_ref = if version >= 5 {
-        read_optional_source_ref(bytes, &mut cursor, version >= 8)?
-    } else {
-        None
-    };
+    let source_time_ns = read_optional_i64(bytes, &mut cursor)?;
+    let source_ref = read_optional_source_ref(bytes, &mut cursor, true)?;
     let created_at_ns = read_i64(bytes, &mut cursor)?;
     let updated_at_ns = read_i64(bytes, &mut cursor)?;
     let category = read_string(bytes, &mut cursor)?;
     let memory_type = read_string(bytes, &mut cursor)?;
-    let authority_kind = if version >= 3 {
-        read_string(bytes, &mut cursor)?
-    } else {
-        "unknown".into()
-    };
+    let authority_kind = read_string(bytes, &mut cursor)?;
     let scope = read_string(bytes, &mut cursor)?;
     let lifecycle_state = read_string(bytes, &mut cursor)?;
-    let temporal_status = if version >= 6 {
-        read_string(bytes, &mut cursor)?
-    } else {
-        "unknown".into()
-    };
+    let temporal_status = read_string(bytes, &mut cursor)?;
     let source_node_id = read_optional_string(bytes, &mut cursor)?;
     let content_source_conversation_id = read_optional_string(bytes, &mut cursor)?;
     let content_source_node_id = read_optional_string(bytes, &mut cursor)?;
     let grounding_source_conversation_id = read_optional_string(bytes, &mut cursor)?;
     let grounding_source_node_id = read_optional_string(bytes, &mut cursor)?;
     let mutation_id = read_string(bytes, &mut cursor)?;
-    let temporal_inference = if version >= 7 {
-        crate::memory_temporal_codec::read_optional(bytes, &mut cursor)?
-    } else {
-        None
-    };
+    let temporal_inference = crate::memory_temporal_codec::read_optional(bytes, &mut cursor)?;
     if cursor != bytes.len() {
         return Err(MemoryError::CorruptRecord("memory record trailing bytes"));
     }
@@ -217,20 +179,6 @@ pub(crate) fn encode_version(version: MemoryVersion) -> Vec<u8> {
     out.extend_from_slice(&version.memory_version.to_le_bytes());
     out.extend_from_slice(&version.record.legacy_bytes());
     out
-}
-
-pub(crate) fn decode_version(bytes: &[u8]) -> Result<Option<MemoryVersion>, MemoryError> {
-    if bytes.len() < 8 || bytes[..8] != VERSION_MAGIC {
-        return Ok(None);
-    }
-    if bytes.len() != 40 {
-        return Err(MemoryError::CorruptRecord("invalid memory version record"));
-    }
-    Ok(Some(MemoryVersion {
-        global_version: u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-        memory_version: u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-        record: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
-    }))
 }
 
 pub(crate) fn encode_tombstone(value: MemoryTombstone) -> Vec<u8> {

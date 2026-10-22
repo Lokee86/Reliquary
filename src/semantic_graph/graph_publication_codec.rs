@@ -107,9 +107,6 @@ pub(crate) fn version_at(
     object: ObjectRef,
     payload: &[u8],
 ) -> Result<Option<crate::graph_codec::GraphVersionPayload>, GraphError> {
-    if let Some(version) = crate::graph_codec::decode_version(payload)? {
-        return Ok(Some(version));
-    }
     let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };
@@ -125,9 +122,6 @@ pub(crate) fn version_at(
 
 /// Coordinates alone are not semantic admission or ordinal-table authority.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, GraphError> {
-    if let Some(version) = crate::graph_codec::decode_version(payload)? {
-        return Ok(Some((version.global_version, version.graph_version)));
-    }
     let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

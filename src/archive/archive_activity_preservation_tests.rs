@@ -58,7 +58,15 @@ fn orphan(cva: &mut Cva, id: &str) {
     node.id = "orphan".into();
     node.role = "assistant".into();
     cva.container
-        .append(&crate::archive_codec::encode_node(&node).unwrap())
+        .append(
+            &crate::archive_codec::publication::encode(
+                &crate::archive_codec::publication::ArchivePublication::Record {
+                    archive_version: 1000,
+                    record: crate::archive_codec::ArchiveRecord::Node(node),
+                },
+            )
+            .unwrap(),
+        )
         .unwrap();
 }
 fn repeat(cva: &mut Cva, version: u64) {
@@ -316,49 +324,6 @@ fn divergent_conflicting_identity_rejects_without_changing_sources() {
     assert!(!output.exists());
     assert_eq!(fs::read(&left).unwrap(), before_left);
     assert_eq!(fs::read(&right).unwrap(), before_right);
-}
-
-#[test]
-fn fresh_migration_preserves_order_when_redundant_versions_are_removed() {
-    let fixture = Fixture::new();
-    let source = fixture.path("legacy.rel");
-    let output = fixture.path("migrated.rel");
-    let mut cva = Cva::create_legacy_typed(&source, ReliquaryScopeKind::Project).unwrap();
-    cva.store_file("prefix.txt".into(), None, b"prefix")
-        .unwrap();
-    append(&mut cva, "u", "user");
-    // A distinct legacy backing record with the same immutable identity.
-    let node = cva.archive.nodes.get("c", "u").unwrap().clone();
-    let mut bytes = crate::archive_codec::encode_node(&node).unwrap();
-    bytes.truncate(bytes.len() - 4); // absent principal in CVANODE1
-    bytes[..8].copy_from_slice(b"CVANODE1");
-    let record = cva.container.append(&bytes).unwrap();
-    cva.archive
-        .publish_record(&mut cva.container, record)
-        .unwrap();
-    repeat(&mut cva, 3);
-    append(&mut cva, "system", "system");
-    cva.ingest_turn(turn("a", "assistant")).unwrap();
-    orphan(&mut cva, "u");
-    cva.sync().unwrap();
-    drop(cva);
-    let before = fs::read(&source).unwrap();
-    crate::migrate_file(&source, &output).unwrap();
-    let original = Cva::open(&source).unwrap();
-    let migrated = Cva::open(&output).unwrap();
-    assert_eq!(original.rel_turn_count(), 2);
-    assert_eq!(migrated.rel_turn_count(), 2);
-    assert_eq!(original.archive_version(), 6);
-    assert_eq!(migrated.archive_version(), 4);
-    assert_eq!(original.activity_cut_at_archive_version(4).unwrap(), 1);
-    assert_eq!(migrated.activity_cut_at_archive_version(4).unwrap(), 2);
-    for rel in [&original, &migrated] {
-        assert_eq!(rel.activity_position_for_turn("c", "u"), Some(1));
-        assert_eq!(rel.activity_position_for_turn("c", "a"), Some(2));
-        assert_eq!(rel.activity_position_for_turn("c", "system"), None);
-        assert_eq!(rel.activity_position_for_turn("c", "orphan"), None);
-    }
-    assert_eq!(fs::read(&source).unwrap(), before);
 }
 
 #[test]

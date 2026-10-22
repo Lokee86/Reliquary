@@ -91,6 +91,18 @@ def production_text(path: Path) -> str:
                     path.read_text(encoding="utf-8"))[0]
 
 
+# Exact identities deleted by the canonical-format hard cut. Reappearance in
+# production source is an audit failure, even if no writer has yet been added.
+RETIRED_IDENTITIES = {
+    "CVADREM1", "CVADREM2", "CVADRP01", "CVAEANC1", "CVAEIDN1", "CVAEIDN2",
+    "CVAEPER1", "CVAEPRN1", "CVAESYN1", "CVAFRS03", "CVAFRS04", "CVAFRS05",
+    "CVAILEG1", "CVAILEG2", "CVARPRN1", "CVAXIDX1", "CVAXMEM1", "PRJCOR01",
+}
+FAMILIES = {family: [magic for magic in magics if magic not in RETIRED_IDENTITIES]
+            for family, magics in FAMILIES.items()}
+FAMILIES = {family: magics for family, magics in FAMILIES.items() if magics}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "benchmarks/history-durable-family-current-2026-10-21.json")
@@ -110,6 +122,8 @@ def main() -> None:
             except (UnicodeError, ValueError):
                 continue
             if len(raw) == 8 and raw.startswith((b"CVA", b"CVD", b"PRJ")):
+                if literal in RETIRED_IDENTITIES:
+                    raise ValueError(f"retired record identity reintroduced: {literal}: {relative}")
                 if literal not in known and literal not in EXCLUDED:
                     raise ValueError(f"unclassified record identity {literal}: {relative}")
                 found.setdefault(literal, [])
@@ -120,9 +134,10 @@ def main() -> None:
     missing = set(known) - set(found)
     if missing:
         raise ValueError(f"inventory identities missing from current source: {sorted(missing)}")
-    report = dict(schema=1, families=FAMILIES, occurrences=dict(sorted(found.items())),
+    report = dict(schema=2, retired_identities=sorted(RETIRED_IDENTITIES), families=FAMILIES, occurrences=dict(sorted(found.items())),
                   direct_container_append_sites=physical_sites, excluded=EXCLUDED,
                   limitations=["Lexical direct-call evidence supplements the reviewed writer table; it is not a Rust call graph.",
+                               "Presence includes stable comparison schemas and test-only fixture helpers; it does not imply runtime format admission.",
                                "Delegating methods, multiline receiver chains and in-place compaction writes are covered by the execution evidence writer table.",
                                "Config, master-key files, gateway journals and frozen external plans are outside REL/PHY history."])
     out = args.output

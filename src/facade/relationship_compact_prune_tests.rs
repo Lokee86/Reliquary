@@ -2,7 +2,6 @@
 use crate::container::publication_envelope::{self, PublicationEnvelope};
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget, PayloadUnavailable};
 use crate::owner_maintenance::{HistoryPruneManifest, PrunedPayload, RetentionDomain};
-use crate::relationship_codec::encode_record;
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
 use crate::relationship_compact_codec::{decode_creation, decode_delta, encode_creation};
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDescriptionProof};
@@ -125,21 +124,6 @@ fn source_digests(path: &Path, id: RelationshipId) -> BTreeMap<u64, [u8; 32]> {
                 digests.insert(revision, Sha256::digest(carrier).into());
             }
             continue;
-        }
-        let Some(version) = crate::relationship_codec::decode_version(&marker).unwrap() else {
-            continue;
-        };
-        let raw = container.read(version.record).unwrap();
-        if raw.starts_with(b"CVARNC") {
-            let creation = decode_creation(&raw).unwrap();
-            if creation.record.id == id {
-                digests.insert(1, Sha256::digest(&raw).into());
-            }
-        } else if raw.starts_with(b"CVARND") {
-            let delta = decode_delta(&raw).unwrap();
-            if delta.id == id {
-                digests.insert(delta.revision, Sha256::digest(&raw).into());
-            }
         }
     }
     digests
@@ -479,9 +463,34 @@ fn append_selected_orphans(container: &mut Container, record: &RelationshipRecor
     let mut orphan = record.clone();
     orphan.summary = "UNPUBLISHED SELECTED RELATIONSHIP SECRET".into();
     orphan.mutation_id = "unpublished-selected-carrier".into();
-    container.append(&encode_record(&orphan).unwrap()).unwrap();
     container
-        .append(&encode_creation(&RelationshipCreation::new(orphan).unwrap()).unwrap())
+        .append(
+            &crate::relationship_compact_codec::publication::encode(
+                &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+                    RelationshipCreation::new(orphan.clone()).unwrap(),
+                ),
+            )
+            .unwrap(),
+        )
+        .unwrap();
+    let previous = orphan.clone();
+    orphan.revision += 1;
+    orphan.global_version += 1;
+    orphan.relationship_version += 1;
+    orphan.summary = "UNPUBLISHED SELECTED RELATIONSHIP DELTA SECRET".into();
+    orphan.mutation_id = "unpublished-selected-delta".into();
+    container
+        .append(
+            &crate::relationship_compact_codec::publication::encode(
+                &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(
+                    crate::relationship_compact_contract::RelationshipDelta::between(
+                        &previous, &orphan,
+                    )
+                    .unwrap(),
+                ),
+            )
+            .unwrap(),
+        )
         .unwrap();
     container.sync().unwrap();
 }

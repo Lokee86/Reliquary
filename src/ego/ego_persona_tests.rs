@@ -1,5 +1,6 @@
 use super::test_path;
-use crate::ego_codec::{EgoRecord, encode};
+use crate::ego_codec::EgoRecord;
+use crate::ego_current_fixture::encode_postimage;
 use crate::{Cva, CvaError, EgoError, Phylactery};
 
 #[test]
@@ -97,7 +98,7 @@ fn source_memory_watermarks_cannot_point_past_owner_state() {
 
     let corrupt_path = test_path("corrupt-future-synthesis.rel");
     let mut corrupt = Cva::create(&corrupt_path).unwrap();
-    let payload = encode(&EgoRecord::Synthesis {
+    let payload = encode_postimage(&EgoRecord::Synthesis {
         ego_version: 1,
         revision: 1,
         source_memory_version: 1,
@@ -131,10 +132,14 @@ fn revisions_are_guarded_and_rel_rejects_phy_persona_records() {
 
     let rel_path = test_path("foreign-persona.rel");
     let mut rel = Cva::create(&rel_path).unwrap();
-    let payload = encode(&EgoRecord::LegacyIdentity {
+    let payload = encode_postimage(&EgoRecord::Identity {
         ego_version: 1,
         revision: 1,
         text: "This does not belong in a REL.".into(),
+        id: crate::ego_store::DEFAULT_IDENTITY_ID,
+        deleted: false,
+        activate: true,
+        name: "Default".into(),
     })
     .unwrap();
     rel.container.append(&payload).unwrap();

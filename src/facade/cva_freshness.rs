@@ -65,7 +65,6 @@ impl Cva {
         turn: u64,
         admit_at_birth: bool,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         if turn > self.archive.rel_turn_count() {
             return Err(CvaError::Freshness(
                 "publication turn exceeds accepted owner REL activity".into(),
@@ -94,7 +93,6 @@ impl Cva {
         &mut self,
         policy: crate::freshness::FreshnessPolicy,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         self.container.require_write_admission()?;
         if self.dream_freshness.has_any() || !self.freshness.records().is_empty() {
             return Err(CvaError::Freshness(
@@ -174,7 +172,6 @@ impl Cva {
     /// it cannot backdate a score or create a first-cycle Dream publication birth.
     /// Repeat calls preserve the original baseline even after further activity.
     pub fn enroll_legacy_freshness_baseline(&mut self, id: MemoryId) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         self.require_freshness_memory(id)?;
         if self.freshness_is_publication_birth(id) || self.freshness_has_pending_publication(id) {
             return Err(CvaError::Freshness(
@@ -215,7 +212,6 @@ impl Cva {
     /// Initializes only an accepted first-publication Memory. Legacy enrollment
     /// must use the explicit baseline API and is never a Dream birth receipt.
     pub fn freshness_initialize(&mut self, id: MemoryId) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         self.require_freshness_memory(id)?;
         let intent = self.dream_freshness.pending_initialization(id);
         if self.freshness.records().contains_key(&id) {
@@ -267,7 +263,6 @@ impl Cva {
         turn: u64,
         admit_at_birth: bool,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         let owner = self.owner_uuid().ok_or_else(|| {
             CvaError::Freshness("legacy owner requires explicit migration before enrollment".into())
         })?;
@@ -289,7 +284,6 @@ impl Cva {
     }
 
     fn consume_publication_intent(&mut self, id: MemoryId) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         if let Some(payload) = self
             .dream_freshness
             .consume_publication_intent_payload(id)
@@ -307,7 +301,6 @@ impl Cva {
     /// Starts decay at the first successful active Dream settlement. Repeated calls
     /// preserve the first accepted position.
     pub(crate) fn freshness_admit(&mut self, id: MemoryId, turn: u64) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         self.require_freshness_memory(id)?;
         if turn > self.archive.rel_turn_count() {
             return Err(CvaError::Freshness(
@@ -392,7 +385,6 @@ impl Cva {
         proof: FreshnessEventProof,
         effects: BTreeMap<MemoryId, i16>,
     ) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         let event_id = event_id.into();
         self.validate_initial_dream_event_identity(&event_id, turn, proof, &effects)?;
         if self
@@ -481,7 +473,6 @@ impl Cva {
         preexisting_ids: std::collections::BTreeSet<MemoryId>,
         graph_version_before: u64,
     ) -> Result<crate::InitialDreamPass, CvaError> {
-        self.container.require_storage_format_writable()?;
         self.require_freshness_memory(source_id)?;
         let owner = self.owner_uuid().ok_or_else(|| {
             CvaError::Freshness("legacy owner requires explicit migration before Dream pass".into())
@@ -540,11 +531,11 @@ impl Cva {
             graph_version_before,
             roots: std::collections::BTreeSet::new(),
         };
-        let payload = self
+        if self
             .dream_freshness
-            .begin_payload(&pass)
-            .map_err(CvaError::Freshness)?;
-        if payload.is_empty() {
+            .begin_is_retry(&pass)
+            .map_err(CvaError::Freshness)?
+        {
             return self
                 .dream_freshness
                 .pending_for_source(source_id)
@@ -576,7 +567,6 @@ impl Cva {
         pass_id: &str,
         turn: u64,
     ) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         if turn > self.archive.rel_turn_count() {
             return Err(CvaError::Freshness(
                 "settlement turn exceeds accepted owner REL activity".into(),
@@ -623,7 +613,6 @@ impl Cva {
         pass_id: &str,
         roots: std::collections::BTreeSet<MemoryId>,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         let payload = self
             .dream_freshness
             .roots_payload(pass_id, &roots)
@@ -644,7 +633,6 @@ impl Cva {
         proof: FreshnessEventProof,
         effects: BTreeMap<MemoryId, i16>,
     ) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         if self.dream_freshness.is_settled(pass_id) {
             return Ok(false);
         }
@@ -1007,7 +995,6 @@ impl Cva {
         pass_id: &str,
         active_admission: bool,
     ) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         let Some((turn, _, _)) = self
             .freshness
             .event_receipt(pass_id)
@@ -1044,7 +1031,6 @@ impl Cva {
         destination_turn: u64,
         admitted_at_birth: bool,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         self.require_freshness_memory(id)?;
         if self.freshness.records().contains_key(&id) {
             return Ok(());
@@ -1081,7 +1067,6 @@ impl Cva {
         id: MemoryId,
         destination_turn: u64,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         let _ = self.freshness_admit(id, destination_turn)?;
         Ok(())
     }
@@ -1094,7 +1079,6 @@ impl Cva {
         effects: BTreeMap<MemoryId, i16>,
         provenance: Option<crate::freshness_storage::FreshnessEventProvenance>,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         if destination_turn > self.archive.rel_turn_count() {
             return Err(CvaError::Freshness(
                 "replay event turn exceeds destination REL activity".into(),
@@ -1172,7 +1156,6 @@ impl Cva {
         sources: Vec<MemoryId>,
         policy_version: u64,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         if self
             .freshness
             .resolve_accepted_use(&use_id, turn, &sources)
@@ -1206,7 +1189,6 @@ impl Cva {
         &mut self,
         id: MemoryId,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         self.require_freshness_memory(id)?;
         let payload = self
             .dream_freshness
@@ -1233,7 +1215,6 @@ impl Cva {
         &mut self,
         pass_id: &str,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         let payload = self
             .dream_freshness
             .replay_settled_payload(pass_id)

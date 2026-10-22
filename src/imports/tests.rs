@@ -921,7 +921,7 @@ fn completion_for(
     receipt: &ImportReceipt,
     completed_at_ns: i64,
 ) -> ImportComplete {
-    // Production completion now requires an accepted scoped CVAFRS05
+    // Production completion now requires an accepted scoped CVAFRS06
     // settlement. Accept durable zero-output Insomnia completions,
     // then derive that settlement through the public owner operation.
     // These low-level store tests do not establish nonempty import readiness.

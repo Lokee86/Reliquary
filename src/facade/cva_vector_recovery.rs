@@ -15,7 +15,6 @@ impl Cva {
         &mut self,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<DerivedVectorRecovery, CvaError> {
-        self.container.require_storage_format_writable()?;
         let candidate = profile_from_endpoint(endpoint)?;
         let profile = self.accept_runtime_compatibility_profile(candidate)?;
 

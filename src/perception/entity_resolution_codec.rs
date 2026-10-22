@@ -1,7 +1,9 @@
+#[cfg(test)]
+use crate::MemoryEntityResolution;
 use crate::{
     EntityId, EntityResolutionDormant, EntityResolutionPending, EntityResolutionReason,
-    MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolution,
-    MemoryEntityResolutionStatus, MemoryError, MemoryId, MemoryTextField,
+    MAX_ENTITY_RESOLUTION_CANDIDATES, MemoryEntityMentionKey, MemoryEntityResolutionStatus,
+    MemoryError, MemoryId, MemoryTextField,
 };
 
 const MAGIC: [u8; 8] = *b"CVAERS01";

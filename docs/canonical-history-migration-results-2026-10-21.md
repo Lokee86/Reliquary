@@ -174,3 +174,7 @@ selection correctly refuses. All53 focused current compact prune cases pass for
 positive REL/PHY pruning and malformed/unauthorized evidence. The
 [public acceptance artifact](../benchmarks/canonical-history-public-acceptance-2026-10-21.json)
 records these proofs, source-integrity checks and complete output hashes.
+
+## Canonical promotion and retirement
+
+All six verified outputs are promoted in fixture commit `2b170044d3fd6b693baf0dec326c6429c66d8a9f`. The [promotion artifact](../benchmarks/canonical-history-promotion-2026-10-21.json) binds exact canonical hashes and owner heads; original V1 bytes and metadata remain preserved separately. V1 admission, legacy Freshness/import compatibility and temporary upgrade APIs/CLI are deleted in the working implementation. The [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) records post-retirement acceptance separately from the earlier conversion measurements.

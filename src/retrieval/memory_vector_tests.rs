@@ -255,7 +255,14 @@ fn a_new_profile_gets_a_distinct_embedding_for_the_same_memory_body() {
 #[test]
 fn memory_vector_store_requires_its_format_marker() {
     let path = test_path("missing-format.cva");
-    let mut container = crate::Container::create(&path).unwrap();
+    let mut container = crate::Container::create_with_identity(
+        &path,
+        crate::ContainerIdentity {
+            file_kind: crate::FileKind::Reliquary,
+            scope: Some(crate::ReliquaryScopeKind::Project),
+        },
+    )
+    .unwrap();
     container.append(&encode_archive_format()).unwrap();
     container.append(&encode_memory_format()).unwrap();
     container.append(&encode_insomnia_format()).unwrap();

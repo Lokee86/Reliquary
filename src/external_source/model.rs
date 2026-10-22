@@ -127,7 +127,6 @@ pub enum ExternalSourceError {
     RebuildRequired,
     Conflict,
     Storage,
-    StorageFormatUpgradeRequired,
 }
 impl fmt::Display for ExternalSourceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -139,9 +138,6 @@ impl fmt::Display for ExternalSourceError {
             Self::StaleEvidence => "external source evidence is stale",
             Self::RebuildRequired => "external source rebuild required",
             Self::Conflict => "external source cut changed; retry",
-            Self::StorageFormatUpgradeRequired => {
-                "storage format upgrade required: V1 owners are read-only"
-            }
             Self::Storage => "external derived state unavailable",
         })
     }

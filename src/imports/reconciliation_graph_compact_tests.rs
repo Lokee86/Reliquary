@@ -78,42 +78,25 @@ fn append_compact(cva: &mut Cva, graph_version: u64, a: MemoryId, b: MemoryId) {
         active: true,
         origin: GraphRelationOrigin::User,
     };
-    let carrier = cva.container.append(&encode_mutation(mutation)).unwrap();
-    let global_version = cva
+    use crate::graph_compact_codec::publication::{GraphPublication, GraphTransaction};
+    let body = crate::graph_compact_codec::publication::encode(&GraphPublication {
+        graph_version,
+        transaction: GraphTransaction::Single(mutation),
+    })
+    .unwrap();
+    let global = cva
         .container
         .allocate_version_with_transaction_time(Some(20_000 + graph_version as i64))
         .unwrap();
-    cva.container
-        .append(&encode_version(GraphVersionPayload {
-            global_version,
-            graph_version,
-            mutation: carrier,
-        }))
-        .unwrap();
-}
-
-fn append_legacy(cva: &mut Cva, graph_version: u64, a: MemoryId, b: MemoryId) {
-    let carrier = cva
-        .container
-        .append(&crate::graph_codec::encode_mutation(GraphMutationPayload {
-            source: SemanticNodeRef::memory(a),
-            target: SemanticNodeRef::memory(b),
-            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
-            active: true,
-            origin: GraphRelationOrigin::User,
-        }))
-        .unwrap();
-    let global_version = cva
-        .container
-        .allocate_version_with_transaction_time(Some(20_000 + graph_version as i64))
-        .unwrap();
-    cva.container
-        .append(&encode_version(GraphVersionPayload {
-            global_version,
-            graph_version,
-            mutation: carrier,
-        }))
-        .unwrap();
+    let payload = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
+            global_version: global,
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: &body,
+        },
+    )
+    .unwrap();
+    cva.container.append(&payload).unwrap();
 }
 
 fn epoch(first: usize, end: usize) -> super::CompletedEpoch {
@@ -216,7 +199,7 @@ fn retained_compact_graph_interval_maps_source_local_graph_cut_to_destination_cu
         )
         .unwrap();
     let destination_boundary = destination.container.chunks().unwrap().len();
-    append_legacy(&mut destination, 3, x, y);
+    append_compact(&mut destination, 3, x, y);
     let destination_end = destination.container.chunks().unwrap().len();
 
     let mut coordinates = Coordinates::shared(&mut source, source_boundary).unwrap();
@@ -241,22 +224,27 @@ fn retained_compact_graph_interval_maps_source_local_graph_cut_to_destination_cu
 #[test]
 fn replay_interval_classifier_accepts_valid_compact_graph_and_fails_closed_on_bad_frames() {
     let scratch = Scratch::new();
-    let valid = encode_batch(&[
-        GraphOrdinalMutation {
-            source: 0,
-            target: 1,
-            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
-            active: true,
-            origin: GraphRelationOrigin::Dream,
+    let valid = crate::graph_compact_codec::publication::encode(
+        &crate::graph_compact_codec::publication::GraphPublication {
+            graph_version: 1,
+            transaction: crate::graph_compact_codec::publication::GraphTransaction::Batch(vec![
+                GraphOrdinalMutation {
+                    source: 0,
+                    target: 1,
+                    kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Factual),
+                    active: true,
+                    origin: GraphRelationOrigin::Dream,
+                },
+                GraphOrdinalMutation {
+                    source: 1,
+                    target: 0,
+                    kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Topical),
+                    active: true,
+                    origin: GraphRelationOrigin::User,
+                },
+            ]),
         },
-        GraphOrdinalMutation {
-            source: 1,
-            target: 0,
-            kind: SemanticGraphRelationKind::Memory(GraphRelationKind::Topical),
-            active: true,
-            origin: GraphRelationOrigin::User,
-        },
-    ])
+    )
     .unwrap();
     for (name, payload, accepted) in [
         ("valid-compact.rel", valid.as_slice(), true),
@@ -279,8 +267,11 @@ fn last_graph_evidence(path: &std::path::Path) -> (Vec<u8>, Vec<u8>) {
     let mut owner = Cva::open(path).unwrap();
     let mut last = None;
     for object in owner.container.chunks().unwrap() {
-        if let Some(version) =
-            crate::graph_codec::decode_version(&owner.container.read(object).unwrap()).unwrap()
+        if let Some(version) = crate::graph_compact_codec::publication::version_at(
+            object,
+            &owner.container.read(object).unwrap(),
+        )
+        .unwrap()
         {
             last = Some(version);
         }
@@ -294,7 +285,7 @@ fn last_graph_evidence(path: &std::path::Path) -> (Vec<u8>, Vec<u8>) {
 }
 
 #[test]
-fn completed_import_graph_evidence_is_stable_across_wire_formats_and_independent_mapping_scopes() {
+fn completed_import_graph_evidence_is_stable_across_independent_current_mapping_scopes() {
     let scratch = Scratch::new();
     let base_path = scratch.file("evidence-base.rel");
     let mut base = Cva::create(&base_path).unwrap();
@@ -325,7 +316,7 @@ fn completed_import_graph_evidence_is_stable_across_wire_formats_and_independent
             )
             .unwrap();
         if legacy {
-            append_legacy(&mut owner, 2, a, b);
+            append_compact(&mut owner, 2, a, b);
         } else {
             append_compact(&mut owner, 2, a, b);
         }
@@ -338,7 +329,7 @@ fn completed_import_graph_evidence_is_stable_across_wire_formats_and_independent
         left_raw, right_raw,
         "same stable edge uses source-local ordinals"
     );
-    assert_ne!(left_raw, legacy_raw, "carrier formats differ");
+    assert_eq!(left_raw, legacy_raw, "current carrier formats agree");
     assert_eq!(left, right);
     assert_eq!(left, legacy);
     let mut owner = Cva::open(&right_path).unwrap();
@@ -346,9 +337,16 @@ fn completed_import_graph_evidence_is_stable_across_wire_formats_and_independent
     owner.sync().unwrap();
     drop(owner);
     let (collision_raw, collision) = last_graph_evidence(&right_path);
+    let left_body = crate::container::publication_envelope::decode(&left_raw)
+        .unwrap()
+        .unwrap();
+    let collision_body = crate::container::publication_envelope::decode(&collision_raw)
+        .unwrap()
+        .unwrap();
     assert_eq!(
-        left_raw, collision_raw,
-        "identical wire ordinals can name different stable edges"
+        &left_body.body[16..],
+        &collision_body.body[16..],
+        "identical ordinal fields can name different stable edges at different coordinates"
     );
     assert_ne!(
         left, collision,

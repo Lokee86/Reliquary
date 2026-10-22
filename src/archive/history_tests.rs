@@ -48,7 +48,14 @@ fn current_leaf<'a>(cva: &'a Cva, conversation: &str, branch_id: &str) -> &'a st
 #[test]
 fn archive_rejects_container_without_archive_format_marker() {
     let path = test_path("unmarked.cva");
-    let container = Container::create(&path).unwrap();
+    let container = Container::create_with_identity(
+        &path,
+        crate::ContainerIdentity {
+            file_kind: crate::FileKind::Reliquary,
+            scope: Some(crate::ReliquaryScopeKind::Project),
+        },
+    )
+    .unwrap();
     container.sync().unwrap();
     drop(container);
     assert!(matches!(

@@ -11,7 +11,6 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: EntityDraft,
             ) -> Result<(Entity, bool), EntityError> {
-                self.container.require_storage_format_writable()?;
                 if $reject_principal
                     && draft.kind.trim() == crate::entity_principal::PRINCIPAL_ENTITY_KIND
                 {
@@ -28,7 +27,6 @@ macro_rules! impl_owner {
                 draft: EntityDraft,
                 global_id: Option<EntityGlobalId>,
             ) -> Result<(Entity, bool), EntityError> {
-                self.container.require_storage_format_writable()?;
                 self.entities.publish_with_global_id(
                     &mut self.container,
                     Some(id),
@@ -39,7 +37,6 @@ macro_rules! impl_owner {
             }
 
             pub fn backfill_entity_global_ids(&mut self) -> Result<usize, EntityError> {
-                self.container.require_storage_format_writable()?;
                 let missing: Vec<_> = self
                     .entities()
                     .into_iter()
@@ -81,7 +78,6 @@ macro_rules! impl_owner {
                 id: EntityId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
-                self.container.require_storage_format_writable()?;
                 let result =
                     self.entities
                         .tombstone_direct(&mut self.container, id, expected_revision)?;

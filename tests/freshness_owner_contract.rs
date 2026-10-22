@@ -64,12 +64,6 @@ fn freshness_survives_public_copy_repack_and_reclamation() {
         drop(copied);
         assert_eq!(Cva::open(path).unwrap().freshness_record(id), expected);
     }
-    let migrated = fixture.path("current-migration.rel");
-    assert!(reliquary_memory::migrate_file(&source_path, &migrated).is_err());
-    assert!(
-        !migrated.exists(),
-        "current identified owners require no legacy migration"
-    );
     assert_eq!(fs::read(source_path).unwrap(), original);
 }
 

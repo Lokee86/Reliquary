@@ -30,7 +30,6 @@ impl VectorGenerationStore {
         &self,
         container: &mut Container,
     ) -> Result<(), VectorGenerationError> {
-        container.require_storage_format_writable()?;
         container.append(&encode_format())?;
         Ok(())
     }
@@ -42,7 +41,6 @@ impl VectorGenerationStore {
         archive_vector_id: crate::ArchiveVectorId,
         source_archive_version: u64,
     ) -> Result<VectorGeneration, VectorGenerationError> {
-        container.require_storage_format_writable()?;
         if let Some(current) = self.current_generation(compatibility_profile_id)
             && source_archive_version < current.source_archive_version
         {

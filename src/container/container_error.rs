@@ -18,10 +18,6 @@ impl fmt::Display for ContainerError {
             Self::VersionExhausted => write!(f, "CVA global version counter exhausted"),
             Self::ChunkTooLarge => write!(f, "CVA chunk is too large"),
             Self::InvalidIdentity => write!(f, "invalid container identity"),
-            Self::StorageFormatUpgradeRequired => write!(
-                f,
-                "storage format upgrade required: V1 owners are read-only"
-            ),
             Self::WriteAdmissionClosed => write!(f, "container write admission is closed"),
         }
     }

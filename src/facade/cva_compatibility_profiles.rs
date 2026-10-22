@@ -9,7 +9,6 @@ impl Cva {
         &mut self,
         endpoint: &impl EmbeddingEndpoint,
     ) -> Result<CompatibilityProfile, CompatibilityProfileError> {
-        self.container.require_storage_format_writable()?;
         let candidate = profile_from_endpoint(endpoint)?;
         if let Some(existing) = self.compatibility_profiles.compatible_with(&candidate) {
             return Ok(existing.clone());
@@ -37,7 +36,6 @@ impl Cva {
         &mut self,
         id: CompatibilityProfileId,
     ) -> Result<bool, CompatibilityProfileError> {
-        self.container.require_storage_format_writable()?;
         self.compatibility_profiles.retire(&mut self.container, id)
     }
 

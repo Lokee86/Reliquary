@@ -255,36 +255,6 @@ fn rel_native_attachment_repack_preserves_all_entity_envelope_cuts() {
     );
 }
 
-#[test]
-fn phy_owner_identity_migration_preserves_supported_live_entity_revisions_and_times() {
-    let scratch = Scratch::new();
-    let source_path = scratch.file("legacy.phy");
-    let output_path = scratch.file("migrated.phy");
-    drop(Phylactery::create_legacy_typed(&source_path).unwrap());
-    let mut container = Container::open(&source_path).unwrap();
-    // Owner-ID migration replays supported live revisions and assigns a new
-    // identity; it is distinct from native exact-history physical copies.
-    // Its existing terminal-history limitation is not widened by this codec.
-    write_copy_history(&mut container, true, false);
-    container.sync().unwrap();
-    drop(container);
-    let source = Phylactery::open(&source_path).unwrap();
-    crate::migrate_file(&source_path, &output_path).unwrap();
-    let output = Phylactery::open(&output_path).unwrap();
-    assert_eq!(source.entities.records(), output.entities.records());
-    assert_eq!(source.entity_version(), output.entity_version());
-    for record in source.entities.records() {
-        assert_eq!(
-            source.entity_revision(record.id, record.revision).unwrap(),
-            output.entity_revision(record.id, record.revision).unwrap()
-        );
-        assert_eq!(
-            source.transaction_time_ns(record.global_version),
-            output.transaction_time_ns(record.global_version)
-        );
-    }
-}
-
 fn memory_draft(name: &str) -> MemoryDraft {
     MemoryDraft {
         category: "fact".into(),

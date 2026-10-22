@@ -34,7 +34,6 @@ impl Cva {
         output_path: impl AsRef<Path>,
         request: HistoryPruneRequest,
     ) -> Result<HistoryPruneReport, CvaError> {
-        self.container.require_storage_format_writable()?;
         let output_path = output_path.as_ref();
         self.container.sync()?;
         if self.open_import_epoch().is_some() {
@@ -47,7 +46,7 @@ impl Cva {
             .any(|s| s.semantic.is_none())
         {
             return Err(prune_error(
-                "normalize legacy import settlements on a disposable copy before pruning",
+                "current import settlement semantic evidence is missing",
             ));
         }
         self.validate_historical_import_settlements()?;
@@ -308,6 +307,7 @@ impl Cva {
             manifest_digest,
         )?;
         let mut description_objects = entity_plan.replacements;
+        let mut description_discard = entity_plan.discard;
         let selected_relationships = description_targets
             .iter()
             .filter_map(|target| match target {
@@ -322,6 +322,7 @@ impl Cva {
             manifest_digest,
         )?;
         description_objects.extend(relationship_plan.replacements);
+        description_discard.extend(relationship_plan.discard);
         let source_file_bytes = fs::metadata(self.container.path())
             .map_err(|e| prune_error(&e.to_string()))?
             .len();
@@ -330,9 +331,7 @@ impl Cva {
             let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
             let mut marked = HashSet::new();
             for object in &objects {
-                if entity_plan.discard.contains(object)
-                    || relationship_plan.discard.contains(object)
-                {
+                if description_discard.contains(object) {
                     continue;
                 }
                 let raw = self.container.read(*object)?;
@@ -367,9 +366,6 @@ impl Cva {
                     crate::storage_reclamation::relocate_payload(&raw, &relocated)
                         .map_err(CvaError::Repack)?
                 };
-                let transformed =
-                    crate::imports::legacy_epoch_transport::rebind_copy(&transformed, &output)
-                        .map_err(CvaError::Import)?;
                 let destination = output.append(&transformed)?;
                 relocated.insert(*object, destination);
             }
@@ -404,9 +400,7 @@ impl Cva {
                 }
             }
             for object in &objects {
-                if entity_plan.discard.contains(object)
-                    || relationship_plan.discard.contains(object)
-                {
+                if description_discard.contains(object) {
                     continue;
                 }
                 let raw = self.container.read(*object)?;
@@ -455,13 +449,7 @@ impl Cva {
                     .get(object)
                     .ok_or_else(|| prune_error("nonselected raw chunk was lost"))?;
                 let actual = reopened.container.read(*destination)?;
-                let expected_proof =
-                    crate::imports::legacy_epoch_transport::original_payload(&expected)
-                        .map_err(CvaError::Import)?;
-                let actual_proof =
-                    crate::imports::legacy_epoch_transport::original_payload(&actual)
-                        .map_err(CvaError::Import)?;
-                if expected_proof.unwrap_or(&expected) != actual_proof.unwrap_or(&actual) {
+                if expected != actual {
                     return Err(prune_error("nonselected raw chunk changed during prune"));
                 }
             }

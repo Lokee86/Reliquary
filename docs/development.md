@@ -69,7 +69,17 @@ Historical oracle fixture checks are opt-in and use disposable copies inside the
 cargo test --lib --features history-oracle-fixtures fingerprint -- --test-threads=1
 ```
 
-Set `RELIQUARY_HISTORY_FIXTURES` to the authoritative fixture root. Set `TEMP` and `TMP` to the repository's `.test-tmp` directory; longer nested scratch paths can exceed the Windows frozen-plan rename limit. The fixture feature does not add ignored tests to the ordinary suite.
+Set `RELIQUARY_HISTORY_FIXTURES` to the authoritative fixture root for the historical fingerprint harness. Set `TEMP` and `TMP` to the repository's `.test-tmp` directory; longer nested scratch paths can exceed the Windows frozen-plan rename limit. The fixture feature does not add ignored tests to the ordinary suite.
+
+After canonical promotion, run the permanent current-only acceptance explicitly:
+
+```text
+cargo test --release --features history-oracle-fixtures canonical_current_corpus_matches_frozen_history_oracle -- --ignored --nocapture
+cargo test --test current_format_boundary promoted_canonical_corpus_reopens_after_runtime_retirement -- --ignored --nocapture
+```
+
+`RELIQUARY_CURRENT_CORPUS_ROOT` optionally selects a promoted fixture root for the exhaustive oracle. The default is the sibling fixture repository's `local/authoritative` directory. Both gates require pinned hashes and verify unchanged bytes/modification times. No converter or legacy runtime reader participates.
+
 
 The `freshness_calibration` example’s 1/2/4/8 worker settings invoke single-event propagation and do not measure the P2 batch event pool. P2 scheduling thresholds, caps, counter behavior and verification status are described in the [P2 verification report](freshness-performance-p2-verification-2026-10-03.md); P2 acceptance and its propagation-stage scope are recorded there.
 
@@ -260,7 +270,7 @@ This validates the production owner split rather than cross-owner semantics: can
 
 ### Dream population tuning harness — 2026-08-25
 
-`examples/dream_tune/` runs the production `DreamProcessor::process_memory` path against a disposable typed REL rather than emitting detached semantic artifacts. The current canonical source fixture is the legacy `target/insomnia-tuning-v1-check.cva`, containing 46 production Insomnia Memories and 46 Memory-vector bindings. When that legacy fixture is supplied, the harness now invokes the normal `migrate_file` seam first and writes `dream-run.prj.rel`; current typed REL inputs are copied with their `.org.rel`, `.prj.rel`, or `.con.rel` scope suffix preserved. Dream therefore never performs new experiments directly against a legacy CVA. The harness enumerates active `extracted` Memories through the public `Cva::memory_ids` read seam, captures the exact pre-call candidate set and lane ranks, records classifier/verifier/publication/lifecycle results, syncs, reopens the mutated REL, and serializes final Memory/Graph/vector state to `report.json`. The source fixture itself is never mutated.
+`examples/dream_tune/` runs the production `DreamProcessor::process_memory` path against a disposable typed REL rather than emitting detached semantic artifacts. The harness requires a current V2 REL baseline and validates it through normal Cva open before copying it to the disposable run. Temporary automatic migration has been removed. The harness enumerates active `extracted` Memories through the public `Cva::memory_ids` read seam, captures the exact pre-call candidate set and lane ranks, records classifier/verifier/publication/lifecycle results, syncs, reopens the mutated REL, and serializes final Memory/Graph/vector state to `report.json`. The source fixture itself is never mutated.
 
 The harness supports `--source <MemoryId>` for one-case tuning, `--candidate-limit <N>` for candidate-fusion experiments, `--verification default|broad`, and `--retrieval-only` for cost-free candidate-ranking work without classifier calls or Graph mutation. A generated `gold-template.json` provides the complete baseline Memory inventory for labeling. The tracked population contract is `corpus/dream-gold-v1-tuning-v1.json`; it currently contains eight high-confidence related pairs, six positive final-pair expectations, four unrelated final-pair negatives, and a full-run requirement that the extracted backlog drain to zero. Exact relation kind/direction remains owned by the existing synthetic Dream contract until independently labeled in the population fixture.
 

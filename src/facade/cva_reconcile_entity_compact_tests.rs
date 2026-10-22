@@ -4,7 +4,16 @@ use crate::entity_codec::{
     DirectEntityTombstone, EntityTombstone, EntityVersion, encode_direct_tombstone,
     encode_tombstone, encode_version,
 };
-use crate::entity_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    )
+}
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    )
+}
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleState, TombstoneCoordinates};
@@ -60,14 +69,17 @@ fn allocate(container: &mut Container, time_ns: i64) -> u64 {
         .unwrap()
 }
 
-fn append_version(container: &mut Container, carrier: crate::ObjectRef, global: u64, local: u64) {
-    container
-        .append(&encode_version(EntityVersion {
+fn append_version(container: &mut Container, carrier: crate::ObjectRef, global: u64, _local: u64) {
+    let body = container.read(carrier).unwrap();
+    let bytes = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            entity_version: local,
-            record: carrier,
-        }))
-        .unwrap();
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: &body,
+        },
+    )
+    .unwrap();
+    container.append(&bytes).unwrap();
 }
 
 // The test fixture uses the source Entity owner's dense local clock, including
@@ -147,10 +159,16 @@ fn compact_tail_reconciliation_preserves_option_identity_history_terminals_and_t
     );
     let direct_global = allocate(&mut container, 10_006);
     let direct_tombstone = container
-        .append(&encode_direct_tombstone(DirectEntityTombstone {
-            id: direct.id,
-            revision: 2,
-        }))
+        .append(
+            &crate::entity_compact_codec::publication::encode(
+                &crate::entity_compact_codec::publication::EntityPublication::DirectTombstone {
+                    id: direct.id,
+                    revision: 2,
+                    entity_version: 6,
+                },
+            )
+            .unwrap(),
+        )
         .unwrap();
     append_version(&mut container, direct_tombstone, direct_global, 6);
 
@@ -168,11 +186,17 @@ fn compact_tail_reconciliation_preserves_option_identity_history_terminals_and_t
     );
     let merge_global = allocate(&mut container, 10_009);
     let merge_tombstone = container
-        .append(&encode_tombstone(EntityTombstone {
-            id: merged.id,
-            revision: 2,
-            replacement_id: survivor.id,
-        }))
+        .append(
+            &crate::entity_compact_codec::publication::encode(
+                &crate::entity_compact_codec::publication::EntityPublication::MergeTombstone {
+                    id: merged.id,
+                    revision: 2,
+                    replacement_id: survivor.id,
+                    entity_version: 9,
+                },
+            )
+            .unwrap(),
+        )
         .unwrap();
     append_version(&mut container, merge_tombstone, merge_global, 9);
     drop(container);

@@ -25,7 +25,6 @@ impl Cva {
         &mut self,
         output_path: impl AsRef<Path>,
     ) -> Result<StorageReclamationReport, CvaError> {
-        self.container.require_storage_format_writable()?;
         if self
             .freshness
             .import_settlements()
@@ -33,7 +32,7 @@ impl Cva {
             .any(|s| s.semantic.is_none())
         {
             return Err(CvaError::Repack(
-                "normalize legacy import settlements on a disposable copy before reclaim".into(),
+                "current import settlement semantic evidence is missing".into(),
             ));
         }
         let expected = SemanticState {
@@ -84,7 +83,6 @@ impl Phylactery {
         &mut self,
         output_path: impl AsRef<Path>,
     ) -> Result<StorageReclamationReport, PhylacteryError> {
-        self.container.require_storage_format_writable()?;
         let expected = SemanticState {
             owner_uuid: self.owner_uuid(),
             global_version: self.latest_global_version(),
@@ -167,8 +165,6 @@ fn reclaim_container(
             }
             let payload = container.read(object).map_err(|error| error.to_string())?;
             let payload = relocate_payload(&payload, &relocated)?;
-            let payload = crate::imports::legacy_epoch_transport::rebind_copy(&payload, &output)
-                .map_err(|error| error.to_string())?;
             let destination = output.append(&payload).map_err(|error| error.to_string())?;
             relocated.insert(object, destination);
             copied_chunks += 1;
@@ -218,36 +214,6 @@ pub(crate) fn relocate_payload(
     payload: &[u8],
     relocated: &BTreeMap<ObjectRef, ObjectRef>,
 ) -> Result<Vec<u8>, String> {
-    if let Some(mut version) = crate::archive_history_codec::decode_record_version(payload)
-        .map_err(|error| error.to_string())?
-    {
-        version.record = relocated_ref(version.record, relocated, "Archive record")?;
-        return Ok(crate::archive_history_codec::encode_record_version(version).to_vec());
-    }
-    if let Some(mut version) =
-        crate::memory_codec::decode_version(payload).map_err(|error| error.to_string())?
-    {
-        version.record = relocated_ref(version.record, relocated, "Memory record")?;
-        return Ok(crate::memory_codec::encode_version(version));
-    }
-    if let Some(mut version) =
-        crate::entity_codec::decode_version(payload).map_err(|error| error.to_string())?
-    {
-        version.record = relocated_ref(version.record, relocated, "Entity record")?;
-        return Ok(crate::entity_codec::encode_version(version));
-    }
-    if let Some(mut version) =
-        crate::graph_codec::decode_version(payload).map_err(|error| error.to_string())?
-    {
-        version.mutation = relocated_ref(version.mutation, relocated, "Graph mutation")?;
-        return Ok(crate::graph_codec::encode_version(version).to_vec());
-    }
-    if let Some(mut version) =
-        crate::relationship_codec::decode_version(payload).map_err(|error| error.to_string())?
-    {
-        version.record = relocated_ref(version.record, relocated, "Relationship record")?;
-        return Ok(crate::relationship_codec::encode_version(version));
-    }
     if let Some(mut version) = crate::vector_generation_codec::decode_version(payload)
         .map_err(|error| error.to_string())?
     {

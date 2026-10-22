@@ -239,33 +239,43 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 events.push(event);
             }
             if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
-                let explicit = if let Some(pass) = cva.materialized_dream_begin(chunk, &payload)? {
-                    crate::freshness_dream_journal::DreamFreshnessJournal::new(cva.owner_uuid())
-                        .begin_payload(&pass)
-                        .map_err(crate::CvaError::Freshness)?
+                let normalized = if let Some(mut pass) =
+                    cva.materialized_dream_begin(chunk, &payload)?
+                {
+                    pass.turn = 0;
+                    pass.graph_version_before = 0;
+                    let owner = cva
+                        .owner_uuid()
+                        .ok_or(crate::ContainerError::InvalidIdentity)?;
+                    normalized_dream
+                        .ingest_materialized_begin(owner, pass.clone())
+                        .map_err(crate::CvaError::Freshness)?;
+                    crate::freshness_dream_journal::begin_comparison_carrier(owner, &pass)
                 } else {
-                    payload.clone()
+                    let bytes = normalized_dream
+                        .replay_payload(
+                            &payload,
+                            |_| Ok(0),
+                            |_| Ok(0),
+                            |mut proof| {
+                                proof.graph_version = 0;
+                                proof.community_generation = proof.community_generation.map(|_| 0);
+                                proof.community_graph_version =
+                                    proof.community_graph_version.map(|_| 0);
+                                Ok(proof)
+                            },
+                        )
+                        .map_err(crate::CvaError::Freshness)?;
+                    normalized_dream
+                        .ingest(&bytes)
+                        .map_err(crate::CvaError::Freshness)?;
+                    bytes
                 };
-                let normalized = normalized_dream
-                    .replay_payload(
-                        &explicit,
-                        |_| Ok(0),
-                        |_| Ok(0),
-                        |mut p| {
-                            p.graph_version = 0;
-                            p.community_generation = p.community_generation.map(|_| 0);
-                            p.community_graph_version = p.community_graph_version.map(|_| 0);
-                            Ok(p)
-                        },
-                    )
-                    .map_err(crate::CvaError::Freshness)?;
-                normalized_dream
-                    .ingest(&normalized)
-                    .map_err(crate::CvaError::Freshness)?;
                 if !normalized.is_empty() {
                     dream.push(normalized);
                 }
             }
+
             if let Some(mut completion) = crate::insomnia::completion::decode_completion(&payload)
                 .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
             {
@@ -344,6 +354,13 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
     let chunks = cva.container.chunks()?;
     for chunk in chunks.into_iter().skip(from) {
         let payload = cva.container.read(chunk)?;
+        if payload.starts_with(b"CVAECR")
+            || payload.starts_with(b"CVAEDL")
+            || (payload.starts_with(b"CVAETM") && !payload.starts_with(b"CVAETM02"))
+            || payload.starts_with(b"CVAEIDA")
+        {
+            return Err(unsupported("unhandled owner payload in import interval"));
+        }
         if let Some(completion) = crate::insomnia::completion::decode_completion(&payload)
             .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
         {
@@ -352,7 +369,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
             }
             continue;
         }
-        if payload.starts_with(b"CVAFRS05") || payload.starts_with(b"CVAFRS06") {
+        if payload.starts_with(b"CVAFRS06") {
             HistoricalImportFreshnessSettlement::decode(&payload)
                 .map_err(crate::CvaError::Freshness)?;
             continue;
@@ -372,28 +389,22 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
         if crate::archive_codec::publication::version_at(chunk, &payload)?.is_some() {
             continue;
         }
-        // Each accepted owner is replayed through its concrete codec/API;
-        // physical format and payload frames are consumed by their version record.
+        // Accepted publications are replayed through current owner envelopes.
+        // Unpublished bare native bodies carry no semantic clock.
         if crate::insomnia::codec::decode_record(&payload)?.is_some()
             || crate::memory_codec::decode_body(&payload)?.is_some()
-            || crate::memory_codec::decode_record(&payload)?.is_some()
-            || crate::memory_compact_codec::is_compact_record(&payload)?
+            || crate::memory_compact_codec::publication::decode(&payload, 1)?.is_some()
             || crate::memory_compact_codec::publication::coordinates(&payload)?.is_some()
             || crate::memory_routing_codec::decode(&payload)?.is_some()
-            || crate::entity_codec::decode_record(&payload)?.is_some()
-            || crate::entity_compact_codec::is_compact_record(&payload)?
+            || crate::entity_compact_codec::publication::decode(&payload, 1)?.is_some()
             || crate::entity_compact_codec::publication::coordinates(&payload)?.is_some()
-            || crate::relationship_codec::decode_record(&payload)?.is_some()
-            || crate::relationship_compact_codec::is_compact_record(&payload)?
-            || crate::relationship_codec::decode_tombstone(&payload)?.is_some()
+            || crate::relationship_compact_codec::publication::decode(&payload, 1)?.is_some()
             || crate::relationship_compact_codec::publication::coordinates(&payload)?.is_some()
-            || crate::entity_resolution_codec::decode_resolution(&payload)?.is_some()
             || crate::entity_resolution_codec::delta::is_current(&payload)
+            || ((payload.starts_with(b"CVAGCM") || payload.starts_with(b"CVAGCB"))
+                && crate::graph_compact_codec::publication::decode(&payload, 1)?.is_some())
             || crate::graph_codec::decode_node(&payload)?.is_some()
             || crate::graph_compact_codec::publication::version_at(chunk, &payload)?.is_some()
-            || crate::graph_codec::decode_mutation(&payload)?.is_some()
-            || crate::graph_codec::decode_batch(&payload)?.is_some()
-            || crate::graph_compact_codec::is_compact_record(&payload)?
             || crate::community_codec::decode_snapshot(&payload)
                 .map_err(crate::CvaError::from)?
                 .is_some()
@@ -408,8 +419,7 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
         }
         let magic = payload.get(..8).unwrap_or(&[]);
         if ![
-            b"CVAAREC1".as_slice(),
-            b"CVAAFMT2",
+            b"CVAAFMT2".as_slice(),
             b"CVAVERS1",
             b"CVAVERS2",
             b"CVAINSF1",
@@ -454,9 +464,7 @@ fn canonical_memory_publication(
         // Established semantic comparison evidence, never a persisted carrier.
         return Ok(crate::memory_codec::encode_record(&normalized)?);
     }
-    if let Some(version) = crate::memory_codec::decode_version(payload)? {
-        return Ok(cva.container.read(version.record)?);
-    }
+
     // Compare terminal facts using the same established evidence representation.
     let envelope = crate::container::publication_envelope::decode(payload)?
         .ok_or(CvaReconcileError::InvalidMemoryVersionRecord)?;

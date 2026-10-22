@@ -21,7 +21,6 @@ struct ArchiveVectorEntry {
 
 impl ArchiveVectorStore {
     pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), ArchiveVectorError> {
-        container.require_storage_format_writable()?;
         container.append(&encode_format())?;
         Ok(())
     }
@@ -34,7 +33,6 @@ impl ArchiveVectorStore {
         packed_vector_id: PackedVectorId,
         fragment_ids: Vec<FragmentId>,
     ) -> Result<ArchiveVectorId, ArchiveVectorError> {
-        container.require_storage_format_writable()?;
         let max_fragment_archive_version =
             validate_mapping(archive, packed_vectors, packed_vector_id, &fragment_ids)?;
         if packed_vectors.is_pruned(packed_vector_id) {

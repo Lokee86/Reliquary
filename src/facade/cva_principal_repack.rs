@@ -25,7 +25,6 @@ impl Cva {
         output_path: impl AsRef<Path>,
         principal_id: &str,
     ) -> Result<PrincipalBackfillRepackResult, CvaError> {
-        self.container.require_storage_format_writable()?;
         if !crate::entity_principal::is_phy_principal_id(principal_id) {
             return Err(CvaError::Repack(
                 "principal backfill requires a canonical phy-UUID".into(),
@@ -51,9 +50,6 @@ impl Cva {
                 rewritten_user_turns += usize::from(rewritten);
                 preserved_user_turns += usize::from(preserved);
                 let payload = relocate_payload(&payload, &relocated).map_err(CvaError::Repack)?;
-                let payload =
-                    crate::imports::legacy_epoch_transport::rebind_copy(&payload, &output)
-                        .map_err(CvaError::Import)?;
                 let destination_ref = output.append(&payload)?;
                 relocated.insert(source_ref, destination_ref);
                 copied_chunks += 1;

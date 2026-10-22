@@ -257,7 +257,7 @@ impl Cva {
             }
         }
 
-        // The scoped CVAFRS05 settlement is the semantic work receipt. Its
+        // The scoped CVAFRS06 settlement is the semantic work receipt. Its
         // authenticated source/cohort scope and store validator bind import
         // events, exact source identities and sparse affected recipients.
         // Settlement.cohort intentionally may also include existing affected

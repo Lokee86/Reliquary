@@ -1,5 +1,5 @@
 use crate::archive_codec::{ArchiveRecord, decode_record};
-use crate::archive_history_codec::{decode_archive_format, decode_record_version};
+use crate::archive_history_codec::decode_archive_format;
 use crate::archive_object_index::{ContentIndex, FragmentIndex};
 use crate::archive_record_index::{BranchIndex, NodeIndex};
 use crate::archive_store::hash_content;
@@ -9,11 +9,8 @@ use crate::file_index::FileIndex;
 use crate::file_memory_link_index::FileMemoryLinkIndex;
 use crate::source_attachment_index::SourceAttachmentIndex;
 use crate::{Archive, ArchiveError, ArchiveRecordVersion, ObjectRef};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
-#[cfg(test)]
-#[path = "archive_publication_reader_tests.rs"]
-mod publication_reader_tests;
 #[cfg(test)]
 #[path = "archive_publication_replay_tests.rs"]
 mod publication_tests;
@@ -33,8 +30,6 @@ pub(crate) struct ArchiveOpenState {
     source_attachments: SourceAttachmentIndex,
     file_memory_links: FileMemoryLinkIndex,
     record_versions: Vec<ArchiveRecordVersion>,
-    pending_records: HashMap<ObjectRef, ArchiveRecord>,
-    versioned_records: HashSet<ObjectRef>,
     applying_versions: HashSet<u64>,
     next_archive_version: u64,
     format_seen: bool,
@@ -58,8 +53,6 @@ impl ArchiveOpenState {
             source_attachments: Default::default(),
             file_memory_links: Default::default(),
             record_versions: Vec::new(),
-            pending_records: HashMap::new(),
-            versioned_records: HashSet::new(),
             applying_versions: HashSet::new(),
             next_archive_version: 1,
             format_seen: false,
@@ -87,30 +80,16 @@ impl ArchiveOpenState {
             self.format_seen = true;
             return Ok(());
         }
-        if let Some(version) = decode_record_version(payload)? {
-            self.ingest_version(chunk, version, latest_global_version)?;
-            return Ok(());
-        }
-        match decode_record(payload)? {
-            ArchiveRecord::Content(id, bytes) => {
-                if hash_content(&bytes) != id {
-                    return Err(ArchiveError::CorruptContent);
-                }
-                self.contents.insert(id, chunk);
+        // Content is shared immutable backing. All semantic Archive records
+        // are admitted only through native publication envelopes.
+        if payload.starts_with(b"CVACONT1") {
+            let ArchiveRecord::Content(id, bytes) = decode_record(payload)? else {
+                unreachable!()
+            };
+            if hash_content(&bytes) != id {
+                return Err(ArchiveError::CorruptContent);
             }
-            record @ (ArchiveRecord::Node(_)
-            | ArchiveRecord::Branch(_)
-            | ArchiveRecord::ConversationMetadata(_)
-            | ArchiveRecord::ConversationTombstone(_)
-            | ArchiveRecord::Fragment(_)
-            | ArchiveRecord::Episode(_)
-            | ArchiveRecord::File(_)
-            | ArchiveRecord::IngestedTurn(_)
-            | ArchiveRecord::ImportReceipt(_)
-            | ArchiveRecord::FileMemoryLink(_)) => {
-                self.pending_records.insert(chunk, record);
-            }
-            ArchiveRecord::Other => {}
+            self.contents.insert(id, chunk);
         }
         Ok(())
     }
@@ -186,41 +165,6 @@ impl ArchiveOpenState {
             record_versions: self.record_versions,
             next_archive_version: self.next_archive_version,
         })
-    }
-
-    fn ingest_version(
-        &mut self,
-        metadata_chunk: ObjectRef,
-        version: ArchiveRecordVersion,
-        latest_global_version: u64,
-    ) -> Result<(), ArchiveError> {
-        if version.archive_version != self.next_archive_version
-            || version.global_version == 0
-            || version.global_version > latest_global_version
-            || self
-                .record_versions
-                .last()
-                .is_some_and(|last| last.global_version >= version.global_version)
-            || !version.record.precedes(metadata_chunk)
-        {
-            return Err(ArchiveError::InvalidArchiveRecordVersion);
-        }
-
-        let next = self
-            .next_archive_version
-            .checked_add(1)
-            .ok_or(ArchiveError::ArchiveVersionExhausted)?;
-        if let Some(record) = self.pending_records.remove(&version.record) {
-            self.apply_record(record, version.archive_version, version.global_version)?;
-            self.versioned_records.insert(version.record);
-            self.applying_versions.insert(version.archive_version);
-        } else if !self.versioned_records.contains(&version.record) {
-            return Err(ArchiveError::InvalidArchiveRecordVersion);
-        }
-
-        self.record_versions.push(version);
-        self.next_archive_version = next;
-        Ok(())
     }
 
     fn apply_record(

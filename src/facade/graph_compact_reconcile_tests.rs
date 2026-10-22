@@ -62,19 +62,25 @@ fn append_compact_marker(
     transaction_time_ns: i64,
 ) -> (usize, u64) {
     let start = owner.container.chunks().unwrap().len();
-    let mutation = owner.container.append(carrier).unwrap();
-    let global_version = owner
-        .container
-        .allocate_version_with_transaction_time(Some(transaction_time_ns))
+    let rows = crate::graph_compact_codec::decode(carrier)
+        .unwrap()
         .unwrap();
+    let transaction = if carrier.starts_with(b"CVAGCM") {
+        crate::graph_compact_codec::publication::GraphTransaction::Single(rows[0])
+    } else {
+        crate::graph_compact_codec::publication::GraphTransaction::Batch(rows)
+    };
+    let body = crate::graph_compact_codec::publication::encode(
+        &crate::graph_compact_codec::publication::GraphPublication {
+            graph_version: owner.graph_version() + 1,
+            transaction,
+        },
+    )
+    .unwrap();
     owner
         .container
-        .append(&encode_version(GraphVersionPayload {
-            global_version,
-            graph_version: owner.graph_version() + 1,
-            mutation,
-        }))
-        .unwrap();
+        .set_next_transaction_time_override(Some(transaction_time_ns));
+    let (global_version, _) = owner.container.append_publication_envelope(&body).unwrap();
     (start, global_version)
 }
 

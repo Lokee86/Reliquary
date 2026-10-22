@@ -13,9 +13,6 @@ pub(crate) enum EgoDocumentKey {
 
 pub(crate) fn document_key(record: &EgoRecord) -> Option<EgoDocumentKey> {
     match record {
-        EgoRecord::LegacyIdentity { .. } => Some(EgoDocumentKey::Identity(
-            crate::ego_store::LEGACY_IDENTITY_ID,
-        )),
         EgoRecord::Identity { id, .. } => Some(EgoDocumentKey::Identity(*id)),
         EgoRecord::Anchor { id, .. } => Some(EgoDocumentKey::Anchor(*id)),
         EgoRecord::Personality { .. } => Some(EgoDocumentKey::Personality),
@@ -31,7 +28,6 @@ pub(crate) struct EgoCreation {
 
 impl EgoCreation {
     pub(crate) fn new(record: EgoRecord) -> Result<Self, EgoError> {
-        let record = normalize(record);
         validate(&record)?;
         if revision(&record) != Some(1) || is_terminal(&record) {
             return Err(invalid("Ego creation needs a live first revision"));
@@ -103,8 +99,8 @@ pub(crate) struct EgoDelta {
 
 impl EgoDelta {
     pub(crate) fn between(previous: &EgoRecord, next: &EgoRecord) -> Result<Self, EgoError> {
-        let previous = normalize(previous.clone());
-        let next = normalize(next.clone());
+        let previous = previous.clone();
+        let next = next.clone();
         validate(&previous)?;
         validate(&next)?;
         let previous_revision =
@@ -200,29 +196,9 @@ impl EgoDelta {
     }
 }
 
-pub(crate) fn normalize(record: EgoRecord) -> EgoRecord {
-    match record {
-        EgoRecord::LegacyIdentity {
-            ego_version,
-            revision,
-            text,
-        } => EgoRecord::Identity {
-            ego_version,
-            id: crate::ego_store::LEGACY_IDENTITY_ID,
-            revision,
-            deleted: false,
-            activate: true,
-            name: "Default".into(),
-            text,
-        },
-        record => record,
-    }
-}
-
 pub(crate) fn revision(record: &EgoRecord) -> Option<u64> {
     match record {
-        EgoRecord::LegacyIdentity { revision, .. }
-        | EgoRecord::Identity { revision, .. }
+        EgoRecord::Identity { revision, .. }
         | EgoRecord::Anchor { revision, .. }
         | EgoRecord::Personality { revision, .. }
         | EgoRecord::Synthesis { revision, .. } => Some(*revision),
@@ -269,7 +245,6 @@ pub(crate) fn validate(record: &EgoRecord) -> Result<(), EgoError> {
             }
         }
         EgoRecord::Anchor { text, .. } => validate_anchor_text(text)?,
-        EgoRecord::LegacyIdentity { text, .. } => validate_text("identity", text)?,
         EgoRecord::Personality { text, .. } => validate_text("personality", text)?,
         EgoRecord::Synthesis { text, .. } => validate_text("synthesis", text)?,
         EgoRecord::IdentityActive { .. } => {}

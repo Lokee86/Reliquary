@@ -17,7 +17,6 @@ fn new_reliquary_has_generic_rel_identity() {
     assert!(owner_id.starts_with("rel-"));
     assert_eq!(rel.legacy_scope_kind(), None);
     assert_eq!(rel.rel_metadata().type_label, None);
-    assert!(!rel.is_legacy_cva());
     drop(rel);
 
     let header = fs::read(&path).unwrap();
@@ -28,7 +27,6 @@ fn new_reliquary_has_generic_rel_identity() {
     let reopened = Reliquary::open(&path).unwrap();
     assert_eq!(reopened.owner_id().as_deref(), Some(owner_id.as_str()));
     assert_eq!(reopened.legacy_scope_kind(), None);
-    assert!(!reopened.is_legacy_cva());
 }
 
 #[test]
@@ -86,37 +84,4 @@ fn rel_cannot_depend_on_itself() {
             .to_string()
             .contains("cannot depend on itself")
     );
-}
-
-#[test]
-fn legacy_typed_rel_remains_readable_without_making_type_behavioral() {
-    let path = test_path("legacy.org.rel");
-    let legacy = Reliquary::create_legacy_typed(&path, ReliquaryScopeKind::Organization).unwrap();
-    assert_eq!(
-        legacy.legacy_scope_kind(),
-        Some(ReliquaryScopeKind::Organization)
-    );
-    assert_eq!(
-        legacy.rel_metadata().type_label.as_deref(),
-        Some("Organization")
-    );
-}
-
-#[test]
-fn legacy_untyped_cva_opens_without_rewrite() {
-    let path = test_path("legacy.cva");
-    let legacy = Reliquary::create_legacy_cva(&path).unwrap();
-    assert!(legacy.is_legacy_cva());
-    assert_eq!(legacy.legacy_scope_kind(), None);
-    drop(legacy);
-
-    let before = fs::read(&path).unwrap();
-    assert_eq!(u32::from_le_bytes(before[12..16].try_into().unwrap()), 16);
-
-    let reopened = Reliquary::open(&path).unwrap();
-    assert!(reopened.is_legacy_cva());
-    drop(reopened);
-
-    let after = fs::read(&path).unwrap();
-    assert_eq!(before, after);
 }

@@ -341,7 +341,7 @@ C3–C4 now derive the full H1 manifest and canonical semantic/Dream event batch
 
 ## Native historical crash and retry invariants
 
-For every byte prefix of the native settlement append, normal Cva reopen exposes either the complete provisional projection or the complete accepted CVAFRS04 projection. An incomplete final Container frame is removed before replay; a fully framed invalid checkpoint rejects. Passive reopen and due-notification draining change no accepted score or file bytes. The due index rebuilds from durable records with exact boundary turns and at-least-once notices. A post-checkpoint multi-recipient accepted-use receipt is atomic, awards each unique recipient once, and survives historical retry/reopen without loss or duplicate awards. [C6 verification](freshness-historical-completion-execution-plan-2026-10-12.md) enumerates both checkpoint and actual accepted-use frame prefixes.
+For every byte prefix of the native settlement append, normal Cva reopen exposes either the complete provisional projection or the complete accepted CVAFRS06 projection. An incomplete final Container frame is removed before replay; a fully framed invalid checkpoint rejects. Passive reopen and due-notification draining change no accepted score or file bytes. The due index rebuilds from durable records with exact boundary turns and at-least-once notices. A post-checkpoint multi-recipient accepted-use receipt is atomic, awards each unique recipient once, and survives historical retry/reopen without loss or duplicate awards. [C6 verification](freshness-historical-completion-execution-plan-2026-10-12.md) enumerates both checkpoint and actual accepted-use frame prefixes.
 
 ## Live semantic fragment invariants
 

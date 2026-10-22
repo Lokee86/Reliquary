@@ -1,5 +1,5 @@
 use super::*;
-use crate::{Branch, Cva, CvaError, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
+use crate::{Branch, Cva, EpisodeConfig, EpisodeOrigin, InsomniaPriority};
 
 impl Cva {
     /// Offline/exclusive native import. Mounted management must compose this through
@@ -11,7 +11,6 @@ impl Cva {
         input: &NativeImport,
         now_ns: i64,
     ) -> Result<ImportReceipt, ImportError> {
-        self.container.require_storage_format_writable()?;
         let prepared = prepare(input)?;
         let owner_uuid = self.owner_uuid().ok_or(ImportError::Epoch(
             "native import requires a durable owner UUID",
@@ -139,10 +138,6 @@ impl Cva {
 
     pub fn import_epoch_statuses(&self) -> Vec<ImportEpochStatus> {
         self.import_epochs.statuses()
-    }
-
-    pub fn legacy_import_epochs(&self) -> Vec<LegacyImportEpoch> {
-        self.import_epochs.legacy_epochs()
     }
 
     pub(super) fn import_watermarks(&self) -> ImportWatermarks {

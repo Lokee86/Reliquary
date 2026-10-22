@@ -2,9 +2,6 @@
 mod compact_publish;
 
 #[cfg(test)]
-#[path = "entity_legacy_fixture.rs"]
-mod legacy_fixture;
-#[cfg(test)]
 #[path = "entity_rebuild_overflow_tests.rs"]
 mod overflow_tests;
 #[path = "entity_store_read.rs"]
@@ -77,7 +74,6 @@ impl EntityStore {
         mut draft: EntityDraft,
         requested_global_id: Option<EntityGlobalId>,
     ) -> Result<(Entity, bool), EntityError> {
-        container.require_storage_format_writable()?;
         normalize_draft(&mut draft)?;
         let id = if draft.kind == crate::entity_principal::PRINCIPAL_ENTITY_KIND {
             let principal_id = crate::entity_principal::principal_entity_id(&draft.canonical_name);
@@ -242,7 +238,6 @@ impl EntityStore {
         expected_revision: u64,
         replacement_id: EntityId,
     ) -> Result<bool, EntityError> {
-        container.require_storage_format_writable()?;
         if id == replacement_id || !self.current.contains_key(&replacement_id) {
             return Err(EntityError::InvalidField("Entity replacement"));
         }
@@ -349,7 +344,6 @@ impl EntityStore {
         id: EntityId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError> {
-        container.require_storage_format_writable()?;
         if let Some(&coordinates) = self.tombstones.get(&id) {
             if expected_revision.checked_add(1) != self.revisions.get(&id).copied() {
                 return Err(EntityError::RevisionConflict);

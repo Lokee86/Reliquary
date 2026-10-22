@@ -95,7 +95,6 @@ fn completed_epoch(
             })
             .collect(),
         superseded: BTreeSet::new(),
-        predecessor_digest: None,
     };
     CompletedEpoch {
         start: ImportStart {
@@ -620,12 +619,11 @@ fn completed_scope_inventory(
     };
     let mut entity_evidence = Vec::new();
     if with_entity_envelopes {
-        // Start this history with a real legacy marker-bound revision, then
-        // continue the same Entity through the envelope writer. Inventory
-        // must derive the same owner-owned facts from both wire forms.
+        // Ordinary current creation and all later current Entity publication
+        // shapes retain exact owner evidence in the completed import.
         let (legacy, changed) = cva
             .entities
-            .publish_legacy_fixture(
+            .publish_with_global_id(
                 &mut cva.container,
                 None,
                 0,
@@ -954,23 +952,18 @@ fn completed_scope_inventory(
         }
         let chunks = reopened.container.chunks().unwrap();
         let mut envelope_count = 0;
-        let mut marker_count = 0;
         for chunk in chunks.iter().take(epoch.end).skip(epoch.first) {
             let payload = reopened.container.read(*chunk).unwrap();
-            let marker = crate::entity_codec::decode_version(&payload).unwrap();
             envelope_count += usize::from(
                 crate::entity_compact_codec::publication::coordinates(&payload)
                     .unwrap()
-                    .is_some()
-                    && marker.is_none(),
+                    .is_some(),
             );
-            marker_count += usize::from(marker.is_some());
         }
         assert_eq!(
-            envelope_count, 5,
-            "Entity create/delta/direct/merge envelopes"
+            envelope_count, 6,
+            "All accepted Entity create/delta/direct/merge envelopes"
         );
-        assert_eq!(marker_count, 1, "one accepted legacy marker-bound creation");
     }
     if with_relationship_envelopes {
         assert_eq!(relationship_evidence.len(), 3);

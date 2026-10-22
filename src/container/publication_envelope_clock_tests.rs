@@ -54,6 +54,10 @@ fn assert_invalid_version(result: Result<Container, ContainerError>) {
     assert!(matches!(result, Err(ContainerError::InvalidVersionRecord)));
 }
 
+fn assert_unsupported_version(result: Result<Container, ContainerError>) {
+    assert!(matches!(result, Err(ContainerError::UnsupportedVersion(_))));
+}
+
 fn downgrade_header_to_v1(path: &Path) {
     let mut bytes = fs::read(path).unwrap();
     bytes[8..10].copy_from_slice(&1_u16.to_le_bytes());
@@ -310,13 +314,7 @@ fn bounded_versioned_visitor_rejects_midframe_malformed_clock_and_v1_envelopes_r
     drop(container);
     downgrade_header_to_v1(&v1_path);
     let original = fs::read(&v1_path).unwrap();
-    let mut container = Container::open_read_only_for_scan(&v1_path).unwrap();
-    assert!(matches!(
-        container.visit_versioned_payloads_through(original.len() as u64, |_, _, _| {
-            Ok::<_, ContainerError>(())
-        }),
-        Err(ContainerError::InvalidVersionRecord)
-    ));
+    assert_unsupported_version(Container::open_read_only_for_scan(&v1_path));
     assert_eq!(fs::read(&v1_path).unwrap(), original);
 }
 
@@ -501,7 +499,7 @@ fn v1_rejects_publication_envelopes() {
     container.sync().unwrap();
     drop(container);
     downgrade_header_to_v1(&path);
-    assert_invalid_version(Container::open(&path));
+    assert_unsupported_version(Container::open(&path));
 }
 
 #[test]
@@ -631,7 +629,7 @@ fn v1_rejects_complete_malformed_publication_prefix() {
     container.sync().unwrap();
     drop(container);
     downgrade_header_to_v1(&path);
-    assert_invalid_version(Container::open(&path));
+    assert_unsupported_version(Container::open(&path));
 }
 
 #[test]

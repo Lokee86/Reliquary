@@ -5,39 +5,28 @@
 use crate::relationship_compact_contract::RelationshipDescriptionProof;
 use crate::{RelationshipError, RelationshipId};
 
-const CREATION_FAMILY: &[u8; 6] = b"CVARNC";
-const DELTA_FAMILY: &[u8; 6] = b"CVARND";
-
 pub(crate) fn compact_description_proof(
     bytes: &[u8],
 ) -> Result<Option<(RelationshipId, u64, RelationshipDescriptionProof)>, RelationshipError> {
-    if let Some(envelope) = crate::container::publication_envelope::decode(bytes)? {
-        use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-        return Ok(
-            match publication::decode(envelope.body, envelope.global_version)? {
-                Some(RelationshipPublication::Creation(value)) => value
-                    .description_proof
-                    .map(|proof| (value.record.id, value.record.revision, proof)),
-                Some(RelationshipPublication::Delta(value)) => value
-                    .description_proof
-                    .map(|proof| (value.id, value.revision, proof)),
-                _ => None,
-            },
-        );
+    use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
+    let envelope = crate::container::publication_envelope::decode(bytes)?;
+    let (body, global) = envelope
+        .map(|e| (e.body, e.global_version))
+        .unwrap_or((bytes, 1));
+    if !body.starts_with(b"CVARNC") && !body.starts_with(b"CVARND") {
+        return Ok(None);
     }
-    if bytes.starts_with(CREATION_FAMILY) {
-        let creation = crate::relationship_compact_codec::decode_creation(bytes)?;
-        return Ok(creation
+    // Bare current bodies remain unpublished. Probe coordinates only decode
+    // opaque proof metadata; file-level validation still owns authorization.
+    Ok(match publication::decode(body, global)? {
+        Some(RelationshipPublication::Creation(value)) => value
             .description_proof
-            .map(|proof| (creation.record.id, creation.record.revision, proof)));
-    }
-    if bytes.starts_with(DELTA_FAMILY) {
-        let delta = crate::relationship_compact_codec::decode_delta(bytes)?;
-        return Ok(delta
+            .map(|proof| (value.record.id, value.record.revision, proof)),
+        Some(RelationshipPublication::Delta(value)) => value
             .description_proof
-            .map(|proof| (delta.id, delta.revision, proof)));
-    }
-    Ok(None)
+            .map(|proof| (value.id, value.revision, proof)),
+        _ => None,
+    })
 }
 
 #[cfg(test)]

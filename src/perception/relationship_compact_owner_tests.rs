@@ -1,5 +1,4 @@
 //! Scratch integration coverage for ordinary REL and PHY compact owner reopen.
-use crate::relationship_codec::RelationshipVersion;
 use crate::relationship_compact_codec::{encode_creation, encode_delta};
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
@@ -79,18 +78,21 @@ fn append_compact_history(container: &mut crate::Container) -> RelationshipRecor
 
     let first = initial_record();
     let creation = RelationshipCreation::new(first.clone()).unwrap();
-    let creation_ref = container
-        .append(&encode_creation(&creation).unwrap())
-        .unwrap();
-    container
-        .append(&crate::relationship_codec::encode_version(
-            RelationshipVersion {
-                global_version: 2,
-                relationship_version: 1,
-                record: creation_ref,
-            },
-        ))
-        .unwrap();
+    let body = crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+            creation,
+        ),
+    )
+    .unwrap();
+    let bytes = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
+            global_version: 2,
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: &body,
+        },
+    )
+    .unwrap();
+    container.append(&bytes).unwrap();
 
     let mut second = first.clone();
     second.revision = 2;
@@ -102,16 +104,19 @@ fn append_compact_history(container: &mut crate::Container) -> RelationshipRecor
     // A backwards update time is valid because it still follows creation.
     second.updated_at_ns = 11;
     let delta = RelationshipDelta::between(&first, &second).unwrap();
-    let delta_ref = container.append(&encode_delta(&delta).unwrap()).unwrap();
-    container
-        .append(&crate::relationship_codec::encode_version(
-            RelationshipVersion {
-                global_version: 1,
-                relationship_version: 2,
-                record: delta_ref,
-            },
-        ))
-        .unwrap();
+    let body = crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(delta),
+    )
+    .unwrap();
+    let bytes = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
+            global_version: 1,
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: &body,
+        },
+    )
+    .unwrap();
+    container.append(&bytes).unwrap();
     second
 }
 

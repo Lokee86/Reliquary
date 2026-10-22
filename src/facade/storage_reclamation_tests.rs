@@ -1,12 +1,12 @@
-use crate::storage_reclamation::relocate_payload;
-use crate::{Cva, EntityDraft, ObjectRef, PackedVectors, Phylactery, ScalarType, VectorSchema};
-use std::collections::BTreeMap;
+use crate::{Cva, EntityDraft, PackedVectors, Phylactery, ScalarType, VectorSchema};
 use std::fs;
 use std::path::PathBuf;
 
 fn test_path(name: &str) -> PathBuf {
     let unique = uuid::Uuid::new_v4();
-    let dir = std::env::temp_dir().join(format!("continuity-storage-reclaim-{unique}"));
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(".test-tmp")
+        .join(format!("continuity-storage-reclaim-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)
 }
@@ -33,12 +33,17 @@ fn rel_reclamation_drops_proven_garbage_and_preserves_published_state() {
         .unwrap();
     rel.container
         .append(
-            &crate::archive_codec::encode_branch(&crate::Branch {
-                id: "staged-only".into(),
-                conversation_id: "never-published".into(),
-                leaf_node_id: "missing".into(),
-                canonical: false,
-            })
+            &crate::archive_codec::publication::encode(
+                &crate::archive_codec::publication::ArchivePublication::Record {
+                    archive_version: 1,
+                    record: crate::archive_codec::ArchiveRecord::Branch(crate::Branch {
+                        id: "staged-only".into(),
+                        conversation_id: "never-published".into(),
+                        leaf_node_id: "missing".into(),
+                        canonical: false,
+                    }),
+                },
+            )
             .unwrap(),
         )
         .unwrap();
@@ -99,32 +104,4 @@ fn phy_reclamation_preserves_identity_while_dropping_unused_matrix() {
     let reopened = Phylactery::open(&output).unwrap();
     assert_eq!(reopened.owner_uuid(), owner);
     assert_eq!(reopened.packed_vector_stats().objects, 0);
-}
-
-#[test]
-fn relocation_covers_entity_version_records() {
-    fn object(offset: u64, len: u64) -> ObjectRef {
-        let mut bytes = [0_u8; 16];
-        bytes[..8].copy_from_slice(&offset.to_le_bytes());
-        bytes[8..].copy_from_slice(&len.to_le_bytes());
-        ObjectRef::from_legacy_bytes(bytes)
-    }
-
-    let old = object(100, 24);
-    let new = object(80, 24);
-    let relocated = BTreeMap::from([(old, new)]);
-    let entity = crate::entity_codec::EntityVersion {
-        global_version: 3,
-        entity_version: 2,
-        record: old,
-    };
-    let entity =
-        relocate_payload(&crate::entity_codec::encode_version(entity), &relocated).unwrap();
-    assert_eq!(
-        crate::entity_codec::decode_version(&entity)
-            .unwrap()
-            .unwrap()
-            .record,
-        new
-    );
 }

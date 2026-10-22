@@ -6,6 +6,7 @@ mod args_tests;
 mod boundary_tests;
 mod config_args;
 mod config_cmd;
+mod conversation_titles_cmd;
 #[cfg(test)]
 mod credential_args_tests;
 mod dev_cmd;
@@ -14,7 +15,6 @@ mod import_input;
 #[cfg(test)]
 mod import_tests;
 mod insomnia_cmd;
-mod migration_cmd;
 mod phy_cmd;
 mod rel_cmd;
 mod repair_cmd;
@@ -38,9 +38,8 @@ fn run() -> Result<()> {
     match cli.command {
         Command::Rel { command } => rel_cmd::run(command),
         Command::Phy { command } => phy_cmd::run(command),
-        Command::Migrate { source, output } => migration_cmd::run(&source, &output),
         Command::MigrateConversationTitles { source, rel } => {
-            migration_cmd::run_conversation_titles(&source, &rel)
+            conversation_titles_cmd::run_conversation_titles(&source, &rel)
         }
         Command::Import { command } => import_cmd::run(command),
         Command::Archive { command } => archive_cmd::run(command),

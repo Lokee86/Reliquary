@@ -215,26 +215,3 @@ fn routed_retry_reuses_phy_memory_after_wording_drift() {
     assert_eq!(result.user_existing[0].id, prewritten.id);
     assert_eq!(phy.memory_stats().memories, 1);
 }
-
-#[test]
-fn legacy_v2_completion_has_no_external_memory_refs() {
-    fn string(out: &mut Vec<u8>, value: &str) {
-        out.extend_from_slice(&(value.len() as u32).to_le_bytes());
-        out.extend_from_slice(value.as_bytes());
-    }
-    let mut payload = b"CVAINSC2".to_vec();
-    payload.extend_from_slice(&EpisodeId([7; 32]).0);
-    payload.extend_from_slice(&1_u32.to_le_bytes());
-    payload.extend_from_slice(&10_i64.to_le_bytes());
-    payload.extend_from_slice(&11_i64.to_le_bytes());
-    payload.extend_from_slice(&0_u32.to_le_bytes());
-    payload.extend_from_slice(&0_u64.to_le_bytes());
-    payload.extend_from_slice(&0_u32.to_le_bytes());
-    string(&mut payload, "legacy-model");
-    string(&mut payload, "v3-0");
-    payload.extend_from_slice(&0_u32.to_le_bytes());
-    payload.extend_from_slice(&0_u32.to_le_bytes());
-    payload.extend_from_slice(&0_u32.to_le_bytes());
-    let completion = decode_completion(&payload).unwrap().unwrap();
-    assert!(completion.external_memory_refs.is_empty());
-}

@@ -1,0 +1,1662 @@
+{
+  "schema": 1,
+  "base_commit": "dbe15d017f392e335a7d75b2a37c228da6743c41",
+  "source_files": [
+    {
+      "path": "cli/src/args.rs",
+      "disposition": "present",
+      "sha256": "6cb9283c3c5d3c66963dcb0803d7ad42dd900c2cda77f326e4171c5869732e30"
+    },
+    {
+      "path": "cli/src/boundary_tests.rs",
+      "disposition": "present",
+      "sha256": "9c16c35927a13131bb9b384072cbffa526898570b07d8d95c0c299de80530fa2"
+    },
+    {
+      "path": "cli/src/conversation_titles_cmd.rs",
+      "disposition": "present",
+      "sha256": "a412957eb445d7266cd15ae41134f9b98cb75d8f6c22df15692bb34d4298d0fe"
+    },
+    {
+      "path": "cli/src/main.rs",
+      "disposition": "present",
+      "sha256": "d34266b529b0d5d32813187f76e3d550b5c97c81b55fe7b5ca6143b8df7df3be"
+    },
+    {
+      "path": "cli/src/migration_cmd.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "cli/src/rel_cmd.rs",
+      "disposition": "present",
+      "sha256": "f95d47be97c256cffe6d3d0f1e74915c25d4b1ef318b464d9587742b6569a928"
+    },
+    {
+      "path": "cli/src/repair_cmd.rs",
+      "disposition": "present",
+      "sha256": "98232ef87d29a4a33ad32131e4819afd63842c6f3351c6afe33a70105bce2010"
+    },
+    {
+      "path": "examples/dream_tune/support.rs",
+      "disposition": "present",
+      "sha256": "83e913be54bcf721d12bbe750feb92ae5613ca4c1dbafd8cf2ba526492ed2041"
+    },
+    {
+      "path": "scripts/history_writer_inventory.py",
+      "disposition": "present",
+      "sha256": "e359f9f513e509cf1b9551144e3facbeeffe5d34550ec34da9a82f135608d684"
+    },
+    {
+      "path": "src/archive/archive.rs",
+      "disposition": "present",
+      "sha256": "b4e1aebe8c2c7845a93646467476ed75c940e890931e424282108f627c145c68"
+    },
+    {
+      "path": "src/archive/archive_activity_preservation_tests.rs",
+      "disposition": "present",
+      "sha256": "8e32d10c3553f966258a2dc7dc27138a79589d7b37e0fd12385f882cd96e7b2e"
+    },
+    {
+      "path": "src/archive/archive_codec.rs",
+      "disposition": "present",
+      "sha256": "71284bb11d2cc4e4985c444742e905d04024c8c2a9ee50e64df2af3784e4a24a"
+    },
+    {
+      "path": "src/archive/archive_conversation_metadata.rs",
+      "disposition": "present",
+      "sha256": "195a1e28724a1776628179be5ccc81a39b87cd2f1e8f6f73c8eb0af3a7bb367f"
+    },
+    {
+      "path": "src/archive/archive_conversation_tombstone.rs",
+      "disposition": "present",
+      "sha256": "98e53902bbb9941351fed4a5fd8285478164922690fe23b6e0fda6b20d65c0f1"
+    },
+    {
+      "path": "src/archive/archive_history.rs",
+      "disposition": "present",
+      "sha256": "0fd7ef7e913251261774811ca7e6824224e30b903e806c10e20cb77a344c9953"
+    },
+    {
+      "path": "src/archive/archive_history_codec.rs",
+      "disposition": "present",
+      "sha256": "b13f51dc2f057303233c3c0f8195d18d132a365587babf4b354007660c6fbbbb"
+    },
+    {
+      "path": "src/archive/archive_import.rs",
+      "disposition": "present",
+      "sha256": "7f4e965d00322008b7fda7ed1bdd993b466a295a5f1cf94eac2a1cf78bcb09f7"
+    },
+    {
+      "path": "src/archive/archive_publication_bundle_tests.rs",
+      "disposition": "present",
+      "sha256": "4cfa1b10419a6450dc97035fc892900897c6fff2f0a43c968bebce175dabbcc8"
+    },
+    {
+      "path": "src/archive/archive_publication_codec.rs",
+      "disposition": "present",
+      "sha256": "90ed774d1011ecab20e011603a094e85cc4dfb0c803d03c556b640f326634e81"
+    },
+    {
+      "path": "src/archive/archive_publication_core_tests.rs",
+      "disposition": "present",
+      "sha256": "948ea509b7762ad72f0cd8b752a684e920138b35c454cd4307f42c49a30a38ad"
+    },
+    {
+      "path": "src/archive/archive_publication_reader_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/archive/archive_publication_replay_tests.rs",
+      "disposition": "present",
+      "sha256": "06291b10c4789051a7d9630604933863e31bb037b71cc0590279ef686470bc28"
+    },
+    {
+      "path": "src/archive/archive_rebuild.rs",
+      "disposition": "present",
+      "sha256": "6908bdbd2f21d7a757147542ddddc1a4b70acf62f56d4c948e010c454d8bec72"
+    },
+    {
+      "path": "src/archive/archive_store.rs",
+      "disposition": "present",
+      "sha256": "0d45f1230321b7456c2dbce96f5937d6d50baa3ea89fc2d1f791e41969a4d0dd"
+    },
+    {
+      "path": "src/archive/archive_tests.rs",
+      "disposition": "present",
+      "sha256": "b238d49c35ba9bf68346fbf1f4f92117c8f89e8c33a9cb3852edd70864afb7f4"
+    },
+    {
+      "path": "src/archive/conversation_compaction_store.rs",
+      "disposition": "present",
+      "sha256": "cbf8e12a58168c23b9bb7af56daa71263353856e4119a2be5a0a5c75e6a3fe44"
+    },
+    {
+      "path": "src/archive/conversation_metadata_codec.rs",
+      "disposition": "present",
+      "sha256": "727aaf973b332b77231152f7223d327321b83f73ee0487fdef04c383174c50d2"
+    },
+    {
+      "path": "src/archive/conversation_tests.rs",
+      "disposition": "present",
+      "sha256": "61795133ae6d80656e37de1bf2728bd573d65493cb376b15df44442a3b802f68"
+    },
+    {
+      "path": "src/archive/echo_store.rs",
+      "disposition": "present",
+      "sha256": "7db6f1e2340f297b0f6552145c1577c7ac867f05fbaea6777b6a39105d61ba69"
+    },
+    {
+      "path": "src/archive/episode_store.rs",
+      "disposition": "present",
+      "sha256": "91e1dc0b3418429ea2d6b4abbc897ab7b3cda0c6fd8b43520f2ea3513a0b1746"
+    },
+    {
+      "path": "src/archive/file_memory_link_store.rs",
+      "disposition": "present",
+      "sha256": "c83dd2d1e7005e89c65b8d187bae1c673da789da859509b6a9acaf80a8a3a15b"
+    },
+    {
+      "path": "src/archive/file_store.rs",
+      "disposition": "present",
+      "sha256": "3736d8aea90938275cd2adc9d8251a399839ad6fa2b5f4e6deb6d31baea389dd"
+    },
+    {
+      "path": "src/archive/fragment_store.rs",
+      "disposition": "present",
+      "sha256": "bc7d3fce435420739337df1fec46b9250d0be2e13f34c822c14f0007469c842b"
+    },
+    {
+      "path": "src/archive/history_tests.rs",
+      "disposition": "present",
+      "sha256": "f71e4e61bf0e5001b279d13fadf952219124e7b0773b72933847a3ba3d788805"
+    },
+    {
+      "path": "src/archive/interaction_stream_codec.rs",
+      "disposition": "present",
+      "sha256": "21a81d2d59f53e79a8bc926ba6fe9c3084bbe33aae5a2c155988103d7a4a46a8"
+    },
+    {
+      "path": "src/archive/interaction_stream_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "f87145e111d959d448d98578dcd4333a6991a77671ced562552f1d1b9d02386b"
+    },
+    {
+      "path": "src/archive/interaction_stream_store.rs",
+      "disposition": "present",
+      "sha256": "2f950aff41438223ca97e5a38068751f9e22cbceb8a2468482e667b411709442"
+    },
+    {
+      "path": "src/archive/project_file_binding_store.rs",
+      "disposition": "present",
+      "sha256": "0081f44d5db0e45b94fc93b0ef58e7c8851d7d5cca70805559405a1d73afc3cc"
+    },
+    {
+      "path": "src/archive/project_history_codec.rs",
+      "disposition": "present",
+      "sha256": "f9bbf187ca026bd6db78075716337e587b78a1db9ef3676a0a1d4ffa185f9e11"
+    },
+    {
+      "path": "src/archive/project_history_store.rs",
+      "disposition": "present",
+      "sha256": "74c2bf00f85cbdafc54fc08f996d19ce629607fc99810b7a710048f8f7d7123d"
+    },
+    {
+      "path": "src/archive/project_history_tests.rs",
+      "disposition": "present",
+      "sha256": "4b8f239f6818a2229a0171b4199e5dd8e6f102144a4820e6945eb302bdb558da"
+    },
+    {
+      "path": "src/archive/turn_ingest_codec.rs",
+      "disposition": "present",
+      "sha256": "027cf314e43ba32d9a837e15cee945bc6e59fb14dd62f6d6dfd78f317a5bbcbf"
+    },
+    {
+      "path": "src/archive/turn_ingest_store.rs",
+      "disposition": "present",
+      "sha256": "3cc5a213433173f3b5d498dca2ac4f9830cf98367729be00eba1587877c98d42"
+    },
+    {
+      "path": "src/archive/turn_ingest_tests.rs",
+      "disposition": "present",
+      "sha256": "cee825f726beb9ec889f042d0bd1cbab92cd8fb78f47b47775d6546835530634"
+    },
+    {
+      "path": "src/container/container.rs",
+      "disposition": "present",
+      "sha256": "003734e06b5be83d459ab6a9324c670e583d5f90e09b1da27b56d2c7d2e42d9b"
+    },
+    {
+      "path": "src/container/container_error.rs",
+      "disposition": "present",
+      "sha256": "7054742617fb1d50101e3714e5b977ac55fc94132c2c6bc319847e752d4a44d7"
+    },
+    {
+      "path": "src/container/container_format_boundary_tests.rs",
+      "disposition": "present",
+      "sha256": "a3477a22f7fe04ed8709638aa2ddfae9872d3ae00d380856dfa4b9e1a39c63a4"
+    },
+    {
+      "path": "src/container/container_scan.rs",
+      "disposition": "present",
+      "sha256": "2c98b8903d692b3a10a43f13c2d430d555c11d1142fea1c8ed82f726f1b08f43"
+    },
+    {
+      "path": "src/container/container_upgrade.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/container/publication_envelope_clock_tests.rs",
+      "disposition": "present",
+      "sha256": "a12612fb0a651832cd93aac102e42f85211f7216c527222702c662dd85c4cf9e"
+    },
+    {
+      "path": "src/container/transaction_time_tests.rs",
+      "disposition": "present",
+      "sha256": "cffb5f5f8f74965b31b542de35deff97d74cd14356e1d404f310dc0d06d6ce86"
+    },
+    {
+      "path": "src/ego/ego_codec.rs",
+      "disposition": "present",
+      "sha256": "cb2473b6c49224b43ebe9a9de241558b9a4b8ad48c5874278ef11e7694608ba0"
+    },
+    {
+      "path": "src/ego/ego_compact_apply.rs",
+      "disposition": "present",
+      "sha256": "4072aa4f73f21332d415f06df78fa937459d55d51a62c9c4888de02664ef795d"
+    },
+    {
+      "path": "src/ego/ego_compact_codec.rs",
+      "disposition": "present",
+      "sha256": "c5e1e3c4e5e19f45e4704a6e5213ed001ed8955f927bf036834b83be7f7f61d6"
+    },
+    {
+      "path": "src/ego/ego_compact_contract.rs",
+      "disposition": "present",
+      "sha256": "1692d445e2084dfba73fb4c10c957114e580b1a30d5d1e2e80c9f2890691d6c3"
+    },
+    {
+      "path": "src/ego/ego_compact_contract_tests.rs",
+      "disposition": "present",
+      "sha256": "a433d9a1a9e739bbac11e167c51d20aa5fc8b514ad7aca3baaf7b2a2df77c3c7"
+    },
+    {
+      "path": "src/ego/ego_compact_creation_codec_tests.rs",
+      "disposition": "present",
+      "sha256": "ff8c3c8205607f9ddb1d64ce1a79a220fee74f8fb851810b2cb1b51cf1e9d5e1"
+    },
+    {
+      "path": "src/ego/ego_compact_replay_tests.rs",
+      "disposition": "present",
+      "sha256": "977ad100ed1c93cf49f8ed5e9d8939aebc46825e493a0a672f2aaf1e7855a00b"
+    },
+    {
+      "path": "src/ego/ego_current_fixture.rs",
+      "disposition": "present",
+      "sha256": "e00b81f5a0dc9f6567dfc52d45154a80647d689d7ecd4f23c11fa8d41c067ffd"
+    },
+    {
+      "path": "src/ego/ego_identity_tests.rs",
+      "disposition": "present",
+      "sha256": "6e472da523c496cebae5091649373928c758c4f9a4b937ab570248c8fc388cb3"
+    },
+    {
+      "path": "src/ego/ego_lifecycle_tests.rs",
+      "disposition": "present",
+      "sha256": "d2e8df18de9fe042d038f675f0ebff3632ea7e515af421f61f2d3a35c0f4621a"
+    },
+    {
+      "path": "src/ego/ego_persona_tests.rs",
+      "disposition": "present",
+      "sha256": "d967542e90ac670d4cb691c9acce52b6a28c3feda1119fd084e144fc7d845aac"
+    },
+    {
+      "path": "src/ego/ego_store.rs",
+      "disposition": "present",
+      "sha256": "d073b66d7e063bfb60140abdc86f29eeafdf2c2d5878c6680bc3a1997ca95536"
+    },
+    {
+      "path": "src/ego/ego_store_anchors.rs",
+      "disposition": "present",
+      "sha256": "6b7023c766412ef23e3ae5d98a0d65a240c7406aeb3ad770d6d0530195ed0b7b"
+    },
+    {
+      "path": "src/ego/ego_store_compact.rs",
+      "disposition": "present",
+      "sha256": "f02ee597b8fcfe9d82cd7d69e22a5ff09f1b55d6b15cc027bac3ff8077fdd8bd"
+    },
+    {
+      "path": "src/ego/ego_store_documents.rs",
+      "disposition": "present",
+      "sha256": "3e406848f05a8edc01e35914136ec82a554a177b70aa93e6a490d8f15e3fb016"
+    },
+    {
+      "path": "src/ego/ego_store_identities.rs",
+      "disposition": "present",
+      "sha256": "ec534e3b0267af53ffb2bf73451cc34b1af34338e57a4c1f3f8fb1e3dd9314f4"
+    },
+    {
+      "path": "src/external_source/compact_tests.rs",
+      "disposition": "present",
+      "sha256": "987c8ecce71571091369a9efcb2a334a5e6a1d09a76ea3d4bbd60f19cca6ca7c"
+    },
+    {
+      "path": "src/external_source/mod.rs",
+      "disposition": "present",
+      "sha256": "782f9942ed1f6814d6cbf9dc68e730b9d070dd0c7efdd8e9e844d5088393b2da"
+    },
+    {
+      "path": "src/external_source/model.rs",
+      "disposition": "present",
+      "sha256": "5f4b4083dd4290f785bf37de319d18ce6273dec8887171d34e0d731f19b1b493"
+    },
+    {
+      "path": "src/external_source/processing.rs",
+      "disposition": "present",
+      "sha256": "f9f6088f1560782f92c0412fb4bc4419879b7071d49a62f3b249e3c731be3235"
+    },
+    {
+      "path": "src/external_source/publication.rs",
+      "disposition": "present",
+      "sha256": "a130c68086d91488f8a4477e9415a95b1c7fefa3948fb7fbc7a3a9029076fca3"
+    },
+    {
+      "path": "src/external_source/publication_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "5c992db6c07a572951baed36f45ac47a135cb3658bd463b2cf4aad1f91fcd012"
+    },
+    {
+      "path": "src/external_source/store.rs",
+      "disposition": "present",
+      "sha256": "48c35ee22ecfb35607a07cda1de28e04fd1b0ab66fa82debfacbe2236767f35c"
+    },
+    {
+      "path": "src/facade/cva.rs",
+      "disposition": "present",
+      "sha256": "fce21ad0d8a3070f8d4e01856c29a4daeb12c4ebc2b7ad35b90f48ca5d55d84c"
+    },
+    {
+      "path": "src/facade/cva_archive_vectors.rs",
+      "disposition": "present",
+      "sha256": "fd436730c926d65e154048426e4a71e627855b7217c7e682387c15b43097ef0e"
+    },
+    {
+      "path": "src/facade/cva_communities.rs",
+      "disposition": "present",
+      "sha256": "d18f5f24f3ff05b2b34e1557a0bb1970814b100c99ddf518b650cc2dfcd48dfc"
+    },
+    {
+      "path": "src/facade/cva_compatibility_profiles.rs",
+      "disposition": "present",
+      "sha256": "61f97c53ead75a9f96c3a11013d2191f1c6e4d8987390d824ac3086207326284"
+    },
+    {
+      "path": "src/facade/cva_description_prune.rs",
+      "disposition": "present",
+      "sha256": "719b641fc3dc2ded5c2d02db49d8369353519119573b965901ea116e8bbefd38"
+    },
+    {
+      "path": "src/facade/cva_dream_begin_transport.rs",
+      "disposition": "present",
+      "sha256": "1a9810f46337336ec368649e301455b24168f7b83a7f01ad85f070009cef7fd3"
+    },
+    {
+      "path": "src/facade/cva_dream_journal_replay.rs",
+      "disposition": "present",
+      "sha256": "4b3600df97c21d57d438d2528206a0be9c3835adc68bf63928bc0555902a3e7c"
+    },
+    {
+      "path": "src/facade/cva_dream_population_tests.rs",
+      "disposition": "present",
+      "sha256": "83e1da1f4038a93cb38da0554481d95a7e062ed074e7d565d6c3dc386c41d954"
+    },
+    {
+      "path": "src/facade/cva_ego.rs",
+      "disposition": "present",
+      "sha256": "f58ad508be288f5ffd73c07c6440f269ab0170631dd2b74fd5a4fd716fd9fe42"
+    },
+    {
+      "path": "src/facade/cva_file_memory.rs",
+      "disposition": "present",
+      "sha256": "0d63f2c55ad468a08406044367c16985446ba4cc79b7724e17d170852aced8f0"
+    },
+    {
+      "path": "src/facade/cva_freshness.rs",
+      "disposition": "present",
+      "sha256": "fe1e783037d72f153820b0b48f51eca1fb383af405ccf4ab5247e863d192a2ca"
+    },
+    {
+      "path": "src/facade/cva_graph.rs",
+      "disposition": "present",
+      "sha256": "7037c1e0602885eb821a358a49a37fc8f3f6408dbea4749eb32762d44946998b"
+    },
+    {
+      "path": "src/facade/cva_historical_import.rs",
+      "disposition": "present",
+      "sha256": "cdd8af408dbd63945941faa93daf98529d6db076ea514b7c1445b92c2c167bed"
+    },
+    {
+      "path": "src/facade/cva_history_prune.rs",
+      "disposition": "present",
+      "sha256": "25ff1b09c2cb8510fad375f298220ad6c6186ebe2df7b23c52f0ac62271aeedb"
+    },
+    {
+      "path": "src/facade/cva_lifecycle.rs",
+      "disposition": "present",
+      "sha256": "b7d3a833c220965e04d66321b26b7cf62c265fdbd736c8ebc5b8f4561e9e4090"
+    },
+    {
+      "path": "src/facade/cva_memory_vectors.rs",
+      "disposition": "present",
+      "sha256": "de679bdcce6bd17d6183dd5df5ae854c575cc7c830539e67903021a3513f780a"
+    },
+    {
+      "path": "src/facade/cva_packed_vectors.rs",
+      "disposition": "present",
+      "sha256": "8e1aa00fa572609ad62d3dbca363c8280ae031adedc2e0575330db63da113d21"
+    },
+    {
+      "path": "src/facade/cva_principal_repack.rs",
+      "disposition": "present",
+      "sha256": "0163549a0d301164a8ea72d5c33f98f1d03143a70f797e25581b612f4b234912"
+    },
+    {
+      "path": "src/facade/cva_reconcile.rs",
+      "disposition": "present",
+      "sha256": "f014ce613fa4ca63c1136a16044c0b087d1805db1fff3e3698726fc496bde650"
+    },
+    {
+      "path": "src/facade/cva_reconcile_entity_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "f1fa08f29f80e17f547fb3d910c8945229ac15481890b408f8870a6de7c5759d"
+    },
+    {
+      "path": "src/facade/cva_reconcile_relationship_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "05843f33f35fad7e019ffbd00f5919feaf8b379f54dfe11e6223c31400b18b3a"
+    },
+    {
+      "path": "src/facade/cva_reconcile_tests.rs",
+      "disposition": "present",
+      "sha256": "15f0ddc5228b370170eff812ce1ce4e9c7a1e0105abd2dacf4474cb0b36febe0"
+    },
+    {
+      "path": "src/facade/cva_repack.rs",
+      "disposition": "present",
+      "sha256": "49a100e1f011b985c093d67bb322e556f0c4405b58df956443e39bc7fb464deb"
+    },
+    {
+      "path": "src/facade/cva_semantic_live.rs",
+      "disposition": "present",
+      "sha256": "e7ea00b9578df88734f4d00a77f341f86f492a18b3fd17cbe3643ac812b64fbc"
+    },
+    {
+      "path": "src/facade/cva_semantic_source.rs",
+      "disposition": "present",
+      "sha256": "0e0317fb674ac88a138e60d58573108b4aaa0b7617bee4b61ca7330369227328"
+    },
+    {
+      "path": "src/facade/cva_vector_generations.rs",
+      "disposition": "present",
+      "sha256": "a6e9f949a6ae3f15ad9c03c6544191f42d3981df54780a79a1ecf4566233bd56"
+    },
+    {
+      "path": "src/facade/cva_vector_recovery.rs",
+      "disposition": "present",
+      "sha256": "794d91128541a5b9cd6ae865ca3cca60e72db7781f31657a28d1853504b18f58"
+    },
+    {
+      "path": "src/facade/dream_current_fixture.rs",
+      "disposition": "present",
+      "sha256": "d4c864e373a12f697db8ea69fe2fcc245f1266471e98eacb347d03a7a8280dea"
+    },
+    {
+      "path": "src/facade/dream_population_authority_tests.rs",
+      "disposition": "present",
+      "sha256": "7f0b1989094958bb3184ff65cabd9bdd8a4346cc04197b7fa125af5f4acb3323"
+    },
+    {
+      "path": "src/facade/dream_population_proof_tests.rs",
+      "disposition": "present",
+      "sha256": "6de6be3951fa90b7afee4d4f5acd19e3cc7c2a19c4c96c781067c60381f3acab"
+    },
+    {
+      "path": "src/facade/entity_compact_prune_tests.rs",
+      "disposition": "present",
+      "sha256": "c03765bcd6658ff0f85a3ec05d41f466fe063cf8511f50a7ce2e698b7ed8c5b3"
+    },
+    {
+      "path": "src/facade/external_birth_prefix_tests.rs",
+      "disposition": "present",
+      "sha256": "fe9d94e02dab21628239d2c25e12110a33d8b64637e1a0c71decc87122454bb2"
+    },
+    {
+      "path": "src/facade/graph_compact_freshness_tests.rs",
+      "disposition": "present",
+      "sha256": "af1f6c9082ec38c21436df0862277b13029d6d971ba401693c60a857afe29931"
+    },
+    {
+      "path": "src/facade/graph_compact_maintenance_tests.rs",
+      "disposition": "present",
+      "sha256": "beda6f3220068cd0fba12dde88b619042854b2416b7aa489630ad32a1ffa95c0"
+    },
+    {
+      "path": "src/facade/graph_compact_proof_tests.rs",
+      "disposition": "present",
+      "sha256": "3840d819887c9c3825f05762f2dcd91ee7cc2351ea94522123d60fe2bb420332"
+    },
+    {
+      "path": "src/facade/graph_compact_reconcile_tests.rs",
+      "disposition": "present",
+      "sha256": "bcb86de049dfc2ac47bd020c1866da0dc24b5863bad849d43c5ab96c4626aad8"
+    },
+    {
+      "path": "src/facade/historical_baseline_artifacts.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/historical_dream_processing_fingerprint_tests.rs",
+      "disposition": "present",
+      "sha256": "4e1977e57129b5187acef6b1fcfdee1afb67df8e6a1ea492aa37bdb41de71380"
+    },
+    {
+      "path": "src/facade/historical_ego_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "08dd9a54349e041f8c830e29be73f72168dbd7aa8b8ee04156b0d31f864a1065"
+    },
+    {
+      "path": "src/facade/historical_ego_fingerprint.rs",
+      "disposition": "present",
+      "sha256": "bad42593c3bb35e5dbbae93d4d8a3dd654c17b27fdb73b6c27f889a7533e653c"
+    },
+    {
+      "path": "src/facade/historical_ego_fingerprint_tests.rs",
+      "disposition": "present",
+      "sha256": "ef74a372d33854348ef1219e867df9acf142d125bdb47c01efb41b0418da21f1"
+    },
+    {
+      "path": "src/facade/historical_freshness_fingerprint.rs",
+      "disposition": "present",
+      "sha256": "378c17d4c7b8fbec60f196053d235afe4a26c1068f14c0513c5ebfddd4083007"
+    },
+    {
+      "path": "src/facade/historical_freshness_values.rs",
+      "disposition": "present",
+      "sha256": "ebf433b08ae9bfa03bc66b70069cc05fdbc05f5e365902e6c99b9c3832c8bdb5"
+    },
+    {
+      "path": "src/facade/historical_global_frontier_tests.rs",
+      "disposition": "present",
+      "sha256": "00d6519bfbd442fe786927cd634c9f0008b70cb88a17d1b50ffa0c6d4e084450"
+    },
+    {
+      "path": "src/facade/historical_graph_fingerprint_tests.rs",
+      "disposition": "present",
+      "sha256": "03168212849e3f46cd0158aa30bcd18f9fb7d41029614cf33a9e4a0261213a91"
+    },
+    {
+      "path": "src/facade/historical_import_input.rs",
+      "disposition": "present",
+      "sha256": "698f2f6ce8c40003fc1887467559b7aa33dcbcb137ffe05065672bf2b90bf8e3"
+    },
+    {
+      "path": "src/facade/historical_import_legacy_epoch_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/historical_import_legacy_epoch_version_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/historical_import_memory_envelope_upgrade_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/historical_import_tests.rs",
+      "disposition": "present",
+      "sha256": "3e28cc7a69f503e16bde1c767b999207d02695bc8e24bd5b7b7a88f6fde2a4b3"
+    },
+    {
+      "path": "src/facade/historical_import_transform.rs",
+      "disposition": "present",
+      "sha256": "17b89cb05141cea5f3eb1a7ea9b62c34dd8cb2d3040bb0bd8aafbf2bfcf89575"
+    },
+    {
+      "path": "src/facade/historical_import_transform_tests.rs",
+      "disposition": "present",
+      "sha256": "ff233e74ca15292c0f0e823e89b437abbc675579f09eb71a247d5305ab21530b"
+    },
+    {
+      "path": "src/facade/history_prune_manifest.rs",
+      "disposition": "present",
+      "sha256": "d78061c4afbfcf448b1698c0ef158c13202ee9554e86c7c92c70eac709c4c6ab"
+    },
+    {
+      "path": "src/facade/migration.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/migration_dream_cooldown.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/migration_phy.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/migration_phy_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/migration_rel.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/migration_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/phylactery.rs",
+      "disposition": "present",
+      "sha256": "b6fd2c6fe1d2eea43195a2d2b796d59f17e13662d205cbde541a79c0132c1906"
+    },
+    {
+      "path": "src/facade/phylactery_communities.rs",
+      "disposition": "present",
+      "sha256": "d8a2ef51d9975456a557faf70716fded0a362b14adb0168f6a177dab9dd8d4d6"
+    },
+    {
+      "path": "src/facade/phylactery_compatibility_profiles.rs",
+      "disposition": "present",
+      "sha256": "a9576777eaf7d14306b115db92050c358ab41057959e8be1d1a0098bc7d5bbdb"
+    },
+    {
+      "path": "src/facade/phylactery_ego.rs",
+      "disposition": "present",
+      "sha256": "4baedecbb63706cb909604175c9046b478c9d97bfd7d2d62052efa4e005143e0"
+    },
+    {
+      "path": "src/facade/phylactery_graph.rs",
+      "disposition": "present",
+      "sha256": "d8286a6434e37bee69ebf84a88826a23252a2b5152710563a69e19c502cc4385"
+    },
+    {
+      "path": "src/facade/phylactery_history_prune.rs",
+      "disposition": "present",
+      "sha256": "e5c96cd6ffdecf365078390160b6d7c0926a1ba9b595b413ffb048d81cb47e28"
+    },
+    {
+      "path": "src/facade/phylactery_lifecycle.rs",
+      "disposition": "present",
+      "sha256": "8c280b9dc572d7f37fcdccb9ff9046be4d7f0ba5ba773e3a0eda984cc6960891"
+    },
+    {
+      "path": "src/facade/phylactery_memory_source.rs",
+      "disposition": "present",
+      "sha256": "f0a86d39dfecead19ffe174d405a5f6ff61391ee84e2bf410732b1dd4ca5bd18"
+    },
+    {
+      "path": "src/facade/phylactery_memory_vectors.rs",
+      "disposition": "present",
+      "sha256": "5ed61c3ae44cdcc8d8e89c8cbd97fea89507209a2c12b61577803480fc3c2a26"
+    },
+    {
+      "path": "src/facade/phylactery_packed_vectors.rs",
+      "disposition": "present",
+      "sha256": "bd841c4381c30368448962a843a4537f7394c51df38c3fc0d3fa31af27df1729"
+    },
+    {
+      "path": "src/facade/phylactery_tests.rs",
+      "disposition": "present",
+      "sha256": "a372f7cd3f2de4f963483d4eb393ff1f437089b766db6fa2084efe8ecf1a4c8f"
+    },
+    {
+      "path": "src/facade/relationship_compact_prune_tests.rs",
+      "disposition": "present",
+      "sha256": "5907f8899826ead0be87b165a00217100f856718604b8a0e1b1ef53f6f84a89b"
+    },
+    {
+      "path": "src/facade/reliquary_tests.rs",
+      "disposition": "present",
+      "sha256": "4c95ecc838c509cd6ce7134c3129d0abc27bc69b3a25a8dee47fe50c489097b7"
+    },
+    {
+      "path": "src/facade/review_clocks_tests.rs",
+      "disposition": "present",
+      "sha256": "9b9e36faef78552113cd3bdaf6d4fc35e8c88f252ea90fa41ff9a05926266701"
+    },
+    {
+      "path": "src/facade/storage_format_boundary_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/facade/storage_reclamation.rs",
+      "disposition": "present",
+      "sha256": "7e3f312267ad9666c5ae834704ee1e7b62ea910a651942a143eba7c73d962510"
+    },
+    {
+      "path": "src/facade/storage_reclamation_entity_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "0d29a99385742cda699f8ddb8a6565842a5bc90d2225c8e7d851592e44dc3e4c"
+    },
+    {
+      "path": "src/facade/storage_reclamation_entity_publication_tests.rs",
+      "disposition": "present",
+      "sha256": "336b3227837807fa35a8f3f0f1fc2bd6f447bcccd02127cf8d034c3b468b76e1"
+    },
+    {
+      "path": "src/facade/storage_reclamation_graph_publication_tests.rs",
+      "disposition": "present",
+      "sha256": "95fab358b3ba77a8dc8ef973c731e9ee86c73c36b02aae0025ec2877e93dbe54"
+    },
+    {
+      "path": "src/facade/storage_reclamation_memory_publication_tests.rs",
+      "disposition": "present",
+      "sha256": "f66592a55d1d29cd574d094766518d0a9270b855a08245ef2c6ee37850ab94d2"
+    },
+    {
+      "path": "src/facade/storage_reclamation_relationship_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "04ff1fffe24ad44fa95d3b2cc43c2ad983b33b1eb284eae8a643ee4d77c554f1"
+    },
+    {
+      "path": "src/facade/storage_reclamation_relationship_publication_tests.rs",
+      "disposition": "present",
+      "sha256": "180a84fb424c30d891e22b54b6a25af8e00db30f33eae1be4e92c89fe7bdb99d"
+    },
+    {
+      "path": "src/facade/storage_reclamation_scan.rs",
+      "disposition": "present",
+      "sha256": "10687460a1639a5535d176bad84ad781b794c3b65b45629dbdeea02dbc06274a"
+    },
+    {
+      "path": "src/facade/storage_reclamation_tests.rs",
+      "disposition": "present",
+      "sha256": "7b00d20805fb9a36dce825d6ad2ef75ccb93c010e2907fd2fef032a7e631b82b"
+    },
+    {
+      "path": "src/freshness/freshness_import_compatibility.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/freshness/freshness_import_events.rs",
+      "disposition": "present",
+      "sha256": "531034b83aaaa515a9b94ab8bfe47736ce08789b6bbfbca45d2f37c84e997c8d"
+    },
+    {
+      "path": "src/freshness/freshness_import_settlement.rs",
+      "disposition": "present",
+      "sha256": "2308e4e4c9530bab902b3f5c8c3bddd7b3f499b6024e39f81c1921b2401be3fc"
+    },
+    {
+      "path": "src/freshness/freshness_semantic_settlement.rs",
+      "disposition": "present",
+      "sha256": "77805da8c6d4b587650c1f6384aa79be7fd8f400fd8e60862f084335b2f9e8f3"
+    },
+    {
+      "path": "src/freshness/freshness_semantic_settlement_tests.rs",
+      "disposition": "present",
+      "sha256": "52219dc8138b21f86c0b216330f5351488d81f59efb4b41b9be3393fa67e5e49"
+    },
+    {
+      "path": "src/freshness/freshness_storage_stream.rs",
+      "disposition": "present",
+      "sha256": "2bae178233db52e3ca5c6e4a239a4082138759ace63b8f368dfd6d45656172fa"
+    },
+    {
+      "path": "src/freshness_dream_journal.rs",
+      "disposition": "present",
+      "sha256": "c93e6bc6de2949714719b6a2fc476de699387cd8d335f9de57b222723a29c328"
+    },
+    {
+      "path": "src/freshness_storage.rs",
+      "disposition": "present",
+      "sha256": "88de5496a282de597cd11b4b27ecfbba3f58890d8b6f6e6bdafdac173aa3c7a0"
+    },
+    {
+      "path": "src/imports/commit.rs",
+      "disposition": "present",
+      "sha256": "5b7bc0412eeb6483e8511eeec2c64fd31e6b029a8a985e453093fc922045f585"
+    },
+    {
+      "path": "src/imports/completion.rs",
+      "disposition": "present",
+      "sha256": "24a7027d90c7b695a17c8c29f781d3698ad14d12e0b7f0809eba980ab7e666ab"
+    },
+    {
+      "path": "src/imports/completion_tests.rs",
+      "disposition": "present",
+      "sha256": "f5a8913d706de68cbf2c10c5c0a9a13815967366c83129d20d88332eeff3bf96"
+    },
+    {
+      "path": "src/imports/epoch_codec.rs",
+      "disposition": "present",
+      "sha256": "cd162aad6d0da09fe1a2018eca3620716764e4418802162352bb519a87d32a9a"
+    },
+    {
+      "path": "src/imports/epoch_store.rs",
+      "disposition": "present",
+      "sha256": "eb7f2f261348ab6f59653a7ca4fc58e0e5d614064237079c8556667ac50c858b"
+    },
+    {
+      "path": "src/imports/legacy_epoch.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/imports/legacy_epoch_transport.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/imports/mod.rs",
+      "disposition": "present",
+      "sha256": "3038e62999645be395bbcf471d002c89421a1a8072349fed7fa4614b60e76d45"
+    },
+    {
+      "path": "src/imports/readiness.rs",
+      "disposition": "present",
+      "sha256": "f3a61334d52f2dcb4d0c9ae2099ad0a765a60bc9c0af49c914533c9e956fa2ad"
+    },
+    {
+      "path": "src/imports/reconciliation.rs",
+      "disposition": "present",
+      "sha256": "6c1ec51b635d8c827d46b64b11749fbd3a7e479618788f6799a0de1933e4df3c"
+    },
+    {
+      "path": "src/imports/reconciliation_compact_memory_tests.rs",
+      "disposition": "present",
+      "sha256": "817fc8f0305c6c7ef41a9c61d265d891d1c20bb9652e1bc856bca9b3ab7df226"
+    },
+    {
+      "path": "src/imports/reconciliation_ego_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "8523148138b2defb69e7670948bf370188cf506fb9fd51bfe8191c8bd936a208"
+    },
+    {
+      "path": "src/imports/reconciliation_entity_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "b4e5ca74be816c3638edcf98739eed4836edca7c1fdc7d07cf0879667b075e6a"
+    },
+    {
+      "path": "src/imports/reconciliation_freshness_authority_tests.rs",
+      "disposition": "present",
+      "sha256": "4679c991b2049f145cf7b644acca3b65e40593382de86c6924a30e42fc71a71e"
+    },
+    {
+      "path": "src/imports/reconciliation_graph_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "7f8340f9329250d7527bc5b91cbc90a3bed2682d540da4d0ca29c129b310fb42"
+    },
+    {
+      "path": "src/imports/reconciliation_interval.rs",
+      "disposition": "present",
+      "sha256": "08ee2bc63569f1ecbd399681f8a155ba2a6543fa025e1a223d5cdbb047ce5fff"
+    },
+    {
+      "path": "src/imports/reconciliation_relationship_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "26713d4a952860cf1a7ca8eba5fb9bbece2dce28f991568953e3e458df2c3b72"
+    },
+    {
+      "path": "src/imports/reconciliation_resolution_delta_tests.rs",
+      "disposition": "present",
+      "sha256": "b1cb69af482ec825f41b05d3724d2d4d9702ffb55d9cad14075ef964fc74c082"
+    },
+    {
+      "path": "src/imports/tests.rs",
+      "disposition": "present",
+      "sha256": "58d97b28645fef4018794a853c0f90a13f828ed4b7eccb75b83b8c6a29e7e4a0"
+    },
+    {
+      "path": "src/lib.rs",
+      "disposition": "present",
+      "sha256": "abd7e453dcbc3c17cbd428d0fafd2dd7167814873d783882c069a3a17b8b44d8"
+    },
+    {
+      "path": "src/memory/memory_codec.rs",
+      "disposition": "present",
+      "sha256": "58abbab2b5c5340836077d695f4553b51c1b565ceb6dbed1124b376546ee6cf9"
+    },
+    {
+      "path": "src/memory/memory_codec_tests.rs",
+      "disposition": "present",
+      "sha256": "0948b9eefa2750b77a438493f0743895f8379b07c4621321c90e759733e8c81c"
+    },
+    {
+      "path": "src/memory/memory_compact_contract_tests.rs",
+      "disposition": "present",
+      "sha256": "e4629c7eaf311ccf6d292f71b76160547c43a7d1b56140b72d2f8eed72681e0d"
+    },
+    {
+      "path": "src/memory/memory_compact_maintenance_tests.rs",
+      "disposition": "present",
+      "sha256": "7fc083b0c2351ea2b2e5bae0c7911782987bc24b1256c23abf3791cda3fcb90a"
+    },
+    {
+      "path": "src/memory/memory_compact_replay_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/memory/memory_compact_retry_tests.rs",
+      "disposition": "present",
+      "sha256": "b7447107ba61d15ade552d96a97333e364be2fdb06ee74d68e9196da6ccac078"
+    },
+    {
+      "path": "src/memory/memory_legacy_terminal_fixture.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/memory/memory_publication_codec.rs",
+      "disposition": "present",
+      "sha256": "f08cff2e989439b5abd6d1897eac550b221dab8ea850b30c1975cb9684cd16ae"
+    },
+    {
+      "path": "src/memory/memory_publication_copy_tests.rs",
+      "disposition": "present",
+      "sha256": "253ec2c743cc773e8ef5463fa1a34094849b3da3f10538613fe84741b71aa676"
+    },
+    {
+      "path": "src/memory/memory_rebuild.rs",
+      "disposition": "present",
+      "sha256": "75dfe334f1948beb36c26de0fbdb6f0e7375632da5c6c258a6c0b22523843492"
+    },
+    {
+      "path": "src/memory/memory_routing_codec.rs",
+      "disposition": "present",
+      "sha256": "da2ff8d38cbed5952a5c7add5bd1f3dfbbbc82e093f2e73510b38db63adeceaf"
+    },
+    {
+      "path": "src/memory/memory_routing_tests.rs",
+      "disposition": "present",
+      "sha256": "1df5c077b8726e71477d198d9564ec44894fb696532f1df24d8caa77ec0d4246"
+    },
+    {
+      "path": "src/memory/memory_store.rs",
+      "disposition": "present",
+      "sha256": "66c261f7897ccb5b1b30a1a49424e85317587e90de7c74b0839fb2ea9ef33b6a"
+    },
+    {
+      "path": "src/memory/processing_epoch_store.rs",
+      "disposition": "present",
+      "sha256": "74a035b3782966d38d542f7dc7c52b8e150346d37d096bb0f0fe290640641c71"
+    },
+    {
+      "path": "src/perception/entity_codec.rs",
+      "disposition": "present",
+      "sha256": "11fb05dafeb67079d914469d2f12a4b976c6011914437ce09eb2682871e94c0b"
+    },
+    {
+      "path": "src/perception/entity_compact_publish.rs",
+      "disposition": "present",
+      "sha256": "bfd80f825540916113dc91e05da6a22c65e8b74e0e903ee9054a7f098e904434"
+    },
+    {
+      "path": "src/perception/entity_compact_rebuild_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/entity_description_proof.rs",
+      "disposition": "present",
+      "sha256": "9e46f78c5047fdee1f1ab9da527f892656c94b874cda6a98f1dc8fc4309134bf"
+    },
+    {
+      "path": "src/perception/entity_description_proof_tests.rs",
+      "disposition": "present",
+      "sha256": "552d24d4d85956c5b146b8dbfdba49a55d345886a908cca92858fd5d52597f26"
+    },
+    {
+      "path": "src/perception/entity_description_prune.rs",
+      "disposition": "present",
+      "sha256": "1b9ad7cfaad31eb85e9f4a75a1325353762f391f048e329752d403ca51d2ff23"
+    },
+    {
+      "path": "src/perception/entity_legacy_admission_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/entity_legacy_fixture.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/entity_owner.rs",
+      "disposition": "present",
+      "sha256": "b764550bba99b6f69d6d545e06b58f04cdccc74cbc23a5f9ceba873570c66110"
+    },
+    {
+      "path": "src/perception/entity_publication_codec.rs",
+      "disposition": "present",
+      "sha256": "21d065c5a8b80ee7d5154afdf2071e8b67c62e93ca6398d776cf6d02e3743df1"
+    },
+    {
+      "path": "src/perception/entity_publication_copy_tests.rs",
+      "disposition": "present",
+      "sha256": "140d99ce7118b3844c2a8b692500434e216a44e9d9fc48f1aa399135699fd96d"
+    },
+    {
+      "path": "src/perception/entity_publication_history_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/entity_publication_legacy_prune_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/entity_publication_prune_tests.rs",
+      "disposition": "present",
+      "sha256": "9db53114fa49585aee78007cf97a6afe68cac13c57c3d28e8a01e655625a23a3"
+    },
+    {
+      "path": "src/perception/entity_publication_replay_tests.rs",
+      "disposition": "present",
+      "sha256": "1b18181cf7c452a5038083642a6a9f65c7179a5a4c76f195805e1e3a2f6777b4"
+    },
+    {
+      "path": "src/perception/entity_rebuild.rs",
+      "disposition": "present",
+      "sha256": "65429835100f7711aa7ef62b4a92cd45784a5c6c112de4115ac4ce76d4f6f820"
+    },
+    {
+      "path": "src/perception/entity_replay.rs",
+      "disposition": "present",
+      "sha256": "2d9c2cb528870ed39f608e0d23e0e570934fe5be7564668b568229577b9a7a1f"
+    },
+    {
+      "path": "src/perception/entity_resolution_codec.rs",
+      "disposition": "present",
+      "sha256": "bfbf5e627a8ed136475c56bca1e8101a5e2102a20ae94ba7dc92f34bac6a5d81"
+    },
+    {
+      "path": "src/perception/entity_resolution_delta_tests.rs",
+      "disposition": "present",
+      "sha256": "5fa8e14bf664efebc14f0d19e042d62310175c2c9d0c97b26a337bedde6591a8"
+    },
+    {
+      "path": "src/perception/entity_resolution_migration_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/entity_resolution_retained_tests.rs",
+      "disposition": "present",
+      "sha256": "29cdb0661da740db8fc56fb334254a38b0e4563afe11eb914427522f41851c15"
+    },
+    {
+      "path": "src/perception/entity_resolution_store.rs",
+      "disposition": "present",
+      "sha256": "ff4ad915bb5fd096cc00ee0fee414586b901c225c3bab2e496a811a6bbea7fc0"
+    },
+    {
+      "path": "src/perception/entity_resolution_store_write.rs",
+      "disposition": "present",
+      "sha256": "fcefaffa96b50ef79dc44329d1adcbfd2a18e1eaf728a13958a9ee2df646d345"
+    },
+    {
+      "path": "src/perception/entity_store.rs",
+      "disposition": "present",
+      "sha256": "4d337d14625d75eae71dfd340079373185dd6073fee374e643dd2e4f79217ed1"
+    },
+    {
+      "path": "src/perception/entity_tests.rs",
+      "disposition": "present",
+      "sha256": "72f5b1c6bde38ac3b9e7b17bc884b2d88be96ae4410cffe51f50c0eb89c155c4"
+    },
+    {
+      "path": "src/perception/relationship_codec.rs",
+      "disposition": "present",
+      "sha256": "f34e805c73d734363f196dd5602fe12ac5191b454f70bd25ef299f935a979acc"
+    },
+    {
+      "path": "src/perception/relationship_compact_owner_tests.rs",
+      "disposition": "present",
+      "sha256": "26d37a7b8b3b242b5de193446ddb52501bee9c4f85f9c041494fe62e205b34a1"
+    },
+    {
+      "path": "src/perception/relationship_compact_publish.rs",
+      "disposition": "present",
+      "sha256": "2b4a4d324d84f38da73369503b1af9c0038fd24996a9e6a5efb011877457d52b"
+    },
+    {
+      "path": "src/perception/relationship_compact_rebuild_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/relationship_description_proof.rs",
+      "disposition": "present",
+      "sha256": "3c3211dbd60927db9541f9fabe9da7e60be3343de79bef8fa64e2feb46985db8"
+    },
+    {
+      "path": "src/perception/relationship_description_proof_tests.rs",
+      "disposition": "present",
+      "sha256": "94eefa354261730ad07408d59887eb43e5e24b2ce204cadbf2b0db22de4ae2aa"
+    },
+    {
+      "path": "src/perception/relationship_description_prune.rs",
+      "disposition": "present",
+      "sha256": "a7677421e55c594106bd4af73bf638e322d6b617d633c663e84de58ade04d1cc"
+    },
+    {
+      "path": "src/perception/relationship_owner.rs",
+      "disposition": "present",
+      "sha256": "3604d9bb71f80932774e6648142b8b1f7d14ad00483702bfc883cf883bde4c4e"
+    },
+    {
+      "path": "src/perception/relationship_publication_codec.rs",
+      "disposition": "present",
+      "sha256": "8a5e4839629aaef532d1efe234f6b004fba1fb4606609f2d3598366ae2c5a787"
+    },
+    {
+      "path": "src/perception/relationship_publication_history_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/relationship_publication_legacy_prune_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/perception/relationship_rebuild.rs",
+      "disposition": "present",
+      "sha256": "25c0f1b2ec791552dcafd82639bf8ad3f2f45ddde06dc5d6b96a8b8f127020d7"
+    },
+    {
+      "path": "src/perception/relationship_replay.rs",
+      "disposition": "present",
+      "sha256": "749b19c07534e59908245b8e71172fd87b9cf2210241b424f97794f9698056f4"
+    },
+    {
+      "path": "src/perception/relationship_store.rs",
+      "disposition": "present",
+      "sha256": "d9500a72f00aded5a3dc7b374b0e23eefb583c34f7f244981046db55c88f2486"
+    },
+    {
+      "path": "src/perception/relationship_v1_characterization_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/retrieval/archive_vector_store.rs",
+      "disposition": "present",
+      "sha256": "c1e5aafc83e7a05ac4cfb769d7fdbd8f63b33b269c3d0464ffc21e0873883d5d"
+    },
+    {
+      "path": "src/retrieval/archive_vector_tests.rs",
+      "disposition": "present",
+      "sha256": "547d57f62aac17719c662e21bc1a832ea9902c251bd2cde419754afc5246b517"
+    },
+    {
+      "path": "src/retrieval/compatibility_profile_store.rs",
+      "disposition": "present",
+      "sha256": "8fe69b82f62365d8d2560094653c59f0deee948ee746def5a1330cbae327dfcb"
+    },
+    {
+      "path": "src/retrieval/memory_vector_store.rs",
+      "disposition": "present",
+      "sha256": "03a0d13654328b59969135bcaf91bec4ca8ac9a9501359677567bbf13dd2fa77"
+    },
+    {
+      "path": "src/retrieval/memory_vector_tests.rs",
+      "disposition": "present",
+      "sha256": "c1f1e750cae13989226dbff04d6d134a90240d180f78273d28a25ef825347e02"
+    },
+    {
+      "path": "src/retrieval/packed_vector_store.rs",
+      "disposition": "present",
+      "sha256": "9d4ac4165fb8c3668059ff45ebc458e7344555ae7d0fc1e420d3f845b3488608"
+    },
+    {
+      "path": "src/retrieval/packed_vector_tests.rs",
+      "disposition": "present",
+      "sha256": "481c36b4d970b9abd5eec99a0153192035eda356298294109f8df08b388a39b5"
+    },
+    {
+      "path": "src/retrieval/vector_generation_store.rs",
+      "disposition": "present",
+      "sha256": "f02145f0b759583cc9d3ae2d06bfa96eb69f68fdabb32c27aeb605a7cdb56718"
+    },
+    {
+      "path": "src/runtime_inference/agentic_memory_frozen_fixture_tests.rs",
+      "disposition": "present",
+      "sha256": "d1bbfb61a291d4996e172a5fca85e8cf133f8ce6b0fa2a5c9446b17a816ecf57"
+    },
+    {
+      "path": "src/runtime_inference/dream_pair_history.rs",
+      "disposition": "present",
+      "sha256": "feecf20fdfe731bcbb3588046ad3e70de00fbe91e09abd3fa84ccd601858799e"
+    },
+    {
+      "path": "src/runtime_inference/dream_pair_history_tests.rs",
+      "disposition": "present",
+      "sha256": "5da05cbde476614c2d9ae06f698ae0188b57368d55b1fee098c45a6903431346"
+    },
+    {
+      "path": "src/runtime_inference/insomnia.rs",
+      "disposition": "present",
+      "sha256": "e70678a059ce917cae7ae564975765b40a896493e7df31cb6be0f1408036b288"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion.rs",
+      "disposition": "present",
+      "sha256": "f47efea8450b7c47ef12c2064ffe2c068c4155230594d202cbe8dc9e9578a4db"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_compact_legacy.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_compact_retained.rs",
+      "disposition": "present",
+      "sha256": "fb60d3baab1dfce1c7c0edabf865d2e01fbf86587da7f0fea852204e6bbab33e"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_compact_tests.rs",
+      "disposition": "present",
+      "sha256": "c87c0c59015ce658a3cea75a49f20dea7bc514a50548aaef49edad6bd1e584e9"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_migration_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_retained_tests.rs",
+      "disposition": "present",
+      "sha256": "cf3489af8e36c46c77801d386d377264744f21352831571e6dbfc50fd7a6c8ac"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_tests.rs",
+      "disposition": "present",
+      "sha256": "985a23ed8d52cadb340d8f51b24c8d165a4a3f852bef7c5ef49ce9563ad8681d"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/cva.rs",
+      "disposition": "present",
+      "sha256": "ced7adb1fda89dbfe3fbe6ce8bb964f1b08c0d461236ab232d3463184be97219"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/ownership_tests.rs",
+      "disposition": "present",
+      "sha256": "b2cbca6e25972cd85e47731e32bb9d7f4f2246212d79b1c77abff6f38f8df441"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/processor.rs",
+      "disposition": "present",
+      "sha256": "c4230490046d7dc0c8c9200271702fce9b5b23919a781ed262295c9ccfdf1c87"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/processor/application.rs",
+      "disposition": "present",
+      "sha256": "6c8a4eeab9a2fd3051ca19edbe57fc1e7f3625d2f103acc7cd0a729b1e2cd84c"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store.rs",
+      "disposition": "present",
+      "sha256": "11d4f7aebbfb7acff2e46dad59b74e45c1ced16041f2837417434d42b7f16266"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/store/transitions.rs",
+      "disposition": "present",
+      "sha256": "bbcb7b9296b175014673373d5bb4aca94cc389b4e81d3e75d1be324cfe3493af"
+    },
+    {
+      "path": "src/runtime_inference/runtime_host_gateway_conversation.rs",
+      "disposition": "present",
+      "sha256": "5ffdefadce334ba0a441988ceb50546422bb94ee5f6a4bb341b10b7a0e78cbee"
+    },
+    {
+      "path": "src/semantic_graph/community_routing_bench_fixture.rs",
+      "disposition": "present",
+      "sha256": "352b32e09e35e6ddbbf5666cb8c43f6be6daafcfe77e0b9a71d3574b2a7b0335"
+    },
+    {
+      "path": "src/semantic_graph/community_store.rs",
+      "disposition": "present",
+      "sha256": "fd794c3a4fd2f154a6bba7765a38767b7e66072ed85de9db2c974aab36cf911f"
+    },
+    {
+      "path": "src/semantic_graph/community_tests.rs",
+      "disposition": "present",
+      "sha256": "dfc9270b7612fca1fc4d599fbb1cb0533008940091c4385aaeaa365152d7dc68"
+    },
+    {
+      "path": "src/semantic_graph/graph_codec.rs",
+      "disposition": "present",
+      "sha256": "4d4e6e64b434db2adc6524639869f23c7c81683ac5c66673caaa0412637670cd"
+    },
+    {
+      "path": "src/semantic_graph/graph_codec_mutation.rs",
+      "disposition": "present",
+      "sha256": "5cc96b57f5d71a3e470d6d5df9cce403561f8aef0241f558bd2a7c2cad6aa17c"
+    },
+    {
+      "path": "src/semantic_graph/graph_codec_tests.rs",
+      "disposition": "present",
+      "sha256": "320152d3a0f3cd9a0210a874be07a60639900df664c1307d558fae4943441279"
+    },
+    {
+      "path": "src/semantic_graph/graph_compact_owner_tests.rs",
+      "disposition": "present",
+      "sha256": "1984e9af555a5b15340c4386c14c75d23a6c65083164b9ef7036aecd233cb5be"
+    },
+    {
+      "path": "src/semantic_graph/graph_compact_rebuild_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/semantic_graph/graph_publication_codec.rs",
+      "disposition": "present",
+      "sha256": "ffb881f36151e24d74ae3da4959f899ef7d5ff30bd8c863ac3fca53bd4344037"
+    },
+    {
+      "path": "src/semantic_graph/graph_publication_codec_tests.rs",
+      "disposition": "present",
+      "sha256": "70efeca54e9d3d7340980167d4cfed3c1f41f0235eda51adbcaf1e15a6d2c8ec"
+    },
+    {
+      "path": "src/semantic_graph/graph_publication_replay_tests.rs",
+      "disposition": "present",
+      "sha256": "a231a743e9a8ff1da2b6b89fd5b786cf781a3fcfbc38996c44c434c3dc27627f"
+    },
+    {
+      "path": "src/semantic_graph/graph_rebuild.rs",
+      "disposition": "present",
+      "sha256": "1274daa069f048ff9bf01553fdcccebb29860cd6a8fa959c105e81e063b73d3e"
+    },
+    {
+      "path": "src/semantic_graph/graph_rewrite_baseline.rs",
+      "disposition": "present",
+      "sha256": "13df585cca3ce030f558be20b8b0c2d1bbda4a83786c777f4e9e83b6165ec013"
+    },
+    {
+      "path": "src/semantic_graph/graph_store_compact.rs",
+      "disposition": "present",
+      "sha256": "bb6ab63c3b2f0fda51e471226fbcbee5d81d708be5128a56eb1af91ae19f806c"
+    },
+    {
+      "path": "src/semantic_graph/graph_store_write.rs",
+      "disposition": "present",
+      "sha256": "0467c8a24962bbe066516327c4ef2c45a8002e57e7a8bf32e8154f7b955209cc"
+    },
+    {
+      "path": "src/storage_upgrade/archive_envelope.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/archive_envelope_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/archive_envelope_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/authority_admission.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/canonical_matrix_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/canonical_performance_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/dream_begin.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/dream_begin_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/dream_pair_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/ego.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/ego_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/ego_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/entity.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/entity_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/entity_envelope.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/entity_envelope_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/entity_envelope_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/entity_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/evidence_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/external_index.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/freshness_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/freshness_synthetic_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/graph.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/graph_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/graph_envelope.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/graph_envelope_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/graph_envelope_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/graph_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/import_settlement.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/import_settlement_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/memory.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/memory_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/memory_envelope.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/memory_envelope_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/memory_envelope_failure_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/memory_envelope_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/memory_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/mod.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/model.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/prepruned_memory_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/relationship.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/relationship_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/relationship_envelope.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/relationship_envelope_authoritative_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/relationship_envelope_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/relationship_tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/shell.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "src/storage_upgrade/tests.rs",
+      "disposition": "deleted",
+      "sha256": null
+    },
+    {
+      "path": "tests/current_format_boundary.rs",
+      "disposition": "present",
+      "sha256": "487c973b6e5b27e945e14a8d3a84fcf8512f48bb345edb02bc6576fff51e788b"
+    },
+    {
+      "path": "tests/external_source_contract.rs",
+      "disposition": "present",
+      "sha256": "b5c118eb1970ed3545377f6f452ee43be9f3aaece60feda4573f798a82d7e282"
+    },
+    {
+      "path": "tests/freshness_owner_contract.rs",
+      "disposition": "present",
+      "sha256": "c633c4cda0d76f89a253b888bc5e29de647d12abcb648ee41d9399c8904c1a9d"
+    }
+  ],
+  "note": "Complete runtime/test/example/script change inventory for the retirement implementation checkpoint; final documentation and acceptance records are tracked separately."
+}

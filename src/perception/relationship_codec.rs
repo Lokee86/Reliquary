@@ -3,7 +3,6 @@ use crate::{
     EntityId, EntityRef, MemoryId, MemoryRef, ObjectRef, RelationshipError, RelationshipId,
     RelationshipParticipant,
 };
-use sha2::Digest;
 
 const FORMAT_MAGIC: [u8; 8] = *b"CVARELF1";
 const RECORD_MAGIC: [u8; 8] = *b"CVARELR1";
@@ -47,18 +46,6 @@ pub(crate) fn encode_record(record: &RelationshipRecord) -> Result<Vec<u8>, Rela
 }
 
 pub(crate) fn decode_record(bytes: &[u8]) -> Result<Option<RelationshipRecord>, RelationshipError> {
-    if bytes.starts_with(b"CVARPRN1") {
-        if bytes.len() < 104
-            || sha2::Sha256::digest(&bytes[..bytes.len() - 32]).as_slice()
-                != &bytes[bytes.len() - 32..]
-        {
-            return Err(RelationshipError::CorruptRecord(
-                "pruned description checksum",
-            ));
-        }
-        return decode_record(&bytes[72..bytes.len() - 32]);
-    }
-
     if bytes.len() < 8 || bytes[..8] != RECORD_MAGIC {
         return Ok(None);
     }
@@ -104,24 +91,6 @@ pub(crate) fn encode_version(version: RelationshipVersion) -> Vec<u8> {
     out.extend_from_slice(&version.relationship_version.to_le_bytes());
     out.extend_from_slice(&version.record.legacy_bytes());
     out
-}
-
-pub(crate) fn decode_version(
-    bytes: &[u8],
-) -> Result<Option<RelationshipVersion>, RelationshipError> {
-    if bytes.len() < 8 || bytes[..8] != VERSION_MAGIC {
-        return Ok(None);
-    }
-    if bytes.len() != 40 {
-        return Err(RelationshipError::CorruptRecord(
-            "invalid Relationship version record",
-        ));
-    }
-    Ok(Some(RelationshipVersion {
-        global_version: u64::from_le_bytes(bytes[8..16].try_into().unwrap()),
-        relationship_version: u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-        record: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
-    }))
 }
 
 pub(crate) fn encode_tombstone(value: RelationshipTombstone) -> Vec<u8> {
@@ -271,19 +240,4 @@ fn read_slice<'a>(
         ))?;
     *cursor = end;
     Ok(raw)
-}
-
-pub(crate) fn encode_pruned_description(
-    raw: &[u8],
-    manifest: [u8; 32],
-) -> Result<Vec<u8>, RelationshipError> {
-    let mut record =
-        decode_record(raw)?.ok_or(RelationshipError::CorruptRecord("missing prune record"))?;
-    record.summary.clear();
-    let mut out = b"CVARPRN1".to_vec();
-    out.extend_from_slice(&sha2::Sha256::digest(raw));
-    out.extend_from_slice(&manifest);
-    out.extend(encode_record(&record)?);
-    out.extend_from_slice(&sha2::Sha256::digest(&out));
-    Ok(out)
 }

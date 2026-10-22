@@ -242,7 +242,9 @@ fn reliquary_and_phylactery_reject_each_others_file_kind() {
     drop(Container::create(&legacy_path).unwrap());
     assert!(matches!(
         Phylactery::open(&legacy_path),
-        Err(PhylacteryError::InvalidContainerIdentity(_))
+        Err(PhylacteryError::Container(
+            crate::ContainerError::InvalidIdentity
+        ))
     ));
 }
 

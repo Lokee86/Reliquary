@@ -7,7 +7,7 @@ use crate::{
 impl InsomniaStore {
     pub(crate) fn fail(
         &mut self,
-        container: &mut Container,
+        _container: &mut Container,
         episode_id: EpisodeId,
         token: InsomniaLeaseToken,
         _started_at_ns: i64,
@@ -15,7 +15,6 @@ impl InsomniaStore {
         retry_after_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        container.require_storage_format_writable()?;
         if reason.trim().is_empty() || retry_after_ns <= failed_at_ns {
             return Err(InsomniaError::InvalidField("retry failure"));
         }
@@ -38,7 +37,6 @@ impl InsomniaStore {
         terminal_at_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        container.require_storage_format_writable()?;
         if reason.trim().is_empty() {
             return Err(InsomniaError::InvalidField("terminal reason"));
         }
@@ -59,7 +57,6 @@ impl InsomniaStore {
         episode_id: EpisodeId,
         now_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
-        container.require_storage_format_writable()?;
         let current = self
             .work(episode_id)
             .cloned()

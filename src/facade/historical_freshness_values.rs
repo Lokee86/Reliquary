@@ -284,7 +284,6 @@ fn semantic_scope_value(scope: &ImportSemanticScope) -> Value {
         settlement_cut,
         accepted_events,
         superseded,
-        predecessor_digest,
     } = scope;
     json!({
         "owner": owner,
@@ -297,7 +296,7 @@ fn semantic_scope_value(scope: &ImportSemanticScope) -> Value {
         "settlement_cut": settlement_cut,
         "accepted_events": accepted_events.iter().map(|(id, evidence)| json!([id, accepted_event_value(evidence)])).collect::<Vec<_>>(),
         "superseded": superseded.iter().collect::<Vec<_>>(),
-        "predecessor_digest": predecessor_digest,
+        "predecessor_digest": Value::Null,
     })
 }
 

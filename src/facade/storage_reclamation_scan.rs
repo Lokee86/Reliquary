@@ -21,7 +21,6 @@ pub(crate) struct ReclamationScan {
     external_snapshot_chunks: Vec<ObjectRef>,
     external_snapshot_heads: HashMap<String, ObjectRef>,
     external_discard: Option<ObjectRef>,
-    legacy_external_index: bool,
 }
 
 pub(crate) struct ReclamationPlan {
@@ -38,9 +37,6 @@ pub(crate) struct ReclamationPlan {
 impl ReclamationScan {
     pub(crate) fn ingest(&mut self, object: ObjectRef, payload: &[u8]) -> Result<(), String> {
         self.external_index.ingest(payload);
-        if payload.starts_with(b"CVAXIDX1") {
-            self.legacy_external_index = true;
-        }
         if payload.starts_with(crate::external_source::compact_index::MAGIC) {
             self.external_snapshot_chunks.push(object);
             match crate::external_source::compact_index::decode(payload) {
@@ -52,7 +48,7 @@ impl ReclamationScan {
                     self.external_discard = Some(object);
                 }
             }
-        } else if payload.starts_with(b"CVAXIDX") && !payload.starts_with(b"CVAXIDX1") {
+        } else if payload.starts_with(b"CVAXIDX") {
             self.external_snapshot_heads.clear();
             self.external_discard = Some(object);
         }
@@ -129,34 +125,30 @@ impl ReclamationScan {
             }
             return Ok(());
         }
-        if let Some(version) = crate::archive_history_codec::decode_record_version(payload)
-            .map_err(|error| error.to_string())?
+        // Native bodies outside envelopes are unpublished. This structural probe
+        // does not allocate or admit any owner/global clock.
+        if crate::memory_compact_codec::publication::decode(payload, 1)
+            .map_err(|e| e.to_string())?
+            .is_some()
+            || (!payload.starts_with(b"CVAETM01")
+                && crate::entity_compact_codec::publication::decode(payload, 1)
+                    .map_err(|e| e.to_string())?
+                    .is_some())
+            || crate::relationship_compact_codec::publication::decode(payload, 1)
+                .map_err(|e| e.to_string())?
+                .is_some()
+            || (!payload.starts_with(b"CVAAFM")
+                && !payload.starts_with(b"CVAARE")
+                && !payload.starts_with(b"CVACONT1")
+                && crate::archive_codec::publication::decode(payload, 1)
+                    .map_err(|e| e.to_string())?
+                    .is_some())
+            || ((payload.starts_with(b"CVAGCM") || payload.starts_with(b"CVAGCB"))
+                && crate::graph_compact_codec::publication::decode(payload, 1)
+                    .map_err(|e| e.to_string())?
+                    .is_some())
         {
-            self.published_backing.insert(version.record);
-            return Ok(());
-        }
-        if let Some(version) =
-            crate::memory_codec::decode_version(payload).map_err(|error| error.to_string())?
-        {
-            self.published_backing.insert(version.record);
-            return Ok(());
-        }
-        if let Some(version) =
-            crate::entity_codec::decode_version(payload).map_err(|error| error.to_string())?
-        {
-            self.published_backing.insert(version.record);
-            return Ok(());
-        }
-        if let Some(version) =
-            crate::graph_codec::decode_version(payload).map_err(|error| error.to_string())?
-        {
-            self.published_backing.insert(version.mutation);
-            return Ok(());
-        }
-        if let Some(version) =
-            crate::relationship_codec::decode_version(payload).map_err(|error| error.to_string())?
-        {
-            self.published_backing.insert(version.record);
+            self.backing_candidates.insert(object);
             return Ok(());
         }
         if let Some(version) = crate::vector_generation_codec::decode_version(payload)
@@ -166,42 +158,14 @@ impl ReclamationScan {
             return Ok(());
         }
 
-        match crate::archive_codec::decode_record(payload).map_err(|error| error.to_string())? {
-            ArchiveRecord::Content(id, _) => {
-                self.content_chunks.push((object, id));
-                return Ok(());
-            }
-            ArchiveRecord::Node(node) => {
-                self.backing_candidates.insert(object);
-                self.archive_content_refs
-                    .insert(object, vec![node.content_id]);
-                return Ok(());
-            }
-            ArchiveRecord::File(file) => {
-                self.backing_candidates.insert(object);
-                self.archive_content_refs
-                    .insert(object, vec![file.content_id]);
-                return Ok(());
-            }
-            ArchiveRecord::IngestedTurn(turn) => {
-                self.backing_candidates.insert(object);
-                let mut refs = Vec::with_capacity(1 + turn.attachments.len());
-                refs.push(turn.node.content_id);
-                refs.extend(turn.attachments.into_iter().map(|file| file.content_id));
-                self.archive_content_refs.insert(object, refs);
-                return Ok(());
-            }
-            ArchiveRecord::ImportReceipt(_)
-            | ArchiveRecord::ConversationTombstone(_)
-            | ArchiveRecord::Branch(_)
-            | ArchiveRecord::ConversationMetadata(_)
-            | ArchiveRecord::Fragment(_)
-            | ArchiveRecord::Episode(_)
-            | ArchiveRecord::FileMemoryLink(_) => {
-                self.backing_candidates.insert(object);
-                return Ok(());
-            }
-            ArchiveRecord::Other => {}
+        if payload.starts_with(b"CVACONT1") {
+            let ArchiveRecord::Content(id, _) =
+                crate::archive_codec::decode_record(payload).map_err(|error| error.to_string())?
+            else {
+                unreachable!()
+            };
+            self.content_chunks.push((object, id));
+            return Ok(());
         }
 
         if let Some((id, _)) =
@@ -210,73 +174,11 @@ impl ReclamationScan {
             self.memory_body_chunks.push((object, id));
             return Ok(());
         }
-        if payload.starts_with(b"CVAMC") {
-            let creation = crate::memory_compact_codec::decode_creation(payload)
-                .map_err(|error| error.to_string())?;
-            self.backing_candidates.insert(object);
-            self.memory_body_refs
-                .insert(object, creation.record.body_id);
-            return Ok(());
-        }
-        if payload.starts_with(b"CVAMD") {
-            crate::memory_compact_codec::decode_delta(payload)
-                .map_err(|error| error.to_string())?;
-            self.backing_candidates.insert(object);
-            // The immutable body remains reachable through its retained
-            // accepted creation/grouped publication; a delta cannot replace it.
-            return Ok(());
-        }
-        if let Some(record) =
-            crate::memory_codec::decode_record(payload).map_err(|error| error.to_string())?
-        {
-            self.backing_candidates.insert(object);
-            self.memory_body_refs.insert(object, record.body_id);
-            return Ok(());
-        }
         if let Some(completion) =
             crate::insomnia::completion::decode_completion(payload).map_err(str::to_owned)?
         {
             self.completion_body_refs
                 .extend(completion.records.into_iter().map(|record| record.body_id));
-            return Ok(());
-        }
-        if crate::entity_codec::decode_record(payload)
-            .map_err(|error| error.to_string())?
-            .is_some()
-            || crate::entity_compact_codec::is_compact_record(payload)
-                .map_err(|error| error.to_string())?
-            || crate::entity_codec::decode_direct_tombstone(payload)
-                .map_err(|error| error.to_string())?
-                .is_some()
-            || crate::entity_codec::decode_tombstone(payload)
-                .map_err(|error| error.to_string())?
-                .is_some()
-        {
-            self.backing_candidates.insert(object);
-            return Ok(());
-        }
-        if crate::graph_compact_codec::is_compact_record(payload)
-            .map_err(|error| error.to_string())?
-            || crate::graph_codec::decode_batch(payload)
-                .map_err(|error| error.to_string())?
-                .is_some()
-            || crate::graph_codec::decode_mutation(payload)
-                .map_err(|error| error.to_string())?
-                .is_some()
-        {
-            self.backing_candidates.insert(object);
-            return Ok(());
-        }
-        if crate::relationship_codec::decode_record(payload)
-            .map_err(|error| error.to_string())?
-            .is_some()
-            || crate::relationship_compact_codec::is_compact_record(payload)
-                .map_err(|error| error.to_string())?
-            || crate::relationship_codec::decode_tombstone(payload)
-                .map_err(|error| error.to_string())?
-                .is_some()
-        {
-            self.backing_candidates.insert(object);
             return Ok(());
         }
         if let Some(generation) = crate::vector_generation_codec::decode_generation(payload)
@@ -388,8 +290,7 @@ impl ReclamationScan {
         drop.extend(unactivated_archive_vectors.iter().copied());
         drop.extend(unreferenced_packed.iter().copied());
         drop.extend(self.free_compaction_chunks.iter().copied());
-        // Legacy revisions temporarily retain their replay chain. Current
-        // snapshots stand alone, so only the latest per namespace and last
+        // Current snapshots stand alone, so only the latest per namespace and last
         // damage/discard barrier remain required. No semantic prune marker.
         let retained_external: HashSet<_> = self
             .external_snapshot_heads
@@ -400,7 +301,7 @@ impl ReclamationScan {
         let superseded_external: HashSet<_> = self
             .external_snapshot_chunks
             .into_iter()
-            .filter(|object| !self.legacy_external_index && !retained_external.contains(object))
+            .filter(|object| !retained_external.contains(object))
             .collect();
         drop.extend(superseded_external.iter().copied());
 

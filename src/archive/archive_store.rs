@@ -40,7 +40,6 @@ impl Archive {
         id: ContentId,
         content: &[u8],
     ) -> Result<(), ArchiveError> {
-        container.require_storage_format_writable()?;
         if self.contents.contains(id) {
             if self.content_bytes(container, id)? != content {
                 return Err(ArchiveError::HashCollision);

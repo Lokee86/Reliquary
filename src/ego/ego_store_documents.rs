@@ -11,7 +11,6 @@ impl EgoStore {
         text: String,
         source_memory_version: u64,
     ) -> Result<(EgoPersonality, bool), EgoError> {
-        container.require_storage_format_writable()?;
         self.require_phylactery("Personality is PHY-owned")?;
         validate_text("personality", &text)?;
         let actual_revision = self.personality.as_ref().map_or(0, |value| value.revision);
@@ -46,7 +45,6 @@ impl EgoStore {
         source_memory_version: u64,
         text: String,
     ) -> Result<(EgoWebSynthesis, bool), EgoError> {
-        container.require_storage_format_writable()?;
         validate_text("synthesis", &text)?;
         let actual_revision = self.synthesis.as_ref().map_or(0, |value| value.revision);
         check_revision(expected_revision, actual_revision)?;

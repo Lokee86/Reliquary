@@ -31,7 +31,6 @@ impl Cva {
         &mut self,
         mut completion: InsomniaCompletion,
     ) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         if !completion.external_memory_refs.is_empty() {
             return Err(CvaError::Freshness(
                 "grouped import replay requires a shared REL owner and first-publication records"
@@ -353,9 +352,6 @@ pub(crate) fn commit_application(
     started_at_ns: i64,
     completed_at_ns: i64,
 ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
-    container
-        .require_storage_format_writable()
-        .map_err(crate::InsomniaError::from)?;
     let token = claim
         .lease_token
         .ok_or(InsomniaProcessError::InvalidClaim)?;

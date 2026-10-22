@@ -1,9 +1,17 @@
 //! Scratch REL/PHY storage reclamation coverage for compact Relationship chains.
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
-use crate::relationship_codec::{
-    RelationshipTombstone, RelationshipVersion, encode_tombstone, encode_version,
-};
-use crate::relationship_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+            c.clone(),
+        ),
+    )
+}
+fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    )
+}
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
@@ -73,15 +81,16 @@ fn record(id: u8, revision: u64, global: u64, local: u64, mutation: &str) -> Rel
     }
 }
 
-fn append_publication(container: &mut Container, payload: &[u8], global: u64, local: u64) {
-    let carrier = container.append(payload).unwrap();
-    container
-        .append(&encode_version(RelationshipVersion {
+fn append_publication(container: &mut Container, payload: &[u8], global: u64, _local: u64) {
+    let bytes = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            relationship_version: local,
-            record: carrier,
-        }))
-        .unwrap();
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: payload,
+        },
+    )
+    .unwrap();
+    container.append(&bytes).unwrap();
 }
 
 fn build_history(path: &Path) -> (Vec<RelationshipRecord>, Vec<i64>) {
@@ -119,19 +128,15 @@ fn build_history(path: &Path) -> (Vec<RelationshipRecord>, Vec<i64>) {
             .unwrap(),
         3
     );
-    let tombstone = container
-        .append(&encode_tombstone(RelationshipTombstone {
+    let body = crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
             id: first.id,
             revision: 3,
-        }))
-        .unwrap();
-    container
-        .append(&encode_version(RelationshipVersion {
-            global_version: 3,
             relationship_version: 3,
-            record: tombstone,
-        }))
-        .unwrap();
+        },
+    )
+    .unwrap();
+    append_publication(&mut container, &body, 3, 3);
 
     // Structurally valid orphan creation and delta have no version markers and
     // must be removed as unpublished backing carriers during reclamation.
@@ -162,7 +167,11 @@ fn payloads(path: &Path) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
     container
         .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
+            if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+                result.push(envelope.body.to_vec());
+            } else {
+                result.push(payload.to_vec());
+            }
             Ok(())
         })
         .unwrap();
@@ -174,21 +183,21 @@ fn assert_compact_carrier_counts(path: &Path) {
     assert_eq!(
         payloads
             .iter()
-            .filter(|p| p.starts_with(b"CVARNC01"))
+            .filter(|p| p.starts_with(b"CVARNC02"))
             .count(),
         1
     );
     assert_eq!(
         payloads
             .iter()
-            .filter(|p| p.starts_with(b"CVARND01"))
+            .filter(|p| p.starts_with(b"CVARND02"))
             .count(),
         1
     );
     assert_eq!(
         payloads
             .iter()
-            .filter(|p| p.starts_with(b"CVARELT1"))
+            .filter(|p| p.starts_with(b"CVARTD02"))
             .count(),
         1
     );
@@ -197,11 +206,11 @@ fn assert_compact_carrier_counts(path: &Path) {
             .iter()
             .filter(|p| p.starts_with(b"CVARELV1"))
             .count(),
-        3
+        0
     );
     assert!(!payloads.iter().any(|p| p.starts_with(b"CVARELR1")));
     assert!(!payloads.iter().any(|p| {
-        (p.starts_with(b"CVARNC01") || p.starts_with(b"CVARND01"))
+        (p.starts_with(b"CVARNC02") || p.starts_with(b"CVARND02"))
             && p.get(8..40)
                 .is_some_and(|id| id.iter().all(|byte| *byte == 0x71))
     }));

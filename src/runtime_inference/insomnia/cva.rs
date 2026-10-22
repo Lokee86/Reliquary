@@ -12,7 +12,6 @@ impl Cva {
         priority: InsomniaPriority,
         now_ns: i64,
     ) -> Result<(InsomniaWork, bool), InsomniaError> {
-        self.container.require_storage_format_writable()?;
         if self.archive.episode(episode_id).is_none() {
             return Err(InsomniaError::MissingEpisode);
         }
@@ -32,7 +31,6 @@ impl Cva {
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         let policy = policy
             .validate()
             .map_err(|_| InsomniaError::InvalidField("episode policy"))?;
@@ -55,7 +53,6 @@ impl Cva {
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<Option<EpisodeSchedulingResult>, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         let episodes = self
             .finalize_inactive_path_episodes(
                 conversation_id,
@@ -80,7 +77,6 @@ impl Cva {
         policy: EpisodePolicy,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         let policy = policy
             .validate()
             .map_err(|_| InsomniaError::InvalidField("episode policy"))?;
@@ -97,7 +93,6 @@ impl Cva {
         config: EpisodeConfig,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         let episodes = self
             .finalize_create_memory_path(conversation_id, leaf_node_id, config, now_ns)
             .map_err(|_| InsomniaError::InvalidField("create_memory episode"))?;
@@ -121,7 +116,6 @@ impl Cva {
         config: EpisodeConfig,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         let episodes = self
             .materialize_path_episodes(
                 conversation_id,
@@ -139,7 +133,6 @@ impl Cva {
         config: EpisodeConfig,
         now_ns: i64,
     ) -> Result<Vec<EpisodeSchedulingResult>, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         let mut branches: Vec<_> = self
             .branches()
             .into_iter()
@@ -175,7 +168,6 @@ impl Cva {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<Option<InsomniaWork>, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         self.insomnia
             .claim_next(&mut self.container, worker_id, now_ns, lease_duration_ns)
     }
@@ -187,7 +179,6 @@ impl Cva {
         now_ns: i64,
         lease_duration_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         self.insomnia.renew(
             &mut self.container,
             episode_id,
@@ -209,7 +200,6 @@ impl Cva {
         memory_ids: Vec<MemoryId>,
         rejected_count: u32,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         if memory_ids
             .iter()
             .any(|id| !self.memories.contains_memory(*id))
@@ -258,7 +248,6 @@ impl Cva {
         retry_after_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         self.insomnia.fail(
             &mut self.container,
             episode_id,
@@ -278,7 +267,6 @@ impl Cva {
         terminal_at_ns: i64,
         reason: String,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         self.insomnia.terminal(
             &mut self.container,
             episode_id,
@@ -294,7 +282,6 @@ impl Cva {
         episode_id: EpisodeId,
         now_ns: i64,
     ) -> Result<InsomniaWork, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         self.insomnia
             .retry_terminal(&mut self.container, episode_id, now_ns)
     }
@@ -317,7 +304,6 @@ impl Cva {
         priority: InsomniaPriority,
         now_ns: i64,
     ) -> Result<EpisodeSchedulingResult, InsomniaError> {
-        self.container.require_storage_format_writable()?;
         let mut queued = Vec::new();
         for episode in &episodes.created {
             let (work, _) = self.queue_insomnia_episode(episode.id, priority, now_ns)?;

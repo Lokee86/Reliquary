@@ -230,12 +230,21 @@ fn compact_payloads(records: &[EgoRecord]) -> Vec<Vec<u8>> {
 
 fn write_payloads(path: &PathBuf, compact_frames: bool, records: &[EgoRecord]) {
     let mut owner = crate::Container::open(path).unwrap();
+    let mut reference = if owner.identity().unwrap().file_kind == crate::FileKind::Phylactery {
+        crate::ego_store::EgoStore::phylactery()
+    } else {
+        crate::ego_store::EgoStore::reliquary()
+    };
     let payloads = if compact_frames {
         compact_payloads(records)
     } else {
         records
             .iter()
-            .map(|record| ego_codec::encode(record).unwrap())
+            .map(|record| {
+                let bytes = reference.encode_compact_publication(record).unwrap();
+                reference.ingest(&bytes).unwrap();
+                bytes
+            })
             .collect()
     };
     for payload in payloads {

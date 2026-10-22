@@ -1,25 +1,16 @@
 use crate::entity_store::EntityStore;
-use crate::graph_codec::{
-    GraphMutationPayload, decode_batch, decode_format, decode_mutation, decode_node, decode_version,
-};
+use crate::graph_codec::{GraphMutationPayload, decode_format, decode_node};
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::{GraphError, GraphNodeRecord, ObjectRef, SemanticGraphRelation};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 #[cfg(test)]
 #[path = "graph_publication_replay_tests.rs"]
 mod publication_replay_tests;
 
-enum MutationCarrier {
-    Stable(Vec<GraphMutationPayload>),
-    Ordinal(Vec<crate::graph_compact_contract::GraphOrdinalMutation>),
-}
-
 pub(crate) struct GraphOpenState {
     store: GraphStore,
-    pending: HashMap<ObjectRef, MutationCarrier>,
-    compact_published: bool,
     format_seen: bool,
     data_seen: bool,
 }
@@ -28,8 +19,6 @@ impl GraphOpenState {
     pub(crate) fn new() -> Self {
         Self {
             store: GraphStore::empty(),
-            pending: HashMap::new(),
-            compact_published: false,
             format_seen: false,
             data_seen: false,
         }
@@ -37,7 +26,7 @@ impl GraphOpenState {
 
     pub(crate) fn ingest(
         &mut self,
-        chunk: ObjectRef,
+        _chunk: ObjectRef,
         payload: &[u8],
         latest_global: u64,
     ) -> Result<(), GraphError> {
@@ -65,26 +54,6 @@ impl GraphOpenState {
             })?;
             return Ok(());
         }
-        if let Some(version) = decode_version(payload)? {
-            self.ingest_version(chunk, version, latest_global)?;
-            self.data_seen = true;
-            return Ok(());
-        }
-        if let Some(values) = crate::graph_compact_codec::decode(payload)? {
-            self.data_seen = true;
-            self.pending.insert(chunk, MutationCarrier::Ordinal(values));
-            return Ok(());
-        }
-        if let Some(batch) = decode_batch(payload)? {
-            self.data_seen = true;
-            self.pending.insert(chunk, MutationCarrier::Stable(batch));
-            return Ok(());
-        }
-        if let Some(mutation) = decode_mutation(payload)? {
-            self.data_seen = true;
-            self.pending
-                .insert(chunk, MutationCarrier::Stable(vec![mutation]));
-        }
         Ok(())
     }
 
@@ -111,19 +80,8 @@ impl GraphOpenState {
             envelope.global_version,
             publication.graph_version,
         )?;
-        self.compact_published = true;
         self.data_seen = true;
         Ok(true)
-    }
-
-    pub(crate) fn validate_storage_version(
-        &self,
-        version: crate::FormatVersion,
-    ) -> Result<(), GraphError> {
-        if self.compact_published && version != (crate::FormatVersion { major: 2, minor: 0 }) {
-            return Err(GraphError::ConflictingFormat);
-        }
-        Ok(())
     }
 
     pub(crate) fn finish(
@@ -139,37 +97,6 @@ impl GraphOpenState {
         }
         self.store.finish_rebuild(memories, entities)?;
         Ok(self.store)
-    }
-
-    fn ingest_version(
-        &mut self,
-        chunk: ObjectRef,
-        version: crate::graph_codec::GraphVersionPayload,
-        latest_global: u64,
-    ) -> Result<(), GraphError> {
-        if version.global_version == 0
-            || version.global_version > latest_global
-            || !version.mutation.precedes(chunk)
-        {
-            return Err(GraphError::InvalidGraphVersion);
-        }
-        let carrier = self
-            .pending
-            .get(&version.mutation)
-            .ok_or(GraphError::InvalidGraphVersion)?;
-        // Resolve only now: admitted V1 ordering permits mappings between a
-        // carrier and its marker, but never after the marker.
-        let (mutations, compact) = match carrier {
-            MutationCarrier::Stable(values) => (values.clone(), false),
-            MutationCarrier::Ordinal(values) => {
-                (self.store.resolve_compact_mutations(values)?, true)
-            }
-        };
-
-        self.apply_mutations(mutations, version.global_version, version.graph_version)?;
-        self.pending.remove(&version.mutation);
-        self.compact_published |= compact;
-        Ok(())
     }
 
     fn apply_mutations(

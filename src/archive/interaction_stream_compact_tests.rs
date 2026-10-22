@@ -199,77 +199,31 @@ fn compact_stream_every_complete_frame_prefix_is_replayable() {
 }
 
 #[test]
-fn compact_stream_v1_conversion_preserves_all_checkpoint_postimages() {
-    use crate::storage_upgrade::{
-        StorageUpgradeRequest, plan_storage_upgrade, stage_graph_envelope_storage_upgrade,
-    };
-    let scratch = Scratch::new();
-    for (index, record) in [
-        checkpoint("", InteractionStreamStatus::Streaming),
-        checkpoint("é", InteractionStreamStatus::Streaming),
-        checkpoint("é🙂", InteractionStreamStatus::Interrupted),
-        checkpoint("é🙂!", InteractionStreamStatus::Interrupted),
-    ]
-    .into_iter()
-    .enumerate()
-    {
-        let path = scratch.0.join(format!("source{index}.rel"));
-        let mut rel = Cva::create(&path).unwrap();
-        for prior in [
-            checkpoint("", InteractionStreamStatus::Streaming),
-            checkpoint("é", InteractionStreamStatus::Streaming),
-        ] {
-            if prior.content.len() <= record.content.len() {
-                rel.container
-                    .append(&codec::encode(&prior).unwrap())
-                    .unwrap();
-            }
-        }
-        rel.container
-            .append(&codec::encode(&record).unwrap())
-            .unwrap();
-        rel.sync().unwrap();
-        drop(rel);
-        let mut legacy_bytes = fs::read(&path).unwrap();
-        legacy_bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
-        fs::write(&path, legacy_bytes).unwrap();
-        let before = fs::read(&path).unwrap();
-        let destination = scratch.0.join(format!("converted{index}.rel"));
-        let plan = plan_storage_upgrade(StorageUpgradeRequest {
-            source: path.clone(),
-            destination: destination.clone(),
-        })
-        .unwrap();
-        let stage = stage_graph_envelope_storage_upgrade(&plan).unwrap();
-        let mut upgraded = Cva::open(stage.test_path()).unwrap();
-        assert_eq!(upgraded.interaction_stream_record("m"), Some(&record));
-        assert_eq!(fs::read(&path).unwrap(), before);
-        upgraded
-            .container
-            .visit_payloads::<crate::CvaError>(|_, payload| {
-                assert!(!payload.starts_with(b"CVAISTR1"));
-                Ok(())
-            })
-            .unwrap();
-    }
-}
-
-#[test]
 fn compact_stream_long_stream_has_linear_raw_growth() {
     let scratch = Scratch::new();
     let mut container = Container::create(scratch.0.join("raw.rel")).unwrap();
     let mut store = InteractionStreamStore::default();
-    let mut legacy_bytes = 0;
+    let mut frozen_full_checkpoint_model_bytes = 0;
     let mut record = checkpoint("", InteractionStreamStatus::Streaming);
     record.message_id = "message".into();
     record.session_id = "session".into();
     for _ in 0..256 {
         record.content.push('é');
-        legacy_bytes += codec::encode(&record).unwrap().len() + 8;
+        frozen_full_checkpoint_model_bytes += 31
+            + record.message_id.len()
+            + record.session_id.len()
+            + record.parent_message_id.as_ref().map_or(0, |p| 4 + p.len())
+            + record.content.len()
+            + 8;
         store.put(&mut container, record.clone()).unwrap();
     }
     record.status = InteractionStreamStatus::Interrupted;
-    legacy_bytes += codec::encode(&record).unwrap().len() + 8;
+    frozen_full_checkpoint_model_bytes += 31
+        + record.message_id.len()
+        + record.session_id.len()
+        + record.parent_message_id.as_ref().map_or(0, |p| 4 + p.len())
+        + record.content.len()
+        + 8;
     store.put(&mut container, record).unwrap();
     let mut current_bytes = 0;
     let mut count = 0;
@@ -282,7 +236,10 @@ fn compact_stream_long_stream_has_linear_raw_growth() {
             Ok(())
         })
         .unwrap();
-    assert_eq!((legacy_bytes, current_bytes, count), (79925, 9809, 258));
+    assert_eq!(
+        (frozen_full_checkpoint_model_bytes, current_bytes, count),
+        (79925, 9809, 258)
+    );
 }
 
 #[test]
@@ -367,10 +324,7 @@ fn compact_stream_is_rel_only_and_rejected_in_v1_without_mutation() {
     let mut bytes = fs::read(&path).unwrap();
     bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
     fs::write(&path, &bytes).unwrap();
-    assert!(matches!(
-        Cva::open_v1_read_only(&path),
-        Err(crate::CvaError::InteractionStream(_))
-    ));
+    assert!(Cva::open(&path).is_err());
     assert_eq!(fs::read(&path).unwrap(), bytes);
     let path = scratch.0.join("wrong-owner.phy");
     let mut phy = crate::Phylactery::create(&path).unwrap();

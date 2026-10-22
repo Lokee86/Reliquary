@@ -170,7 +170,7 @@ fn external_birth_prefix_accepts_both_formats_and_filters_members_by_memory_cut(
     assert_eq!(
         rel.external_birth_cohort_at_memory_prefix(&v1, rel.memory_version())
             .unwrap(),
-        Some(full)
+        None
     );
 
     let mut no_proof = clone_publication(&decoded);

@@ -21,7 +21,8 @@ use std::collections::BTreeMap;
 use validation::validate_record_revision;
 pub(crate) use validation::validate_source_memory_version;
 
-pub(crate) const LEGACY_IDENTITY_ID: EgoIdentityId = EgoIdentityId([0; 16]);
+/// Stable identity used by the current single-default Identity convenience API.
+pub(crate) const DEFAULT_IDENTITY_ID: EgoIdentityId = EgoIdentityId([0; 16]);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum EgoOwnerKind {
@@ -50,7 +51,6 @@ struct AnchorState {
 pub(crate) struct EgoStore {
     owner_kind: EgoOwnerKind,
     version: u64,
-    compact_seen: bool,
     identities: BTreeMap<EgoIdentityId, IdentityState>,
     identity_history: BTreeMap<(EgoIdentityId, u64), crate::EgoIdentity>,
     anchor_history: BTreeMap<(EgoAnchorId, u64), crate::EgoAnchor>,
@@ -80,7 +80,6 @@ impl EgoStore {
         Self {
             owner_kind,
             version: 0,
-            compact_seen: false,
             identities: BTreeMap::new(),
             identity_history: BTreeMap::new(),
             anchor_history: BTreeMap::new(),
@@ -103,6 +102,11 @@ impl EgoStore {
         &mut self,
         payload: &[u8],
     ) -> Result<Option<EgoRecord>, EgoError> {
+        // Entity merge bodies use CVAETM02 in the shared physical stream.
+        // Bare bodies are unpublished and have no Ego authority.
+        if payload.starts_with(b"CVAETM02") {
+            return Ok(None);
+        }
         let record = if payload.starts_with(b"CVAECR") {
             crate::ego_codec::compact::decode_creation(payload)?.record
         } else if payload.starts_with(b"CVAETM") {
@@ -126,9 +130,6 @@ impl EgoStore {
         }
         self.apply(record.clone())?;
         self.version = actual_version;
-        self.compact_seen |= payload.starts_with(b"CVAECR")
-            || payload.starts_with(b"CVAEDL")
-            || payload.starts_with(b"CVAETM");
         Ok(Some(record))
     }
 
@@ -137,7 +138,6 @@ impl EgoStore {
         container: &mut Container,
         record: EgoRecord,
     ) -> Result<(), EgoError> {
-        container.require_storage_format_writable()?;
         let payload = self.encode_compact_publication(&record)?;
         container.append(&payload)?;
         let version = record_ego_version(&record);
@@ -149,17 +149,6 @@ impl EgoStore {
     fn apply(&mut self, record: EgoRecord) -> Result<(), EgoError> {
         let ego_version = record_ego_version(&record);
         match record {
-            EgoRecord::LegacyIdentity { revision, text, .. } => {
-                self.apply_identity(
-                    ego_version,
-                    LEGACY_IDENTITY_ID,
-                    revision,
-                    false,
-                    true,
-                    "Default".into(),
-                    text,
-                )?;
-            }
             EgoRecord::Identity {
                 id,
                 revision,
@@ -335,8 +324,7 @@ impl EgoStore {
         if self.owner_kind == EgoOwnerKind::Reliquary
             && matches!(
                 record,
-                EgoRecord::LegacyIdentity { .. }
-                    | EgoRecord::Identity { .. }
+                EgoRecord::Identity { .. }
                     | EgoRecord::IdentityActive { .. }
                     | EgoRecord::Personality { .. }
             )

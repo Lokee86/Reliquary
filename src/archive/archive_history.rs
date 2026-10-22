@@ -22,7 +22,6 @@ impl Archive {
         &self,
         container: &mut Container,
     ) -> Result<(), ArchiveError> {
-        container.require_storage_format_writable()?;
         container.append(&encode_archive_format())?;
         Ok(())
     }
@@ -114,7 +113,6 @@ impl Archive {
         container: &Container,
         record: ArchiveRecord,
     ) -> Result<PreparedArchivePublication, ArchiveError> {
-        container.require_storage_format_writable()?;
         let archive_version = self.next_archive_version;
         let next_archive_version = archive_version
             .checked_add(1)
@@ -178,7 +176,6 @@ impl Archive {
         container: &mut Container,
         record: ObjectRef,
     ) -> Result<ArchiveRecordVersion, ArchiveError> {
-        container.require_storage_format_writable()?;
         let archive_version = self.next_archive_version;
         let next_archive_version = archive_version
             .checked_add(1)

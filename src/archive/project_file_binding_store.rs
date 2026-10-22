@@ -31,7 +31,6 @@ impl ProjectFileStore {
         file_id: FileId,
         reference: ProjectFileRef,
     ) -> Result<bool, CvaError> {
-        container.require_storage_format_writable()?;
         validate_project_file_ref(&reference)?;
         if let Some(existing) = self.records.get(&file_id) {
             return if existing == &reference {

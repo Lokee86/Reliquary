@@ -135,63 +135,6 @@ fn creation_retains_exact_initial_record_and_requires_first_revision_coordinates
 }
 
 #[test]
-fn contracts_accept_retained_v1_creation_and_revision_without_reinterpreting_fields() {
-    let directory = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join(".test-tmp")
-        .join(format!("memory-contract-{}", uuid::Uuid::new_v4()));
-    std::fs::create_dir_all(&directory).unwrap();
-    let path = directory.join("owner.rel");
-    let mut rel = crate::Cva::create(&path).unwrap();
-    let (memory, changed) = rel
-        .memories
-        .publish_legacy_fixture(
-            &mut rel.container,
-            None,
-            0,
-            crate::entity_candidate_test_support::memory_draft(
-                "contract-v1-birth",
-                "Server",
-                "The server accepts requests.",
-            ),
-        )
-        .unwrap();
-    assert!(changed);
-    let id = memory.id;
-    let mut later = crate::entity_candidate_test_support::memory_draft(
-        "contract-v1-later",
-        "Server",
-        "The server accepts requests.",
-    );
-    later.temporal_status = "historical".into();
-    later.updated_at_ns = 2;
-    rel.memories
-        .publish_legacy_fixture(&mut rel.container, Some(id), 1, later)
-        .unwrap();
-    let accepted = rel.memories.records().to_vec();
-    drop(rel);
-    let mut bytes = std::fs::read(&path).unwrap();
-    bytes[8..10].copy_from_slice(&1_u16.to_le_bytes());
-    std::fs::write(&path, &bytes).unwrap();
-    let v1 = crate::Cva::open_v1_read_only(&path).unwrap();
-    assert_eq!(v1.memories.records(), accepted);
-    assert_eq!(
-        MemoryCreation::new(accepted[0].clone()).unwrap().record,
-        accepted[0]
-    );
-    let delta = MemoryDelta::between(&accepted[0], &accepted[1]).unwrap();
-    assert_eq!(
-        delta.fields.temporal_status,
-        MemoryFieldChange::Set("historical".into())
-    );
-    assert_eq!(delta.id, id);
-    assert_eq!(delta.global_version, accepted[1].global_version);
-    assert_eq!(delta.memory_version, accepted[1].memory_version);
-    drop(v1);
-    assert_eq!(std::fs::read(&path).unwrap(), bytes);
-    std::fs::remove_dir_all(directory).unwrap();
-}
-
-#[test]
 fn delta_retains_envelope_and_allows_revision_with_no_metadata_changes() {
     let previous = initial();
     let next = successor(&previous);

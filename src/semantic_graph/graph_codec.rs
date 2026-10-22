@@ -1,9 +1,9 @@
+#[cfg(test)]
+pub(crate) use mutation::decode_mutation;
 #[path = "graph_codec_mutation.rs"]
 mod mutation;
 
-pub(crate) use mutation::{
-    GraphMutationPayload, decode_batch, decode_mutation, encode_batch, encode_mutation,
-};
+pub(crate) use mutation::{GraphMutationPayload, encode_batch, encode_mutation};
 
 use crate::{GraphError, MemoryId, ObjectRef, SemanticNodeKind, SemanticNodeRef};
 use arcana::NodeId;
@@ -95,20 +95,6 @@ pub(crate) fn encode_version(version: GraphVersionPayload) -> [u8; 40] {
     out[16..24].copy_from_slice(&version.graph_version.to_le_bytes());
     out[24..40].copy_from_slice(&version.mutation.legacy_bytes());
     out
-}
-
-pub(crate) fn decode_version(bytes: &[u8]) -> Result<Option<GraphVersionPayload>, GraphError> {
-    if !bytes.starts_with(VERSION_MAGIC) {
-        return Ok(None);
-    }
-    if bytes.len() != 40 {
-        return Err(GraphError::CorruptRecord("relationship version"));
-    }
-    Ok(Some(GraphVersionPayload {
-        global_version: read_u64(bytes, 8)?,
-        graph_version: read_u64(bytes, 16)?,
-        mutation: ObjectRef::from_legacy_bytes(bytes[24..40].try_into().unwrap()),
-    }))
 }
 
 fn read_u32(bytes: &[u8], offset: usize) -> Result<u32, GraphError> {

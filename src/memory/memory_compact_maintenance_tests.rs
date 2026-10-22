@@ -1,6 +1,11 @@
 use crate::memory_codec::encode_body;
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
-use crate::memory_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &MemoryCreation) -> Result<Vec<u8>, crate::MemoryError> {
+    publication::encode(&MemoryPublication::Creation(c.clone()))
+}
+fn encode_delta(d: &MemoryDelta) -> Result<Vec<u8>, crate::MemoryError> {
+    publication::encode(&MemoryPublication::Delta(d.clone()))
+}
 use crate::memory_compact_contract::{MemoryCreation, MemoryDelta};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id};
 use crate::owner_lifecycle::{LifecycleState, TombstoneOutcome};

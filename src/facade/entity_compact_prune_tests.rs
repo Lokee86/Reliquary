@@ -1,7 +1,13 @@
 //! Authenticated native pruning of Entity publication-envelope histories.
 use crate::container::publication_envelope::{self, PublicationEnvelope};
+use crate::entity_compact_codec::publication::encode;
 use crate::entity_compact_codec::publication::{self, EntityPublication};
-use crate::entity_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+    encode(&EntityPublication::Creation(c.clone()))
+}
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+    encode(&EntityPublication::Delta(d.clone()))
+}
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDescriptionProof};
 use crate::entity_model::{EntityRecord, EntityRetentionDescriptor};
 use crate::entity_store::{EntityReplayPublication, EntityStore};

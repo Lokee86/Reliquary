@@ -36,7 +36,6 @@ impl Cva {
         community_id: CommunityId,
         name: impl Into<String>,
     ) -> Result<bool, CommunityError> {
-        self.container.require_storage_format_writable()?;
         let name = name.into().trim().to_owned();
         self.publish_community_semantic_name(CommunitySemanticName {
             community_id,
@@ -52,13 +51,11 @@ impl Cva {
         &mut self,
         record: CommunitySemanticName,
     ) -> Result<bool, CommunityError> {
-        self.container.require_storage_format_writable()?;
         self.communities
             .publish_semantic_name(&mut self.container, &self.graph, record)
     }
 
     pub fn refresh_communities_leiden(&mut self) -> Result<CommunitySnapshot, CommunityError> {
-        self.container.require_storage_format_writable()?;
         if let Some(snapshot) = self.communities.latest()
             && snapshot.derived_graph_version == self.graph.memory_graph_version()
             && self

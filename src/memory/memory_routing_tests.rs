@@ -62,28 +62,6 @@ fn routing_metadata_is_clock_neutral_body_bound_and_reopens() {
     ));
 }
 
-#[test]
-fn legacy_routing_metadata_discards_model_lexical_terms_on_decode() {
-    let memory_id = MemoryId([1; 32]);
-    let body_id = MemoryBodyId([2; 32]);
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(b"CVAMRTE1");
-    bytes.extend_from_slice(&memory_id.0);
-    bytes.extend_from_slice(&body_id.0);
-    bytes.extend_from_slice(&0u32.to_le_bytes());
-    bytes.extend_from_slice(&1u32.to_le_bytes());
-    let legacy = b"legacy-term";
-    bytes.extend_from_slice(&(legacy.len() as u32).to_le_bytes());
-    bytes.extend_from_slice(legacy);
-
-    let decoded = crate::memory_routing_codec::decode(&bytes)
-        .unwrap()
-        .unwrap();
-    assert_eq!(decoded.memory_id, memory_id);
-    assert_eq!(decoded.body_id, body_id);
-    assert!(decoded.entity_mentions.is_empty());
-}
-
 fn draft() -> MemoryDraft {
     MemoryDraft {
         category: "fact".into(),

@@ -160,13 +160,6 @@ impl Cva {
                     return Err(invalid());
                 }
                 PrunedPayload::EntityDescription(id.0, *revision)
-            } else if bytes.starts_with(b"CVAEPRN1") {
-                let record = crate::entity_codec::decode_record(&bytes)?.ok_or_else(invalid)?;
-                PrunedPayload::EntityDescription(record.id.0, record.revision)
-            } else if bytes.starts_with(b"CVARPRN1") {
-                let record =
-                    crate::relationship_codec::decode_record(&bytes)?.ok_or_else(invalid)?;
-                PrunedPayload::RelationshipDescription(record.id.0, record.revision)
             } else {
                 continue;
             };
@@ -175,7 +168,7 @@ impl Cva {
                 .or_else(|| relationship_compact.map(|(_, _, proof)| proof.manifest_digest))
             {
                 Some(digest) => digest,
-                None => bytes[40..72].try_into().unwrap(),
+                None => return Err(invalid()),
             };
             if !authorized.contains(&(payload.clone(), digest)) || !seen.insert((payload, digest)) {
                 return Err(invalid());

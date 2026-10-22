@@ -220,7 +220,12 @@ fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
             .graph
             .encode_compact_mutations(&values, false)
             .unwrap();
-        let mutation = source.container.append(&bytes).unwrap();
+        let rows = crate::graph_compact_codec::decode(&bytes).unwrap().unwrap();
+        let transaction = if bytes.starts_with(b"CVAGCM01") {
+            GraphTransaction::Single(rows[0])
+        } else {
+            GraphTransaction::Batch(rows)
+        };
         let global_version = source
             .container
             .allocate_version_with_transaction_time(if local == 5 {
@@ -229,13 +234,21 @@ fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
                 Some(local as i64 * 10)
             })
             .unwrap();
+        let body = publication::encode(&GraphPublication {
+            graph_version: local,
+            transaction,
+        })
+        .unwrap();
         source
             .container
-            .append(&crate::graph_codec::encode_version(GraphVersionPayload {
-                global_version,
-                graph_version: local,
-                mutation,
-            }))
+            .append(
+                &publication_envelope::encode(PublicationEnvelope {
+                    global_version,
+                    clock: PublicationClock::BindReserved,
+                    body: &body,
+                })
+                .unwrap(),
+            )
             .unwrap();
     }
     source.sync().unwrap();
@@ -245,46 +258,10 @@ fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
     source.sync().unwrap();
     let before_bytes = fs::read(&source_path).unwrap();
     let payloads = source.container.object_payloads().unwrap();
-    let mut plans = BTreeMap::new();
-    let mut carriers = std::collections::HashSet::new();
-    for (object, payload) in &payloads {
-        let Some(version) = crate::graph_codec::decode_version(payload).unwrap() else {
-            continue;
-        };
-        let bytes = source.container.read(version.mutation).unwrap();
-        let rows = crate::graph_compact_codec::decode(&bytes).unwrap().unwrap();
-        let transaction = if bytes.starts_with(b"CVAGCM01") {
-            GraphTransaction::Single(rows[0])
-        } else {
-            GraphTransaction::Batch(rows)
-        };
-        let body = publication::encode(&GraphPublication {
-            graph_version: version.graph_version,
-            transaction,
-        })
-        .unwrap();
-        plans.insert(
-            *object,
-            publication_envelope::encode(PublicationEnvelope {
-                global_version: version.global_version,
-                clock: PublicationClock::BindReserved,
-                body: &body,
-            })
-            .unwrap(),
-        );
-        carriers.insert(version.mutation);
-    }
     let mut output = source.container.create_empty_like(&target).unwrap();
     let mut relocated = BTreeMap::new();
     for (object, payload) in payloads {
-        if carriers.contains(&object) {
-            continue;
-        }
-        let bytes = if let Some(body) = plans.get(&object) {
-            body.clone()
-        } else {
-            crate::storage_reclamation::relocate_payload(&payload, &relocated).unwrap()
-        };
+        let bytes = crate::storage_reclamation::relocate_payload(&payload, &relocated).unwrap();
         relocated.insert(object, output.append(&bytes).unwrap());
     }
     output.sync().unwrap();

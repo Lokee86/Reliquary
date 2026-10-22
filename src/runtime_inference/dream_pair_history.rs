@@ -8,9 +8,6 @@ mod codec;
 #[path = "dream_pair_history_tests.rs"]
 mod tests;
 
-// Temporary legacy decoder for offline conversion; retired after corpus promotion.
-const LEGACY_PAIR_MAGIC: [u8; 8] = *b"CVADRP01";
-
 #[derive(Default)]
 pub(crate) struct DreamPairStore {
     pairs: HashSet<(MemoryId, MemoryId)>,
@@ -24,10 +21,6 @@ impl DreamPairStore {
     }
 
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {
-        if let Some(pair) = Self::decode_legacy_pair(payload)? {
-            self.pairs.insert(pair);
-            return Ok(());
-        }
         match codec::decode(payload)? {
             Some(codec::Record::Memory(reference, id)) => self.admit_mapping(reference, id)?,
             Some(codec::Record::Pair(left, right)) => {
@@ -37,23 +30,6 @@ impl DreamPairStore {
             None => {}
         }
         Ok(())
-    }
-
-    pub(crate) fn decode_legacy_pair(
-        payload: &[u8],
-    ) -> Result<Option<(MemoryId, MemoryId)>, MemoryError> {
-        if !payload.starts_with(&LEGACY_PAIR_MAGIC) {
-            return Ok(None);
-        }
-        if payload.len() != 72 {
-            return Err(MemoryError::CorruptRecord("invalid Dream pair record"));
-        }
-        let left = MemoryId(payload[8..40].try_into().unwrap());
-        let right = MemoryId(payload[40..72].try_into().unwrap());
-        if left == right {
-            return Err(MemoryError::CorruptRecord("Dream pair self-reference"));
-        }
-        Ok(Some(canonical_pair(left, right)))
     }
 
     fn admit_mapping(&mut self, reference: u32, id: MemoryId) -> Result<(), MemoryError> {
@@ -160,7 +136,6 @@ impl DreamPairStore {
         left: MemoryId,
         right: MemoryId,
     ) -> Result<bool, MemoryError> {
-        container.require_storage_format_writable()?;
         if left == right {
             return Err(MemoryError::InvalidField("Dream pair"));
         }
@@ -190,7 +165,6 @@ impl Cva {
         left: MemoryId,
         right: MemoryId,
     ) -> Result<bool, MemoryError> {
-        self.container.require_storage_format_writable()?;
         if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
             return Err(MemoryError::MissingMemory);
         }
@@ -208,7 +182,6 @@ impl Phylactery {
         left: MemoryId,
         right: MemoryId,
     ) -> Result<bool, MemoryError> {
-        self.container.require_storage_format_writable()?;
         if !self.memories.contains_memory(left) || !self.memories.contains_memory(right) {
             return Err(MemoryError::MissingMemory);
         }

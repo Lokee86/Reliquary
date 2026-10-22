@@ -233,32 +233,6 @@ fn legacy_completion_payload(episode_id: crate::EpisodeId, attempt: u32) -> Vec<
 }
 
 #[test]
-fn legacy_cvainsc1_completion_reopens_as_final_success() {
-    let (path, mut cva, episode) = setup("completion-legacy-v1.cva");
-    let claim = cva
-        .claim_insomnia_episode("legacy-worker", 110, 1_000)
-        .unwrap()
-        .unwrap();
-    let payload = legacy_completion_payload(episode.id, claim.attempt_count);
-    let decoded = decode_completion(&payload).unwrap().unwrap();
-    assert!(decoded.bodies.is_empty());
-    assert!(decoded.records.is_empty());
-    cva.container.append(&payload).unwrap();
-    cva.sync().unwrap();
-    drop(cva);
-
-    let reopened = Cva::open(&path).unwrap();
-    let attempts = reopened.insomnia_attempts(episode.id);
-    assert_eq!(attempts.len(), 1);
-    assert_eq!(attempts[0].state, InsomniaWorkState::Complete);
-    assert_eq!(attempts[0].extractor_model, "legacy-synthetic");
-    assert_eq!(
-        reopened.insomnia_work(episode.id).unwrap().state,
-        InsomniaWorkState::Complete
-    );
-}
-
-#[test]
 fn successful_completion_collapses_retry_history_and_reopens() {
     let (path, mut cva, episode) = setup("completion-retry.cva");
     let first = cva

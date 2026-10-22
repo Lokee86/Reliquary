@@ -90,7 +90,14 @@ fn supports_large_float64_rows_without_special_cases() {
 #[test]
 fn packed_vector_store_requires_its_format_marker() {
     let path = test_path("missing-format.cva");
-    let mut container = Container::create(&path).unwrap();
+    let mut container = Container::create_with_identity(
+        &path,
+        crate::ContainerIdentity {
+            file_kind: crate::FileKind::Reliquary,
+            scope: Some(crate::ReliquaryScopeKind::Project),
+        },
+    )
+    .unwrap();
     container.append(&encode_archive_format()).unwrap();
     container.append(&encode_memory_format()).unwrap();
     container.append(&encode_insomnia_format()).unwrap();
@@ -135,7 +142,14 @@ fn packed_vector_prune_marker_preserves_identity_and_reports_explicit_unavailabi
     use crate::packed_vector_store::info;
 
     let path = test_path("pruned-marker.cva");
-    let mut container = Container::create(&path).unwrap();
+    let mut container = Container::create_with_identity(
+        &path,
+        crate::ContainerIdentity {
+            file_kind: crate::FileKind::Reliquary,
+            scope: Some(crate::ReliquaryScopeKind::Project),
+        },
+    )
+    .unwrap();
     let schema = VectorSchema::new(4, ScalarType::I8).unwrap();
     let id = crate::packed_vector_store::packed_vector_id(schema, &[1, 2, 3, 4]);
     let info = info(id, schema, 1, 4).unwrap();

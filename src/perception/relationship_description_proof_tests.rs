@@ -1,5 +1,16 @@
 use super::compact_description_proof;
-use crate::relationship_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+            c.clone(),
+        ),
+    )
+}
+fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    )
+}
 use crate::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };

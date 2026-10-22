@@ -1,7 +1,16 @@
 //! Entity publication envelopes remain live during reclamation.
 use crate::container::publication_envelope::PublicationClock;
 use crate::entity_compact_codec::publication::{self, EntityPublication};
-use crate::entity_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    )
+}
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    )
+}
 use crate::entity_compact_contract::{EntityCreation, EntityDelta};
 use crate::entity_model::EntityRecord;
 use crate::owner_lifecycle::{HistoricalPayload, LifecycleTarget};
@@ -69,7 +78,7 @@ fn envelope_payloads(path: &Path) -> Vec<Vec<u8>> {
         .collect()
 }
 
-fn add_unpublished_legacy_carriers(path: &Path) {
+fn add_unpublished_current_bodies(path: &Path) {
     let mut container = Container::open(path).unwrap();
     let mut orphan = record(1, 900, 900);
     orphan.id = EntityId([0x72; 32]);
@@ -196,7 +205,7 @@ fn rel_and_phy_reclamation_keeps_entity_envelopes_proofs_and_terminals() {
             "reclaimed.phy"
         });
         let (times, expected_envelopes) = make_pruned_history(&source, kind);
-        add_unpublished_legacy_carriers(&source);
+        add_unpublished_current_bodies(&source);
         let source_hash = file_hash(&source);
         let before = envelope_payloads(&source);
         assert!(before.iter().any(|bytes| bytes != &expected_envelopes[0]));

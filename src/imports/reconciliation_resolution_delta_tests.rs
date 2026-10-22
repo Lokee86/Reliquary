@@ -2,64 +2,6 @@ use super::*;
 use crate::{EntityId, EntityResolutionReason, MemoryEntityResolutionStatus};
 
 #[test]
-fn entity_resolution_retained_interval_keeps_inert_original_and_frozen_visibility() {
-    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join(".test-tmp")
-        .join(format!(
-            "retained-resolution-import-{}",
-            uuid::Uuid::new_v4()
-        ));
-    std::fs::create_dir_all(&root).unwrap();
-    let source_path = root.join("source.rel");
-    let target_path = root.join("target.rel");
-    let raw = b"CVAERS02literal old evidence with unexplained trailing scalar";
-    let mut source = Cva::create(&source_path).unwrap();
-    source.container.append(raw).unwrap();
-    source.sync().unwrap();
-    drop(source);
-    let mut bytes = std::fs::read(&source_path).unwrap();
-    bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
-    std::fs::write(&source_path, &bytes).unwrap();
-    let mut source = Cva::open_v1_read_only(&source_path).unwrap();
-    let mut target = Cva::create(&target_path).unwrap();
-    assert!(inventory(&mut source).unwrap().is_empty());
-    let chunks = source.container.chunks().unwrap();
-    let mut coordinates =
-        crate::imports::reconciliation_interval::Coordinates::shared(&mut source, chunks.len())
-            .unwrap();
-    crate::imports::reconciliation_interval::replay_frame(
-        &mut source,
-        &mut target,
-        chunks.len() - 1,
-        raw,
-        &mut coordinates,
-    )
-    .unwrap();
-    target.sync().unwrap();
-    assert!(target.entity_resolutions.records().is_empty());
-    assert!(inventory(&mut target).unwrap().is_empty());
-    drop(target);
-    let mut target = Cva::open(&target_path).unwrap();
-    let chunks = target.container.chunks().unwrap();
-    let payload = target.container.read(*chunks.last().unwrap()).unwrap();
-    assert_eq!(
-        crate::entity_resolution_codec::retained::decode(&payload).unwrap(),
-        Some(raw.as_slice())
-    );
-    let reclaimed = root.join("reclaimed.rel");
-    target.reclaim_storage(&reclaimed).unwrap();
-    let mut cleaned = Cva::open(&reclaimed).unwrap();
-    let chunks = cleaned.container.chunks().unwrap();
-    let payload = cleaned.container.read(*chunks.last().unwrap()).unwrap();
-    assert_eq!(
-        crate::entity_resolution_codec::retained::decode(&payload).unwrap(),
-        Some(raw.as_slice())
-    );
-    assert!(target.entity_resolutions.records().is_empty());
-    assert_eq!(std::fs::read(&source_path).unwrap(), bytes);
-}
-
-#[test]
 fn entity_resolution_delta_interval_uses_source_postimage_and_destination_evidence_base() {
     let (mut source, _, keys, source_path) =
         crate::entity_resolution_test_support::rel_with_three_mentions();
@@ -103,10 +45,15 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
         v.last_attempt_at_ns = 10;
         v.attempt_count = 1;
     }
-    let mut destination_projection =
-        crate::entity_resolution_store::EntityResolutionStore::default();
-    destination_projection
-        .ingest(&crate::entity_resolution_codec::encode_resolution(&prior).unwrap())
+    let destination_projection =
+        crate::entity_resolution_store::EntityResolutionStore::from_fixture_changes([
+            crate::entity_resolution_codec::DecodedEntityResolution {
+                key: prior.key,
+                revision: prior.revision,
+                updated_at_ns: prior.updated_at_ns,
+                status: Some(prior.status.clone()),
+            },
+        ])
         .unwrap();
     target.entity_resolutions = destination_projection;
     let chunks = source.container.chunks().unwrap();

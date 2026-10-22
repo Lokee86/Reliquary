@@ -9,7 +9,6 @@ impl Archive {
         container: &mut Container,
         mut episode: Episode,
     ) -> Result<bool, ArchiveError> {
-        container.require_storage_format_writable()?;
         self.require_current_conversation_id(&episode.conversation_id)?;
         episode.id = episode_id(
             &episode.conversation_id,

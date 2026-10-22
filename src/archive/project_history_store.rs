@@ -40,7 +40,6 @@ impl ProjectHistoryStore {
         project_revision: ProjectRevisionRef,
         repository_management: ProjectRepositoryManagement,
     ) -> Result<(ProjectRevisionCorrelation, bool), CvaError> {
-        container.require_storage_format_writable()?;
         validate_revision(&project_revision)?;
         if let Some(previous) = self.records.last() {
             validate_repository_identity(&previous.project_revision, &project_revision)?;

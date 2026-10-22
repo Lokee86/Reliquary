@@ -20,7 +20,6 @@ impl EchoStore {
         container: &mut Container,
         event: EchoEvent,
     ) -> Result<bool, EchoError> {
-        container.require_storage_format_writable()?;
         if let Some(existing) = self.existing(&event) {
             return if existing == &event {
                 Ok(false)

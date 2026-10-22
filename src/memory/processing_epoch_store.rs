@@ -86,7 +86,6 @@ impl ProcessingEpochStore {
         lane_id: ProcessingLaneId,
         state: ProcessingEpochState,
     ) -> Result<bool, MemoryError> {
-        container.require_storage_format_writable()?;
         let key = (memory_id, lane_id);
         let merged = match self.states.get(&key).copied() {
             Some(current) => merge_same_cadence(current, state).ok_or(

@@ -10,7 +10,6 @@ impl Cva {
         &mut self,
         packed: PackedVectors,
     ) -> Result<PackedVectorId, PackedVectorError> {
-        self.container.require_storage_format_writable()?;
         self.packed_vectors.put(&mut self.container, packed)
     }
 

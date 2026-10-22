@@ -3,24 +3,10 @@ use crate::{
     ProjectRevisionCorrelation, ProjectRevisionRef, RelSemanticCut,
 };
 
-const MAGIC_V1: &[u8; 8] = b"PRJCOR01";
 const MAGIC_V2: &[u8; 8] = b"PRJCOR02";
 const MAX_FIELD_BYTES: usize = 32 * 1024;
 
 pub(crate) fn encode(record: &ProjectRevisionCorrelation) -> Result<Vec<u8>, String> {
-    encode_with_magic(record, MAGIC_V2, true)
-}
-
-#[cfg(test)]
-pub(crate) fn encode_legacy_v1(record: &ProjectRevisionCorrelation) -> Result<Vec<u8>, String> {
-    encode_with_magic(record, MAGIC_V1, false)
-}
-
-fn encode_with_magic(
-    record: &ProjectRevisionCorrelation,
-    magic: &[u8; 8],
-    include_management: bool,
-) -> Result<Vec<u8>, String> {
     let repository_id = field_bytes(
         "repository id",
         &record.project_revision.repository.repository_id,
@@ -40,15 +26,13 @@ fn encode_with_magic(
     };
     let mut out =
         Vec::with_capacity(54 + repository_id.len() + project_path.len() + revision.len());
-    out.extend_from_slice(magic);
+    out.extend_from_slice(MAGIC_V2);
     out.extend_from_slice(&record.sequence.to_le_bytes());
     out.extend_from_slice(&record.rel_cut.global_version.to_le_bytes());
     out.extend_from_slice(&record.rel_cut.archive_version.to_le_bytes());
     out.extend_from_slice(&record.rel_cut.memory_version.to_le_bytes());
     out.push(kind);
-    if include_management {
-        out.push(management);
-    }
+    out.push(management);
     put_field(&mut out, repository_id)?;
     put_field(&mut out, project_path)?;
     put_field(&mut out, revision)?;
@@ -59,14 +43,10 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<ProjectRevisionCorrelation>,
     if bytes.len() < 8 {
         return Ok(None);
     }
-    let version = if &bytes[..8] == MAGIC_V2 {
-        2
-    } else if &bytes[..8] == MAGIC_V1 {
-        1
-    } else {
+    if &bytes[..8] != MAGIC_V2 {
         return Ok(None);
-    };
-    let minimum = if version == 2 { 42 } else { 41 };
+    }
+    let minimum = 42;
     if bytes.len() < minimum {
         return Err("truncated project correlation record".into());
     }
@@ -81,16 +61,12 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<ProjectRevisionCorrelation>,
         2 => ProjectRepositoryKind::Git,
         _ => return Err("invalid project repository kind".into()),
     };
-    let (repository_management, mut cursor) = if version == 2 {
-        let management = match bytes[41] {
-            1 => ProjectRepositoryManagement::WarlockManaged,
-            2 => ProjectRepositoryManagement::External,
-            _ => return Err("invalid project repository management".into()),
-        };
-        (management, 42)
-    } else {
-        (ProjectRepositoryManagement::default_for(kind), 41)
+    let repository_management = match bytes[41] {
+        1 => ProjectRepositoryManagement::WarlockManaged,
+        2 => ProjectRepositoryManagement::External,
+        _ => return Err("invalid project repository management".into()),
     };
+    let mut cursor = 42;
     let repository_id = read_field(bytes, &mut cursor, "repository id")?;
     let project_path = read_field(bytes, &mut cursor, "project path")?;
     let revision = read_field(bytes, &mut cursor, "revision")?;

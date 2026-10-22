@@ -1,5 +1,24 @@
+fn encode_mutation(value: GraphOrdinalMutation) -> Vec<u8> {
+    crate::graph_compact_codec::publication::encode(
+        &crate::graph_compact_codec::publication::GraphPublication {
+            graph_version: 1,
+            transaction: crate::graph_compact_codec::publication::GraphTransaction::Single(value),
+        },
+    )
+    .unwrap()
+}
+fn encode_batch(values: &[GraphOrdinalMutation]) -> Result<Vec<u8>, crate::GraphError> {
+    crate::graph_compact_codec::publication::encode(
+        &crate::graph_compact_codec::publication::GraphPublication {
+            graph_version: 1,
+            transaction: crate::graph_compact_codec::publication::GraphTransaction::Batch(
+                values.to_vec(),
+            ),
+        },
+    )
+}
 use crate::graph_codec::{GraphNodePayload, GraphVersionPayload, encode_node, encode_version};
-use crate::graph_compact_codec::encode_mutation;
+
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::owner_lifecycle::{LifecycleTarget, TombstoneOutcome};
 use crate::{
@@ -341,7 +360,7 @@ fn compact_graph_semantic_digest_ignores_ordinal_assignment_but_binds_mutation_f
             owner.graph.compact_carrier_digest(&altered).unwrap()
         );
     }
-    let reordered = crate::graph_compact_codec::encode_batch(&[
+    let reordered = encode_batch(&[
         GraphOrdinalMutation {
             source: 0,
             target: 1,
@@ -358,7 +377,7 @@ fn compact_graph_semantic_digest_ignores_ordinal_assignment_but_binds_mutation_f
         },
     ])
     .unwrap();
-    let reordered_again = crate::graph_compact_codec::encode_batch(&[
+    let reordered_again = encode_batch(&[
         GraphOrdinalMutation {
             source: 1,
             target: 0,
@@ -439,141 +458,6 @@ fn compact_graph_digest_is_excluded_for_orphan_and_post_watermark_markers() {
     assert_eq!(before, after_later_marker);
 }
 
-#[test]
-fn legacy_graph_carrier_digest_remains_raw_sha256() {
-    use sha2::{Digest, Sha256};
-    let scratch = Scratch::new();
-    let path = scratch.file("legacy-digest-owner.rel");
-    let mut container = Container::create_with_identity(
-        &path,
-        crate::ContainerIdentity {
-            file_kind: crate::FileKind::Reliquary,
-            scope: None,
-        },
-    )
-    .unwrap();
-    let legacy = crate::graph_codec::encode_mutation(crate::graph_codec::GraphMutationPayload {
-        source: SemanticNodeRef::observation([0x11; 32]),
-        target: SemanticNodeRef::observation([0x22; 32]),
-        kind: SemanticGraphRelationKind::Memory(GraphRelationKind::References),
-        active: true,
-        origin: GraphRelationOrigin::User,
-    });
-    let mutation = container.append(&legacy).unwrap();
-    let global_version = container
-        .allocate_version_with_transaction_time(Some(1_234_567))
-        .unwrap();
-    assert_eq!(global_version, 1);
-    container
-        .append(&encode_version(GraphVersionPayload {
-            global_version,
-            graph_version: 1,
-            mutation,
-        }))
-        .unwrap();
-
-    // Frozen pre-compact digest calculation: initial watermark/global/time
-    // prefix, normalized GraphVersion carrier link (zero ObjectRef), and the
-    // length-prefixed SHA-256 of the exact raw full-ID carrier.
-    let mut expected = Sha256::new();
-    expected.update(1_u64.to_le_bytes()); // watermark
-    expected.update(1_u64.to_le_bytes()); // global coordinate
-    expected.update([1]); // transaction time is present
-    expected.update(1_234_567_i64.to_le_bytes());
-    let mut normalized_marker = [0_u8; 40];
-    normalized_marker[..8].copy_from_slice(b"CVAGVER1");
-    normalized_marker[8..16].copy_from_slice(&1_u64.to_le_bytes());
-    normalized_marker[16..24].copy_from_slice(&1_u64.to_le_bytes());
-    // bytes 24..40 are the normalized zero ObjectRef
-    expected.update((normalized_marker.len() as u64).to_le_bytes());
-    expected.update(normalized_marker);
-    let raw_carrier_digest: [u8; 32] = Sha256::digest(&legacy).into();
-    expected.update((raw_carrier_digest.len() as u64).to_le_bytes());
-    expected.update(raw_carrier_digest);
-    let expected: [u8; 32] = expected.finalize().into();
-    assert_eq!(
-        super::owner_history_digest(&mut container, 1, &crate::graph_store::GraphStore::empty(),)
-            .unwrap(),
-        expected,
-        "legacy full-ID Graph proof digest must remain byte-for-byte compatible"
-    );
-}
-#[test]
-fn native_graph_history_proof_matches_legacy_at_every_watermark_and_binds_shape() {
-    use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
-    use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
-    let scratch = Scratch::new();
-    let legacy = scratch.file("legacy-proof.rel");
-    let native = scratch.file("native-proof.rel");
-    let mut owner = Cva::create(&legacy).unwrap();
-    let (a, _) = owner.publish_memory(None, 0, draft("a", "A")).unwrap();
-    let (b, _) = owner.publish_memory(None, 0, draft("b", "B")).unwrap();
-    add_graph_base_rel(&mut owner, a.id, b.id);
-    owner.sync().unwrap();
-    drop(owner);
-    fs::copy(&legacy, &native).unwrap();
-    install_compact_graph_tail_rel(&legacy);
-    let mut container = Container::open(&native).unwrap();
-    let global = container
-        .allocate_version_with_transaction_time(Some(70_000))
-        .unwrap();
-    let row = GraphOrdinalMutation {
-        source: 0,
-        target: 1,
-        kind: SemanticGraphRelationKind::Memory(GraphRelationKind::References),
-        active: true,
-        origin: GraphRelationOrigin::User,
-    };
-    let encode = |transaction| {
-        let body = publication::encode(&GraphPublication {
-            graph_version: 2,
-            transaction,
-        })
-        .unwrap();
-        publication_envelope::encode(PublicationEnvelope {
-            global_version: global,
-            clock: PublicationClock::BindReserved,
-            body: &body,
-        })
-        .unwrap()
-    };
-    let bytes = encode(GraphTransaction::Single(row));
-    container.append(&bytes).unwrap();
-    container.sync().unwrap();
-    drop(container);
-    let mut old = Cva::open(&legacy).unwrap();
-    let mut new = Cva::open(&native).unwrap();
-    for watermark in 0..=global {
-        assert_eq!(
-            super::owner_history_digest(&mut old.container, watermark, &old.graph).unwrap(),
-            super::owner_history_digest(&mut new.container, watermark, &new.graph).unwrap(),
-            "watermark {watermark}",
-        );
-    }
-    assert_eq!(
-        new.graph.compact_carrier_digest(&bytes).unwrap(),
-        new.graph
-            .compact_carrier_digest(&encode_mutation(row))
-            .unwrap()
-    );
-    assert_ne!(
-        new.graph.compact_carrier_digest(&bytes).unwrap(),
-        new.graph
-            .compact_carrier_digest(&encode(GraphTransaction::Batch(vec![row])))
-            .unwrap()
-    );
-    let changed = GraphOrdinalMutation {
-        active: false,
-        ..row
-    };
-    assert_ne!(
-        new.graph.compact_carrier_digest(&bytes).unwrap(),
-        new.graph
-            .compact_carrier_digest(&encode(GraphTransaction::Single(changed)))
-            .unwrap()
-    );
-}
-
 fn install_native_graph_tail(path: &Path) {
     use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
     let mut container = Container::open(path).unwrap();
@@ -633,13 +517,26 @@ fn native_graph_reclamation_keeps_publication_and_mappings_and_drops_orphan_carr
         };
         let mut container = Container::open(&source).unwrap();
         container
-            .append(&encode_mutation(GraphOrdinalMutation {
-                source: 999,
-                target: 998,
-                kind: SemanticGraphRelationKind::Memory(GraphRelationKind::References),
-                active: true,
-                origin: GraphRelationOrigin::User,
-            }))
+            .append(
+                &crate::graph_compact_codec::publication::encode(
+                    &crate::graph_compact_codec::publication::GraphPublication {
+                        graph_version: 1000,
+                        transaction:
+                            crate::graph_compact_codec::publication::GraphTransaction::Single(
+                                GraphOrdinalMutation {
+                                    source: 999,
+                                    target: 998,
+                                    kind: SemanticGraphRelationKind::Memory(
+                                        GraphRelationKind::References,
+                                    ),
+                                    active: true,
+                                    origin: GraphRelationOrigin::User,
+                                },
+                            ),
+                    },
+                )
+                .unwrap(),
+            )
             .unwrap();
         container.sync().unwrap();
         drop(container);

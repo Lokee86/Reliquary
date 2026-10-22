@@ -12,9 +12,9 @@ All six pinned REL/PHY sources have admitted canonical V2 copies with zero
 historical owner mismatches. Exact raw accounting includes framing, dictionaries
 and larger standalone import evidence: 138,196,316 to130,962,204 bytes, a 5.235%
 reduction. [Results](canonical-history-migration-results-2026-10-21.md) separate
-history, maintenance and performance evidence. Authoritative promotion and
-runtime reader/upgrader retirement are still pending; ordinary V1 inspection
-remains a temporary dependency until that gate.
+history, maintenance and performance evidence. All six canonical files are promoted. Runtime V1 admission, legacy import
+compatibility and temporary upgrader APIs/CLI are deleted; post-retirement
+verification remains tracked by the linear plan.
 
 Whole-owner and Archive snapshot queries use recorded representative cuts where
 measured exhaustive materialization is prohibitively expensive. Concrete owner

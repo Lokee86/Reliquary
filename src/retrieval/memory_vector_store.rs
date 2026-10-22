@@ -25,7 +25,6 @@ struct MemoryVectorEntry {
 
 impl MemoryVectorStore {
     pub(crate) fn initialize(&self, container: &mut Container) -> Result<(), MemoryVectorError> {
-        container.require_storage_format_writable()?;
         container.append(&encode_format())?;
         Ok(())
     }
@@ -40,7 +39,6 @@ impl MemoryVectorStore {
         packed_vector_id: PackedVectorId,
         memory_body_ids: Vec<MemoryBodyId>,
     ) -> Result<MemoryVectorId, MemoryVectorError> {
-        container.require_storage_format_writable()?;
         profiles
             .get_active(compatibility_profile_id)
             .ok_or(MemoryVectorError::MissingProfile)?;

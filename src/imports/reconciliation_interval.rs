@@ -275,39 +275,36 @@ pub(super) fn replay_frame(
             .chunks()?
             .get(index)
             .ok_or_else(|| unsupported("Dream source physical frame is absent"))?;
-        let explicit = if let Some(pass) = source.materialized_dream_begin(chunk, payload)? {
-            crate::freshness_dream_journal::DreamFreshnessJournal::new(source.owner_uuid())
-                .begin_payload(&pass)
-                .map_err(CvaError::Freshness)?
-        } else {
-            payload.to_vec()
-        };
-        let rebased = output
-            .dream_freshness
-            .replay_payload(
-                &explicit,
-                |cut| turn(source, output, cut),
-                |cut| Coordinates::map(&coordinates.graph, cut).map_err(|e| e.to_string()),
-                |p| coordinates.proof(p).map_err(|e| e.to_string()),
-            )
-            .map_err(CvaError::Freshness)?;
-        if !rebased.is_empty() {
-            let owner = output
-                .owner_uuid()
-                .ok_or_else(|| unsupported("Dream destination lacks owner"))?;
-            if let Some(pass) =
-                crate::freshness_dream_journal::DreamFreshnessJournal::decode_explicit_begin(
-                    &rebased, owner,
-                )
+        if let Some(mut pass) = source.materialized_dream_begin(chunk, payload)? {
+            pass.turn = turn(source, output, pass.turn).map_err(CvaError::Freshness)?;
+            pass.graph_version_before =
+                Coordinates::map(&coordinates.graph, pass.graph_version_before)?;
+            if !output
+                .dream_freshness
+                .begin_is_retry(&pass)
                 .map_err(CvaError::Freshness)?
             {
+                let owner = output
+                    .owner_uuid()
+                    .ok_or_else(|| unsupported("Dream destination lacks owner"))?;
                 let current = output.current_dream_begin_payload(&pass)?;
                 output.container.append(&current)?;
                 output
                     .dream_freshness
                     .ingest_materialized_begin(owner, pass)
                     .map_err(CvaError::Freshness)?;
-            } else {
+            }
+        } else {
+            let rebased = output
+                .dream_freshness
+                .replay_payload(
+                    payload,
+                    |cut| turn(source, output, cut),
+                    |cut| Coordinates::map(&coordinates.graph, cut).map_err(|e| e.to_string()),
+                    |proof| coordinates.proof(proof).map_err(|e| e.to_string()),
+                )
+                .map_err(CvaError::Freshness)?;
+            if !rebased.is_empty() {
                 output.container.append(&rebased)?;
                 output
                     .dream_freshness
@@ -316,6 +313,7 @@ pub(super) fn replay_frame(
             }
         }
     }
+
     if payload.starts_with(b"CVAPEP01") {
         let mut accepted = crate::processing_epoch_store::ProcessingEpochStore::default();
         accepted.ingest(payload)?;
@@ -340,9 +338,7 @@ pub(super) fn replay_frame(
             }
         }
     }
-    if crate::entity_resolution_codec::decode_resolution(payload)?.is_some()
-        || crate::entity_resolution_codec::delta::is_current(payload)
-    {
+    if crate::entity_resolution_codec::delta::is_current(payload) {
         let object = *source
             .container
             .chunks()?

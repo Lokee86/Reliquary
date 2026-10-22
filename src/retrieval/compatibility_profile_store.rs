@@ -19,7 +19,6 @@ impl CompatibilityProfileStore {
         &self,
         container: &mut Container,
     ) -> Result<(), CompatibilityProfileError> {
-        container.require_storage_format_writable()?;
         container.append(&encode_format())?;
         Ok(())
     }
@@ -29,7 +28,6 @@ impl CompatibilityProfileStore {
         container: &mut Container,
         profile: CompatibilityProfile,
     ) -> Result<CompatibilityProfileId, CompatibilityProfileError> {
-        container.require_storage_format_writable()?;
         validate_profile(&profile)?;
         if profile.id != compatibility_profile_id(&profile) {
             return Err(CompatibilityProfileError::InvalidProfile(
@@ -94,7 +92,6 @@ impl CompatibilityProfileStore {
         container: &mut Container,
         id: CompatibilityProfileId,
     ) -> Result<bool, CompatibilityProfileError> {
-        container.require_storage_format_writable()?;
         if !self.profiles.contains_key(&id) {
             return Err(CompatibilityProfileError::MissingProfile);
         }

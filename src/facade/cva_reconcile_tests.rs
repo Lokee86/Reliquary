@@ -238,7 +238,6 @@ fn divergent_reconcile_preserves_rel_metadata() {
         merged.rel_metadata().dependencies,
         vec!["rel-parent-a".to_string(), "rel-parent-b".to_string()]
     );
-    assert!(!merged.is_legacy_cva());
 }
 
 #[test]

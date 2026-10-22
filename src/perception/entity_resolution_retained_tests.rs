@@ -19,7 +19,7 @@ fn retained_resolution_codec_keeps_every_inert_byte_and_rejects_damage() {
     );
     assert_eq!(encoded.len(), original.len() + 44);
     let mut store = crate::entity_resolution_store::EntityResolutionStore::default();
-    store.ingest(&original).unwrap();
+    assert!(store.ingest(&original).is_err());
     store.ingest(&encoded).unwrap();
     assert!(store.records().is_empty());
     for end in 6..encoded.len() {
@@ -38,48 +38,30 @@ fn retained_resolution_codec_keeps_every_inert_byte_and_rejects_damage() {
     bad[end..].copy_from_slice(&hash);
     assert!(retained::decode(&bad).is_err());
 }
+
 #[test]
-fn retained_resolution_uses_actual_generic_and_explicit_owner_format() {
+fn retained_literal_evidence_opens_in_both_current_owner_kinds_without_projection() {
     let root = scratch();
-    let original = b"CVAERS02exact frozen inert evidence and retired scalar";
-    let encoded = retained::encode(original).unwrap();
+    let encoded = retained::encode(b"CVAERS02exact inert evidence").unwrap();
     for phy in [false, true] {
-        for wrapped in [false, true] {
-            let path = root.join(format!("{phy}-{wrapped}"));
-            let payload = if wrapped {
-                encoded.as_slice()
-            } else {
-                original.as_slice()
-            };
-            if phy {
-                let mut owner = crate::Phylactery::create(&path).unwrap();
-                owner.container.append(payload).unwrap();
-                owner.sync().unwrap();
-            } else {
-                let mut owner = crate::Cva::create(&path).unwrap();
-                owner.container.append(payload).unwrap();
-                owner.sync().unwrap();
-            }
-            if phy {
-                assert_eq!(crate::Phylactery::open(&path).is_ok(), wrapped);
-            } else {
-                assert_eq!(crate::Cva::open(&path).is_ok(), wrapped);
-            }
-            let mut bytes = fs::read(&path).unwrap();
-            bytes[8..10].copy_from_slice(&1u16.to_le_bytes());
-            fs::write(&path, &bytes).unwrap();
-            if phy {
-                assert_eq!(crate::Phylactery::open(&path).is_ok(), !wrapped);
-                assert_eq!(
-                    crate::Phylactery::open_v1_read_only(&path).is_ok(),
-                    !wrapped
-                );
-            } else {
-                assert_eq!(crate::Cva::open(&path).is_ok(), !wrapped);
-                assert_eq!(crate::Cva::open_v1_read_only(&path).is_ok(), !wrapped);
-            }
-            assert_eq!(fs::read(&path).unwrap(), bytes);
+        let path = root.join(format!("current-{phy}"));
+        if phy {
+            let mut owner = crate::Phylactery::create(&path).unwrap();
+            owner.container.append(&encoded).unwrap();
+            owner.sync().unwrap();
+        } else {
+            let mut owner = crate::Cva::create(&path).unwrap();
+            owner.container.append(&encoded).unwrap();
+            owner.sync().unwrap();
         }
+        let before = fs::read(&path).unwrap();
+        if phy {
+            let owner = crate::Phylactery::open(&path).unwrap();
+            assert!(owner.entity_resolution_records().is_empty());
+        } else {
+            let owner = crate::Cva::open(&path).unwrap();
+            assert!(owner.entity_resolution_records().is_empty());
+        }
+        assert_eq!(fs::read(&path).unwrap(), before);
     }
-    fs::remove_dir_all(root).unwrap();
 }

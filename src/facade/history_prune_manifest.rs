@@ -169,7 +169,6 @@ pub(crate) fn owner_history_digest(
         .map(|object| (*object, crate::ObjectRef::from_legacy_bytes([0; 16])))
         .collect::<std::collections::BTreeMap<_, _>>();
     let mut archive_applying = std::collections::HashMap::<u64, [u8; 32]>::new();
-    let mut archive_carriers = std::collections::HashSet::new();
     for object in objects {
         let raw = container.read(object).map_err(|error| error.to_string())?;
         if let Some(envelope) = crate::container::publication_envelope::decode(&raw)
@@ -266,32 +265,9 @@ pub(crate) fn owner_history_digest(
             }
             continue;
         }
-        let publication = if let Some(version) =
-            crate::archive_history_codec::decode_record_version(&raw)
-                .map_err(|error| error.to_string())?
-        {
-            Some((version.global_version, version.record))
-        } else if let Some(version) =
-            crate::memory_codec::decode_version(&raw).map_err(|error| error.to_string())?
-        {
-            Some((version.global_version, version.record))
-        } else if let Some(version) =
-            crate::entity_codec::decode_version(&raw).map_err(|error| error.to_string())?
-        {
-            Some((version.global_version, version.record))
-        } else if let Some(version) =
-            crate::relationship_codec::decode_version(&raw).map_err(|error| error.to_string())?
-        {
-            Some((version.global_version, version.record))
-        } else if let Some(version) =
-            crate::graph_codec::decode_version(&raw).map_err(|error| error.to_string())?
-        {
-            Some((version.global_version, version.mutation))
-        } else {
-            crate::vector_generation_codec::decode_version(&raw)
-                .map_err(|error| error.to_string())?
-                .map(|version| (version.global_version, version.record))
-        };
+        let publication = crate::vector_generation_codec::decode_version(&raw)
+            .map_err(|error| error.to_string())?
+            .map(|version| (version.global_version, version.record));
         if let Some((global, record)) = publication {
             if global <= watermark {
                 let normalized = crate::storage_reclamation::relocate_payload(&raw, &normalized)?;
@@ -312,21 +288,10 @@ pub(crate) fn owner_history_digest(
                         .map_err(|error| error.to_string())?
                 {
                     proof.original_carrier_digest
-                } else if bytes.starts_with(b"CVAEPRN1") || bytes.starts_with(b"CVARPRN1") {
-                    bytes
-                        .get(8..40)
-                        .ok_or("truncated description marker")?
-                        .try_into()
-                        .unwrap()
                 } else {
                     Sha256::digest(&bytes).into()
                 };
-                if let Some(version) = crate::archive_history_codec::decode_record_version(&raw)
-                    .map_err(|error| error.to_string())?
-                    && archive_carriers.insert(version.record)
-                {
-                    archive_applying.insert(version.archive_version, digest);
-                }
+
                 digest_bytes(&mut hash, &digest);
             }
             continue;

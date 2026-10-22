@@ -172,9 +172,6 @@ pub(crate) fn history_evidence(
 /// Inspect this owner's direct publication coordinates, never inert carriers.
 /// Callers resolving accepted facts must still consult the admitted Memory owner.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, MemoryError> {
-    if let Some(version) = crate::memory_codec::decode_version(payload)? {
-        return Ok(Some((version.global_version, version.memory_version)));
-    }
     let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

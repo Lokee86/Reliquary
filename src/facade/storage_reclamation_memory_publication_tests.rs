@@ -1,7 +1,9 @@
 //! Memory publication envelopes are live physical publications during reclamation.
 use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 use crate::memory_codec::encode_body;
-use crate::memory_compact_codec::encode_creation;
+fn encode_creation(c: &MemoryCreation) -> Result<Vec<u8>, crate::MemoryError> {
+    publication::encode(&MemoryPublication::Creation(c.clone()))
+}
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_compact_contract::{MemoryCreation, MemoryDelta};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id};

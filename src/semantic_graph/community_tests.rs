@@ -213,16 +213,6 @@ fn phylactery_has_independent_owner_local_communities() {
 }
 
 #[test]
-fn legacy_owner_cannot_publish_community_identity() {
-    let file = path("legacy.cva");
-    let mut rel = Cva::create_legacy_cva(&file).unwrap();
-    assert!(matches!(
-        rel.refresh_communities_leiden(),
-        Err(CommunityError::MissingOwnerIdentity)
-    ));
-}
-
-#[test]
 fn v1_snapshot_reopens_and_explicit_refresh_upgrades_to_v2() {
     let file = path("community-v1-upgrade.prj.rel");
     let mut rel = Cva::create_project(&file).unwrap();

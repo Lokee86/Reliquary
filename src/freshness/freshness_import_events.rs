@@ -203,7 +203,6 @@ impl FreshnessStore {
             settlement_cut: scope.freeze_cut,
             accepted_events: accepted,
             superseded: superseded.clone(),
-            predecessor_digest: None,
         })
     }
 
@@ -375,9 +374,8 @@ impl FreshnessStore {
     /// Select exact owner-local event identities physically appended after the
     /// ImportStart prefix and accepted by the finite freeze prefix.
     ///
-    /// CVAFRS05 ingestion repeats this selection; Cva authenticates its scope
-    /// against the durable start and frozen owner evidence. Legacy CVAFRS03/04
-    /// receipts do not acquire an epoch boundary by inference.
+    /// Construction turns this transient physical selection into standalone
+    /// semantic event evidence authenticated against the durable import start.
     pub(crate) fn import_events_in_scope(
         &self,
         scope: &ImportEventScope,

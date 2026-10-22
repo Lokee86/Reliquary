@@ -205,9 +205,6 @@ fn validate_terminal(revision: u64, entity_version: u64) -> Result<(), EntityErr
 
 /// Publication coordinates only; consumers resolve facts through EntityStore.
 pub(crate) fn coordinates(payload: &[u8]) -> Result<Option<(u64, u64)>, EntityError> {
-    if let Some(version) = crate::entity_codec::decode_version(payload)? {
-        return Ok(Some((version.global_version, version.entity_version)));
-    }
     let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
         return Ok(None);
     };

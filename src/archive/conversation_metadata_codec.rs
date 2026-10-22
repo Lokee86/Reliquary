@@ -1,8 +1,6 @@
 use crate::{ArchiveError, ConversationMetadata, ConversationPolicy};
 
 pub(crate) const CONVERSATION_METADATA_MAGIC: [u8; 8] = *b"CVACONV3";
-pub(crate) const ACTIVE_CONVERSATION_METADATA_MAGIC: [u8; 8] = *b"CVACONV2";
-pub(crate) const LEGACY_CONVERSATION_METADATA_MAGIC: [u8; 8] = *b"CVACONV1";
 
 pub(crate) fn encode_conversation_metadata(
     metadata: &ConversationMetadata,
@@ -39,55 +37,17 @@ pub(crate) fn encode_conversation_metadata_fields(
 pub(crate) fn decode_conversation_metadata(
     bytes: &[u8],
 ) -> Result<ConversationMetadata, ArchiveError> {
-    let magic = bytes.get(..8).ok_or(ArchiveError::CorruptRecord(
-        "invalid conversation metadata record",
-    ))?;
-    let has_policy = magic == CONVERSATION_METADATA_MAGIC;
-    let has_active = has_policy || magic == ACTIVE_CONVERSATION_METADATA_MAGIC;
-    if !has_active && magic != LEGACY_CONVERSATION_METADATA_MAGIC {
-        return Err(ArchiveError::CorruptRecord(
-            "invalid conversation metadata record",
-        ));
+    if !bytes.starts_with(&CONVERSATION_METADATA_MAGIC) {
+        return Err(ArchiveError::CorruptRecord("invalid conversation metadata"));
     }
     let mut cursor = 8;
-    if has_policy {
-        let metadata = decode_conversation_metadata_fields(bytes, &mut cursor)?;
-        if cursor != bytes.len() {
-            return Err(ArchiveError::CorruptRecord(
-                "conversation metadata trailing bytes",
-            ));
-        }
-        return Ok(metadata);
-    }
-
-    // V1/V2 remain isolated legacy paths with their historical defaults.
-    let conversation_id = read_string(bytes, &mut cursor)?;
-    let title = read_string(bytes, &mut cursor)?;
-    let active = if has_active {
-        match read_byte(bytes, &mut cursor)? {
-            0 => false,
-            1 => true,
-            _ => {
-                return Err(ArchiveError::CorruptRecord(
-                    "invalid conversation active flag",
-                ));
-            }
-        }
-    } else {
-        false
-    };
+    let metadata = decode_conversation_metadata_fields(bytes, &mut cursor)?;
     if cursor != bytes.len() {
         return Err(ArchiveError::CorruptRecord(
             "conversation metadata trailing bytes",
         ));
     }
-    Ok(ConversationMetadata {
-        conversation_id,
-        title: (!title.is_empty()).then_some(title),
-        active,
-        policy: ConversationPolicy::default(),
-        policy_revision: 1,
-    })
+    Ok(metadata)
 }
 
 /// Decode current V3 metadata fields from `bytes`, advancing the caller cursor.

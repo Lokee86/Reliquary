@@ -82,38 +82,19 @@ fn append_compact_transaction(
             },
         )
         .collect::<Vec<_>>();
-    if native {
-        let transaction = if values.len() == 1 {
-            GraphTransaction::Single(values[0])
-        } else {
-            GraphTransaction::Batch(values)
-        };
-        let body = publication::encode(&GraphPublication {
-            graph_version,
-            transaction,
-        })
-        .unwrap();
-        rel.container.append_publication_envelope(&body).unwrap();
+    let transaction = if values.len() == 1 {
+        GraphTransaction::Single(values[0])
     } else {
-        let carrier = if values.len() == 1 {
-            rel.container.append(&encode_mutation(values[0])).unwrap()
-        } else {
-            rel.container
-                .append(&encode_batch(&values).unwrap())
-                .unwrap()
-        };
-        let global_version = rel
-            .container
-            .allocate_version_with_transaction_time(Some(9_000 + graph_version as i64))
-            .unwrap();
-        rel.container
-            .append(&encode_version(GraphVersionPayload {
-                global_version,
-                graph_version,
-                mutation: carrier,
-            }))
-            .unwrap();
-    }
+        GraphTransaction::Batch(values)
+    };
+    let body = publication::encode(&GraphPublication {
+        graph_version,
+        transaction,
+    })
+    .unwrap();
+    rel.container
+        .set_next_transaction_time_override(Some(9_000 + graph_version as i64));
+    rel.container.append_publication_envelope(&body).unwrap();
 }
 
 #[test]

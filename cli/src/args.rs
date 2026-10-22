@@ -27,10 +27,6 @@ pub enum Command {
         #[command(subcommand)]
         command: PhyCommand,
     },
-    Migrate {
-        source: PathBuf,
-        output: PathBuf,
-    },
     MigrateConversationTitles {
         source: PathBuf,
         #[arg(value_name = "REL")]

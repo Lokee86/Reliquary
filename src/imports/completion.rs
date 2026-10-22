@@ -77,7 +77,6 @@ impl Cva {
         import_id: &str,
         now_ns: i64,
     ) -> Result<ImportCompletionOutcome, CvaError> {
-        self.container.require_storage_format_writable()?;
         self.validate_historical_import_settlements()?;
         // Read the accepted physical markers on every attempt. In particular,
         // append may have succeeded before an earlier synchronization failed.
@@ -176,7 +175,7 @@ impl Cva {
         let mut settlements = BTreeMap::new();
         let mut scan = Container::open_read_only_for_scan(self.container.path())?;
         scan.visit_payloads::<CvaError>(|_, payload| {
-            if payload.starts_with(b"CVAFRS05") || payload.starts_with(b"CVAFRS06") {
+            if payload.starts_with(b"CVAFRS06") {
                 let settlement = HistoricalImportFreshnessSettlement::decode(payload)
                     .map_err(CvaError::Freshness)?;
                 let id = id_text(&settlement.import_id);
@@ -197,13 +196,7 @@ impl Cva {
                     memory_graph: settlement.memory_graph_version,
                 };
                 if let Some(previous) = settlements.get(&id) {
-                    if previous != &evidence
-                        && settlement
-                            .semantic
-                            .as_ref()
-                            .and_then(|s| s.predecessor_digest)
-                            .is_none()
-                    {
+                    if previous != &evidence {
                         return Err(epoch_error("conflicting physical import settlements"));
                     }
                 } else {

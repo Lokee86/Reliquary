@@ -1,7 +1,7 @@
 //! The existing Graph node table owns ordinal interpretation.
 use super::GraphStore;
 use crate::GraphError;
-use crate::graph_codec::{GraphMutationPayload, decode_batch, decode_mutation};
+use crate::graph_codec::GraphMutationPayload;
 use crate::graph_compact_contract::GraphOrdinalMutation;
 
 impl GraphStore {
@@ -22,7 +22,7 @@ impl GraphStore {
     }
 
     /// Bind compact publications to stable endpoint identities, independently
-    /// of this owner's ordinal assignment. Legacy carrier digests stay exact.
+    /// of this owner's ordinal assignment. Comparison hash schema tags stay exact.
     pub(crate) fn compact_carrier_digest(
         &self,
         bytes: &[u8],
@@ -44,10 +44,16 @@ impl GraphStore {
                 };
                 (publication.mutations().to_vec(), magic.as_slice())
             } else {
-                let Some(ordinals) = crate::graph_compact_codec::decode(bytes)? else {
+                let Some(publication) = crate::graph_compact_codec::publication::decode(bytes, 1)?
+                else {
                     return Ok(None);
                 };
-                (ordinals, &bytes[..8])
+                let magic = if publication.is_single() {
+                    b"CVAGCM01"
+                } else {
+                    b"CVAGCB01"
+                };
+                (publication.mutations().to_vec(), magic.as_slice())
             };
         let values = self.resolve_compact_mutations(&ordinals)?;
         let mut hash = Sha256::new();
@@ -93,8 +99,7 @@ impl GraphStore {
             .collect()
     }
 
-    /// For readers of an accepted owner. Open replay instead buffers ordinal
-    /// carriers until their physical marker before resolving endpoints.
+    /// Resolve concrete current publications from an accepted owner.
     pub(crate) fn decode_stored_mutations(
         &self,
         bytes: &[u8],
@@ -120,17 +125,14 @@ impl GraphStore {
                 .resolve_compact_mutations(publication.mutations())
                 .map(|values| Some((publication.is_single(), values)));
         }
-        if let Some(values) = crate::graph_compact_codec::decode(bytes)? {
-            return self
-                .resolve_compact_mutations(&values)
-                .map(|values| Some((bytes.starts_with(b"CVAGCM01"), values)));
-        }
-        if let Some(batch) = decode_batch(bytes)? {
-            return Ok(Some((false, batch)));
-        }
-        Ok(decode_mutation(bytes)?.map(|value| (true, vec![value])))
+        let Some(publication) = crate::graph_compact_codec::publication::decode(bytes, 1)? else {
+            return Ok(None);
+        };
+        self.resolve_compact_mutations(publication.mutations())
+            .map(|values| Some((publication.is_single(), values)))
     }
 
+    #[cfg(test)]
     pub(crate) fn encode_compact_mutations(
         &self,
         values: &[GraphMutationPayload],

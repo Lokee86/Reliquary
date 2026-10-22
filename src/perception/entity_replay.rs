@@ -123,7 +123,6 @@ impl EntityStore {
         container: &mut Container,
         publication: EntityReplayPublication,
     ) -> Result<bool, EntityError> {
-        container.require_storage_format_writable()?;
         match publication {
             EntityReplayPublication::Record(record) => self.replay_record(container, record),
             EntityReplayPublication::PrunedRecord { .. } => Err(EntityError::PayloadUnavailable(

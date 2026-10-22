@@ -8,7 +8,6 @@ impl Archive {
         container: &mut Container,
         metadata: ConversationMetadata,
     ) -> Result<bool, ArchiveError> {
-        container.require_storage_format_writable()?;
         validate_text(&metadata.conversation_id, "conversation id")?;
         self.require_current_conversation_id(&metadata.conversation_id)?;
         if !self.has_conversation(&metadata.conversation_id) {
@@ -49,7 +48,6 @@ impl Archive {
         conversation_id: &str,
         policy: ConversationPolicy,
     ) -> Result<bool, ArchiveError> {
-        container.require_storage_format_writable()?;
         self.require_current_conversation_id(conversation_id)?;
         if !self.has_conversation(conversation_id) {
             return Err(ArchiveError::MissingConversation);

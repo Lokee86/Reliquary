@@ -3,8 +3,6 @@ pub(crate) mod publication_envelope;
 
 #[path = "container_scan.rs"]
 mod scan;
-#[path = "container_upgrade.rs"]
-mod upgrade;
 
 use std::collections::BTreeMap;
 use std::fmt;
@@ -14,11 +12,9 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 const MAGIC: [u8; 8] = *b"CVA\0\r\n\x1a\n";
-const LEGACY_HEADER_LEN: u64 = 16;
-const LEGACY_TYPED_HEADER_LEN: u64 = 24;
+const BASE_HEADER_LEN: u64 = 16;
 const IDENTITY_HEADER_LEN: u64 = 40;
 const CHUNK_HEADER_LEN: u64 = 8;
-const LEGACY_VERSION: FormatVersion = FormatVersion { major: 1, minor: 0 };
 const CURRENT_VERSION: FormatVersion = COMPACT_VERSION;
 pub(super) const COMPACT_VERSION: FormatVersion = FormatVersion { major: 2, minor: 0 };
 
@@ -148,7 +144,7 @@ impl Container {
             version: CURRENT_VERSION,
             identity: None,
             owner_uuid: None,
-            header_len: LEGACY_HEADER_LEN,
+            header_len: BASE_HEADER_LEN,
             next_version: 1,
             transaction_times: BTreeMap::new(),
             next_transaction_time_override: None,
@@ -162,34 +158,6 @@ impl Container {
         identity: ContainerIdentity,
     ) -> Result<Self, ContainerError> {
         Self::create_with_identity_and_uuid(path, identity, *Uuid::new_v4().as_bytes())
-    }
-
-    pub(crate) fn create_with_legacy_identity(
-        path: impl AsRef<Path>,
-        identity: ContainerIdentity,
-    ) -> Result<Self, ContainerError> {
-        validate_identity(identity)?;
-        let path = path.as_ref();
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create_new(true)
-            .open(path)?;
-        file.write_all(&encode_legacy_identity_header(identity))?;
-        file.sync_all()?;
-        Ok(Self {
-            file,
-            path: path.to_path_buf(),
-            version: CURRENT_VERSION,
-            identity: Some(identity),
-            owner_uuid: None,
-            header_len: LEGACY_TYPED_HEADER_LEN,
-            next_version: 1,
-            transaction_times: BTreeMap::new(),
-            next_transaction_time_override: None,
-            write_admission_closed: false,
-            owner_write_scope: false,
-        })
     }
 
     pub(crate) fn create_with_identity_and_uuid(
@@ -241,16 +209,7 @@ impl Container {
         self.owner_write_scope = active;
     }
 
-    pub(crate) fn require_storage_format_writable(&self) -> Result<(), ContainerError> {
-        if self.version == LEGACY_VERSION {
-            Err(ContainerError::StorageFormatUpgradeRequired)
-        } else {
-            Ok(())
-        }
-    }
-
     pub(crate) fn require_write_admission(&self) -> Result<(), ContainerError> {
-        self.require_storage_format_writable()?;
         if self.write_admission_closed && !self.owner_write_scope {
             Err(ContainerError::WriteAdmissionClosed)
         } else {
@@ -525,12 +484,8 @@ impl Container {
     }
 
     pub(crate) fn create_empty_like(&self, path: impl AsRef<Path>) -> Result<Self, ContainerError> {
-        self.require_storage_format_writable()?;
         match (self.header_len, self.identity, self.owner_uuid) {
-            (LEGACY_HEADER_LEN, None, None) => Self::create(path),
-            (LEGACY_TYPED_HEADER_LEN, Some(identity), None) => {
-                Self::create_with_legacy_identity(path, identity)
-            }
+            (BASE_HEADER_LEN, None, None) => Self::create(path),
             (IDENTITY_HEADER_LEN, Some(identity), Some(owner_uuid)) => {
                 Self::create_with_identity_and_uuid(path, identity, owner_uuid)
             }
@@ -604,9 +559,6 @@ impl Container {
     }
 
     pub fn sync(&self) -> Result<(), ContainerError> {
-        if self.version == LEGACY_VERSION {
-            return Ok(());
-        }
         self.file.sync_all().map_err(ContainerError::Io)
     }
 }
@@ -626,7 +578,6 @@ pub enum ContainerError {
     VersionExhausted,
     ChunkTooLarge,
     WriteAdmissionClosed,
-    StorageFormatUpgradeRequired,
 }
 
 impl From<io::Error> for ContainerError {
@@ -635,22 +586,12 @@ impl From<io::Error> for ContainerError {
     }
 }
 
-fn encode_header(version: FormatVersion) -> [u8; LEGACY_HEADER_LEN as usize] {
-    let mut header = [0_u8; LEGACY_HEADER_LEN as usize];
+fn encode_header(version: FormatVersion) -> [u8; BASE_HEADER_LEN as usize] {
+    let mut header = [0_u8; BASE_HEADER_LEN as usize];
     header[..8].copy_from_slice(&MAGIC);
     header[8..10].copy_from_slice(&version.major.to_le_bytes());
     header[10..12].copy_from_slice(&version.minor.to_le_bytes());
-    header[12..16].copy_from_slice(&(LEGACY_HEADER_LEN as u32).to_le_bytes());
-    header
-}
-
-fn encode_legacy_identity_header(
-    identity: ContainerIdentity,
-) -> [u8; LEGACY_TYPED_HEADER_LEN as usize] {
-    let current = encode_identity_header(identity, [0; 16]);
-    let mut header = [0_u8; LEGACY_TYPED_HEADER_LEN as usize];
-    header.copy_from_slice(&current[..LEGACY_TYPED_HEADER_LEN as usize]);
-    header[12..16].copy_from_slice(&(LEGACY_TYPED_HEADER_LEN as u32).to_le_bytes());
+    header[12..16].copy_from_slice(&(BASE_HEADER_LEN as u32).to_le_bytes());
     header
 }
 
@@ -696,37 +637,7 @@ fn read_header(
     ),
     ContainerError,
 > {
-    read_header_for_version_selection(file, None)
-}
-
-fn read_header_for_version(
-    file: &mut File,
-    expected_version: FormatVersion,
-) -> Result<
-    (
-        FormatVersion,
-        Option<ContainerIdentity>,
-        Option<[u8; 16]>,
-        u64,
-    ),
-    ContainerError,
-> {
-    read_header_for_version_selection(file, Some(expected_version))
-}
-
-fn read_header_for_version_selection(
-    file: &mut File,
-    expected_version: Option<FormatVersion>,
-) -> Result<
-    (
-        FormatVersion,
-        Option<ContainerIdentity>,
-        Option<[u8; 16]>,
-        u64,
-    ),
-    ContainerError,
-> {
-    let mut header = [0_u8; LEGACY_HEADER_LEN as usize];
+    let mut header = [0_u8; BASE_HEADER_LEN as usize];
     file.read_exact(&mut header).map_err(|error| {
         if error.kind() == io::ErrorKind::UnexpectedEof {
             ContainerError::TruncatedHeader
@@ -741,19 +652,15 @@ fn read_header_for_version_selection(
         major: u16::from_le_bytes([header[8], header[9]]),
         minor: u16::from_le_bytes([header[10], header[11]]),
     };
-    if expected_version.is_some_and(|expected| version != expected)
-        || (version != LEGACY_VERSION && version != COMPACT_VERSION)
-    {
+    if version != CURRENT_VERSION {
         return Err(ContainerError::UnsupportedVersion(version));
     }
     let length = u32::from_le_bytes([header[12], header[13], header[14], header[15]]);
-    if length == LEGACY_HEADER_LEN as u32 {
-        // Legacy v1 has no embedded semantic discriminator. Reliquary treats
-        // this physical form explicitly as legacy Project state while keeping
-        // the missing identity visible so migration remains detectable.
-        return Ok((version, None, None, LEGACY_HEADER_LEN));
+    if length == BASE_HEADER_LEN as u32 {
+        // Bare containers have no semantic owner identity.
+        return Ok((version, None, None, BASE_HEADER_LEN));
     }
-    if length != LEGACY_TYPED_HEADER_LEN as u32 && length != IDENTITY_HEADER_LEN as u32 {
+    if length != IDENTITY_HEADER_LEN as u32 {
         return Err(ContainerError::InvalidHeaderLength(length));
     }
     let mut identity_bytes = [0_u8; 8];

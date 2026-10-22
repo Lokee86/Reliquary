@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "policy": "Remove tests requiring retired physical readers/converters; retain and adapt current semantic regressions. This record is not final test acceptance.",
+  "dispositions": [
+    {
+      "file": "src/facade/historical_baseline_artifacts.rs",
+      "disposition": "removed obsolete legacy-format-only test module",
+      "current_coverage": "current native owner, prune, codec and frozen-corpus tests remain"
+    },
+    {
+      "file": "src/perception/entity_legacy_admission_tests.rs",
+      "disposition": "removed obsolete legacy-format-only test module",
+      "current_coverage": "current native owner, prune, codec and frozen-corpus tests remain"
+    },
+    {
+      "file": "src/perception/relationship_v1_characterization_tests.rs",
+      "disposition": "removed obsolete legacy-format-only test module",
+      "current_coverage": "current native owner, prune, codec and frozen-corpus tests remain"
+    },
+    {
+      "file": "src/perception/entity_publication_legacy_prune_tests.rs",
+      "disposition": "removed obsolete legacy-format-only test module",
+      "current_coverage": "current native owner, prune, codec and frozen-corpus tests remain"
+    },
+    {
+      "file": "src/perception/relationship_publication_legacy_prune_tests.rs",
+      "disposition": "removed obsolete legacy-format-only test module",
+      "current_coverage": "current native owner, prune, codec and frozen-corpus tests remain"
+    },
+    {
+      "file": "src/archive/archive_activity_preservation_tests.rs",
+      "function": "fresh_migration_preserves_order_when_redundant_versions_are_removed",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/archive/interaction_stream_compact_tests.rs",
+      "function": "compact_stream_v1_conversion_preserves_all_checkpoint_postimages",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/archive/project_history_tests.rs",
+      "function": "legacy_v1_correlation_defaults_management_from_repository_kind",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/ego/ego_compact_contract_tests.rs",
+      "function": "legacy_identity_creation_normalizes_to_active_default_identity",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/ego/ego_compact_creation_codec_tests.rs",
+      "function": "legacy_identity_creation_normalizes_to_default_identity",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/ego/ego_compact_replay_tests.rs",
+      "function": "compact_publications_require_storage_v2_after_first_compact_frame",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/ego/ego_identity_tests.rs",
+      "function": "legacy_single_identity_reopens_as_active_default_identity",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/external_source/compact_tests.rs",
+      "function": "compact_external_index_v1_upgrade_retains_only_current_cache_and_publication_authority",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/external_source/publication_compact_tests.rs",
+      "function": "cvaxmem1_adapter_reads_populated_legacy_record_coordinates",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/external_source/publication_compact_tests.rs",
+      "function": "v1_owner_replays_populated_legacy_external_publication_without_rewriting_bytes",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/external_source/publication_compact_tests.rs",
+      "function": "v1_external_publication_memory_migration_preserves_semantics_and_source_bytes",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/dream_population_authority_tests.rs",
+      "function": "v1_dream_begin_upgrade_proves_exact_sets_and_keeps_subset_and_late_proof_exceptions",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/historical_ego_fingerprint_tests.rs",
+      "function": "legacy_identity_carrier_matches_its_canonical_identity_projection",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/historical_import_tests.rs",
+      "function": "legacy_cvafrs03_settlement_reopens_with_real_import_birth_evidence",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/historical_import_tests.rs",
+      "function": "cvafrs04_normalizes_and_reopens_without_changing_effective_freshness",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/historical_import_tests.rs",
+      "function": "legacy_settlement_normalization_is_semantic_idempotent_and_predecessor_bound",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/historical_import_tests.rs",
+      "function": "legacy_epoch_frame_normalizes_then_reopens_after_reclamation",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/reliquary_tests.rs",
+      "function": "legacy_typed_rel_remains_readable_without_making_type_behavioral",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/facade/review_clocks_tests.rs",
+      "function": "legacy_owners_cannot_supply_an_owner_qualified_reading",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/imports/completion_tests.rs",
+      "function": "v5_native_settlement_normalizes_once_and_survives_relocation",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/imports/reconciliation_compact_memory_tests.rs",
+      "function": "compact_memory_publications_have_legacy_canonical_evidence_with_clears",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/imports/reconciliation_resolution_delta_tests.rs",
+      "function": "entity_resolution_retained_interval_keeps_inert_original_and_frozen_visibility",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/memory/memory_compact_contract_tests.rs",
+      "function": "contracts_accept_retained_v1_creation_and_revision_without_reinterpreting_fields",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/memory/memory_compact_replay_tests.rs",
+      "function": "assert_v1_memory_upgrade_preserves_reversed_global_history",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/memory/memory_compact_replay_tests.rs",
+      "function": "v1_rel_and_phy_reopen_accept_successor_with_earlier_global_ticket",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/perception/entity_resolution_delta_tests.rs",
+      "function": "entity_resolution_delta_rel_history_upgrade_and_reclaim_match_every_postimage",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/runtime_inference/dream_pair_history_tests.rs",
+      "function": "dream_pair_v1_upgrade_preserves_rel_and_phy_sets_and_rejects_disguised_current_rows",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/semantic_graph/graph_compact_rebuild_tests.rs",
+      "function": "compact_unmarked_v1_is_inert_but_published_v1_is_rejected",
+      "disposition": "removed obsolete migration/legacy-admission scenario",
+      "current_coverage": "current family codec/admission/history regressions and six-file frozen current corpus"
+    },
+    {
+      "file": "src/memory/memory_compact_replay_tests.rs",
+      "disposition": "removed obsolete standalone 001/full carrier plus version-link admission tests",
+      "current_coverage": "native publication replay/writer/prune/copy/history suites retain current field, ordering, predecessor, retry and atomicity coverage; compact field codecs remain for current grouped/proof components"
+    },
+    {
+      "file": "src/perception/entity_compact_rebuild_tests.rs",
+      "disposition": "removed obsolete standalone 001/full carrier plus version-link admission tests",
+      "current_coverage": "native publication replay/writer/prune/copy/history suites retain current field, ordering, predecessor, retry and atomicity coverage; compact field codecs remain for current grouped/proof components"
+    },
+    {
+      "file": "src/perception/relationship_compact_rebuild_tests.rs",
+      "disposition": "removed obsolete standalone 001/full carrier plus version-link admission tests",
+      "current_coverage": "native publication replay/writer/prune/copy/history suites retain current field, ordering, predecessor, retry and atomicity coverage; compact field codecs remain for current grouped/proof components"
+    },
+    {
+      "file": "src/semantic_graph/graph_compact_rebuild_tests.rs",
+      "disposition": "removed obsolete standalone 001/full carrier plus version-link admission tests",
+      "current_coverage": "native publication replay/writer/prune/copy/history suites retain current field, ordering, predecessor, retry and atomicity coverage; compact field codecs remain for current grouped/proof components"
+    },
+    {
+      "file": "src/perception/entity_publication_history_tests.rs",
+      "disposition": "removed obsolete marker-versus-envelope parity module after runtime reader deletion",
+      "current_coverage": "publication replay, copy and prune tests; frozen six-source current history oracle"
+    },
+    {
+      "file": "src/perception/relationship_publication_history_tests.rs",
+      "disposition": "removed obsolete marker-versus-envelope parity module after runtime reader deletion",
+      "current_coverage": "publication replay, copy and prune tests; frozen six-source current history oracle"
+    },
+    {
+      "file": "src/semantic_graph/graph_codec_tests.rs",
+      "function": "legacy_relation_payload_defaults_origin_to_dream",
+      "disposition": "removed retired format parity/defaulting scenario",
+      "current_coverage": "current publication codec/replay/proof tests and frozen current corpus oracle"
+    },
+    {
+      "file": "src/archive/turn_ingest_tests.rs",
+      "function": "legacy_ingested_turn_decodes_without_principal",
+      "disposition": "removed retired format parity/defaulting scenario",
+      "current_coverage": "current publication codec/replay/proof tests and frozen current corpus oracle"
+    },
+    {
+      "file": "src/perception/entity_publication_prune_tests.rs",
+      "function": "envelope_history_digest_matches_marker_history_at_every_watermark_for_both_terminal_kinds",
+      "disposition": "removed retired format parity/defaulting scenario",
+      "current_coverage": "current publication codec/replay/proof tests and frozen current corpus oracle"
+    },
+    {
+      "file": "src/facade/graph_compact_proof_tests.rs",
+      "function": "native_graph_history_proof_matches_legacy_at_every_watermark_and_binds_shape",
+      "disposition": "removed retired format parity/defaulting scenario",
+      "current_coverage": "current publication codec/replay/proof tests and frozen current corpus oracle"
+    },
+    {
+      "file": "src/archive/archive_publication_reader_tests.rs",
+      "disposition": "removed standalone-marker versus native-envelope parity after reader deletion",
+      "current_coverage": "current Archive codecs, replay/copy tests and exhaustive frozen corpus publication oracle"
+    }
+  ]
+}

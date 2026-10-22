@@ -2,7 +2,18 @@
 use crate::container::publication_envelope::{self, PublicationClock, PublicationEnvelope};
 use crate::owner_lifecycle::{LifecycleState, TombstoneCoordinates};
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-use crate::relationship_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+            c.clone(),
+        ),
+    )
+}
+fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    )
+}
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::{RelationshipParticipant, RelationshipRecord};
 use crate::{

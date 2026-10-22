@@ -9,7 +9,6 @@ impl Archive {
         container: &mut Container,
         fragment: Fragment,
     ) -> Result<bool, ArchiveError> {
-        container.require_storage_format_writable()?;
         self.require_current_conversation_id(&fragment.conversation_id)?;
         self.validate_fragment(&fragment)?;
         if let Some(existing) = self.fragments.get(fragment.id) {

@@ -35,15 +35,10 @@ mod compact_delta;
 mod freshness_trace;
 #[path = "facade/owner_maintenance.rs"]
 mod owner_maintenance;
-#[path = "storage_upgrade/mod.rs"]
-mod storage_upgrade;
 
 #[cfg(test)]
 #[path = "facade/historical_archive_fingerprint.rs"]
 mod historical_archive_fingerprint;
-#[cfg(all(test, feature = "history-oracle-fixtures"))]
-#[path = "facade/historical_baseline_artifacts.rs"]
-mod historical_baseline_artifacts;
 #[cfg(all(test, feature = "history-oracle-fixtures"))]
 #[path = "facade/historical_current_corpus_tests.rs"]
 mod historical_current_corpus_tests;
@@ -577,9 +572,6 @@ mod entity_compact_contract;
 #[cfg(test)]
 #[path = "facade/entity_compact_prune_tests.rs"]
 mod entity_compact_prune_tests;
-#[cfg(test)]
-#[path = "perception/entity_compact_rebuild_tests.rs"]
-mod entity_compact_rebuild_tests;
 #[path = "perception/entity_compact_values.rs"]
 mod entity_compact_values;
 #[cfg(test)]
@@ -596,9 +588,6 @@ mod entity_description_prune;
 mod entity_error;
 #[path = "perception/entity_identity_guard.rs"]
 mod entity_identity_guard;
-#[cfg(test)]
-#[path = "perception/entity_legacy_admission_tests.rs"]
-mod entity_legacy_admission_tests;
 #[path = "perception/entity_merge.rs"]
 mod entity_merge;
 #[path = "perception/entity_model.rs"]
@@ -669,9 +658,6 @@ mod entity_resolution_evidence;
 #[cfg(test)]
 #[path = "perception/entity_resolution_lifecycle_tests.rs"]
 mod entity_resolution_lifecycle_tests;
-#[cfg(test)]
-#[path = "perception/entity_resolution_migration_tests.rs"]
-mod entity_resolution_migration_tests;
 #[path = "perception/entity_resolution_model.rs"]
 mod entity_resolution_model;
 #[path = "perception/entity_resolution_owner.rs"]
@@ -771,9 +757,6 @@ mod graph_compact_contract;
 #[path = "semantic_graph/graph_compact_owner_tests.rs"]
 mod graph_compact_owner_tests;
 #[cfg(test)]
-#[path = "semantic_graph/graph_compact_rebuild_tests.rs"]
-mod graph_compact_rebuild_tests;
-#[cfg(test)]
 #[path = "semantic_graph/graph_compact_writer_tests.rs"]
 mod graph_compact_writer_tests;
 #[path = "semantic_graph/graph_error.rs"]
@@ -837,9 +820,6 @@ mod memory_compact_contract;
 #[path = "memory/memory_compact_maintenance_tests.rs"]
 mod memory_compact_maintenance_tests;
 #[cfg(test)]
-#[path = "memory/memory_compact_replay_tests.rs"]
-mod memory_compact_replay_tests;
-#[cfg(test)]
 #[path = "memory/memory_compact_retry_tests.rs"]
 mod memory_compact_retry_tests;
 #[path = "memory/memory_compact_values.rs"]
@@ -893,8 +873,6 @@ mod memory_vector_model;
 mod memory_vector_rebuild;
 #[path = "retrieval/memory_vector_store.rs"]
 mod memory_vector_store;
-#[path = "facade/migration.rs"]
-pub mod migration;
 #[path = "runtime_inference/model_auth.rs"]
 mod model_auth;
 #[path = "runtime_inference/model_switchboard.rs"]
@@ -1010,9 +988,6 @@ mod relationship_compact_contract;
 #[cfg(test)]
 #[path = "perception/relationship_compact_owner_tests.rs"]
 mod relationship_compact_owner_tests;
-#[cfg(test)]
-#[path = "perception/relationship_compact_rebuild_tests.rs"]
-mod relationship_compact_rebuild_tests;
 #[path = "perception/relationship_compact_values.rs"]
 mod relationship_compact_values;
 #[path = "perception/relationship_error.rs"]
@@ -1027,9 +1002,6 @@ mod relationship_rebuild;
 mod relationship_retained_structure;
 #[path = "perception/relationship_store.rs"]
 mod relationship_store;
-#[cfg(test)]
-#[path = "perception/relationship_v1_characterization_tests.rs"]
-mod relationship_v1_characterization_tests;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
@@ -1351,7 +1323,6 @@ pub use memory_vector_model::{
     MemoryVectorBuildResult, MemoryVectorId, MemoryVectorInfo, MemoryVectorLocation,
     MemoryVectorSet, MemoryVectorStats,
 };
-pub use migration::{MigrationError, MigrationResult, migrate_file};
 pub use model_auth::ModelRequestAuth;
 pub use model_switchboard::{
     DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind,
@@ -1722,9 +1693,6 @@ mod memory_tests;
 #[path = "retrieval/memory_vector_tests.rs"]
 mod memory_vector_tests;
 #[cfg(test)]
-#[path = "facade/migration_tests.rs"]
-mod migration_tests;
-#[cfg(test)]
 #[path = "runtime_inference/model_switchboard_tests.rs"]
 mod model_switchboard_tests;
 #[cfg(test)]
@@ -1815,10 +1783,6 @@ mod vector_generation_tests;
 #[path = "retrieval/vector_generation_validation_tests.rs"]
 mod vector_generation_validation_tests;
 
-#[cfg(test)]
-#[path = "facade/storage_format_boundary_tests.rs"]
-mod storage_format_boundary_tests;
-
 #[path = "perception/relationship_description_proof.rs"]
 mod relationship_description_proof;
 
@@ -1828,3 +1792,11 @@ mod relationship_description_prune;
 #[cfg(test)]
 #[path = "facade/relationship_compact_prune_tests.rs"]
 mod relationship_compact_prune_tests;
+
+#[cfg(test)]
+#[path = "ego/ego_current_fixture.rs"]
+mod ego_current_fixture;
+
+#[cfg(test)]
+#[path = "facade/dream_current_fixture.rs"]
+mod dream_current_fixture;

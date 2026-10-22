@@ -88,11 +88,7 @@ fn scan_entries_impl(
                 return Ok(());
             }
 
-            if payload.starts_with(super::semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC)
-                || payload.starts_with(super::import_settlement_storage::EPOCH_SETTLEMENT_MAGIC)
-                || payload.starts_with(super::import_settlement_storage::SETTLEMENT_MAGIC)
-                || payload.starts_with(super::import_settlement_storage::LEGACY_CHECKPOINT_MAGIC)
-            {
+            if payload.starts_with(super::semantic_settlement::SEMANTIC_SETTLEMENT_MAGIC) {
                 return Ok(());
             }
             if payload.starts_with(b"CVAFRS") && payload.get(..8) != Some(MAGIC.as_slice()) {

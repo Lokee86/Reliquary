@@ -13,7 +13,6 @@ impl RelationshipStore {
         container: &mut Container,
         mut record: RelationshipRecord,
     ) -> Result<Relationship, RelationshipError> {
-        container.require_storage_format_writable()?;
         if self.tombstones.contains_key(&record.id) {
             return Err(RelationshipError::TerminalTombstone);
         }

@@ -1,6 +1,5 @@
 //! Plan canonical compact replacements for selected Relationship descriptions.
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-use crate::relationship_compact_codec::{decode_creation, decode_delta};
 use crate::relationship_compact_contract::{
     RelationshipCreation, RelationshipDelta, RelationshipDescriptionProof,
 };
@@ -31,7 +30,6 @@ pub(crate) fn prepare_description_prune(
     }
 
     let mut previous_redacted = HashMap::<RelationshipId, RelationshipRecord>::new();
-    let mut accepted_carriers = HashSet::<ObjectRef>::new();
     let mut seen_selected = HashSet::<RelationshipId>::new();
 
     // Walk accepted publications in the physical marker order. That order is
@@ -40,29 +38,29 @@ pub(crate) fn prepare_description_prune(
     for object in container.chunks()? {
         let payload = container.read(object)?;
         let Some((global, local)) = publication::coordinates(&payload)? else {
+            // A bare current body has no accepted publication clock. The probe
+            // value is used only for structural decoding, never for admission.
+            let id = match publication::decode(&payload, 1)? {
+                Some(RelationshipPublication::Creation(c)) => Some(c.record.id),
+                Some(RelationshipPublication::Delta(d)) => Some(d.id),
+                _ => None,
+            };
+            if id.is_some_and(|id| selected.contains(&id)) {
+                plan.discard.insert(object);
+            }
             continue;
         };
         let Some(publication) = store.retained_publication_at(global, local)? else {
             continue;
         };
-        let envelope = crate::container::publication_envelope::decode(&payload)?;
-        let carrier = match envelope {
-            Some(_) => object,
-            None => {
-                crate::relationship_codec::decode_version(&payload)?
-                    .ok_or(RelationshipError::InvalidVersion)?
-                    .record
-            }
-        };
+        let envelope = crate::container::publication_envelope::decode(&payload)?
+            .ok_or(RelationshipError::InvalidVersion)?;
+        let carrier = object;
         match publication {
             RelationshipReplayPublication::Record(record) if selected.contains(&record.id) => {
-                let original = if let Some(envelope) = envelope {
-                    let body = publication::decode(envelope.body, envelope.global_version)?
-                        .ok_or(RelationshipError::InvalidVersion)?;
-                    publication::comparison_carrier(&body)?
-                } else {
-                    container.read(carrier)?
-                };
+                let body = publication::decode(envelope.body, envelope.global_version)?
+                    .ok_or(RelationshipError::InvalidVersion)?;
+                let original = publication::comparison_carrier(&body)?;
                 let proof = RelationshipDescriptionProof {
                     original_carrier_digest: Sha256::digest(&original).into(),
                     manifest_digest,
@@ -87,25 +85,19 @@ pub(crate) fn prepare_description_prune(
                     )?)
                 };
 
-                let replacement = if let Some(envelope) = envelope {
-                    let body = publication::encode(&replacement_publication)?;
-                    crate::container::publication_envelope::encode(
-                        crate::container::publication_envelope::PublicationEnvelope {
-                            global_version: envelope.global_version,
-                            clock: envelope.clock,
-                            body: &body,
-                        },
-                    )?
-                } else {
-                    publication::comparison_carrier(&replacement_publication)?
-                };
+                let body = publication::encode(&replacement_publication)?;
+                let replacement = crate::container::publication_envelope::encode(
+                    crate::container::publication_envelope::PublicationEnvelope {
+                        body: &body,
+                        ..envelope
+                    },
+                )?;
 
                 if plan.replacements.insert(carrier, replacement).is_some() {
                     return Err(RelationshipError::CorruptRecord(
                         "duplicate accepted Relationship carrier",
                     ));
                 }
-                accepted_carriers.insert(carrier);
                 previous_redacted.insert(record.id, redacted);
                 seen_selected.insert(record.id);
             }
@@ -120,30 +112,6 @@ pub(crate) fn prepare_description_prune(
 
     if selected.iter().any(|id| !seen_selected.contains(id)) {
         return Err(RelationshipError::MissingRelationship);
-    }
-
-    // Discard unreferenced raw carriers for selected identities so an older
-    // plaintext copy cannot survive the rewrite. Unselected carriers are left
-    // byte-for-byte alone, and terminal/version frames are never candidates.
-    for object in container.chunks()? {
-        if accepted_carriers.contains(&object) {
-            continue;
-        }
-        let payload = container.read(object)?;
-        let id = if crate::relationship_compact_codec::is_compact_record(&payload)? {
-            if payload.starts_with(b"CVARNC") {
-                Some(decode_creation(&payload)?.record.id)
-            } else if payload.starts_with(b"CVARND") {
-                Some(decode_delta(&payload)?.id)
-            } else {
-                None
-            }
-        } else {
-            crate::relationship_codec::decode_record(&payload)?.map(|record| record.id)
-        };
-        if id.is_some_and(|id| selected.contains(&id)) {
-            plan.discard.insert(object);
-        }
     }
 
     Ok(plan)

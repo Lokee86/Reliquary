@@ -6,7 +6,18 @@ use crate::relationship_codec::{
     RelationshipTombstone, RelationshipVersion, encode_record, encode_tombstone, encode_version,
 };
 use crate::relationship_compact_codec::publication::{self, RelationshipPublication};
-use crate::relationship_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+            c.clone(),
+        ),
+    )
+}
+fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    )
+}
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
 use crate::{
@@ -86,14 +97,17 @@ fn reserve_tickets(container: &mut Container, times: &[i64]) {
     }
 }
 
-fn append_version(container: &mut Container, carrier: crate::ObjectRef, global: u64, local: u64) {
-    container
-        .append(&encode_version(RelationshipVersion {
+fn append_version(container: &mut Container, carrier: crate::ObjectRef, global: u64, _local: u64) {
+    let body = container.read(carrier).unwrap();
+    let bytes = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            relationship_version: local,
-            record: carrier,
-        }))
-        .unwrap();
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: &body,
+        },
+    )
+    .unwrap();
+    container.append(&bytes).unwrap();
 }
 
 fn raw_owner(path: &Path) -> Cva {
@@ -125,10 +139,7 @@ fn raw_owner(path: &Path) -> Cva {
 
     let tombstone = owner
         .container
-        .append(&encode_tombstone(RelationshipTombstone {
-            id: first.id,
-            revision: 3,
-        }))
+        .append(&crate::relationship_compact_codec::publication::encode(&crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone { id: first.id, revision: 3, relationship_version: 3 }).unwrap())
         .unwrap();
     append_version(&mut owner.container, tombstone, 3, 3);
     owner
@@ -262,20 +273,13 @@ fn relationship_tail_rejects_pruned_payload_with_typed_unavailability() {
     let record = record(1, 1, 1, "pruned-create");
     let carrier = owner
         .container
-        .append(&encode_record(&record).unwrap())
+        .append(&encode_creation(&RelationshipCreation::new(record.clone()).unwrap()).unwrap())
         .unwrap();
     let global = owner
         .container
         .allocate_version_with_transaction_time(Some(20_001))
         .unwrap();
-    owner
-        .container
-        .append(&encode_version(RelationshipVersion {
-            global_version: global,
-            relationship_version: 1,
-            record: carrier,
-        }))
-        .unwrap();
+    append_version(&mut owner.container, carrier, global, 1);
     let mut retained = record.clone();
     retained.global_version = global;
     retained.relationship_version = 1;

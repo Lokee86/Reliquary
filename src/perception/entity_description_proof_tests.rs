@@ -1,5 +1,14 @@
 use super::compact_description_proof;
-use crate::entity_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &EntityCreation) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Creation(c.clone()),
+    )
+}
+fn encode_delta(d: &EntityDelta) -> Result<Vec<u8>, crate::EntityError> {
+    crate::entity_compact_codec::publication::encode(
+        &crate::entity_compact_codec::publication::EntityPublication::Delta(d.clone()),
+    )
+}
 use crate::entity_compact_contract::{EntityCreation, EntityDelta, EntityDescriptionProof};
 use crate::entity_model::EntityRecord;
 use crate::{EntityGlobalId, EntityId};

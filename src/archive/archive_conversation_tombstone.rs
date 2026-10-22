@@ -10,7 +10,6 @@ impl Archive {
         container: &mut Container,
         conversation_id: &str,
     ) -> Result<bool, ArchiveError> {
-        container.require_storage_format_writable()?;
         crate::archive_store::validate_text(conversation_id, "conversation id")?;
         if self.is_conversation_tombstoned(conversation_id) {
             return Ok(false);

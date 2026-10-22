@@ -17,7 +17,7 @@ fn row(
 }
 
 #[test]
-fn coordinate_adapter_uses_envelope_self_reference_and_preserves_legacy_links() {
+fn coordinate_adapter_uses_envelope_self_reference_and_ignores_retired_links() {
     let object = crate::ObjectRef::from_legacy_bytes([7; 16]);
     let carrier = crate::ObjectRef::from_legacy_bytes([3; 16]);
     let body = encode(&GraphPublication {
@@ -44,10 +44,11 @@ fn coordinate_adapter_uses_envelope_self_reference_and_preserves_legacy_links() 
         graph_version: 4,
         mutation: carrier,
     };
-    let version = version_at(object, &crate::graph_codec::encode_version(old))
-        .unwrap()
-        .unwrap();
-    assert_eq!(version.mutation, carrier);
+    assert!(
+        version_at(object, &crate::graph_codec::encode_version(old))
+            .unwrap()
+            .is_none()
+    );
     assert!(version_at(object, b"unrelated").unwrap().is_none());
 }
 

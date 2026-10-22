@@ -1,22 +1,6 @@
 use super::*;
 
 #[test]
-fn legacy_owners_cannot_supply_an_owner_qualified_reading() {
-    let temp = std::env::temp_dir().join(format!("staleness-legacy-{}", uuid::Uuid::new_v4()));
-    std::fs::create_dir_all(&temp).unwrap();
-    let rel = Cva::create_legacy_cva(temp.join("clock.cva")).unwrap();
-    let phy = Phylactery::create_legacy_typed(temp.join("clock.phy")).unwrap();
-    let source = ClockRef::OwnerMemoryVersion {
-        owner_uuid: [1; 16],
-    };
-    assert_eq!(rel.review_clock(source), Err(ClockError::MissingOwner));
-    assert_eq!(phy.review_clock(source), Err(ClockError::MissingOwner));
-    drop(rel);
-    drop(phy);
-    std::fs::remove_dir_all(temp).unwrap();
-}
-
-#[test]
 fn owner_adapters_read_existing_sources_and_reject_foreign_bindings() {
     let temp = std::env::temp_dir().join(format!("staleness-{}", uuid::Uuid::new_v4()));
     std::fs::create_dir_all(&temp).unwrap();

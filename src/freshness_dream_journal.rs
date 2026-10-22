@@ -47,31 +47,6 @@ pub(crate) struct DreamFreshnessJournal {
 }
 
 impl DreamFreshnessJournal {
-    /// Decode a transitional explicit Begin without admitting it. Destination
-    /// coordinators preserve its literal population before rebasing coordinates.
-    pub(crate) fn decode_explicit_begin(
-        payload: &[u8],
-        owner: [u8; 16],
-    ) -> Result<Option<InitialDreamPass>, String> {
-        if payload.get(..8) != Some(MAGIC.as_slice()) || payload.get(24) != Some(&0) {
-            return Ok(None);
-        }
-        let mut reader = Reader {
-            bytes: payload,
-            at: 8,
-        };
-        if reader.array::<16>()? != owner {
-            return Err("Dream replay owner mismatch".into());
-        }
-        let DreamEntry::Begin(pass) = decode_entry(&mut reader)? else {
-            unreachable!()
-        };
-        if reader.at != payload.len() {
-            return Err("trailing Dream replay bytes".into());
-        }
-        Ok(Some(pass))
-    }
-
     /// Clock-neutral accepted resume state for the test-only equivalence oracle.
     #[cfg(test)]
     pub(crate) fn historical_oracle_value(&self) -> serde_json::Value {
@@ -113,11 +88,6 @@ impl DreamFreshnessJournal {
             return Err("trailing Dream replay bytes".into());
         }
         let result = match entry {
-            DreamEntry::Begin(mut pass) => {
-                pass.turn = turn(pass.turn)?;
-                pass.graph_version_before = graph(pass.graph_version_before)?;
-                self.begin_payload(&pass)?
-            }
             DreamEntry::Roots(id, roots) => self.roots_payload(&id, &roots)?,
             DreamEntry::Settled(id) => self.settled_payload(&id)?,
             DreamEntry::Accept(id, cut) => self.accept_payload(&id, turn(cut)?)?,
@@ -199,7 +169,6 @@ impl DreamFreshnessJournal {
             return Err("trailing Dream Freshness journal bytes".into());
         }
         match entry {
-            DreamEntry::Begin(pass) => self.admit_begin(pass)?,
             DreamEntry::Roots(id, roots) => {
                 let pass = self
                     .pending
@@ -300,7 +269,7 @@ impl DreamFreshnessJournal {
 
     /// Admit a decoded current Begin after its population authority has been
     /// materialized by REL at the physical marker. This deliberately follows
-    /// the legacy Begin admission rules rather than going through the writer.
+    /// the exact accepted Begin identity rules rather than going through the writer.
     pub(crate) fn ingest_materialized_begin(
         &mut self,
         owner: [u8; 16],
@@ -336,7 +305,7 @@ impl DreamFreshnessJournal {
         Ok(())
     }
 
-    pub(crate) fn begin_payload(&self, pass: &InitialDreamPass) -> Result<Vec<u8>, String> {
+    pub(crate) fn begin_is_retry(&self, pass: &InitialDreamPass) -> Result<bool, String> {
         if self.settled.contains(&pass.pass_id) {
             return Err("Dream Freshness pass already settled".into());
         }
@@ -347,21 +316,13 @@ impl DreamFreshnessJournal {
                 && existing.preexisting_ids == pass.preexisting_ids
                 && existing.graph_version_before == pass.graph_version_before
             {
-                return Ok(Vec::new());
+                return Ok(true);
             }
             return Err("Dream Freshness pass ID collision".into());
         }
-        let owner = self
-            .owner_uuid
-            .ok_or("legacy owner requires explicit Freshness migration")?;
-        let mut out = header(owner, 0);
-        put_bytes(&mut out, pass.pass_id.as_bytes());
-        out.extend_from_slice(&pass.source_id.0);
-        out.extend_from_slice(&pass.first_revision.to_le_bytes());
-        out.extend_from_slice(&pass.turn.to_le_bytes());
-        out.extend_from_slice(&pass.graph_version_before.to_le_bytes());
-        put_ids(&mut out, &pass.preexisting_ids);
-        Ok(out)
+        self.owner_uuid
+            .ok_or("Dream pass requires an owner identity")?;
+        Ok(false)
     }
 
     pub(crate) fn roots_payload(
@@ -683,8 +644,20 @@ impl DirectBirthPrefix {
     }
 }
 
+/// Stable semantic comparison identity for completed-import evidence. This
+/// carrier is never appended or admitted as a physical Dream Begin record.
+pub(crate) fn begin_comparison_carrier(owner: [u8; 16], pass: &InitialDreamPass) -> Vec<u8> {
+    let mut out = header(owner, 0);
+    put_bytes(&mut out, pass.pass_id.as_bytes());
+    out.extend_from_slice(&pass.source_id.0);
+    out.extend_from_slice(&pass.first_revision.to_le_bytes());
+    out.extend_from_slice(&pass.turn.to_le_bytes());
+    out.extend_from_slice(&pass.graph_version_before.to_le_bytes());
+    put_ids(&mut out, &pass.preexisting_ids);
+    out
+}
+
 enum DreamEntry {
-    Begin(InitialDreamPass),
     Roots(String, BTreeSet<MemoryId>),
     Settled(String),
     Accept(String, u64),
@@ -706,7 +679,6 @@ fn decode_entry(r: &mut Reader<'_>) -> Result<DreamEntry, String> {
         Ok(value)
     }
     Ok(match r.u8()? {
-        0 => DreamEntry::Begin(r.pass()?),
         1 => DreamEntry::Roots(identity(r)?, r.ids()?),
         2 => DreamEntry::Settled(identity(r)?),
         3 => DreamEntry::Accept(identity(r)?, r.u64()?),
@@ -809,28 +781,6 @@ impl Reader<'_> {
         }
         Ok(ids)
     }
-    fn pass(&mut self) -> Result<InitialDreamPass, String> {
-        let pass_id =
-            String::from_utf8(self.bytes()?).map_err(|_| "invalid Dream pass ID UTF-8")?;
-        let source_id = MemoryId(self.array()?);
-        let first_revision = self.u64()?;
-        let turn = self.u64()?;
-        let graph_version_before = self.u64()?;
-        let preexisting_ids = self.ids()?;
-        if pass_id.is_empty() || first_revision != 1 || preexisting_ids.contains(&source_id) {
-            return Err("invalid initial Dream Freshness pass".into());
-        }
-        Ok(InitialDreamPass {
-            pass_id,
-            source_id,
-            first_revision,
-            turn,
-            accepted_settlement_turn: None,
-            preexisting_ids,
-            graph_version_before,
-            roots: BTreeSet::new(),
-        })
-    }
 }
 
 #[cfg(test)]
@@ -886,9 +836,7 @@ mod tests {
             roots: BTreeSet::new(),
         };
         let mut journal = DreamFreshnessJournal::new(Some(owner));
-        journal
-            .ingest(&journal.begin_payload(&pass).unwrap())
-            .unwrap();
+        journal.ingest_materialized_begin(owner, pass).unwrap();
         assert!(journal.accept_payload("pass", 7).is_err());
         let mut forged = header(owner, 3);
         put_bytes(&mut forged, b"pass");

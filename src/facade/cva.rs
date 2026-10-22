@@ -92,7 +92,6 @@ impl Cva {
         type_label: Option<String>,
         mut dependencies: Vec<String>,
     ) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         let type_label = type_label.and_then(|value| {
             let trimmed = value.trim();
             (!trimmed.is_empty()).then(|| trimmed.to_owned())
@@ -119,10 +118,6 @@ impl Cva {
         self.rel_metadata
             .put(&mut self.container, metadata)
             .map_err(CvaError::RelMetadata)
-    }
-
-    pub fn is_legacy_cva(&self) -> bool {
-        self.container.identity().is_none()
     }
 
     pub fn owner_id(&self) -> Option<String> {
@@ -179,7 +174,6 @@ impl Cva {
         timestamp_ns: i64,
         content: &str,
     ) -> Result<Node, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         let accepted = self.archive.append_node(
             &mut self.container,
             id,
@@ -195,7 +189,6 @@ impl Cva {
     }
 
     pub fn append_branch(&mut self, branch: Branch) -> Result<(), ArchiveError> {
-        self.container.require_storage_format_writable()?;
         self.archive.append_branch(&mut self.container, branch)
     }
 
@@ -204,7 +197,6 @@ impl Cva {
         conversation_id: &str,
         title: String,
     ) -> Result<bool, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         let mut metadata = self
             .archive
             .conversation_metadata(conversation_id)
@@ -220,7 +212,6 @@ impl Cva {
         conversation_id: &str,
         active: bool,
     ) -> Result<bool, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         let mut metadata = self
             .archive
             .conversation_metadata(conversation_id)
@@ -242,7 +233,6 @@ impl Cva {
         conversation_id: &str,
         policy: crate::ConversationPolicy,
     ) -> Result<bool, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         self.archive
             .set_conversation_policy(&mut self.container, conversation_id, policy)
     }
@@ -298,7 +288,6 @@ impl Cva {
         config: FragmentConfig,
         close_tail: bool,
     ) -> Result<Vec<Fragment>, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         self.archive.materialize_branch_fragments(
             &mut self.container,
             conversation_id,
@@ -315,7 +304,6 @@ impl Cva {
         config: FragmentConfig,
         close_tail: bool,
     ) -> Result<Vec<Fragment>, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         self.archive.materialize_path_fragments(
             &mut self.container,
             conversation_id,
@@ -341,7 +329,6 @@ impl Cva {
         origin: EpisodeOrigin,
         close_tail: Option<(EpisodeBoundary, i64)>,
     ) -> Result<EpisodeBuildResult, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         self.archive.materialize_branch_episodes(
             &mut self.container,
             conversation_id,
@@ -360,7 +347,6 @@ impl Cva {
         origin: EpisodeOrigin,
         close_tail: Option<(EpisodeBoundary, i64)>,
     ) -> Result<EpisodeBuildResult, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         self.archive.materialize_path_episodes(
             &mut self.container,
             conversation_id,
@@ -406,7 +392,6 @@ impl Cva {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
-        self.container.require_storage_format_writable()?;
         let preflight = crate::cva_memory_publish::preflight_memory_parts(
             &self.archive,
             &mut self.memories,
@@ -462,7 +447,6 @@ impl Cva {
         id: MemoryId,
         expected_revision: u64,
     ) -> Result<crate::owner_lifecycle::TombstoneOutcome, MemoryError> {
-        self.container.require_storage_format_writable()?;
         let result = self
             .memories
             .tombstone(&mut self.container, id, expected_revision)?;
@@ -527,7 +511,6 @@ impl Cva {
         temporal_status: &str,
         mutation_id: String,
     ) -> Result<(Memory, bool), MemoryError> {
-        self.container.require_storage_format_writable()?;
         if !matches!(temporal_status, "current" | "future" | "historical") {
             return Err(MemoryError::InvalidField("temporal status"));
         }
@@ -593,7 +576,6 @@ impl Cva {
         &mut self,
         metadata: crate::MemoryRoutingMetadata,
     ) -> Result<bool, MemoryError> {
-        self.container.require_storage_format_writable()?;
         self.memories
             .put_routing_metadata(&mut self.container, metadata)
     }
@@ -636,7 +618,6 @@ impl Cva {
         mime_type: Option<String>,
         bytes: &[u8],
     ) -> Result<StoredFile, ArchiveError> {
-        self.container.require_storage_format_writable()?;
         self.archive
             .store_file(&mut self.container, filename, mime_type, bytes)
     }
@@ -668,7 +649,6 @@ impl Cva {
         summary: String,
         supersedes_through_message_id: Option<&str>,
     ) -> Result<crate::ConversationCompaction, CvaError> {
-        self.container.require_storage_format_writable()?;
         let record = self.conversation_compactions.put(
             &mut self.container,
             conversation_id,
@@ -683,7 +663,6 @@ impl Cva {
         &mut self,
         record: crate::InteractionStreamRecord,
     ) -> Result<(), CvaError> {
-        self.container.require_storage_format_writable()?;
         self.interaction_streams.put(&mut self.container, record)
     }
 
@@ -714,7 +693,6 @@ impl Cva {
     }
 
     pub fn put_echo_event(&mut self, event: crate::EchoEvent) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         Ok(self.echo.put(&mut self.container, event)?)
     }
 
@@ -742,7 +720,6 @@ impl Cva {
         &mut self,
         project_revision: crate::ProjectRevisionRef,
     ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
-        self.container.require_storage_format_writable()?;
         let management =
             crate::ProjectRepositoryManagement::default_for(project_revision.repository.kind);
         self.correlate_project_revision_with_management(project_revision, management)
@@ -753,7 +730,6 @@ impl Cva {
         project_revision: crate::ProjectRevisionRef,
         repository_management: crate::ProjectRepositoryManagement,
     ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
-        self.container.require_storage_format_writable()?;
         let rel_cut = self.current_rel_semantic_cut();
         self.project_history.put(
             &mut self.container,
@@ -778,7 +754,6 @@ impl Cva {
         byte_length: u64,
         reference: crate::ProjectFileRef,
     ) -> Result<StoredFile, CvaError> {
-        self.container.require_storage_format_writable()?;
         let content_hash = reference.content_hash.ok_or_else(|| {
             CvaError::ProjectFile("project-backed attachments require a content hash".into())
         })?;
@@ -801,7 +776,6 @@ impl Cva {
         file_id: crate::FileId,
         reference: crate::ProjectFileRef,
     ) -> Result<bool, CvaError> {
-        self.container.require_storage_format_writable()?;
         let file = self
             .archive
             .file(file_id)

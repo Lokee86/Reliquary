@@ -96,7 +96,6 @@ fn project(
             .map_err(|e| e.to_string())?;
         // Predecessors authenticate compatibility carriers separately; a
         // normalization must not change the accepted semantic fingerprint.
-        scope.predecessor_digest = None;
         let canonical =
             crate::freshness_storage::HistoricalImportFreshnessSettlement::from_semantic(
                 settlement.as_semantic(scope),

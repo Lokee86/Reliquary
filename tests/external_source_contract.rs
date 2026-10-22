@@ -185,7 +185,7 @@ fn downstream_source_uses_verified_gateway_and_reference_only_reopen() {
             .windows(source.body.len())
             .any(|w| w == source.body.as_bytes())
     );
-    let mut reopened = Cva::open(&path).unwrap();
+    let reopened = Cva::open(&path).unwrap();
     assert!(reopened.episodes().is_empty());
     drop(reopened);
     std::fs::remove_dir_all(dir).unwrap();

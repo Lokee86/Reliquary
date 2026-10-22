@@ -59,39 +59,6 @@ fn assert_rel_head(rel: &Cva, cut: &EgoCut) {
 }
 
 #[test]
-fn legacy_identity_carrier_matches_its_canonical_identity_projection() {
-    let text = "You are the default assistant.".to_owned();
-    let legacy = EgoHistory {
-        owner: [7; 16],
-        records: vec![EgoRecord::LegacyIdentity {
-            ego_version: 1,
-            revision: 1,
-            text: text.clone(),
-        }],
-    }
-    .at(1)
-    .unwrap();
-    let current = EgoHistory {
-        owner: [7; 16],
-        records: vec![EgoRecord::Identity {
-            ego_version: 1,
-            id: crate::ego_store::LEGACY_IDENTITY_ID,
-            revision: 1,
-            deleted: false,
-            activate: true,
-            name: "Default".into(),
-            text,
-        }],
-    }
-    .at(1)
-    .unwrap();
-
-    assert_eq!(legacy.fingerprint, current.fingerprint);
-    assert_eq!(legacy.identities, current.identities);
-    assert_eq!(legacy.active_identity, current.active_identity);
-}
-
-#[test]
 fn phylactery_ego_cuts_match_revisions_activation_tombstones_and_reopen() {
     let fixture = Fixture::new("phy-synthetic");
     let path = fixture.path("owner.phy");

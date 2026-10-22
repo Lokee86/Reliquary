@@ -1,5 +1,24 @@
+fn encode_mutation(value: GraphOrdinalMutation) -> Vec<u8> {
+    crate::graph_compact_codec::publication::encode(
+        &crate::graph_compact_codec::publication::GraphPublication {
+            graph_version: 1,
+            transaction: crate::graph_compact_codec::publication::GraphTransaction::Single(value),
+        },
+    )
+    .unwrap()
+}
+fn encode_batch(values: &[GraphOrdinalMutation]) -> Result<Vec<u8>, crate::GraphError> {
+    crate::graph_compact_codec::publication::encode(
+        &crate::graph_compact_codec::publication::GraphPublication {
+            graph_version: 1,
+            transaction: crate::graph_compact_codec::publication::GraphTransaction::Batch(
+                values.to_vec(),
+            ),
+        },
+    )
+}
 use crate::graph_codec::{GraphVersionPayload, encode_version};
-use crate::graph_compact_codec::{encode_batch, encode_mutation};
+
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::graph_store::GraphStore;
 use crate::historical_graph_fingerprint::GraphHistory;
@@ -73,25 +92,23 @@ fn append_compact_deactivation(
     target: u32,
     graph_version: u64,
 ) {
-    let carrier = container
-        .append(&encode_mutation(GraphOrdinalMutation {
-            source,
-            target,
-            kind: SemanticGraphRelationKind::EntityAssociation,
-            active: false,
-            origin: crate::GraphRelationOrigin::Perception,
-        }))
-        .unwrap();
-    let global_version = container
-        .allocate_version_with_transaction_time(Some(50_000 + graph_version as i64))
-        .unwrap();
-    container
-        .append(&encode_version(GraphVersionPayload {
-            global_version,
+    let body = crate::graph_compact_codec::publication::encode(
+        &crate::graph_compact_codec::publication::GraphPublication {
             graph_version,
-            mutation: carrier,
-        }))
-        .unwrap();
+            transaction: crate::graph_compact_codec::publication::GraphTransaction::Single(
+                GraphOrdinalMutation {
+                    source,
+                    target,
+                    kind: SemanticGraphRelationKind::EntityAssociation,
+                    active: false,
+                    origin: crate::GraphRelationOrigin::Perception,
+                },
+            ),
+        },
+    )
+    .unwrap();
+    container.set_next_transaction_time_override(Some(50_000 + graph_version as i64));
+    container.append_publication_envelope(&body).unwrap();
 }
 
 fn retired_association_history(path: &Path, phy: bool) -> ([u8; 32], [u8; 32]) {

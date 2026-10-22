@@ -144,7 +144,6 @@ impl ConversationCompactionStore {
         summary: String,
         supersedes: Option<&str>,
     ) -> Result<ConversationCompaction, ConversationCompactionError> {
-        container.require_storage_format_writable()?;
         let generation = self.next_generation;
         self.next_generation = generation
             .checked_add(1)
@@ -181,7 +180,6 @@ impl ConversationCompactionStore {
         &mut self,
         container: &mut Container,
     ) -> Result<(), ConversationCompactionError> {
-        container.require_storage_format_writable()?;
         let stale = self.stale_chunks();
         for object in stale {
             if self

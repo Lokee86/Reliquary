@@ -122,24 +122,22 @@ fn compact_populated_owner(path: &Path) -> Result<(Container, MemoryStore, Memor
         &memory_body_bytes(&first_draft.title, &first_draft.content),
     )?)?;
 
-    let first_global = writer.allocate_version_with_transaction_time(None)?;
+    let first_global = writer.latest_version() + 1;
     let first = record_from_draft(&first_draft, id, 1, body_id, first_global, 1);
-    let first_chunk = writer.append(&encode_creation(&MemoryCreation::new(first.clone())?)?)?;
-    writer.append(&encode_version(MemoryVersion {
-        global_version: first_global,
-        memory_version: first.memory_version,
-        record: first_chunk,
-    }))?;
-
-    let second_global = writer.allocate_version_with_transaction_time(None)?;
+    let body = crate::memory_compact_codec::publication::encode(
+        &crate::memory_compact_codec::publication::MemoryPublication::Creation(
+            MemoryCreation::new(first.clone())?,
+        ),
+    )?;
+    writer.append_publication_envelope(&body)?;
+    let second_global = writer.latest_version() + 1;
     let second = record_from_draft(&second_draft, id, 2, body_id, second_global, 2);
-    let delta = MemoryDelta::between(&first, &second)?;
-    let second_chunk = writer.append(&encode_delta(&delta)?)?;
-    writer.append(&encode_version(MemoryVersion {
-        global_version: second_global,
-        memory_version: second.memory_version,
-        record: second_chunk,
-    }))?;
+    let body = crate::memory_compact_codec::publication::encode(
+        &crate::memory_compact_codec::publication::MemoryPublication::Delta(MemoryDelta::between(
+            &first, &second,
+        )?),
+    )?;
+    writer.append_publication_envelope(&body)?;
     drop(writer);
 
     let mut container = Container::open(path)?;

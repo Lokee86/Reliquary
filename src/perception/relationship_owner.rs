@@ -12,7 +12,6 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: RelationshipDraft,
             ) -> Result<(Relationship, bool), RelationshipError> {
-                self.container.require_storage_format_writable()?;
                 let owner_id = self
                     .owner_id()
                     .ok_or(RelationshipError::MissingOwnerIdentity)?;
@@ -33,7 +32,6 @@ macro_rules! impl_owner {
                 expected_revision: u64,
                 draft: RelationshipDraft,
             ) -> Result<(Relationship, bool), RelationshipError> {
-                self.container.require_storage_format_writable()?;
                 self.relationships.publish_replayed(
                     &mut self.container,
                     id,
@@ -54,7 +52,6 @@ macro_rules! impl_owner {
                 id: RelationshipId,
                 expected_revision: u64,
             ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError> {
-                self.container.require_storage_format_writable()?;
                 self.relationships
                     .tombstone(&mut self.container, id, expected_revision)
             }

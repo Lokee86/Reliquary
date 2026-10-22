@@ -418,12 +418,6 @@ fn historical_transform_conflicting_manifest_and_policy_never_overwrite_acceptan
             .contains("owner policy conflict")
     );
     assert!(!policy_output.exists());
-    let migrated = path.with_file_name("migration.rel");
-    assert!(matches!(
-        crate::migrate_file(&path, &migrated),
-        Err(crate::MigrationError::AlreadyCurrent)
-    ));
-    assert!(!migrated.exists());
 }
 
 #[test]

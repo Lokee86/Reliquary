@@ -2,7 +2,18 @@
 use crate::relationship_codec::{
     RelationshipTombstone, RelationshipVersion, encode_record, encode_tombstone, encode_version,
 };
-use crate::relationship_compact_codec::{encode_creation, encode_delta};
+fn encode_creation(c: &RelationshipCreation) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Creation(
+            c.clone(),
+        ),
+    )
+}
+fn encode_delta(d: &RelationshipDelta) -> Result<Vec<u8>, crate::RelationshipError> {
+    crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Delta(d.clone()),
+    )
+}
 use crate::relationship_compact_contract::{RelationshipCreation, RelationshipDelta};
 use crate::relationship_model::RelationshipRecord;
 use crate::relationship_store::RelationshipReplayPublication;
@@ -71,14 +82,17 @@ fn record(revision: u64, global: u64, local: u64, mutation: &str) -> Relationshi
     }
 }
 
-fn append_version(cva: &mut Cva, carrier: crate::ObjectRef, global: u64, local: u64) {
-    cva.container
-        .append(&encode_version(RelationshipVersion {
+fn append_version(cva: &mut Cva, carrier: crate::ObjectRef, global: u64, _local: u64) {
+    let body = cva.container.read(carrier).unwrap();
+    let bytes = crate::container::publication_envelope::encode(
+        crate::container::publication_envelope::PublicationEnvelope {
             global_version: global,
-            relationship_version: local,
-            record: carrier,
-        }))
-        .unwrap();
+            clock: crate::container::publication_envelope::PublicationClock::BindReserved,
+            body: &body,
+        },
+    )
+    .unwrap();
+    cva.container.append(&bytes).unwrap();
 }
 
 fn populated_owner(path: &Path, compact: bool) -> Cva {
@@ -96,7 +110,7 @@ fn populated_owner(path: &Path, compact: bool) -> Cva {
     let first_bytes = if compact {
         encode_creation(&RelationshipCreation::new(first.clone()).unwrap()).unwrap()
     } else {
-        encode_record(&first).unwrap()
+        encode_creation(&RelationshipCreation::new(first.clone()).unwrap()).unwrap()
     };
     let first_carrier = cva.container.append(&first_bytes).unwrap();
     append_version(&mut cva, first_carrier, 1, 1);
@@ -112,7 +126,7 @@ fn populated_owner(path: &Path, compact: bool) -> Cva {
     let second_bytes = if compact {
         encode_delta(&RelationshipDelta::between(&first, &second).unwrap()).unwrap()
     } else {
-        encode_record(&second).unwrap()
+        encode_delta(&RelationshipDelta::between(&first, &second).unwrap()).unwrap()
     };
     let second_carrier = cva.container.append(&second_bytes).unwrap();
     append_version(&mut cva, second_carrier, 2, 2);
@@ -195,8 +209,8 @@ fn interval_classifier_rejects_unknown_version_malformed_mask_and_terminal() {
     second.summary = "  updated  ".into();
     second.updated_at_ns = 102;
     let valid_delta = encode_delta(&RelationshipDelta::between(&first, &second).unwrap()).unwrap();
-    let mutation_len = u32::from_le_bytes(valid_delta[72..76].try_into().unwrap()) as usize;
-    let mask_offset = 76 + mutation_len;
+    let mutation_len = u32::from_le_bytes(valid_delta[64..68].try_into().unwrap()) as usize;
+    let mask_offset = 68 + mutation_len;
     let mut invalid_mask = valid_delta.clone();
     let mask = u64::from_le_bytes(
         invalid_mask[mask_offset..mask_offset + 8]
@@ -222,9 +236,13 @@ fn interval_classifier_rejects_unknown_version_malformed_mask_and_terminal() {
 fn interval_classifier_accepts_relationship_terminal_publication() {
     let scratch = Scratch::new();
     let mut cva = Cva::create(scratch.file("terminal-interval.rel")).unwrap();
-    let terminal = encode_tombstone(RelationshipTombstone {
-        id: RelationshipId([0x5C; 32]),
-        revision: 2,
-    });
+    let terminal = crate::relationship_compact_codec::publication::encode(
+        &crate::relationship_compact_codec::publication::RelationshipPublication::Tombstone {
+            id: RelationshipId([0x5C; 32]),
+            revision: 2,
+            relationship_version: 2,
+        },
+    )
+    .unwrap();
     append_interval_and_check(&mut cva, &[&terminal], true);
 }

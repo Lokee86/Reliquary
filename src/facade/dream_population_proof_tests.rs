@@ -100,7 +100,7 @@ fn begin_current(
 }
 
 #[test]
-fn legacy_compact_and_explicit_begin_have_identical_historical_proofs_at_each_stage() {
+fn literal_compact_and_explicit_begin_have_identical_historical_proofs_at_each_stage() {
     let fixture = Fixture::new();
     let base_path = fixture.path("base.rel");
     let mut base = Cva::create(&base_path).unwrap();
@@ -112,17 +112,17 @@ fn legacy_compact_and_explicit_begin_have_identical_historical_proofs_at_each_st
     let graph_version_before = base.graph_version();
     drop(base);
 
-    let legacy_path = fixture.path("legacy.rel");
+    let literal_path = fixture.path("literal.rel");
     let compact_path = fixture.path("compact.rel");
     let explicit_path = fixture.path("explicit.rel");
-    fs::copy(&base_path, &legacy_path).unwrap();
+    fs::copy(&base_path, &literal_path).unwrap();
     fs::copy(&base_path, &compact_path).unwrap();
     fs::copy(&base_path, &explicit_path).unwrap();
 
     let pass_id = crate::dream_freshness::initial_pass_id(owner, source);
     let initial_roots = BTreeSet::from([root]);
-    let mut legacy = Cva::open(&legacy_path).unwrap();
-    let legacy_pass = crate::InitialDreamPass {
+    let mut literal = Cva::open(&literal_path).unwrap();
+    let literal_pass = crate::InitialDreamPass {
         pass_id: pass_id.clone(),
         source_id: source,
         first_revision: 1,
@@ -132,9 +132,12 @@ fn legacy_compact_and_explicit_begin_have_identical_historical_proofs_at_each_st
         graph_version_before,
         roots: BTreeSet::new(),
     };
-    let legacy_payload = legacy.dream_freshness.begin_payload(&legacy_pass).unwrap();
-    legacy.container.append(&legacy_payload).unwrap();
-    legacy.dream_freshness.ingest(&legacy_payload).unwrap();
+    let literal_payload = crate::dream_current_fixture::explicit(owner, &literal_pass);
+    literal.container.append(&literal_payload).unwrap();
+    literal
+        .dream_freshness
+        .ingest_materialized_begin(owner, literal_pass.clone())
+        .unwrap();
     let mut compact = begin_current(
         &compact_path,
         owner,
@@ -156,11 +159,11 @@ fn legacy_compact_and_explicit_begin_have_identical_historical_proofs_at_each_st
         false,
     );
 
-    let mut legacy_stages = vec![snapshot(&legacy)];
+    let mut literal_stages = vec![snapshot(&literal)];
     let mut compact_stages = vec![snapshot(&compact)];
     let mut explicit_stages = vec![snapshot(&explicit)];
 
-    for cva in [&mut legacy, &mut compact, &mut explicit] {
+    for cva in [&mut literal, &mut compact, &mut explicit] {
         cva.set_memory_relation_with_origin(
             source,
             root,
@@ -173,28 +176,28 @@ fn legacy_compact_and_explicit_begin_have_identical_historical_proofs_at_each_st
         cva.record_initial_dream_roots(&pass_id, initial_roots.clone())
             .unwrap();
     }
-    legacy_stages.push(snapshot(&legacy));
+    literal_stages.push(snapshot(&literal));
     compact_stages.push(snapshot(&compact));
     explicit_stages.push(snapshot(&explicit));
 
-    for cva in [&mut legacy, &mut compact, &mut explicit] {
+    for cva in [&mut literal, &mut compact, &mut explicit] {
         cva.accept_initial_dream_settlement(&pass_id, turn).unwrap();
     }
-    legacy_stages.push(snapshot(&legacy));
+    literal_stages.push(snapshot(&literal));
     compact_stages.push(snapshot(&compact));
     explicit_stages.push(snapshot(&explicit));
 
-    for cva in [&mut legacy, &mut compact, &mut explicit] {
+    for cva in [&mut literal, &mut compact, &mut explicit] {
         crate::dream_freshness::settle_initial_pass(cva, source, false, 1).unwrap();
         cva.sync().unwrap();
     }
-    legacy_stages.push(snapshot(&legacy));
+    literal_stages.push(snapshot(&literal));
     compact_stages.push(snapshot(&compact));
     explicit_stages.push(snapshot(&explicit));
 
-    assert_eq!(legacy_stages, compact_stages, "CompactCut parity by stage");
+    assert_eq!(literal_stages, compact_stages, "CompactCut parity by stage");
     assert_eq!(
-        legacy_stages, explicit_stages,
+        literal_stages, explicit_stages,
         "ExplicitSet parity by stage"
     );
 }

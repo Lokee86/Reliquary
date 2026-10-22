@@ -70,23 +70,6 @@ impl EgoHistory {
             let version = record_ego_version(record);
             projection.insert("publication", version.to_be_bytes(), record_value(record))?;
             match record {
-                EgoRecord::LegacyIdentity {
-                    ego_version: _,
-                    revision,
-                    text,
-                } => {
-                    let id = crate::ego_store::LEGACY_IDENTITY_ID;
-                    identities.insert(
-                        id,
-                        EgoIdentity {
-                            id,
-                            revision: *revision,
-                            name: "Default".into(),
-                            text: text.clone(),
-                        },
-                    );
-                    active_identity = Some(id);
-                }
                 EgoRecord::Identity {
                     ego_version: _,
                     id,
@@ -181,14 +164,6 @@ impl EgoHistory {
 fn record_value(record: &EgoRecord) -> Value {
     match record {
         // The old wire carrier has exactly the default named identity's meaning.
-        EgoRecord::LegacyIdentity {
-            ego_version,
-            revision,
-            text,
-        } => json!({
-            "kind": "identity", "ego_version": ego_version, "id": crate::ego_store::LEGACY_IDENTITY_ID.0,
-            "revision": revision, "deleted": false, "activate": true, "name": "Default", "text": text
-        }),
         EgoRecord::Identity {
             ego_version,
             id,

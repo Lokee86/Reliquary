@@ -19,7 +19,6 @@ impl Phylactery {
         output_path: impl AsRef<Path>,
         request: crate::HistoryPruneRequest,
     ) -> Result<crate::HistoryPruneReport, PhylacteryError> {
-        self.container.require_storage_format_writable()?;
         let output_path = output_path.as_ref();
         if output_path == self.container.path() || output_path.exists() {
             return Err(PhylacteryError::Repack(
@@ -166,6 +165,7 @@ impl Phylactery {
             manifest_digest,
         )?;
         description_objects.extend(entity_plan.replacements);
+        let mut description_discard = entity_plan.discard;
         let relationship_plan = crate::relationship_description_prune::prepare_description_prune(
             &self.relationships,
             &mut self.container,
@@ -173,6 +173,7 @@ impl Phylactery {
             manifest_digest,
         )?;
         description_objects.extend(relationship_plan.replacements);
+        description_discard.extend(relationship_plan.discard);
         for object in self.container.chunks()? {
             let raw = self.container.read(object)?;
             if let Some(decoded) = crate::packed_vector_codec::decode_object(&raw)?
@@ -206,9 +207,7 @@ impl Phylactery {
         let copy = (|| {
             let mut relocated = BTreeMap::new();
             for object in &source_objects {
-                if entity_plan.discard.contains(object)
-                    || relationship_plan.discard.contains(object)
-                {
+                if description_discard.contains(object) {
                     continue;
                 }
                 let raw = self.container.read(*object)?;
@@ -233,9 +232,6 @@ impl Phylactery {
                     crate::storage_reclamation::relocate_payload(&raw, &relocated)
                         .map_err(PhylacteryError::Repack)?
                 };
-                let payload =
-                    crate::imports::legacy_epoch_transport::rebind_copy(&payload, &output)
-                        .map_err(|error| PhylacteryError::Repack(error.to_string()))?;
                 let destination = output.append(&payload)?;
                 relocated.insert(*object, destination);
             }
@@ -358,19 +354,6 @@ impl Phylactery {
                     return Err(invalid());
                 }
                 Some(PrunedPayload::EntityDescription(id.0, *revision))
-            } else if bytes.starts_with(b"CVAEPRN1") {
-                let record = crate::entity_codec::decode_record(&bytes)?.ok_or_else(invalid)?;
-                Some(PrunedPayload::EntityDescription(
-                    record.id.0,
-                    record.revision,
-                ))
-            } else if bytes.starts_with(b"CVARPRN1") {
-                let record =
-                    crate::relationship_codec::decode_record(&bytes)?.ok_or_else(invalid)?;
-                Some(PrunedPayload::RelationshipDescription(
-                    record.id.0,
-                    record.revision,
-                ))
             } else {
                 None
             };
@@ -381,11 +364,7 @@ impl Phylactery {
                 {
                     digest
                 } else {
-                    bytes
-                        .get(40..72)
-                        .ok_or_else(invalid)?
-                        .try_into()
-                        .map_err(|_| invalid())?
+                    return Err(invalid());
                 };
                 if !authorized.contains(&(payload.clone(), digest))
                     || !seen.insert((payload, digest))

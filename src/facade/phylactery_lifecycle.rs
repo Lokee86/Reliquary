@@ -35,18 +35,6 @@ impl Phylactery {
         Self::initialize(container)
     }
 
-    #[cfg(test)]
-    pub(crate) fn create_legacy_typed(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
-        let container = Container::create_with_legacy_identity(
-            path,
-            ContainerIdentity {
-                file_kind: FileKind::Phylactery,
-                scope: None,
-            },
-        )?;
-        Self::initialize(container)
-    }
-
     pub(crate) fn create_with_uuid(
         path: impl AsRef<Path>,
         owner_uuid: [u8; 16],
@@ -111,22 +99,18 @@ impl Phylactery {
         })
     }
 
-    /// Opens a V1 owner for inspection or lossless-upgrade planning only.
-    pub fn open_v1_read_only(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
-        Self::open_with_version(path, Some(crate::FormatVersion { major: 1, minor: 0 }))
-    }
-
     pub fn open(path: impl AsRef<Path>) -> Result<Self, PhylacteryError> {
-        Self::open_with_version(path, None)
-    }
-
-    fn open_with_version(
-        path: impl AsRef<Path>,
-        required_version: Option<crate::FormatVersion>,
-    ) -> Result<Self, PhylacteryError> {
         let header = Container::open_read_only_for_scan(path.as_ref())?;
+        if header.owner_uuid().is_none() {
+            return Err(crate::ContainerError::InvalidIdentity.into());
+        }
+        if header.identity().map(|identity| identity.file_kind) != Some(crate::FileKind::Phylactery)
+        {
+            return Err(PhylacteryError::InvalidContainerIdentity(
+                "file is not a Phylactery",
+            ));
+        }
         let lineage_owner = header.owner_uuid();
-        let source_format = header.version();
         drop(header);
         let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
         let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
@@ -144,79 +128,52 @@ impl Phylactery {
         let mut entity_resolutions = EntityResolutionStore::default();
         let mut relationship_state = RelationshipOpenState::new();
 
-        let container = Container::open_scanned_version(
-            path,
-            required_version,
-            |chunk, payload, latest_global| {
-                if let Some(owner_uuid) = lineage_owner {
-                    rewrite_lineage
-                        .ingest(payload, owner_uuid)
-                        .map_err(PhylacteryError::Repack)?;
-                } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
-                    return Err(PhylacteryError::Repack(
-                        "RewriteGenesis requires a versioned owner identity".into(),
-                    ));
-                }
-                reject_rel_only_payload(payload)?;
-                owner_maintenance
-                    .ingest(payload)
+        let container = Container::open_scanned(path, |chunk, payload, latest_global| {
+            if let Some(owner_uuid) = lineage_owner {
+                rewrite_lineage
+                    .ingest(payload, owner_uuid)
                     .map_err(PhylacteryError::Repack)?;
-                if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
-                    if !memory_state.ingest_publication_envelope(envelope, latest_global)?
-                        && !entity_state.ingest_publication_envelope(envelope, latest_global)?
-                        && !relationship_state
-                            .ingest_publication_envelope(envelope, latest_global)?
-                        && !graph_state.ingest_publication_envelope(envelope, latest_global)?
-                    {
-                        return Err(crate::MemoryError::CorruptRecord(
-                            "unsupported publication envelope body",
-                        )
-                        .into());
-                    }
-                } else {
-                    memory_state.ingest(chunk, payload, latest_global)?;
-                    entity_state.ingest(chunk, payload, latest_global)?;
-                    graph_state.ingest(chunk, payload, latest_global)?;
+            } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
+                return Err(PhylacteryError::Repack(
+                    "RewriteGenesis requires a versioned owner identity".into(),
+                ));
+            }
+            reject_rel_only_payload(payload)?;
+            owner_maintenance
+                .ingest(payload)
+                .map_err(PhylacteryError::Repack)?;
+            if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
+                if !memory_state.ingest_publication_envelope(envelope, latest_global)?
+                    && !entity_state.ingest_publication_envelope(envelope, latest_global)?
+                    && !relationship_state.ingest_publication_envelope(envelope, latest_global)?
+                    && !graph_state.ingest_publication_envelope(envelope, latest_global)?
+                {
+                    return Err(crate::MemoryError::CorruptRecord(
+                        "unsupported publication envelope body",
+                    )
+                    .into());
                 }
+            } else {
+                memory_state.ingest(chunk, payload, latest_global)?;
+                entity_state.ingest(chunk, payload, latest_global)?;
+                graph_state.ingest(chunk, payload, latest_global)?;
                 relationship_state.ingest(chunk, payload, latest_global)?;
-                community_state.ingest(payload)?;
-                packed_state.ingest(chunk, payload)?;
-                memory_vector_state.ingest(chunk, payload)?;
-                profile_state.ingest(chunk, payload)?;
-                phylactery_profile
-                    .ingest(payload)
-                    .map_err(PhylacteryError::Profile)?;
-                processing_epochs.ingest(payload)?;
-                if source_format.major == 1 && DreamPairStore::is_compact_payload(payload) {
-                    return Err(crate::MemoryError::CorruptRecord(
-                        "compact Dream pair in V1 input",
-                    )
-                    .into());
-                }
-                dream_pairs.ingest(payload)?;
-                ego.ingest(payload)?;
-                if source_format.major == 1
-                    && crate::entity_resolution_codec::delta::is_current(payload)
-                {
-                    return Err(crate::MemoryError::CorruptRecord(
-                        "compact Entity resolution in V1 input",
-                    )
-                    .into());
-                }
-                if (source_format.major == 1
-                    && crate::entity_resolution_codec::retained::is_current(payload))
-                    || (source_format.major != 1
-                        && crate::entity_resolution_codec::retained::is_source(payload))
-                {
-                    return Err(crate::MemoryError::CorruptRecord(
-                        "Entity resolution evidence format boundary",
-                    )
-                    .into());
-                }
-                entity_resolutions.ingest(payload)?;
-                Ok::<(), PhylacteryError>(())
-            },
-        )?;
+            }
+            community_state.ingest(payload)?;
+            packed_state.ingest(chunk, payload)?;
+            memory_vector_state.ingest(chunk, payload)?;
+            profile_state.ingest(chunk, payload)?;
+            phylactery_profile
+                .ingest(payload)
+                .map_err(PhylacteryError::Profile)?;
+            processing_epochs.ingest(payload)?;
+
+            dream_pairs.ingest(payload)?;
+            ego.ingest(payload)?;
+
+            entity_resolutions.ingest(payload)?;
+            Ok::<(), PhylacteryError>(())
+        })?;
         if container.identity()
             != Some(ContainerIdentity {
                 file_kind: FileKind::Phylactery,
@@ -245,12 +202,11 @@ impl Phylactery {
             return Err(crate::EntityError::InvalidField("Phylactery principal Entity").into());
         }
         let lexical_index = LexicalIndex::default();
-        ego.validate_storage_version(container.version())?;
+
         ego.validate_memory_version(memories.memory_version())?;
         validate_phylactery_provenance(&memories)?;
         processing_epochs.validate(&memories)?;
         dream_pairs.validate(&memories)?;
-        graph_state.validate_storage_version(container.version())?;
         let graph = graph_state.finish(&memories, &entities)?;
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
@@ -281,16 +237,12 @@ impl Phylactery {
             relationships,
         };
         result.validate_prune_evidence()?;
-        let repaired_entity_resolutions = if result.container.version().major == 1 {
-            // Inspection preserves stored revisions; historical references remain validated below.
-            0
-        } else {
+        let repaired_entity_resolutions =
             result.entity_resolutions.repair_retired_entity_references(
                 &mut result.container,
                 &result.memories,
                 &result.entities,
-            )?
-        };
+            )?;
         result
             .entity_resolutions
             .validate(&result.memories, &result.entities)?;

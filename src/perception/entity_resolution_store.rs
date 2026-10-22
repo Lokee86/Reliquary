@@ -7,7 +7,7 @@ mod write;
 
 use index::{deindex_pending, index_pending};
 
-use crate::entity_resolution_codec::{DecodedEntityResolution, decode_resolution, delta};
+use crate::entity_resolution_codec::{DecodedEntityResolution, delta};
 use crate::entity_store::EntityStore;
 use crate::memory_store::MemoryStore;
 use crate::{
@@ -51,16 +51,11 @@ impl EntityResolutionStore {
         &self,
         payload: &[u8],
     ) -> Result<Option<DecodedEntityResolution>, MemoryError> {
-        // The frozen V1 decoder never projected CVAERS02. Preserve that fact,
-        // and validate its explicitly retained current evidence without effect.
-        if crate::entity_resolution_codec::retained::is_source(payload)
-            || crate::entity_resolution_codec::retained::decode(payload)?.is_some()
-        {
+        // Literal retained evidence validates without becoming active decisions.
+        if crate::entity_resolution_codec::retained::decode(payload)?.is_some() {
             return Ok(None);
         }
-        if let Some(decoded) = decode_resolution(payload)? {
-            return Ok(Some(decoded));
-        }
+
         delta::decode(payload, |key| self.current.get(&key).map(|v| &v.status))
     }
 
@@ -69,7 +64,6 @@ impl EntityResolutionStore {
         container: &mut Container,
         decoded: DecodedEntityResolution,
     ) -> Result<(), MemoryError> {
-        container.require_storage_format_writable()?;
         let bytes = delta::encode(&decoded, self.current.get(&decoded.key).map(|v| &v.status))?;
         self.validate_change(&decoded)?;
         container.append(&bytes)?;
@@ -77,6 +71,16 @@ impl EntityResolutionStore {
         Ok(())
     }
 
+    #[cfg(test)]
+    pub(crate) fn from_fixture_changes(
+        changes: impl IntoIterator<Item = DecodedEntityResolution>,
+    ) -> Result<Self, MemoryError> {
+        let mut store = Self::default();
+        for change in changes {
+            store.apply(change)?;
+        }
+        Ok(store)
+    }
     fn apply(&mut self, decoded: DecodedEntityResolution) -> Result<(), MemoryError> {
         self.validate_change(&decoded)?;
         self.apply_validated(decoded);
@@ -219,7 +223,6 @@ impl EntityResolutionStore {
         key: MemoryEntityMentionKey,
         now_ns: i64,
     ) -> Result<bool, MemoryError> {
-        container.require_storage_format_writable()?;
         let Some(current) = self.current.get(&key) else {
             return Ok(false);
         };
@@ -246,7 +249,6 @@ impl EntityResolutionStore {
         entities: &EntityStore,
         mut value: MemoryEntityResolution,
     ) -> Result<(), MemoryError> {
-        container.require_storage_format_writable()?;
         memories.validate_entity_mention_key(value.key)?;
         validate_status(&value.status)?;
         validate_live_entity_refs(&value.status, entities)?;

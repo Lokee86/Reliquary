@@ -95,28 +95,6 @@ fn creation_has_independent_literal_identity_fixture_and_omits_revision() {
 }
 
 #[test]
-fn legacy_identity_creation_normalizes_to_default_identity() {
-    let legacy = EgoRecord::LegacyIdentity {
-        ego_version: 3,
-        revision: 1,
-        text: " legacy ".into(),
-    };
-    let normalized = identity(
-        3,
-        crate::ego_store::LEGACY_IDENTITY_ID,
-        true,
-        "Default",
-        " legacy ",
-    );
-    let creation = EgoCreation::new(legacy).unwrap();
-    assert_eq!(creation.record, normalized);
-    assert_eq!(
-        compact::decode_creation(&compact::encode_creation(&creation).unwrap()).unwrap(),
-        EgoCreation::new(normalized).unwrap()
-    );
-}
-
-#[test]
 fn terminal_roundtrips_both_kinds_and_retains_empty_payload_shape() {
     let id = EgoIdentityId([0x31; 16]);
     let aid = EgoAnchorId([0x42; 16]);

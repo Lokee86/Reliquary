@@ -287,7 +287,6 @@ impl crate::Cva {
         window: [u8; 32],
         prepared: &[PreparedExternalMemory],
     ) -> Result<Vec<crate::Memory>, crate::MemoryError> {
-        self.container.require_storage_format_writable()?;
         if let Some(existing) = self.memories.external_window(&mut self.container, window)? {
             return Ok(existing);
         }

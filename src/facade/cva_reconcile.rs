@@ -91,9 +91,6 @@ impl Cva {
         let left_path = left_path.as_ref();
         let right_path = right_path.as_ref();
         let output_path = output_path.as_ref();
-        for source in [left_path, right_path] {
-            crate::Container::open_read_only_for_scan(source)?.require_storage_format_writable()?;
-        }
         if output_path.exists() {
             return Err(CvaReconcileError::OutputExists);
         }

@@ -278,41 +278,6 @@ fn assert_pruned_rel(path: &Path, ids: (EntityId, EntityId), times: &[Option<i64
     }
 }
 
-#[test]
-fn envelope_history_digest_matches_marker_history_at_every_watermark_for_both_terminal_kinds() {
-    for file_kind in [FileKind::Reliquary, FileKind::Phylactery] {
-        let scratch = Scratch::new();
-        let owner_uuid = [0x91; 16];
-        let make = |path: &Path| {
-            let identity = ContainerIdentity {
-                file_kind,
-                scope: None,
-            };
-            Container::create_with_identity_and_uuid(path, identity, owner_uuid).unwrap()
-        };
-        let legacy_path = scratch.file("legacy.cva");
-        let envelope_path = scratch.file("envelope.cva");
-        let mut legacy = make(&legacy_path);
-        let mut envelope = make(&envelope_path);
-        write_history(&mut legacy, WireFormat::Legacy);
-        write_history(&mut envelope, WireFormat::Envelope);
-        legacy.sync().unwrap();
-        envelope.sync().unwrap();
-        drop(legacy);
-        drop(envelope);
-
-        let mut legacy = Container::open(&legacy_path).unwrap();
-        let mut envelope = Container::open(&envelope_path).unwrap();
-        let left = (0..=5)
-            .map(|watermark| owner_history_digest(&mut legacy, watermark))
-            .collect::<Vec<_>>();
-        let right = (0..=5)
-            .map(|watermark| owner_history_digest(&mut envelope, watermark))
-            .collect::<Vec<_>>();
-        assert_eq!(left, right, "history digest parity for {file_kind:?}");
-    }
-}
-
 fn make_envelope_prune_source(
     path: &Path,
     kind: FileKind,

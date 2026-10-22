@@ -1,6 +1,4 @@
-use crate::conversation_metadata_codec::{
-    LEGACY_CONVERSATION_METADATA_MAGIC, decode_conversation_metadata,
-};
+use crate::conversation_metadata_codec::decode_conversation_metadata;
 use crate::{Cva, IncomingTurn};
 use std::fs;
 use std::path::PathBuf;
@@ -50,21 +48,6 @@ fn conversation_summary_and_path_survive_reopen() {
     assert_eq!(turns.len(), 2);
     assert_eq!(turns[0].content, "First");
     assert_eq!(turns[1].content, "Second");
-}
-
-#[test]
-fn legacy_conversation_metadata_decodes_inactive() {
-    let mut bytes = Vec::new();
-    bytes.extend_from_slice(&LEGACY_CONVERSATION_METADATA_MAGIC);
-    bytes.extend_from_slice(&2u32.to_le_bytes());
-    bytes.extend_from_slice(b"c1");
-    bytes.extend_from_slice(&5u32.to_le_bytes());
-    bytes.extend_from_slice(b"Title");
-
-    let metadata = decode_conversation_metadata(&bytes).unwrap();
-    assert_eq!(metadata.conversation_id, "c1");
-    assert_eq!(metadata.title.as_deref(), Some("Title"));
-    assert!(!metadata.active);
 }
 
 #[test]
@@ -224,46 +207,6 @@ fn conversation_policy_defaults_and_round_trips_without_changing_other_metadata(
         Cva::open(path).unwrap().conversation_policy("c1"),
         (SequentialChronological, 3)
     );
-}
-
-#[test]
-fn legacy_conversation_policy_reopens_and_upgrades_in_the_same_archive_owner() {
-    use crate::ConversationPolicy::{SequentialChronological, VisibleAutoBranch};
-    for (magic, active) in [(*b"CVACONV1", false), (*b"CVACONV2", true)] {
-        let path = test_path();
-        let mut cva = Cva::create(&path).unwrap();
-        cva.ingest_turn(turn("root", None, 10, "Root")).unwrap();
-        let mut bytes = magic.to_vec();
-        bytes.extend_from_slice(&2u32.to_le_bytes());
-        bytes.extend_from_slice(b"c1");
-        bytes.extend_from_slice(&5u32.to_le_bytes());
-        bytes.extend_from_slice(b"Title");
-        if magic == *b"CVACONV2" {
-            bytes.push(1);
-        }
-        let record = cva.container.append(&bytes).unwrap();
-        cva.archive
-            .publish_record(&mut cva.container, record)
-            .unwrap();
-        cva.sync().unwrap();
-        drop(cva);
-        let mut reopened = Cva::open(&path).unwrap();
-        assert_eq!(
-            reopened.conversation_policy("c1"),
-            (SequentialChronological, 1)
-        );
-        assert_eq!(reopened.conversation_metadata("c1").unwrap().active, active);
-        reopened
-            .set_conversation_policy("c1", VisibleAutoBranch)
-            .unwrap();
-        reopened.sync().unwrap();
-        drop(reopened);
-        let upgraded = Cva::open(path).unwrap();
-        assert_eq!(upgraded.conversation_policy("c1"), (VisibleAutoBranch, 2));
-        let metadata = upgraded.conversation_metadata("c1").unwrap();
-        assert_eq!(metadata.title.as_deref(), Some("Title"));
-        assert_eq!(metadata.active, active);
-    }
 }
 
 #[test]

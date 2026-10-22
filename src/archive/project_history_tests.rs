@@ -133,28 +133,3 @@ fn explicit_external_repository_management_survives_reopen() {
         crate::ProjectRepositoryManagement::External
     );
 }
-
-#[test]
-fn legacy_v1_correlation_defaults_management_from_repository_kind() {
-    let path = rel_path();
-    let mut cva = Cva::create_project(&path).unwrap();
-    let record = crate::ProjectRevisionCorrelation {
-        sequence: 1,
-        rel_cut: cva.current_rel_semantic_cut(),
-        project_revision: lore_revision("repo-1", "revision-1"),
-        repository_management: crate::ProjectRepositoryManagement::External,
-    };
-    let payload = crate::project_history_codec::encode_legacy_v1(&record).unwrap();
-    cva.container.append(&payload).unwrap();
-    cva.sync().unwrap();
-    drop(cva);
-
-    let reopened = Cva::open_project(&path).unwrap();
-    assert_eq!(
-        reopened
-            .latest_project_revision_correlation()
-            .unwrap()
-            .repository_management,
-        crate::ProjectRepositoryManagement::WarlockManaged
-    );
-}

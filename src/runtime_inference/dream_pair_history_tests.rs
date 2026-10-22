@@ -103,7 +103,7 @@ fn dream_pair_mapping_conflicts_and_forward_references_cannot_mutate_membership(
     assert!(store.records().is_empty());
     store.ingest(&codec::encode_pair(1, 2)).unwrap();
     store.ingest(&codec::encode_pair(1, 2)).unwrap();
-    store.ingest(&old_pair(b, a)).unwrap();
+    assert!(store.ingest(&old_pair(b, a)).is_err());
     assert_eq!(store.records(), [(a, b)]);
 }
 
@@ -174,99 +174,6 @@ fn dream_pair_writers_reopen_with_canonical_pairs_and_clock_neutral_exact_retrie
         })
         .unwrap();
         assert_eq!((rows, pairs), (3, 2));
-    }
-}
-
-#[test]
-fn dream_pair_v1_upgrade_preserves_rel_and_phy_sets_and_rejects_disguised_current_rows() {
-    let scratch = Scratch::new();
-    for phy in [false, true] {
-        let path = scratch
-            .0
-            .join(if phy { "legacy.phy" } else { "legacy.rel" });
-        let expected = if phy {
-            let mut owner = Phylactery::create(&path).unwrap();
-            let ids = ["x", "y", "z"].map(|name| {
-                owner
-                    .memories
-                    .publish_legacy_fixture(&mut owner.container, None, 0, draft(name))
-                    .unwrap()
-                    .0
-                    .id
-            });
-            for (a, b) in [(ids[0], ids[1]), (ids[1], ids[2])] {
-                owner.container.append(&old_pair(a, b)).unwrap();
-            }
-            owner.sync().unwrap();
-            vec![
-                canonical_pair(ids[0], ids[1]),
-                canonical_pair(ids[1], ids[2]),
-            ]
-        } else {
-            let mut owner = Cva::create(&path).unwrap();
-            let ids = ["x", "y", "z"].map(|name| {
-                owner
-                    .memories
-                    .publish_legacy_fixture(&mut owner.container, None, 0, draft(name))
-                    .unwrap()
-                    .0
-                    .id
-            });
-            for (a, b) in [(ids[0], ids[1]), (ids[1], ids[2])] {
-                owner.container.append(&old_pair(a, b)).unwrap();
-            }
-            owner.sync().unwrap();
-            vec![
-                canonical_pair(ids[0], ids[1]),
-                canonical_pair(ids[1], ids[2]),
-            ]
-        };
-        let mut expected = expected;
-        expected.sort();
-        let mut bytes = fs::read(&path).unwrap();
-        bytes[8..10].copy_from_slice(&1_u16.to_le_bytes());
-        fs::write(&path, &bytes).unwrap();
-        let plan = crate::storage_upgrade::plan_storage_upgrade(
-            crate::storage_upgrade::StorageUpgradeRequest {
-                source: path.clone(),
-                destination: scratch.0.join(if phy { "out.phy" } else { "out.rel" }),
-            },
-        )
-        .unwrap();
-        let stage = crate::storage_upgrade::stage_graph_envelope_storage_upgrade(&plan).unwrap();
-        let actual = if phy {
-            Phylactery::open(stage.test_path())
-                .unwrap()
-                .dream_pair_records()
-        } else {
-            Cva::open(stage.test_path()).unwrap().dream_pair_records()
-        };
-        assert_eq!(actual, expected);
-        assert_eq!(fs::read(&path).unwrap(), bytes);
-        // Isolate the pair-family boundary using genuine legacy Memory frames,
-        // so publication-envelope rejection cannot make this check vacuous.
-        let mut fake_v1 = bytes.clone();
-        let mapping = codec::encode_memory(1, expected[0].0);
-        fake_v1.extend_from_slice(&(mapping.len() as u64).to_le_bytes());
-        fake_v1.extend_from_slice(&mapping);
-        let disguised = scratch.0.join(if phy {
-            "disguised.phy"
-        } else {
-            "disguised.rel"
-        });
-        fs::write(&disguised, fake_v1).unwrap();
-        let error = if phy {
-            Phylactery::open_v1_read_only(&disguised)
-                .err()
-                .unwrap()
-                .to_string()
-        } else {
-            Cva::open_v1_read_only(&disguised)
-                .err()
-                .unwrap()
-                .to_string()
-        };
-        assert!(error.contains("compact Dream pair in V1 input"), "{error}");
     }
 }
 

@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 /// Replay Dream journal records in physical order once Memory and source
 /// admission state are finalized. Current compact Begins bind to the prefix
 /// immediately before their own frame; later roots and settlement records
-/// then use the same resident journal projection as legacy Begins.
+/// then use the same resident journal projection.
 pub(crate) fn replay_with_population(
     container: &mut Container,
     archive: &Archive,
@@ -30,16 +30,10 @@ pub(crate) fn replay_with_population_and_visit(
         .owner_uuid()
         .map(crate::cva_dream_population::DreamPopulationPrefix::new);
     let owner = container.owner_uuid();
-    let is_v1 = container.version().major == 1;
     let end = container.physical_length()?;
     container.visit_versioned_payloads_through(end, |chunk, payload, global_frontier| {
         before_frame(payload, journal)?;
         if payload.starts_with(b"CVDREAM2") {
-            if is_v1 {
-                return Err(CvaError::Freshness(
-                    "CVDREAM2 Begin is not admitted in a V1 container".into(),
-                ));
-            }
             let owner = owner.ok_or_else(|| {
                 CvaError::Freshness("CVDREAM2 Begin requires a versioned owner identity".into())
             })?;

@@ -1,8 +1,7 @@
 use super::super::ArchiveRecord;
 use super::{ArchivePublication, decode, encode};
 use crate::conversation_metadata_codec::{
-    ACTIVE_CONVERSATION_METADATA_MAGIC, CONVERSATION_METADATA_MAGIC,
-    LEGACY_CONVERSATION_METADATA_MAGIC, decode_conversation_metadata, encode_conversation_metadata,
+    CONVERSATION_METADATA_MAGIC, decode_conversation_metadata, encode_conversation_metadata,
 };
 use crate::turn_ingest_codec::{INGESTED_TURN_MAGIC, decode_ingested_turn, encode_ingested_turn};
 use crate::{
@@ -129,36 +128,7 @@ fn metadata_publication_uses_literal_header_and_round_trips_all_current_fields()
 }
 
 #[test]
-fn metadata_standalone_wrappers_keep_v1_v2_defaults_and_v3_golden_bytes() {
-    let mut v1 = LEGACY_CONVERSATION_METADATA_MAGIC.to_vec();
-    append_string(&mut v1, "legacy");
-    append_string(&mut v1, "old title");
-    assert_eq!(
-        decode_conversation_metadata(&v1).unwrap(),
-        ConversationMetadata {
-            conversation_id: "legacy".into(),
-            title: Some("old title".into()),
-            active: false,
-            policy: ConversationPolicy::SequentialChronological,
-            policy_revision: 1,
-        }
-    );
-
-    let mut v2 = ACTIVE_CONVERSATION_METADATA_MAGIC.to_vec();
-    append_string(&mut v2, "legacy");
-    append_string(&mut v2, "");
-    v2.push(1);
-    assert_eq!(
-        decode_conversation_metadata(&v2).unwrap(),
-        ConversationMetadata {
-            conversation_id: "legacy".into(),
-            title: None,
-            active: true,
-            policy: ConversationPolicy::SequentialChronological,
-            policy_revision: 1,
-        }
-    );
-
+fn current_metadata_comparison_wrapper_has_literal_golden_bytes() {
     let current = metadata(true, Some("T"), ConversationPolicy::VisibleAutoBranch, 2);
     let mut golden = CONVERSATION_METADATA_MAGIC.to_vec();
     append_string(&mut golden, "c");
@@ -267,7 +237,7 @@ fn ingested_turn_publication_preserves_principal_and_ordered_attachment_fields()
 }
 
 #[test]
-fn standalone_ingested_turn_wrapper_keeps_v2_golden_and_v1_principal_default() {
+fn current_ingested_turn_comparison_wrapper_has_literal_golden_bytes() {
     let expected = IngestedTurn {
         node: Node {
             id: "n".into(),
@@ -292,24 +262,9 @@ fn standalone_ingested_turn_wrapper_keeps_v2_golden_and_v1_principal_default() {
     assert_eq!(encode_ingested_turn(&expected).unwrap(), v2_golden);
     assert_eq!(decode_ingested_turn(&v2_golden).unwrap(), expected);
 
-    // Explicit CVATURN1 fixture: timestamp/content followed by node strings and
-    // attachment list, with no principal field.
-    let mut v1_golden = b"CVATURN1".to_vec();
-    v1_golden.extend_from_slice(&1_i64.to_le_bytes());
-    v1_golden.extend_from_slice(&[3; 32]);
-    append_string(&mut v1_golden, "legacy");
-    append_string(&mut v1_golden, "c1");
-    append_string(&mut v1_golden, "");
-    append_string(&mut v1_golden, "user");
-    v1_golden.extend_from_slice(&0_u32.to_le_bytes());
-    let decoded = decode_ingested_turn(&v1_golden).unwrap();
-    assert_eq!(decoded.node.principal_id, None);
-    assert_eq!(decoded.node.id, "legacy");
-    assert!(decoded.attachments.is_empty());
-
     let current = encode(&ArchivePublication::Record {
         archive_version: 1,
-        record: ArchiveRecord::IngestedTurn(decoded.clone()),
+        record: ArchiveRecord::IngestedTurn(expected.clone()),
     })
     .unwrap();
     assert_eq!(current.get(..8), Some(b"CVATUR03".as_slice()));
@@ -318,7 +273,7 @@ fn standalone_ingested_turn_wrapper_keeps_v2_golden_and_v1_principal_default() {
         Some(ArchivePublication::Record {
             archive_version: 1,
             record: ArchiveRecord::IngestedTurn(canonicalized),
-        }) if canonicalized == decoded && canonicalized.node.principal_id.is_none()
+        }) if canonicalized == expected && canonicalized.node.principal_id.is_none()
     ));
 }
 

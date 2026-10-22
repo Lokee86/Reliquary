@@ -76,7 +76,6 @@ pub(crate) struct ImportSemanticScope {
     /// including retained live events as well as provisional events.
     pub accepted_events: BTreeMap<String, AcceptedImportEventEvidence>,
     pub superseded: BTreeSet<String>,
-    pub predecessor_digest: Option<[u8; 32]>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -153,7 +152,6 @@ impl SemanticImportFreshnessSettlement {
             || self.archive_version > self.global_version
             || self.graph_version > self.global_version
             || self.memory_graph_version > self.graph_version
-            || scope.predecessor_digest == Some([0; 32])
             || !scope.born_memories.is_subset(&self.cohort)
             || !self.cohort.is_subset(&scope.affected_recipients)
             || self.records.keys().any(|id| !self.cohort.contains(id))
@@ -233,13 +231,8 @@ impl SemanticImportFreshnessSettlement {
         ] {
             out.extend(value.to_le_bytes());
         }
-        match s.predecessor_digest {
-            None => out.push(0),
-            Some(digest) => {
-                out.push(1);
-                out.extend(digest);
-            }
-        }
+        out.push(0); // Reserved byte; accepted semantic proof is standalone.
+
         ids(&mut out, &s.born_memories)?;
         ids(&mut out, &s.affected_recipients)?;
         count(&mut out, s.source_nodes.len())?;
@@ -302,11 +295,9 @@ impl SemanticImportFreshnessSettlement {
         let archive_version = r.u64()?;
         let graph_version = r.u64()?;
         let memory_graph_version = r.u64()?;
-        let predecessor_digest = match r.u8()? {
-            0 => None,
-            1 => Some(r.array()?),
-            _ => return Err("invalid semantic import predecessor tag".into()),
-        };
+        if r.u8()? != 0 {
+            return Err("invalid semantic import predecessor reserved tag".into());
+        }
         let born_memories = read_ids(&mut r)?;
         let affected_recipients = read_ids(&mut r)?;
         let mut source_nodes = BTreeSet::new();
@@ -359,7 +350,6 @@ impl SemanticImportFreshnessSettlement {
                 settlement_cut,
                 accepted_events,
                 superseded,
-                predecessor_digest,
             },
             corpus_digest,
             manifest_digest,

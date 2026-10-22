@@ -82,10 +82,11 @@ mod observation;
 mod recovery;
 use continuation::ConversationCoordinator;
 use generation::*;
+#[cfg(test)]
+use recovery::archive_receipt_if_present;
 #[path = "runtime_host_gateway_conversation_generation_events.rs"]
 mod generation_events;
 pub(super) use generation_events::validate_generation_tool_source;
-use recovery::archive_receipt_if_present;
 #[derive(Default)]
 struct ViewerState {
     viewers: HashMap<(String, String), HashMap<Uuid, super::InstanceId>>,

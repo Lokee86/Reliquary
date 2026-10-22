@@ -39,25 +39,6 @@ fn graph_node_codec_reads_legacy_memory_and_typed_entity_nodes() {
 }
 
 #[test]
-fn legacy_relation_payload_defaults_origin_to_dream() {
-    let mut bytes = [0_u8; 75];
-    bytes[..8].copy_from_slice(b"CVAGMUT1");
-    bytes[8..40].copy_from_slice(&[1; 32]);
-    bytes[40..72].copy_from_slice(&[2; 32]);
-    bytes[72..74].copy_from_slice(&GraphRelationKind::Factual.code().to_le_bytes());
-    bytes[74] = 1;
-
-    let decoded = crate::graph_codec::decode_mutation(&bytes)
-        .unwrap()
-        .unwrap();
-    assert_eq!(decoded.origin, GraphRelationOrigin::Dream);
-    assert_eq!(
-        decoded.kind,
-        SemanticGraphRelationKind::Memory(GraphRelationKind::Factual)
-    );
-}
-
-#[test]
 fn typed_entity_association_codec_roundtrips() {
     use crate::graph_codec::{GraphMutationPayload, decode_mutation, encode_mutation};
 

@@ -13,7 +13,6 @@ impl Cva {
         }
         if self.freshness.import_settlements() != copy.freshness.import_settlements()
             || self.import_epoch_statuses() != copy.import_epoch_statuses()
-            || self.legacy_import_epochs() != copy.legacy_import_epochs()
             || self.freshness_policy() != copy.freshness_policy()
             || self.rel_turn_count() != copy.rel_turn_count()
             || self.latest_global_version() != copy.latest_global_version()
@@ -65,16 +64,12 @@ fn historical_owner_evidence_digest(container: &Container) -> Result<[u8; 32], C
         // These concrete owner families have no relocatable ObjectRef fields.
         // Insomnia completion includes the native grouped publication proof;
         // Dream includes publication intents and original first-cycle roots.
-        let payload = crate::imports::legacy_epoch_transport::original_payload(payload)
-            .map_err(CvaError::Import)?
-            .unwrap_or(payload);
         if payload.starts_with(b"CVAFR")
             || payload.starts_with(b"CVAFSA")
             || payload.starts_with(b"CVDREAM")
             || payload.starts_with(b"CVAINSC")
             || payload.starts_with(b"CVAIEPS1")
             || payload.starts_with(b"CVAIEPC1")
-            || payload.starts_with(b"CVAILEG1")
         {
             hash.update((payload.len() as u64).to_le_bytes());
             hash.update(payload);

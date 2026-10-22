@@ -1,7 +1,7 @@
 use crate::compact_delta::FieldChange;
 use crate::ego_codec::EgoRecord;
 use crate::ego_compact_contract::{
-    EgoChanges, EgoCreation, EgoDelta, EgoTerminal, is_terminal, normalize, revision,
+    EgoChanges, EgoCreation, EgoDelta, EgoTerminal, is_terminal, revision,
 };
 use crate::ego_store::EgoStore;
 use crate::{EgoAnchorId, EgoAnchorPriority, EgoError, EgoIdentityId};
@@ -44,29 +44,6 @@ fn anchor(
 
 fn invalid<T>(result: Result<T, EgoError>) {
     assert!(matches!(result, Err(EgoError::InvalidRecord(_))));
-}
-
-#[test]
-fn legacy_identity_creation_normalizes_to_active_default_identity() {
-    let legacy = EgoRecord::LegacyIdentity {
-        ego_version: 1,
-        revision: 1,
-        text: "Legacy identity".into(),
-    };
-    let creation = EgoCreation::new(legacy.clone()).unwrap();
-    assert_eq!(
-        creation.record,
-        identity(
-            1,
-            crate::ego_store::LEGACY_IDENTITY_ID,
-            1,
-            true,
-            "Legacy identity"
-        )
-    );
-    assert_eq!(normalize(legacy.clone()), creation.record);
-    assert_eq!(revision(&legacy), Some(1));
-    assert!(!is_terminal(&creation.record));
 }
 
 #[test]
@@ -194,14 +171,18 @@ fn raw_ingest_preserves_repeated_publications_and_owner_restrictions() {
     let first = identity(1, id, 1, true, "same");
     let second = identity(2, id, 2, true, "same");
     let mut phy = EgoStore::phylactery();
-    phy.ingest(&crate::ego_codec::encode(&first).unwrap())
+    phy.ingest(&crate::ego_current_fixture::encode_postimage(&first).unwrap())
         .unwrap();
-    phy.ingest(&crate::ego_codec::encode(&second).unwrap())
-        .unwrap();
-    phy.ingest(&crate::ego_codec::encode(&identity(3, other_id, 1, false, "other")).unwrap())
+    phy.ingest(&phy.encode_compact_publication(&second).unwrap())
         .unwrap();
     phy.ingest(
-        &crate::ego_codec::encode(&identity(4, other_id, 2, true, "other revised")).unwrap(),
+        &crate::ego_current_fixture::encode_postimage(&identity(3, other_id, 1, false, "other"))
+            .unwrap(),
+    )
+    .unwrap();
+    phy.ingest(
+        &phy.encode_compact_publication(&identity(4, other_id, 2, true, "other revised"))
+            .unwrap(),
     )
     .unwrap();
     assert_eq!(phy.version(), 4);
@@ -210,7 +191,7 @@ fn raw_ingest_preserves_repeated_publications_and_owner_restrictions() {
 
     let mut rel = EgoStore::reliquary();
     assert!(matches!(
-        rel.ingest(&crate::ego_codec::encode(&first).unwrap()),
+        rel.ingest(&crate::ego_current_fixture::encode_postimage(&first).unwrap()),
         Err(EgoError::InvalidOwnerRecord(_))
     ));
 }
@@ -222,10 +203,10 @@ fn raw_anchor_terminal_preserves_changed_priority_and_can_be_first_revision() {
     let live = anchor(1, id, 1, false, EgoAnchorPriority::Low, "standing context");
     let deleted = anchor(2, id, 2, true, EgoAnchorPriority::High, "");
     store
-        .ingest(&crate::ego_codec::encode(&live).unwrap())
+        .ingest(&crate::ego_current_fixture::encode_postimage(&live).unwrap())
         .unwrap();
     store
-        .ingest(&crate::ego_codec::encode(&deleted).unwrap())
+        .ingest(&crate::ego_current_fixture::encode_postimage(&deleted).unwrap())
         .unwrap();
     assert_eq!(store.version(), 2);
     assert!(store.anchor(id).is_none());
@@ -244,7 +225,7 @@ fn raw_anchor_terminal_preserves_changed_priority_and_can_be_first_revision() {
     );
     let mut another = EgoStore::reliquary();
     another
-        .ingest(&crate::ego_codec::encode(&initial_terminal).unwrap())
+        .ingest(&crate::ego_current_fixture::encode_postimage(&initial_terminal).unwrap())
         .unwrap();
     assert_eq!(another.version(), 1);
 }
@@ -255,10 +236,16 @@ fn active_identity_deletion_requires_swapping_when_another_identity_is_live() {
     let second_id = EgoIdentityId([8; 16]);
     let mut store = EgoStore::phylactery();
     store
-        .ingest(&crate::ego_codec::encode(&identity(1, first_id, 1, true, "one")).unwrap())
+        .ingest(
+            &crate::ego_current_fixture::encode_postimage(&identity(1, first_id, 1, true, "one"))
+                .unwrap(),
+        )
         .unwrap();
     store
-        .ingest(&crate::ego_codec::encode(&identity(2, second_id, 1, false, "two")).unwrap())
+        .ingest(
+            &crate::ego_current_fixture::encode_postimage(&identity(2, second_id, 1, false, "two"))
+                .unwrap(),
+        )
         .unwrap();
     let deleted = EgoRecord::Identity {
         ego_version: 3,
@@ -270,7 +257,7 @@ fn active_identity_deletion_requires_swapping_when_another_identity_is_live() {
         text: String::new(),
     };
     assert!(matches!(
-        store.ingest(&crate::ego_codec::encode(&deleted).unwrap()),
+        store.ingest(&crate::ego_current_fixture::encode_postimage(&deleted).unwrap()),
         Err(EgoError::ActiveIdentityDeletion)
     ));
     assert_eq!(store.version(), 2);

@@ -32,6 +32,11 @@ fn native_graph_relocation_and_scan_validate_shape_and_preserve_exact_payload() 
             transaction,
         })
         .unwrap();
+        let mut orphan_scan = super::ReclamationScan::default();
+        orphan_scan.ingest(object, &body).unwrap();
+        let orphan_plan = orphan_scan.finish();
+        assert_eq!(orphan_plan.unpublished_backing_chunks, 1);
+        assert!(orphan_plan.drop.contains(&object));
         let bytes = envelope(&body);
         let mut scan = super::ReclamationScan::default();
         scan.ingest(object, &bytes).unwrap();
@@ -39,6 +44,13 @@ fn native_graph_relocation_and_scan_validate_shape_and_preserve_exact_payload() 
             super::relocate_payload(&bytes, &Default::default()).unwrap(),
             bytes
         );
+        let retained = {
+            let mut scan = super::ReclamationScan::default();
+            scan.ingest(object, &bytes).unwrap();
+            scan.finish()
+        };
+        assert!(!retained.drop.contains(&object));
+        assert_eq!(retained.unpublished_backing_chunks, 0);
         for end in 8..body.len() {
             let malformed = envelope(&body[..end]);
             assert!(scan.ingest(object, &malformed).is_err());

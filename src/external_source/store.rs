@@ -1,9 +1,7 @@
 use super::model::*;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-const MAGIC: &[u8; 8] = b"CVAXIDX1";
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct IndexedChunk {
@@ -111,52 +109,18 @@ impl ExternalIndexStore {
             }
             return;
         }
-        if !bytes.starts_with(MAGIC) {
-            if bytes.starts_with(b"CVAXIDX") {
-                self.sources.clear();
-                self.damaged = true;
-            }
-            return;
-        }
-        let decoded = decode(bytes);
-        match decoded {
-            Ok(state) => {
-                let valid = if state.rebuild {
-                    self.sources.get(&state.namespace).is_none_or(|old| {
-                        Some(state.revision) == old.revision.checked_add(1)
-                            && Some(state.generation) == old.generation.checked_add(1)
-                            && state.cursor >= old.cursor
-                    })
-                } else {
-                    self.sources.get(&state.namespace).is_some_and(|old| {
-                        Some(state.revision) == old.revision.checked_add(1)
-                            && state.generation == old.generation
-                            && state.last_base == old.cursor
-                            && state.cursor >= old.cursor
-                    })
-                };
-                if valid {
-                    self.sources.insert(state.namespace.clone(), state);
-                } else {
-                    self.sources.clear();
-                    self.damaged = true;
-                }
-            }
-            Err(_) => {
-                self.sources.clear();
-                self.damaged = true;
-            }
+        if bytes.starts_with(b"CVAXIDX") {
+            self.sources.clear();
+            self.damaged = true;
         }
     }
+
     pub(crate) fn install(
         &mut self,
         container: &mut crate::Container,
         state: SourceState,
         expected_revision: Option<u64>,
     ) -> Result<(), ExternalSourceError> {
-        container
-            .require_storage_format_writable()
-            .map_err(|_| ExternalSourceError::StorageFormatUpgradeRequired)?;
         if self.sources.get(&state.namespace).map(|s| s.revision) != expected_revision {
             return Err(ExternalSourceError::Conflict);
         }
@@ -206,33 +170,4 @@ pub(crate) fn encode(state: &SourceState) -> Result<Vec<u8>, ExternalSourceError
 
 pub(crate) fn discard_payload() -> Vec<u8> {
     super::compact_index::discard()
-}
-
-#[cfg(test)]
-pub(crate) fn encode_legacy(state: &SourceState) -> Result<Vec<u8>, ExternalSourceError> {
-    state.validate()?;
-    let json = serde_json::to_vec(state).map_err(|_| ExternalSourceError::InvalidContract)?;
-    if json.len() > MAX_EXTERNAL_INDEX_BYTES {
-        return Err(ExternalSourceError::Bounds);
-    }
-    let mut bytes = MAGIC.to_vec();
-    bytes.extend_from_slice(&(json.len() as u64).to_le_bytes());
-    bytes.extend_from_slice(&json);
-    bytes.extend_from_slice(&Sha256::digest(&bytes));
-    Ok(bytes)
-}
-fn decode(bytes: &[u8]) -> Result<SourceState, ExternalSourceError> {
-    if bytes.len() < 48 || bytes.len() > MAX_EXTERNAL_INDEX_BYTES + 48 {
-        return Err(ExternalSourceError::Bounds);
-    }
-    let len = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
-    if usize::try_from(len).ok().and_then(|l| l.checked_add(48)) != Some(bytes.len())
-        || Sha256::digest(&bytes[..bytes.len() - 32]).as_slice() != &bytes[bytes.len() - 32..]
-    {
-        return Err(ExternalSourceError::Storage);
-    }
-    let state: SourceState = serde_json::from_slice(&bytes[16..bytes.len() - 32])
-        .map_err(|_| ExternalSourceError::InvalidContract)?;
-    state.validate()?;
-    Ok(state)
 }

@@ -4,23 +4,10 @@ use super::EgoStore;
 use crate::EgoError;
 use crate::ego_codec::EgoRecord;
 use crate::ego_compact_contract::{
-    EgoChanges, EgoDelta, EgoDocumentKey, EgoTerminal, document_key, is_terminal, normalize,
-    revision,
+    EgoChanges, EgoDelta, EgoDocumentKey, EgoTerminal, document_key, is_terminal, revision,
 };
 
 impl EgoStore {
-    pub(crate) fn validate_storage_version(
-        &self,
-        version: crate::FormatVersion,
-    ) -> Result<(), EgoError> {
-        if version != (crate::FormatVersion { major: 2, minor: 0 }) && self.compact_seen {
-            return Err(EgoError::InvalidRecord(
-                "compact Ego publications require V2 storage".into(),
-            ));
-        }
-        Ok(())
-    }
-
     pub(super) fn delta_predecessor(&self, changes: &EgoChanges) -> Result<EgoRecord, EgoError> {
         self.document_predecessor(changes.document_key())
     }
@@ -29,7 +16,7 @@ impl EgoStore {
         &self,
         record: &EgoRecord,
     ) -> Result<Vec<u8>, EgoError> {
-        let record = normalize(record.clone());
+        let record = record.clone();
         self.validate_owner_record(&record)?;
         if crate::ego_codec::record_ego_version(&record) != self.next_version()? {
             return Err(EgoError::InvalidRecord(
