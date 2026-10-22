@@ -147,13 +147,6 @@
         "src/rewrite",
         "src/rewrite_lineage.rs"
       ]
-    },
-    {
-      "id": "storage-upgrade",
-      "description": "Frozen-source lossless format staging and explicit owner-codec transport; no publication clock or semantic authority",
-      "paths": [
-        "src/storage_upgrade"
-      ]
     }
   ],
   "rules": [

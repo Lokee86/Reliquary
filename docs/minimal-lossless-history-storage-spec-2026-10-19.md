@@ -1,6 +1,6 @@
 # Minimal lossless history storage — refactor specification
 
-Status: Active design, with persisted-compatibility policy superseded by [development format hard-cut specification](development-format-hard-cut-interruption-spec-2026-10-19.md). The V1.0 compatibility claims below apply only during temporary development migration and do not authorize permanent V1.0 runtime support.
+Status: Implemented and accepted: all 377 steps in the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) are complete. Persisted-format policy follows the [development format hard-cut specification](development-format-hard-cut-interruption-spec-2026-10-19.md): current V2.0 owners only; legacy runtime readers and temporary converters are retired. Historical input descriptions below preserve design evidence. Measurement-gated deferrals remain explicit in the final retirement report.
 Date: 2026-10-19  
 Scope: REL/PHY durable history representation  
 Related: [ADR 0003](decisions/0003-layered-version-clocks-and-local-ancestry.md), [ADR 0004](decisions/0004-bounded-ancestry-aware-packs.md), [ADR 0005](decisions/0005-cva-composition-and-packed-vector-objects.md), [ADR 0007](decisions/0007-compatibility-profiles-and-vector-generations.md), [ADR 0041](decisions/0041-semantic-import-boundaries-owner-pruning-history-rewrite.md), [Versioning, Historical Cuts, and Rollback](version-history-plan.md)  

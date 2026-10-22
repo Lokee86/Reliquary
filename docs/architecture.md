@@ -2,7 +2,7 @@
 
 Parent index: [Documentation index](INDEX.md)
 
-Current runtime settlement, normalization, owner maintenance and rewrite behavior is summarized in [Semantic maintenance and history rewrite](#semantic-maintenance-and-history-rewrite). Legacy framing below describes temporary implementation dependencies, not a permanent runtime-support promise.
+Current runtime settlement, normalization, owner maintenance and rewrite behavior is summarized in [Semantic maintenance and history rewrite](#semantic-maintenance-and-history-rewrite). Historical framing references below describe stable comparison schemas or frozen development evidence; runtime admission is current-only.
 
 ## Development-format lifecycle
 
@@ -124,7 +124,7 @@ The canonical gateway now owns route replacement and exact-owner background stat
 Only ConversationExecution has an executable host payload/receipt path. Explicit `HostExecutionMode::ExecutionOnly` negotiation reconciles to `CapabilityState::ExecutionOnlyReady` while queue authority stays Native. In this mode the application executes an already bound native generation; the router never hands pending admission to the adapter. Complete queue flags do not override the selected execution-only mode. Full pending ownership still requires the separate PendingQueue mode and all five queue guarantees. The finite capability router filters Insomnia, Dream, Embedding and ProjectEnvironment declarations to Native; their existing endpoint/project implementations retain authority. Unknown recovered debt still fences a capability until local durable terminal recording and empty reconciliation. The router binds handoff ID/digest and dispatch readiness under one short lock, then releases it before adapter I/O; the cache is validation state, not a second queue or durable journal. The [B ledger](multiplexing-implementation-plan.md) records boundaries and the deletion handoff. Legacy host deletion and Warlock migration remain separate convergence gates.
 
 ## Overview
-A homogeneous Reliquary `.rel` is one physical file containing the same explicit concrete owners as the former CVA format. Legacy `.cva` and typed REL files remain readable as compatibility inputs:
+A homogeneous Reliquary `.rel` is one physical file containing the same explicit concrete owners as the former CVA format. Normal opens require current V2.0 identity regardless of the filename suffix; preserved typed identity discriminators do not enable old-format readers:
 ```text
 Reliquary (internal compatibility type: Cva)
 ├── Container

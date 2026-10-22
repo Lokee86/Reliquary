@@ -1658,5 +1658,1481 @@
       "sha256": "c633c4cda0d76f89a253b888bc5e29de647d12abcb648ee41d9399c8904c1a9d"
     }
   ],
-  "note": "Complete runtime/test/example/script change inventory for the retirement implementation checkpoint; final documentation and acceptance records are tracked separately."
+  "note": "Complete runtime/test/example/script change inventory for the retirement implementation checkpoint; final documentation and acceptance records are tracked separately.",
+  "post_checkpoint_changes": [
+    {
+      "path": "tests/rel_activity_clock_contract.rs",
+      "sha256": "bcea13218eafc074298d1a847bfe70cf36ba7b84560ac7937031814b1e9c4937",
+      "disposition": "current-only activity-clock integration fixtures"
+    },
+    {
+      "path": "tools/pitlord/policy.json",
+      "sha256": "637232260abce3302e3267470f2d4f325189fce7c06968b81ba9f8460d01008b",
+      "disposition": "remove retired upgrader ownership area or migration exception"
+    },
+    {
+      "path": "tools/pitlord/semantic.json",
+      "sha256": "a2af216eabf7bde1be3255fd59ef8f335ebce1133d8f473c30e3348bfdd84101",
+      "disposition": "remove retired upgrader ownership area or migration exception"
+    }
+  ],
+  "implementation_commit": "436006a989c7b6bfb07026a39bde290fa225eb6d",
+  "implementation_changed_files": [
+    {
+      "status": "A",
+      "path": "benchmarks/canonical-history-retired-tests-2026-10-21.json"
+    },
+    {
+      "status": "A",
+      "path": "benchmarks/canonical-history-retirement-2026-10-21.json"
+    },
+    {
+      "status": "A",
+      "path": "benchmarks/canonical-history-retirement-inventory-2026-10-21.json"
+    },
+    {
+      "status": "A",
+      "path": "benchmarks/history-durable-family-retired-2026-10-21.json"
+    },
+    {
+      "status": "M",
+      "path": "cli/src/args.rs"
+    },
+    {
+      "status": "M",
+      "path": "cli/src/boundary_tests.rs"
+    },
+    {
+      "status": "A",
+      "path": "cli/src/conversation_titles_cmd.rs"
+    },
+    {
+      "status": "M",
+      "path": "cli/src/main.rs"
+    },
+    {
+      "status": "D",
+      "path": "cli/src/migration_cmd.rs"
+    },
+    {
+      "status": "M",
+      "path": "cli/src/rel_cmd.rs"
+    },
+    {
+      "status": "M",
+      "path": "cli/src/repair_cmd.rs"
+    },
+    {
+      "status": "M",
+      "path": "docs/api.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/architecture.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/canonical-history-migration-results-2026-10-21.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/cli.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/current-limitations.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/decisions/0042-minimal-lossless-current-history.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/development.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/documentation-coverage.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/invariants.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/maintainer-map.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/minimal-lossless-history-storage-linear-plan-2026-10-19.md"
+    },
+    {
+      "status": "M",
+      "path": "docs/storage-format.md"
+    },
+    {
+      "status": "M",
+      "path": "examples/dream_tune/support.rs"
+    },
+    {
+      "status": "M",
+      "path": "scripts/history_writer_inventory.py"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_activity_preservation_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_conversation_metadata.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_conversation_tombstone.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_history.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_history_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_import.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_publication_bundle_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_publication_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_publication_core_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/archive/archive_publication_reader_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_publication_replay_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_rebuild.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/archive_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/conversation_compaction_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/conversation_metadata_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/conversation_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/echo_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/episode_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/file_memory_link_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/file_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/fragment_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/history_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/interaction_stream_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/interaction_stream_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/interaction_stream_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/project_file_binding_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/project_history_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/project_history_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/project_history_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/turn_ingest_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/turn_ingest_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/archive/turn_ingest_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/container/container.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/container/container_error.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/container/container_format_boundary_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/container/container_scan.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/container/container_upgrade.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/container/publication_envelope_clock_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/container/transaction_time_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_compact_apply.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_compact_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_compact_contract.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_compact_contract_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_compact_creation_codec_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_compact_replay_tests.rs"
+    },
+    {
+      "status": "A",
+      "path": "src/ego/ego_current_fixture.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_identity_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_lifecycle_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_persona_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_store_anchors.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_store_compact.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_store_documents.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/ego/ego_store_identities.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/external_source/compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/external_source/mod.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/external_source/model.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/external_source/processing.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/external_source/publication.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/external_source/publication_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/external_source/store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_archive_vectors.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_communities.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_compatibility_profiles.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_description_prune.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_dream_begin_transport.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_dream_journal_replay.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_dream_population_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_ego.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_file_memory.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_freshness.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_graph.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_historical_import.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_history_prune.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_lifecycle.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_memory_vectors.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_packed_vectors.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_principal_repack.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_reconcile.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_reconcile_entity_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_reconcile_relationship_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_reconcile_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_repack.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_semantic_live.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_semantic_source.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_vector_generations.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/cva_vector_recovery.rs"
+    },
+    {
+      "status": "A",
+      "path": "src/facade/dream_current_fixture.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/dream_population_authority_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/dream_population_proof_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/entity_compact_prune_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/external_birth_prefix_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/graph_compact_freshness_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/graph_compact_maintenance_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/graph_compact_proof_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/graph_compact_reconcile_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/historical_baseline_artifacts.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_dream_processing_fingerprint_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_ego_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_ego_fingerprint.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_ego_fingerprint_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_freshness_fingerprint.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_freshness_values.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_global_frontier_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_graph_fingerprint_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_import_input.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/historical_import_legacy_epoch_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/historical_import_legacy_epoch_version_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/historical_import_memory_envelope_upgrade_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_import_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_import_transform.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/historical_import_transform_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/history_prune_manifest.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/migration.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/migration_dream_cooldown.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/migration_phy.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/migration_phy_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/migration_rel.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/migration_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_communities.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_compatibility_profiles.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_ego.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_graph.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_history_prune.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_lifecycle.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_memory_source.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_memory_vectors.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_packed_vectors.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/phylactery_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/relationship_compact_prune_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/reliquary_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/review_clocks_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/facade/storage_format_boundary_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_entity_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_entity_publication_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_graph_publication_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_memory_publication_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_relationship_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_relationship_publication_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_scan.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/facade/storage_reclamation_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/freshness/freshness_import_compatibility.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/freshness/freshness_import_events.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/freshness/freshness_import_settlement.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/freshness/freshness_semantic_settlement.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/freshness/freshness_semantic_settlement_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/freshness/freshness_storage_stream.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/freshness_dream_journal.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/freshness_storage.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/commit.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/completion.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/completion_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/epoch_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/epoch_store.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/imports/legacy_epoch.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/imports/legacy_epoch_transport.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/mod.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/readiness.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_compact_memory_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_ego_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_entity_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_freshness_authority_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_graph_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_interval.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_relationship_compact_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/reconciliation_resolution_delta_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/imports/tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/lib.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_codec_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_compact_contract_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_compact_maintenance_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/memory/memory_compact_replay_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_compact_retry_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/memory/memory_legacy_terminal_fixture.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_publication_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_publication_copy_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_rebuild.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_routing_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_routing_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/memory_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/memory/processing_epoch_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_compact_publish.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/entity_compact_rebuild_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_description_proof.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_description_proof_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_description_prune.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/entity_legacy_admission_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/entity_legacy_fixture.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_owner.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_publication_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_publication_copy_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/entity_publication_history_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/entity_publication_legacy_prune_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_publication_prune_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_publication_replay_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_rebuild.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_replay.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_resolution_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_resolution_delta_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/entity_resolution_migration_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_resolution_retained_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_resolution_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_resolution_store_write.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/entity_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_compact_owner_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_compact_publish.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/relationship_compact_rebuild_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_description_proof.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_description_proof_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_description_prune.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_owner.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_publication_codec.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/relationship_publication_history_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/relationship_publication_legacy_prune_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_rebuild.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_replay.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/perception/relationship_store.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/perception/relationship_v1_characterization_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/archive_vector_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/archive_vector_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/compatibility_profile_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/memory_vector_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/memory_vector_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/packed_vector_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/packed_vector_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/retrieval/vector_generation_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/agentic_memory_frozen_fixture_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/dream_pair_history.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/dream_pair_history_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/completion.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/runtime_inference/insomnia/completion_compact_legacy.rs"
+    },
+    {
+      "status": "A",
+      "path": "src/runtime_inference/insomnia/completion_compact_retained.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/completion_compact_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/runtime_inference/insomnia/completion_migration_tests.rs"
+    },
+    {
+      "status": "A",
+      "path": "src/runtime_inference/insomnia/completion_retained_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/completion_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/cva.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/ownership_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/processor.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/processor/application.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/insomnia/store/transitions.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/runtime_inference/runtime_host_gateway_conversation.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/community_routing_bench_fixture.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/community_store.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/community_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_codec_mutation.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_codec_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_compact_owner_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/semantic_graph/graph_compact_rebuild_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_publication_codec.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_publication_codec_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_publication_replay_tests.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_rebuild.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_rewrite_baseline.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_store_compact.rs"
+    },
+    {
+      "status": "M",
+      "path": "src/semantic_graph/graph_store_write.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/archive_envelope.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/archive_envelope_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/archive_envelope_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/authority_admission.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/canonical_matrix_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/canonical_performance_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/dream_begin.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/dream_begin_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/dream_pair_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/ego.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/ego_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/ego_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/entity.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/entity_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/entity_envelope.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/entity_envelope_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/entity_envelope_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/entity_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/evidence_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/external_index.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/freshness_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/freshness_synthetic_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/graph.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/graph_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/graph_envelope.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/graph_envelope_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/graph_envelope_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/graph_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/import_settlement.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/import_settlement_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/memory.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/memory_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/memory_envelope.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/memory_envelope_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/memory_envelope_failure_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/memory_envelope_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/memory_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/mod.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/model.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/prepruned_memory_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/relationship.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/relationship_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/relationship_envelope.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/relationship_envelope_authoritative_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/relationship_envelope_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/relationship_tests.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/shell.rs"
+    },
+    {
+      "status": "D",
+      "path": "src/storage_upgrade/tests.rs"
+    },
+    {
+      "status": "A",
+      "path": "tests/current_format_boundary.rs"
+    },
+    {
+      "status": "M",
+      "path": "tests/external_source_contract.rs"
+    },
+    {
+      "status": "M",
+      "path": "tests/freshness_owner_contract.rs"
+    }
+  ],
+  "implementation_changed_file_count": 347,
+  "closeout_changed_files": [
+    "benchmarks/canonical-history-retirement-2026-10-21.json",
+    "benchmarks/canonical-history-retirement-architecture-2026-10-21.json",
+    "benchmarks/canonical-history-retirement-inventory-2026-10-21.json",
+    "docs/architecture.md",
+    "docs/canonical-history-migration-results-2026-10-21.md",
+    "docs/current-limitations.md",
+    "docs/decisions/0042-minimal-lossless-current-history.md",
+    "docs/manual/migration-and-reconciliation.md",
+    "docs/minimal-lossless-history-storage-linear-plan-2026-10-19.md",
+    "docs/minimal-lossless-history-storage-spec-2026-10-19.md",
+    "docs/storage-format.md",
+    "tests/rel_activity_clock_contract.rs",
+    "tools/pitlord/policy.json",
+    "tools/pitlord/semantic.json"
+  ],
+  "closeout_file_hashes": [
+    {
+      "path": "benchmarks/canonical-history-retirement-architecture-2026-10-21.json",
+      "sha256": "85b5709012e7d23f48a2aff858bd2dc64ed32a64886af8f699418800ceefb953"
+    },
+    {
+      "path": "docs/architecture.md",
+      "sha256": "ca1aa2a72a3feb4562905ada2268038fbc81910de0e4763711c49c8f25a81b52"
+    },
+    {
+      "path": "docs/canonical-history-migration-results-2026-10-21.md",
+      "sha256": "93ac343b608eabb7f95245df29d5a6a82bdc24a30555fc6985f9ea6f8b30a6fe"
+    },
+    {
+      "path": "docs/current-limitations.md",
+      "sha256": "e846963662ebc258939c9a32ce41d57b70b2594e84324cdb71bd6c0ce7952af4"
+    },
+    {
+      "path": "docs/decisions/0042-minimal-lossless-current-history.md",
+      "sha256": "892381e9159daf1ed87ea8135aeaa9b4df4d6f40ecd091e253730d08cf01b62a"
+    },
+    {
+      "path": "docs/manual/migration-and-reconciliation.md",
+      "sha256": "ef04542cfb8426f1893d7607b778c293bd685d4c78a00ad6668c5510e7f3ec2a"
+    },
+    {
+      "path": "docs/minimal-lossless-history-storage-linear-plan-2026-10-19.md",
+      "sha256": "d48c0cb0f0b7dfffe94d936dff7407f24c9e444c1bcbc05479aec32785cfc9f1"
+    },
+    {
+      "path": "docs/minimal-lossless-history-storage-spec-2026-10-19.md",
+      "sha256": "03ed720eab597e6107aa0fdcacda7d4056cfec4add79e2d5e1d7384c722c4e68"
+    },
+    {
+      "path": "docs/storage-format.md",
+      "sha256": "ea6c7409c88e5eed9da205870872d3bca6182a592125dc839153e9aea611c9b1"
+    },
+    {
+      "path": "tests/rel_activity_clock_contract.rs",
+      "sha256": "bcea13218eafc074298d1a847bfe70cf36ba7b84560ac7937031814b1e9c4937"
+    },
+    {
+      "path": "tools/pitlord/policy.json",
+      "sha256": "637232260abce3302e3267470f2d4f325189fce7c06968b81ba9f8460d01008b"
+    },
+    {
+      "path": "tools/pitlord/semantic.json",
+      "sha256": "a2af216eabf7bde1be3255fd59ef8f335ebce1133d8f473c30e3348bfdd84101"
+    }
+  ],
+  "closeout_note": "Inventory and aggregate acceptance report are bound by the final Git commit rather than self-referential hashes. All other closeout paths are hashed here."
 }

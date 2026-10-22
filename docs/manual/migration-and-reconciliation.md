@@ -4,40 +4,17 @@ Parent index: [Reliquary operator manual](INDEX.md)
 
 ## Purpose
 
-Move older REL/PHY files into the current format and merge divergent copies without bypassing semantic-owner invariants.
+Maintain current REL/PHY files and merge divergent current copies without bypassing semantic-owner invariants. Record the boundary for retired development-format conversion.
 
 ## Overview
 
-Migration and reconciliation solve different problems:
-
-- **Migration** converts one old-format file into one current-format file.
-- **Reconciliation** combines two copies of the same logical REL owner.
-
-Neither operation is an in-place overwrite of the source.
+Normal opens require current V2.0 storage and durable identity. Reconciliation combines copies of the same logical REL owner; repair and fresh-history rewrite create separately validated outputs.
 
 ## Migrate an older file
 
-CLI:
+The temporary `migrate` CLI command, `migrate_file` API and legacy normalization have been retired after canonical corpus conversion and promotion. Unsupported old headers fail before writable access, recovery or semantic replay. The current release provides no old-format converter.
 
-```text
-cargo run --manifest-path cli/Cargo.toml -- migrate <source> <output>
-```
-
-Library:
-
-```text
-migrate_file(source, output)
-```
-
-Current migration accepts supported legacy 16-byte Project CVA and earlier 24-byte typed REL/PHY formats and writes a separate current identified file.
-
-After migration:
-
-1. open/verify the output normally.
-2. keep the source until the output has been validated.
-3. update the application reference to the new file intentionally.
-
-Migration semantically replays owner state; it does not copy obsolete physical layout blindly.
+Keep unsupported source bytes unchanged. The [canonical migration record](../canonical-history-migration-results-2026-10-21.md) preserves source hashes, exact history/maintenance evidence and promotion decisions. It is historical evidence, not a supported runtime migration path.
 
 ## Reconcile divergent REL copies
 
@@ -98,7 +75,7 @@ Current reconciliation is a REL operation. Do not generalize it into cross-owner
 
 ## Repair a retained REL copy
 
-`reliquary rel repair SOURCE OUTPUT --keep-profile PROFILE_ID` and `reliquary phy repair ...` create new disposable copies. Repeat `--keep-profile` to preserve a set of active profiles; each must exist and cover current owner data. The repair copy normalizes supported legacy import settlements before optional `--prune-retired`, then optional `--reclaim` compacts unreachable storage on a further copy. It does not re-embed data. Existing outputs are rejected, and the source stays unchanged.
+`reliquary rel repair SOURCE OUTPUT --keep-profile PROFILE_ID` and `reliquary phy repair ...` create new disposable copies. Repeat `--keep-profile` to preserve a set of active profiles; each must exist and cover current owner data. The repair copy requires current semantic import evidence before optional `--prune-retired`, then optional `--reclaim` compacts unreachable storage on a further copy. It does not re-embed data. Existing outputs are rejected, and the source stays unchanged.
 
 ## Rewrite a fresh history
 

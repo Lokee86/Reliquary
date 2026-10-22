@@ -3,7 +3,7 @@
 ## Purpose
 
 Record six-source conversion, historical equivalence, raw-byte costs and
-measurements before authoritative promotion and runtime retirement.
+measurements, authoritative promotion and final runtime retirement.
 
 ## Overview
 
@@ -12,7 +12,7 @@ Every copy reopens through its concrete owner, retains owner identity and all
 owner heads, and passes historical import settlement/completion validation.
 Every authoritative source retains its original SHA-256 and modification time.
 The six-source historical equivalence matrix has also passed with zero owner
-domain mismatches. Authoritative promotion and legacy retirement remain separate gates.
+domain mismatches. Subsequent promotion, retirement and all final gates are complete; earlier measurement sections retain their capture-time scope.
 
 ## Raw logical history bytes
 
@@ -39,7 +39,7 @@ The [conversion artifact](../benchmarks/canonical-history-conversion-2026-10-21.
 records source/output hashes, disposable output paths, owner heads, staging
 times and complete physical-family counts. Its historical-equivalence flag now links the subsequent
 [complete historical oracle](../benchmarks/canonical-history-equivalence-2026-10-21.json)
-records all six successful historical comparisons; authoritative promotion remains pending.
+records all six successful historical comparisons. Subsequent authoritative promotion is recorded below.
 
 ## Resolution history acceptance
 
@@ -65,7 +65,7 @@ documentation checks pass on a byte-verified 1,810-file local snapshot.
 The sandboxed broad run could not reach a localhost mock and could not start one
 Lore child process. The already-built core was rerun locally outside that
 sandbox; all cases pass without changing production behavior or test assertions.
-Architecture snapshot `dc54dee47978dbf0eaf046cf6fe06a364a9106e5e7b789e6caee103924ece48e` passes all23 rules with109,407 source nodes,4,184 relationships and zero compatibility warnings. The [source binding](../benchmarks/canonical-history-architecture-binding-2026-10-21.json) verifies15 production paths against the captured mirror and names subsequent test-only changes. A final post-retirement refresh is still required.
+Architecture snapshot `dc54dee47978dbf0eaf046cf6fe06a364a9106e5e7b789e6caee103924ece48e` passes all23 rules with109,407 source nodes,4,184 relationships and zero compatibility warnings. The [source binding](../benchmarks/canonical-history-architecture-binding-2026-10-21.json) verifies15 production paths against the captured mirror and names subsequent test-only changes. The final post-retirement refresh also passes all 23 rules; its source binding and results are linked below.
 
 ## Related docs
 
@@ -177,4 +177,7 @@ records these proofs, source-integrity checks and complete output hashes.
 
 ## Canonical promotion and retirement
 
-All six verified outputs are promoted in fixture commit `2b170044d3fd6b693baf0dec326c6429c66d8a9f`. The [promotion artifact](../benchmarks/canonical-history-promotion-2026-10-21.json) binds exact canonical hashes and owner heads; original V1 bytes and metadata remain preserved separately. V1 admission, legacy Freshness/import compatibility and temporary upgrade APIs/CLI are deleted in the working implementation. The [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) records post-retirement acceptance separately from the earlier conversion measurements.
+All six verified outputs are promoted in fixture commit `2b170044d3fd6b693baf0dec326c6429c66d8a9f`. The [promotion artifact](../benchmarks/canonical-history-promotion-2026-10-21.json) binds exact canonical hashes and owner heads; original V1 bytes and metadata remain preserved separately. V1 admission, legacy Freshness/import compatibility and temporary upgrade APIs/CLI are deleted in implementation commit `436006a`. The [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) records post-retirement acceptance separately from the earlier conversion measurements.
+
+
+Final acceptance is **377/377**. The [retirement report](../benchmarks/canonical-history-retirement-2026-10-21.json) records 1,942 root tests, 161 integration tests, 32 CLI tests, all six exhaustive frozen-oracle comparisons, 24 authoritative contracts, both documentation gates and the fresh architecture snapshot. The [source binding](../benchmarks/canonical-history-retirement-architecture-2026-10-21.json) records 23 passing rules, 98,633 source nodes and 3,489 relationships with an explicit later test-only fixture exception. Raw logical savings remain separate from deferred compression.

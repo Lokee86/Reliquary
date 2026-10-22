@@ -1,6 +1,6 @@
 # ADR 0042: Minimal lossless current history
 
-Status: Accepted design, 2026-10-21; canonical promotion is complete and runtime retirement is implemented. Post-retirement acceptance remains tracked by the execution plan.
+Status: Accepted and implemented, 2026-10-21. Canonical promotion, runtime retirement and all 377 execution-plan acceptance steps are complete.
 
 ## Context
 

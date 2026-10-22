@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "status": "steps 361-370 accepted; final gates pending",
+  "status": "complete: all 377 execution steps accepted",
   "head_before_retirement": "dbe15d017f392e335a7d75b2a37c228da6743c41",
   "retained_evidence": {
     "raw_family_bytes": "benchmarks/canonical-history-family-bytes-2026-10-21.json",
@@ -37,10 +37,744 @@
       "filtered": 0,
       "seconds": 635.61
     },
-    "integration": "serial retry pending",
-    "current_corpus_oracle": "pending",
-    "architecture": "pending fresh capture",
-    "documentation": "pending final snapshot",
+    "integration": {
+      "suites": 25,
+      "passed": 161,
+      "failed": 0,
+      "ignored": 1,
+      "filtered": 0,
+      "build_jobs": 1
+    },
+    "current_corpus_oracle": {
+      "fixtures": 6,
+      "passed": 1,
+      "failed": 0,
+      "seconds": 1485.3,
+      "zero_owner_domain_mismatches": true,
+      "source_bytes_and_modification_times_unchanged": true
+    },
+    "architecture": {
+      "status": "passed",
+      "snapshot": "sha256:f12c45ecf7ecf9cb30d80d743b3cf410113dff4dc1be158d1108511450d16b3a",
+      "rules": 23,
+      "source_nodes": 98633,
+      "relationships": 3489,
+      "compatibility_warnings": 0,
+      "binding": "benchmarks/canonical-history-retirement-architecture-2026-10-21.json"
+    },
+    "documentation": {
+      "structural": "passed",
+      "change_impact": "passed",
+      "snapshot_files": 1757,
+      "snapshot_manifest_sha256": "e2085585e9f628063717efbf11b1dbc20c988435d838556b32b77e2cbb69dae3",
+      "documentation_files": [
+        {
+          "path": "AGENTS.md",
+          "sha256": "520ac62ddec2552c80666b7bbe76d4d071d37d471c370113e643057728dd76bf"
+        },
+        {
+          "path": "README.md",
+          "sha256": "e445d543eb34316df89d9f39eec6f183cd7546c9d5160ac24c952e2ff26ad3ab"
+        },
+        {
+          "path": "docs-standard.json",
+          "sha256": "85aa23bbc76d805c2d39e291cf7a9435adf175a21546722ada56c9fdd6a3d64b"
+        },
+        {
+          "path": "docs/INDEX.md",
+          "sha256": "b1962f873d6c36bdcb532e23e7d70ae5fdc8fb243bbd199b04fdc0cdce20e60a"
+        },
+        {
+          "path": "docs/agentic-memory-host-handoff-seam-2026-10-16.md",
+          "sha256": "6cbec5e8be3f7fee8099af0cc5ee25b968c508e568cf026b7ea4ce1a64c54a2a"
+        },
+        {
+          "path": "docs/agentic-memory-retrieval-baseline-2026-10-16.md",
+          "sha256": "9f10b52308bad32f5ce1bea6ebb942835bd127d158a99532f5f0039f9b5eeaaa"
+        },
+        {
+          "path": "docs/agentic-memory-retrieval-design-2026-10-15.md",
+          "sha256": "bf163658c515b0a23d05ba1f8afeddabdc09f5921ece0e8dac824e09e20699dc"
+        },
+        {
+          "path": "docs/agentic-memory-retrieval-implementation-plan-2026-10-16.md",
+          "sha256": "c0f2717b6ad73dcad939cbb67d4fbaa50689b8ca27146168830b4750826209f4"
+        },
+        {
+          "path": "docs/agentic-memory-retrieval-linear-implementation-plan-2026-10-16.md",
+          "sha256": "62d38aa61be3fc9bd327a7fe4673df84154b8864f77cf5d62cac2bacd28aaa9d"
+        },
+        {
+          "path": "docs/agentic-memory-retrieval-verification-2026-10-16.md",
+          "sha256": "7af7f2aa5a6ae7aa770ebcf3bef6cee895ec8f4db22d62e2c237706bb548de63"
+        },
+        {
+          "path": "docs/api.md",
+          "sha256": "46f0f67c26b2169851f4233a0d3813b73d6bcc5916c87081c50ae9afe3717c06"
+        },
+        {
+          "path": "docs/architecture.md",
+          "sha256": "ca1aa2a72a3feb4562905ada2268038fbc81910de0e4763711c49c8f25a81b52"
+        },
+        {
+          "path": "docs/archive-vector-generation-reuse-decision-2026-10-21.md",
+          "sha256": "03bb477ec69c54b34a91179b47031b8ba9365eda87ceacf1fe8831a65b0f815b"
+        },
+        {
+          "path": "docs/behavioral-contracts.md",
+          "sha256": "e9001d8392dd577b3ff116dd248d86bc44a9636efab0a9ae6e271da56306be76"
+        },
+        {
+          "path": "docs/canonical-history-migration-results-2026-10-21.md",
+          "sha256": "93ac343b608eabb7f95245df29d5a6a82bdc24a30555fc6985f9ea6f8b30a6fe"
+        },
+        {
+          "path": "docs/chronos-subsystem-plan.md",
+          "sha256": "b0d47d828731c6dcbf5246787960054b867a39dc723fcf9a1eb66b2159f8d065"
+        },
+        {
+          "path": "docs/cli.md",
+          "sha256": "040e0a8d10302a5b3b4d937565a2fe9c22594901fe29d317e685b3e991031262"
+        },
+        {
+          "path": "docs/community-history-reconstruction-decision-2026-10-21.md",
+          "sha256": "0f93fc2babe3b6c20a056676ac4fc32f3cefc82bd9244e56497630a291c0d441"
+        },
+        {
+          "path": "docs/community-routing-benchmark-2026-08-28.md",
+          "sha256": "60edccd26afde867c0218c72069d97171d5b671fe93123dd30a79579003ce338"
+        },
+        {
+          "path": "docs/community-routing-validation-2026-08-29.md",
+          "sha256": "365335bdc029d24c9595a08c1bc9741d66a5cd05188f535cf9cce551cf8b5db4"
+        },
+        {
+          "path": "docs/community-scan-merge-benchmark-2026-08-27.md",
+          "sha256": "0af240aeabdb359a5a8168531f299718c8ef65835fe5649206f9d351bc7f2e44"
+        },
+        {
+          "path": "docs/configuration.md",
+          "sha256": "8a7d66a6bd0108918a1f96bfae7665a675aac142cb3364968e67e33fd5a7bf5d"
+        },
+        {
+          "path": "docs/conversation-index-integration-plan.md",
+          "sha256": "7fd4ca14e30dae266dfe7e5d1f669c0874663462311a4e40ae5a0ae58c934945"
+        },
+        {
+          "path": "docs/current-limitations.md",
+          "sha256": "e846963662ebc258939c9a32ce41d57b70b2594e84324cdb71bd6c0ce7952af4"
+        },
+        {
+          "path": "docs/decision-endpoint-inheritance-linear-plan-2026-10-19.md",
+          "sha256": "42929521dccfca8baaaec363c188591eb1e8fab30110c7f89058e368c599dcb8"
+        },
+        {
+          "path": "docs/decision-endpoint-inheritance-spec-2026-10-19.md",
+          "sha256": "bfca424ca1e403b4a856e56d02b5f9b17498a7bf387ea794546338c94fb00343"
+        },
+        {
+          "path": "docs/decisions/0001-purpose-built-database-ownership.md",
+          "sha256": "b18dc73bbf1d581aa09c221856dc30c4df89703cdee2cda88930633a76da9760"
+        },
+        {
+          "path": "docs/decisions/0002-branching-publication-history.md",
+          "sha256": "c717aaa383c28757bcac1ba298d6e4a053ebfa58926bdc0f6cd473307a199250"
+        },
+        {
+          "path": "docs/decisions/0003-layered-version-clocks-and-local-ancestry.md",
+          "sha256": "a7f109f7412af55cf3652c683ba069b1563dee5687b17c390e4695bf288d1385"
+        },
+        {
+          "path": "docs/decisions/0004-bounded-ancestry-aware-packs.md",
+          "sha256": "e7332bd007a54e3d2a16ab90172a44bae9c10c986a5de52348421a49f383968b"
+        },
+        {
+          "path": "docs/decisions/0005-cva-composition-and-packed-vector-objects.md",
+          "sha256": "415dc5204b77b3d3f4892a4bb3e93961b42c7d8d9d7648050024aedf155d857c"
+        },
+        {
+          "path": "docs/decisions/0006-archive-vector-row-bindings.md",
+          "sha256": "55372549dddd90bbc47ed6dfcd104c32527ca1de428685bb52dbab7b1c23b8b1"
+        },
+        {
+          "path": "docs/decisions/0007-compatibility-profiles-and-vector-generations.md",
+          "sha256": "e879f18eab42d5fcae9030213906f91814fa9508d614bd7b5799eb98532787a7"
+        },
+        {
+          "path": "docs/decisions/0008-purpose-built-local-configuration.md",
+          "sha256": "63f2e0c5b1db8e2427545d04941bf35750c0c8d55c697268b4cd860af88a1c4a"
+        },
+        {
+          "path": "docs/decisions/0009-expandable-model-switchboard.md",
+          "sha256": "069f8e3a5ddb062408ce138165eabc2ed921fd9c7b0403b2cc68db3791d498b0"
+        },
+        {
+          "path": "docs/decisions/0010-encrypted-credential-objects.md",
+          "sha256": "0b7441ab741c6a7918f487a62bbe642f9ac1d0be2f70787550779d2a3bf2cf34"
+        },
+        {
+          "path": "docs/decisions/0011-detachable-repo-local-cli.md",
+          "sha256": "c870728e8307952b4edd68c0ce93f8dccdb34afdd003cfa67c4dca4355c4f7eb"
+        },
+        {
+          "path": "docs/decisions/0012-deterministic-episodes-and-insomnia-memory-authority.md",
+          "sha256": "db45c87593c6addb1c5714aab6fbbf1f215613479a9b7981c2f8be4af858a261"
+        },
+        {
+          "path": "docs/decisions/0013-immutable-memory-vector-bindings.md",
+          "sha256": "80be9985d648e5160cd9df82b1254b5a14d3c9690434e3652faa4360e6659515"
+        },
+        {
+          "path": "docs/decisions/0014-echo-historical-reasoning-traces.md",
+          "sha256": "17cdcb764a3edc373c9889b4d6a563a25139c248d7eafc7a5be285b1db6dc1d2"
+        },
+        {
+          "path": "docs/decisions/0015-acp-inline-interaction-stream.md",
+          "sha256": "279e33128b4533fca49e27e8951e44ef65fb5b5cf8ca09d162cbf3c0215280af"
+        },
+        {
+          "path": "docs/decisions/0016-native-product-surface-and-shared-interaction-runtime.md",
+          "sha256": "41855489c39a2495d8d5ca4576831616244d0a12865af185b8d3b6a423e51e70"
+        },
+        {
+          "path": "docs/decisions/0017-cva-workspace-and-warlock-host-application.md",
+          "sha256": "295ede52ffebf51faf9e1fda885c5631d28a1d5315fb7bc24116bca74a80ead3"
+        },
+        {
+          "path": "docs/decisions/0018-reliquary-and-phylactery-naming.md",
+          "sha256": "ae9ce11893b8a2fc5b062bfba3b397b38e154a4f673aba6a87bec990a717962a"
+        },
+        {
+          "path": "docs/decisions/0019-cloud-backed-cva-reconciliation.md",
+          "sha256": "947b81186084056a5f90604ac08473a146266881e997c3310a68a56b51a1ae9e"
+        },
+        {
+          "path": "docs/decisions/0020-reliquary-and-phylactery-file-kinds.md",
+          "sha256": "73bd3ce05529c4aa3edebffd4009c400be0435fa4e627054ffbcbad863099ec5"
+        },
+        {
+          "path": "docs/decisions/0021-typed-reliquary-scopes-and-connections.md",
+          "sha256": "dad4f33a255ec17e3e56f5c5c60a0c42d51bb7a96c34e2ef390924d7c4c21e82"
+        },
+        {
+          "path": "docs/decisions/0022-durable-typed-owner-identity.md",
+          "sha256": "e3bcb6334709d027053c9820b062f4cfcab8a2e7d8d822749127c95e32170815"
+        },
+        {
+          "path": "docs/decisions/0023-insomnia-durable-owner-routing.md",
+          "sha256": "d4e3b3515f463f7545e29411e0b980de6730787ad67807bf861a5a2f85ad4bcb"
+        },
+        {
+          "path": "docs/decisions/0024-owner-local-dream-processing.md",
+          "sha256": "cbb577d74f75a5d69559387c7d00a9863c8d3fe1bf55da0f43064fabc805630b"
+        },
+        {
+          "path": "docs/decisions/0025-owner-local-derived-communities.md",
+          "sha256": "1a5c2686f33c7dd7fe2d1fba798af3d6c47a529bad847de292d89131a488dcb6"
+        },
+        {
+          "path": "docs/decisions/0026-community-routed-memory-retrieval.md",
+          "sha256": "36fac1b6625c48d203938badc76c47c6e1a73c8b1d6e66fdf434ab70b7c43fd9"
+        },
+        {
+          "path": "docs/decisions/0027-warlock-project-repositories-and-reliquary-storage-boundary.md",
+          "sha256": "e394a720feb8e3987ced12aa2b9f65c69787e5f438c6d255c7b66c1f0e08cd72"
+        },
+        {
+          "path": "docs/decisions/0028-project-folder-and-repository-bootstrap-contract.md",
+          "sha256": "747ac89bd6e4994232dcc1f03f8a8a540e611de5ecca08a9250192c95d03d480"
+        },
+        {
+          "path": "docs/decisions/0029-active-rel-hierarchy-and-deferred-connection-scope.md",
+          "sha256": "68e8d1d1a13874253cc15f5b10ff077fcca8b11d0793e98e43f7c71812fd4385"
+        },
+        {
+          "path": "docs/decisions/0030-provenance-anchored-dream-maintenance.md",
+          "sha256": "63c239226804e696f2f8c30d28afc141c60412effc03e9ae63e36f625ca7c054"
+        },
+        {
+          "path": "docs/decisions/0031-dream-derived-community-semantic-names.md",
+          "sha256": "b8bad0ccb1dda6f9a3922c5862130bb08a86c58c6c90044a37045027e068897e"
+        },
+        {
+          "path": "docs/decisions/0032-community-lineage-and-name-continuity.md",
+          "sha256": "0814ab486e20c78e6dbd55ff7410df4310a4a1b36516658652482638a78b8e64"
+        },
+        {
+          "path": "docs/decisions/0033-perception-entities-observations-and-ambiguity.md",
+          "sha256": "174a09c8dc4c54eb2e1efc6098ace5a66afeaff15c021e1178cfbc8798e44bac"
+        },
+        {
+          "path": "docs/decisions/0034-cross-owner-relationship-graph-and-active-phy-privacy.md",
+          "sha256": "e7b088d44fc0005ad400b037e890ced24a0dfbc96a9d38d7e04d55826b4f69a9"
+        },
+        {
+          "path": "docs/decisions/0035-chronos-shared-temporal-semantics.md",
+          "sha256": "8ddfef4dc68d41fc07bfd32d25dae12912df7e4256b6f4948bedfeb128668ebc"
+        },
+        {
+          "path": "docs/decisions/0036-typed-semantic-graph-endpoints.md",
+          "sha256": "46a1512db3cb1445cb43d14d4826ce25ab6aa5c40a32d1afddcaf603b33a84ee"
+        },
+        {
+          "path": "docs/decisions/0037-reliquary-context-memory-project-environment.md",
+          "sha256": "6ba14c235afe1e1d56f7bb66aedd8af8eecec989c077b58a92e49aa76b004445"
+        },
+        {
+          "path": "docs/decisions/0038-gateway-instance-runtime-multiplexing.md",
+          "sha256": "93819b1e67e7a33cf097328ec9cbcc243da9a5d4017ea62058deb54a4d4f8d33"
+        },
+        {
+          "path": "docs/decisions/0039-unified-deterministic-memory-freshness.md",
+          "sha256": "81e0eb5d34c00570e54f61a7c368898cb920bab4d8a187e3b6a7632f4d7e057c"
+        },
+        {
+          "path": "docs/decisions/0040-terminal-tombstones-and-import-epochs.md",
+          "sha256": "c718e2384a4bf4801c54bd393922b0315a7fc5178746f082e8ed9b1ca7541413"
+        },
+        {
+          "path": "docs/decisions/0041-semantic-import-boundaries-owner-pruning-history-rewrite.md",
+          "sha256": "446a6f4fcd39c276f7806a5f21b12c9e255459c93a6ceafba17991e6ebc8a531"
+        },
+        {
+          "path": "docs/decisions/0042-minimal-lossless-current-history.md",
+          "sha256": "892381e9159daf1ed87ea8135aeaa9b4df4d6f40ecd091e253730d08cf01b62a"
+        },
+        {
+          "path": "docs/decisions/INDEX.md",
+          "sha256": "be9707e3a41382bae796cd5db182ea714652c725fcdbf5249775305bfcf8edea"
+        },
+        {
+          "path": "docs/derived-semantic-nodes-exploration.md",
+          "sha256": "5b5f9c8b0c76a3ace9be09f0cf469a92120009df9e7612af58e0a7c23398e99d"
+        },
+        {
+          "path": "docs/development-format-compatibility-retirement-audit-2026-10-19.md",
+          "sha256": "c1b6851e09f7629667ebf93a66766cffd87a5950f0481e793617bcd54ec55f2c"
+        },
+        {
+          "path": "docs/development-format-hard-cut-interruption-spec-2026-10-19.md",
+          "sha256": "54537a40e0c7369927fb46e08e1bd3715c6b6e87564492a1cfe6fb9405cc61e8"
+        },
+        {
+          "path": "docs/development-format-interruption-execution-2026-10-19.md",
+          "sha256": "4d27c0ef68345fe8469a0020434cf91baf11eaccdd24464b5f9468bb7766f637"
+        },
+        {
+          "path": "docs/development.md",
+          "sha256": "602a3ff42d56e8e76bb3cdbcd04a6d0685a33851974dea621c3f2ac641aaf73d"
+        },
+        {
+          "path": "docs/documentation-coverage.md",
+          "sha256": "505eb53f1b37220a2f582d61bd32e8f4f8ad5681f55fe4eeaf97d5fe4f4be5c1"
+        },
+        {
+          "path": "docs/documentation-policy.md",
+          "sha256": "da3acac489787905818b01c6bfaa4657444f6765f1f675aac775cd492bd7cd36"
+        },
+        {
+          "path": "docs/documentation-procedure.md",
+          "sha256": "511fedf2ab9d7c13dcac40b090fbdd718dbe973d2d07f95371d67fe0219c2e27"
+        },
+        {
+          "path": "docs/domain-tombstone-convergence-split-2026-10-17.md",
+          "sha256": "2062ea1cc281761cbc444031a479757b1bb17d72f025f72ecceaa4f7cfe9f8e2"
+        },
+        {
+          "path": "docs/dream-classifier-v2-design.md",
+          "sha256": "5d1e96dcb63131fd135b984270bc811a046a55ce8dfdf4eb3ac13cfef77efcec"
+        },
+        {
+          "path": "docs/dream-implementation-plan.md",
+          "sha256": "e3c4c6c4337f99abde26e6d36821b6722edf44d2d5101d86f246ad5eaf2c2ead"
+        },
+        {
+          "path": "docs/dream-population-contract-2026-10-21.md",
+          "sha256": "bed6eafc42f8c3a292d3ccdb2cd85b3d3faceeb396313b5dea93a6284ae6df7e"
+        },
+        {
+          "path": "docs/ego-cross-chat-context-plan.md",
+          "sha256": "e45567b67079340bdfb64638687a2717c5b44b7b3cc0be1cab007b2227f8178a"
+        },
+        {
+          "path": "docs/ego-cross-rel-summary-inclusion-plan.md",
+          "sha256": "e3ab704b304eb7c6b09805ba1c80cfdfd95a990ddc7ff4a048afe316af857725"
+        },
+        {
+          "path": "docs/ego-status-decision-inventory-2026-10-14.md",
+          "sha256": "50510971dfa70cba49cc04d8b2951e361c08788c93749fbcd6b8765d3270f4b9"
+        },
+        {
+          "path": "docs/ego-web-synthesis-plan.md",
+          "sha256": "1dec6f1659697f5f50546dc84c5ba4ca76cc60af89bebc5db75cf962a92e1224"
+        },
+        {
+          "path": "docs/entity-resolution-compact-contract-2026-10-21.md",
+          "sha256": "e1dfbcfe29333e2383f3b4398d4348077ad11d57bb05a782d2b1fa78e8776fb7"
+        },
+        {
+          "path": "docs/entity-resolution-state.md",
+          "sha256": "1bc69419fe64cdc6d02ab3904d85ecd21fd93cfc443f0783cfeeab73c1399012"
+        },
+        {
+          "path": "docs/external-index-compact-contract-2026-10-21.md",
+          "sha256": "d9aae8bdf4beff882f3afe7a13e9a284b6f51cdb7ce0b88017d6de192811f9d8"
+        },
+        {
+          "path": "docs/freshness-combined-production-review-2026-10-12.md",
+          "sha256": "b8fcd6e5bce46d6a20325444e31a907fccf152040c545883d82ea64107769915"
+        },
+        {
+          "path": "docs/freshness-completion-execution-plan-2026-10-03.md",
+          "sha256": "7ca8a5a9d4c2d859dac05d91177ba20046097c41a6a3e24378b37d464441478e"
+        },
+        {
+          "path": "docs/freshness-core-release-verification-2026-10-03.md",
+          "sha256": "1d87e9307af63e502d158051e271c0906c965eb2076586f6e8b6b4371ac6368c"
+        },
+        {
+          "path": "docs/freshness-external-consumption-contract.md",
+          "sha256": "be0e36d6484e56540dc2e1e59b995e0f3f1e1a5924c176b058ae2b10c7b424ca"
+        },
+        {
+          "path": "docs/freshness-historical-bridge-oracle-verification-2026-10-12.md",
+          "sha256": "12ab78dfe907806d5b44945778b6dfa18a69dfd3a80b7f60769e749cc7d192a0"
+        },
+        {
+          "path": "docs/freshness-historical-checkpoint-recovery-verification-2026-10-12.md",
+          "sha256": "36f85746bd9f7df2f4038286ca14865e405effd9d9090a69a28ceefc71a42f73"
+        },
+        {
+          "path": "docs/freshness-historical-checkpoint-verification-2026-10-12.md",
+          "sha256": "37f131d25a3bb3792181f1a09b6f49e4133b48aa47e5c48653b44e1afffa0536"
+        },
+        {
+          "path": "docs/freshness-historical-completion-execution-plan-2026-10-12.md",
+          "sha256": "41dcc77e53dc8087a4dca56498ce512c6f4f30438043bd0562ae8cd471d9786c"
+        },
+        {
+          "path": "docs/freshness-historical-dream-verification-2026-10-12.md",
+          "sha256": "e52e39312b480b97308f776d1b2d8ead116bbc2f67d1df07b9164859f711dea0"
+        },
+        {
+          "path": "docs/freshness-historical-import-coordinator-verification-2026-10-12.md",
+          "sha256": "7a557d46e04878a4935ad564878505ca07d82c2ff81af78cbe4e9a1d8b352666"
+        },
+        {
+          "path": "docs/freshness-historical-import-reconstruction-spec-2026-10-03.md",
+          "sha256": "1c1972ce3406d3a96e7f1305e76d6e8b9f2d3aafb8ec083740cfb49db4ee6195"
+        },
+        {
+          "path": "docs/freshness-historical-manifest-policy.md",
+          "sha256": "35f76b0c8db1bbe4080a5584c34b19a964c357997eea08245b530add31aa9759"
+        },
+        {
+          "path": "docs/freshness-historical-planner-verification-2026-10-12.md",
+          "sha256": "872e34f8f93f50de64464c72bb3cf72e72bd432618d13d6a2cc83b318f708cbb"
+        },
+        {
+          "path": "docs/freshness-historical-production-disposition-2026-10-13.md",
+          "sha256": "6e896afd10ae380be20aa0c936606d8c1a861f051d0973b650de755cf5595cc0"
+        },
+        {
+          "path": "docs/freshness-historical-propagation-verification-2026-10-12.md",
+          "sha256": "c1b6af02cec78213f675ef5077cf0940ee60dabd9183b790882ac39efb7b5e84"
+        },
+        {
+          "path": "docs/freshness-historical-reconstruction-verification-2026-10-12.md",
+          "sha256": "379bae3fbaf563365975ddbf79aef1edc13af20b433ede65694f79246f2cc3d4"
+        },
+        {
+          "path": "docs/freshness-historical-scorer-verification-2026-10-12.md",
+          "sha256": "830825acd1192e962b546a5edb0aa34d3c4103a66e0517795881409e46b3a5dd"
+        },
+        {
+          "path": "docs/freshness-historical-semantic-event-planner-verification-2026-10-12.md",
+          "sha256": "6dc4989da632d9704de9320597e8019593d178a9460941524c9a6b37d5ad54e1"
+        },
+        {
+          "path": "docs/freshness-historical-transform-verification-2026-10-12.md",
+          "sha256": "0b1f8ab72b32c97904e9ea0e8e5c79d7c4fe3a6b412e88c2ed8d2194968d3fd7"
+        },
+        {
+          "path": "docs/freshness-internal-retrieval-boundary-implementation-plan-2026-10-15.md",
+          "sha256": "e7c9f1eebd709029a18e47d750497e36a4370c0e96ad29a0c2768066b38a1f7a"
+        },
+        {
+          "path": "docs/freshness-live-semantic-policy-contract.md",
+          "sha256": "5958451db3e0c536783c6100e76156692f94f209d4414573bcf8129d0e714472"
+        },
+        {
+          "path": "docs/freshness-performance-baseline-2026-10-03.md",
+          "sha256": "0b520842e9f69dbeb71f731eff0d46467efbc161272b5a0ebc03ff780be088af"
+        },
+        {
+          "path": "docs/freshness-performance-hardening-plan-2026-10-03.md",
+          "sha256": "c2068101d81e9d396e5a968ce7b172e31bdf1bf029970ded144d4b9392c59525"
+        },
+        {
+          "path": "docs/freshness-performance-p1-verification-2026-10-03.md",
+          "sha256": "84cc9c9fa4e2c15c490417fdab7297576b21818c538763e14df5ec6608bc4fc9"
+        },
+        {
+          "path": "docs/freshness-performance-p2-p4-execution-plan-2026-10-04.md",
+          "sha256": "c2de6576237234f4a63f093c533c5862e689d3d7a8937e670869612647cba38c"
+        },
+        {
+          "path": "docs/freshness-performance-p2-verification-2026-10-03.md",
+          "sha256": "3f854973be2b00edb7272df6e92309c7039c7c673e57c1b2ba22c0a6afdb00a2"
+        },
+        {
+          "path": "docs/freshness-performance-p4-verification-2026-10-04.md",
+          "sha256": "1a3b7282573bd67e491028327e4ca547d9bb29d86a404818d45d6b7b4864682c"
+        },
+        {
+          "path": "docs/freshness-performance-p5-breadth-2026-10-04.md",
+          "sha256": "cd5803f0d8344356bb8ed76366ab9b598730469e42d98c57461ba92a767ffd39"
+        },
+        {
+          "path": "docs/freshness-performance-verification-2026-10-03.md",
+          "sha256": "62bb9c4218936a7bc7893ed312fe5d06bb8bdf17cc574daefaf2a6d2d47fbe80"
+        },
+        {
+          "path": "docs/freshness-r1-verification-2026-10-03.md",
+          "sha256": "c9e3f2e76d3998e0a9ed3fe7490b5f559afbe40e94e9c5bfdcc329f8cade8247"
+        },
+        {
+          "path": "docs/freshness-r2-verification-2026-10-03.md",
+          "sha256": "c3e2562fa9338bc745eacf8dc87fba4f79c4fd9bd167380d322234ddeb5ecf83"
+        },
+        {
+          "path": "docs/freshness-r3-verification-2026-10-03.md",
+          "sha256": "90b87d246fca652cae3f3d4d575a0c7be1c04816d6fa5042d50c280df2367227"
+        },
+        {
+          "path": "docs/freshness-r4-verification-2026-10-03.md",
+          "sha256": "44dca43a07d410709dba2b0ff03a25719943be9b7ed56266b696f4111eda9702"
+        },
+        {
+          "path": "docs/freshness-r5-verification-2026-10-03.md",
+          "sha256": "989a3f08f9aec79651a3e8b5c90d72a1086231d0d90c829b5474d4a2980e37ea"
+        },
+        {
+          "path": "docs/freshness-r6-verification-2026-10-03.md",
+          "sha256": "46eadf9bef27d4fe92ea5aed0f0aee2ec33cb449857e39dc7b8dd967ddaa25c3"
+        },
+        {
+          "path": "docs/freshness-remaining-work-2026-10-03.md",
+          "sha256": "87ecd1e017ae9bd3fe7db6804f867a45fc5ced3132aad8a9b349d9add3a90419"
+        },
+        {
+          "path": "docs/freshness-retained-fixture-normalization-plan-2026-10-12.md",
+          "sha256": "e1b8f67ab344ae003fdb0b6b34dfd5a800dec2dd5991f6a8fdc667d8ad6a2d3d"
+        },
+        {
+          "path": "docs/freshness-retained-normalization-verification-2026-10-13.md",
+          "sha256": "03265cc674ca53622272cc9efda585bc9ab2d4a1163ab3361ee6e38d413172f6"
+        },
+        {
+          "path": "docs/freshness-retrieval-boundary-verification-2026-10-15.md",
+          "sha256": "1e0f345f7f22fa14cfc2112ce3ee4d4279f30611a579f7be3bf7de2da03d471b"
+        },
+        {
+          "path": "docs/freshness-semantic-calibration-2026-10-11.md",
+          "sha256": "b9c0416421d490a0ddb187ac39c79cdf77fb74b084f9ec89e98d154641d613c7"
+        },
+        {
+          "path": "docs/freshness-semantic-calibration-harness-2026-10-11.md",
+          "sha256": "9aa41648aa98c3c049e8a2f8f12d0cd5550b5aff34b0fb7785948fff71fe45d4"
+        },
+        {
+          "path": "docs/freshness-semantic-historical-baseline-2026-10-11.md",
+          "sha256": "0cb8235de98755ca1b4a506cd1881c047dffeab4878e27c8dd83295d3a305a1f"
+        },
+        {
+          "path": "docs/freshness-semantic-historical-linear-implementation-plan-2026-10-11.md",
+          "sha256": "c2d3375de0ae892642b387c253189ed77eaf58fc9bb7d9fac3e0fa5765e7a63c"
+        },
+        {
+          "path": "docs/freshness-semantic-policy-module-2026-10-11.md",
+          "sha256": "3774939d3bf5ab8e99b5185b89c0e450a6c7d14befcde4483a314227416a4acf"
+        },
+        {
+          "path": "docs/freshness-semantic-release-verification-2026-10-12.md",
+          "sha256": "fc0cd22231780cac12116a51e7c572858fb1edb5b891f18b9d46048e6760fa71"
+        },
+        {
+          "path": "docs/generic-staleness-implementation-plan.md",
+          "sha256": "442f687bc097f074742da688b12b1c8994e0ef00f3774b20e35d1cac4a4eb3df"
+        },
+        {
+          "path": "docs/import-step24-attribution-acceptance-2026-10-17.md",
+          "sha256": "afe3b89b36baffb9166d0d96f37a4722db2c397fe8a9bacc2ae75df84b97bb6c"
+        },
+        {
+          "path": "docs/insomnia-explicit-memory-commit-plan.md",
+          "sha256": "c9cade71d4b26a371dd1cc983d5cc1e195552c0b5e14c64e322f2d937281ccc7"
+        },
+        {
+          "path": "docs/insomnia-semantic-validation-2026-08-24.md",
+          "sha256": "0b2c67eca94a5b9d7140893adba4fcc4af61f1b37ba87f39068c022363539f17"
+        },
+        {
+          "path": "docs/interaction-stream-compact-contract-2026-10-21.md",
+          "sha256": "300036b5bae856c37a9fd7782cb914fb510e1867412b1151f5ccb61a8511da1b"
+        },
+        {
+          "path": "docs/invariants.md",
+          "sha256": "3fabd5f9aaa5ac03845fe39effb0120ce8b1a6fd2e062b197118c6594ec573d0"
+        },
+        {
+          "path": "docs/latest-offline-converter-coverage-2026-10-21.md",
+          "sha256": "edb6794dcf6c6386c3129069d12f9e4ee8ec8f9df5c4c722ea4dd3dcee520455"
+        },
+        {
+          "path": "docs/maintainer-map.md",
+          "sha256": "1b9606ae8eb87116a25370cecc756829b2641c13d558fc06d27602246b0d1c82"
+        },
+        {
+          "path": "docs/manual/INDEX.md",
+          "sha256": "c42b669a8f30e0f9f7a3d7e070d8a41b85cd9dbcedf843b2c94d34b21257499e"
+        },
+        {
+          "path": "docs/manual/core-concepts.md",
+          "sha256": "c81b89152fc84226f65f849c0263bfed8c6ef315a83a208a7246e13e7f6b2ed0"
+        },
+        {
+          "path": "docs/manual/getting-started.md",
+          "sha256": "bcfe52cb77f03250caaa0d5febd4b25e5c97a43b2577a77dea2162c070168a4d"
+        },
+        {
+          "path": "docs/manual/graph-and-communities.md",
+          "sha256": "cc457313afcf7f502bc6339d8f13c0095c5b4bc514b4f6d6838c4a7d9a2bcc5c"
+        },
+        {
+          "path": "docs/manual/integration-guide.md",
+          "sha256": "de77bc9ed5bbf5a76c1a8989583f1c0f22f89b65fd5f0e0b27638826b706a72a"
+        },
+        {
+          "path": "docs/manual/memories-and-entities.md",
+          "sha256": "9e2a3b0b69af98c21d10017d022d6464ae422da515457337ce5511958c48c9ec"
+        },
+        {
+          "path": "docs/manual/migration-and-reconciliation.md",
+          "sha256": "ef04542cfb8426f1893d7607b778c293bd685d4c78a00ad6668c5510e7f3ec2a"
+        },
+        {
+          "path": "docs/manual/processing-pipeline.md",
+          "sha256": "7682dd08e6d950b7dc403e7ac29e14f7735303ed0827b2f0fad58770dd2fd0ac"
+        },
+        {
+          "path": "docs/manual/retrieval.md",
+          "sha256": "50c646c69598b41a033d482d7d857d4a80c9eebf5681a000a03722ed1d7a7f66"
+        },
+        {
+          "path": "docs/manual/troubleshooting.md",
+          "sha256": "9b041279c5bab8b6e85303d11d71d9d60eb447a68d412131d9defd76b09b7309"
+        },
+        {
+          "path": "docs/memory-staleness-plan.md",
+          "sha256": "6faff3d128d1fe3e7bac2a4a24f2981215220255499b0269a0fffb0e0d306a64"
+        },
+        {
+          "path": "docs/minimal-lossless-history-storage-execution-2026-10-19.md",
+          "sha256": "daf379c1dee6d8218420be3347bfc8b8cc825e605606a0a1cd51623c31e3fa80"
+        },
+        {
+          "path": "docs/minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md",
+          "sha256": "5339894c95a1dbe3c691d583c06271927967c3b70e154ad56be80bcb9c171faa"
+        },
+        {
+          "path": "docs/minimal-lossless-history-storage-linear-plan-2026-10-19.md",
+          "sha256": "d48c0cb0f0b7dfffe94d936dff7407f24c9e444c1bcbc05479aec32785cfc9f1"
+        },
+        {
+          "path": "docs/minimal-lossless-history-storage-rebased-freeze-2026-10-19.md",
+          "sha256": "3ccc57754c81c235c109c69fb8360604ef9032d3837554fa31262382fde4befe"
+        },
+        {
+          "path": "docs/minimal-lossless-history-storage-spec-2026-10-19.md",
+          "sha256": "03ed720eab597e6107aa0fdcacda7d4056cfec4add79e2d5e1d7384c722c4e68"
+        },
+        {
+          "path": "docs/multiplexing-implementation-plan.md",
+          "sha256": "d015d441577984f5f45f85d03e8a3f5ff9ecfb78c55862b44e5d0c5c85fb3c09"
+        },
+        {
+          "path": "docs/native-import.md",
+          "sha256": "69a8899cf44dd0345dad300f5648205429df8ec2334ffcbfdf72229dc56b0228"
+        },
+        {
+          "path": "docs/perception-subsystem-plan.md",
+          "sha256": "b36c3a2d29190c09d51f5160b601a44e5058524e019b19b8aef15037545b8414"
+        },
+        {
+          "path": "docs/publication-envelope-contract-2026-10-20.md",
+          "sha256": "e5d160435d16f1f7ce5fb657fa4ecc69a65d5bf85ed8cc86dc8069c2d180a7a0"
+        },
+        {
+          "path": "docs/references/INDEX.md",
+          "sha256": "92fe544d91f58e9e4d1118c75ab803f7ba6de1e8a6a85b2abe904d46e14e8c95"
+        },
+        {
+          "path": "docs/references/db-r-2026-010-accuracy-is-not-enough.md",
+          "sha256": "cf66ebe0da560ccdd189c4f9a3283bdb9b183451b625ad41493c7c418a36801a"
+        },
+        {
+          "path": "docs/references/db-r-2026-010-accuracy-is-not-enough.snapshot.txt",
+          "sha256": "0118b38e77ba664adbd12b66c41c2e8a65007c7f8431bb23c0a599c153810752"
+        },
+        {
+          "path": "docs/rel-activity-clock-implementation-plan.md",
+          "sha256": "a3cc3bad3d99e264c078edc1e1e83b404be7aafad7ac78776dc71cd15cd8a351"
+        },
+        {
+          "path": "docs/reliquary-phylactery-memory-scope-plan.md",
+          "sha256": "9f1ec262c895d6a536833d4fcd8d1e5a8aa5a79458d8b395aa94edb54197310e"
+        },
+        {
+          "path": "docs/retained-entity-resolution-contract-2026-10-21.md",
+          "sha256": "8ffea88eb7b5eded1b7c0c9939c0b8a76e6eced3b16296cdec009d90f32441cb"
+        },
+        {
+          "path": "docs/roadmap.md",
+          "sha256": "480756c68c0e76e167fe227ffc532a28fb19d0e15cac65ff091f06ba74ef861a"
+        },
+        {
+          "path": "docs/semantic-import-pruning-history-rewrite-evidence-2026-10-18.md",
+          "sha256": "279449a5fe89a98e8fe5be26aaf2909a8a2c0e90684bf4bd4c03670bcc8e924a"
+        },
+        {
+          "path": "docs/semantic-import-pruning-history-rewrite-implementation-plan-2026-10-18.md",
+          "sha256": "68cae71ed5b6f992e973d894b2d0f4241a167843951e3a478acfde3185d92e41"
+        },
+        {
+          "path": "docs/storage-format.md",
+          "sha256": "ea6c7409c88e5eed9da205870872d3bca6182a592125dc839153e9aea611c9b1"
+        },
+        {
+          "path": "docs/tombstone-import-history-compatibility-upgrade-plan-2026-10-17.md",
+          "sha256": "3cd0179ced47ac1736d1ba2df2af45d7f1777558982607649a04ec049caa65b7"
+        },
+        {
+          "path": "docs/tombstone-import-history-execution-contract.md",
+          "sha256": "bbc16e38252b0f3135d4f9788974928c8ee910d68c003ae1cfc0b9fbb57b3e6b"
+        },
+        {
+          "path": "docs/tombstone-import-history-final-verification-2026-10-18.md",
+          "sha256": "b6209e9a031b371b6eba1e5ac24dceddc1bf3fa0a787b72c138154f36437f40c"
+        },
+        {
+          "path": "docs/tombstone-import-history-remaining-execution-plan-2026-10-17.md",
+          "sha256": "d03f8e101ac8fdd899f1a4329f2d89562ff9f553ec4f7322afc506c73af2fc0a"
+        },
+        {
+          "path": "docs/version-history-plan.md",
+          "sha256": "f94123b4235d9078645238dc268a453c315bae9b18afc4f92a896bfe4d8b461d"
+        }
+      ],
+      "scope": "Final authored documentation bytes verified on frozen local snapshot; result artifacts excluded from documentation hash list to avoid self-reference."
+    },
     "promoted_owner_admission": {
       "fixtures": 6,
       "tests_passed": 1,
@@ -56,6 +790,20 @@
       "identities": 146,
       "families": 61,
       "retired_absent": 18
+    },
+    "formatting": {
+      "root": "passed",
+      "cli": "passed",
+      "git_diff_check": "passed"
+    },
+    "root_check": "passed",
+    "examples_check": "passed",
+    "authoritative_contracts": {
+      "passed": 24,
+      "failed": 0,
+      "seconds": 340.18,
+      "fixture_root": "../reliquary-fixtures/local/authoritative",
+      "filtered": 1936
     }
   },
   "static_retirement_audit": {
@@ -80,5 +828,41 @@
       "src/imports/legacy_epoch_transport.rs",
       "cli/src/migration_cmd.rs"
     ]
-  }
+  },
+  "implementation_commit": "436006a989c7b6bfb07026a39bde290fa225eb6d",
+  "final_raw_accounting": {
+    "fixtures": 6,
+    "every_frame_charged_once": true,
+    "totals": {
+      "source": 138196316,
+      "canonical": 130962204
+    },
+    "saved_bytes": 7234112,
+    "saved_percent": 5.234663418958288,
+    "compression_included": false,
+    "note": "Measurement artifacts retain their original capture-time status flags; later exact-history, promotion and retirement acceptance is recorded separately here."
+  },
+  "deferred_decisions": [
+    {
+      "area": "Community membership and names",
+      "decision": "Retain exact snapshots; reconstruction rejected by a nonunique partition counterexample",
+      "evidence": "benchmarks/community-reconstruction-decision-2026-10-21.json"
+    },
+    {
+      "area": "Historical vector row reuse",
+      "decision": "Deferred: canonical corpus has no repeated same-profile historical generations; synthetic savings are not a corpus need",
+      "evidence": "docs/archive-vector-generation-reuse-decision-2026-10-21.md"
+    },
+    {
+      "area": "Derived checkpoints",
+      "decision": "Deferred until a named workload and latency budget; measured largest warm reopen is about 7.9 seconds",
+      "evidence": "benchmarks/canonical-history-performance-2026-10-21.json"
+    },
+    {
+      "area": "ADR-0004 compression",
+      "decision": "Deferred physical packing; no compressed corpus or decompression measurements claimed",
+      "evidence": "benchmarks/canonical-history-compression-status-2026-10-21.json"
+    }
+  ],
+  "accepted_steps": 377
 }
