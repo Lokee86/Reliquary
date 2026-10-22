@@ -235,7 +235,7 @@ pub(crate) fn prune_phylactery(
             let payload = if let Some(replacement) = replacement {
                 replacement
             } else {
-                crate::maintenance::relocation::relocate_payload(&raw, &relocated)
+                crate::owner_lifecycle::relocation::relocate_payload(&raw, &relocated)
                     .map_err(OwnerPhylacteryError::Repack)?
             };
             let destination = output.append(&payload)?;

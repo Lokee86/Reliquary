@@ -1,4 +1,4 @@
-use crate::maintenance::reclamation::{StorageReclamationReport, reclaim_container};
+use crate::maintenance::reclamation::{StorageReclamationReport, reclaim_reliquary};
 use crate::{Cva, CvaError, Phylactery, PhylacteryError};
 use std::fs;
 use std::path::Path;
@@ -28,8 +28,13 @@ impl Cva {
             archive_version: Some(self.archive_version()),
             vector_version: Some(self.vector_version()),
         };
-        let (report, output) = reclaim_container(&mut self.container, output_path.as_ref())
-            .map_err(CvaError::Repack)?;
+        let (report, output) = reclaim_reliquary(
+            crate::owner_lifecycle::ReliquaryReclamationSource::prepare(&mut self.container)
+                .map_err(CvaError::Repack)?,
+            output_path.as_ref(),
+        )
+        .map_err(CvaError::Repack)?;
+        let output = output.into_reliquary_container();
         let output_guard = output.read_source()?;
         let reopened = Cva::open_from_container(output).map_err(|error| {
             if output_guard.validate_path_identity().is_ok() {
@@ -76,7 +81,10 @@ impl Phylactery {
     ) -> Result<StorageReclamationReport, PhylacteryError> {
         crate::maintenance::phylactery_reclamation::reclaim(
             crate::maintenance::phylactery_reclamation::PhylacteryReclamationParts {
-                container: &mut self.container,
+                source: crate::owner_lifecycle::PhylacteryReclamationSource::prepare(
+                    &mut self.container,
+                )
+                .map_err(PhylacteryError::Repack)?,
                 memories: &self.memories,
                 entities: &self.entities,
                 relationships: &self.relationships,
@@ -100,7 +108,7 @@ struct SemanticState {
 }
 
 #[cfg(test)]
-use crate::maintenance::relocation::relocate_payload;
+use crate::owner_lifecycle::relocation::relocate_payload;
 #[cfg(test)]
 #[path = "storage_reclamation_entity_compact_tests.rs"]
 mod entity_compact_tests;

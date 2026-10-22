@@ -1,0 +1,87 @@
+{
+  "base_commit": "8103711",
+  "gate": "M3",
+  "state": "in-progress-not-accepted",
+  "format_changed": false,
+  "library": {
+    "passed": 1971,
+    "failed": 0,
+    "ignored": 5,
+    "filtered": 4
+  },
+  "cli": {
+    "passed": 32,
+    "failed": 0
+  },
+  "frozen_source_growth_tests": {
+    "passed": 2,
+    "failed": 0
+  },
+  "canonical_sources": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "matches_baseline": true
+    }
+  ],
+  "filtered_long_cases": [
+    "historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries",
+    "historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipients",
+    "canonical_history_scaling_measurement",
+    "long_owner_reopen_keeps_finite_receipts_and_exact_evicted_retry"
+  ],
+  "review": "Luna read-only reviews found no concrete defects in reclamation source/copy, REL initialization, accepted Freshness rebuild, or concrete Dream replay ordering.",
+  "known_gaps": [
+    "Remaining lower REL finalization and retained/import-completion proof extraction",
+    "Full M3 operation convergence and all later gates",
+    "H3 full-run identity anomaly and final clean full acceptance including long cases",
+    "Pitlord docs unavailable: installed CLI lacks docs; locally built CLI reaches Arcana but existing repository manifest is rejected for wrong field count; D3 source refresh remains pending"
+  ],
+  "local_evidence": [
+    {
+      "path": ".verification-tmp/phase3-rel-replay-regression-batch.log",
+      "sha256": "a9402c4e5f2d4478687fce13fa4b7d34093863c1f6f8b7dee44d0061a2c8491f"
+    },
+    {
+      "path": ".verification-tmp/phase3-rel-replay-cli-tests.log",
+      "sha256": "43208905d447405e1a183020ad89cc47675a101aa0db9d1451588c99b98bf650"
+    },
+    {
+      "path": ".verification-tmp/phase3-rel-initialization-replay-check.log",
+      "sha256": "67f7a731da88ef8a5e5d3e904bd2765ccea23c5c5418d7a8fbf77ed051fb69d9"
+    },
+    {
+      "path": ".verification-tmp/phase3-rel-initialization-replay-boundary.log",
+      "sha256": "65268a7b7a1684a5b16423f30b7b49d4acae8f8f95c0ca00eb17fac6ff5e1dff"
+    },
+    {
+      "path": ".verification-tmp/phase3-reclamation-fence-tests.log",
+      "sha256": "7cb1e3a65d03e6166669df339a8fc921d9c7712e5b2a5e73c35e5dda4de08734"
+    }
+  ]
+}

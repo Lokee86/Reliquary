@@ -79,23 +79,41 @@ fn accepted_insomnia_birth_validation_rejects_bad_proof_facts_and_cohort_rows() 
 
     let mut bad_policy = decoded.clone();
     bad_policy.freshness_policy_version = Some(0);
-    assert!(Cva::validate_insomnia_birth_cohort(&cva.archive, &cva.memories, &bad_policy).is_err());
+    assert!(
+        crate::owner_lifecycle::validate_insomnia_birth_cohort(
+            &cva.archive,
+            &cva.memories,
+            &bad_policy
+        )
+        .is_err()
+    );
 
     let mut bad_turn = decoded.clone();
     bad_turn.freshness_birth_turn = Some(0);
-    assert!(Cva::validate_insomnia_birth_cohort(&cva.archive, &cva.memories, &bad_turn).is_err());
+    assert!(
+        crate::owner_lifecycle::validate_insomnia_birth_cohort(
+            &cva.archive,
+            &cva.memories,
+            &bad_turn
+        )
+        .is_err()
+    );
 
     let mut mismatched_member = decoded.clone();
     mismatched_member.freshness_birth_memory_ids[0] = crate::MemoryId([0xFF; 32]);
     assert!(
-        Cva::validate_insomnia_birth_cohort(&cva.archive, &cva.memories, &mismatched_member)
-            .is_err()
+        crate::owner_lifecycle::validate_insomnia_birth_cohort(
+            &cva.archive,
+            &cva.memories,
+            &mismatched_member
+        )
+        .is_err()
     );
 
     let mut mismatched_first_identity = decoded.clone();
     mismatched_first_identity.records[0].mutation_id = "not-the-accepted-mutation".into();
     assert!(
-        Cva::validate_insomnia_birth_cohort(
+        crate::owner_lifecycle::validate_insomnia_birth_cohort(
             &cva.archive,
             &cva.memories,
             &mismatched_first_identity

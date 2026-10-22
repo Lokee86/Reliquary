@@ -1,11 +1,12 @@
-//! Existing receipt-to-epoch validation above the two durable owners.
-use crate::imports::{ImportEpochStatus, ImportEpochStore, ImportError};
+//! Compare Archive-owned receipt evidence to the retained Import epoch log.
+
+use crate::imports::epoch_model::{ImportEpochStatus, ImportError};
+use crate::imports::epoch_store::ImportEpochStore;
 use std::collections::BTreeMap;
 
-/// Receipt authority is Archive-owned; compare it above the epoch store.
-pub(crate) fn validate_receipts(
+pub(crate) fn validate_import_receipts(
     epochs: &ImportEpochStore,
-    receipts: &BTreeMap<String, crate::imports::ImportReceipt>,
+    receipts: &BTreeMap<String, crate::archive_import_model::ImportReceipt>,
 ) -> Result<(), ImportError> {
     for status in epochs.statuses() {
         if let ImportEpochStatus::Completed { start, complete } = status {

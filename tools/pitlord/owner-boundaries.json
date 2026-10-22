@@ -1364,11 +1364,6 @@
       "classification": "production"
     },
     {
-      "path": "src/maintenance/relocation.rs",
-      "component": "maintenance",
-      "classification": "production"
-    },
-    {
       "path": "src/perception/entity_description_prune.rs",
       "component": "perception-store",
       "classification": "production"
@@ -1416,6 +1411,46 @@
     {
       "path": "src/maintenance/compactions.rs",
       "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/relocation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reclamation_source.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/publication_births.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/external_index_backing.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_receipts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/freshness_replay.rs",
+      "component": "owner-lifecycle",
       "classification": "production"
     }
   ],
@@ -1519,6 +1554,18 @@
     {
       "module": "owner_lifecycle::phy_profile::model",
       "component": "pure-codec"
+    },
+    {
+      "module": "memory_external_publication",
+      "component": "memory-store"
+    },
+    {
+      "module": "imports::epoch_model",
+      "component": "import-store"
+    },
+    {
+      "module": "imports::epoch_store",
+      "component": "import-store"
     }
   ],
   "producer_value_contracts": [
@@ -2016,6 +2063,11 @@
       "consumer": "vector-store",
       "path": "lodestone_packed::ScalarType",
       "reason": "Packed vector scalar tag, an immutable external codec value."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "path": "lodestone_packed::ScalarType",
+      "reason": "Immutable packed-vector scalar tag used while validating derived external-index backing against vector-store records."
     }
   ]
 }

@@ -357,8 +357,6 @@ pub use cva_historical_import::{
 };
 #[path = "facade/cva_dream_begin_transport.rs"]
 mod cva_dream_begin_transport;
-#[path = "facade/cva_dream_journal_replay.rs"]
-mod cva_dream_journal_replay;
 #[path = "facade/cva_historical_freshness.rs"]
 mod cva_historical_freshness;
 #[path = "facade/cva_lifecycle.rs"]
@@ -1812,9 +1810,6 @@ mod history;
 
 use owner_lifecycle::insomnia_replay as insomnia_admission;
 
-#[path = "facade/external_index_admission.rs"]
-mod external_index_admission;
-
 #[path = "facade/graph_endpoint_admission.rs"]
 mod graph_endpoint_admission;
 use owner_lifecycle::memory_provenance as memory_provenance_admission;
@@ -1839,9 +1834,6 @@ mod interaction_stream_error;
 
 #[path = "perception/entity_principal_identity.rs"]
 mod entity_principal_identity;
-
-#[path = "facade/import_epoch_admission.rs"]
-mod import_epoch_admission;
 
 use history::archive_retention as archive_prune_admission;
 

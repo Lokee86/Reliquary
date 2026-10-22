@@ -1,5 +1,6 @@
-//! Cross-owner backing checks for the derivative external index.
-pub(crate) fn validate_backing(
+//! Validate disposable external-index snapshots against their durable owners.
+
+pub(crate) fn validate_external_index_backing(
     index: &mut crate::external_index::store::ExternalIndexStore,
     packed: &crate::packed_vector_store::PackedVectorStore,
     profiles: &crate::compatibility_profile_store::CompatibilityProfileStore,

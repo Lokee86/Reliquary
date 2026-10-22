@@ -59,7 +59,7 @@ impl Cva {
                 }
 
                 let payload =
-                    crate::maintenance::relocation::relocate_payload(&payload, &relocated)
+                    crate::owner_lifecycle::relocation::relocate_payload(&payload, &relocated)
                         .map_err(CvaError::Repack)?;
                 let destination_ref = output.append(&payload)?;
                 relocated.insert(source_ref, destination_ref);
@@ -181,7 +181,7 @@ mod tests {
             vector_version: 2,
             record: old,
         };
-        let generation = crate::maintenance::relocation::relocate_payload(
+        let generation = crate::owner_lifecycle::relocation::relocate_payload(
             &crate::vector_generation_codec::encode_version(generation),
             &relocated,
         )

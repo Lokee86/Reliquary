@@ -56,3 +56,37 @@ pub(crate) use phylactery::{
 pub(crate) mod global_versions;
 #[path = "owner_lifecycle/memory_provenance.rs"]
 pub(crate) mod memory_provenance;
+
+#[path = "owner_lifecycle/reclamation_source.rs"]
+mod reclamation_source;
+#[path = "owner_lifecycle/relocation.rs"]
+pub(crate) mod relocation;
+pub(crate) use reclamation_source::{
+    PhylacteryReclamationCopy, PhylacteryReclamationSource, ReclamationCopyStats,
+    ReliquaryReclamationCopy, ReliquaryReclamationSource,
+};
+
+#[path = "owner_lifecycle/publication_births.rs"]
+mod publication_births;
+pub(crate) use publication_births::{
+    AcceptedExternalBirthCohort, AcceptedExternalBirthMember, AcceptedInsomniaBirthCohort,
+    AcceptedInsomniaBirthMember, DreamPopulationPrefix, direct_birth_ids,
+    validate_external_birth_cohort, validate_insomnia_birth_cohort,
+};
+
+#[path = "owner_lifecycle/external_index_backing.rs"]
+mod external_index_backing;
+pub(crate) use external_index_backing::validate_external_index_backing;
+#[path = "owner_lifecycle/import_receipts.rs"]
+mod import_receipts;
+pub(crate) use import_receipts::validate_import_receipts;
+#[path = "owner_lifecycle/dream_replay.rs"]
+pub(crate) mod dream_replay;
+
+#[path = "owner_lifecycle/reliquary.rs"]
+mod reliquary;
+pub(crate) use reliquary::{ReliquaryOwner, initialize_reliquary};
+
+#[path = "owner_lifecycle/freshness_replay.rs"]
+mod freshness_replay;
+pub(crate) use freshness_replay::rebuild_freshness_from_replay;

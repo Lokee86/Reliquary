@@ -11,8 +11,6 @@ pub(crate) use prune_selection::{
 mod phylactery_prune;
 pub(crate) use phylactery_prune::{PhylacteryPruneParts, prune_phylactery};
 
-pub(crate) mod relocation;
-
 pub(crate) mod reclamation;
 pub(crate) mod reclamation_scan;
 

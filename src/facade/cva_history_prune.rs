@@ -315,7 +315,7 @@ impl Cva {
                     }
                     marker.encode()
                 } else {
-                    crate::maintenance::relocation::relocate_payload(&raw, &relocated)
+                    crate::owner_lifecycle::relocation::relocate_payload(&raw, &relocated)
                         .map_err(CvaError::Repack)?
                 };
                 let destination = output.append(&transformed)?;
@@ -395,8 +395,9 @@ impl Cva {
                     }
                     continue;
                 }
-                let expected = crate::maintenance::relocation::relocate_payload(&raw, &relocated)
-                    .map_err(CvaError::Repack)?;
+                let expected =
+                    crate::owner_lifecycle::relocation::relocate_payload(&raw, &relocated)
+                        .map_err(CvaError::Repack)?;
                 let destination = relocated
                     .get(object)
                     .ok_or_else(|| prune_error("nonselected raw chunk was lost"))?;

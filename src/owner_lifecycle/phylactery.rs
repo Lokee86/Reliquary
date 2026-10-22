@@ -292,3 +292,17 @@ fn reject_rel_only_payload(payload: &[u8]) -> Result<(), OwnerPhylacteryError> {
     }
     Ok(())
 }
+
+impl PhylacteryOwner {
+    pub(crate) fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.container.owner_uuid()
+    }
+    pub(crate) fn latest_global_version(&self) -> u64 {
+        self.container.latest_version()
+    }
+    pub(crate) fn history_source(
+        &self,
+    ) -> Result<super::HistorySource<'_>, super::HistoryReadFailure> {
+        super::HistorySource::new(&self.container)
+    }
+}

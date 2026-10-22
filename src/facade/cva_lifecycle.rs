@@ -1,30 +1,8 @@
-use crate::archive_vector_store::ArchiveVectorStore;
-use crate::community_store::CommunityStore;
-use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::conversation_compaction_store::ConversationCompactionStore;
 use crate::cva_global_validation::validate_semantic_global_versions;
 use crate::dream_duplicate_index::DuplicateIndex;
-use crate::dream_pair_history::DreamPairStore;
-use crate::echo_store::EchoStore;
-use crate::ego_store::EgoStore;
-use crate::entity_resolution_store::EntityResolutionStore;
-use crate::entity_store::EntityStore;
 use crate::freshness_dream_journal::DreamFreshnessJournal;
-use crate::freshness_storage::FreshnessStore;
-use crate::graph_store::GraphStore;
-use crate::insomnia::store::InsomniaStore;
-use crate::interaction_stream_store::InteractionStreamStore;
 use crate::lexical_index::LexicalIndex;
-use crate::memory_store::MemoryStore;
-use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_store::PackedVectorStore;
-use crate::processing_epoch_store::ProcessingEpochStore;
-use crate::project_file_binding_store::ProjectFileStore;
-use crate::project_history_store::ProjectHistoryStore;
-use crate::rel_metadata_store::RelMetadataStore;
-use crate::relationship_store::RelationshipStore;
-use crate::vector_generation_store::VectorGenerationStore;
-use crate::{Archive, Container, Cva, CvaError};
+use crate::{Container, Cva, CvaError};
 use std::path::Path;
 
 impl Cva {
@@ -108,73 +86,33 @@ impl Cva {
         Self::initialize(container)
     }
 
-    fn initialize(mut container: Container) -> Result<Self, CvaError> {
-        let owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
-        let rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
-        let archive = Archive::empty();
-        let memories = MemoryStore::empty();
-        let mut graph = GraphStore::empty();
-        let communities = CommunityStore::default();
-        let processing_epochs = ProcessingEpochStore::default();
-        let dream_pairs = DreamPairStore::default();
-        let insomnia = InsomniaStore::empty();
-        let import_epochs = crate::imports::ImportEpochStore::default();
-        let lexical_index = LexicalIndex::default();
-        let packed_vectors = PackedVectorStore::default();
-        let memory_vectors = MemoryVectorStore::default();
-        let archive_vectors = ArchiveVectorStore::default();
-        let compatibility_profiles = CompatibilityProfileStore::default();
-        let vector_generations = VectorGenerationStore::empty();
-        let interaction_streams = InteractionStreamStore::default();
-        let conversation_compactions = ConversationCompactionStore::empty();
-        let echo = EchoStore::default();
-        let ego = EgoStore::reliquary();
-        let entities = EntityStore::empty();
-        let entity_resolutions = EntityResolutionStore::default();
-        let relationships = RelationshipStore::empty();
-        let project_history = ProjectHistoryStore::default();
-        let project_files = ProjectFileStore::default();
-        let rel_metadata = RelMetadataStore::default();
-        let mut freshness = FreshnessStore::new(container.owner_uuid());
-        freshness
-            .bind_history_source(&container, 0)
-            .map_err(CvaError::Freshness)?;
-        let dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
-        let freshness_due = crate::FreshnessDueDispatcher::default();
-        archive.initialize_history_format(&mut container)?;
-        memories.initialize(&mut container)?;
-        graph.initialize(&mut container)?;
-        entities.initialize(&mut container)?;
-        relationships.initialize(&mut container)?;
-        insomnia.initialize(&mut container)?;
-        packed_vectors.initialize(&mut container)?;
-        memory_vectors.initialize(&mut container)?;
-        archive_vectors.initialize(&mut container)?;
-        compatibility_profiles.initialize(&mut container)?;
-        vector_generations.initialize(&mut container)?;
-        container.sync()?;
-        Ok(Self {
+    fn initialize(container: Container) -> Result<Self, CvaError> {
+        Ok(Self::from_owner(
+            crate::owner_lifecycle::initialize_reliquary(container)?,
+        ))
+    }
+
+    fn from_owner(owner: crate::owner_lifecycle::ReliquaryOwner) -> Self {
+        let crate::owner_lifecycle::ReliquaryOwner {
             owner_maintenance,
             rewrite_lineage,
-            external_index: crate::external_index::store::ExternalIndexStore::default(),
+            external_index,
             container,
             archive,
             memories,
-            duplicate_index: DuplicateIndex::empty(),
-            processing_epochs,
-            dream_pairs,
             graph,
             communities,
+            processing_epochs,
+            dream_pairs,
             insomnia,
             import_epochs,
-            lexical_index,
             packed_vectors,
             memory_vectors,
             archive_vectors,
             compatibility_profiles,
             vector_generations,
-            interaction_streams,
             conversation_compactions,
+            interaction_streams,
             echo,
             ego,
             entities,
@@ -185,9 +123,42 @@ impl Cva {
             rel_metadata,
             freshness,
             dream_freshness,
-            freshness_due,
+        } = owner;
+        Self {
+            owner_maintenance,
+            rewrite_lineage,
+            external_index,
+            container,
+            archive,
+            memories,
+            graph,
+            communities,
+            processing_epochs,
+            dream_pairs,
+            insomnia,
+            import_epochs,
+            packed_vectors,
+            memory_vectors,
+            archive_vectors,
+            compatibility_profiles,
+            vector_generations,
+            conversation_compactions,
+            interaction_streams,
+            echo,
+            ego,
+            entities,
+            entity_resolutions,
+            relationships,
+            project_history,
+            project_files,
+            rel_metadata,
+            freshness,
+            dream_freshness,
+            duplicate_index: DuplicateIndex::empty(),
+            lexical_index: LexicalIndex::default(),
+            freshness_due: crate::FreshnessDueDispatcher::default(),
             freshness_notifications: std::collections::BTreeMap::new(),
-        })
+        }
     }
 
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
@@ -277,104 +248,20 @@ impl Cva {
         crate::insomnia_admission::rebuild_schedule(&mut insomnia, &archive)?;
         if defer_dream_replay {
             dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
-            crate::cva_dream_journal_replay::replay_with_population(
+            crate::owner_lifecycle::dream_replay::replay_with_population(
                 &mut container,
                 &archive,
                 &memories,
                 &mut dream_freshness,
             )?;
         }
-        freshness.begin_rebuild();
-        if let Some(owner) = container.owner_uuid() {
-            for (id, mutation, turn, admitted) in dream_freshness.pending_initializations() {
-                if memories.first_mutation_id(id) == Some(mutation.as_str()) {
-                    let first_global = memories.first_global_version(id).ok_or_else(|| {
-                        CvaError::Freshness("birth lacks accepted first Memory revision".into())
-                    })?;
-                    let archive_version = archive
-                        .record_versions()
-                        .iter()
-                        .filter(|record| record.global_version < first_global)
-                        .map(|record| record.archive_version)
-                        .max()
-                        .unwrap_or(0);
-                    if turn != archive.activity_cut_at_archive_version(archive_version)? {
-                        return Err(CvaError::Freshness(
-                            "publication birth differs from accepted first Memory activity cut"
-                                .into(),
-                        ));
-                    }
-                    freshness
-                        .derive_birth(owner, id, turn, admitted)
-                        .map_err(CvaError::Freshness)?;
-                } else if memories.contains_memory(id) {
-                    return Err(CvaError::Freshness(
-                        "publication intent differs from accepted first Memory mutation".into(),
-                    ));
-                }
-            }
-            let mut cursor = container.physical_cursor()?;
-            while let Some(frame) = cursor.next_frame()? {
-                let object = frame.object;
-                let payload = frame.payload.as_slice();
-                let location = object.legacy_bytes();
-                let end = u64::from_le_bytes(location[..8].try_into().unwrap())
-                    + 8
-                    + u64::from_le_bytes(location[8..].try_into().unwrap());
-                if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-                    .map_err(|message| CvaError::Freshness(message.into()))?
-                    && let Some(cohort) =
-                        Self::validate_insomnia_birth_cohort(&archive, &memories, &completion)?
-                {
-                    for member in cohort.members {
-                        freshness
-                            .derive_birth(owner, member.id, cohort.turn, false)
-                            .map_err(CvaError::Freshness)?;
-                        dream_freshness.derive_publication_birth(member.id);
-                    }
-                }
-                if let Some(publication) = crate::memory_external_publication::decode(payload)? {
-                    if let Some(cohort) =
-                        Cva::validate_external_birth_cohort(&archive, &memories, &publication)?
-                    {
-                        for member in cohort.members {
-                            freshness
-                                .derive_birth(owner, member.id, cohort.turn, false)
-                                .map_err(CvaError::Freshness)?;
-                            dream_freshness.derive_publication_birth(member.id);
-                        }
-                    }
-                }
-                freshness
-                    .ingest_scanned(payload, end)
-                    .map_err(CvaError::Freshness)?;
-            }
-        } else {
-            let mut cursor = container.physical_cursor()?;
-            while let Some(frame) = cursor.next_frame()? {
-                let object = frame.object;
-                let payload = frame.payload.as_slice();
-                let location = object.legacy_bytes();
-                let end = u64::from_le_bytes(location[..8].try_into().unwrap())
-                    + 8
-                    + u64::from_le_bytes(location[8..].try_into().unwrap());
-                freshness
-                    .ingest_scanned(payload, end)
-                    .map_err(CvaError::Freshness)?;
-            }
-        }
-        freshness.finish_rebuild().map_err(CvaError::Freshness)?;
-        if let Some(a) = freshness.semantic_activation() {
-            let at = a
-                .boundary
-                .as_ref()
-                .map_or(Some(0), |(c, n)| archive.activity_position_for_turn(c, n));
-            if at != Some(a.accepted_turn) {
-                return Err(CvaError::Freshness(
-                    "semantic activation boundary is unavailable".into(),
-                ));
-            }
-        }
+        crate::owner_lifecycle::rebuild_freshness_from_replay(
+            &container,
+            &archive,
+            &memories,
+            &mut freshness,
+            &mut dream_freshness,
+        )?;
         let mut freshness_due = crate::FreshnessDueDispatcher::default();
         freshness_due
             .rebuild(
@@ -392,7 +279,7 @@ impl Cva {
         let lexical_index = LexicalIndex::default();
         let packed_vectors = packed_state.finish()?;
         let compatibility_profiles = profile_state.finish()?;
-        crate::external_index_admission::validate_backing(
+        crate::owner_lifecycle::validate_external_index_backing(
             &mut external_index,
             &packed_vectors,
             &compatibility_profiles,
@@ -431,7 +318,7 @@ impl Cva {
         )?;
         let conversation_compactions = compaction_state.finish_unrecovered()?;
         import_epochs.validate_owner(container.owner_uuid())?;
-        crate::import_epoch_admission::validate_receipts(&import_epochs, &archive.import_receipts)?;
+        crate::owner_lifecycle::validate_import_receipts(&import_epochs, &archive.import_receipts)?;
         let mut result = Self {
             owner_maintenance,
             rewrite_lineage,

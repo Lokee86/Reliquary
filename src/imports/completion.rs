@@ -234,7 +234,7 @@ impl Cva {
             })()
         }?;
         epochs.validate_owner(self.owner_uuid())?;
-        crate::import_epoch_admission::validate_receipts(&epochs, &self.archive.import_receipts)?;
+        crate::owner_lifecycle::validate_import_receipts(&epochs, &self.archive.import_receipts)?;
         Ok(epochs)
     }
 

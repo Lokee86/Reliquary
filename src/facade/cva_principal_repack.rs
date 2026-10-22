@@ -1,5 +1,5 @@
 use crate::archive_codec::{ArchiveRecord, decode_record, encode_node};
-use crate::maintenance::relocation::relocate_payload;
+use crate::owner_lifecycle::relocation::relocate_payload;
 use crate::turn_ingest_codec::encode_ingested_turn;
 use crate::{Cva, CvaError, ObjectRef};
 use std::collections::BTreeMap;

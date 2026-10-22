@@ -12,7 +12,7 @@ impl Cva {
                 "historical Dream proof requires a durable REL owner".into(),
             ));
         }
-        crate::cva_dream_journal_replay::retained_completed_passes(
+        crate::owner_lifecycle::dream_replay::retained_completed_passes(
             &self.container,
             &self.archive,
             &self.memories,

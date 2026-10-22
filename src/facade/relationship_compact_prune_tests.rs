@@ -216,7 +216,7 @@ fn repack_with_tampering(source: &Path, output: &Path, id: RelationshipId, tampe
             )
         };
         let relocated_payload =
-            crate::maintenance::relocation::relocate_payload(&payload, &relocated).unwrap();
+            crate::owner_lifecycle::relocation::relocate_payload(&payload, &relocated).unwrap();
         relocated.insert(object, destination.append(&relocated_payload).unwrap());
     }
     if matches!(tamper, ProofTamper::DuplicateProofCarrier) {

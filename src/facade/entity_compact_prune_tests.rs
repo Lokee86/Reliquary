@@ -656,7 +656,7 @@ fn tampered_copy(
         let payload = if object == target.0 {
             replacement.as_slice().to_vec()
         } else {
-            crate::maintenance::relocation::relocate_payload(&raw, &relocated).unwrap()
+            crate::owner_lifecycle::relocation::relocate_payload(&raw, &relocated).unwrap()
         };
         let new_object = destination.append(&payload).unwrap();
         relocated.insert(object, new_object);

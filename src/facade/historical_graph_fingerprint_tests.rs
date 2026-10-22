@@ -261,7 +261,8 @@ fn native_graph_readers_preserve_every_cut_order_mapping_and_baseline() {
     let mut output = source.container.create_empty_like(&target).unwrap();
     let mut relocated = BTreeMap::new();
     for (object, payload) in payloads {
-        let bytes = crate::maintenance::relocation::relocate_payload(&payload, &relocated).unwrap();
+        let bytes =
+            crate::owner_lifecycle::relocation::relocate_payload(&payload, &relocated).unwrap();
         relocated.insert(object, output.append(&bytes).unwrap());
     }
     output.sync().unwrap();
