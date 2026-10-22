@@ -103,6 +103,32 @@ from_error!(ConversationCompactionError, ConversationCompactions);
 from_error!(EchoError, Echo);
 from_error!(EgoError, Ego);
 
+impl From<crate::project_history_store::ProjectHistoryStoreError> for OwnerError {
+    fn from(value: crate::project_history_store::ProjectHistoryStoreError) -> Self {
+        match value {
+            crate::project_history_store::ProjectHistoryStoreError::Project(message) => {
+                Self::ProjectHistory(message)
+            }
+            crate::project_history_store::ProjectHistoryStoreError::Container(error) => {
+                Self::Container(error)
+            }
+        }
+    }
+}
+
+impl From<crate::project_file_binding_store::ProjectFileStoreError> for OwnerError {
+    fn from(value: crate::project_file_binding_store::ProjectFileStoreError) -> Self {
+        match value {
+            crate::project_file_binding_store::ProjectFileStoreError::Project(message) => {
+                Self::ProjectFile(message)
+            }
+            crate::project_file_binding_store::ProjectFileStoreError::Container(error) => {
+                Self::Container(error)
+            }
+        }
+    }
+}
+
 impl From<crate::interaction_stream_error::InteractionStreamError> for OwnerError {
     fn from(value: crate::interaction_stream_error::InteractionStreamError) -> Self {
         match value {

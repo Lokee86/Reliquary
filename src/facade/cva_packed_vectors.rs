@@ -244,7 +244,7 @@ impl Cva {
                 })?;
             let digest = self
                 .packed_vectors
-                .prune_manifest_digest(*id)
+                .pruned_manifest_digest(*id)
                 .ok_or_else(|| {
                     CvaError::Repack("pruned packed vector lacks manifest digest".into())
                 })?;

@@ -134,79 +134,21 @@ macro_rules! impl_owner {
 impl_owner!(Cva);
 impl_owner!(Phylactery);
 
-pub(crate) fn validate_current_relationship_references(
-    owner_id: Option<&str>,
-    memories: &MemoryStore,
-    entities: &EntityStore,
-    relationships: &[Relationship],
-) -> Result<(), RelationshipError> {
-    if relationships.is_empty() {
-        return Ok(());
-    }
-    let owner_id = owner_id.ok_or(RelationshipError::MissingOwnerIdentity)?;
-    for relationship in relationships {
-        validate_historical_relationship_refs(
-            owner_id,
-            memories,
-            entities,
-            &relationship.participants,
-            &relationship.evidence,
-        )?;
-    }
-    Ok(())
-}
-
 fn validate_live_relationship_refs(
     owner_id: &str,
     memories: &MemoryStore,
     entities: &EntityStore,
     draft: &RelationshipDraft,
 ) -> Result<(), RelationshipError> {
-    validate_relationship_entities(owner_id, entities, &draft.participants, false)?;
+    crate::owner_lifecycle::validate_relationship_entities(
+        owner_id,
+        entities,
+        &draft.participants,
+        false,
+    )?;
     for evidence in &draft.evidence {
         if evidence.owner_id == owner_id && !memories.contains_memory(evidence.memory_id) {
             return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
-        }
-    }
-    Ok(())
-}
-
-fn validate_historical_relationship_refs(
-    owner_id: &str,
-    memories: &MemoryStore,
-    entities: &EntityStore,
-    participants: &[crate::RelationshipParticipant],
-    evidence: &[crate::MemoryRef],
-) -> Result<(), RelationshipError> {
-    validate_relationship_entities(owner_id, entities, participants, true)?;
-    for evidence in evidence {
-        if evidence.owner_id == owner_id && !memories.contains_historical_memory(evidence.memory_id)
-        {
-            return Err(RelationshipError::MissingLocalMemory(evidence.memory_id));
-        }
-    }
-    Ok(())
-}
-
-fn validate_relationship_entities(
-    owner_id: &str,
-    entities: &EntityStore,
-    participants: &[crate::RelationshipParticipant],
-    historical: bool,
-) -> Result<(), RelationshipError> {
-    for participant in participants {
-        if participant.entity.owner_id != owner_id {
-            continue;
-        }
-        let exists = if historical {
-            entities.contains_historical(participant.entity.entity_id)
-        } else {
-            entities.contains(participant.entity.entity_id)
-        };
-        if !exists {
-            return Err(RelationshipError::MissingLocalEntity(
-                participant.entity.entity_id,
-            ));
         }
     }
     Ok(())

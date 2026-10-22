@@ -5,7 +5,7 @@ use crate::{
 use std::fmt;
 
 #[derive(Debug)]
-pub enum PhylacteryError {
+pub enum OwnerPhylacteryError {
     Container(ContainerError),
     Memories(MemoryError),
     Entities(EntityError),
@@ -22,7 +22,7 @@ pub enum PhylacteryError {
     SemanticGlobalVersionConflict(u64),
 }
 
-impl fmt::Display for PhylacteryError {
+impl fmt::Display for OwnerPhylacteryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Container(error) => write!(f, "{error}"),
@@ -40,21 +40,19 @@ impl fmt::Display for PhylacteryError {
             Self::InvalidContainerIdentity(message) => {
                 write!(f, "invalid container identity: {message}")
             }
-            Self::SemanticGlobalVersionConflict(version) => {
-                write!(
-                    f,
-                    "Phylactery global version {version} is claimed by multiple semantic mutations"
-                )
-            }
+            Self::SemanticGlobalVersionConflict(version) => write!(
+                f,
+                "Phylactery global version {version} is claimed by multiple semantic mutations"
+            ),
         }
     }
 }
 
-impl std::error::Error for PhylacteryError {}
+impl std::error::Error for OwnerPhylacteryError {}
 
 macro_rules! from_error {
     ($source:ty, $variant:ident) => {
-        impl From<$source> for PhylacteryError {
+        impl From<$source> for OwnerPhylacteryError {
             fn from(value: $source) -> Self {
                 Self::$variant(value)
             }

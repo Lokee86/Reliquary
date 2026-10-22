@@ -26,7 +26,7 @@ fn external_birth_facts(
                 break;
             }
         };
-        match crate::external_source::publication::decode(&frame.payload) {
+        match crate::memory_external_publication::decode(&frame.payload) {
             Ok(Some(publication)) => {
                 facts.insert(
                     frame.end,

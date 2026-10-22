@@ -291,7 +291,7 @@ fn snapshot_corruption_is_rebuild_required_and_stale_preparation_cannot_overwrit
     let mut bytes = store::encode(&old).unwrap();
     let last = bytes.len() - 1;
     bytes[last] ^= 1;
-    let mut reopened = store::ExternalIndexStore::default();
+    let mut reopened = crate::external_index::store::ExternalIndexStore::default();
     reopened.ingest(&bytes);
     assert!(reopened.damaged);
     assert!(reopened.sources.is_empty());
@@ -406,7 +406,7 @@ fn corrupt_publication_does_not_claim_embedded_versions_and_empty_receipt_reopen
             .unwrap()
             .is_some()
     );
-    let wire = publication::Publication {
+    let wire = crate::memory_external_publication::Publication {
         window: [1; 32],
         global_start: 1,
         transaction_ns: 42,
@@ -416,9 +416,9 @@ fn corrupt_publication_does_not_claim_embedded_versions_and_empty_receipt_reopen
         bindings: vec![],
         routing: vec![],
     };
-    let mut bytes = publication::encode(&wire).unwrap();
+    let mut bytes = crate::memory_external_publication::encode(&wire).unwrap();
     bytes[16] ^= 1;
-    assert!(publication::decode_embedded_version_range(&bytes).is_err());
+    assert!(crate::memory_external_publication::decode_embedded_version_range(&bytes).is_err());
 }
 
 #[test]

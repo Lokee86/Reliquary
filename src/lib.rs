@@ -33,6 +33,7 @@ pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
 mod compact_delta;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
+mod maintenance;
 #[path = "maintenance/store.rs"]
 mod owner_maintenance;
 #[path = "facade/semantic_maintenance.rs"]
@@ -339,8 +340,7 @@ mod cva_ego;
 mod cva_file_memory;
 #[path = "facade/cva_freshness.rs"]
 mod cva_freshness;
-#[path = "facade/cva_global_validation.rs"]
-mod cva_global_validation;
+use owner_lifecycle::global_versions as cva_global_validation;
 #[path = "facade/cva_graph.rs"]
 mod cva_graph;
 #[path = "facade/cva_historical_dream.rs"]
@@ -363,6 +363,8 @@ mod cva_dream_journal_replay;
 mod cva_historical_freshness;
 #[path = "facade/cva_lifecycle.rs"]
 mod cva_lifecycle;
+#[path = "external_index/mod.rs"]
+mod external_index;
 #[path = "external_source/mod.rs"]
 pub mod external_source;
 #[path = "freshness/event_proof.rs"]
@@ -377,8 +379,7 @@ mod cva_memory_publish;
 mod cva_memory_retrieval;
 #[path = "facade/cva_memory_vectors.rs"]
 mod cva_memory_vectors;
-#[path = "facade/cva_open_route.rs"]
-mod cva_open_route;
+use owner_lifecycle::open_route as cva_open_route;
 #[path = "facade/cva_packed_vectors.rs"]
 mod cva_packed_vectors;
 #[path = "facade/cva_principal_repack.rs"]
@@ -934,8 +935,7 @@ mod phylactery_dream_lifecycle;
 mod phylactery_dream_publisher;
 #[path = "facade/phylactery_ego.rs"]
 mod phylactery_ego;
-#[path = "facade/phylactery_error.rs"]
-mod phylactery_error;
+
 #[path = "facade/phylactery_graph.rs"]
 mod phylactery_graph;
 #[path = "facade/phylactery_history_prune.rs"]
@@ -950,12 +950,7 @@ mod phylactery_memory_source;
 mod phylactery_memory_vectors;
 #[path = "facade/phylactery_packed_vectors.rs"]
 mod phylactery_packed_vectors;
-#[path = "facade/phylactery_profile_codec.rs"]
-mod phylactery_profile_codec;
-#[path = "facade/phylactery_profile_model.rs"]
-mod phylactery_profile_model;
-#[path = "facade/phylactery_profile_store.rs"]
-mod phylactery_profile_store;
+
 #[path = "memory/processing_epoch_model.rs"]
 mod processing_epoch_model;
 #[path = "memory/processing_epoch_store.rs"]
@@ -972,11 +967,11 @@ mod project_history_codec;
 mod project_history_model;
 #[path = "archive/project_history_store.rs"]
 mod project_history_store;
-#[path = "facade/rel_metadata_codec.rs"]
+#[path = "owner_lifecycle/metadata/codec.rs"]
 mod rel_metadata_codec;
-#[path = "facade/rel_metadata_model.rs"]
+#[path = "owner_lifecycle/metadata/model.rs"]
 mod rel_metadata_model;
-#[path = "facade/rel_metadata_store.rs"]
+#[path = "owner_lifecycle/metadata/store.rs"]
 mod rel_metadata_store;
 #[path = "perception/relationship_codec.rs"]
 mod relationship_codec;
@@ -1034,8 +1029,7 @@ mod source_attachment_index;
 pub mod staleness;
 #[path = "facade/storage_reclamation.rs"]
 mod storage_reclamation;
-#[path = "facade/storage_reclamation_scan.rs"]
-mod storage_reclamation_scan;
+
 #[cfg(test)]
 #[path = "facade/storage_reclamation_tests.rs"]
 mod storage_reclamation_tests;
@@ -1106,11 +1100,12 @@ pub use conversation_metadata_model::{ConversationMetadata, ConversationPolicy};
 pub use conversation_search_model::ConversationSearchHit;
 pub use credential::{Credential, CredentialError, CredentialId, CredentialsConfig, SecretString};
 pub use cva::Cva;
-pub use cva_history_prune::{HistoryPruneReport, HistoryPruneRequest};
-pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
+pub use maintenance::entity_resolution::EntityResolutionMaintenance;
+pub use maintenance::reclamation::StorageReclamationReport;
+pub use maintenance::tail_repair::TailRepairOutcome;
+pub use maintenance::{HistoryPruneReport, HistoryPruneRequest};
+pub use owner_lifecycle::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
 pub use runtime_config::RuntimeConfig;
-pub use semantic_maintenance::{EntityResolutionMaintenance, TailRepairOutcome};
-pub use storage_reclamation::StorageReclamationReport;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
 pub use chronos_inference::{
@@ -1343,10 +1338,10 @@ pub use openai_ready_embedding::{
 };
 pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
 pub use owner_lifecycle::OwnerError as CvaError;
+pub use owner_lifecycle::OwnerPhylacteryError as PhylacteryError;
 pub use packed_vector_error::PackedVectorError;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
-pub use phylactery_error::PhylacteryError;
 pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
 pub use project_history_model::{
     ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
@@ -1810,21 +1805,21 @@ mod dream_current_fixture;
 #[path = "facade/dream_pair_admission.rs"]
 mod dream_pair_admission;
 
+#[path = "memory/external_publication.rs"]
+mod memory_external_publication;
+
 mod history;
 
-#[path = "facade/insomnia_admission.rs"]
-mod insomnia_admission;
+use owner_lifecycle::insomnia_replay as insomnia_admission;
 
 #[path = "facade/external_index_admission.rs"]
 mod external_index_admission;
 
 #[path = "facade/graph_endpoint_admission.rs"]
 mod graph_endpoint_admission;
-#[path = "facade/memory_provenance_admission.rs"]
-mod memory_provenance_admission;
+use owner_lifecycle::memory_provenance as memory_provenance_admission;
 
-#[path = "facade/memory_frame_admission.rs"]
-mod memory_frame_admission;
+use owner_lifecycle::memory_frames as memory_frame_admission;
 
 use history::memory_retention as memory_prune_admission;
 

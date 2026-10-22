@@ -111,7 +111,7 @@ impl VectorHistory {
                     .map_err(|e| e.to_string())?;
                 json!(hex(packed.bytes()))
             };
-            let proof = cva.packed_vectors.prune_manifest_digest(id);
+            let proof = cva.packed_vectors.pruned_manifest_digest(id);
             if payload.is_null() && proof.is_none() {
                 return Err("pruned matrix lacks retained proof".into());
             }

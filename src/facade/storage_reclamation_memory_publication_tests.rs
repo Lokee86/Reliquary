@@ -266,7 +266,7 @@ fn reclamation_scan_and_relocation_reject_malformed_memory_envelopes() {
     })
     .unwrap();
     let object = container.append(&malformed).unwrap();
-    let mut scan = super::ReclamationScan::default();
+    let mut scan = crate::maintenance::reclamation_scan::ReclamationScan::default();
     assert!(scan.ingest(object, &malformed).is_err());
     assert!(super::relocate_payload(&malformed, &Default::default()).is_err());
 

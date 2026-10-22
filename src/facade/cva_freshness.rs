@@ -703,7 +703,7 @@ impl Cva {
                     let payload = frame.payload.as_slice();
                     {
                         if let Some(publication) =
-                            crate::external_source::publication::decode(payload)?
+                            crate::memory_external_publication::decode(payload)?
                             && publication.birth_turn.is_some()
                             && publication.records.iter().any(|r| r.id == source)
                         {
@@ -744,7 +744,7 @@ impl Cva {
                     let payload = frame.payload.as_slice();
                     {
                         if let Some(publication) =
-                            crate::external_source::publication::decode(payload)?
+                            crate::memory_external_publication::decode(payload)?
                         {
                             same |= publication.birth_turn.is_some()
                                 && publication.records.iter().any(|r| r.id == a)

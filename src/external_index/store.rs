@@ -95,14 +95,14 @@ pub(crate) struct ExternalIndexStore {
 }
 impl ExternalIndexStore {
     pub(crate) fn ingest(&mut self, bytes: &[u8]) {
-        if bytes.starts_with(super::compact_index::MAGIC) {
-            match super::compact_index::decode(bytes) {
-                Ok(super::compact_index::Record::Snapshot(state)) => {
+        if bytes.starts_with(super::codec::MAGIC) {
+            match super::codec::decode(bytes) {
+                Ok(super::codec::Record::Snapshot(state)) => {
                     // Each derived snapshot stands alone. Revisions remain CAS
                     // state for writers, never authoritative retained history.
                     self.sources.insert(state.namespace.clone(), state);
                 }
-                Ok(super::compact_index::Record::Discard) | Err(_) => {
+                Ok(super::codec::Record::Discard) | Err(_) => {
                     self.sources.clear();
                     self.damaged = true;
                 }
@@ -155,9 +155,9 @@ impl ExternalIndexStore {
     }
 }
 pub(crate) fn encode(state: &SourceState) -> Result<Vec<u8>, ExternalSourceError> {
-    super::compact_index::encode(state)
+    super::codec::encode(state)
 }
 
 pub(crate) fn discard_payload() -> Vec<u8> {
-    super::compact_index::discard()
+    super::codec::discard()
 }

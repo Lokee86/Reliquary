@@ -1,42 +1,28 @@
-use crate::archive_rebuild::ArchiveOpenState;
-use crate::archive_vector_rebuild::ArchiveVectorOpenState;
 use crate::archive_vector_store::ArchiveVectorStore;
-use crate::community_store::{CommunityOpenState, CommunityStore};
-use crate::compatibility_profile_rebuild::CompatibilityProfileOpenState;
+use crate::community_store::CommunityStore;
 use crate::compatibility_profile_store::CompatibilityProfileStore;
-use crate::conversation_compaction_store::{
-    ConversationCompactionOpenState, ConversationCompactionStore,
-};
+use crate::conversation_compaction_store::ConversationCompactionStore;
 use crate::cva_global_validation::validate_semantic_global_versions;
-use crate::cva_open_route::{OpenRecordRoute, classify_open_record};
 use crate::dream_duplicate_index::DuplicateIndex;
 use crate::dream_pair_history::DreamPairStore;
 use crate::echo_store::EchoStore;
 use crate::ego_store::EgoStore;
-use crate::entity_rebuild::EntityOpenState;
 use crate::entity_resolution_store::EntityResolutionStore;
 use crate::entity_store::EntityStore;
 use crate::freshness_dream_journal::DreamFreshnessJournal;
 use crate::freshness_storage::FreshnessStore;
-use crate::graph_rebuild::GraphOpenState;
 use crate::graph_store::GraphStore;
-use crate::insomnia::rebuild::InsomniaOpenState;
 use crate::insomnia::store::InsomniaStore;
 use crate::interaction_stream_store::InteractionStreamStore;
 use crate::lexical_index::LexicalIndex;
-use crate::memory_rebuild::MemoryOpenState;
 use crate::memory_store::MemoryStore;
-use crate::memory_vector_rebuild::MemoryVectorOpenState;
 use crate::memory_vector_store::MemoryVectorStore;
-use crate::packed_vector_rebuild::PackedVectorOpenState;
 use crate::packed_vector_store::PackedVectorStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::project_file_binding_store::ProjectFileStore;
 use crate::project_history_store::ProjectHistoryStore;
 use crate::rel_metadata_store::RelMetadataStore;
-use crate::relationship_rebuild::RelationshipOpenState;
 use crate::relationship_store::RelationshipStore;
-use crate::vector_generation_rebuild::VectorGenerationOpenState;
 use crate::vector_generation_store::VectorGenerationStore;
 use crate::{Archive, Container, Cva, CvaError};
 use std::path::Path;
@@ -170,7 +156,7 @@ impl Cva {
         Ok(Self {
             owner_maintenance,
             rewrite_lineage,
-            external_index: crate::external_source::store::ExternalIndexStore::default(),
+            external_index: crate::external_index::store::ExternalIndexStore::default(),
             container,
             archive,
             memories,
@@ -214,224 +200,39 @@ impl Cva {
         Self::open_from_container(Container::open_read_only(path)?)
     }
 
-    pub(crate) fn open_from_container(mut container: Container) -> Result<Self, CvaError> {
-        if container.owner_uuid().is_none() {
-            return Err(crate::ContainerError::InvalidIdentity.into());
-        }
-        if container.identity().map(|identity| identity.file_kind)
-            != Some(crate::FileKind::Reliquary)
-        {
-            return Err(CvaError::InvalidContainerIdentity(
-                "file is not a Reliquary",
-            ));
-        }
-        let lineage_owner = container.owner_uuid();
-        let mut owner_maintenance = crate::owner_maintenance::OwnerMaintenanceStore::default();
-        let mut rewrite_lineage = crate::rewrite_lineage::RewriteLineageStore::default();
-        let mut archive_state = ArchiveOpenState::new();
-        let mut memory_state = MemoryOpenState::new();
-        let mut graph_state = GraphOpenState::new();
-        let mut community_state = CommunityOpenState::new();
-        let mut insomnia_state = InsomniaOpenState::new();
-        let mut import_epochs = crate::imports::ImportEpochStore::default();
-        let mut packed_state = PackedVectorOpenState::new();
-        let mut memory_vector_state = MemoryVectorOpenState::new();
-        let mut archive_vector_state = ArchiveVectorOpenState::new();
-        let mut profile_state = CompatibilityProfileOpenState::new();
-        let mut generation_state = VectorGenerationOpenState::new();
-        let mut interaction_streams = InteractionStreamStore::default();
-        let mut compaction_state = ConversationCompactionOpenState::default();
-        let mut echo = EchoStore::default();
-        let mut ego = EgoStore::reliquary();
-        let mut entity_state = EntityOpenState::new();
-        let mut entity_resolutions = EntityResolutionStore::default();
-        let mut relationship_state = RelationshipOpenState::new();
-        let mut project_history = ProjectHistoryStore::default();
-        let mut project_files = ProjectFileStore::default();
-        let mut rel_metadata = RelMetadataStore::default();
-        let mut freshness = FreshnessStore::default();
-        freshness
-            .bind_history_source(&container, 0)
-            .map_err(CvaError::Freshness)?;
-        let mut dream_freshness = DreamFreshnessJournal::default();
-        let mut defer_dream_replay = false;
-        let mut processing_epochs = ProcessingEpochStore::default();
-        let mut dream_pairs = DreamPairStore::default();
-        let mut external_index = crate::external_source::store::ExternalIndexStore::default();
-        {
-            let mut cursor = container.physical_cursor()?;
-            while let Some(frame) = cursor.next_frame()? {
-                let chunk = frame.object;
-                let payload = frame.payload.as_slice();
-                let latest_global = frame.latest_global;
-                if let Some(owner_uuid) = lineage_owner {
-                    rewrite_lineage
-                        .ingest(payload, owner_uuid)
-                        .map_err(CvaError::Repack)?;
-                } else if payload.starts_with(crate::rewrite_lineage::REWRITE_GENESIS_MAGIC) {
-                    return Err(CvaError::Repack(
-                        "RewriteGenesis requires a versioned owner identity".into(),
-                    ));
-                }
-                match classify_open_record(payload) {
-                    OpenRecordRoute::Archive => {
-                        archive_state.ingest(chunk, payload, latest_global)?;
-                    }
-                    OpenRecordRoute::Memory => {
-                        crate::memory_frame_admission::ingest(
-                            &mut memory_state,
-                            chunk,
-                            payload,
-                            latest_global,
-                        )?;
-                    }
-                    OpenRecordRoute::Graph => {
-                        graph_state.ingest(chunk, payload, latest_global)?;
-                    }
-                    OpenRecordRoute::ContainerVersion => {}
-                    OpenRecordRoute::Publication => {
-                        let envelope = crate::container::publication_envelope::decode(payload)?
-                            .ok_or(crate::MemoryError::CorruptRecord(
-                                "missing publication envelope",
-                            ))?;
-                        if !memory_state.ingest_publication_envelope(envelope, latest_global)?
-                            && !entity_state.ingest_publication_envelope(envelope, latest_global)?
-                            && !relationship_state
-                                .ingest_publication_envelope(envelope, latest_global)?
-                            && !archive_state.ingest_publication_envelope(
-                                chunk,
-                                envelope,
-                                latest_global,
-                            )?
-                            && !graph_state.ingest_publication_envelope(envelope, latest_global)?
-                        {
-                            return Err(crate::MemoryError::CorruptRecord(
-                                "unsupported publication envelope body",
-                            )
-                            .into());
-                        }
-                    }
-                    OpenRecordRoute::Fallback => {
-                        owner_maintenance
-                            .ingest(payload)
-                            .map_err(CvaError::Repack)?;
-                        import_epochs.ingest(payload)?;
-
-                        external_index.ingest(payload);
-                        archive_state.ingest(chunk, payload, latest_global)?;
-                        crate::memory_frame_admission::ingest(
-                            &mut memory_state,
-                            chunk,
-                            payload,
-                            latest_global,
-                        )?;
-                        graph_state.ingest(chunk, payload, latest_global)?;
-                        entity_state.ingest(chunk, payload, latest_global)?;
-                        relationship_state.ingest(chunk, payload, latest_global)?;
-                        community_state.ingest(payload)?;
-                        crate::insomnia_admission::ingest_frame(
-                            &mut insomnia_state,
-                            chunk,
-                            payload,
-                        )?;
-                        packed_state.ingest(chunk, payload)?;
-                        memory_vector_state.ingest(chunk, payload)?;
-                        archive_vector_state.ingest(chunk, payload)?;
-                        profile_state.ingest(chunk, payload)?;
-                        generation_state.ingest(chunk, payload, latest_global)?;
-
-                        interaction_streams.ingest(payload)?;
-                        compaction_state.ingest(chunk, payload)?;
-                        echo.ingest(payload)?;
-                        ego.ingest(payload)?;
-
-                        entity_resolutions.ingest(payload)?;
-                        project_history.ingest(payload)?;
-                        project_files.ingest(payload)?;
-                        rel_metadata
-                            .ingest(payload)
-                            .map_err(CvaError::RelMetadata)?;
-                        if let Some(completion) =
-                            crate::insomnia::completion::decode_completion(payload)
-                                .map_err(|message| CvaError::Freshness(message.into()))?
-                            && completion.freshness_birth_turn.is_some()
-                            && !completion.freshness_birth_memory_ids.is_empty()
-                        {
-                            freshness.freeze_derived_birth_policy();
-                        }
-                        if let Some(publication) =
-                            crate::external_source::publication::decode(payload)?
-                            && publication.birth_turn.is_some()
-                            && !publication.records.is_empty()
-                        {
-                            freshness.freeze_derived_birth_policy();
-                        }
-                        if payload.starts_with(b"CVAFRP01") {
-                            freshness.ingest(payload).map_err(CvaError::Freshness)?;
-                        }
-                        if payload.starts_with(b"CVDREAM") && !payload.starts_with(b"CVDREAM1") {
-                            if !payload.starts_with(b"CVDREAM2") {
-                                return Err(CvaError::Freshness(
-                                    "unsupported Dream journal version".into(),
-                                ));
-                            }
-                            if lineage_owner.is_none() {
-                                return Err(CvaError::Freshness(
-                                    "CVDREAM2 Begin requires a versioned V2 owner".into(),
-                                ));
-                            }
-                            let record = crate::dream_begin_codec::decode(payload)
-                                .map_err(CvaError::Freshness)?;
-                            if lineage_owner != Some(record.owner_uuid) {
-                                return Err(CvaError::Freshness(
-                                    "Dream Freshness pass owner mismatch".into(),
-                                ));
-                            }
-                            dream_freshness
-                                .bind_owner(Some(record.owner_uuid))
-                                .map_err(CvaError::Freshness)?;
-                            defer_dream_replay = true;
-                        }
-                        if !defer_dream_replay {
-                            dream_freshness
-                                .ingest(payload)
-                                .map_err(CvaError::Freshness)?;
-                        }
-                        processing_epochs.ingest(payload)?;
-
-                        dream_pairs.ingest(payload)?;
-                    }
-                }
-            }
-            let clock_state = cursor.finish_open_scan()?;
-            container.apply_scan_clock(clock_state);
-        }
-        let import_open = import_epochs.open().is_some();
-        container.set_write_admission_closed(import_open);
-        freshness
-            .bind_owner(container.owner_uuid())
-            .map_err(CvaError::Freshness)?;
-        if !freshness.rewrite_baselines.is_empty() {
-            let genesis = rewrite_lineage.rewrite_genesis().ok_or_else(|| {
-                CvaError::Freshness(
-                    "Freshness rewrite baselines require a RewriteGenesis record".into(),
-                )
-            })?;
-            for baseline in freshness.rewrite_baselines.values() {
-                if baseline.owner_uuid != genesis.destination_owner
-                    || baseline.history_generation != genesis.generation
-                    || baseline.policy_digest != genesis.policy_digest
-                    || Some(baseline.owner_uuid) != container.owner_uuid()
-                {
-                    return Err(CvaError::Freshness(
-                        "Freshness rewrite baseline does not match RewriteGenesis".into(),
-                    ));
-                }
-            }
-        }
-        dream_freshness
-            .bind_owner(container.owner_uuid())
-            .map_err(CvaError::Freshness)?;
+    pub(crate) fn open_from_container(container: Container) -> Result<Self, CvaError> {
+        let crate::owner_lifecycle::ReliquaryReplay {
+            mut container,
+            owner_maintenance,
+            rewrite_lineage,
+            archive_state,
+            memory_state,
+            graph_state,
+            community_state,
+            insomnia_state,
+            import_epochs,
+            packed_state,
+            memory_vector_state,
+            archive_vector_state,
+            profile_state,
+            generation_state,
+            interaction_streams,
+            compaction_state,
+            echo,
+            ego,
+            entity_state,
+            entity_resolutions,
+            relationship_state,
+            project_history,
+            project_files,
+            rel_metadata,
+            mut freshness,
+            mut dream_freshness,
+            defer_dream_replay,
+            processing_epochs,
+            dream_pairs,
+            mut external_index,
+        } = crate::owner_lifecycle::ReliquaryReplay::read(container)?;
         let archive = archive_state.finish()?;
         archive.validate_references(project_files.accepted_facts())?;
         crate::archive_prune_admission::validate(
@@ -443,7 +244,7 @@ impl Cva {
         crate::memory_prune_admission::validate(&memories, &owner_maintenance)?;
         let entities = entity_state.finish(&container)?;
         let relationships = relationship_state.finish(&container)?;
-        crate::relationship_owner::validate_current_relationship_references(
+        crate::owner_lifecycle::validate_current_relationship_references(
             container.owner_id().as_deref(),
             &memories,
             &entities,
@@ -453,14 +254,14 @@ impl Cva {
         ego.validate_memory_version(memories.memory_version())?;
         crate::memory_provenance_admission::validate(&memories, &archive)?;
         processing_epochs.validate(&memories)?;
-        crate::dream_pair_admission::validate_dream_pairs(&dream_pairs, &memories)?;
+        crate::owner_lifecycle::validate_dream_pairs(&dream_pairs, &memories)?;
         for link in archive.file_memory_link_records() {
             if !memories.contains_historical_memory(link.memory_id) {
                 return Err(crate::ArchiveError::MissingFileMemoryTarget.into());
             }
         }
         let mut graph = graph_state.finish()?;
-        crate::graph_endpoint_admission::validate_rebuilt_graph(&mut graph, &memories, &entities)?;
+        crate::owner_lifecycle::validate_rebuilt_graph(&mut graph, &memories, &entities)?;
         crate::history::validate_source_history(
             &owner_maintenance,
             &crate::owner_lifecycle::HistorySource::new(&container)
@@ -532,7 +333,7 @@ impl Cva {
                         dream_freshness.derive_publication_birth(member.id);
                     }
                 }
-                if let Some(publication) = crate::external_source::publication::decode(payload)? {
+                if let Some(publication) = crate::memory_external_publication::decode(payload)? {
                     if let Some(cohort) =
                         Cva::validate_external_birth_cohort(&archive, &memories, &publication)?
                     {
@@ -671,7 +472,7 @@ impl Cva {
         result.validate_historical_import_settlements()?;
         result.validate_import_completion_settlements()?;
         result.entity_resolutions.validate_local()?;
-        crate::entity_resolution_owner::validate_entity_resolution_references(
+        crate::owner_lifecycle::validate_entity_resolution_references(
             &result.memories,
             &result.entities,
             &result.entity_resolutions.records(),

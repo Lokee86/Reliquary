@@ -1,5 +1,6 @@
-use super::model::*;
-use super::store::{IndexedChunk, IndexedMessage, SourceState};
+use super::ExternalConversationSource;
+use crate::external_index::model::*;
+use crate::external_index::store::{IndexedChunk, IndexedMessage, SourceState};
 use crate::{
     CompatibilityProfile, EmbeddingEndpoint, EmbeddingMode, PackedVectors, ScalarType, VectorSchema,
 };
@@ -305,7 +306,7 @@ fn fill_missing(
             matrices.push(packed);
         }
     }
-    super::store::encode(state)?;
+    crate::external_index::store::encode(state)?;
     Ok(matrices)
 }
 fn chunk_ranges(text: &str) -> Vec<(usize, usize)> {

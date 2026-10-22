@@ -1,4 +1,4 @@
-use crate::phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
+use super::model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
 
 pub(crate) const PHYLACTERY_PROFILE_MAGIC: [u8; 8] = *b"CVAPHYP1";
 

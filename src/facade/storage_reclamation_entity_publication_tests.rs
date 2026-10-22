@@ -294,7 +294,7 @@ fn reclamation_scan_and_relocation_validate_entity_publication_envelopes() {
         super::relocate_payload(&envelope, &Default::default()).unwrap(),
         envelope
     );
-    let mut scan = super::ReclamationScan::default();
+    let mut scan = crate::maintenance::reclamation_scan::ReclamationScan::default();
     let object = crate::ObjectRef::from_legacy_bytes([9; 16]);
     scan.ingest(object, &envelope).unwrap();
 

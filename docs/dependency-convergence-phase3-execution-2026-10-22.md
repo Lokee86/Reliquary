@@ -19,7 +19,7 @@ The [baseline](dependency-convergence-phase3-baseline-2026-10-22.md) and [curren
 | B0 | Accepted locally | Source/hash verification, bounded operation inventory and starting guards in baseline. |
 | B1 | Accepted locally (design) | [Concrete contracts](dependency-convergence-phase3-contracts-2026-10-22.md), reviewed against exact DAG; implementation proofs remain pending. |
 | H3 | Accepted locally (source cut) | One read-only proof path; final targeted 23 History + source-order regression passed. Full-run identity anomaly is retained below for A3. |
-| M3 | Pending | Maintenance authorization. |
+| M3 | In progress | PHY prune/reclamation and shared physical copy extracted; REL and remaining Maintenance entrypoints pending. |
 | P3 | Pending | Prune and reclaim. |
 | W3 | Pending | Rewrite. |
 | R3 | Pending | Generic reconciliation. |
@@ -161,3 +161,21 @@ Current baseline: `cargo check --locked` and `cargo check --locked --tests` pass
 ## Notes
 
 Current format remains CVAFRS06. No semantic feature or format migration is implied by an extracted source owner. Source refresh is reserved for stabilized D3.
+
+
+## M3 implementation in progress
+
+H3 is committed locally as `408d775`. Current work extracts lower REL physical replay, complete PHY store reconstruction, file metadata and concrete local validation; Memory owns the CVAXMEM2 codec and External Index owns its disposable snapshot codec/store. Provider authority remains above these owners. Project stores return concrete lower errors, mapped outward without changing public error messages.
+
+PHY prune and reclamation now have concrete Maintenance operations, with read-only retained-evidence reconstruction in History. Shared physical reclamation selection/copy and relocation also live under Maintenance. REL's higher ordered finalization checks and other Maintenance entrypoints remain outstanding; no P3.3 task or M3 gate is accepted by this partial extraction. Formats and all six canonical fixtures are unchanged.
+
+The intermediate lifecycle regression batch passed **1,969 tests**, with five ignored and four explicitly filtered long-running cases. The four cases are `historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries`, `historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipients`, `canonical_history_scaling_measurement` and `long_owner_reopen_keeps_finite_receipts_and_exact_evicted_retry`. This is not a clean full-suite receipt and does not resolve the H3 full-run identity anomaly. The initial PHY prune extraction additionally passed **47 pruning tests**; subsequent reclamation extraction validation is recorded when complete.
+
+Explicit EntityResolution inspection/repair and PHY staged-prefix tail repair are now under Maintenance. The remaining M3 contract work includes complete lower REL reconstruction, REL tail repair and narrower lifecycle reclamation source handles replacing the intermediate direct physical argument. Current source checks are evidence of allowed imports, not proof that all intended operation contracts are finished.
+
+`maintenance/compactions.rs` provides the explicit conversation-compaction dispatch to the existing owner-local recovery operation; normal open still performs no recovery.
+
+
+The [Maintenance preparation receipt](../benchmarks/dependency-convergence-phase3-maintenance-preparation-2026-10-22.json) records the later combined batch: **1,969 passed, zero failed, five ignored and the same four long cases filtered**, followed by **seven final explicit-repair tests** and **32 CLI tests**, all passing. Current library/test compilation, CLI compilation and format checks passed; production owner/History checks and physical/DAG negative fixtures passed. All six canonical hashes still match the pinned baseline. The first focused repair build hit Windows executable locking while the broader test binary was running; the isolated rerun after it exited passed. The changed-document checker also raced a disappearing test directory; its quiescent rerun is tracked separately. No failed or interrupted command is counted as a pass.
+
+The quiescent changed-document policy check passed. Luna read-only review found no concrete behavior defects in the PHY prune/reclaim/tail and EntityResolution extraction. M3 remains in progress with the contract gaps listed above.

@@ -1,58 +1,16 @@
-use crate::{Container, ContainerIdentity, Cva, CvaError, FileKind, Phylactery, PhylacteryError};
-use std::path::{Path, PathBuf};
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum TailRepairOutcome {
-    NoIncompleteTail,
-    Repaired,
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum EntityResolutionMaintenance {
-    NothingToRepair,
-    RetiredEntityReferences { revisions: usize },
-}
-
-struct StagedPrefix {
-    path: PathBuf,
-    guard: Option<crate::container::PhysicalReadSource>,
-}
-
-impl StagedPrefix {
-    fn new(path: PathBuf) -> Self {
-        Self { path, guard: None }
-    }
-}
-
-impl Drop for StagedPrefix {
-    fn drop(&mut self) {
-        if self
-            .guard
-            .as_ref()
-            .is_some_and(|guard| guard.validate_path_identity().is_ok())
-        {
-            let _ = std::fs::remove_file(&self.path);
-        }
-    }
-}
-
-fn staged_path(source: &Path) -> PathBuf {
-    let name = source
-        .file_name()
-        .and_then(|value| value.to_str())
-        .unwrap_or("owner");
-    source.with_file_name(format!(".{name}.repair-{}.stage", uuid::Uuid::new_v4()))
-}
+use crate::maintenance::entity_resolution::EntityResolutionMaintenance;
+use crate::maintenance::tail_repair::{StagedPrefix, TailRepairOutcome, staged_path};
+use crate::{Container, Cva, CvaError, FileKind, Phylactery, PhylacteryError};
+use std::path::Path;
 
 impl Cva {
     /// Reports whether current resolution rows need explicit retired-Entity canonicalization.
     pub fn entity_resolution_maintenance(&self) -> Result<EntityResolutionMaintenance, CvaError> {
-        let revisions = self.pending_retired_entity_reference_repairs_count()?;
-        Ok(if revisions == 0 {
-            EntityResolutionMaintenance::NothingToRepair
-        } else {
-            EntityResolutionMaintenance::RetiredEntityReferences { revisions }
-        })
+        Ok(crate::maintenance::entity_resolution::inspect(
+            &self.entity_resolutions,
+            &self.memories,
+            &self.entities,
+        )?)
     }
 
     /// Validates and repairs an incomplete REL tail under one exclusive source lease.
@@ -93,13 +51,23 @@ impl Cva {
     pub fn maintain_conversation_compactions(
         &mut self,
     ) -> Result<crate::ConversationCompactionMaintenance, CvaError> {
-        Ok(self.conversation_compactions.recover(&mut self.container)?)
+        Ok(
+            crate::maintenance::compactions::maintain_conversation_compactions(
+                &mut self.container,
+                &mut self.conversation_compactions,
+            )?,
+        )
     }
 
     /// Explicitly appends canonical resolution revisions for references to retired Entities.
     /// Opening a REL never invokes this repair automatically.
     pub fn repair_retired_entity_references(&mut self) -> Result<usize, CvaError> {
-        Ok(self.apply_retired_entity_reference_repairs()?)
+        Ok(crate::maintenance::entity_resolution::repair(
+            &mut self.container,
+            &mut self.entity_resolutions,
+            &self.memories,
+            &self.entities,
+        )?)
     }
 }
 
@@ -108,12 +76,11 @@ impl Phylactery {
     pub fn entity_resolution_maintenance(
         &self,
     ) -> Result<EntityResolutionMaintenance, PhylacteryError> {
-        let revisions = self.pending_retired_entity_reference_repairs_count()?;
-        Ok(if revisions == 0 {
-            EntityResolutionMaintenance::NothingToRepair
-        } else {
-            EntityResolutionMaintenance::RetiredEntityReferences { revisions }
-        })
+        Ok(crate::maintenance::entity_resolution::inspect(
+            &self.entity_resolutions,
+            &self.memories,
+            &self.entities,
+        )?)
     }
 
     /// Validates and repairs an incomplete PHY tail under one exclusive source lease.
@@ -121,41 +88,17 @@ impl Phylactery {
     pub fn repair_incomplete_tail(
         path: impl AsRef<Path>,
     ) -> Result<TailRepairOutcome, PhylacteryError> {
-        let path = path.as_ref();
-        let mut source = Container::open_for_repair(path)?;
-        if source.owner_uuid().is_none() {
-            return Err(crate::ContainerError::InvalidIdentity.into());
-        }
-        if source.identity()
-            != Some(ContainerIdentity {
-                file_kind: FileKind::Phylactery,
-                scope: None,
-            })
-        {
-            return Err(PhylacteryError::InvalidContainerIdentity(
-                "file is not a Phylactery",
-            ));
-        }
-        let Some(plan) = source.plan_tail_repair()? else {
-            let _validated = Self::open_from_container(source)?;
-            return Ok(TailRepairOutcome::NoIncompleteTail);
-        };
-
-        let mut staged = StagedPrefix::new(staged_path(path));
-        let staged_container = source.copy_accepted_prefix(&plan, &staged.path)?;
-        staged.guard = Some(staged_container.read_source()?);
-        let validated = Phylactery::open_from_container(staged_container)?;
-        drop(validated);
-
-        source.repair_incomplete_tail(plan)?;
-        let repaired = Phylactery::open_from_container(source)?;
-        drop(repaired);
-        Ok(TailRepairOutcome::Repaired)
+        crate::maintenance::tail_repair::repair_phylactery(path.as_ref())
     }
 
     /// Explicitly appends canonical resolution revisions for references to retired Entities.
     /// Opening a PHY never invokes this repair automatically.
     pub fn repair_retired_entity_references(&mut self) -> Result<usize, PhylacteryError> {
-        Ok(self.apply_retired_entity_reference_repairs()?)
+        Ok(crate::maintenance::entity_resolution::repair(
+            &mut self.container,
+            &mut self.entity_resolutions,
+            &self.memories,
+            &self.entities,
+        )?)
     }
 }

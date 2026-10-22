@@ -1227,6 +1227,196 @@
       "path": "src/history/archive_retention.rs",
       "component": "history",
       "classification": "production"
+    },
+    {
+      "path": "src/maintenance/mod.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/prune_selection.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_frames.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/open_route.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/metadata/store.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/metadata/codec.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/metadata/model.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/memory/external_publication.rs",
+      "component": "memory-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/rebuild.rs",
+      "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/project_history_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/project_file_binding_store.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phylactery_error.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/read_validation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phylactery.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/mod.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/model.rs",
+      "component": "pure-codec",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/codec.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/phy_profile/store.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_index/codec.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_index/model.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_index/mod.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_index/store.rs",
+      "component": "external-index-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/external_source/provider.rs",
+      "component": "external-sources",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/phylactery_prune.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/phylactery_prune.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/relocation.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_description_prune.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/global_versions.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_provenance.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reclamation.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reclamation_scan.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/phylactery_copy.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/phylactery_reclamation.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/entity_resolution.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/tail_repair.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/compactions.rs",
+      "component": "maintenance",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -1249,10 +1439,6 @@
     {
       "module": "entity_identity_guard",
       "component": "perception-store"
-    },
-    {
-      "module": "project_file_binding_store",
-      "component": "project-environment"
     },
     {
       "module": "imports::epoch_store::completion",
@@ -1328,6 +1514,10 @@
     },
     {
       "module": "owner_lifecycle::vocabulary",
+      "component": "pure-codec"
+    },
+    {
+      "module": "owner_lifecycle::phy_profile::model",
       "component": "pure-codec"
     }
   ],
@@ -1739,6 +1929,66 @@
       "owner": "freshness-store",
       "symbol": "SemanticVectorProfile",
       "reason": "Immutable Freshness-owned policy/profile identity supplied to import historical planning; no store handle, writer, or persistence authority."
+    },
+    {
+      "consumer": "maintenance",
+      "owner": "pure-codec",
+      "symbol": "LifecycleTarget",
+      "reason": "Immutable explicit prune target vocabulary reexported through owner-lifecycle; no lifecycle service, writer, or persistence authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "RelMetadata",
+      "reason": "Immutable owner-file metadata value or canonical field limit; no producer service or mutation authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "MAX_REL_DEPENDENCIES",
+      "reason": "Immutable owner-file metadata value or canonical field limit; no producer service or mutation authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "MAX_REL_DEPENDENCY_ID_BYTES",
+      "reason": "Immutable owner-file metadata value or canonical field limit; no producer service or mutation authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "MAX_REL_TYPE_LABEL_BYTES",
+      "reason": "Immutable owner-file metadata value or canonical field limit; no producer service or mutation authority."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "PhylacteryProfile",
+      "reason": "Immutable Phylactery profile value model only; no profile store or codec capability."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "pure-codec",
+      "symbol": "MAX_PHYLACTERY_PROFILE_NAME_BYTES",
+      "reason": "Immutable Phylactery profile size limit only; no profile store or codec capability."
+    },
+    {
+      "consumer": "external-index-store",
+      "owner": "pure-codec",
+      "symbol": "ExternalMessageRef",
+      "reason": "Immutable host source identity value; no provider or integration authority."
+    },
+    {
+      "consumer": "external-index-store",
+      "owner": "pure-codec",
+      "symbol": "ExternalChunkRef",
+      "reason": "Immutable host source span value; no provider or integration authority."
+    },
+    {
+      "consumer": "external-index-store",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfileId",
+      "reason": "Typed immutable profile identity in External Index status; no vector-store access."
     }
   ],
   "forbidden_symbols": [

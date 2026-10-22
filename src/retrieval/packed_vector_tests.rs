@@ -165,7 +165,7 @@ fn packed_vector_prune_marker_preserves_identity_and_reports_explicit_unavailabi
 
     assert_eq!(store.info(id), Some(info));
     assert!(store.is_pruned(id));
-    assert_eq!(store.prune_manifest_digest(id), Some([9; 32]));
+    assert_eq!(store.pruned_manifest_digest(id), Some([9; 32]));
     assert!(matches!(
         store.get(&mut container, id),
         Err(PackedVectorError::PayloadUnavailable(

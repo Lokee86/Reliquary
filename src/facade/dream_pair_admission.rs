@@ -34,19 +34,3 @@ impl Phylactery {
         self.dream_pairs.records()
     }
 }
-
-pub(crate) fn validate_dream_pairs(
-    pairs: &crate::dream_pair_history::DreamPairStore,
-    memories: &crate::memory_store::MemoryStore,
-) -> Result<(), MemoryError> {
-    if pairs
-        .referenced_memories()
-        .all(|id| memories.contains_historical_memory(id))
-    {
-        Ok(())
-    } else {
-        Err(MemoryError::CorruptRecord(
-            "Dream pair references a missing Memory",
-        ))
-    }
-}

@@ -1,5 +1,6 @@
 use super::*;
-use crate::external_source::compact_index::{self, Record};
+use crate::external_index::codec::Record;
+use crate::external_index::{codec, store};
 use sha2::{Digest, Sha256};
 use std::{fs, path::PathBuf};
 
@@ -51,34 +52,31 @@ fn compact_external_index_roundtrip_bounds_and_independent_layout() {
     assert_eq!(&bytes[26..58], &[1; 32]);
     assert_eq!(u64::from_le_bytes(bytes[62..70].try_into().unwrap()), 9);
     assert_eq!(u64::from_le_bytes(bytes[70..78].try_into().unwrap()), 17);
-    match compact_index::decode(&bytes).unwrap() {
+    match codec::decode(&bytes).unwrap() {
         Record::Snapshot(decoded) => assert_eq!(decoded, state),
         _ => panic!("snapshot"),
     }
     for end in 0..bytes.len() {
-        assert!(compact_index::decode(&bytes[..end]).is_err());
+        assert!(codec::decode(&bytes[..end]).is_err());
     }
     let mut trailing = bytes.clone();
     trailing.push(0);
-    assert!(compact_index::decode(&trailing).is_err());
+    assert!(codec::decode(&trailing).is_err());
     let mut invalid = bytes.clone();
     invalid[126] = 2;
     checksum(&mut invalid);
-    assert!(compact_index::decode(&invalid).is_err());
+    assert!(codec::decode(&invalid).is_err());
     let mut count = bytes.clone();
     count[127..131].copy_from_slice(&u32::MAX.to_le_bytes());
     checksum(&mut count);
-    assert!(compact_index::decode(&count).is_err());
+    assert!(codec::decode(&count).is_err());
     let mut unknown = bytes.clone();
     unknown[8] = 3;
     checksum(&mut unknown);
-    assert!(compact_index::decode(&unknown).is_err());
+    assert!(codec::decode(&unknown).is_err());
     let discard = store::discard_payload();
     assert_eq!(discard.len(), 49);
-    assert!(matches!(
-        compact_index::decode(&discard),
-        Ok(Record::Discard)
-    ));
+    assert!(matches!(codec::decode(&discard), Ok(Record::Discard)));
     let mut store = store::ExternalIndexStore::default();
     store.ingest(&bytes);
     assert_eq!(store.sources["x"], state);
@@ -274,7 +272,7 @@ fn compact_external_index_message_fields_and_invalid_logical_shapes() {
     for role in ["user", "assistant", "system", "tool"] {
         state.messages[0].descriptor.role = role.into();
         let bytes = store::encode(&state).unwrap();
-        match compact_index::decode(&bytes).unwrap() {
+        match codec::decode(&bytes).unwrap() {
             Record::Snapshot(decoded) => assert_eq!(decoded, state),
             _ => panic!("snapshot"),
         }
@@ -285,20 +283,20 @@ fn compact_external_index_message_fields_and_invalid_logical_shapes() {
         let mut bad = bytes.clone();
         bad[offset] = 9;
         checksum(&mut bad);
-        assert!(compact_index::decode(&bad).is_err());
+        assert!(codec::decode(&bad).is_err());
     }
     let mut invalid_utf8 = bytes.clone();
     invalid_utf8[140] = 0xff;
     checksum(&mut invalid_utf8);
-    assert!(compact_index::decode(&invalid_utf8).is_err());
+    assert!(codec::decode(&invalid_utf8).is_err());
     let mut end = bytes.clone();
     end[193..197].copy_from_slice(&0u32.to_le_bytes());
     checksum(&mut end);
-    assert!(compact_index::decode(&end).is_err());
+    assert!(codec::decode(&end).is_err());
     let mut duplicate = bytes.clone();
     duplicate[269..301].copy_from_slice(&[1; 32]);
     checksum(&mut duplicate);
-    assert!(compact_index::decode(&duplicate).is_err());
+    assert!(codec::decode(&duplicate).is_err());
 }
 
 #[test]

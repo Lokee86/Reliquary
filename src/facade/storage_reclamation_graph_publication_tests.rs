@@ -32,20 +32,20 @@ fn native_graph_relocation_and_scan_validate_shape_and_preserve_exact_payload() 
             transaction,
         })
         .unwrap();
-        let mut orphan_scan = super::ReclamationScan::default();
+        let mut orphan_scan = crate::maintenance::reclamation_scan::ReclamationScan::default();
         orphan_scan.ingest(object, &body).unwrap();
         let orphan_plan = orphan_scan.finish();
         assert_eq!(orphan_plan.unpublished_backing_chunks, 1);
         assert!(orphan_plan.drop.contains(&object));
         let bytes = envelope(&body);
-        let mut scan = super::ReclamationScan::default();
+        let mut scan = crate::maintenance::reclamation_scan::ReclamationScan::default();
         scan.ingest(object, &bytes).unwrap();
         assert_eq!(
             super::relocate_payload(&bytes, &Default::default()).unwrap(),
             bytes
         );
         let retained = {
-            let mut scan = super::ReclamationScan::default();
+            let mut scan = crate::maintenance::reclamation_scan::ReclamationScan::default();
             scan.ingest(object, &bytes).unwrap();
             scan.finish()
         };
@@ -63,7 +63,7 @@ fn native_graph_relocation_and_scan_validate_shape_and_preserve_exact_payload() 
     }
     let foreign = envelope(b"FOREIGN1opaque");
     assert!(
-        super::ReclamationScan::default()
+        crate::maintenance::reclamation_scan::ReclamationScan::default()
             .ingest(object, &foreign)
             .is_err()
     );

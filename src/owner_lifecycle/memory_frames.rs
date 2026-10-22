@@ -8,8 +8,8 @@ pub(crate) fn ingest(
     payload: &[u8],
     latest_global: u64,
 ) -> Result<(), MemoryError> {
-    if let Some(publication) = crate::external_source::publication::decode(payload)? {
-        let spans = crate::external_source::publication::body_spans(payload)?.ok_or(
+    if let Some(publication) = crate::memory_external_publication::decode(payload)? {
+        let spans = crate::memory_external_publication::body_spans(payload)?.ok_or(
             MemoryError::CorruptRecord("missing external Memory body spans"),
         )?;
         state.ingest_grouped(

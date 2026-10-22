@@ -1,20 +1,19 @@
 //! Framework-neutral external canonical transcript integration.
 //! Host text is transient. This lane owns rebuildable index state, not history.
-pub(crate) mod model;
 pub(crate) mod publication;
-use model::identifier;
-pub use model::{
+pub use crate::external_index::model::{
     EXTERNAL_SOURCE_CONTRACT, ExternalChangeBatch, ExternalChangeKind, ExternalChunkRef,
-    ExternalConversationChange, ExternalConversationSource, ExternalIndexStatus,
-    ExternalMessageDescriptor, ExternalMessageRef, ExternalSearchHit, ExternalSnapshotManifest,
-    ExternalSourceError, HydratedExternalChunk, HydratedExternalMessage, MAX_EXTERNAL_BATCH,
-    MAX_EXTERNAL_INDEX_BYTES, MAX_EXTERNAL_MANIFEST, MAX_EXTERNAL_MESSAGE_BYTES,
-    MAX_EXTERNAL_RESULTS, external_content_hash,
+    ExternalConversationChange, ExternalIndexStatus, ExternalMessageDescriptor, ExternalMessageRef,
+    ExternalSearchHit, ExternalSnapshotManifest, ExternalSourceError, HydratedExternalChunk,
+    HydratedExternalMessage, MAX_EXTERNAL_BATCH, MAX_EXTERNAL_INDEX_BYTES, MAX_EXTERNAL_MANIFEST,
+    MAX_EXTERNAL_MESSAGE_BYTES, MAX_EXTERNAL_RESULTS, external_content_hash,
 };
-pub(crate) mod compact_index;
+use crate::external_index::{model, store};
+use model::identifier;
+mod provider;
+pub use provider::ExternalConversationSource;
 pub(crate) mod index;
 mod provenance;
-pub(crate) mod store;
 pub use provenance::{ExternalMemoryEvidence, SourceEvidenceRef};
 pub(crate) mod processing;
 pub use processing::{ExternalProcessingResult, PreparedExternalProcessing};

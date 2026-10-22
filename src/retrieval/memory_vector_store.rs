@@ -94,7 +94,7 @@ impl MemoryVectorStore {
 
     pub(crate) fn get(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: MemoryVectorId,
     ) -> Result<MemoryVectorSet, MemoryVectorError> {
         let entry = self

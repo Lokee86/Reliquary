@@ -1,8 +1,26 @@
 use crate::project_history_codec::{decode, encode};
 use crate::{
-    Container, CvaError, ProjectRepositoryManagement, ProjectRevisionCorrelation,
+    Container, ContainerError, ProjectRepositoryManagement, ProjectRevisionCorrelation,
     ProjectRevisionRef, RelSemanticCut,
 };
+
+#[derive(Debug)]
+pub(crate) enum ProjectHistoryStoreError {
+    Project(String),
+    Container(ContainerError),
+}
+
+impl From<ContainerError> for ProjectHistoryStoreError {
+    fn from(error: ContainerError) -> Self {
+        Self::Container(error)
+    }
+}
+
+impl From<String> for ProjectHistoryStoreError {
+    fn from(error: String) -> Self {
+        Self::Project(error)
+    }
+}
 
 #[derive(Default)]
 pub(crate) struct ProjectHistoryStore {
@@ -10,8 +28,8 @@ pub(crate) struct ProjectHistoryStore {
 }
 
 impl ProjectHistoryStore {
-    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), CvaError> {
-        let Some(record) = decode(payload).map_err(CvaError::ProjectHistory)? else {
+    pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), ProjectHistoryStoreError> {
+        let Some(record) = decode(payload).map_err(ProjectHistoryStoreError::Project)? else {
             return Ok(());
         };
         self.validate_record(&record)?;
@@ -20,12 +38,12 @@ impl ProjectHistoryStore {
         }
         let expected_sequence = match self.records.last() {
             Some(previous) => previous.sequence.checked_add(1).ok_or_else(|| {
-                CvaError::ProjectHistory("project correlation sequence exhausted".into())
+                ProjectHistoryStoreError::Project("project correlation sequence exhausted".into())
             })?,
             None => 1,
         };
         if record.sequence != expected_sequence {
-            return Err(CvaError::ProjectHistory(
+            return Err(ProjectHistoryStoreError::Project(
                 "project correlation sequence is not contiguous".into(),
             ));
         }
@@ -39,7 +57,7 @@ impl ProjectHistoryStore {
         rel_cut: RelSemanticCut,
         project_revision: ProjectRevisionRef,
         repository_management: ProjectRepositoryManagement,
-    ) -> Result<(ProjectRevisionCorrelation, bool), CvaError> {
+    ) -> Result<(ProjectRevisionCorrelation, bool), ProjectHistoryStoreError> {
         validate_revision(&project_revision)?;
         if let Some(previous) = self.records.last() {
             validate_repository_identity(&previous.project_revision, &project_revision)?;
@@ -53,7 +71,7 @@ impl ProjectHistoryStore {
         }
         let sequence = match self.records.last() {
             Some(record) => record.sequence.checked_add(1).ok_or_else(|| {
-                CvaError::ProjectHistory("project correlation sequence exhausted".into())
+                ProjectHistoryStoreError::Project("project correlation sequence exhausted".into())
             })?,
             None => 1,
         };
@@ -63,7 +81,7 @@ impl ProjectHistoryStore {
             project_revision,
             repository_management,
         };
-        let payload = encode(&record).map_err(CvaError::ProjectHistory)?;
+        let payload = encode(&record).map_err(ProjectHistoryStoreError::Project)?;
         container.append(&payload)?;
         container.sync()?;
         self.records.push(record.clone());
@@ -78,9 +96,12 @@ impl ProjectHistoryStore {
         self.records.last().cloned()
     }
 
-    fn validate_record(&self, record: &ProjectRevisionCorrelation) -> Result<(), CvaError> {
+    fn validate_record(
+        &self,
+        record: &ProjectRevisionCorrelation,
+    ) -> Result<(), ProjectHistoryStoreError> {
         if record.sequence == 0 {
-            return Err(CvaError::ProjectHistory(
+            return Err(ProjectHistoryStoreError::Project(
                 "project correlation sequence must be non-zero".into(),
             ));
         }
@@ -91,26 +112,28 @@ impl ProjectHistoryStore {
 fn validate_repository_identity(
     previous: &ProjectRevisionRef,
     next: &ProjectRevisionRef,
-) -> Result<(), CvaError> {
+) -> Result<(), ProjectHistoryStoreError> {
     if previous.repository.kind != next.repository.kind
         || previous.repository.repository_id != next.repository.repository_id
     {
-        return Err(CvaError::ProjectHistory(
+        return Err(ProjectHistoryStoreError::Project(
             "project repository identity must remain stable across correlation history".into(),
         ));
     }
     Ok(())
 }
 
-fn validate_revision(project_revision: &ProjectRevisionRef) -> Result<(), CvaError> {
+fn validate_revision(
+    project_revision: &ProjectRevisionRef,
+) -> Result<(), ProjectHistoryStoreError> {
     let repository = &project_revision.repository;
     if repository.repository_id.trim().is_empty() {
-        return Err(CvaError::ProjectHistory(
+        return Err(ProjectHistoryStoreError::Project(
             "project repository id must not be empty".into(),
         ));
     }
     if project_revision.revision.trim().is_empty() {
-        return Err(CvaError::ProjectHistory(
+        return Err(ProjectHistoryStoreError::Project(
             "project revision must not be empty".into(),
         ));
     }
@@ -130,7 +153,7 @@ fn validate_revision(project_revision: &ProjectRevisionRef) -> Result<(), CvaErr
         || windows_absolute
         || invalid_component
     {
-        return Err(CvaError::ProjectHistory(
+        return Err(ProjectHistoryStoreError::Project(
             "project path must be a normalized repository-relative path".into(),
         ));
     }

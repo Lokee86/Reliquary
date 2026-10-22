@@ -1,30 +1,13 @@
 //! Explicit destructive pruning of terminal Archive conversation bodies.
 use crate::archive::history_prune::PrunedArchiveContent;
 use crate::archive_codec::{ArchiveRecord, decode_record};
+use crate::maintenance::select_reliquary_targets;
 use crate::owner_lifecycle::LifecycleTarget;
 use crate::owner_maintenance::HistoryPruneManifest;
-use crate::{ContentId, Cva, CvaError, ObjectRef};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use crate::{ContentId, Cva, CvaError, HistoryPruneReport, HistoryPruneRequest, ObjectRef};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::Path;
-
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct HistoryPruneRequest {
-    pub targets: Vec<LifecycleTarget>,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct HistoryPruneReport {
-    pub pruned_conversations: usize,
-    pub pruned_content_objects: usize,
-    pub pruned_memory_bodies: usize,
-    pub pruned_packed_vectors: usize,
-    pub destroyed_body_bytes: u64,
-    pub destroyed_packed_bytes: u64,
-    pub source_file_bytes: u64,
-    pub output_file_bytes: u64,
-    pub manifest_digest: [u8; 32],
-}
 
 impl Cva {
     /// Write a separately validated copy with explicitly selected terminal conversation bodies removed.
@@ -60,46 +43,11 @@ impl Cva {
             .owner_uuid()
             .ok_or_else(|| prune_error("pruning requires a durable owner UUID"))?;
         let watermark = self.latest_global_version();
-        let mut selected = BTreeSet::new();
-        let mut selected_profiles = HashSet::new();
-        let mut selected_memories = HashSet::new();
-        let mut description_targets = Vec::new();
-        for target in request.targets {
-            match target {
-                LifecycleTarget::Conversation(id) => {
-                    if !selected.insert(id) {
-                        return Err(prune_error("duplicate prune target"));
-                    }
-                }
-                target @ (LifecycleTarget::Entity(_) | LifecycleTarget::Relationship(_)) => {
-                    description_targets.push(target);
-                }
-                LifecycleTarget::Memory(id) => {
-                    if !selected_memories.insert(id) {
-                        return Err(prune_error("duplicate prune target"));
-                    }
-                }
-                LifecycleTarget::CompatibilityProfile(id) => {
-                    if !selected_profiles.insert(id) {
-                        return Err(prune_error("duplicate prune target"));
-                    }
-                }
-                _ => {
-                    return Err(prune_error(
-                        "selected domain has no implemented retention contract",
-                    ));
-                }
-            }
-        }
-        if selected.is_empty()
-            && selected_profiles.is_empty()
-            && selected_memories.is_empty()
-            && description_targets.is_empty()
-        {
-            return Err(prune_error(
-                "pruning requires explicitly selected terminal tombstones",
-            ));
-        }
+        let selected_targets = select_reliquary_targets(request.targets).map_err(prune_error)?;
+        let selected = selected_targets.conversations;
+        let selected_profiles = selected_targets.compatibility_profiles;
+        let selected_memories = selected_targets.memories;
+        let description_targets = selected_targets.descriptions;
         for id in &selected {
             if self.conversation_tombstone(id).is_none() {
                 return Err(prune_error(
@@ -367,7 +315,7 @@ impl Cva {
                     }
                     marker.encode()
                 } else {
-                    crate::storage_reclamation::relocate_payload(&raw, &relocated)
+                    crate::maintenance::relocation::relocate_payload(&raw, &relocated)
                         .map_err(CvaError::Repack)?
                 };
                 let destination = output.append(&transformed)?;
@@ -447,7 +395,7 @@ impl Cva {
                     }
                     continue;
                 }
-                let expected = crate::storage_reclamation::relocate_payload(&raw, &relocated)
+                let expected = crate::maintenance::relocation::relocate_payload(&raw, &relocated)
                     .map_err(CvaError::Repack)?;
                 let destination = relocated
                     .get(object)

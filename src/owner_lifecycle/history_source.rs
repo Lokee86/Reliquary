@@ -144,6 +144,16 @@ impl<'a> HistorySource<'a> {
             .map_err(|error| error.to_string())
     }
 
+    /// Read one owner-local vector set while preserving immutable snapshot checks.
+    pub(crate) fn memory_vector_set(
+        &self,
+        store: &crate::memory_vector_store::MemoryVectorStore,
+        id: crate::MemoryVectorId,
+    ) -> Result<crate::MemoryVectorSet, crate::MemoryVectorError> {
+        self.validate().map_err(|error| error.0)?;
+        store.get(self.container, id)
+    }
+
     /// Owner-local Archive interpretation through the held immutable source.
     pub(crate) fn archive_publication(
         &self,

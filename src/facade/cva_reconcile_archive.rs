@@ -423,7 +423,8 @@ fn replay_project_file(
     // Keep that accepted identity instead of allocating a native project FileId.
     destination
         .project_files
-        .put(&mut destination.container, file.id, reference)?;
+        .put(&mut destination.container, file.id, reference)
+        .map_err(crate::CvaError::from)?;
     destination
         .archive
         .register_file(&mut destination.container, file.clone())?;

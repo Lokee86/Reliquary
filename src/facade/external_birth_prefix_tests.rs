@@ -1,6 +1,6 @@
 use crate::external_source::processing::PreparedExternalMemory;
-use crate::external_source::publication::{self, Publication};
 use crate::external_source::{ExternalChunkRef, ExternalMemoryEvidence, ExternalMessageRef};
+use crate::memory_external_publication::{self as publication, Publication};
 use crate::{Cva, MemoryDraft};
 use serde_json::json;
 use sha2::Digest;

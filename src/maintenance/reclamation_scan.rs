@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub(crate) struct ReclamationScan {
-    external_index: crate::external_source::store::ExternalIndexStore,
+    external_index: crate::external_index::store::ExternalIndexStore,
     backing_candidates: HashSet<ObjectRef>,
     published_backing: HashSet<ObjectRef>,
     archive_content_refs: HashMap<ObjectRef, Vec<ContentId>>,
@@ -37,13 +37,13 @@ pub(crate) struct ReclamationPlan {
 impl ReclamationScan {
     pub(crate) fn ingest(&mut self, object: ObjectRef, payload: &[u8]) -> Result<(), String> {
         self.external_index.ingest(payload);
-        if payload.starts_with(crate::external_source::compact_index::MAGIC) {
+        if payload.starts_with(crate::external_index::codec::MAGIC) {
             self.external_snapshot_chunks.push(object);
-            match crate::external_source::compact_index::decode(payload) {
-                Ok(crate::external_source::compact_index::Record::Snapshot(state)) => {
+            match crate::external_index::codec::decode(payload) {
+                Ok(crate::external_index::codec::Record::Snapshot(state)) => {
                     self.external_snapshot_heads.insert(state.namespace, object);
                 }
-                Ok(crate::external_source::compact_index::Record::Discard) | Err(_) => {
+                Ok(crate::external_index::codec::Record::Discard) | Err(_) => {
                     self.external_snapshot_heads.clear();
                     self.external_discard = Some(object);
                 }
@@ -52,7 +52,7 @@ impl ReclamationScan {
             self.external_snapshot_heads.clear();
             self.external_discard = Some(object);
         }
-        if let Some(publication) = crate::external_source::publication::decode(payload)
+        if let Some(publication) = crate::memory_external_publication::decode(payload)
             .map_err(|error| error.to_string())?
         {
             self.completion_body_refs

@@ -278,8 +278,8 @@ Recipient adaptation is owned by src/runtime_inference/interaction_live.rs and i
 
 | Concern | Owner/code | Verification |
 | --- | --- | --- |
-| Host contract, hashes and bounds | `src/external_source/model.rs` | External source contract and hydration tests |
-| Reference-only index, cursor and rebuild | `external_source/store.rs`, `compact_index.rs`, `index.rs`; `storage_upgrade/external_index.rs`; `facade/storage_reclamation_scan.rs` | Replay/reopen/edit/visibility/delete/corruption/CAS tests; `external_source/compact_tests.rs` for current snapshots, cleanup and legacy authority parity |
+| Host contract, hashes and bounds | `src/external_index/model.rs`, `src/external_source/provider.rs` | External source contract and hydration tests |
+| Reference-only index, cursor and rebuild | `external_index/store.rs`, `external_index/codec.rs`, `external_source/index.rs`; `storage_upgrade/external_index.rs`; `maintenance/reclamation_scan.rs` | Replay/reopen/edit/visibility/delete/corruption/CAS tests; `external_source/compact_tests.rs` for current snapshots, cleanup and legacy authority parity |
 | Atomic semantic publication and provenance | `external_source/publication.rs`, `provenance.rs` | Memory receipt, body binding and reopen tests |
 | Shared transient Insomnia input | `insomnia/input.rs`, shared extraction/synthesis, `external_source/processing.rs` | External project/private extraction and native Insomnia regressions |
 | Authorized Gateway delivery/publication | `runtime_host_gateway_external*.rs` | Exact grant, private binding, stale-cut and retry tests; P4 coverage guard |
@@ -367,8 +367,21 @@ The current coarse areas remain mixed. These routes establish enforcement and ac
 
 ## Phase 2 owner admission routing
 
-The [execution ledger](dependency-convergence-phase2-execution-2026-10-22.md) distinguishes implemented cuts from pending acceptance. REL/PHY lifecycle calls owner-local replay/finish methods and then the existing cross-owner checks. `facade/memory_frame_admission.rs` routes grouped Insomnia/external evidence into Memory-owned frame ranges and records; `memory_provenance_admission.rs` composes Archive provenance; `history/memory_retention.rs` matches owner retention proofs. `insomnia_admission.rs`, `dream_pair_admission.rs`, `external_index_admission.rs` and `history/source_digest.rs` retain existing authorized composition above durable stores. These functions add no coordinator state or durable format.
+The [execution ledger](dependency-convergence-phase2-execution-2026-10-22.md) distinguishes implemented cuts from pending acceptance. REL/PHY lifecycle calls owner-local replay/finish methods and then the existing cross-owner checks. `owner_lifecycle/memory_frames.rs` routes grouped Insomnia/external evidence into Memory-owned frame ranges and records; `owner_lifecycle/memory_provenance.rs` composes Archive provenance; `history/memory_retention.rs` matches owner retention proofs. `owner_lifecycle/insomnia_replay.rs`, `dream_pair_admission.rs`, `external_index_admission.rs` and `history/source_digest.rs` retain existing authorized composition above durable stores. These functions add no coordinator state or durable format.
 
 Import epoch record values and errors live in `src/imports/epoch_model.rs`; the private completion append belongs to `epoch_store.rs`. The higher completion coordinator is a child module so Rust visibility restricts the append without a service-owned authority token. Freshness owns shared historical event values and the fixed stored policy digest in `src/freshness/historical_contract.rs`; public historical module paths re-export them.
 
 `retrieval/compatibility_profile_validation.rs` owns stored profile shape, identity and pure comparison. `compatibility_profile_probe.rs` remains higher-level provider composition; durable profile storage does not import provider interfaces. Shared temporal, interaction-role, embedding-tag and lineage records are explicit immutable value contracts in the owner boundary manifest.
+
+
+## Phase 3 lifecycle and Maintenance source routing
+
+`owner_lifecycle/reliquary_replay.rs` owns the REL physical scan into pending owner states. `owner_lifecycle/phylactery.rs` owns PHY initialization and store reconstruction; the facade adds lexical/duplicate caches and preserves ordered post-replay validation. `owner_lifecycle/{memory_frames,insomnia_replay,read_validation,global_versions,memory_provenance}.rs` own concrete replay/reference checks; `metadata/` and `phy_profile/` own file metadata. Public errors map from concrete lifecycle/store errors.
+
+`history/phylactery_prune.rs` reconstructs Entity, Relationship and retired-profile descriptors and verifies accepted PHY prune evidence through immutable `HistorySource` reads. `maintenance/prune_selection.rs` preserves the distinct REL/PHY domains and duplicate rules. `maintenance/phylactery_prune.rs` owns PHY publication; `phylactery_reclamation.rs` owns PHY copy invariants; `phylactery_copy.rs` composes lower replay and ordered History/reference checks. `maintenance/reclamation{,_scan}.rs` and `relocation.rs` own the shared physical reclamation operation. Existing facade regression suites exercise the canonical implementations. REL prune/reopen completion, other Maintenance entrypoints and final M3 acceptance remain pending in the [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md).
+
+`memory/external_publication.rs` owns the unchanged CVAXMEM2 codec and body ranges; `external_source/publication.rs` owns processing/publication coordination. `external_index/{model,codec,store}.rs` own disposable external snapshots, while `external_source/provider.rs` keeps provider authority above the durable index.
+
+`maintenance/entity_resolution.rs` owns explicit retired-reference inspection, canonical repair selection and appending the selected resolution revisions. `maintenance/tail_repair.rs` owns PHY staged-prefix repair and the identity-guarded staging cleanup used by REL. Ordinary replay still validates references without repairing them. REL tail repair remains in its adapter until complete lower REL replay is available. The final reclamation contract still requires narrow lifecycle source handles instead of the intermediate direct physical argument.
+
+`maintenance/compactions.rs` provides the explicit conversation-compaction dispatch to the existing owner-local recovery operation; normal open still performs no recovery.

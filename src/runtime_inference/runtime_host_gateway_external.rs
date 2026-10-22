@@ -11,7 +11,7 @@ impl GatewayRuntime {
     ) -> Result<
         (
             super::OwnerAccessToken,
-            external::store::SourceState,
+            crate::external_index::store::SourceState,
             crate::CompatibilityProfile,
         ),
         ExternalSourceError,
@@ -75,7 +75,7 @@ impl GatewayRuntime {
             .authorize(instance, owner, OwnerGrant::ManageRel)
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         let namespace = source.source_namespace().to_owned();
-        external::model::identifier(&namespace)?;
+        crate::external_index::model::identifier(&namespace)?;
         let old = self
             .with_rel(&token, |r| {
                 Ok(r.cva.external_index.sources.get(&namespace).cloned())
@@ -279,7 +279,7 @@ impl GatewayRuntime {
 pub(super) fn validate_external_evidence(
     source: &impl ExternalConversationSource,
     principal: &str,
-    state: &external::store::SourceState,
+    state: &crate::external_index::store::SourceState,
     refs: &[ExternalMessageRef],
 ) -> Result<(), ExternalSourceError> {
     source.authorize(principal)?;

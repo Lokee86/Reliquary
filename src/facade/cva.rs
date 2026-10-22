@@ -32,7 +32,7 @@ use crate::{
 pub struct Cva {
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
     pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
-    pub(crate) external_index: crate::external_source::store::ExternalIndexStore,
+    pub(crate) external_index: crate::external_index::store::ExternalIndexStore,
     pub(crate) container: Container,
     pub(crate) archive: Archive,
     pub(crate) memories: MemoryStore,
@@ -733,12 +733,14 @@ impl Cva {
         repository_management: crate::ProjectRepositoryManagement,
     ) -> Result<(crate::ProjectRevisionCorrelation, bool), CvaError> {
         let rel_cut = self.current_rel_semantic_cut();
-        self.project_history.put(
-            &mut self.container,
-            rel_cut,
-            project_revision,
-            repository_management,
-        )
+        self.project_history
+            .put(
+                &mut self.container,
+                rel_cut,
+                project_revision,
+                repository_management,
+            )
+            .map_err(CvaError::from)
     }
 
     pub fn project_revision_correlations(&self) -> Vec<crate::ProjectRevisionCorrelation> {
@@ -804,6 +806,7 @@ impl Cva {
         }
         self.project_files
             .put(&mut self.container, file.id, reference)
+            .map_err(CvaError::from)
     }
 
     pub fn project_file_ref(&self, file_id: crate::FileId) -> Option<crate::ProjectFileRef> {

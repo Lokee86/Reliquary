@@ -1,9 +1,10 @@
+use super::OwnerError;
+use crate::Archive;
 use crate::entity_store::EntityStore;
 use crate::graph_store::GraphStore;
 use crate::memory_store::MemoryStore;
 use crate::relationship_store::RelationshipStore;
 use crate::vector_generation_store::VectorGenerationStore;
-use crate::{Archive, CvaError};
 
 pub(crate) fn validate_semantic_global_versions(
     archive: &Archive,
@@ -12,7 +13,7 @@ pub(crate) fn validate_semantic_global_versions(
     relationships: &RelationshipStore,
     graph: &GraphStore,
     vector_generations: &VectorGenerationStore,
-) -> Result<(), CvaError> {
+) -> Result<(), OwnerError> {
     let mut versions: Vec<u64> = archive
         .record_versions()
         .iter()
@@ -49,7 +50,7 @@ pub(crate) fn validate_semantic_global_versions(
     versions.sort_unstable();
     for pair in versions.windows(2) {
         if pair[0] == pair[1] {
-            return Err(CvaError::SemanticGlobalVersionConflict(pair[0]));
+            return Err(OwnerError::SemanticGlobalVersionConflict(pair[0]));
         }
     }
     Ok(())

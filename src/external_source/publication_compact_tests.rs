@@ -1,7 +1,7 @@
-use super::publication::{self, Publication};
 use super::{ExternalChunkRef, ExternalMemoryEvidence, ExternalMessageRef};
 use crate::memory_compact_codec::{decode_creation, encode_delta};
 use crate::memory_compact_contract::MemoryDelta;
+use crate::memory_external_publication::{self as publication, Publication};
 use crate::memory_model::{MemoryRecord, memory_body_bytes, memory_body_id};
 use crate::{Cva, MemoryId};
 use serde_json::{Value, json};

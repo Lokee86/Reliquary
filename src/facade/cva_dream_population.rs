@@ -107,7 +107,7 @@ impl DreamPopulationPrefix {
                 self.insomnia.push(cohort);
             }
         }
-        if let Some(publication) = crate::external_source::publication::decode(body)? {
+        if let Some(publication) = crate::memory_external_publication::decode(body)? {
             if let Some(cohort) =
                 Cva::validate_external_birth_cohort(archive, memories, &publication)?
             {
@@ -232,7 +232,7 @@ impl Cva {
     pub(crate) fn validate_external_birth_cohort(
         archive: &Archive,
         memories: &crate::memory_store::MemoryStore,
-        publication: &crate::external_source::publication::Publication,
+        publication: &crate::memory_external_publication::Publication,
     ) -> Result<Option<AcceptedExternalBirthCohort>, CvaError> {
         let Some(turn) = publication.birth_turn else {
             return Ok(None);
@@ -277,7 +277,7 @@ impl Cva {
         if memory_cut > self.memories.memory_version() {
             return Err(crate::MemoryError::InvalidVersion.into());
         }
-        let Some(publication) = crate::external_source::publication::decode(payload)? else {
+        let Some(publication) = crate::memory_external_publication::decode(payload)? else {
             return Ok(None);
         };
         let Some(mut cohort) =

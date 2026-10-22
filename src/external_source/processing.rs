@@ -1,6 +1,7 @@
-use super::model::*;
+use super::ExternalConversationSource;
 use super::provenance::ExternalMemoryEvidence;
-use super::store::SourceState;
+use crate::external_index::model::*;
+use crate::external_index::store::SourceState;
 use crate::{GeneralEndpoint, InsomniaExtractor, MemoryDraft, MemoryRef, MemoryRoutingMetadata};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;

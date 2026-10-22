@@ -1,6 +1,6 @@
 use super::{owner_operations::FrozenPreparedMemory, publication_codec};
+use crate::external_index::store::SourceState;
 use crate::external_source::processing::{PreparedExternalMemory, PreparedExternalProcessing};
-use crate::external_source::store::SourceState;
 use crate::external_source::{ExternalMemoryEvidence, ExternalSourceError};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};

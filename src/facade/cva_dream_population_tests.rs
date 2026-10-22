@@ -312,7 +312,7 @@ fn physical_external_birth_receipt_excludes_its_cohort_siblings() {
         .into_iter()
         .find_map(|chunk| {
             let payload = owner.container.read(chunk).unwrap();
-            crate::external_source::publication::decode(&payload)
+            crate::memory_external_publication::decode(&payload)
                 .unwrap()
                 .map(|_| chunk.legacy_offset() + 8 + chunk.legacy_len())
         })

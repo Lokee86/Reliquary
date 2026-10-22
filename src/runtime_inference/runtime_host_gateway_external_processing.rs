@@ -75,7 +75,7 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         source.authorize(instance.principal_id())?;
         let namespace = source.source_namespace().to_owned();
-        external::model::identifier(&namespace)?;
+        crate::external_index::model::identifier(&namespace)?;
         let state = self
             .with_rel(&token, |r| {
                 r.cva
@@ -86,7 +86,7 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::RebuildRequired)?;
         let descriptors = external::processing::descriptors(&state, refs)?;
         super::external::validate_external_evidence(source, instance.principal_id(), &state, refs)?;
-        external::model::identifier(scope)?;
+        crate::external_index::model::identifier(scope)?;
         let window = external::processing::window_key(owner, scope, &descriptors);
         let phy = instance
             .attached_phy_owner_id()

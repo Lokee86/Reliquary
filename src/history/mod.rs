@@ -24,3 +24,11 @@ pub(crate) mod vector_proof;
 pub(crate) mod memory_retention;
 
 pub(crate) mod archive_retention;
+
+mod phylactery_prune;
+pub(crate) use phylactery_prune::{
+    entity_retention as phylactery_entity_retention,
+    profile_retention as phylactery_profile_retention,
+    relationship_retention as phylactery_relationship_retention,
+    validate_phylactery_prune_evidence,
+};

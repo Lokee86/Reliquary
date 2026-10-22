@@ -1,0 +1,110 @@
+{
+  "base_commit": "408d775",
+  "gate": "M3",
+  "state": "in-progress-not-accepted",
+  "format_changed": false,
+  "canonical_sources": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "matches_baseline": true
+    }
+  ],
+  "tests": [
+    {
+      "suite": "combined lifecycle/PHY prune/reclamation batch before final explicit repair extraction",
+      "passed": 1969,
+      "failed": 0,
+      "ignored": 5,
+      "filtered": 4
+    },
+    {
+      "suite": "pruning extraction focused suite",
+      "passed": 47,
+      "failed": 0
+    },
+    {
+      "suite": "final explicit maintenance repair suite",
+      "passed": 7,
+      "failed": 0
+    },
+    {
+      "suite": "CLI",
+      "passed": 32,
+      "failed": 0
+    }
+  ],
+  "filtered_long_cases": [
+    "historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries",
+    "historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipients",
+    "canonical_history_scaling_measurement",
+    "long_owner_reopen_keeps_finite_receipts_and_exact_evicted_retry"
+  ],
+  "known_gaps": [
+    "Complete lower REL reconstruction and remaining REL Maintenance entrypoints",
+    "Narrow lifecycle reclamation source handles replacing intermediate direct physical argument",
+    "Clean full acceptance run including long cases and H3 identity anomaly resolution",
+    "Later Phase 3 gates and settlement format/corpus hard cut"
+  ],
+  "local_evidence": [
+    {
+      "path": ".verification-tmp/phase3-maintenance-regression-batch.log",
+      "sha256": "08265cb53d07c9cefa3e6932a9dc8baab1caaf70608c13c6b70a9c73d255216e"
+    },
+    {
+      "path": ".verification-tmp/phase3-phy-maintenance-prune-tests.log",
+      "sha256": "419622072a156f9ad08b28ea4aab9679a1468ffcc36b12d01ca0427eec8decab"
+    },
+    {
+      "path": ".verification-tmp/phase3-explicit-repair-tests2.log",
+      "sha256": "84f4ee07a6ddcb696ed5451840d501e1d05f52d244e013803f664344570a56db"
+    },
+    {
+      "path": ".verification-tmp/phase3-maintenance-cli-tests.log",
+      "sha256": "f6bdd51a7fa878d8dd3260c8307eac9857407b5abab1d63e2d7bb77fb0886ae5"
+    },
+    {
+      "path": ".verification-tmp/phase3-maintenance-check-current.log",
+      "sha256": "32e639ad1d9236774634e55860a01e0cf4e822229134cc112615d8a2588c63ea"
+    },
+    {
+      "path": ".verification-tmp/phase3-maintenance-cli-check.log",
+      "sha256": "5eb44da630e42bb29bfb2583058cc7d8acaf7f0f8ddcbd7ad1ca8a4a20682f29"
+    },
+    {
+      "path": ".verification-tmp/phase3-maintenance-boundary-current.log",
+      "sha256": "65268a7b7a1684a5b16423f30b7b49d4acae8f8f95c0ca00eb17fac6ff5e1dff"
+    }
+  ],
+  "review": {
+    "model": "gpt-6-luna",
+    "scope": "PHY pruning/reclamation/tail repair and EntityResolution extraction against 408d775",
+    "result": "No concrete defects found",
+    "known_contract_gaps_excluded_from_acceptance": true
+  }
+}

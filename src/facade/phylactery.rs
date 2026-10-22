@@ -9,8 +9,8 @@ use crate::graph_store::GraphStore;
 use crate::lexical_index::LexicalIndex;
 use crate::memory_store::MemoryStore;
 use crate::memory_vector_store::MemoryVectorStore;
+use crate::owner_lifecycle::PhylacteryProfileStore;
 use crate::packed_vector_store::PackedVectorStore;
-use crate::phylactery_profile_store::PhylacteryProfileStore;
 use crate::processing_epoch_store::ProcessingEpochStore;
 use crate::relationship_store::RelationshipStore;
 use crate::{
@@ -87,7 +87,7 @@ impl Phylactery {
         expected_revision: u64,
         draft: MemoryDraft,
     ) -> Result<(Memory, bool), MemoryError> {
-        validate_phylactery_provenance(&draft)?;
+        crate::owner_lifecycle::validate_phylactery_draft_provenance(&draft)?;
         self.memories
             .publish(&mut self.container, id, expected_revision, draft)
     }
@@ -247,17 +247,4 @@ impl Phylactery {
         self.container.sync()?;
         Ok(())
     }
-}
-
-fn validate_phylactery_provenance(draft: &MemoryDraft) -> Result<(), MemoryError> {
-    if draft.source_episode_id.is_some()
-        || draft.source_node_id.is_some()
-        || draft.content_source_conversation_id.is_some()
-        || draft.content_source_node_id.is_some()
-        || draft.grounding_source_conversation_id.is_some()
-        || draft.grounding_source_node_id.is_some()
-    {
-        return Err(MemoryError::InvalidProvenance);
-    }
-    Ok(())
 }

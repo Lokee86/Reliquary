@@ -142,7 +142,7 @@ impl PackedVectorStore {
             .is_some_and(|entry| entry.chunk.is_none())
     }
 
-    pub(crate) fn prune_manifest_digest(&self, id: PackedVectorId) -> Option<[u8; 32]> {
+    pub(crate) fn pruned_manifest_digest(&self, id: PackedVectorId) -> Option<[u8; 32]> {
         self.objects
             .get(&id)
             .and_then(|entry| entry.manifest_digest)

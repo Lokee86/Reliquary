@@ -1,4 +1,4 @@
-use super::model::*;
+use crate::external_index::model::*;
 
 pub use crate::memory_model::ExternalMemoryEvidence;
 

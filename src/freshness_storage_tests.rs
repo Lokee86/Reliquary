@@ -333,7 +333,7 @@ fn semantic_fragment_codec_pins_all_sources_and_reembedding_cannot_award_again()
     assert_eq!(semantic, Some(evidence.clone()));
     assert_eq!(provenance.producer_kind, SEMANTIC_FRAGMENT_PRODUCER_KIND);
     assert_eq!(
-        crate::storage_reclamation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
+        crate::maintenance::relocation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
         payload
     );
     let mut replay = enrolled();
@@ -388,7 +388,7 @@ fn semantic_event_round_trips_retries_and_rejects_identity_conflicts() {
         .unwrap();
     // Physical copy/repack/reclamation must retain semantic evidence verbatim.
     assert_eq!(
-        crate::storage_reclamation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
+        crate::maintenance::relocation::relocate_payload(&payload, &BTreeMap::new()).unwrap(),
         payload
     );
     let (_, decoded) = decode(&payload).unwrap();
