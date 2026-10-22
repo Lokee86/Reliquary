@@ -50,11 +50,7 @@ impl Cva {
             ));
         }
         self.validate_historical_import_settlements()?;
-        let source = Cva::open(self.container.path())?;
-        if source.latest_global_version() != self.latest_global_version() {
-            return Err(prune_error("source changed before prune admission"));
-        }
-        drop(source);
+        self.container.validate_path_identity()?;
         if !self.owner_maintenance.is_empty() {
             return Err(prune_error(
                 "additional pruning of an already pruned owner is unsupported",
@@ -327,6 +323,7 @@ impl Cva {
             .map_err(|e| prune_error(&e.to_string()))?
             .len();
         let mut output = self.container.create_empty_like(output_path)?;
+        let output_guard = output.read_source()?;
         let copy = (|| {
             let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
             let mut marked = HashSet::new();
@@ -377,14 +374,14 @@ impl Cva {
             Ok(value) => value,
             Err(error) => {
                 drop(output);
-                let _ = fs::remove_file(output_path);
+                if output_guard.validate_path_identity().is_ok() {
+                    let _ = fs::remove_file(output_path);
+                }
                 return Err(error);
             }
         };
-        drop(output);
-
         let verified = (|| {
-            let mut reopened = Cva::open(output_path)?;
+            let mut reopened = Cva::open_from_container(output)?;
             self.validate_historical_import_copy(&reopened)?;
             if prune_clocks(self) != prune_clocks(&reopened)
                 || self.owner_uuid() != reopened.owner_uuid()
@@ -481,7 +478,9 @@ impl Cva {
         let output_file_bytes = match verified {
             Ok(bytes) => bytes,
             Err(error) => {
-                let _ = fs::remove_file(output_path);
+                if output_guard.validate_path_identity().is_ok() {
+                    let _ = fs::remove_file(output_path);
+                }
                 return Err(error);
             }
         };

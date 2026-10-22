@@ -180,8 +180,7 @@ fn finite_entity_range_replays_one_slot_and_duplicate_replay_is_a_noop() {
     let mut source = Cva::open(&source_path).unwrap();
     assert_eq!(source.transaction_time_ns(2), Some(111));
     assert_eq!(source.transaction_time_ns(3), Some(222));
-    let mut source_container = Container::open(&source_path).unwrap();
-    let creation_slot = entity_slot(&mut source_container, 1, 1);
+    let creation_slot = entity_slot(&mut source.container, 1, 1);
     let mut destination = Cva::create(scratch.file("destination.rel")).unwrap();
 
     let creation = read_entity_range(&mut source, creation_slot, creation_slot + 1).unwrap();
@@ -302,9 +301,8 @@ fn entity_envelope_direct_and_merge_terminal_evidence_replays() {
     drop(source);
 
     let mut source = Cva::open(&source_path).unwrap();
-    let mut source_container = Container::open(&source_path).unwrap();
-    let direct_slot = entity_slot(&mut source_container, 4, 4);
-    let merge_slot = entity_slot(&mut source_container, 5, 5);
+    let direct_slot = entity_slot(&mut source.container, 4, 4);
+    let merge_slot = entity_slot(&mut source.container, 5, 5);
     let mut destination = Cva::create(scratch.file("terminal-destination.rel")).unwrap();
     let initial = read_entity_range(&mut source, 0, direct_slot).unwrap();
     assert_eq!(

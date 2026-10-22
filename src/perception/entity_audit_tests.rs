@@ -30,7 +30,7 @@ fn reports_zero_degree_and_surface_collisions() {
 }
 
 #[test]
-fn stale_pending_candidate_is_audit_finding_and_self_heals_on_reopen() {
+fn stale_pending_candidate_requires_explicit_repair_after_reopen() {
     let path = temp_path("entity-audit-stale-pending.rel");
     let mut rel = Cva::create_project(&path).unwrap();
     let memory = publish_rel_memory(
@@ -80,7 +80,18 @@ fn stale_pending_candidate_is_audit_finding_and_self_heals_on_reopen() {
     assert!(!report.is_clean());
 
     rel.sync().unwrap();
+    let before = rel.container.physical_digest().unwrap();
     drop(rel);
+
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(reopened.container.physical_digest().unwrap(), before);
+    assert_eq!(reopened.entity_resolution(key).unwrap().revision, 1);
+    assert_eq!(
+        reopened.entity_resolution_maintenance().unwrap(),
+        crate::EntityResolutionMaintenance::RetiredEntityReferences { revisions: 1 }
+    );
+    assert_eq!(reopened.repair_retired_entity_references().unwrap(), 1);
+    drop(reopened);
 
     let reopened = Cva::open(&path).unwrap();
     let resolution = reopened.entity_resolution(key).unwrap();

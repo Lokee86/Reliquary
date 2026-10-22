@@ -191,8 +191,10 @@ fn historical_transform_copy_prefix_extension_and_promotion_preserve_live_author
         fs::copy(&path, &exact).unwrap();
         assert_preserved(&mut cva, &mut Cva::open(&exact).unwrap(), id, &prepared);
         let merged = path.with_file_name("prefix.rel");
+        drop(cva);
         let result = Cva::reconcile(&provisional, &path, &merged).unwrap();
         assert_eq!(result.comparison.relation, CvaRelation::RightExtendsLeft);
+        let mut cva = Cva::open(&path).unwrap();
         assert_preserved(&mut cva, &mut Cva::open(&merged).unwrap(), id, &prepared);
         // A real later turn may have an earlier timestamp. It cannot reorder the
         // checkpoint's already accepted source prefix or move its numerical anchors.
@@ -208,17 +210,23 @@ fn historical_transform_copy_prefix_extension_and_promotion_preserve_live_author
         let used = receipt(&cva, id, "h7-live-use");
         assert_eq!(cva.record_accepted_memory_use(used.clone(), 1).unwrap(), 1);
         let extension = path.with_file_name("extension.rel");
+        drop(cva);
         Cva::reconcile(&checkpoint_only, &path, &extension).unwrap();
+        let mut cva = Cva::open(&path).unwrap();
         let mut copy = Cva::open(&extension).unwrap();
         assert_preserved(&mut cva, &mut copy, id, &prepared);
         assert_eq!(copy.record_accepted_memory_use(used.clone(), 1).unwrap(), 0);
         let again = path.with_file_name("twice.rel");
+        drop(copy);
+        drop(cva);
         let result = Cva::reconcile(&extension, &path, &again).unwrap();
         assert_eq!(result.comparison.relation, CvaRelation::Identical);
+        let mut cva = Cva::open(&path).unwrap();
         assert_preserved(&mut cva, &mut Cva::open(&again).unwrap(), id, &prepared);
-        drop(copy);
+        drop(cva);
         let result = Cva::reconcile_and_promote(&checkpoint_only, &path).unwrap();
         assert!(result.canonical_change_required);
+        let mut cva = Cva::open(&path).unwrap();
         let mut promoted = Cva::open(&checkpoint_only).unwrap();
         assert_preserved(&mut cva, &mut promoted, id, &prepared);
         assert_eq!(promoted.record_accepted_memory_use(used, 1).unwrap(), 0);
@@ -343,6 +351,10 @@ fn historical_transform_divergent_reorder_rejects_before_output_or_promotion() {
             "Right.",
         )
         .unwrap();
+    left.sync().unwrap();
+    right.sync().unwrap();
+    drop(left);
+    drop(right);
     let left_bytes = fs::read(&path).unwrap();
     let right_bytes = fs::read(&right_path).unwrap();
     let output = path.with_file_name("unsupported.rel");
@@ -360,7 +372,15 @@ fn historical_transform_divergent_reorder_rejects_before_output_or_promotion() {
     assert!(Cva::reconcile_and_promote(&path, &right_path).is_err());
     assert_eq!(fs::read(&path).unwrap(), left_bytes);
     assert_eq!(fs::read(&right_path).unwrap(), right_bytes);
-    assert_preserved(&mut left, &mut Cva::open(&path).unwrap(), id, &prepared);
+    let verify_path = path.with_file_name("left-verify.rel");
+    fs::copy(&path, &verify_path).unwrap();
+    let mut left = Cva::open(&path).unwrap();
+    assert_preserved(
+        &mut left,
+        &mut Cva::open(&verify_path).unwrap(),
+        id,
+        &prepared,
+    );
 }
 
 #[test]
@@ -387,6 +407,9 @@ fn historical_transform_conflicting_manifest_and_policy_never_overwrite_acceptan
             .unwrap()
             .import_id
     );
+    let owner_uuid = left.owner_uuid().unwrap();
+    drop(left);
+    drop(right);
     let original = fs::read(&path).unwrap();
     let output = path.with_file_name("conflict.rel");
     assert!(
@@ -396,21 +419,24 @@ fn historical_transform_conflicting_manifest_and_policy_never_overwrite_acceptan
             .contains("ImportManifestConflict")
     );
     assert!(!output.exists());
+    let mut left = Cva::open(&path).unwrap();
     assert!(left.commit_historical_import(&other).is_err());
     let mut policy = left.freshness_policy();
     policy.decay_turns_per_point = 11;
     assert!(left.set_freshness_policy_before_enrollment(policy).is_err());
-    assert_eq!(fs::read(&path).unwrap(), original);
+    let original_digest: [u8; 32] = Sha256::digest(&original).into();
+    assert_eq!(left.container.physical_digest().unwrap(), original_digest);
     assert!(!left.commit_historical_import(&prepared).unwrap());
     // A valid same-owner replica may have pinned a different base policy before
     // enrollment; checkpoint reconciliation must reject it before replay.
     let policy_path = path.with_file_name("other-policy.rel");
-    let mut other_policy =
-        Cva::create_rel_with_uuid(&policy_path, left.owner_uuid().unwrap(), None).unwrap();
+    let mut other_policy = Cva::create_rel_with_uuid(&policy_path, owner_uuid, None).unwrap();
     other_policy
         .set_freshness_policy_before_enrollment(policy)
         .unwrap();
     let policy_output = path.with_file_name("policy-conflict.rel");
+    drop(left);
+    drop(other_policy);
     assert!(
         Cva::reconcile(&path, &policy_path, &policy_output)
             .unwrap_err()
@@ -591,16 +617,19 @@ fn native_import_epoch_markers_and_settlement_survive_reopen_reclaim_and_repack(
         )
         .unwrap();
     cva.sync().unwrap();
+    drop(cva);
     let source_bytes = fs::read(&path).unwrap();
-
-    let mut reopened = Cva::open(&path).unwrap();
-    assert_import_epoch_preserved(&mut cva, &mut reopened);
+    let reference_path = fixture.0.join("reference.rel");
+    fs::copy(&path, &reference_path).unwrap();
+    let mut cva = Cva::open(&path).unwrap();
+    let mut reference = Cva::open(&reference_path).unwrap();
+    assert_import_epoch_preserved(&mut reference, &mut cva);
 
     let reclaimed_path = fixture.0.join("reclaimed.rel");
     let reclaimed = cva.reclaim_storage(&reclaimed_path).unwrap();
     assert_eq!(reclaimed.orphan_content_chunks, 1);
     let mut reclaimed_cva = Cva::open(&reclaimed_path).unwrap();
-    assert_import_epoch_preserved(&mut cva, &mut reclaimed_cva);
+    assert_import_epoch_preserved(&mut reference, &mut reclaimed_cva);
 
     let repacked_path = fixture.0.join("repacked.rel");
     let repacked = cva
@@ -608,6 +637,10 @@ fn native_import_epoch_markers_and_settlement_survive_reopen_reclaim_and_repack(
         .unwrap();
     assert_eq!(repacked.dropped_content_objects, 1);
     let mut repacked_cva = Cva::open(&repacked_path).unwrap();
-    assert_import_epoch_preserved(&mut cva, &mut repacked_cva);
+    assert_import_epoch_preserved(&mut reference, &mut repacked_cva);
+    drop(cva);
+    drop(reference);
+    drop(reclaimed_cva);
+    drop(repacked_cva);
     assert_eq!(fs::read(&path).unwrap(), source_bytes);
 }

@@ -166,13 +166,13 @@ fn dream_pair_writers_reopen_with_canonical_pairs_and_clock_neutral_exact_retrie
         assert_eq!(actual, expected);
         let mut scan = Container::open(&path).unwrap();
         let (mut rows, mut pairs) = (0, 0);
-        scan.visit_payloads::<crate::ContainerError>(|_, bytes| {
+        let mut cursor = scan.physical_cursor().unwrap();
+        while let Some(frame) = cursor.next_frame().unwrap() {
+            let bytes = frame.payload;
             assert!(!bytes.starts_with(b"CVADRP01"));
             rows += usize::from(bytes.starts_with(codec::MEMORY_MAGIC));
             pairs += usize::from(bytes.starts_with(codec::PAIR_MAGIC));
-            Ok(())
-        })
-        .unwrap();
+        }
         assert_eq!((rows, pairs), (3, 2));
     }
 }
@@ -203,16 +203,14 @@ fn dream_pair_raw_byte_measurement_includes_reference_table_cost() {
         assert_eq!(Cva::open(&path).unwrap().dream_pair_records(), expected);
         let mut bytes = 0;
         let mut frames = 0;
-        Container::open(&path)
-            .unwrap()
-            .visit_payloads::<crate::ContainerError>(|_, payload| {
-                if DreamPairStore::is_compact_payload(payload) {
-                    bytes += payload.len();
-                    frames += 1;
-                }
-                Ok(())
-            })
-            .unwrap();
+        let mut scan = Container::open(&path).unwrap();
+        let mut cursor = scan.physical_cursor().unwrap();
+        while let Some(frame) = cursor.next_frame().unwrap() {
+            if DreamPairStore::is_compact_payload(&frame.payload) {
+                bytes += frame.payload.len();
+                frames += 1;
+            }
+        }
         assert_eq!(bytes, 44 * count + 16 * pair_count);
         assert_eq!(frames, count + pair_count);
         println!(
@@ -273,14 +271,12 @@ fn dream_pair_retry_after_durable_mapping_prefix_emits_only_missing_rows_and_mem
     rel.sync().unwrap();
     let cut = rel.latest_global_version();
     let mut first_mapping_end = None;
-    rel.container
-        .visit_payloads::<crate::ContainerError>(|object, payload| {
-            if payload.starts_with(codec::MEMORY_MAGIC) && first_mapping_end.is_none() {
-                first_mapping_end = Some(object.offset() + 8 + payload.len() as u64);
-            }
-            Ok(())
-        })
-        .unwrap();
+    let mut cursor = rel.container.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        if frame.payload.starts_with(codec::MEMORY_MAGIC) && first_mapping_end.is_none() {
+            first_mapping_end = Some(frame.object.offset() + 8 + frame.payload.len() as u64);
+        }
+    }
     drop(rel);
     fs::OpenOptions::new()
         .write(true)
@@ -297,12 +293,9 @@ fn dream_pair_retry_after_durable_mapping_prefix_emits_only_missing_rows_and_mem
     let reopened = Cva::open(&path).unwrap();
     assert_eq!(reopened.dream_pair_records(), [canonical_pair(a, b)]);
     let mut mappings = 0;
-    Container::open(&path)
-        .unwrap()
-        .visit_payloads::<crate::ContainerError>(|_, payload| {
-            mappings += usize::from(payload.starts_with(codec::MEMORY_MAGIC));
-            Ok(())
-        })
-        .unwrap();
+    let mut cursor = reopened.container.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        mappings += usize::from(frame.payload.starts_with(codec::MEMORY_MAGIC));
+    }
     assert_eq!(mappings, 2);
 }

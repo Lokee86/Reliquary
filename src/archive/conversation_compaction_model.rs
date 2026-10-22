@@ -11,6 +11,13 @@ pub struct ConversationCompaction {
     pub generation: u64,
 }
 
+/// Result of explicitly reclaiming stale conversation-compaction chunks.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConversationCompactionMaintenance {
+    NothingToReclaim,
+    Reclaimed { chunks: usize },
+}
+
 #[derive(Debug)]
 pub enum ConversationCompactionError {
     Container(ContainerError),

@@ -25,6 +25,12 @@ Reliquary composes the shared Laughing Skull architecture-core Pitlord policy wi
 
 The source tree is physically grouped by the same owners under `src/`. Pitlord owns those directories as coarse regions, with `src/lib.rs` explicitly facade-owned at the crate root. This remains one Rust crate: the directory layout exposes responsibility and makes ownership/dependency analysis cheap without implying a crate split.
 
+## Permanent logical component DAG
+
+The accepted [target DAG design](../../docs/dependency-convergence-target-dag-2026-10-21.md) and [34-component, 163-edge allowlist](convergence-component-dag.json) are **separate from** the current 19-area source-path policy. Every edge is directional (consumer → dependency), ranked strictly downward, explicitly justified and typed read/write/construct/invoke. Backreaching imports are forbidden even without cycles; sibling edges are denied unless explicitly included. The target includes Context Engine → Ego/Retrieval, Runtime → Retrieval, Retrieval → Memory/Archive, Maintenance → read-only History, and independently owned Vector generation and Freshness.
+
+Fast model validation: `python scripts/check_component_dag.py --self-test`, or via `python scripts/check_dependency_convergence.py --check-target`. The normal convergence gate validates this logical DAG **and separately** checks source-derived Pitlord findings. The logical graph must be mapped to concrete source modules as they migrate; existing `convergence-target.json` and the reviewed 4,609-finding Phase 0 baseline cannot simply be replaced or reset. Before Phase 7 closure, the source-level rules must enforce the finer component allowlist and then retire temporary baseline suppression while keeping permanent DAG constraints.
+
 ## Dependency convergence campaign
 
 The root `policy.json` remains the unbaselined architecture policy. The dependency-convergence campaign uses a separate `convergence.json` target policy and separate evidence ledgers; it does not suppress or rebaseline findings from the root policy. The Phase 0 artifact roles are:

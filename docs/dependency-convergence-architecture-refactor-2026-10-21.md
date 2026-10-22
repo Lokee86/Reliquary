@@ -1,7 +1,7 @@
 # Dependency Convergence Architecture Refactor
 
 Date: 2026-10-21
-Status: Phase 0 implemented locally; Phases 1–7 remain proposed
+Status: Phases 0–1 implemented and accepted locally; Phases 2–7 remain proposed
 Parent: [Roadmap](roadmap.md)
 
 ## Overview
@@ -45,6 +45,12 @@ This creates several practical problems:
 7. future changes risk deepening the knot unless the desired dependency direction is mechanically enforced.
 
 The goal is not merely to produce an acyclic graph. The refactor must increase locality and module depth so future changes remain bounded.
+
+## Accepted foundational target and invariants
+
+The full logical component DAG has now been designed and adopted: [Target Component DAG](dependency-convergence-target-dag-2026-10-21.md), with the canonical [34-component edge allowlist](../tools/pitlord/convergence-component-dag.json). **Every permitted edge is explicitly identified and justified.** The target requires no cycles, no upward/ancestral backreach even where acyclic, no unlisted sibling dependencies, owner-local encapsulation, and downward shortcuts only where explicitly permitted. This is the permanent project architecture target, not optional design guidance. The current 19-area source capture is a migration/evidence view, not a conflicting target.
+
+The completed logical design is separate from the **locally verified Phase 0 source-baseline gate**: all captured findings have been classified and the existing 19-area ratchet passed. Code mapping and finer 34-component source enforcement remain distinct acceptance work for the migration phases. Later phases must transform the current implementation to the DAG without adding future roadmap features.
 
 ## Target dependency direction
 

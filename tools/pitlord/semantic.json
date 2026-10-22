@@ -248,6 +248,117 @@
       ],
       "literal": "ingest_turn",
       "message": "Native import adapters normalize supplied bytes only; commit, I/O and queue authority remain outside adapters."
+    },
+    {
+      "id": "container-no-upward-dependency",
+      "type": "forbid_dependency",
+      "from_paths": [
+        "src/container"
+      ],
+      "from_exclude_paths": [
+        "src/container/container_tests.rs",
+        "src/container/container_format_boundary_tests.rs",
+        "src/container/publication_envelope_tests.rs",
+        "src/container/publication_envelope_clock_tests.rs",
+        "src/container/transaction_time_tests.rs",
+        "src/container/file_lease_process_tests.rs"
+      ],
+      "to_paths": [
+        "src/freshness",
+        "src/freshness_storage.rs",
+        "src/freshness_storage_tests.rs",
+        "src/freshness_dream_journal.rs",
+        "src/freshness_due.rs",
+        "src/archive",
+        "src/memory",
+        "src/retrieval",
+        "src/semantic_graph",
+        "src/perception",
+        "src/chronos",
+        "src/ego",
+        "src/runtime_inference",
+        "src/config_security",
+        "src/facade",
+        "src/lib.rs",
+        "src/owner_lifecycle.rs",
+        "src/tombstone_import_history_characterization_tests.rs",
+        "src/context_engine.rs",
+        "src/context_engine",
+        "src/project_environment.rs",
+        "src/project_environment",
+        "src/project_environment_git_tests.rs",
+        "src/project_environment_lore_tests.rs",
+        "src/project_environment_tests.rs",
+        "src/staleness",
+        "src/imports",
+        "src/external_source",
+        "src/rewrite.rs",
+        "src/rewrite",
+        "src/rewrite_lineage.rs"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "references",
+        "implements"
+      ],
+      "message": "Physical Container may depend only on lower pure contracts, never semantic owners or orchestration, even without a cycle. Test files are excluded by exact path because Pitlord path exclusions are prefixes, not globs."
+    },
+    {
+      "id": "container-no-upward-call",
+      "type": "forbid_dependency",
+      "from_paths": [
+        "src/container"
+      ],
+      "from_exclude_paths": [
+        "src/container/container_tests.rs",
+        "src/container/container_format_boundary_tests.rs",
+        "src/container/publication_envelope_tests.rs",
+        "src/container/publication_envelope_clock_tests.rs",
+        "src/container/transaction_time_tests.rs",
+        "src/container/file_lease_process_tests.rs"
+      ],
+      "to_paths": [
+        "src/freshness",
+        "src/freshness_storage.rs",
+        "src/freshness_storage_tests.rs",
+        "src/freshness_dream_journal.rs",
+        "src/freshness_due.rs",
+        "src/archive",
+        "src/memory",
+        "src/retrieval",
+        "src/semantic_graph",
+        "src/perception",
+        "src/chronos",
+        "src/ego",
+        "src/runtime_inference",
+        "src/config_security",
+        "src/facade",
+        "src/lib.rs",
+        "src/owner_lifecycle.rs",
+        "src/tombstone_import_history_characterization_tests.rs",
+        "src/context_engine.rs",
+        "src/context_engine",
+        "src/project_environment.rs",
+        "src/project_environment",
+        "src/project_environment_git_tests.rs",
+        "src/project_environment_lore_tests.rs",
+        "src/project_environment_tests.rs",
+        "src/staleness",
+        "src/imports",
+        "src/external_source",
+        "src/rewrite.rs",
+        "src/rewrite",
+        "src/rewrite_lineage.rs"
+      ],
+      "to_exclude_paths": [
+        "src/archive/archive_codec.rs",
+        "src/retrieval/vector_generation_error.rs"
+      ],
+      "relations": [
+        "calls"
+      ],
+      "message": "Physical Container may not call semantic owners or orchestration. Exact target exclusions quarantine two source-reviewed Arcana name-only bindings: local read_u64 to archive_codec::read_u64 and ContainerError::InvalidRecord to retrieval::VectorGenerationError::CorruptRecord. Imports remain covered by container-no-upward-dependency and check_physical_boundary.py."
     }
   ]
 }

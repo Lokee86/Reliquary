@@ -353,6 +353,8 @@ fn divergent_reconcile_replays_project_file_binding_and_source_attachment() {
         .unwrap();
     right_rel.sync().unwrap();
 
+    drop(left_rel);
+    drop(right_rel);
     Cva::reconcile(&left, &right, &output).unwrap();
     let mut merged = Cva::open_project(output).unwrap();
     assert!(merged.project_file_ref(file.id).is_some());

@@ -579,13 +579,13 @@ fn native_graph_reclamation_keeps_publication_and_mappings_and_drops_orphan_carr
                 .collect::<Vec<_>>()
         };
         assert_eq!(graph_frames(&source), graph_frames(&output));
-        let mut source_container = Container::open(&source).unwrap();
-        let mut output_container = Container::open(&output).unwrap();
         let graph = if phy {
             Phylactery::open(&source).unwrap().graph
         } else {
             Cva::open(&source).unwrap().graph
         };
+        let mut source_container = Container::open(&source).unwrap();
+        let mut output_container = Container::open(&output).unwrap();
         for watermark in 0..=source_container.latest_version() {
             assert_eq!(
                 super::owner_history_digest(&mut source_container, watermark, &graph).unwrap(),

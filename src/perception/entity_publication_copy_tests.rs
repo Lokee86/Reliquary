@@ -148,8 +148,7 @@ fn write_copy_history(
     (a1.id, b1.id)
 }
 
-fn envelope_payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn envelope_payloads(container: &mut Container) -> Vec<Vec<u8>> {
     container
         .chunks()
         .unwrap()
@@ -230,14 +229,14 @@ fn rel_native_attachment_repack_preserves_all_entity_envelope_cuts() {
     let ids = write_copy_history(&mut container, false, true);
     container.sync().unwrap();
     drop(container);
-    let before_envelopes = envelope_payloads(&source_path);
     let mut source = Cva::open_project(&source_path).unwrap();
+    let before_envelopes = envelope_payloads(&mut source.container);
     let report = source
         .repack_project_backed_attachments(&output_path)
         .unwrap();
     assert_eq!(report.dropped_content_objects, 1);
     let mut output = Cva::open_project(&output_path).unwrap();
-    assert_eq!(envelope_payloads(&output_path), before_envelopes);
+    assert_eq!(envelope_payloads(&mut output.container), before_envelopes);
     assert_eq!(source.entities.records(), output.entities.records());
     assert_entity_history_equal(
         &source.container,

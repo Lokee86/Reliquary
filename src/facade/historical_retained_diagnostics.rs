@@ -66,34 +66,48 @@ pub(super) fn diagnose(cva: &mut Cva) -> Value {
     let mut verified_legacy_births = BTreeSet::new();
     let mut completion_versions = BTreeMap::<String, usize>::new();
     let mut decoded = 0;
-    let mut scan = crate::Container::open_read_only_for_scan(cva.container.path()).unwrap();
-    scan.visit_payloads::<crate::CvaError>(|_, payload| {
-        if let Some(record) =
-            crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
-        {
-            decoded += 1;
-            *completion_versions
-                .entry(String::from_utf8_lossy(&payload[..8]).into_owned())
-                .or_default() += 1;
-            completed.insert(record.episode_id.0);
-            births.extend(record.freshness_birth_memory_ids);
-            first_revisions.extend(
-                record
-                    .records
-                    .iter()
-                    .filter(|record| record.revision == 1)
-                    .map(|record| record.id),
-            );
-            for first in record.records.iter().filter(|first| first.revision == 1) {
-                if first.source_episode_id == Some(record.episode_id)
-                    && cva.memories.first_mutation_id(first.id) == Some(first.mutation_id.as_str())
+    let scan = &cva.container;
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let payload = frame.payload.as_slice();
                 {
-                    verified_legacy_births.insert(first.id);
+                    if let Some(record) = crate::insomnia::completion::decode_completion(payload)
+                        .map_err(|e| fail(e))?
+                    {
+                        decoded += 1;
+                        *completion_versions
+                            .entry(String::from_utf8_lossy(&payload[..8]).into_owned())
+                            .or_default() += 1;
+                        completed.insert(record.episode_id.0);
+                        births.extend(record.freshness_birth_memory_ids);
+                        first_revisions.extend(
+                            record
+                                .records
+                                .iter()
+                                .filter(|record| record.revision == 1)
+                                .map(|record| record.id),
+                        );
+                        for first in record.records.iter().filter(|first| first.revision == 1) {
+                            if first.source_episode_id == Some(record.episode_id)
+                                && cva.memories.first_mutation_id(first.id)
+                                    == Some(first.mutation_id.as_str())
+                            {
+                                verified_legacy_births.insert(first.id);
+                            }
+                        }
+                    }
+                    Ok(())
                 }
+            };
+        let mut cursor = scan.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
             }
-        }
-        Ok(())
-    })
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
     .unwrap();
     let ids = cva.memory_ids();
     let mut publication_births = 0;

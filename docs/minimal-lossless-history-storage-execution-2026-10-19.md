@@ -598,6 +598,12 @@ Open-path discovery split the compaction and Entity-resolution read-only project
 
 Container probes headers through a read-only handle, accepts exactly V1.0 or V2.0, and opens a writable handle only for V2 after revalidating its actual header. Strict V1 owner APIs pass their version requirement through the actual replay open. Incomplete V1 tails return `TruncatedChunk` unchanged, while V2 tail recovery remains enabled. V1 sync is a no-op. New ordinary creation uses V2; physical maintenance copies remain V2 and preserve identity/UUID.
 
+This paragraph records that historical migration checkpoint. Current-format
+hard cutover subsequently retired the V1 reader. The [Phase 1 storage boundary](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md)
+also replaces implicit V2 tail recovery with nonmutating open and explicitly
+authorized owner-validated repair; [Storage format](storage-format.md) owns the
+current contract.
+
 
 
 The format-only mutation guard precedes the independent import admission fence and owner-write-scope exception. Concrete owner stores and public facade mutators preflight it before retry/no-op branches, validation, resident changes or output creation. Coverage includes Archive, Memory, Entity/Relationship, Graph, Ego, Freshness/Dream, processing/pairs, vector/profile/generation stores, Insomnia, import coordinators, pruning/reclamation/repacking and ordinary reconciliation. No semantic codec or clock layout changes in this batch.

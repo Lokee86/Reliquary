@@ -172,6 +172,8 @@ fn reconcile_reports_update_delete_conflict_in_both_directions() {
             .set_conversation_title("conversation", "Diverged".into())
             .unwrap();
         updated.sync().unwrap();
+        drop(deleted);
+        drop(updated);
 
         let error = Cva::reconcile(&left, &right, &output).unwrap_err();
         assert!(matches!(

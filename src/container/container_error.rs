@@ -19,6 +19,25 @@ impl fmt::Display for ContainerError {
             Self::ChunkTooLarge => write!(f, "CVA chunk is too large"),
             Self::InvalidIdentity => write!(f, "invalid container identity"),
             Self::WriteAdmissionClosed => write!(f, "container write admission is closed"),
+            Self::StaleIdentity => write!(f, "container path no longer identifies the leased file"),
+            Self::InvalidPrefixBoundary => write!(
+                f,
+                "requested container prefix is not a valid physical boundary"
+            ),
+            Self::WriterConflict => write!(f, "container already has an incompatible OS lease"),
+            Self::LockingUnsupported => write!(
+                f,
+                "container filesystem does not support required OS locking"
+            ),
+            Self::ReadOnly => write!(f, "container was opened without writer authority"),
+            Self::RepairRequired { valid_end } => write!(
+                f,
+                "container has an incomplete tail after byte {valid_end}; explicit repair is required"
+            ),
+            Self::UnstableSnapshot => write!(
+                f,
+                "container source changed while snapshot evidence was being used"
+            ),
         }
     }
 }

@@ -144,7 +144,7 @@ fn compact_stream_replay_preserves_retry_interruption_and_conflict_state() {
 fn compact_stream_checkpoint_writer_reopen_and_rejection_are_clock_neutral() {
     let scratch = Scratch::new();
     let path = scratch.0.join("stream.rel");
-    let mut rel = Cva::create(&path).unwrap();
+    let mut rel = Some(Cva::create(&path).unwrap());
     for (text, status) in [
         ("", InteractionStreamStatus::Streaming),
         ("é", InteractionStreamStatus::Streaming),
@@ -152,13 +152,15 @@ fn compact_stream_checkpoint_writer_reopen_and_rejection_are_clock_neutral() {
         ("é🙂!", InteractionStreamStatus::Interrupted),
     ] {
         let record = checkpoint(text, status);
-        rel.put_interaction_stream(record.clone()).unwrap();
-        rel.sync().unwrap();
-        assert_eq!(
-            Cva::open(&path).unwrap().interaction_stream_record("m"),
-            Some(&record)
-        );
+        let owner = rel.as_mut().unwrap();
+        owner.put_interaction_stream(record.clone()).unwrap();
+        owner.sync().unwrap();
+        drop(rel.take().unwrap());
+        let reopened = Cva::open(&path).unwrap();
+        assert_eq!(reopened.interaction_stream_record("m"), Some(&record));
+        rel = Some(reopened);
     }
+    let mut rel = rel.unwrap();
     let before = fs::read(&path).unwrap();
     rel.put_interaction_stream(checkpoint("é🙂!", InteractionStreamStatus::Interrupted))
         .unwrap();
@@ -171,12 +173,24 @@ fn compact_stream_checkpoint_writer_reopen_and_rejection_are_clock_neutral() {
     rel.sync().unwrap();
     assert_eq!(fs::read(&path).unwrap(), before);
     let mut payloads = Vec::new();
-    rel.container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            payloads.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let payload = frame.payload.as_slice();
+                {
+                    payloads.push(payload.to_vec());
+                    Ok(())
+                }
+            };
+        let mut cursor = rel.container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
+    .unwrap();
     assert!(!payloads.iter().any(|p| p.starts_with(b"CVAISTR1")));
     assert!(!payloads.iter().any(|p| p.starts_with(b"CVAVERS")));
     assert_eq!(payloads.iter().filter(|p| codec::is_compact(p)).count(), 5);
@@ -227,15 +241,27 @@ fn compact_stream_long_stream_has_linear_raw_growth() {
     store.put(&mut container, record).unwrap();
     let mut current_bytes = 0;
     let mut count = 0;
-    container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            if codec::is_compact(payload) {
-                current_bytes += payload.len() + 8;
-                count += 1;
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let payload = frame.payload.as_slice();
+                {
+                    if codec::is_compact(payload) {
+                        current_bytes += payload.len() + 8;
+                        count += 1;
+                    }
+                    Ok(())
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
             }
-            Ok(())
-        })
-        .unwrap();
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
+    .unwrap();
     assert_eq!(
         (frozen_full_checkpoint_model_bytes, current_bytes, count),
         (79925, 9809, 258)
@@ -256,11 +282,61 @@ fn compact_stream_all_torn_checkpoint_tails_retain_acknowledged_utf8() {
     rel.sync().unwrap();
     drop(rel);
     let bytes = fs::read(&source).unwrap();
+    let append_end = acknowledged
+        + 8
+        + codec::encode_compact(&CompactRecord::Append {
+            message_id: "m".into(),
+            base_len: "é".len() as u32,
+            suffix: "🙂".into(),
+        })
+        .unwrap()
+        .len();
     for cut in acknowledged..=bytes.len() {
         let path = scratch.0.join(format!("torn{cut}.rel"));
         fs::write(&path, &bytes[..cut]).unwrap();
-        let reopened = Cva::open(&path).unwrap();
-        let record = reopened.interaction_stream_record("m").unwrap();
+        let record = match Cva::open_read_only(&path) {
+            Ok(opened) => {
+                let record = opened.interaction_stream_record("m").cloned().unwrap();
+                drop(opened);
+                assert_eq!(fs::read(&path).unwrap(), bytes[..cut]);
+                record
+            }
+            Err(crate::CvaError::Container(crate::ContainerError::RepairRequired {
+                valid_end,
+            })) => {
+                let expected_end = if cut < append_end {
+                    acknowledged
+                } else {
+                    append_end
+                };
+                assert_eq!(valid_end, expected_end as u64, "cut={cut}");
+                let before_repair = fs::read(&path).unwrap();
+                assert_eq!(before_repair, bytes[..cut]);
+                assert_eq!(
+                    Cva::repair_incomplete_tail(&path).unwrap(),
+                    crate::TailRepairOutcome::Repaired,
+                    "cut={cut}"
+                );
+                assert_eq!(fs::read(&path).unwrap(), bytes[..expected_end]);
+                Cva::open(&path)
+                    .unwrap()
+                    .interaction_stream_record("m")
+                    .cloned()
+                    .unwrap()
+            }
+            Err(error) => {
+                assert_eq!(fs::read(&path).unwrap(), bytes[..cut]);
+                panic!("unexpected complete-record rejection at cut={cut}: {error}");
+            }
+        };
+        if cut == acknowledged {
+            assert_eq!(record.content, "é");
+            assert_eq!(record.status, InteractionStreamStatus::Streaming);
+        }
+        if cut >= append_end && cut < bytes.len() {
+            assert_eq!(record.content, "é🙂");
+            assert_eq!(record.status, InteractionStreamStatus::Streaming);
+        }
         assert!(record.content == "é" || record.content == "é🙂");
         assert!(record.content.starts_with("é"));
         if record.status == InteractionStreamStatus::Interrupted {
@@ -299,13 +375,24 @@ fn compact_stream_destination_reconciliation_uses_suffix_writer_and_interruption
         merged.interaction_stream_record("m"),
         Some(&checkpoint("é🙂", InteractionStreamStatus::Interrupted))
     );
-    merged
-        .container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            assert!(!payload.starts_with(b"CVAISTR1"));
-            Ok(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let payload = frame.payload.as_slice();
+                {
+                    assert!(!payload.starts_with(b"CVAISTR1"));
+                    Ok(())
+                }
+            };
+        let mut cursor = merged.container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
+    .unwrap();
     assert_eq!(
         (fs::read(&left).unwrap(), fs::read(&right).unwrap()),
         before

@@ -235,7 +235,7 @@ pub(crate) struct FreshnessStore {
     recent: std::collections::VecDeque<(JournalEntry, usize)>,
     recent_bytes: usize,
     receipt_membership: membership::ReceiptMembership,
-    history_path: Option<std::path::PathBuf>,
+    history_source: Option<crate::container::PhysicalReadSource>,
     history_limit: u64,
     latest_event: Option<(u64, String)>,
     rebuild_receipts: Option<std::sync::Arc<rebuild::RebuildReceipts>>,
@@ -280,17 +280,17 @@ impl FreshnessStore {
             ..Self::default()
         }
     }
-    pub(crate) fn bind_history_path(&mut self, path: impl AsRef<std::path::Path>, limit: u64) {
-        if limit != self.history_limit
-            || self
-                .history_path
-                .as_ref()
-                .is_some_and(|old| old != path.as_ref())
-        {
+    pub(crate) fn bind_history_source(
+        &mut self,
+        container: &crate::Container,
+        limit: u64,
+    ) -> Result<(), String> {
+        if limit != self.history_limit {
             self.receipt_membership.invalidate();
         }
-        self.history_path = Some(path.as_ref().to_path_buf());
+        self.history_source = Some(container.read_source().map_err(|error| error.to_string())?);
         self.history_limit = limit;
+        Ok(())
     }
     pub(crate) fn begin_rebuild(&mut self) {
         self.receipt_membership.invalidate();
@@ -354,10 +354,10 @@ impl FreshnessStore {
     }
     pub(crate) fn ingest_appended(&mut self, payload: &[u8]) -> Result<(), String> {
         let path = self
-            .history_path
+            .history_source
             .as_ref()
             .ok_or("Freshness durable history is not bound")?;
-        let end = std::fs::metadata(path).map_err(|e| e.to_string())?.len();
+        let end = path.physical_length().map_err(|e| e.to_string())?;
         let before = end
             .checked_sub(8 + payload.len() as u64)
             .ok_or("Freshness appended payload has invalid extent")?;
@@ -404,7 +404,7 @@ impl FreshnessStore {
         &self,
         mut visitor: impl FnMut(JournalEntry) -> Result<(), String>,
     ) -> Result<(), String> {
-        if let Some(path) = &self.history_path {
+        if let Some(path) = &self.history_source {
             let expected = self.owner_uuid;
             stream::scan_entries(path, self.history_limit, |owner, entry| {
                 if expected.is_some_and(|id| id != owner) {

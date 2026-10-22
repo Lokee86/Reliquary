@@ -163,61 +163,73 @@ impl GraphHistory {
         self.baseline_memories.sort();
     }
     pub(crate) fn read(container: &Container, store: &GraphStore) -> Result<Self, String> {
-        let mut scan =
-            Container::open_read_only_for_scan(container.path()).map_err(|e| e.to_string())?;
-        let mut objects =
-            Container::open_read_only_for_scan(container.path()).map_err(|e| e.to_string())?;
+        let mut scan = container;
+        let mut objects = container;
         let mut transactions = Vec::new();
         let mut times = Vec::new();
-        scan.visit_payloads::<CvaError>(|chunk, payload| {
-            let Some(version) =
-                crate::graph_compact_codec::publication::version_at(chunk, payload)?
-            else {
-                return Ok(());
-            };
-            if version.graph_version != transactions.len() as u64 + 1
-                || (version.mutation != chunk && !version.mutation.precedes(chunk))
-                || store.transaction_global_versions().get(transactions.len())
-                    != Some(&version.global_version)
-            {
-                return Err(crate::GraphError::InvalidGraphVersion.into());
-            }
-            let bytes = objects.read(version.mutation)?;
-            let mutations = store
-                .decode_stored_mutations(&bytes)?
-                .ok_or(crate::GraphError::InvalidGraphVersion)?;
-            let mut transaction = Vec::new();
-            for mutation in mutations {
-                let crate::graph_codec::GraphMutationPayload {
-                    source,
-                    target,
-                    kind,
-                    active,
-                    origin,
-                } = mutation;
-                transaction.push(SemanticGraphRelation {
-                    source,
-                    target,
-                    kind,
-                    active,
-                    origin,
-                    global_version: version.global_version,
-                    graph_version: version.graph_version,
-                });
-            }
-            transaction.sort_by_key(|r| (r.source, r.target, r.kind));
-            if transaction.is_empty()
-                || transaction.windows(2).any(|pair| {
-                    (pair[0].source, pair[0].target, pair[0].kind)
-                        == (pair[1].source, pair[1].target, pair[1].kind)
-                })
-            {
-                return Err(crate::GraphError::InvalidGraphVersion.into());
-            }
-            transactions.push(transaction);
-            times.push(container.transaction_time_ns(version.global_version));
-            Ok(())
-        })
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let chunk = frame.object;
+                    let payload = frame.payload.as_slice();
+                    {
+                        let Some(version) =
+                            crate::graph_compact_codec::publication::version_at(chunk, payload)?
+                        else {
+                            return Ok(());
+                        };
+                        if version.graph_version != transactions.len() as u64 + 1
+                            || (version.mutation != chunk && !version.mutation.precedes(chunk))
+                            || store.transaction_global_versions().get(transactions.len())
+                                != Some(&version.global_version)
+                        {
+                            return Err(crate::GraphError::InvalidGraphVersion.into());
+                        }
+                        let bytes = objects.read(version.mutation)?;
+                        let mutations = store
+                            .decode_stored_mutations(&bytes)?
+                            .ok_or(crate::GraphError::InvalidGraphVersion)?;
+                        let mut transaction = Vec::new();
+                        for mutation in mutations {
+                            let crate::graph_codec::GraphMutationPayload {
+                                source,
+                                target,
+                                kind,
+                                active,
+                                origin,
+                            } = mutation;
+                            transaction.push(SemanticGraphRelation {
+                                source,
+                                target,
+                                kind,
+                                active,
+                                origin,
+                                global_version: version.global_version,
+                                graph_version: version.graph_version,
+                            });
+                        }
+                        transaction.sort_by_key(|r| (r.source, r.target, r.kind));
+                        if transaction.is_empty()
+                            || transaction.windows(2).any(|pair| {
+                                (pair[0].source, pair[0].target, pair[0].kind)
+                                    == (pair[1].source, pair[1].target, pair[1].kind)
+                            })
+                        {
+                            return Err(crate::GraphError::InvalidGraphVersion.into());
+                        }
+                        transactions.push(transaction);
+                        times.push(container.transaction_time_ns(version.global_version));
+                        Ok(())
+                    }
+                };
+            let mut cursor = scan.physical_cursor().map_err(|e| e.to_string())?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
+                }
+                Ok::<(), CvaError>(())
+            })()
+        }
         .map_err(|e| e.to_string())?;
         if transactions.len() as u64 != store.graph_version() {
             return Err("Graph oracle publication count differs from accepted replay".into());

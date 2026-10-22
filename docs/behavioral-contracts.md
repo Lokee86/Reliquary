@@ -2,6 +2,24 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Physical storage access contracts
+
+`container/container_tests.rs` protects caller-driven bounded frames, clock-neutral
+historical scans, explicit tail repair, read-only mutation refusal and local
+read-source/write exclusion. `container/file_lease_process_tests.rs` tests actual
+process contention, alias exclusion and OS release after forced child termination.
+`facade/semantic_maintenance_tests.rs` checks REL/PHY open byte purity, explicit
+owner-prefix validated tail repair, active-import refusal and retired-Entity
+maintenance. `tests/history_rewrite_contract.rs` protects source drift and output
+refusal plus independent rewrite refusal while a writer is mounted.
+
+Physical framing and clocks use the same cursor in owner open, historical scans
+and bounded-prefix queries. The source ratchet rejects upper imports even without
+a cycle, callback invocation, raw file-handle escape and implicit open maintenance.
+These source guards complement behavioral tests; they do not prove filesystem
+behavior on untested operating systems.
+
+
 ## Native import contracts
 
 `historical_import_attribution_tests.rs` exercises the private owner freeze with a live pre-start accepted-use base, actual imported Insomnia births, unrelated post-start Memory/Graph/Community state, import-only fragment proofs and empty imports. A provisional semantic effect adds an existing recipient to the result without classifying it as a birth; its initial record remains the pre-start base. Scoped CVAFRS06 publication replaces provisional import credit while preserving legitimate interval accepted use; exact retry is byte-neutral.

@@ -4,7 +4,6 @@ use super::{
 use crate::{
     Container, Cva, FileKind, HistoryGenerationId, Memory, MemoryDraft, MemoryId, Phylactery,
 };
-use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, path::Path};
 use uuid::Uuid;
 
@@ -13,15 +12,17 @@ pub fn plan_rewrite_file(
     request: &RewriteRequest,
 ) -> Result<RewritePlan, RewriteError> {
     let source = source.as_ref();
-    let container = Container::open(source).map_err(|error| RewriteError(error.to_string()))?;
+    let container =
+        Container::open_read_only(source).map_err(|error| RewriteError(error.to_string()))?;
     match container.identity().map(|identity| identity.file_kind) {
         Some(FileKind::Reliquary) | None => {
-            let mut rel = Cva::open(source).map_err(|error| RewriteError(error.to_string()))?;
+            let mut rel =
+                Cva::open_read_only(source).map_err(|error| RewriteError(error.to_string()))?;
             rel.plan_rewrite(request)
         }
         Some(FileKind::Phylactery) => {
-            let mut phy =
-                Phylactery::open(source).map_err(|error| RewriteError(error.to_string()))?;
+            let mut phy = Phylactery::open_read_only(source)
+                .map_err(|error| RewriteError(error.to_string()))?;
             phy.plan_rewrite(request)
         }
     }
@@ -43,6 +44,22 @@ pub fn rewrite_from_plan(
 ) -> Result<RewriteReport, RewriteError> {
     let source = source.as_ref();
     let output = output.as_ref();
+    // Hold coherent source evidence through emission and publication. A mounted
+    // writer is refused rather than raced or borrowed as read authority.
+    let mut source_guard =
+        Container::open_read_only(source).map_err(|error| RewriteError(error.to_string()))?;
+    source_guard
+        .validate_path_identity()
+        .map_err(|error| RewriteError(error.to_string()))?;
+    if source_guard
+        .backing_file_identity()
+        .map_err(|error| RewriteError(error.to_string()))?
+        != Some(plan.source_file_identity)
+    {
+        return Err(RewriteError(
+            "source file was replaced after rewrite planning".into(),
+        ));
+    }
     if !output.is_file() && output.exists() {
         return Err(RewriteError("rewrite output must be a file path".into()));
     }
@@ -62,10 +79,11 @@ pub fn rewrite_from_plan(
     if source_abs == output_abs {
         return Err(RewriteError("rewrite source and output must differ".into()));
     }
-    let bytes = std::fs::read(source).map_err(|e| RewriteError(e.to_string()))?;
-    let actual_head = Sha256::digest(bytes)
+    let actual_head = source_guard
+        .physical_digest()
+        .map_err(|error| RewriteError(error.to_string()))?
         .iter()
-        .map(|b| format!("{b:02x}"))
+        .map(|byte| format!("{byte:02x}"))
         .collect::<String>();
     if actual_head != plan.source_head_digest {
         return Err(RewriteError("source changed after rewrite planning".into()));
@@ -76,7 +94,7 @@ pub fn rewrite_from_plan(
             "frozen rewrite plan differs from canonical source selection".into(),
         ));
     }
-    let identity = Container::open(source)
+    let identity = Container::open_read_only(source)
         .map_err(|e| RewriteError(e.to_string()))?
         .identity()
         .map(|identity| identity.file_kind);
@@ -95,6 +113,7 @@ pub fn rewrite_from_plan(
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .join(format!(".rewrite-{}.tmp", Uuid::new_v4()));
+    let mut staging_guard = None;
     let result = match identity {
         Some(FileKind::Phylactery) => emit_phy(
             source,
@@ -103,6 +122,7 @@ pub fn rewrite_from_plan(
             plan,
             destination_owner,
             generation,
+            &mut staging_guard,
         ),
         Some(FileKind::Reliquary) | None => emit_rel(
             source,
@@ -111,30 +131,66 @@ pub fn rewrite_from_plan(
             plan,
             destination_owner,
             generation,
+            &mut staging_guard,
         ),
     };
-    if let Err(error) = result {
-        let _ = std::fs::remove_file(&temp_path);
-        return Err(error);
-    }
-    if let Err(error) = validate_emitted(&temp_path, &plan, destination_owner, generation) {
-        let _ = std::fs::remove_file(&temp_path);
-        return Err(error);
-    }
-    let final_head = std::fs::read(source).map_err(|error| {
-        let _ = std::fs::remove_file(&temp_path);
+    let container = match result {
+        Ok(container) => container,
+        Err(error) => {
+            remove_owned_staging(&temp_path, staging_guard.as_ref());
+            return Err(error);
+        }
+    };
+    let publication_guard = match validate_emitted(container, plan, destination_owner, generation) {
+        Ok(container) => container,
+        Err(error) => {
+            remove_owned_staging(&temp_path, staging_guard.as_ref());
+            return Err(error);
+        }
+    };
+    let final_head = source_guard.physical_digest().map_err(|error| {
+        remove_owned_staging(&temp_path, staging_guard.as_ref());
         RewriteError(error.to_string())
     })?;
-    if format!("{:x}", Sha256::digest(final_head)) != plan.source_head_digest {
-        let _ = std::fs::remove_file(&temp_path);
+    let final_head = final_head
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    if final_head != plan.source_head_digest {
+        remove_owned_staging(&temp_path, staging_guard.as_ref());
         return Err(RewriteError(
             "source changed during rewrite emission".into(),
         ));
     }
-    std::fs::rename(&temp_path, output).map_err(|error| {
-        let _ = std::fs::remove_file(&temp_path);
+    source_guard.validate_path_identity().map_err(|error| {
+        remove_owned_staging(&temp_path, staging_guard.as_ref());
+        RewriteError(error.to_string())
+    })?;
+    // Retain the verified output's writer lease across atomic no-clobber
+    // publication. Hard-link creation refuses any existing destination entry;
+    // keeping the staging file in the destination directory avoids cross-volume
+    // moves. Filesystems without hard links fail closed.
+    publication_guard
+        .validate_path_identity()
+        .map_err(|error| RewriteError(error.to_string()))?;
+    std::fs::hard_link(&temp_path, output).map_err(|error| {
+        remove_owned_staging(&temp_path, staging_guard.as_ref());
         RewriteError(format!("publish rewritten output: {error}"))
     })?;
+    publication_guard
+        .validate_path_identity()
+        .map_err(|error| RewriteError(error.to_string()))?;
+    publication_guard
+        .validate_alias_identity(output)
+        .map_err(|error| RewriteError(format!("rewritten output identity changed: {error}")))?;
+    std::fs::remove_file(&temp_path)
+        .map_err(|error| RewriteError(format!("remove rewrite staging link: {error}")))?;
+    drop(publication_guard);
+    drop(staging_guard);
+    #[cfg(unix)]
+    std::fs::File::open(output.parent().unwrap_or_else(|| Path::new(".")))
+        .and_then(|directory| directory.sync_all())
+        .map_err(|error| RewriteError(format!("sync rewrite publication directory: {error}")))?;
     Ok(RewriteReport {
         plan: plan.clone(),
         output_path: output.to_string_lossy().into_owned(),
@@ -143,13 +199,18 @@ pub fn rewrite_from_plan(
     })
 }
 
+fn remove_owned_staging(path: &Path, guard: Option<&crate::container::PhysicalReadSource>) {
+    if guard.is_some_and(|guard| guard.validate_path_identity().is_ok()) {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
 fn validate_emitted(
-    path: &Path,
+    probe: Container,
     plan: &RewritePlan,
     owner: [u8; 16],
     generation: HistoryGenerationId,
-) -> Result<(), RewriteError> {
-    let probe = Container::open(path).map_err(|e| RewriteError(e.to_string()))?;
+) -> Result<Container, RewriteError> {
     if probe.owner_uuid() != Some(owner) {
         return Err(RewriteError(
             "rewritten owner identity did not validate".into(),
@@ -157,7 +218,8 @@ fn validate_emitted(
     }
     match probe.identity().map(|identity| identity.file_kind) {
         Some(FileKind::Phylactery) => {
-            let phy = Phylactery::open(path).map_err(|e| RewriteError(e.to_string()))?;
+            let phy =
+                Phylactery::open_from_container(probe).map_err(|e| RewriteError(e.to_string()))?;
             let expected_active = plan
                 .memory_decisions
                 .iter()
@@ -176,9 +238,10 @@ fn validate_emitted(
                     "rewritten PHY failed semantic reopen validation".into(),
                 ));
             }
+            Ok(phy.container)
         }
         Some(FileKind::Reliquary) | None => {
-            let rel = Cva::open(path).map_err(|e| RewriteError(e.to_string()))?;
+            let rel = Cva::open_from_container(probe).map_err(|e| RewriteError(e.to_string()))?;
             let expected_active = plan
                 .memory_decisions
                 .iter()
@@ -197,9 +260,9 @@ fn validate_emitted(
                     "rewritten REL failed semantic reopen validation".into(),
                 ));
             }
+            Ok(rel.container)
         }
     }
-    Ok(())
 }
 
 fn emit_rel(
@@ -209,8 +272,9 @@ fn emit_rel(
     plan: &RewritePlan,
     destination_owner: [u8; 16],
     generation: HistoryGenerationId,
-) -> Result<(), RewriteError> {
-    let mut source = Cva::open(source_path).map_err(|e| RewriteError(e.to_string()))?;
+    staging_guard: &mut Option<crate::container::PhysicalReadSource>,
+) -> Result<Container, RewriteError> {
+    let mut source = Cva::open_read_only(source_path).map_err(|e| RewriteError(e.to_string()))?;
     let keep = retained_ids(plan)?;
     let semantic = crate::rewrite::semantic_state::semantic_closure_rel(&source, &keep)?;
     let revision_sets = load_selected_revisions_rel(&mut source, plan)?;
@@ -241,6 +305,12 @@ fn emit_rel(
     let mut output =
         Cva::create_rel_with_uuid(output_path, destination_owner, metadata.type_label.clone())
             .map_err(|e| RewriteError(e.to_string()))?;
+    *staging_guard = Some(
+        output
+            .container
+            .read_source()
+            .map_err(|error| RewriteError(error.to_string()))?,
+    );
     append_genesis(
         &mut output.container,
         destination_owner,
@@ -314,7 +384,7 @@ fn emit_rel(
         request.include_rel_ego_synthesis,
     )?;
     output.sync().map_err(|e| RewriteError(e.to_string()))?;
-    Ok(())
+    Ok(output.container)
 }
 
 fn emit_phy(
@@ -324,13 +394,15 @@ fn emit_phy(
     plan: &RewritePlan,
     destination_owner: [u8; 16],
     generation: HistoryGenerationId,
-) -> Result<(), RewriteError> {
+    staging_guard: &mut Option<crate::container::PhysicalReadSource>,
+) -> Result<Container, RewriteError> {
     if request.memories.minimum_effective_freshness.is_some() {
         return Err(RewriteError(
             "Phylactery has no REL Freshness clock to preserve".into(),
         ));
     }
-    let mut source = Phylactery::open(source_path).map_err(|e| RewriteError(e.to_string()))?;
+    let mut source =
+        Phylactery::open_read_only(source_path).map_err(|e| RewriteError(e.to_string()))?;
     let keep = retained_ids(plan)?;
     let semantic = crate::rewrite::semantic_state::semantic_closure_phy(&source, &keep)?;
     let revision_sets = load_selected_revisions_phy(&mut source, plan)?;
@@ -341,6 +413,12 @@ fn emit_phy(
     let profile = source.profile();
     let mut output = Phylactery::create_with_uuid(output_path, destination_owner)
         .map_err(|e| RewriteError(e.to_string()))?;
+    *staging_guard = Some(
+        output
+            .container
+            .read_source()
+            .map_err(|error| RewriteError(error.to_string()))?,
+    );
     append_genesis(
         &mut output.container,
         destination_owner,
@@ -414,7 +492,7 @@ fn emit_phy(
     crate::rewrite::semantic_state::copy_semantic_state_phy(&source, &mut output, &semantic)?;
     output.sync().map_err(|e| RewriteError(e.to_string()))?;
     let _ = generation;
-    Ok(())
+    Ok(output.container)
 }
 
 fn copy_compact_profiles_rel(

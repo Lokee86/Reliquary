@@ -2,6 +2,33 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+## Physical access and explicit maintenance
+
+`Container::open`, `Cva::open` and `Phylactery::open` acquire an exclusive OS
+writer lease and replay without changing persistent bytes. Their `open_read_only`
+variants retain a coherent shared lease. Independent opens conflict with a held
+writer, including a Runtime mount and hardlink/symlink aliases. Read-only sessions
+refuse persistent mutation with `ContainerError::ReadOnly`.
+
+An incomplete physical tail returns `ContainerError::RepairRequired { valid_end }`.
+`Cva::repair_incomplete_tail(path)` and `Phylactery::repair_incomplete_tail(path)`
+return `TailRepairOutcome::{NoIncompleteTail, Repaired}`. These explicit operations
+validate a staged complete prefix before truncating under the same writer lease,
+then replay the repaired owner. Complete corrupt records and active REL import
+admission refuse repair without truncation.
+
+Repair also validates an already complete owner before returning
+`NoIncompleteTail`; a complete physical frame with an unaccepted owner body is
+an error, whether or not an incomplete tail follows it.
+
+`Cva::maintain_conversation_compactions()` explicitly reclaims stale allocations
+and returns `ConversationCompactionMaintenance`. Both owners expose
+`entity_resolution_maintenance()` with typed `EntityResolutionMaintenance` evidence
+and `repair_retired_entity_references()` to append canonical revisions on request.
+Normal open preserves the historical bytes and never invokes either maintenance
+operation. Unknown or unresolvable Entity references still reject.
+
+
 ## Ego terminal lifecycle
 
 REL and PHY expose `ego_anchor_lifecycle(id)` and `historical_ego_anchor(id, revision)`. PHY additionally exposes `ego_identity_lifecycle(id)` and `historical_ego_identity(id, revision)`. Lifecycle inspection returns the shared `LifecycleState`; historical getters return an optional retained nondeleted revision, including after deletion. A deletion revision itself has no document payload. Existing `delete_ego_identity`/`delete_ego_anchor` return `true` on publication and `false` on an exact retry using the original expected revision; mismatched revisions reject.
@@ -13,6 +40,12 @@ REL and PHY expose `ego_anchor_lifecycle(id)` and `historical_ego_anchor(id, rev
 Legacy normalization and migration APIs have been removed after canonical promotion. `rel repair` and `phy repair` require current semantic settlements, retain the requested active profiles, optionally prune eligible retired vectors and reclaim storage, and verify a separate output without re-embedding.
 
 ## Fresh-history rewrite API
+
+A frozen `RewritePlan` binds both `source_file_identity` (the OS file identity)
+and `source_head_digest`. Replacing the source with a different file containing
+identical bytes invalidates that plan. Execution holds a shared source lease and
+retains the destination writer through verification and atomic no-overwrite
+publication.
 
 `rewrite::{RewriteRequest, RewritePlan, RewriteReport}` provides the policy, read-only resolved plan and execution report. `plan_rewrite_file(source, request)` dispatches by REL/PHY file kind; `rewrite_file(source, output, request)` plans and executes; `rewrite_from_plan(source, output, plan)` executes a frozen plan after checking the source snapshot. The policy supports new-owner or preserve-owner identity, Memory filters and revision policy, zero or more compatibility profiles, Freshness mode, REL Archive selection/provenance policy and optional REL synthesized Ego state. Existing outputs and source drift reject before output creation. PreserveOwner advances history generation and records predecessor lineage; reconciliation across generations fails with typed `HistoryGenerationConflict`. See [CLI](cli.md), [operator workflow](manual/migration-and-reconciliation.md#rewrite-a-fresh-history), and [behavioral contracts](behavioral-contracts.md#fresh-history-rewrite-contracts).
 

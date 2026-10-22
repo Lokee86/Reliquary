@@ -63,7 +63,7 @@ fn hard_link_alias_reuses_execution_and_conflicting_copy_is_rejected_before_reco
     );
     drop(rels);
     assert!(gateway.mount_rel_path(&copy).is_err());
-    // Cva::open would truncate the incomplete tail; rejected copies must stay untouched.
+    // Normal open refuses incomplete tails; rejected copies must stay untouched.
     assert_eq!(std::fs::read(&copy).unwrap(), before);
     drop(owner);
     drop(gateway.unmount_rel(&id).unwrap());

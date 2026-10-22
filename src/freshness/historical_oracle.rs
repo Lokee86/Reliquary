@@ -27,7 +27,7 @@ impl FreshnessStore {
             Ok(())
         })?;
         let mut cached = self.clone();
-        cached.history_path = None;
+        cached.history_source = None;
         cached.recent = entries;
         cached.recent_bytes = 0;
         Ok(cached)

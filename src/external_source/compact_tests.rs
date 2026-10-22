@@ -136,15 +136,26 @@ fn compact_external_index_reclaim_keeps_latest_lookup_and_memory_proof() {
     assert_eq!(reopened.memory(memory.id).unwrap().content, memory.content);
     assert_eq!(fs::read(&source).unwrap(), before);
     let mut rows = 0;
-    reopened
-        .container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            if payload.starts_with(b"CVAXIDX2") {
-                rows += 1;
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let payload = frame.payload.as_slice();
+                {
+                    if payload.starts_with(b"CVAXIDX2") {
+                        rows += 1;
+                    }
+                    Ok(())
+                }
+            };
+        let mut cursor = reopened.container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
             }
-            Ok(())
-        })
-        .unwrap();
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
+    .unwrap();
     assert_eq!(rows, 1);
 }
 

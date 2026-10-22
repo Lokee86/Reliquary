@@ -64,20 +64,31 @@ fn draft(mutation_id: &str, temporal_status: &str, title: &str) -> MemoryDraft {
     }
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn payloads(container: &mut Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), ContainerError> {
+                let payload = frame.payload.as_slice();
+                {
+                    result.push(payload.to_vec());
+                    Ok(())
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), ContainerError>(())
+        })()
+    }
+    .unwrap();
     result
 }
 
-fn assert_compact_memory_payloads(path: &Path, records: &[MemoryRecord]) {
-    let payloads = payloads(path);
+fn assert_compact_memory_payloads(container: &mut Container, records: &[MemoryRecord]) {
+    let payloads = payloads(container);
     let publications: Vec<_> = payloads
         .iter()
         .filter_map(|payload| {
@@ -142,12 +153,11 @@ fn assert_reclaimed_records(
     }
 }
 
-fn append_unversioned_compact_frames(path: &Path, accepted: &MemoryRecord, tag: u8) {
+fn append_unversioned_compact_frames(container: &mut Container, accepted: &MemoryRecord, tag: u8) {
     let title = format!("Unpublished compact body {tag}");
     let content = format!("This body has no accepted publication ticket {tag}.");
     let body = memory_body_bytes(&title, &content);
     let body_id = memory_body_id(&title, &content);
-    let mut container = Container::open(path).unwrap();
     container
         .append(&encode_body(body_id, &body).unwrap())
         .unwrap();
@@ -308,8 +318,8 @@ fn rel_reclamation_preserves_compact_tombstoned_history_exactly() {
     let descriptor = rel.memory_retention_descriptor(first.id).unwrap();
     let version = rel.latest_global_version();
     let memory_version = rel.memory_version();
-    assert_compact_memory_payloads(&source, &expected);
-    append_unversioned_compact_frames(&source, expected.last().unwrap(), 81);
+    assert_compact_memory_payloads(&mut rel.container, &expected);
+    append_unversioned_compact_frames(&mut rel.container, expected.last().unwrap(), 81);
     assert_eq!(rel.memories.records(), expected.as_slice());
     assert_eq!(rel.latest_global_version(), version);
     assert_eq!(rel.memory_version(), memory_version);
@@ -331,7 +341,7 @@ fn rel_reclamation_preserves_compact_tombstoned_history_exactly() {
         reopened.memory_lifecycle_state(first.id).unwrap(),
         LifecycleState::Tombstoned(value) if value == coordinates
     ));
-    assert_compact_memory_payloads(&output, &expected);
+    assert_compact_memory_payloads(&mut reopened.container, &expected);
     assert!(matches!(
         reopened.memory_body_id(first.id),
         Err(MemoryError::MissingMemory)
@@ -367,8 +377,8 @@ fn phy_reclamation_preserves_compact_tombstoned_history_exactly() {
     let descriptor = phy.memory_retention_descriptor(first.id).unwrap();
     let version = phy.latest_global_version();
     let memory_version = phy.memory_version();
-    assert_compact_memory_payloads(&source, &expected);
-    append_unversioned_compact_frames(&source, expected.last().unwrap(), 82);
+    assert_compact_memory_payloads(&mut phy.container, &expected);
+    append_unversioned_compact_frames(&mut phy.container, expected.last().unwrap(), 82);
     assert_eq!(phy.memories.records(), expected.as_slice());
     assert_eq!(phy.latest_global_version(), version);
     assert_eq!(phy.memory_version(), memory_version);
@@ -390,7 +400,7 @@ fn phy_reclamation_preserves_compact_tombstoned_history_exactly() {
         reopened.memory_lifecycle_state(first.id).unwrap(),
         LifecycleState::Tombstoned(value) if value == coordinates
     ));
-    assert_compact_memory_payloads(&output, &expected);
+    assert_compact_memory_payloads(&mut reopened.container, &expected);
     assert!(matches!(
         reopened.memory_body_id(first.id),
         Err(MemoryError::MissingMemory)

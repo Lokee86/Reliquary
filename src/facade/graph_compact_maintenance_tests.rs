@@ -147,12 +147,24 @@ fn graph_refs(container: &mut Container) -> BTreeMap<u64, crate::ObjectRef> {
 
 fn payloads(container: &mut Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), ContainerError> {
+                let payload = frame.payload.as_slice();
+                {
+                    result.push(payload.to_vec());
+                    Ok(())
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), ContainerError>(())
+        })()
+    }
+    .unwrap();
     result
 }
 

@@ -40,7 +40,7 @@ pub(crate) fn inspect_project_adoption_source(
             rel_path.display()
         ));
     }
-    let cva = Cva::open(rel_path).map_err(|error| format!("invalid REL: {error}"))?;
+    let cva = Cva::open_read_only(rel_path).map_err(|error| format!("invalid REL: {error}"))?;
     let owner_id = cva
         .owner_id()
         .ok_or_else(|| "legacy pre-owner REL/CVA adoption is no longer supported".to_string())?;

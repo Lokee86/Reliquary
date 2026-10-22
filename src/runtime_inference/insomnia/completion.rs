@@ -158,25 +158,8 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
 pub(crate) fn decode_embedded_version_range(
     bytes: &[u8],
 ) -> Result<Option<(u64, u32, Option<i64>)>, &'static str> {
-    if bytes.starts_with(b"CVAINSC8") {
-        return compact_retained::decode_range(bytes);
-    }
-    if !bytes.starts_with(&COMPLETION_MAGIC_V7) {
-        return Ok(None);
-    }
-    if bytes.len() < 84 {
-        return Err("short compact Insomnia completion");
-    }
-    let start = u64::from_le_bytes(bytes[64..72].try_into().unwrap());
-    let count = u32::from_le_bytes(bytes[72..76].try_into().unwrap());
-    if count > 0 && start == 0 {
-        return Err("invalid completion global version range");
-    }
-    Ok(Some((
-        start,
-        count,
-        Some(i64::from_le_bytes(bytes[76..84].try_into().unwrap())),
-    )))
+    crate::container::grouped_clock::insomnia_range(bytes)
+        .map_err(|_| "invalid completion global version range")
 }
 pub(crate) fn decode_completion(bytes: &[u8]) -> Result<Option<InsomniaCompletion>, &'static str> {
     if bytes.starts_with(b"CVAINSC8") {

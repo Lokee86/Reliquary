@@ -1,0 +1,222 @@
+{
+  "date": "2026-10-22",
+  "status": "accepted locally on Windows",
+  "retained_phase0_capture_git_blob_sha256": "a0deb5c2b011f0aa1d29125b3878d09bfecfc192c1ff72ab40236e1674e259d2",
+  "retained_phase0_capture_working_file_sha256": "0667a63adeecfae60cb2c53de5987f9b147db6e2e934d68169ee6edb628c2cce",
+  "rust_source_count": 1109,
+  "rust_source_manifest_sha256": "73929536d0b2a7bf165c0387c82e517b512ca9c0250364fe0a1fa13ac66991bf",
+  "changed_rust_source_sha256": {
+    "src/archive/conversation_compaction_model.rs": "dfaf6dc45ece7ba54725fdf8e5957e771e08d7b30b1dc168e98c445d5ed0b87a",
+    "src/archive/conversation_compaction_store.rs": "b690531b24d8725985ebccbe69ef9b99fa071409e1ae6249eba42d70af5b3759",
+    "src/archive/conversation_compaction_tests.rs": "a9017c6b0ec33015522bc5e5ff32425734c952c64f5692dbbfd2a7d99ed4a07f",
+    "src/archive/conversation_tombstone_tests.rs": "05485ce20fae3c759c04d4fb950f3169768cd488aa23846baae106a230fdbbb0",
+    "src/archive/interaction_stream_compact_tests.rs": "8934bfea7902c21ec3932865653c2468472fe28d6d1314fea8fa734b587cf666",
+    "src/archive/project_file_attachment_tests.rs": "03040f6b3f0061b0a271ffaf766702d02878f4061b3565838f996b325a343ce1",
+    "src/container/container.rs": "7d7874d88ba480a7f150f44e1125e93ad71d805b4e04eb4c89611cd160428ed0",
+    "src/container/container_access.rs": "d1297ef14be9f085d65b742eef2212f93627a7ac19d7e62aa3165ee4898aac3f",
+    "src/container/container_error.rs": "f95f589fc39922dd27692d5f5f679c6f92352fd8755f782f64cbb6dcf00fc134",
+    "src/container/container_lease.rs": "6b322cbb2d73a82b60284eb02f6c705071aeaaa4f9f83b65a3627053bb36c793",
+    "src/container/container_repair.rs": "10cdde4c56568e4eef52de42b1c4538b9f60bcf0d13a9190988962ff339129fc",
+    "src/container/container_scan.rs": "847696346ba386aa4b3f722a69d7860bd8be01795dbac8b70048c26e181c8fa7",
+    "src/container/container_tests.rs": "f7f9e8f182a293921a36ddf9f1308c0569a13b574f39865f12ae7e19cfc09ccf",
+    "src/container/container_version.rs": "2ec52a577371ac60549705c7d7a63e76f4710f33b63c047d7446dd7f5f84829d",
+    "src/container/file_lease_process_tests.rs": "1f590f712f0e9ff44a22c01724b3f5fec4b58bfbfadf97ba54cbfabd7fb97825",
+    "src/container/grouped_clock.rs": "63cc967231948649f428796c8c1579ca63885a004f919a96306f816ec856548e",
+    "src/container/publication_envelope_clock_tests.rs": "dfb62815e25d80b86f07f2ddfec4851954f234cc4f691ea62126328341c12dd3",
+    "src/container/transaction_time_tests.rs": "5ca279b81e3a0e58eb306ecf7217cb6502890317dd7571e1411c87946cc86d4f",
+    "src/ego/ego_compact_writer_tests.rs": "5dad40542c7f12eef94337e6e99516e34c877268deb032af5b834025589fbfbc",
+    "src/external_source/compact_tests.rs": "450e8e754ddd1947f31f602992926df15f065a38fc04b8c4b3e8ebd8ade2ec3c",
+    "src/external_source/publication.rs": "3f8a0a4c98504d0b3f729338d39f88b9d481c4909c54cc2c2db37eb105bd1f0c",
+    "src/facade/cva_dream_journal_replay.rs": "5c55c278b5caa39bfc92d0639f87d92fe60f502ffeac58e5c839b3eebd46824c",
+    "src/facade/cva_dream_population.rs": "769d35dab4b41e8fe0740dfc7b47014b9854857e4f4e2c6d8fe46e2ed91da4fd",
+    "src/facade/cva_freshness.rs": "2310dec70ad216542d4d06ddc557366ff769d28acfd8d032b5c7ec0c3c70c41a",
+    "src/facade/cva_historical_import.rs": "41b25f6486e36bce2179bf9867811a126a1320b90cfc48fbd1aed61d046067f9",
+    "src/facade/cva_history_prune.rs": "e0520a4e0fa7cba4b58b6878aed6d5391e52355aafe903f697b7a5e17574d3b6",
+    "src/facade/cva_lifecycle.rs": "76032a5ca3904e24a46489cae1dd2020c85e9f76f713f3d03e41f14876b08413",
+    "src/facade/cva_principal_repack.rs": "c9b38774132c283ebc89990074e1d1a59fb5a3db78ad52df6d730f21a9a15689",
+    "src/facade/cva_reconcile.rs": "462914deb65b469a3f7c7ba4849f92b8c42956cdbbf825990b4d9e0305d84328",
+    "src/facade/cva_reconcile_entity_envelope_tests.rs": "0bbcfbf5e0d0fdceac3c4c67e01ae081793fd71fc37be169efdc8842ebf9a093",
+    "src/facade/cva_reconcile_graph_tests.rs": "a4dc7026fe38edb2bca15c74f64c04e5a72570c8e3687168e799467c8ab12366",
+    "src/facade/cva_reconcile_grouped_tests.rs": "d9e9be7931d9940b0e66b3e1c8a53e3e9a13740046af593959b097d5f7be06fc",
+    "src/facade/cva_reconcile_link_tests.rs": "b3991d479671a3beb4a317bc65c23c14c69db067263c3c39df3acfcc2ba57831",
+    "src/facade/cva_reconcile_memory_tests.rs": "38681cbe7b683b16f612d914a734d4b9a50f3a7ebdb3606a4a3fcd374b2c5441",
+    "src/facade/cva_reconcile_promote.rs": "df2b12de3391f5e720b5602cafdb3fc9e68f53fe66976257f707143b6f4fae15",
+    "src/facade/cva_reconcile_repack.rs": "657f9171830bbd4b6c8b44764e6b849d230b7a708ae26ea7a5b1e8ddcc901625",
+    "src/facade/cva_repack.rs": "ffd1b3371799a8c99cfdd3f165212745d3583ca3b7c43a41598c26cb74dafc37",
+    "src/facade/dream_population_authority_tests.rs": "64474bd6671036e3295568363f495e2cb80c304abbc0aa92a1d19e5cdad00f09",
+    "src/facade/entity_compact_prune_tests.rs": "e4957b2e2da1c6631be3be0ac6d8e67e4d27eedae3fb251db33433b32d5aab10",
+    "src/facade/graph_compact_maintenance_tests.rs": "f942bd1e83ef1621f04df68b0487d8b81f80f6e25d1795e5f52306ff74c1236e",
+    "src/facade/graph_compact_proof_tests.rs": "ceef4348b35e114409798d4e8d697b8a5de7fb84cb6fd80ced0f2d7a71bb8529",
+    "src/facade/historical_ego_fingerprint.rs": "bfa99eb55f805310187835d053300c163c7b5b31d91a8e9bdc02306e630dcc8e",
+    "src/facade/historical_epoch_input.rs": "a72d5140316b8f86e4708e1801e5eaf2db8f71df6a1705d489459ab425373196",
+    "src/facade/historical_global_frontier.rs": "e69d0219135108d63376b2eb0c6be9da9d7bb69c2ff1f7f3446f9f45d9772ea6",
+    "src/facade/historical_graph_fingerprint.rs": "21d5d7072c82419e2f36d59a88937243828a9b8a77a98ee0c0fa10809d6ed5e6",
+    "src/facade/historical_import_base.rs": "abcaf4893b1c6412390ab1a95b7c5816dd0691e4927504715433fab136497873",
+    "src/facade/historical_import_input.rs": "0477ca4d0566628073bfc565946460fe242fbfbd124fcb8b1af2da1ef6cac1d3",
+    "src/facade/historical_import_transform.rs": "12e1b60e74606936b97308393afba618b1da4d6c06cdb74321b32ce41eec3aa7",
+    "src/facade/historical_import_transform_tests.rs": "e71f2202fb70b7ae9def13243d01acefeededf2d442e2cdefe851e2139446e8c",
+    "src/facade/historical_manifest.rs": "f21eb0fc3746e846d5e82bb4f48d2a7333658e1a77d03aa210a94f180bac1562",
+    "src/facade/historical_recovery_tests.rs": "64c44172f8e4b5818cecf1c3f7b2bcfe17c9463a6efb7ae549debe0fbc56ac5b",
+    "src/facade/historical_retained_diagnostics.rs": "3c02bde02a45baca6c9bf9ade452859fc7d411e2834ca43f096322ece2eec09f",
+    "src/facade/phylactery_history_prune.rs": "66ff1f17a6fd41fda4b35503ccbe2f3000ec1fb74c1825bbab680db3842084d6",
+    "src/facade/phylactery_lifecycle.rs": "33d82740e2e54fe47a8141d15341bfa805b440960ef513b1a85d9f19c443e1f6",
+    "src/facade/semantic_maintenance.rs": "e10b91a9c50dd2f67b3691b35d456adfe48711bc09cb9d917b4c2bea7506bd36",
+    "src/facade/semantic_maintenance_tests.rs": "1ae9de648c74bb4fd869dcddcf8b9a942f5fe7c9d395bdeff9b5f186749fedc5",
+    "src/facade/storage_reclamation.rs": "47d2eead68a30e86998a2a4c41f1c469c78daa35079a0895f6b36a5b0165ed5b",
+    "src/facade/storage_reclamation_entity_compact_tests.rs": "e242b4b0d3814279913ebcb123909de586e7eabd18deee3dfe14b4b69bf0bc2b",
+    "src/facade/storage_reclamation_relationship_compact_tests.rs": "069852b7d26c34514449555f568f91be7bd413f3e1a160cca27a89a0a1967de5",
+    "src/facade/storage_reclamation_relationship_publication_tests.rs": "1432d7a4f214e4f08f4eece4bc60018435b27e328a2a1d66342fcdd95883ad6c",
+    "src/freshness/freshness_import_events.rs": "51ded0bb37d50ca8cfd170c70e8d4e2b5e7ebb58529dfd49c8006003e3c90905",
+    "src/freshness/freshness_storage_stream.rs": "5168c73e8b551719c23a6b689078e6a98c0baacb9dd2ca9daf160efd322c973f",
+    "src/freshness/historical_oracle.rs": "35ded7960812f7cde268d6b9384d9a8ab38fd2eab505f07f34661bdd5cfd1652",
+    "src/freshness_storage.rs": "d55592a9fbaa7bef2d94d2eb491e1206f3fdb1e9c02c0d9fdc9ee6dd10bd7b74",
+    "src/freshness_storage_tests.rs": "0db8db6713a4817f11fc553734c604a48545782ce07bf88aac82a746878716db",
+    "src/imports/completion.rs": "6f6ff63e14f2634da84bab0e6b0effd1f5599d8ec020e6f3aeaf9f81406b369b",
+    "src/imports/completion_tests.rs": "87b92c058c593f4c9be31e3ccac394f5ce07cc5877bf386dbaedfaadd6a9ae32",
+    "src/imports/epoch_scope.rs": "44ae927adda61107dcac478b8c42165307f2212b870a2e96e8f31c41f2af98bd",
+    "src/imports/reconcile_tests.rs": "8bb802118f24ed34c8a221d1b55f770093ca406d040a73ccca65f996730eceba",
+    "src/imports/reconciliation.rs": "5706c4cc0d178861c967d7360ff035a496179541398fc85e91a230999aa815c3",
+    "src/imports/reconciliation_freshness_authority_tests.rs": "6787a38418d55f0e125009794b3e5f0ab6d129eb380e4b56c948f3f8380fb3f3",
+    "src/imports/reconciliation_replay.rs": "1a5621ff4ad3b86a7db8d868dc47aea501cac11764c7b6a38a9568feb8c11f79",
+    "src/lib.rs": "3efcd093f6ca881522663a7c73fb6b5b32ffa296c23d857c478a80e8d91f13cc",
+    "src/memory/memory_compact_maintenance_tests.rs": "28d6176c61e7339cfb07592f7eb64abad5bcb8375935dcdf0402083c0da985eb",
+    "src/memory/memory_compact_writer_tests.rs": "125cd2b837b66837283dd9427817335252d7dcb977301f8e5c5dd109dc36f7ee",
+    "src/memory/memory_publication_copy_tests.rs": "b68e079b64dd306e976a703cd8178f9db9a21d4a61f54bcce7b112dfaeb83548",
+    "src/memory/memory_publication_writer_tests.rs": "335988a42bb256b0db617de4e582eaab06be55d70b5d68026a95e1ef87d5e9bc",
+    "src/memory/processing_epoch_store_tests.rs": "73549aa2450c1195d9f68597706d87948369057b7046ced3e34a7da4cbed34cd",
+    "src/perception/entity_audit_tests.rs": "5d3bbd5db331e6ae2396fb30d7628e4f086878c0ad3e456e247b5258cbc33fbc",
+    "src/perception/entity_compact_writer_tests.rs": "3aa2fe940c376689cc4742470161d8ddd16785ac9f50946c4a267950ce3b1a5c",
+    "src/perception/entity_publication_copy_tests.rs": "d9ef7cb05747f40229d8ba5dae868a898d726214e846446c240ae418bc786ad5",
+    "src/perception/entity_resolution_delta_tests.rs": "28b75a45afd13004017540899fc91b4b6bf1a607b8d4a94f832b0a7048b3e7f4",
+    "src/perception/entity_resolution_reconcile_tests.rs": "17a58d1241a43d636cd33399aa98d1aa8bb36f6cfba759502f0e95e63647f240",
+    "src/perception/entity_resolution_store.rs": "e43afd9326b467f61b1ad2ee8aedf71bd4533f92146b43da0a6c7c5086b1f47c",
+    "src/perception/entity_resolution_store_write.rs": "98df6f9922bd974313cf14646fa6d60845bca1f67f82fef6c76d9df5efd03ebd",
+    "src/perception/relationship_publication_copy_tests.rs": "4e1581c0645b5b4a41f93bd17dd0ceb3d31be6577e0e1fd44f63b1ef6cf6fe9a",
+    "src/perception/relationship_publication_writer_tests.rs": "cd97e75ea35eda724eacf2043d310358a5cd3c711603c442adf585b7be9012ae",
+    "src/project_environment/lifecycle.rs": "501870ab7b380f5b683949fabfd597c27c6c447e83a59b75a51b1b9c433a75fb",
+    "src/rewrite/file.rs": "a15ebdfdd67c099910954f6930fc5bf9f3260bb59f887ed53b7b3dacc8198ad9",
+    "src/rewrite/model.rs": "863438ee0d2663fcd956def4a1c07c25ca23095d3b48e1bdfda29d7602ece324",
+    "src/rewrite/plan.rs": "79f84912e5d85cb2fcf9b2929bf91bc82b3baf014787e211f0b051ea089711f2",
+    "src/runtime_inference/dream_pair_history_tests.rs": "27eba001198df6d6123ef4c162bd33123187e05294ee15e1463a2bb579b84bfa",
+    "src/runtime_inference/insomnia/completion.rs": "b906482dc376145074f132b6bdf6c77e40c1cbeaef02e4718bbfa988b3c4f979",
+    "src/runtime_inference/insomnia/completion_compact_retained.rs": "ee9dcb5025436d62b9be7601b3d53a8294a93473a9eeb02490a63de636d44b60",
+    "src/runtime_inference/insomnia/completion_tests.rs": "2e6e75f641e8a9138fd83fe37c936dd3cbc4783994d34514d7898dfa9a333f66",
+    "src/runtime_inference/runtime_host_gateway_admission_tests.rs": "1f207b7084cfa598f40964af79ed6e3601f59bcffbb7902bde9f7d30cc87ab46",
+    "src/runtime_inference/runtime_host_gateway_mount.rs": "9c04ca0bf438985d467c35088e12e1a20d77dbe411baaeb4aef3ec71ae642715",
+    "src/runtime_inference/runtime_host_gateway_mutation_events.rs": "694052842de1e3a30d7ef7693fa86391f191c3bb3d42a94521ba1715bcfcf129",
+    "src/runtime_inference/runtime_host_reconciliation.rs": "13d31b5bc979591bd555ba0e0267f9889c51d23968b7a6d3046f07ac528cb30b",
+    "src/semantic_graph/graph_compact_writer_tests.rs": "0fd8dc8dc3f03533003978a7efb8613b8bff1eaf55558e6d4656f853da631d15",
+    "src/semantic_graph/semantic_graph_reconcile_tests.rs": "3aa73855655597712006e772d7f19646437b2a9cd3ae676c8474c34b0785927d"
+  },
+  "frozen_oracle_sha256": "d3c1cae685932927d30dd4a0b4189280b4acd0487397e89632022fff0c2b7d34",
+  "canonical_corpus_files": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "bytes": 30742210,
+      "modified_ns": 1792609698858074400
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "bytes": 675300,
+      "modified_ns": 1792609698912766300
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "bytes": 76542131,
+      "modified_ns": 1792609699025477800
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "bytes": 1507220,
+      "modified_ns": 1792609699159249100
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "bytes": 18315280,
+      "modified_ns": 1792609699194859200
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "bytes": 3180063,
+      "modified_ns": 1792609736960751100
+    }
+  ],
+  "architecture": {
+    "snapshot": "sha256:01a79a32693b56f712748f2a62c973ebf5a4bc9e8d34f98ba1b5a1c64ec7c69b",
+    "rules": 25,
+    "source_nodes": 99800,
+    "relationships": 9233,
+    "classified_findings": 4625,
+    "new_or_stale_findings": 0,
+    "phase1_findings": 92,
+    "phase1_production_findings": 0,
+    "original_phase0_capture_preserved": true
+  },
+  "verification": {
+    "comprehensive_pipeline": {
+      "passed": 2119,
+      "failed": 0,
+      "ignored": 6,
+      "filtered": 1
+    },
+    "separately_verified_exhaustive_recovery_test": "historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipients",
+    "cli": {
+      "passed": 32,
+      "failed": 0
+    },
+    "post_cleanup_maintenance": {
+      "passed": 7,
+      "failed": 0
+    },
+    "post_cleanup_container_recovery": {
+      "passed": 47,
+      "failed": 0
+    },
+    "canonical_corpus": {
+      "files": 6,
+      "mismatches": 0,
+      "bytes_and_mtimes_unchanged": true,
+      "elapsed_seconds": 6372.74
+    },
+    "physical_boundary_fixtures": 13,
+    "convergence_guard_fixtures": 13,
+    "logical_dag": {
+      "components": 34,
+      "edges": 163,
+      "negative_fixtures": "passed"
+    },
+    "root_and_cli_check": "passed after final cleanup edit",
+    "archive_roundtrip": "passed: 2 nodes, 1 branch, 1 fragment, 2 content objects, 2 expanded refs, 810 bytes",
+    "documentation": {
+      "full_policy": "passed",
+      "changed_policy": "passed",
+      "indexes_and_links": "passed",
+      "pitlord_mapped": 1227,
+      "pitlord_total": 1227
+    },
+    "final_indexed_source_manifest": {
+      "rust_sources": 1109,
+      "mismatches": 0
+    },
+    "format_and_diff_check": "passed"
+  },
+  "verification_provenance": "The comprehensive suite and corpus executable predate the final repair-stage failure-cleanup edit. That edit leaves ordinary replay and accepted frames unchanged; the corpus does not invoke explicit repair. Final root/CLI checks, 7 maintenance tests, 47 container/recovery tests and the refreshed source graph cover the final source. Corpus ran with assertions enabled, crate opt-level=1 and sha2/serde_json opt-level=3, using the named ignored six-file oracle test.",
+  "enforcement_sha256": {
+    "scripts/check_physical_boundary.py": "77cbc9b2f54209ce22b3bec88e5e96a64729d4c6400cd3ef6de28c0dcbe80bf5",
+    "scripts/check_dependency_convergence.py": "b156be292b5019fadf6a8742bf57fffcbfe9b4b0ad3db19b89c30c5a794141a3",
+    "scripts/check_component_dag.py": "11db507481dee5b8035c7605f187708f883b40e4c9579ac43fe4bb7314f761bf",
+    "tools/pitlord/semantic.json": "b4a751e8f918134d17841b1f5be638273a334ba01bba2e1a7666cb18590d4e8a",
+    "tools/pitlord/convergence-baseline.json": "bab6a76f594cb904395e82b59874974316b323f3d59c03156523c04f56f17a5b",
+    "tools/pitlord/convergence-debt.json": "8e88764c040903c7840272cff10861048680b0bb9b692a31af4e86b1fd683146"
+  },
+  "platform_limits": [
+    "Unix implementation source-reviewed, not executed on this Windows host",
+    "Windows directory-entry power-loss durability is not claimed"
+  ]
+}

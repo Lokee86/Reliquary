@@ -146,6 +146,8 @@ def main() -> int:
 
     run([sys.executable, "scripts/check_external_source_ownership.py", "--self-test"])
 
+    run([sys.executable, "scripts/check_physical_boundary.py"])
+
     pitlord = resolve(
         "PITLORD",
         "pitlord",

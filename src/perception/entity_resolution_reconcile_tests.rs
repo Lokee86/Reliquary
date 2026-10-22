@@ -63,6 +63,8 @@ fn divergent_resolution_state_is_not_guessed() {
         .put_entity_rejected(keys[0], 0, EntityResolutionReason::GenericRole, 10)
         .unwrap();
     right_rel.sync().unwrap();
+    drop(left_rel);
+    drop(right_rel);
 
     assert!(matches!(
         Cva::reconcile(&left, &right, &output),

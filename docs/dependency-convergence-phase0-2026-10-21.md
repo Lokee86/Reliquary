@@ -16,6 +16,10 @@ The source baseline is local `main`, commit `c43d33c136f560fdca2249619866e1acf9b
 
 The target layer order is physical mechanics → owner-local stores → domain composition → runtime/orchestration → public facade. Dependency arrows in this record point from consumer to dependency, so they run in reverse: facade → runtime/orchestration → domain composition → owner-local stores → physical mechanics. Stable contracts remain with their actual owner. This does not authorize moving all reused types into a generic shared module.
 
+## Accepted fine-grained target (2026-10-21)
+
+The authoritative [logical component DAG](dependency-convergence-target-dag-2026-10-21.md) defines 34 target components and 163 explicitly allowlisted directed edges. The independent [target validator](../scripts/check_component_dag.py) rejects cycles, backreaches (including non-cyclic upward references), unlisted/invalid dependencies in the accepted model, missing edge justifications and History write dependencies. The current 19-area path-based Pitlord capture and all reviewed 4,609 findings remain intact and must be mapped to the finer target during the migration phases. A clean model validation is **not** a claim that the production source graph has reached the target. The original 19-area source gate passed locally as recorded in Acceptance results; enforcing the finer 34-component target across migrated source remains for later phases. Dependency direction remains a permanent invariant beyond Phase 7.
+
 ## Baseline and scope
 
 The configured architecture graph covers authored Rust under `src/`, including colocated test files. Integration tests, examples and the detachable CLI remain functional consumers, not durable domain owners; their behavior is protected by the existing functional suites. They are outside the domain SCC graph. Cargo dependencies remain unchanged.

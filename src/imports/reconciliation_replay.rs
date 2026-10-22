@@ -13,9 +13,8 @@ pub(super) fn replay(
     known: BTreeMap<String, CompletedEpoch>,
     epochs: BTreeMap<String, CompletedEpoch>,
     boundary: usize,
-) -> Result<CvaReconcileResult, CvaReconcileError> {
-    crate::cva_reconcile::copy_and_validate(left_path, output_path)?;
-    let mut output = Cva::open(output_path)?;
+) -> Result<(CvaReconcileResult, Cva), CvaReconcileError> {
+    let mut output = crate::cva_reconcile::copy_and_validate(left_path, output_path)?;
     let mut cursor = boundary;
     let mut coordinates = super::reconciliation_interval::Coordinates::shared(right, boundary)?;
     let before_archive = output.archive_version();
@@ -82,8 +81,9 @@ pub(super) fn replay(
         || coordinates.relationship_revisions != 0
         || coordinates.graph_transactions != 0;
     output.sync()?;
-    let reopened = Cva::open(output_path)?;
-    if !output.archive.activity_history_matches(&reopened.archive)
+    let expected_archive = output.archive;
+    let reopened = Cva::open_from_container(output.container)?;
+    if !expected_archive.activity_history_matches(&reopened.archive)
         || !reopened
             .archive
             .activity_merge_order_matches(&left.archive, &right.archive)
@@ -91,15 +91,16 @@ pub(super) fn replay(
         return Err(unsupported("reconciled import activity order changed"));
     }
     for id in known.keys() {
-        if output.import_epoch_status(id) != left.import_epoch_status(id) {
+        if reopened.import_epoch_status(id) != left.import_epoch_status(id) {
             return Err(unsupported(
                 "reconciliation changed a retained left import epoch",
             ));
         }
     }
-    Ok(CvaReconcileResult {
+    let result = CvaReconcileResult {
         comparison,
-        replayed_archive_records: output.archive_version().saturating_sub(before_archive) as usize,
+        replayed_archive_records: reopened.archive_version().saturating_sub(before_archive)
+            as usize,
         replayed_memory_revisions: coordinates.memory_revisions,
         duplicate_memory_revisions: coordinates.duplicate_memory_revisions,
         replayed_entity_revisions: coordinates.entity_revisions,
@@ -116,7 +117,8 @@ pub(super) fn replay(
             && (left.archive_vector_stats().objects > 0
                 || left.packed_vector_stats().objects > 0
                 || left.memory_vector_stats().objects > 0),
-    })
+    };
+    Ok((result, reopened))
 }
 
 fn replay_interval(

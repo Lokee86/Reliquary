@@ -173,54 +173,74 @@ impl Cva {
     pub(super) fn completion_epochs_from_bytes(&self) -> Result<ImportEpochStore, CvaError> {
         let mut epochs = ImportEpochStore::default();
         let mut settlements = BTreeMap::new();
-        let mut scan = Container::open_read_only_for_scan(self.container.path())?;
-        scan.visit_payloads::<CvaError>(|_, payload| {
-            if payload.starts_with(b"CVAFRS06") {
-                let settlement = HistoricalImportFreshnessSettlement::decode(payload)
-                    .map_err(CvaError::Freshness)?;
-                let id = id_text(&settlement.import_id);
-                let start = match epochs.status(&id) {
-                    Some(ImportEpochStatus::Open(start))
-                    | Some(ImportEpochStatus::Completed { start, .. }) => start,
-                    None if settlement.semantic.is_some() => return Ok(()),
-                    None => return Err(epoch_error("scoped settlement lacks its import start")),
-                };
-                validate_binding(&start, &settlement)?;
-                // Retain only small completion evidence, not a second map of
-                // every historical sparse replacement population.
-                let evidence = AcceptedSettlement {
-                    digest: format!("{:x}", Sha256::digest(payload)),
-                    global: settlement.global_version,
-                    archive: settlement.archive_version,
-                    graph: settlement.graph_version,
-                    memory_graph: settlement.memory_graph_version,
-                };
-                if let Some(previous) = settlements.get(&id) {
-                    if previous != &evidence {
-                        return Err(epoch_error("conflicting physical import settlements"));
+        let scan = &self.container;
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let payload = frame.payload.as_slice();
+                    {
+                        if payload.starts_with(b"CVAFRS06") {
+                            let settlement = HistoricalImportFreshnessSettlement::decode(payload)
+                                .map_err(CvaError::Freshness)?;
+                            let id = id_text(&settlement.import_id);
+                            let start = match epochs.status(&id) {
+                                Some(ImportEpochStatus::Open(start))
+                                | Some(ImportEpochStatus::Completed { start, .. }) => start,
+                                None if settlement.semantic.is_some() => return Ok(()),
+                                None => {
+                                    return Err(epoch_error(
+                                        "scoped settlement lacks its import start",
+                                    ));
+                                }
+                            };
+                            validate_binding(&start, &settlement)?;
+                            // Retain only small completion evidence, not a second map of
+                            // every historical sparse replacement population.
+                            let evidence = AcceptedSettlement {
+                                digest: format!("{:x}", Sha256::digest(payload)),
+                                global: settlement.global_version,
+                                archive: settlement.archive_version,
+                                graph: settlement.graph_version,
+                                memory_graph: settlement.memory_graph_version,
+                            };
+                            if let Some(previous) = settlements.get(&id) {
+                                if previous != &evidence {
+                                    return Err(epoch_error(
+                                        "conflicting physical import settlements",
+                                    ));
+                                }
+                            } else {
+                                settlements.insert(id, evidence);
+                            }
+                        }
+                        if let Some(epoch_codec::ImportEpochRecord::Complete(complete)) =
+                            epoch_codec::decode(payload)?
+                        {
+                            let settlement =
+                                settlements.get(&complete.import_id).ok_or_else(|| {
+                                    epoch_error("completion lacks a preceding scoped settlement")
+                                })?;
+                            if complete.historical_freshness_settlement_digest != settlement.digest
+                                || complete.post.global_version < settlement.global
+                                || complete.post.archive_version < settlement.archive
+                                || complete.post.graph_version < settlement.graph
+                                || complete.post.memory_graph_version < settlement.memory_graph
+                            {
+                                return Err(epoch_error("completion settlement evidence mismatch"));
+                            }
+                        }
+                        epochs.ingest(payload)?;
+                        Ok(())
                     }
-                } else {
-                    settlements.insert(id, evidence);
+                };
+            let mut cursor = scan.physical_cursor()?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
                 }
-            }
-            if let Some(epoch_codec::ImportEpochRecord::Complete(complete)) =
-                epoch_codec::decode(payload)?
-            {
-                let settlement = settlements
-                    .get(&complete.import_id)
-                    .ok_or_else(|| epoch_error("completion lacks a preceding scoped settlement"))?;
-                if complete.historical_freshness_settlement_digest != settlement.digest
-                    || complete.post.global_version < settlement.global
-                    || complete.post.archive_version < settlement.archive
-                    || complete.post.graph_version < settlement.graph
-                    || complete.post.memory_graph_version < settlement.memory_graph
-                {
-                    return Err(epoch_error("completion settlement evidence mismatch"));
-                }
-            }
-            epochs.ingest(payload)?;
-            Ok(())
-        })?;
+                Ok::<(), CvaError>(())
+            })()
+        }?;
         epochs.validate_owner(self.owner_uuid())?;
         epochs.validate_receipts(&self.archive.import_receipts)?;
         Ok(epochs)

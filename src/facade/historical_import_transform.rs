@@ -57,24 +57,36 @@ impl Cva {
 }
 
 fn historical_owner_evidence_digest(container: &Container) -> Result<[u8; 32], CvaError> {
-    let mut scan = Container::open_read_only_for_scan(container.path())?;
+    let scan = container;
     let mut hash = Sha256::new();
     hash.update(b"reliquary:historical-owner-evidence:v1\0");
-    scan.visit_payloads::<CvaError>(|_, payload| {
-        // These concrete owner families have no relocatable ObjectRef fields.
-        // Insomnia completion includes the native grouped publication proof;
-        // Dream includes publication intents and original first-cycle roots.
-        if payload.starts_with(b"CVAFR")
-            || payload.starts_with(b"CVAFSA")
-            || payload.starts_with(b"CVDREAM")
-            || payload.starts_with(b"CVAINSC")
-            || payload.starts_with(b"CVAIEPS1")
-            || payload.starts_with(b"CVAIEPC1")
-        {
-            hash.update((payload.len() as u64).to_le_bytes());
-            hash.update(payload);
-        }
-        Ok(())
-    })?;
+    {
+        let mut ingest_frame = |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+            let payload = frame.payload.as_slice();
+            {
+                // These concrete owner families have no relocatable ObjectRef fields.
+                // Insomnia completion includes the native grouped publication proof;
+                // Dream includes publication intents and original first-cycle roots.
+                if payload.starts_with(b"CVAFR")
+                    || payload.starts_with(b"CVAFSA")
+                    || payload.starts_with(b"CVDREAM")
+                    || payload.starts_with(b"CVAINSC")
+                    || payload.starts_with(b"CVAIEPS1")
+                    || payload.starts_with(b"CVAIEPC1")
+                {
+                    hash.update((payload.len() as u64).to_le_bytes());
+                    hash.update(payload);
+                }
+                Ok(())
+            }
+        };
+        let mut cursor = scan.physical_cursor()?;
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), CvaError>(())
+        })()
+    }?;
     Ok(hash.finalize().into())
 }

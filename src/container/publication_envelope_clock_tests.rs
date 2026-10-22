@@ -166,19 +166,32 @@ fn bounded_versioned_visitor_replays_reserved_reverse_bindings_without_mutation(
     drop(container);
 
     let mut container = Container::open(&path).unwrap();
-    let before_bytes = fs::read(&path).unwrap();
+    let before_bytes = container.physical_digest().unwrap();
+    let before_len = container.physical_length().unwrap();
     let before_times = (1..=3)
         .map(|global| container.transaction_time_ns(global))
         .collect::<Vec<_>>();
     let before_head = container.latest_version();
     for (index, end) in ends.into_iter().enumerate() {
         let mut frontiers = Vec::new();
-        container
-            .visit_versioned_payloads_through(end, |_, _, frontier| {
-                frontiers.push(frontier);
-                Ok::<_, ContainerError>(())
-            })
-            .unwrap();
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                    let frontier = frame.latest_global;
+                    {
+                        frontiers.push(frontier);
+                        Ok::<_, ContainerError>(())
+                    }
+                };
+            let mut cursor = container.physical_cursor_through(end).unwrap();
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
+                }
+                Ok::<(), crate::ContainerError>(())
+            })()
+        }
+        .unwrap();
         assert_eq!(frontiers, [1, 2, 3, 3, 3][..=index]);
         assert_eq!(container.latest_version(), before_head);
         assert_eq!(
@@ -188,7 +201,8 @@ fn bounded_versioned_visitor_replays_reserved_reverse_bindings_without_mutation(
             before_times
         );
     }
-    assert_eq!(fs::read(&path).unwrap(), before_bytes);
+    assert_eq!(container.physical_length().unwrap(), before_len);
+    assert_eq!(container.physical_digest().unwrap(), before_bytes);
 }
 
 #[test]
@@ -203,18 +217,31 @@ fn bounded_versioned_visitor_handles_grouped_global_range_and_optional_time() {
         .collect::<Vec<_>>();
     let mut completion_range = None;
     let mut final_frontier = 0;
-    cva.container
-        .visit_versioned_payloads_through(end, |_, payload, frontier| {
-            final_frontier = frontier;
-            if let Some((start, count, time)) =
-                crate::insomnia::completion::decode_embedded_version_range(payload)
-                    .map_err(|_| ContainerError::InvalidVersionRecord)?
-            {
-                completion_range = Some((start, count, time, frontier));
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                let payload = frame.payload.as_slice();
+                let frontier = frame.latest_global;
+                {
+                    final_frontier = frontier;
+                    if let Some((start, count, time)) =
+                        crate::insomnia::completion::decode_embedded_version_range(payload)
+                            .map_err(|_| ContainerError::InvalidVersionRecord)?
+                    {
+                        completion_range = Some((start, count, time, frontier));
+                    }
+                    Ok::<_, ContainerError>(())
+                }
+            };
+        let mut cursor = cva.container.physical_cursor_through(end).unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
             }
-            Ok::<_, ContainerError>(())
-        })
-        .unwrap();
+            Ok::<(), crate::ContainerError>(())
+        })()
+    }
+    .unwrap();
     let (start, count, time, frontier) = completion_range.expect("grouped range");
     assert!(count > 0);
     assert_eq!(frontier, start + u64::from(count) - 1);
@@ -245,9 +272,19 @@ fn bounded_versioned_visitor_rejects_midframe_malformed_clock_and_v1_envelopes_r
     let mut container = Container::open_read_only_for_scan(&path).unwrap();
     let original = fs::read(&path).unwrap();
     assert!(matches!(
-        container.visit_versioned_payloads_through(object_end - 1, |_, _, _| {
-            Ok::<_, ContainerError>(())
-        }),
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                    { Ok::<_, ContainerError>(()) }
+                };
+            let mut cursor = container.physical_cursor_through(object_end - 1).unwrap();
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
+                }
+                Ok::<(), crate::ContainerError>(())
+            })()
+        },
         Err(ContainerError::TruncatedChunk(_))
     ));
     assert_eq!(fs::read(&path).unwrap(), original);
@@ -271,18 +308,42 @@ fn bounded_versioned_visitor_rejects_midframe_malformed_clock_and_v1_envelopes_r
     let original = fs::read(&truncated_path).unwrap();
     let mut container = Container::open_read_only_for_scan(&truncated_path).unwrap();
     let mut bounded_frontier = 0;
-    container
-        .visit_versioned_payloads_through(valid_end, |_, _, frontier| {
-            bounded_frontier = frontier;
-            Ok::<_, ContainerError>(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                let frontier = frame.latest_global;
+                {
+                    bounded_frontier = frontier;
+                    Ok::<_, ContainerError>(())
+                }
+            };
+        let mut cursor = container.physical_cursor_through(valid_end).unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), crate::ContainerError>(())
+        })()
+    }
+    .unwrap();
     assert_eq!(bounded_frontier, 1);
     assert!(matches!(
-        container.visit_versioned_payloads_through(original.len() as u64, |_, _, _| {
-            Ok::<_, ContainerError>(())
-        }),
-        Err(ContainerError::TruncatedChunk(_))
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                    { Ok::<_, ContainerError>(()) }
+                };
+            let mut cursor = container
+                .physical_cursor_through(original.len() as u64)
+                .unwrap();
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
+                }
+                Ok::<(), crate::ContainerError>(())
+            })()
+        },
+        Err(ContainerError::RepairRequired { valid_end: tail_start }) if tail_start == valid_end
     ));
     assert_eq!(fs::read(&truncated_path).unwrap(), original);
     drop(container);
@@ -299,9 +360,21 @@ fn bounded_versioned_visitor_rejects_midframe_malformed_clock_and_v1_envelopes_r
     let original = fs::read(&malformed_path).unwrap();
     let mut container = Container::open_read_only_for_scan(&malformed_path).unwrap();
     assert!(matches!(
-        container.visit_versioned_payloads_through(original.len() as u64, |_, _, _| {
-            Ok::<_, ContainerError>(())
-        }),
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                    { Ok::<_, ContainerError>(()) }
+                };
+            let mut cursor = container
+                .physical_cursor_through(original.len() as u64)
+                .unwrap();
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
+                }
+                Ok::<(), crate::ContainerError>(())
+            })()
+        },
         Err(ContainerError::InvalidVersionRecord)
     ));
     assert_eq!(fs::read(&malformed_path).unwrap(), original);
@@ -446,12 +519,14 @@ fn invalid_direct_append_preserves_bytes_frontier_and_time_override() {
     let path = fixture.path("invalid-direct-append.cva");
     let mut container = Container::create(&path).unwrap();
     container.set_next_transaction_time_override(Some(-77));
-    let before = fs::read(&path).unwrap();
+    let before_bytes = container.physical_digest().unwrap();
+    let before_len = container.physical_length().unwrap();
     assert!(matches!(
         container.append_publication_envelope(b"short"),
         Err(ContainerError::InvalidVersionRecord)
     ));
-    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(container.physical_length().unwrap(), before_len);
+    assert_eq!(container.physical_digest().unwrap(), before_bytes);
     assert_eq!(container.latest_version(), 0);
     assert_eq!(container.next_version_candidate(), 1);
     assert_eq!(container.next_transaction_time_override, Some(Some(-77)));
@@ -467,13 +542,15 @@ fn closed_admission_and_version_overflow_fail_before_writing() {
     let fixture = Fixture::new();
     let path = fixture.path("write-admission-closed.cva");
     let mut container = Container::create(&path).unwrap();
-    let before = fs::read(&path).unwrap();
+    let before_bytes = container.physical_digest().unwrap();
+    let before_len = container.physical_length().unwrap();
     container.set_write_admission_closed(true);
     assert!(matches!(
         container.append_publication_envelope(&body(1)),
         Err(ContainerError::WriteAdmissionClosed)
     ));
-    assert_eq!(fs::read(&path).unwrap(), before);
+    assert_eq!(container.physical_length().unwrap(), before_len);
+    assert_eq!(container.physical_digest().unwrap(), before_bytes);
     assert_eq!(container.latest_version(), 0);
     drop(container);
 
@@ -481,12 +558,14 @@ fn closed_admission_and_version_overflow_fail_before_writing() {
     let mut overflow = Container::create(&overflow_path).unwrap();
     overflow.next_version = u64::MAX;
     overflow.set_next_transaction_time_override(Some(123));
-    let before = fs::read(&overflow_path).unwrap();
+    let before_bytes = overflow.physical_digest().unwrap();
+    let before_len = overflow.physical_length().unwrap();
     assert!(matches!(
         overflow.append_publication_envelope(&body(2)),
         Err(ContainerError::VersionExhausted)
     ));
-    assert_eq!(fs::read(&overflow_path).unwrap(), before);
+    assert_eq!(overflow.physical_length().unwrap(), before_len);
+    assert_eq!(overflow.physical_digest().unwrap(), before_bytes);
     assert_eq!(overflow.next_transaction_time_override, Some(Some(123)));
 }
 
@@ -522,8 +601,21 @@ fn every_incomplete_reserved_binding_tail_preserves_clock_and_reservation() {
         file.set_len(frame_start + prefix_len).unwrap();
         drop(file);
 
-        let mut reopened = Container::open(&path).unwrap();
-        assert_eq!(fs::metadata(&path).unwrap().len(), frame_start);
+        let mut reopened = if prefix_len == 0 {
+            Container::open(&path).unwrap()
+        } else {
+            let before_open = fs::read(&path).unwrap();
+            assert!(matches!(
+                Container::open(&path),
+                Err(ContainerError::RepairRequired { valid_end }) if valid_end == frame_start
+            ));
+            assert_eq!(fs::read(&path).unwrap(), before_open);
+            let mut repair = Container::open_for_repair(&path).unwrap();
+            let plan = repair.plan_tail_repair().unwrap().unwrap();
+            repair.repair_incomplete_tail(plan).unwrap();
+            repair
+        };
+        assert_eq!(reopened.physical_length().unwrap(), frame_start);
         assert_eq!(reopened.latest_version(), 1, "prefix length {prefix_len}");
         assert_eq!(reopened.transaction_time_ns(1), Some(1234));
         reopened.append(&binding).unwrap();
@@ -609,8 +701,21 @@ fn every_incomplete_direct_allocation_tail_recovers_without_advancing_clock() {
         file.set_len(header_end + prefix_len).unwrap();
         drop(file);
 
-        let mut reopened = Container::open(&path).unwrap();
-        assert_eq!(fs::metadata(&path).unwrap().len(), header_end);
+        let mut reopened = if prefix_len == 0 {
+            Container::open(&path).unwrap()
+        } else {
+            let before_open = fs::read(&path).unwrap();
+            assert!(matches!(
+                Container::open(&path),
+                Err(ContainerError::RepairRequired { valid_end }) if valid_end == header_end
+            ));
+            assert_eq!(fs::read(&path).unwrap(), before_open);
+            let mut repair = Container::open_for_repair(&path).unwrap();
+            let plan = repair.plan_tail_repair().unwrap().unwrap();
+            repair.repair_incomplete_tail(plan).unwrap();
+            repair
+        };
+        assert_eq!(reopened.physical_length().unwrap(), header_end);
         assert_eq!(reopened.latest_version(), 0, "prefix length {prefix_len}");
         assert_eq!(reopened.transaction_time_ns(1), None);
         let (version, _) = reopened.append_publication_envelope(&body(9)).unwrap();

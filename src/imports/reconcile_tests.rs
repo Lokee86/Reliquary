@@ -349,6 +349,7 @@ fn divergent_completed_zero_output_epochs_replay_with_destination_watermarks() {
         }
     );
     assert_eq!(fs::read(&merged_path).unwrap(), bytes_before_retry);
+    drop(reopened);
 
     let repeated = Cva::reconcile(&merged_path, &right_path, &repeated_path).unwrap();
     assert!(!repeated.canonical_change_required);
@@ -538,21 +539,32 @@ fn compact_import_dream_population_becomes_explicit_when_destination_has_an_extr
         std::collections::BTreeSet::from([common])
     );
     let mut saw_compact = false;
-    right
-        .container
-        .visit_payloads::<crate::CvaError>(|_, payload| {
-            if payload.starts_with(b"CVDREAM2") {
-                let record = crate::dream_begin_codec::decode(payload).unwrap();
-                if record.source_id == source {
-                    saw_compact = matches!(
-                        record.population,
-                        crate::dream_begin_codec::BeginPopulation::CompactCut { .. }
-                    );
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let payload = frame.payload.as_slice();
+                {
+                    if payload.starts_with(b"CVDREAM2") {
+                        let record = crate::dream_begin_codec::decode(payload).unwrap();
+                        if record.source_id == source {
+                            saw_compact = matches!(
+                                record.population,
+                                crate::dream_begin_codec::BeginPopulation::CompactCut { .. }
+                            );
+                        }
+                    }
+                    Ok(())
                 }
+            };
+        let mut cursor = right.container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
             }
-            Ok(())
-        })
-        .unwrap();
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
+    .unwrap();
     assert!(saw_compact);
     right.sync().unwrap();
     drop(right);
@@ -568,15 +580,31 @@ fn compact_import_dream_population_becomes_explicit_when_destination_has_an_extr
     assert_eq!(rebased.preexisting_ids, pass.preexisting_ids);
     assert_eq!(rebased.roots, pass.roots);
     let mut saw_exception = false;
-    merged.container.visit_payloads::<crate::CvaError>(|_, payload| {
-        if payload.starts_with(b"CVDREAM2") {
-            let record = crate::dream_begin_codec::decode(payload).unwrap();
-            if record.source_id == source {
-                saw_exception = matches!(record.population, crate::dream_begin_codec::BeginPopulation::ExplicitSet(ref ids) if ids == &pass.preexisting_ids);
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let payload = frame.payload.as_slice();
+                if payload.starts_with(b"CVDREAM2") {
+                    let record = crate::dream_begin_codec::decode(payload).unwrap();
+                    if record.source_id == source {
+                        saw_exception = matches!(
+                            record.population,
+                            crate::dream_begin_codec::BeginPopulation::ExplicitSet(ref ids)
+                                if ids == &pass.preexisting_ids
+                        );
+                    }
+                }
+                Ok(())
+            };
+        let mut cursor = merged.container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
             }
-        }
-        Ok(())
-    }).unwrap();
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
+    .unwrap();
     assert!(saw_exception);
     drop(merged);
     let repeated = f.rel("population-repeated.rel");

@@ -19,9 +19,9 @@ pub(crate) fn reconcile_diverged(
     right_path: &Path,
     output_path: &Path,
     comparison: CvaComparison,
-) -> Result<CvaReconcileResult, CvaReconcileError> {
-    let mut left = Cva::open(left_path)?;
-    let mut right = Cva::open(right_path)?;
+) -> Result<(CvaReconcileResult, Cva), CvaReconcileError> {
+    let mut left = Cva::open_read_only(left_path)?;
+    let mut right = Cva::open_read_only(right_path)?;
     if !left.external_index.sources.is_empty()
         || left.external_index.damaged
         || !right.external_index.sources.is_empty()
@@ -193,8 +193,9 @@ pub(crate) fn reconcile_diverged(
         }
 
         output.sync()?;
-        let reopened = Cva::open(output_path)?;
-        if !output.archive.activity_history_matches(&reopened.archive)
+        let expected_archive = output.archive;
+        let reopened = Cva::open_from_container(output.container)?;
+        if !expected_archive.activity_history_matches(&reopened.archive)
             || !reopened
                 .archive
                 .activity_merge_order_matches(&left.archive, &right.archive)
@@ -205,8 +206,6 @@ pub(crate) fn reconcile_diverged(
                 ),
             ));
         }
-        drop(reopened);
-        drop(output);
         Ok((
             archive_records,
             memory_result,
@@ -218,6 +217,7 @@ pub(crate) fn reconcile_diverged(
             vector_rebuild_required,
             processing_epoch_change_required,
             dream_pair_change_required,
+            reopened,
         ))
     })();
 
@@ -232,6 +232,7 @@ pub(crate) fn reconcile_diverged(
         vector_rebuild_required,
         processing_epoch_change_required,
         dream_pair_change_required,
+        validated_output,
     ) = match merge_result {
         Ok(value) => value,
         Err(error) => {
@@ -240,14 +241,16 @@ pub(crate) fn reconcile_diverged(
         }
     };
 
-    if !canonical_change_required
+    let validated_output = if !canonical_change_required
         && !processing_epoch_change_required
         && !dream_pair_change_required
     {
-        replace_with_left(left_path, output_path)?;
-    }
+        replace_with_left(left_path, output_path, validated_output)?
+    } else {
+        validated_output
+    };
 
-    Ok(CvaReconcileResult {
+    let result = CvaReconcileResult {
         comparison,
         replayed_archive_records: archive_records,
         replayed_memory_revisions: memory_result.revisions,
@@ -263,7 +266,8 @@ pub(crate) fn reconcile_diverged(
         replayed_file_memory_links: file_memory_links,
         canonical_change_required,
         vector_rebuild_required,
-    })
+    };
+    Ok((result, validated_output))
 }
 
 fn replay_processing_epochs(
@@ -362,9 +366,58 @@ fn replay_profiles(
     Ok(())
 }
 
-fn replace_with_left(left_path: &Path, output_path: &Path) -> Result<(), CvaReconcileError> {
-    fs::remove_file(output_path)?;
-    crate::cva_reconcile::copy_and_validate(left_path, output_path)
+fn replace_with_left(
+    left_path: &Path,
+    output_path: &Path,
+    held_output: Cva,
+) -> Result<Cva, CvaReconcileError> {
+    let source = crate::Container::open_read_only(left_path)?;
+    let staging =
+        output_path.with_file_name(format!(".reconcile-noop-{}.tmp", uuid::Uuid::new_v4()));
+    let mut candidate = source.create_empty_like(&staging)?;
+    let candidate_identity = candidate
+        .backing_file_identity()?
+        .ok_or(crate::ContainerError::LockingUnsupported)?;
+    let result = (|| -> Result<(), CvaReconcileError> {
+        let mut frames = source.physical_cursor()?;
+        while let Some(frame) = frames.next_frame()? {
+            candidate.append(&frame.payload)?;
+        }
+        drop(frames);
+        candidate.sync()?;
+        source.validate_path_identity()?;
+        held_output.container.validate_path_identity()?;
+        candidate.validate_path_identity()?;
+        crate::cva_reconcile_promote::atomic_replace(&staging, output_path)?;
+        candidate.relocate_published_path(output_path)?;
+        candidate.sync()?;
+        crate::cva_reconcile_promote::sync_parent(
+            output_path.parent().unwrap_or_else(|| Path::new(".")),
+        )?;
+        Ok(())
+    })();
+    if result.is_err() && candidate.validate_path_identity().is_ok() && staging.exists() {
+        let _ = fs::remove_file(&staging);
+    }
+    result?;
+    match Cva::open_from_container(candidate) {
+        Ok(output) => Ok(output),
+        Err(error) => {
+            remove_if_identity(output_path, candidate_identity);
+            Err(error.into())
+        }
+    }
+}
+
+fn remove_if_identity(path: &Path, expected: (u64, u64)) {
+    let Ok(container) = crate::Container::open_read_only(path) else {
+        return;
+    };
+    let same = container.backing_file_identity().ok().flatten() == Some(expected);
+    drop(container);
+    if same {
+        let _ = fs::remove_file(path);
+    }
 }
 
 fn has_derived_vector_state(cva: &Cva) -> bool {

@@ -38,6 +38,7 @@ impl Cva {
 
         let payloads = self.container.object_payloads()?;
         let mut output = self.container.create_empty_like(output_path)?;
+        let output_guard = output.read_source()?;
         let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
         let mut copied_chunks = 0_usize;
         let mut dropped_content_objects = 0_usize;
@@ -69,29 +70,35 @@ impl Cva {
 
         if let Err(error) = copy_result {
             drop(output);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(error);
         }
-        drop(output);
-
         if dropped_content_objects != removable.len() {
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(CvaError::Repack(format!(
                 "expected to drop {} repository-backed content objects but dropped {dropped_content_objects}",
                 removable.len()
             )));
         }
 
-        let reopened = match Cva::open(output_path) {
+        let reopened = match Cva::open_from_container(output) {
             Ok(reopened) => reopened,
             Err(error) => {
-                let _ = fs::remove_file(output_path);
+                if output_guard.validate_path_identity().is_ok() {
+                    let _ = fs::remove_file(output_path);
+                }
                 return Err(error);
             }
         };
         if let Err(error) = self.validate_historical_import_copy(&reopened) {
             drop(reopened);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(error);
         }
         if reopened.owner_uuid() != self.owner_uuid()
@@ -102,7 +109,9 @@ impl Cva {
             || reopened.graph_version() != self.graph_version()
         {
             drop(reopened);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(CvaError::Repack(
                 "repacked REL changed owner, semantic versions or activity history".into(),
             ));
@@ -113,7 +122,9 @@ impl Cva {
             .map_err(|error| CvaError::Repack(error.to_string()))?
             .len();
         if output_file_bytes >= source_file_bytes {
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(CvaError::Repack(format!(
                 "repacked REL did not shrink: source={source_file_bytes} output={output_file_bytes}"
             )));

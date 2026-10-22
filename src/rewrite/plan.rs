@@ -42,12 +42,6 @@ fn uuid_hex(id: Option<[u8; 16]>) -> Option<String> {
     id.map(|id| id.iter().map(|b| format!("{b:02x}")).collect())
 }
 
-fn source_head_digest(path: &std::path::Path) -> Result<[u8; 32], RewriteError> {
-    let bytes =
-        std::fs::read(path).map_err(|error| RewriteError(format!("read source head: {error}")))?;
-    Ok(Sha256::digest(bytes).into())
-}
-
 fn apply_explicit_selection(
     candidates: &mut [(MemoryId, bool, String, Vec<u8>)],
     request: &RewriteRequest,
@@ -302,6 +296,7 @@ fn finish_plan(
     selected_revisions: Vec<MemoryRevisionSelection>,
     tombstoned_ids: std::collections::BTreeSet<MemoryId>,
     source_digest: [u8; 32],
+    source_file_identity: (u64, u64),
     generation: HistoryGenerationId,
 ) -> Result<RewritePlan, RewriteError> {
     let included = request
@@ -365,6 +360,7 @@ fn finish_plan(
         source_global_version: global,
         source_memory_version: memory_version,
         source_head_digest: id_hex(&source_digest),
+        source_file_identity,
         request: request.clone(),
         memory_decisions,
         selected_revisions,
@@ -570,7 +566,13 @@ impl Cva {
             coverage,
             selected_revisions,
             tombstoned_ids,
-            source_head_digest(self.container.path())?,
+            self.container
+                .physical_digest()
+                .map_err(|error| RewriteError(error.to_string()))?,
+            self.container
+                .backing_file_identity()
+                .map_err(|error| RewriteError(error.to_string()))?
+                .ok_or_else(|| RewriteError("source physical identity is unavailable".into()))?,
             self.history_generation(),
         )?;
         complete_plan_report(&mut plan);
@@ -774,7 +776,13 @@ impl Phylactery {
             coverage,
             selected_revisions,
             tombstoned_ids,
-            source_head_digest(self.container.path())?,
+            self.container
+                .physical_digest()
+                .map_err(|error| RewriteError(error.to_string()))?,
+            self.container
+                .backing_file_identity()
+                .map_err(|error| RewriteError(error.to_string()))?
+                .ok_or_else(|| RewriteError("source physical identity is unavailable".into()))?,
             self.history_generation(),
         )?;
         complete_plan_report(&mut plan);

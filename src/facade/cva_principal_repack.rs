@@ -38,6 +38,7 @@ impl Cva {
             .len();
         let payloads = self.container.object_payloads()?;
         let mut output = self.container.create_empty_like(output_path)?;
+        let output_guard = output.read_source()?;
         let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
         let mut rewritten_user_turns = 0usize;
         let mut preserved_user_turns = 0usize;
@@ -60,21 +61,25 @@ impl Cva {
 
         if let Err(error) = copy_result {
             drop(output);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(error);
         }
-        drop(output);
-
-        let reopened = match Cva::open(output_path) {
+        let reopened = match Cva::open_from_container(output) {
             Ok(reopened) => reopened,
             Err(error) => {
-                let _ = fs::remove_file(output_path);
+                if output_guard.validate_path_identity().is_ok() {
+                    let _ = fs::remove_file(output_path);
+                }
                 return Err(error);
             }
         };
         if let Err(error) = self.validate_historical_import_copy(&reopened) {
             drop(reopened);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(error);
         }
         if reopened.owner_uuid() != self.owner_uuid()
@@ -87,7 +92,9 @@ impl Cva {
             || reopened.stats() != self.stats()
         {
             drop(reopened);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(CvaError::Repack(
                 "principal backfill changed owner, semantic versions or activity history".into(),
             ));
@@ -100,7 +107,9 @@ impl Cva {
                 .get(&source.conversation_id, &source.id)
             else {
                 drop(reopened);
-                let _ = fs::remove_file(output_path);
+                if output_guard.validate_path_identity().is_ok() {
+                    let _ = fs::remove_file(output_path);
+                }
                 return Err(CvaError::Repack(
                     "principal backfill lost an Archive node".into(),
                 ));
@@ -111,7 +120,9 @@ impl Cva {
                     None => expected.principal_id = Some(principal_id.to_owned()),
                     Some(existing) if existing != principal_id => {
                         drop(reopened);
-                        let _ = fs::remove_file(output_path);
+                        if output_guard.validate_path_identity().is_ok() {
+                            let _ = fs::remove_file(output_path);
+                        }
                         return Err(CvaError::Repack(
                             "principal backfill encountered a conflicting user principal".into(),
                         ));
@@ -121,7 +132,9 @@ impl Cva {
             }
             if actual != &expected {
                 drop(reopened);
-                let _ = fs::remove_file(output_path);
+                if output_guard.validate_path_identity().is_ok() {
+                    let _ = fs::remove_file(output_path);
+                }
                 return Err(CvaError::Repack(
                     "principal backfill changed Archive node semantics".into(),
                 ));

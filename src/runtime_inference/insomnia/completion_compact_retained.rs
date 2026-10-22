@@ -8,27 +8,6 @@ fn layout(bytes: &[u8]) -> Result<u8, &'static str> {
     }
     Ok(value)
 }
-pub(super) fn decode_range(bytes: &[u8]) -> Result<Option<(u64, u32, Option<i64>)>, &'static str> {
-    let shape = layout(bytes)?;
-    if shape == 1 {
-        return Ok(None);
-    }
-    let end = if shape >= 4 { 85 } else { 77 };
-    if bytes.len() < end {
-        return Err("short retained compact completion range");
-    }
-    let start = u64::from_le_bytes(bytes[65..73].try_into().unwrap());
-    let count = u32::from_le_bytes(bytes[73..77].try_into().unwrap());
-    if count > 0 && start == 0 {
-        return Err("invalid completion global version range");
-    }
-    let time = if shape >= 4 {
-        Some(i64::from_le_bytes(bytes[77..85].try_into().unwrap()))
-    } else {
-        None
-    };
-    Ok(Some((start, count, time)))
-}
 pub(super) fn decode(bytes: &[u8]) -> Result<InsomniaCompletion, &'static str> {
     let shape = layout(bytes)?;
     // Common field readers use a fixed eight-byte prefix. The neutral prefix

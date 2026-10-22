@@ -260,21 +260,36 @@ fn contains_bytes(haystack: &[u8], needle: &str) -> bool {
         .any(|window| window == needle.as_bytes())
 }
 
-fn payloads(path: &Path) -> Vec<(crate::ObjectRef, Vec<u8>)> {
-    let mut container = Container::open(path).unwrap();
+fn payloads(container: &mut Container) -> Vec<(crate::ObjectRef, Vec<u8>)> {
     let mut values = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|object, payload| {
-            values.push((object, payload.to_vec()));
-            Ok(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), ContainerError> {
+                let object = frame.object;
+                let payload = frame.payload.as_slice();
+                {
+                    values.push((object, payload.to_vec()));
+                    Ok(())
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), ContainerError>(())
+        })()
+    }
+    .unwrap();
     values
 }
 
-fn selected_proofs(path: &Path, selected_id: EntityId) -> Vec<(u64, EntityDescriptionProof)> {
+fn selected_proofs(
+    container: &mut Container,
+    selected_id: EntityId,
+) -> Vec<(u64, EntityDescriptionProof)> {
     let mut proofs = Vec::new();
-    for (_, payload) in payloads(path) {
+    for (_, payload) in payloads(container) {
         let Some(envelope) = publication_envelope::decode(&payload).unwrap() else {
             continue;
         };
@@ -295,8 +310,10 @@ fn selected_proofs(path: &Path, selected_id: EntityId) -> Vec<(u64, EntityDescri
     proofs
 }
 
-fn source_carrier_digests(path: &Path, selected_id: EntityId) -> BTreeMap<u64, [u8; 32]> {
-    let mut container = Container::open(path).unwrap();
+fn source_carrier_digests(
+    container: &mut Container,
+    selected_id: EntityId,
+) -> BTreeMap<u64, [u8; 32]> {
     let mut versions = BTreeMap::new();
     for object in container.chunks().unwrap() {
         let payload = container.read(object).unwrap();
@@ -319,8 +336,7 @@ fn source_carrier_digests(path: &Path, selected_id: EntityId) -> BTreeMap<u64, [
     versions
 }
 
-fn assert_pruned_entity(owner_path: &Path, seed: &Seed, descriptor: &EntityRetentionDescriptor) {
-    let mut owner = Cva::open(owner_path).unwrap();
+fn assert_pruned_entity(owner: &Cva, seed: &Seed, descriptor: &EntityRetentionDescriptor) {
     assert_eq!(
         owner
             .entities
@@ -367,7 +383,7 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
     let seed = seed_entities(&mut rel.entities, &mut rel.container);
     let source_hash = hash_file(&source);
     let expected_source_records = rel.entities.records().to_vec();
-    let original_digests = source_carrier_digests(&source, seed.selected_id);
+    let original_digests = source_carrier_digests(&mut rel.container, seed.selected_id);
     assert_eq!(original_digests.len(), 3);
 
     let report = rel
@@ -387,7 +403,7 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
         .retention_descriptor(seed.selected_id)
         .unwrap();
     assert_eq!(descriptor, seed.retained);
-    assert_pruned_entity(&output, &seed, &descriptor);
+    assert_pruned_entity(&pruned, &seed, &descriptor);
     assert_eq!(
         descriptor
             .revisions
@@ -430,7 +446,7 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
         &seed.unrelated_record.summary
     ));
 
-    let proofs = selected_proofs(&output, seed.selected_id);
+    let proofs = selected_proofs(&mut pruned.container, seed.selected_id);
     assert_eq!(proofs.len(), 3);
     for (revision, proof) in &proofs {
         assert_eq!(proof.manifest_digest, report.manifest_digest);
@@ -446,8 +462,11 @@ fn rel_prune_redacts_all_selected_history_preserves_clocks_and_reclaims_authenti
             .unwrap(),
         descriptor
     );
-    assert_eq!(selected_proofs(&reclaimed, seed.selected_id), proofs);
-    assert_pruned_entity(&reclaimed, &seed, &descriptor);
+    assert_eq!(
+        selected_proofs(&mut after_reclaim.container, seed.selected_id),
+        proofs
+    );
+    assert_pruned_entity(&after_reclaim, &seed, &descriptor);
 }
 
 #[test]
@@ -459,7 +478,7 @@ fn phy_prune_preserves_option_identity_history_and_unrelated_description() {
     let seed = seed_entities(&mut phy.entities, &mut phy.container);
     let source_hash = hash_file(&source);
     let expected_records = phy.entities.records().to_vec();
-    let original_digests = source_carrier_digests(&source, seed.selected_id);
+    let original_digests = source_carrier_digests(&mut phy.container, seed.selected_id);
     let report = phy
         .prune_tombstoned_history(
             &output,
@@ -502,7 +521,7 @@ fn phy_prune_preserves_option_identity_history_and_unrelated_description() {
     for (global, transaction_time) in &seed.transaction_times {
         assert_eq!(pruned.transaction_time_ns(*global), *transaction_time);
     }
-    let proofs = selected_proofs(&output, seed.selected_id);
+    let proofs = selected_proofs(&mut pruned.container, seed.selected_id);
     assert_eq!(proofs.len(), 3);
     for (revision, proof) in &proofs {
         assert_eq!(proof.manifest_digest, report.manifest_digest);
@@ -547,7 +566,7 @@ enum ProofTamper {
 
 fn tampered_copy(
     source: &Path,
-    original_source: &Path,
+    original_source: &mut Container,
     output: &Path,
     selected_id: EntityId,
     tamper: ProofTamper,
@@ -570,7 +589,7 @@ fn tampered_copy(
     let mut replacement = target.1.clone();
     let mut detached_proof = None;
     if matches!(tamper, ProofTamper::DetachedProofCarrier) {
-        let mut original = Container::open(original_source).unwrap();
+        let original = original_source;
         let original_carrier = original
             .chunks()
             .unwrap()
@@ -674,7 +693,7 @@ fn rel_open_rejects_rechecksummed_missing_wrong_and_duplicate_compact_descriptio
         ("detached-proof.rel", ProofTamper::DetachedProofCarrier),
     ] {
         let path = scratch.file(name);
-        tampered_copy(&pruned, &source, &path, seed.selected_id, tamper);
+        tampered_copy(&pruned, &mut rel.container, &path, seed.selected_id, tamper);
         assert!(Cva::open(&path).is_err(), "tampering was accepted: {name}");
     }
 }

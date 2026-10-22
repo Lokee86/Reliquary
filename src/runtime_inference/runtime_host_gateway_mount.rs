@@ -35,9 +35,10 @@ impl MountedFileIdentity {
         container: &Container,
         kind: OwnerKind,
     ) -> Result<Self, ReliquaryRuntimeHostError> {
-        Self::validated(
-            container.backing_file(),
-            std::fs::canonicalize(container.path()).map_err(operation)?,
+        let canonical_path = std::fs::canonicalize(container.path()).map_err(operation)?;
+        Self::validated_identity(
+            container.backing_file_identity().map_err(operation)?,
+            canonical_path,
             container.identity().map(|i| i.file_kind),
             container.owner_id(),
             kind,
@@ -45,6 +46,21 @@ impl MountedFileIdentity {
     }
     fn validated(
         file: &File,
+        canonical_path: PathBuf,
+        file_kind: Option<FileKind>,
+        owner_id: Option<String>,
+        kind: OwnerKind,
+    ) -> Result<Self, ReliquaryRuntimeHostError> {
+        Self::validated_identity(
+            Container::inspect_file_identity(file).map_err(operation)?,
+            canonical_path,
+            file_kind,
+            owner_id,
+            kind,
+        )
+    }
+    fn validated_identity(
+        identity: Option<(u64, u64)>,
         canonical_path: PathBuf,
         file_kind: Option<FileKind>,
         owner_id: Option<String>,
@@ -65,8 +81,8 @@ impl MountedFileIdentity {
             OwnerKind::Rel => validate_rel_owner_id(&owner_id)?,
             OwnerKind::Phy => validate_owner_id(&owner_id, "phy-")?,
         }
-        let key = physical_key(file)
-            .map_err(operation)?
+        let key = identity
+            .map(|(volume, index)| FileKey::Physical(volume, index))
             .unwrap_or_else(|| FileKey::PathScoped(canonical_path.clone()));
         Ok(Self {
             owner_id,
@@ -149,51 +165,6 @@ impl Drop for MountClaim {
         }
     }
 }
-#[cfg(unix)]
-fn physical_key(file: &File) -> std::io::Result<Option<FileKey>> {
-    use std::os::unix::fs::MetadataExt;
-    let metadata = file.metadata()?;
-    Ok(Some(FileKey::Physical(metadata.dev(), metadata.ino())))
-}
-#[cfg(windows)]
-fn physical_key(file: &File) -> std::io::Result<Option<FileKey>> {
-    use std::os::windows::io::AsRawHandle;
-    // BY_HANDLE_FILE_INFORMATION: thirteen DWORDs, including three FILETIMEs.
-    #[repr(C)]
-    struct Information {
-        attributes: u32,
-        creation: [u32; 2],
-        access: [u32; 2],
-        write: [u32; 2],
-        volume: u32,
-        size_high: u32,
-        size_low: u32,
-        links: u32,
-        index_high: u32,
-        index_low: u32,
-    }
-    #[link(name = "kernel32")]
-    unsafe extern "system" {
-        fn GetFileInformationByHandle(
-            handle: *mut std::ffi::c_void,
-            information: *mut Information,
-        ) -> i32;
-    }
-    let mut information = std::mem::MaybeUninit::<Information>::uninit();
-    // SAFETY: the live File owns this handle and the OS writes this repr(C) structure.
-    if unsafe { GetFileInformationByHandle(file.as_raw_handle(), information.as_mut_ptr()) } == 0 {
-        return Ok(None);
-    }
-    // SAFETY: success initializes every field.
-    let information = unsafe { information.assume_init() };
-    let index = (u64::from(information.index_high) << 32) | u64::from(information.index_low);
-    Ok((index != 0).then_some(FileKey::Physical(u64::from(information.volume), index)))
-}
-#[cfg(not(any(unix, windows)))]
-fn physical_key(_: &File) -> std::io::Result<Option<FileKey>> {
-    Ok(None)
-}
-
 impl GatewayRuntime {
     /// Reuse aliases before opening another mutable owner; reject conflicting UUID copies.
     pub fn mount_rel_path(

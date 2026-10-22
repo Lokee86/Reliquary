@@ -190,28 +190,8 @@ pub(crate) fn decode(bytes: &[u8]) -> Result<Option<Publication>, MemoryError> {
 pub(crate) fn decode_embedded_version_range(
     bytes: &[u8],
 ) -> Result<Option<(u64, u32, i64)>, MemoryError> {
-    if !bytes.starts_with(MAGIC) {
-        return Ok(None);
-    }
-    let invalid = || MemoryError::CorruptRecord("external publication");
-    if bytes.len() < 68 || bytes.len() > MAX_EXTERNAL_INDEX_BYTES + 68 {
-        return Err(invalid());
-    }
-    let len = u64::from_le_bytes(bytes[8..16].try_into().unwrap());
-    if usize::try_from(len).ok().and_then(|n| n.checked_add(68)) != Some(bytes.len())
-        || Sha256::digest(&bytes[..bytes.len() - 32]).as_slice() != &bytes[bytes.len() - 32..]
-    {
-        return Err(invalid());
-    }
-    let count = u32::from_le_bytes(bytes[24..28].try_into().unwrap());
-    if count > 128 {
-        return Err(invalid());
-    }
-    Ok(Some((
-        u64::from_le_bytes(bytes[16..24].try_into().unwrap()),
-        count,
-        i64::from_le_bytes(bytes[28..36].try_into().unwrap()),
-    )))
+    crate::container::grouped_clock::external_range(bytes)
+        .map_err(|_| MemoryError::CorruptRecord("external publication"))
 }
 impl crate::memory_store::MemoryStore {
     pub(crate) fn external_window(

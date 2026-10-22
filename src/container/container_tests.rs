@@ -4,7 +4,9 @@ use std::path::PathBuf;
 
 fn test_path(name: &str) -> PathBuf {
     let unique = uuid::Uuid::new_v4();
-    let dir = std::env::temp_dir().join(format!("continuity-{unique}"));
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(".test-tmp")
+        .join(format!("continuity-{unique}"));
     fs::create_dir_all(&dir).unwrap();
     dir.join(name)
 }
@@ -87,19 +89,111 @@ fn append_then_read_chunks() {
 }
 
 #[test]
-fn visit_payloads_streams_in_order_without_chunk_index() {
+fn writer_and_snapshot_leases_exclude_incompatible_opens() {
+    let path = test_path("lease-conflict.cva");
+    let writer = Container::create(&path).unwrap();
+    assert!(matches!(
+        Container::open(&path),
+        Err(ContainerError::WriterConflict)
+    ));
+    drop(writer);
+
+    let snapshot = Container::open_read_only_for_scan(&path).unwrap();
+    assert!(matches!(
+        Container::open(&path),
+        Err(ContainerError::WriterConflict)
+    ));
+    drop(snapshot);
+    assert!(Container::open(&path).is_ok());
+}
+
+#[test]
+fn hardlink_aliases_share_writer_authority() {
+    let path = test_path("lease-hardlink.cva");
+    let alias = path.with_file_name("lease-hardlink-alias.cva");
+    let writer = Container::create(&path).unwrap();
+    fs::hard_link(&path, &alias).unwrap();
+    assert!(matches!(
+        Container::open(&alias),
+        Err(ContainerError::WriterConflict)
+    ));
+    drop(writer);
+    assert!(Container::open(&alias).is_ok());
+}
+
+#[test]
+fn incomplete_tail_requires_explicit_repair_plan() {
+    let path = test_path("explicit-repair.cva");
+    let mut writer = Container::create(&path).unwrap();
+    writer.append(b"accepted").unwrap();
+    writer.sync().unwrap();
+    drop(writer);
+    let complete_len = fs::metadata(&path).unwrap().len();
+    use std::io::Write as _;
+    fs::OpenOptions::new()
+        .append(true)
+        .open(&path)
+        .unwrap()
+        .write_all(&[8, 0, 0])
+        .unwrap();
+
+    assert!(matches!(
+        Container::open(&path),
+        Err(ContainerError::RepairRequired { valid_end }) if valid_end == complete_len
+    ));
+    let mut repair = Container::open_for_repair(&path).unwrap();
+    let plan = repair.plan_tail_repair().unwrap().unwrap();
+    let staged = path.with_file_name("explicit-repair-prefix.cva");
+    repair.copy_accepted_prefix(&plan, &staged).unwrap();
+    repair.repair_incomplete_tail(plan).unwrap();
+    assert_eq!(fs::metadata(&path).unwrap().len(), complete_len);
+    assert!(repair.plan_tail_repair().unwrap().is_none());
+}
+
+#[test]
+fn held_read_source_blocks_mutation_without_changing_bytes() {
+    let path = test_path("read-source-gate.cva");
+    let mut writer = Container::create(&path).unwrap();
+    writer.append(b"before").unwrap();
+    let source = writer.read_source().unwrap();
+    let before_len = writer.physical_length().unwrap();
+    let cursor = source.physical_cursor().unwrap();
+    assert!(matches!(
+        writer.append(b"blocked"),
+        Err(ContainerError::UnstableSnapshot)
+    ));
+    assert_eq!(writer.physical_length().unwrap(), before_len);
+    drop(cursor);
+    writer.append(b"after").unwrap();
+    assert_eq!(writer.physical_length().unwrap(), before_len + 8 + 5);
+}
+
+#[test]
+fn read_source_keeps_writer_lease_alive_after_writer_drop() {
+    let path = test_path("read-source-lease-lifetime.cva");
+    let writer = Container::create(&path).unwrap();
+    let source = writer.read_source().unwrap();
+    drop(writer);
+    assert!(matches!(
+        Container::open(&path),
+        Err(ContainerError::WriterConflict)
+    ));
+    drop(source);
+    assert!(Container::open(&path).is_ok());
+}
+
+#[test]
+fn physical_cursor_streams_in_order_without_chunk_index() {
     let path = test_path("streaming-chunks.cva");
     let mut container = Container::create(&path).unwrap();
     let first = container.append(b"one").unwrap();
     let second = container.append(b"two").unwrap();
 
     let mut visited = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|object, payload| {
-            visited.push((object, payload.to_vec()));
-            Ok(())
-        })
-        .unwrap();
+    let mut cursor = container.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        visited.push((frame.object, frame.payload));
+    }
     assert_eq!(
         visited,
         vec![(first, b"one".to_vec()), (second, b"two".to_vec())]
@@ -107,48 +201,23 @@ fn visit_payloads_streams_in_order_without_chunk_index() {
 }
 
 #[test]
-fn reject_truncated_header() {
-    let path = test_path("truncated.cva");
-    fs::write(&path, b"CVA").unwrap();
-    assert!(matches!(
-        Container::open(path),
-        Err(ContainerError::TruncatedHeader)
-    ));
-}
-
-#[test]
-fn recover_truncated_trailing_chunk() {
-    let path = test_path("truncated-chunk.cva");
+fn bounded_physical_cursor_preserves_live_clock_state() {
+    let path = test_path("bounded-streaming-clocks.cva");
     let mut container = Container::create(&path).unwrap();
-    container.append(b"complete").unwrap();
-    container.sync().unwrap();
-    drop(container);
-    let mut bytes = fs::read(&path).unwrap();
-    bytes.pop();
-    fs::write(&path, bytes).unwrap();
+    let first = container.allocate_version().unwrap();
+    let second = container.allocate_version().unwrap();
+    let before_latest = container.latest_version();
+    let before_time = container.transaction_time_ns(1);
+    let end = container.chunks().unwrap()[1].legacy_offset();
 
-    let mut reopened = Container::open(&path).unwrap();
-    assert!(reopened.chunks().unwrap().is_empty());
-    assert_eq!(fs::metadata(path).unwrap().len(), 16);
-}
+    let mut cursor = container.physical_cursor_through(end).unwrap();
+    let frame = cursor.next_frame().unwrap().unwrap();
+    assert_eq!(frame.latest_global, 1);
+    assert!(cursor.next_frame().unwrap().is_none());
 
-#[test]
-fn read_only_stream_scan_rejects_truncated_tail_without_repair() {
-    let path = test_path("readonly-truncated-chunk.cva");
-    let mut container = Container::create(&path).unwrap();
-    container.append(b"complete").unwrap();
-    container.sync().unwrap();
-    drop(container);
-    let mut bytes = fs::read(&path).unwrap();
-    bytes.pop();
-    fs::write(&path, &bytes).unwrap();
-
-    let mut scan = Container::open_read_only_for_scan(&path).unwrap();
-    assert!(matches!(
-        scan.visit_payloads::<ContainerError>(|_, _| Ok(())),
-        Err(ContainerError::TruncatedChunk(_))
-    ));
-    assert_eq!(fs::metadata(path).unwrap().len(), bytes.len() as u64);
+    assert_eq!(container.latest_version(), before_latest);
+    assert_eq!(container.transaction_time_ns(1), before_time);
+    assert_eq!((first, second), (1, 2));
 }
 
 #[test]

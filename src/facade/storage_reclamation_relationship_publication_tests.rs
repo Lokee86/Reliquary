@@ -266,12 +266,24 @@ fn rel_and_phy_reclamation_preserves_relationship_envelopes_and_discards_orphans
         let payloads = {
             let mut container = Container::open(&output).unwrap();
             let mut values = Vec::new();
-            container
-                .visit_payloads::<ContainerError>(|_, payload| {
-                    values.push(payload.to_vec());
-                    Ok(())
-                })
-                .unwrap();
+            {
+                let mut ingest_frame =
+                    |frame: crate::container::PhysicalFrame| -> Result<(), ContainerError> {
+                        let payload = frame.payload.as_slice();
+                        {
+                            values.push(payload.to_vec());
+                            Ok(())
+                        }
+                    };
+                let mut cursor = container.physical_cursor().unwrap();
+                (|| {
+                    while let Some(frame) = cursor.next_frame()? {
+                        ingest_frame(frame)?;
+                    }
+                    Ok::<(), ContainerError>(())
+                })()
+            }
+            .unwrap();
             values
         };
         assert!(!payloads.iter().any(|payload| {

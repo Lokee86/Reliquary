@@ -45,9 +45,9 @@ pub(crate) fn reconcile_import_epochs(
     right_path: &Path,
     output_path: &Path,
     comparison: CvaComparison,
-) -> Result<Option<CvaReconcileResult>, CvaReconcileError> {
-    let mut left = Cva::open(left_path)?;
-    let mut right = Cva::open(right_path)?;
+) -> Result<Option<(CvaReconcileResult, Cva)>, CvaReconcileError> {
+    let mut left = Cva::open_read_only(left_path)?;
+    let mut right = Cva::open_read_only(right_path)?;
     if left.import_epoch_statuses().is_empty() && right.import_epoch_statuses().is_empty() {
         return Ok(None);
     }

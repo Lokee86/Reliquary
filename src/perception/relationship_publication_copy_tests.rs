@@ -73,8 +73,7 @@ fn append(
     container.read(object).unwrap()
 }
 
-fn envelope_payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn envelope_payloads(container: &mut Container) -> Vec<Vec<u8>> {
     container
         .chunks()
         .unwrap()
@@ -192,13 +191,13 @@ fn rel_attachment_repack_preserves_exact_relationship_envelopes_cuts_and_termina
         independent_payload,
         terminal_payload,
     ];
-    assert_eq!(envelope_payloads(&source_path), expected_envelopes);
+    assert_eq!(envelope_payloads(&mut owner.container), expected_envelopes);
     let report = owner
         .repack_project_backed_attachments(&output_path)
         .unwrap();
     assert_eq!(report.dropped_content_objects, 1);
     let mut output = Cva::open_project(&output_path).unwrap();
-    assert_eq!(envelope_payloads(&output_path), expected_envelopes);
+    assert_eq!(envelope_payloads(&mut output.container), expected_envelopes);
     assert_cuts_equal(&owner, &output);
     assert_eq!(
         owner.relationship_retention_descriptor(first.id).unwrap(),
@@ -252,9 +251,9 @@ fn native_phy_reclaim_preserves_relationship_envelopes_and_every_retained_cut() 
     let expected = vec![first_bytes, second_bytes, terminal_bytes];
     let mut source = Phylactery::open(&source_path).unwrap();
     let report = source.reclaim_storage(&output_path).unwrap();
-    let output = Phylactery::open(&output_path).unwrap();
+    let mut output = Phylactery::open(&output_path).unwrap();
     assert_eq!(report.reclaimed_chunks, 0);
-    assert_eq!(envelope_payloads(&output_path), expected);
+    assert_eq!(envelope_payloads(&mut output.container), expected);
     assert_eq!(
         source.relationships.records(),
         output.relationships.records()

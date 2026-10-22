@@ -464,18 +464,30 @@ fn reopen_rejects_completion_physically_before_its_settlement() {
         .unwrap()
         .encode();
 
-    let mut scan = Container::open_read_only_for_scan(&path).unwrap();
     let mut settlement_offset = None;
-    scan.visit_payloads::<crate::ContainerError>(|object, payload| {
-        if payload.starts_with(b"CVAFRS06") {
-            settlement_offset = Some(u64::from_le_bytes(
-                object.legacy_bytes()[..8].try_into().unwrap(),
-            ));
-        }
-        Ok(())
-    })
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                let object = frame.object;
+                let payload = frame.payload.as_slice();
+                {
+                    if payload.starts_with(b"CVAFRS06") {
+                        settlement_offset = Some(u64::from_le_bytes(
+                            object.legacy_bytes()[..8].try_into().unwrap(),
+                        ));
+                    }
+                    Ok(())
+                }
+            };
+        let mut cursor = cva.container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), crate::ContainerError>(())
+        })()
+    }
     .unwrap();
-    drop(scan);
     drop(cva);
 
     let settlement_offset = settlement_offset.expect("physical scoped settlement frame");

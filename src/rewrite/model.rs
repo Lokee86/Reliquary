@@ -186,6 +186,8 @@ pub struct RewritePlan {
     pub source_global_version: u64,
     pub source_memory_version: u64,
     pub source_head_digest: String,
+    /// Local OS file identity captured while the planning read lease is held.
+    pub source_file_identity: (u64, u64),
     pub request: RewriteRequest,
     pub memory_decisions: Vec<MemoryRewriteDecision>,
     pub selected_revisions: Vec<MemoryRevisionSelection>,

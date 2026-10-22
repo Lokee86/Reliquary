@@ -6,6 +6,17 @@ The import integration writes CVAFRS06 semantic settlements from a transient phy
 
 Completed native import reconciliation may retain the left physical prefix as an output-construction optimization and replays the right divergent intervals in physical order through the Archive, grouped Insomnia/Memory, Entity, Relationship, Graph, Community, Dream, Perception and Freshness owners; the retained prefix is not semantic import authority. Grouped completions retain complete record/body/routing/birth evidence; only destination version and activity coordinates are rebased. Scoped settlements and completion markers are rebuilt through native reconstruction/completion. Exact normalized accepted source evidence deduplicates; conflicting import identity fails closed. Open epochs, external PHY publications, unsupported owner payloads and outstanding source Insomnia work remain refused. Transform validation compares exact epoch markers/statuses and settlement authority.
 
+## Physical reader and writer admission
+
+A read-only source session requires a coherent shared OS lease. A held writable
+Runtime mount therefore causes typed contention for independent source inspection
+or rewrite; callers must quiesce/unmount first. The implementation does not borrow
+mutable mount handles as snapshots. Filesystems without reliable file locking are
+refused. Rewritten outputs require atomic no-overwrite hard-link publication in
+the destination directory; unsupported filesystems fail without overwriting an
+existing output. Unix directory synchronization follows successful publication.
+
+
 ## Compact-history rollout boundary
 
 All six pinned REL/PHY sources have admitted canonical V2 copies with zero

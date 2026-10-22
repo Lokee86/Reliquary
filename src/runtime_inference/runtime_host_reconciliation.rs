@@ -52,7 +52,10 @@ pub(crate) fn reconcile_rel_file_unmounted(
 }
 
 fn reconcile_rel_siblings(canonical: &Path) -> Result<RelReconciliationReport, String> {
-    let canonical_cva = Cva::open(canonical).map_err(|error| error.to_string())?;
+    // Discovery only needs the durable owner identity. Keep this as a brief
+    // shared inspection so sibling reconciliation never holds a writer lease
+    // while compare/promotion opens the same physical owner.
+    let canonical_cva = Cva::open_read_only(canonical).map_err(|error| error.to_string())?;
     let owner_id = canonical_cva
         .owner_id()
         .ok_or_else(|| "Reliquary does not have durable owner identity".to_string())?;
@@ -87,7 +90,7 @@ fn discover_candidates(canonical: &Path, owner_id: &str) -> Result<Vec<PathBuf>,
         if fs::canonicalize(&path).is_ok_and(|real| real == canonical_real) {
             continue;
         }
-        let Ok(candidate) = Cva::open(&path) else {
+        let Ok(candidate) = Cva::open_read_only(&path) else {
             continue;
         };
         if candidate.owner_id().as_deref() == Some(owner_id) {

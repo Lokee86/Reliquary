@@ -3,10 +3,12 @@ use std::fs;
 use std::path::PathBuf;
 
 fn test_dir() -> PathBuf {
-    let dir = std::env::temp_dir().join(format!(
-        "reliquary-transaction-time-{}",
-        uuid::Uuid::new_v4()
-    ));
+    let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join(".test-tmp")
+        .join(format!(
+            "reliquary-transaction-time-{}",
+            uuid::Uuid::new_v4()
+        ));
     fs::create_dir_all(&dir).unwrap();
     dir
 }

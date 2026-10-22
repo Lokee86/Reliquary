@@ -40,20 +40,31 @@ fn draft(name: &str, mutation_id: &str, summary: &str) -> EntityDraft {
     }
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = crate::Container::open(path).unwrap();
+fn payloads(container: &crate::Container) -> Vec<Vec<u8>> {
     let mut values = Vec::new();
-    container
-        .visit_payloads::<crate::ContainerError>(|_, payload| {
-            values.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::ContainerError> {
+                let payload = frame.payload.as_slice();
+                {
+                    values.push(payload.to_vec());
+                    Ok(())
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), crate::ContainerError>(())
+        })()
+    }
+    .unwrap();
     values
 }
 
-fn publications(path: &Path) -> Vec<(u64, EntityPublication)> {
-    payloads(path)
+fn publications(container: &crate::Container) -> Vec<(u64, EntityPublication)> {
+    payloads(container)
         .iter()
         .filter_map(|payload| decode_publication_envelope(payload).unwrap())
         .map(|envelope| {
@@ -67,8 +78,12 @@ fn publications(path: &Path) -> Vec<(u64, EntityPublication)> {
         .collect()
 }
 
-fn assert_compact_stream(path: &Path, expected_creation_id: EntityId, expected_delta_id: EntityId) {
-    let values = payloads(path);
+fn assert_compact_stream(
+    container: &crate::Container,
+    expected_creation_id: EntityId,
+    expected_delta_id: EntityId,
+) {
+    let values = payloads(container);
     let publications = values
         .iter()
         .filter_map(|payload| decode_publication_envelope(payload).unwrap())
@@ -211,8 +226,8 @@ fn assert_publication_retry_contract_rel(path: &Path) {
     rel.tombstone_entity(direct.id, direct.revision).unwrap();
     rel.sync().unwrap();
 
-    assert_compact_stream(path, created.id, created.id);
-    let entity_publications = publications(path);
+    assert_compact_stream(&rel.container, created.id, created.id);
+    let entity_publications = publications(&rel.container);
     assert_eq!(
         entity_publications
             .iter()
@@ -330,8 +345,8 @@ fn assert_publication_retry_contract_phy(path: &Path) {
     phy.tombstone_entity(direct.id, direct.revision).unwrap();
     phy.sync().unwrap();
 
-    assert_compact_stream(path, created.id, created.id);
-    let entity_publications = publications(path);
+    assert_compact_stream(&phy.container, created.id, created.id);
+    let entity_publications = publications(&phy.container);
     assert_eq!(
         entity_publications
             .iter()
@@ -402,7 +417,7 @@ fn assert_validation_rejected_before_append_phy(path: &Path) {
     assert_eq!(phy.entity_version(), before_local);
 }
 
-fn assert_truncated_terminal_envelope_recovers_rel(path: &Path) {
+fn assert_truncated_terminal_envelope_requires_explicit_repair_rel(path: &Path) {
     let mut rel = Cva::create(path).unwrap();
     let (created, _) = rel
         .publish_entity(None, 0, draft("Recovery", "recovery-create", "Initial"))
@@ -420,13 +435,17 @@ fn assert_truncated_terminal_envelope_recovers_rel(path: &Path) {
     let mut bytes = fs::read(path).unwrap();
     bytes.pop();
     fs::write(path, bytes).unwrap();
+    let damaged = fs::read(path).unwrap();
+    assert!(Cva::open_read_only(path).is_err());
+    assert_eq!(fs::read(path).unwrap(), damaged);
+    Cva::repair_incomplete_tail(path).unwrap();
     let reopened = Cva::open(path).unwrap();
     assert_eq!(reopened.entity_version(), 2);
     assert_eq!(reopened.latest_global_version(), 2);
     assert_eq!(reopened.entity(created.id).unwrap().summary, "Updated");
 }
 
-fn assert_truncated_terminal_envelope_recovers_phy(path: &Path) {
+fn assert_truncated_terminal_envelope_requires_explicit_repair_phy(path: &Path) {
     let mut phy = Phylactery::create(path).unwrap();
     let (created, _) = phy
         .publish_entity(None, 0, draft("Recovery", "recovery-create", "Initial"))
@@ -444,6 +463,10 @@ fn assert_truncated_terminal_envelope_recovers_phy(path: &Path) {
     let mut bytes = fs::read(path).unwrap();
     bytes.pop();
     fs::write(path, bytes).unwrap();
+    let damaged = fs::read(path).unwrap();
+    assert!(Phylactery::open_read_only(path).is_err());
+    assert_eq!(fs::read(path).unwrap(), damaged);
+    Phylactery::repair_incomplete_tail(path).unwrap();
     let reopened = Phylactery::open(path).unwrap();
     assert_eq!(reopened.entity_version(), 2);
     assert_eq!(reopened.latest_global_version(), 2);
@@ -475,13 +498,13 @@ fn phy_entity_writer_validates_before_append() {
 }
 
 #[test]
-fn rel_entity_writer_recovers_incomplete_final_terminal_envelope() {
+fn rel_entity_writer_requires_explicit_repair_for_incomplete_final_terminal_envelope() {
     let scratch = Scratch::new();
-    assert_truncated_terminal_envelope_recovers_rel(&scratch.file("tail.rel"));
+    assert_truncated_terminal_envelope_requires_explicit_repair_rel(&scratch.file("tail.rel"));
 }
 
 #[test]
-fn phy_entity_writer_recovers_incomplete_final_terminal_envelope() {
+fn phy_entity_writer_requires_explicit_repair_for_incomplete_final_terminal_envelope() {
     let scratch = Scratch::new();
-    assert_truncated_terminal_envelope_recovers_phy(&scratch.file("tail.phy"));
+    assert_truncated_terminal_envelope_requires_explicit_repair_phy(&scratch.file("tail.phy"));
 }

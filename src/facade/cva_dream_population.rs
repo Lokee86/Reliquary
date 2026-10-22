@@ -163,16 +163,29 @@ impl DreamPopulationPrefix {
     /// Scan through a previously accepted physical boundary. Later bytes are
     /// not visited, and the container's live clock remains untouched.
     pub(crate) fn scan_through(
-        container: &mut Container,
+        container: &Container,
         archive: &Archive,
         memories: &crate::memory_store::MemoryStore,
         owner: [u8; 16],
         prefix_end: u64,
     ) -> Result<Self, CvaError> {
         let mut state = Self::new(owner);
-        container.visit_versioned_payloads_through(prefix_end, |chunk, payload, frontier| {
-            state.ingest(archive, memories, chunk, payload, frontier)
-        })?;
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                    let chunk = frame.object;
+                    let payload = frame.payload.as_slice();
+                    let frontier = frame.latest_global;
+                    { state.ingest(archive, memories, chunk, payload, frontier) }
+                };
+            let mut cursor = container.physical_cursor_through(prefix_end)?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
+                }
+                Ok::<(), crate::CvaError>(())
+            })()
+        }?;
         Ok(state)
     }
 }

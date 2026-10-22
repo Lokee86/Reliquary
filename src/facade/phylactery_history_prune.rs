@@ -26,15 +26,7 @@ impl Phylactery {
             ));
         }
         self.container.sync()?;
-        let source = Phylactery::open(self.container.path())?;
-        if source.latest_global_version() != self.latest_global_version()
-            || source.owner_uuid() != self.owner_uuid()
-        {
-            return Err(PhylacteryError::Repack(
-                "source changed before prune admission".into(),
-            ));
-        }
-        drop(source);
+        self.container.validate_path_identity()?;
         if !self.owner_maintenance.is_empty() {
             return Err(PhylacteryError::Repack(
                 "additional pruning of an already pruned owner is unsupported".into(),
@@ -204,6 +196,7 @@ impl Phylactery {
             .len();
         let source_objects = self.container.chunks()?;
         let mut output = self.container.create_empty_like(output_path)?;
+        let output_guard = output.read_source()?;
         let copy = (|| {
             let mut relocated = BTreeMap::new();
             for object in &source_objects {
@@ -241,17 +234,22 @@ impl Phylactery {
         })();
         if let Err(error) = copy {
             drop(output);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(error);
         }
-        drop(output);
-        let reopened = Phylactery::open(output_path).map_err(|error| {
-            let _ = fs::remove_file(output_path);
+        let reopened = Phylactery::open_from_container(output).map_err(|error| {
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             error
         })?;
         if phy_clocks(self) != phy_clocks(&reopened) || self.owner_uuid() != reopened.owner_uuid() {
             drop(reopened);
-            let _ = fs::remove_file(output_path);
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path);
+            }
             return Err(PhylacteryError::Repack(
                 "pruned PHY changed owner or semantic clocks".into(),
             ));

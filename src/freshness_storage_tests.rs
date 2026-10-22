@@ -34,13 +34,14 @@ fn accepted_prefix_ignores_partial_tail_and_rejects_unsupported_records() {
     drop(tail);
     let before = std::fs::read(&path).unwrap();
     let mut visits = 0;
-    stream::scan_entries(&path, accepted_end, |_, _| {
+    let source = container.read_source().unwrap();
+    stream::scan_entries(&source, accepted_end, |_, _| {
         visits += 1;
         Ok(())
     })
     .unwrap();
     assert_eq!(visits, 1);
-    assert!(stream::scan_entries(&path, accepted_end - 1, |_, _| Ok(())).is_err());
+    assert!(stream::scan_entries(&source, accepted_end - 1, |_, _| Ok(())).is_err());
     assert_eq!(std::fs::read(&path).unwrap(), before);
     drop(container);
     std::fs::remove_file(&path).unwrap();
@@ -49,7 +50,7 @@ fn accepted_prefix_ignores_partial_tail_and_rejects_unsupported_records() {
     container.sync().unwrap();
     assert!(
         stream::scan_entries(
-            &path,
+            &container.read_source().unwrap(),
             std::fs::metadata(&path).unwrap().len(),
             |_, _| Ok(())
         )
@@ -198,7 +199,9 @@ fn canonical_history_scaling_measurement() {
             assert!(resident <= RECENT_LIMIT && bytes <= RECENT_BYTES);
         }
         container.sync().unwrap();
-        store.bind_history_path(&path, std::fs::metadata(&path).unwrap().len());
+        store
+            .bind_history_source(&container, std::fs::metadata(&path).unwrap().len())
+            .unwrap();
         let start = Instant::now();
         let result = store.records_at((count * 17) as u64).unwrap();
         let elapsed = start.elapsed();
@@ -215,7 +218,7 @@ fn canonical_history_scaling_measurement() {
         assert_eq!(result[&source], expected);
         let mut rebuilt_cache = enrolled();
         stream::scan_entries(
-            &path,
+            &container.read_source().unwrap(),
             std::fs::metadata(&path).unwrap().len(),
             |_, entry| {
                 rebuilt_cache.remember(entry).unwrap();
@@ -229,7 +232,9 @@ fn canonical_history_scaling_measurement() {
             rebuilt_cache.recent_receipt_stats(),
             cache.recent_receipt_stats()
         );
-        rebuilt_cache.bind_history_path(&path, std::fs::metadata(&path).unwrap().len());
+        rebuilt_cache
+            .bind_history_source(&container, std::fs::metadata(&path).unwrap().len())
+            .unwrap();
         let evicted = format!("long-{:08}", count - 1);
         assert!(
             rebuilt_cache
@@ -834,7 +839,7 @@ fn long_owner_reopen_keeps_finite_receipts_and_exact_evicted_retry() {
     };
     // Construct prevalidated receipts without benchmarking repeated public writes.
     let mut frozen = rel.freshness.clone();
-    frozen.history_path = None;
+    frozen.history_source = None;
     frozen.recent.clear();
     frozen.recent_bytes = 0;
     for n in (0..20000).rev() {
@@ -911,7 +916,9 @@ fn membership_hint_preserves_evicted_retry_collision_history_and_rebuild() {
     // Exact scan fallback needs a valid physical prefix, even with no receipts.
     container.append(b"membership-fixture").unwrap();
     container.sync().unwrap();
-    store.bind_history_path(&path, std::fs::metadata(&path).unwrap().len());
+    store
+        .bind_history_source(&container, std::fs::metadata(&path).unwrap().len())
+        .unwrap();
     store.finish_rebuild().unwrap();
     let owner = [7; 16];
     let source = MemoryId([1; 32]);
@@ -982,19 +989,32 @@ fn membership_hint_preserves_evicted_retry_collision_history_and_rebuild() {
     assert!(store.recent_receipt_stats().0 <= 128);
     assert!(store.recent_receipt_stats().1 <= 256 * 1024);
     let mut rebuilt = enrolled();
-    rebuilt.bind_history_path(&path, 0);
+    rebuilt.bind_history_source(&container, 0).unwrap();
     rebuilt.begin_rebuild();
-    container
-        .visit_payloads::<crate::CvaError>(|object, payload| {
-            let location = object.legacy_bytes();
-            let end = u64::from_le_bytes(location[..8].try_into().unwrap())
-                + 8
-                + u64::from_le_bytes(location[8..].try_into().unwrap());
-            rebuilt
-                .ingest_scanned(payload, end)
-                .map_err(crate::CvaError::Freshness)
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), crate::CvaError> {
+                let object = frame.object;
+                let payload = frame.payload.as_slice();
+                {
+                    let location = object.legacy_bytes();
+                    let end = u64::from_le_bytes(location[..8].try_into().unwrap())
+                        + 8
+                        + u64::from_le_bytes(location[8..].try_into().unwrap());
+                    rebuilt
+                        .ingest_scanned(payload, end)
+                        .map_err(crate::CvaError::Freshness)
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), crate::CvaError>(())
+        })()
+    }
+    .unwrap();
     rebuilt.finish_rebuild().unwrap();
     assert_eq!(rebuilt.records, store.records);
     assert_eq!(
@@ -1010,7 +1030,7 @@ fn membership_hint_preserves_evicted_retry_collision_history_and_rebuild() {
         store.records_at(17 * 80).unwrap()
     );
     // A rebind to an unobserved prefix must restore the exact scan fallback.
-    rebuilt.bind_history_path(&path, 0);
+    rebuilt.bind_history_source(&container, 0).unwrap();
     assert!(rebuilt.receipt_membership.may_contain(0, "never-seen"));
     drop(container);
     std::fs::remove_file(path).unwrap();

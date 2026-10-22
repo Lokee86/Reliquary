@@ -352,6 +352,18 @@ fn truncated_completion_is_recovered_for_zero_one_and_many_memories_then_retries
         for (iteration, cut) in cuts.into_iter().enumerate() {
             fs::write(&path, &original[..cut as usize]).unwrap();
 
+            let incomplete_bytes = fs::read(&path).unwrap();
+            assert!(matches!(
+                Cva::open(&path),
+                Err(crate::CvaError::Container(crate::ContainerError::RepairRequired {
+                    valid_end
+                })) if valid_end == commit_offset
+            ));
+            assert_eq!(fs::read(&path).unwrap(), incomplete_bytes);
+            assert_eq!(
+                Cva::repair_incomplete_tail(&path).unwrap(),
+                crate::TailRepairOutcome::Repaired
+            );
             let mut reopened = Cva::open(&path).unwrap();
             assert_eq!(reopened.memory_stats().memories, 0);
             assert_eq!(

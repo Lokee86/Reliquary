@@ -35,6 +35,8 @@ fn reconcile_merges_disjoint_divergent_graph_relations() {
     );
     right_cva.sync().unwrap();
 
+    drop(left_cva);
+    drop(right_cva);
     let result = Cva::reconcile(&left, &right, &output).unwrap();
     assert_eq!(result.replayed_graph_transactions, 1);
     assert_eq!(result.replayed_graph_mutations, 1);
@@ -81,6 +83,8 @@ fn reconcile_preserves_user_relation_origin() {
         .unwrap();
     right_cva.sync().unwrap();
 
+    drop(left_cva);
+    drop(right_cva);
     Cva::reconcile(&left, &right, &output).unwrap();
     let merged = Cva::open(output).unwrap();
     let relation = merged.graph_relations().into_iter().next().unwrap();
@@ -112,6 +116,8 @@ fn reconcile_replays_graph_after_right_only_memory() {
     );
     right_cva.sync().unwrap();
 
+    drop(left_cva);
+    drop(right_cva);
     Cva::reconcile(&left, &right, &output).unwrap();
     let mut merged = Cva::open(output).unwrap();
     assert!(merged.memory(new_id).is_ok());
@@ -158,6 +164,8 @@ fn reconcile_preserves_atomic_graph_batch() {
         .unwrap();
     right_cva.sync().unwrap();
 
+    drop(left_cva);
+    drop(right_cva);
     let result = Cva::reconcile(&left, &right, &output).unwrap();
     assert_eq!(result.replayed_graph_transactions, 1);
     assert_eq!(result.replayed_graph_mutations, 2);
@@ -204,6 +212,8 @@ fn reconcile_deduplicates_same_divergent_graph_history() {
     );
     right_cva.sync().unwrap();
 
+    drop(left_cva);
+    drop(right_cva);
     let result = Cva::reconcile(&left, &right, &output).unwrap();
     assert_eq!(result.duplicate_graph_mutations, 1);
     assert_eq!(result.replayed_graph_mutations, 1);
@@ -239,6 +249,8 @@ fn reconcile_preserves_graph_retraction() {
     );
     right_cva.sync().unwrap();
 
+    drop(left_cva);
+    drop(right_cva);
     Cva::reconcile(&left, &right, &output).unwrap();
     let merged = Cva::open(output).unwrap();
     assert!(!has_relation(
@@ -281,6 +293,8 @@ fn absorbed_graph_copy_is_semantic_noop() {
     );
     right_cva.sync().unwrap();
 
+    drop(left_cva);
+    drop(right_cva);
     Cva::reconcile(&left, &right, &merged).unwrap();
     let before = fs::read(&merged).unwrap();
     let result = Cva::reconcile(&merged, &right, &second).unwrap();

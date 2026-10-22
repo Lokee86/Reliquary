@@ -91,6 +91,7 @@ fn reconcile_replays_grouped_insomnia_memory_records() {
         )
         .unwrap();
     left_cva.sync().unwrap();
+    drop(left_cva);
 
     let mut right_cva = Cva::open(&right).unwrap();
     let (episode, draft) = seed_right(&mut right_cva);

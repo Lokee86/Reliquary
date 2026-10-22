@@ -196,8 +196,11 @@ fn processing_epoch_put_persists_current_format_and_is_idempotent() {
     drop(container);
 
     let mut reopened = ProcessingEpochStore::default();
-    let _container: Container =
-        Container::open_scanned(&path, |_, bytes, _| reopened.ingest(bytes)).unwrap();
+    let container = Container::open_read_only_for_scan(&path).unwrap();
+    let mut cursor = container.physical_cursor().unwrap();
+    while let Some(frame) = cursor.next_frame().unwrap() {
+        reopened.ingest(&frame.payload).unwrap();
+    }
     assert_eq!(reopened.state(id, lane), Some(state(5, 4, Some(20))));
 }
 

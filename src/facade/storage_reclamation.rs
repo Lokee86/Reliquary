@@ -45,15 +45,20 @@ impl Cva {
             archive_version: Some(self.archive_version()),
             vector_version: Some(self.vector_version()),
         };
-        let report = reclaim_container(&mut self.container, output_path.as_ref())
+        let (report, output) = reclaim_container(&mut self.container, output_path.as_ref())
             .map_err(CvaError::Repack)?;
-        let reopened = Cva::open(output_path.as_ref()).map_err(|error| {
-            let _ = fs::remove_file(output_path.as_ref());
+        let output_guard = output.read_source()?;
+        let reopened = Cva::open_from_container(output).map_err(|error| {
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path.as_ref());
+            }
             error
         })?;
         if let Err(error) = self.validate_historical_import_copy(&reopened) {
             drop(reopened);
-            let _ = fs::remove_file(output_path.as_ref());
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path.as_ref());
+            }
             return Err(error);
         }
         let actual = SemanticState {
@@ -69,11 +74,14 @@ impl Cva {
         let activity_matches = self.archive.activity_history_matches(&reopened.archive);
         drop(reopened);
         if actual != expected || !activity_matches {
-            let _ = fs::remove_file(output_path.as_ref());
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path.as_ref());
+            }
             return Err(CvaError::Repack(
                 "reclaimed REL changed owner, semantic versions or activity history".into(),
             ));
         }
+        output_guard.validate_path_identity()?;
         Ok(report)
     }
 }
@@ -93,10 +101,13 @@ impl Phylactery {
             archive_version: None,
             vector_version: None,
         };
-        let report = reclaim_container(&mut self.container, output_path.as_ref())
+        let (report, output) = reclaim_container(&mut self.container, output_path.as_ref())
             .map_err(PhylacteryError::Repack)?;
-        let reopened = Phylactery::open(output_path.as_ref()).map_err(|error| {
-            let _ = fs::remove_file(output_path.as_ref());
+        let output_guard = output.read_source()?;
+        let reopened = Phylactery::open_from_container(output).map_err(|error| {
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path.as_ref());
+            }
             error
         })?;
         let actual = SemanticState {
@@ -111,11 +122,14 @@ impl Phylactery {
         };
         drop(reopened);
         if actual != expected {
-            let _ = fs::remove_file(output_path.as_ref());
+            if output_guard.validate_path_identity().is_ok() {
+                let _ = fs::remove_file(output_path.as_ref());
+            }
             return Err(PhylacteryError::Repack(
                 "reclaimed PHY changed owner or semantic version state".into(),
             ));
         }
+        output_guard.validate_path_identity()?;
         Ok(report)
     }
 }
@@ -135,7 +149,7 @@ struct SemanticState {
 fn reclaim_container(
     container: &mut Container,
     output_path: &Path,
-) -> Result<StorageReclamationReport, String> {
+) -> Result<(StorageReclamationReport, Container), String> {
     container.sync().map_err(|error| error.to_string())?;
     let source_file_bytes = fs::metadata(container.path())
         .map_err(|error| error.to_string())?
@@ -152,6 +166,7 @@ fn reclaim_container(
     let mut output = container
         .create_empty_like(output_path)
         .map_err(|error| error.to_string())?;
+    let output_guard = output.read_source().map_err(|error| error.to_string())?;
     let mut relocated = BTreeMap::<ObjectRef, ObjectRef>::new();
     let mut copied_chunks = 0_usize;
     let mut reclaimed_payload_bytes = 0_u64;
@@ -173,41 +188,48 @@ fn reclaim_container(
     })();
     if let Err(error) = copy_result {
         drop(output);
-        let _ = fs::remove_file(output_path);
+        if output_guard.validate_path_identity().is_ok() {
+            let _ = fs::remove_file(output_path);
+        }
         return Err(error);
     }
-    drop(output);
-
     let output_file_bytes = fs::metadata(output_path)
         .map_err(|error| error.to_string())?
         .len();
     if plan.drop.is_empty() && output_file_bytes != source_file_bytes {
-        let _ = fs::remove_file(output_path);
+        if output_guard.validate_path_identity().is_ok() {
+            let _ = fs::remove_file(output_path);
+        }
         return Err(format!(
             "reclamation changed file size without reclaimable chunks: source={source_file_bytes} output={output_file_bytes}"
         ));
     }
     if !plan.drop.is_empty() && output_file_bytes >= source_file_bytes {
-        let _ = fs::remove_file(output_path);
+        if output_guard.validate_path_identity().is_ok() {
+            let _ = fs::remove_file(output_path);
+        }
         return Err(format!(
             "reclamation did not shrink file: source={source_file_bytes} output={output_file_bytes}"
         ));
     }
 
-    Ok(StorageReclamationReport {
-        copied_chunks,
-        reclaimed_chunks: plan.drop.len(),
-        unpublished_backing_chunks: plan.unpublished_backing_chunks,
-        orphan_content_chunks: plan.orphan_content_chunks,
-        orphan_memory_body_chunks: plan.orphan_memory_body_chunks,
-        unactivated_archive_vector_chunks: plan.unactivated_archive_vector_chunks,
-        unreferenced_packed_vector_chunks: plan.unreferenced_packed_vector_chunks,
-        free_compaction_chunks: plan.free_compaction_chunks,
-        superseded_external_index_chunks: plan.superseded_external_index_chunks,
-        reclaimed_payload_bytes,
-        source_file_bytes,
-        output_file_bytes,
-    })
+    Ok((
+        StorageReclamationReport {
+            copied_chunks,
+            reclaimed_chunks: plan.drop.len(),
+            unpublished_backing_chunks: plan.unpublished_backing_chunks,
+            orphan_content_chunks: plan.orphan_content_chunks,
+            orphan_memory_body_chunks: plan.orphan_memory_body_chunks,
+            unactivated_archive_vector_chunks: plan.unactivated_archive_vector_chunks,
+            unreferenced_packed_vector_chunks: plan.unreferenced_packed_vector_chunks,
+            free_compaction_chunks: plan.free_compaction_chunks,
+            superseded_external_index_chunks: plan.superseded_external_index_chunks,
+            reclaimed_payload_bytes,
+            source_file_bytes,
+            output_file_bytes,
+        },
+        output,
+    ))
 }
 
 pub(crate) fn relocate_payload(

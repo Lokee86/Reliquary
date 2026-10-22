@@ -1,14 +1,28 @@
 #[path = "publication_envelope.rs"]
 pub(crate) mod publication_envelope;
 
+#[path = "container_access.rs"]
+mod access;
+#[path = "grouped_clock.rs"]
+pub(crate) mod grouped_clock;
+#[path = "container_lease.rs"]
+mod lease;
 #[path = "container_scan.rs"]
 mod scan;
+pub(super) use access::GateGuard;
+pub(crate) use access::PhysicalReadSource;
+#[path = "container_repair.rs"]
+mod repair;
+use lease::{Lease, file_identity};
+pub(crate) use repair::TailRepairPlan;
+pub(crate) use scan::PhysicalFrame;
 
 use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, atomic::AtomicUsize};
 use uuid::Uuid;
 
 const MAGIC: [u8; 8] = *b"CVA\0\r\n\x1a\n";
@@ -112,6 +126,10 @@ impl ObjectRef {
 #[derive(Debug)]
 pub struct Container {
     file: File,
+    // The lock is attached to this exact open file handle, never inferred from
+    // the pathname. It remains alive for the complete Container lifetime.
+    lease: Option<Lease>,
+    mutation_gate: Arc<AtomicUsize>,
     path: PathBuf,
     version: FormatVersion,
     identity: Option<ContainerIdentity>,
@@ -125,9 +143,6 @@ pub struct Container {
 }
 
 impl Container {
-    pub(crate) fn physical_length(&self) -> Result<u64, ContainerError> {
-        Ok(self.file.metadata()?.len())
-    }
     pub fn create(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
         let path = path.as_ref();
         let mut file = OpenOptions::new()
@@ -136,10 +151,20 @@ impl Container {
             .create_new(true)
             .open(path)
             .map_err(ContainerError::Io)?;
+        let lease = match Lease::exclusive(&file) {
+            Ok(lease) => lease,
+            Err(error) => {
+                cleanup_created_empty(path, &file);
+                return Err(error);
+            }
+        };
+        lease.ensure_path_identity(path)?;
         file.write_all(&encode_header(CURRENT_VERSION))?;
         file.sync_all()?;
         Ok(Self {
             file,
+            lease: Some(lease),
+            mutation_gate: Arc::new(AtomicUsize::new(0)),
             path: path.to_path_buf(),
             version: CURRENT_VERSION,
             identity: None,
@@ -172,10 +197,20 @@ impl Container {
             .write(true)
             .create_new(true)
             .open(path)?;
+        let lease = match Lease::exclusive(&file) {
+            Ok(lease) => lease,
+            Err(error) => {
+                cleanup_created_empty(path, &file);
+                return Err(error);
+            }
+        };
+        lease.ensure_path_identity(path)?;
         file.write_all(&encode_identity_header(identity, owner_uuid))?;
         file.sync_all()?;
         Ok(Self {
             file,
+            lease: Some(lease),
+            mutation_gate: Arc::new(AtomicUsize::new(0)),
             path: path.to_path_buf(),
             version: CURRENT_VERSION,
             identity: Some(identity),
@@ -191,6 +226,9 @@ impl Container {
 
     pub fn append(&mut self, payload: &[u8]) -> Result<ObjectRef, ContainerError> {
         self.require_write_admission()?;
+        self.require_writer_lease()?;
+        let _mutation = self.mutation_gate()?;
+        self.validate_path_identity()?;
         let len = u64::try_from(payload.len()).map_err(|_| ContainerError::ChunkTooLarge)?;
         let offset = self.file.seek(SeekFrom::End(0))?;
         self.file.write_all(&len.to_le_bytes())?;
@@ -210,6 +248,7 @@ impl Container {
     }
 
     pub(crate) fn require_write_admission(&self) -> Result<(), ContainerError> {
+        self.require_writer_lease()?;
         if self.write_admission_closed && !self.owner_write_scope {
             Err(ContainerError::WriteAdmissionClosed)
         } else {
@@ -217,9 +256,17 @@ impl Container {
         }
     }
 
+    fn require_writer_lease(&self) -> Result<(), ContainerError> {
+        if self.lease.as_ref().is_some_and(Lease::is_exclusive) {
+            self.validate_path_identity()
+        } else {
+            Err(ContainerError::ReadOnly)
+        }
+    }
+
     /// Physical allocation guard; semantic owners choose the byte budget.
     pub(crate) fn read_bounded(
-        &mut self,
+        &self,
         object: ObjectRef,
         max_bytes: usize,
     ) -> Result<Vec<u8>, ContainerError> {
@@ -229,18 +276,25 @@ impl Container {
         self.read(object)
     }
 
-    pub fn read(&mut self, object: ObjectRef) -> Result<Vec<u8>, ContainerError> {
+    pub fn read(&self, object: ObjectRef) -> Result<Vec<u8>, ContainerError> {
+        let _read = self.read_gate()?;
+        self.validate_path_identity()?;
         let chunk = object.into_chunk();
-        self.file.seek(SeekFrom::Start(chunk.offset))?;
-        let stored_len = read_u64(&mut self.file, chunk.offset)?;
+        let mut length_bytes = [0_u8; 8];
+        self.read_exact_at(&mut length_bytes, chunk.offset)
+            .map_err(|error| map_chunk_read_error(error, chunk.offset))?;
+        let stored_len = u64::from_le_bytes(length_bytes);
         if stored_len != chunk.len {
             return Err(ContainerError::InvalidChunkRef(object));
         }
         let len = usize::try_from(stored_len).map_err(|_| ContainerError::ChunkTooLarge)?;
         let mut payload = vec![0_u8; len];
-        self.file
-            .read_exact(&mut payload)
-            .map_err(|error| truncated_or_io(error, chunk.offset))?;
+        let payload_offset = chunk
+            .offset
+            .checked_add(CHUNK_HEADER_LEN)
+            .ok_or(ContainerError::ChunkTooLarge)?;
+        self.read_exact_at(&mut payload, payload_offset)
+            .map_err(|error| map_chunk_read_error(error, chunk.offset))?;
         Ok(payload)
     }
 
@@ -250,6 +304,8 @@ impl Container {
         payload: &[u8],
     ) -> Result<(), ContainerError> {
         self.require_write_admission()?;
+        let _mutation = self.mutation_gate()?;
+        self.validate_path_identity()?;
         let chunk = object.into_chunk();
         let payload_len =
             u64::try_from(payload.len()).map_err(|_| ContainerError::ChunkTooLarge)?;
@@ -271,6 +327,8 @@ impl Container {
         second_prefix: &[u8],
     ) -> Result<(ObjectRef, ObjectRef), ContainerError> {
         self.require_write_admission()?;
+        let _mutation = self.mutation_gate()?;
+        self.validate_path_identity()?;
         let chunk = object.into_chunk();
         let second_len = chunk
             .len
@@ -316,6 +374,8 @@ impl Container {
         second_object: ObjectRef,
     ) -> Result<ObjectRef, ContainerError> {
         self.require_write_admission()?;
+        let _mutation = self.mutation_gate()?;
+        self.validate_path_identity()?;
         let first = first_object.into_chunk();
         let second = second_object.into_chunk();
         let expected_second = first
@@ -361,124 +421,12 @@ impl Container {
             == Some(right.offset)
     }
 
-    /// Visits payloads sequentially without retaining an O(chunk-count) index.
-    ///
-    /// Unlike open-time recovery, this query path never truncates or repairs a
-    /// malformed tail. The visitor sees at most one allocated payload at a time.
-    pub(crate) fn visit_payloads<E>(
-        &mut self,
-        visitor: impl FnMut(ObjectRef, &[u8]) -> Result<(), E>,
-    ) -> Result<(), E>
-    where
-        E: From<ContainerError>,
-    {
-        let file_len = self
-            .file
-            .metadata()
-            .map_err(ContainerError::Io)
-            .map_err(E::from)?
-            .len();
-        self.visit_payloads_through(file_len, visitor)
-    }
-
-    /// Visit only a complete accepted physical prefix without reading or repairing
-    /// later bytes. The caller supplies a previously accepted chunk boundary.
-    pub(crate) fn visit_payloads_through<E>(
-        &mut self,
-        prefix_end: u64,
-        mut visitor: impl FnMut(ObjectRef, &[u8]) -> Result<(), E>,
-    ) -> Result<(), E>
-    where
-        E: From<ContainerError>,
-    {
-        let actual_len = self
-            .file
-            .metadata()
-            .map_err(ContainerError::Io)
-            .map_err(E::from)?
-            .len();
-        if prefix_end < self.header_len || prefix_end > actual_len {
-            return Err(E::from(ContainerError::TruncatedChunk(prefix_end)));
-        }
-        let file_len = prefix_end;
-        let mut offset = self.header_len;
-        while offset < file_len {
-            if file_len - offset < CHUNK_HEADER_LEN {
-                return Err(E::from(ContainerError::TruncatedChunk(offset)));
-            }
-            self.file
-                .seek(SeekFrom::Start(offset))
-                .map_err(ContainerError::Io)
-                .map_err(E::from)?;
-            let len = read_u64(&mut self.file, offset).map_err(E::from)?;
-            let end = offset
-                .checked_add(CHUNK_HEADER_LEN)
-                .and_then(|value| value.checked_add(len))
-                .ok_or_else(|| E::from(ContainerError::ChunkTooLarge))?;
-            if end > file_len {
-                return Err(E::from(ContainerError::TruncatedChunk(offset)));
-            }
-            let payload_len =
-                usize::try_from(len).map_err(|_| E::from(ContainerError::ChunkTooLarge))?;
-            let mut payload = vec![0; payload_len];
-            self.file
-                .read_exact(&mut payload)
-                .map_err(|error| E::from(truncated_or_io(error, offset)))?;
-            visitor(ObjectRef::from_chunk(ChunkRef { offset, len }), &payload)?;
-            offset = end;
-        }
-        Ok(())
-    }
-
-    /// Visit a complete bounded physical prefix while replaying its container
-    /// version frontier in local state. This read-only query never changes the
-    /// container's live clock, transaction-time map, reservations, or bytes.
-    pub(crate) fn visit_versioned_payloads_through<E>(
-        &mut self,
-        prefix_end: u64,
-        mut visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
-    ) -> Result<(), E>
-    where
-        E: From<ContainerError>,
-    {
-        let allow_envelopes = self.version == COMPACT_VERSION;
-        let mut next_version = 1;
-        let mut transaction_times = BTreeMap::new();
-        let mut standalone_reservations = std::collections::BTreeSet::new();
-        self.visit_payloads_through(prefix_end, |object, payload| {
-            if !allow_envelopes && payload.starts_with(b"CVAPUB") {
-                return Err(E::from(ContainerError::InvalidVersionRecord));
-            }
-            crate::container_version::observe_version_payload_state(
-                &mut next_version,
-                &mut transaction_times,
-                &mut standalone_reservations,
-                payload,
-            )
-            .map_err(E::from)?;
-            visitor(object, payload, next_version.saturating_sub(1))
-        })
-    }
-
     pub fn chunks(&mut self) -> Result<Vec<ObjectRef>, ContainerError> {
-        let file_len = self.file.metadata()?.len();
-        let mut offset = self.header_len;
+        let _read = self.read_gate()?;
         let mut chunks = Vec::new();
-        while offset < file_len {
-            if file_len - offset < CHUNK_HEADER_LEN {
-                return Err(ContainerError::TruncatedChunk(offset));
-            }
-            self.file.seek(SeekFrom::Start(offset))?;
-            let len = read_u64(&mut self.file, offset)?;
-            let end = offset
-                .checked_add(CHUNK_HEADER_LEN)
-                .and_then(|value| value.checked_add(len))
-                .ok_or(ContainerError::ChunkTooLarge)?;
-            if end > file_len {
-                return Err(ContainerError::TruncatedChunk(offset));
-            }
-            chunks.push(ObjectRef::from_chunk(ChunkRef { offset, len }));
-            offset = end;
+        let mut cursor = self.physical_cursor()?;
+        while let Some(frame) = cursor.next_frame()? {
+            chunks.push(frame.object);
         }
         Ok(chunks)
     }
@@ -513,8 +461,12 @@ impl Container {
         Ok((identity, owner_id))
     }
 
-    pub(crate) fn backing_file(&self) -> &File {
-        &self.file
+    pub(crate) fn backing_metadata(&self) -> Result<std::fs::Metadata, io::Error> {
+        self.file.metadata()
+    }
+
+    pub(crate) fn backing_file_identity(&self) -> Result<Option<(u64, u64)>, io::Error> {
+        Ok(self.lease.as_ref().and_then(Lease::identity_pair))
     }
 
     pub fn path(&self) -> &Path {
@@ -544,6 +496,8 @@ impl Container {
         object: ObjectRef,
     ) -> Result<bool, ContainerError> {
         self.require_write_admission()?;
+        let _mutation = self.mutation_gate()?;
+        self.validate_path_identity()?;
         let chunk = object.into_chunk();
         let end = chunk
             .offset
@@ -559,6 +513,7 @@ impl Container {
     }
 
     pub fn sync(&self) -> Result<(), ContainerError> {
+        self.require_writer_lease()?;
         self.file.sync_all().map_err(ContainerError::Io)
     }
 }
@@ -578,6 +533,13 @@ pub enum ContainerError {
     VersionExhausted,
     ChunkTooLarge,
     WriteAdmissionClosed,
+    WriterConflict,
+    LockingUnsupported,
+    ReadOnly,
+    RepairRequired { valid_end: u64 },
+    UnstableSnapshot,
+    StaleIdentity,
+    InvalidPrefixBoundary,
 }
 
 impl From<io::Error> for ContainerError {
@@ -721,6 +683,25 @@ fn read_u64(file: &mut File, offset: u64) -> Result<u64, ContainerError> {
     Ok(u64::from_le_bytes(bytes))
 }
 
+/// Remove only an empty path that still names the file this create call made.
+/// This handles the rare case where OS lease acquisition fails immediately
+/// after `create_new` without deleting a replacement or a populated file.
+fn cleanup_created_empty(path: &Path, created: &File) {
+    let Ok(created_identity) = file_identity(created) else {
+        return;
+    };
+    let Ok(path_file) = OpenOptions::new().read(true).open(path) else {
+        return;
+    };
+    if file_identity(&path_file).ok() != Some(created_identity)
+        || path_file.metadata().map(|metadata| metadata.len()).ok() != Some(0)
+    {
+        return;
+    }
+    drop(path_file);
+    let _ = std::fs::remove_file(path);
+}
+
 fn truncated_or_io(error: io::Error, offset: u64) -> ContainerError {
     if error.kind() == io::ErrorKind::UnexpectedEof {
         ContainerError::TruncatedChunk(offset)
@@ -729,6 +710,17 @@ fn truncated_or_io(error: io::Error, offset: u64) -> ContainerError {
     }
 }
 
+fn map_chunk_read_error(error: ContainerError, offset: u64) -> ContainerError {
+    match error {
+        ContainerError::Io(error) => truncated_or_io(error, offset),
+        other => other,
+    }
+}
+
 #[cfg(test)]
 #[path = "container_format_boundary_tests.rs"]
 mod format_boundary_tests;
+
+#[cfg(test)]
+#[path = "file_lease_process_tests.rs"]
+mod file_lease_process_tests;

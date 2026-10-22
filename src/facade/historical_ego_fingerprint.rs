@@ -28,22 +28,34 @@ pub(crate) struct EgoCut {
 
 impl EgoHistory {
     pub(crate) fn read(container: &Container, store: &EgoStore) -> Result<Self, String> {
-        let mut scan =
-            Container::open_read_only_for_scan(container.path()).map_err(|e| e.to_string())?;
+        let mut scan = container;
         let mut records = Vec::new();
         let mut replay = store.empty_replay();
-        scan.visit_payloads::<CvaError>(|_, payload| {
-            if let Some(record) = replay.ingest_publication(payload)? {
-                if record_ego_version(&record) != records.len() as u64 + 1 {
-                    return Err(crate::EgoError::InvalidRecord(
-                        "oracle Ego sequence differs".into(),
-                    )
-                    .into());
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let payload = frame.payload.as_slice();
+                    {
+                        if let Some(record) = replay.ingest_publication(payload)? {
+                            if record_ego_version(&record) != records.len() as u64 + 1 {
+                                return Err(crate::EgoError::InvalidRecord(
+                                    "oracle Ego sequence differs".into(),
+                                )
+                                .into());
+                            }
+                            records.push(record);
+                        }
+                        Ok(())
+                    }
+                };
+            let mut cursor = scan.physical_cursor().map_err(|e| e.to_string())?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
                 }
-                records.push(record);
-            }
-            Ok(())
-        })
+                Ok::<(), CvaError>(())
+            })()
+        }
         .map_err(|e| e.to_string())?;
         if records.len() as u64 != store.version() {
             return Err("Ego oracle publication count differs from accepted replay".into());

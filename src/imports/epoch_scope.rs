@@ -76,42 +76,58 @@ impl Cva {
             return Err(fail("semantic import start/source evidence mismatch"));
         }
         let mut births = BTreeSet::new();
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        scan.visit_payloads::<CvaError>(|_, payload| {
-            if let Some(completion) =
-                crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
-            {
-                let Some(episode) = self.archive.episodes.get(completion.episode_id).cloned()
-                else {
-                    return Ok(());
-                };
-                if episode.origin != EpisodeOrigin::Import
-                    || !episode_matches_source(self, &episode, &sources)?
-                {
-                    return Ok(());
-                }
-                for id in completion.freshness_birth_memory_ids {
-                    let record = completion
-                        .records
-                        .iter()
-                        .find(|r| r.id == id)
-                        .ok_or_else(|| fail("semantic import birth lacks publication record"))?;
-                    if record.global_version > start.pre.global_version
-                        && record.global_version <= settlement.global_version
+        let scan = self.container.read_source()?;
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let payload = frame.payload.as_slice();
                     {
-                        if record.revision != 1
-                            || record.source_episode_id != Some(episode.id)
-                            || self.memories.first_mutation_id(id)
-                                != Some(record.mutation_id.as_str())
+                        if let Some(completion) =
+                            crate::insomnia::completion::decode_completion(payload)
+                                .map_err(|e| fail(e))?
                         {
-                            return Err(fail("semantic import birth publication conflicts"));
+                            let Some(episode) =
+                                self.archive.episodes.get(completion.episode_id).cloned()
+                            else {
+                                return Ok(());
+                            };
+                            if episode.origin != EpisodeOrigin::Import
+                                || !episode_matches_source(self, &episode, &sources)?
+                            {
+                                return Ok(());
+                            }
+                            for id in completion.freshness_birth_memory_ids {
+                                let record =
+                                    completion.records.iter().find(|r| r.id == id).ok_or_else(
+                                        || fail("semantic import birth lacks publication record"),
+                                    )?;
+                                if record.global_version > start.pre.global_version
+                                    && record.global_version <= settlement.global_version
+                                {
+                                    if record.revision != 1
+                                        || record.source_episode_id != Some(episode.id)
+                                        || self.memories.first_mutation_id(id)
+                                            != Some(record.mutation_id.as_str())
+                                    {
+                                        return Err(fail(
+                                            "semantic import birth publication conflicts",
+                                        ));
+                                    }
+                                    births.insert(id);
+                                }
+                            }
                         }
-                        births.insert(id);
+                        Ok(())
                     }
+                };
+            let mut cursor = scan.physical_cursor()?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
                 }
-            }
-            Ok(())
-        })?;
+                Ok::<(), CvaError>(())
+            })()
+        }?;
         if births != scope.born_memories {
             return Err(fail("semantic import birth cohort mismatch"));
         }
@@ -123,25 +139,39 @@ impl Cva {
         replay: &crate::freshness_storage::ImportEventScope,
     ) -> Result<(), CvaError> {
         let mut start = None;
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        scan.visit_payloads_through::<CvaError>(replay.freeze_prefix, |object, payload| {
-            let location = object.legacy_bytes();
-            let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
-            if offset == replay.start_prefix {
-                if Sha256::digest(payload).as_slice() != replay.start_evidence_digest {
-                    return Err(CvaError::Freshness(
-                        "import settlement start digest mismatch".into(),
-                    ));
+        let scan = self.container.read_source()?;
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let object = frame.object;
+                    let payload = frame.payload.as_slice();
+                    {
+                        let location = object.legacy_bytes();
+                        let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
+                        if offset == replay.start_prefix {
+                            if Sha256::digest(payload).as_slice() != replay.start_evidence_digest {
+                                return Err(CvaError::Freshness(
+                                    "import settlement start digest mismatch".into(),
+                                ));
+                            }
+                            if let Some(super::epoch_codec::ImportEpochRecord::Start(value)) =
+                                super::epoch_codec::decode(payload)
+                                    .map_err(|e| CvaError::Freshness(e.to_string()))?
+                            {
+                                start = Some(value);
+                            }
+                        }
+                        Ok(())
+                    }
+                };
+            let mut cursor = scan.physical_cursor_through(replay.freeze_prefix)?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
                 }
-                if let Some(super::epoch_codec::ImportEpochRecord::Start(value)) =
-                    super::epoch_codec::decode(payload)
-                        .map_err(|e| CvaError::Freshness(e.to_string()))?
-                {
-                    start = Some(value);
-                }
-            }
-            Ok(())
-        })?;
+                Ok::<(), CvaError>(())
+            })()
+        }?;
         let scope = self.import_epoch_scope_through(
             start
                 .ok_or_else(|| CvaError::Freshness("import settlement start unavailable".into()))?,
@@ -206,129 +236,179 @@ impl Cva {
             })
             .collect();
         let mut start_marker = None;
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        scan.visit_payloads_through::<CvaError>(through, |object, payload| {
-            if let Some(super::epoch_codec::ImportEpochRecord::Start(candidate)) =
-                super::epoch_codec::decode(payload)
-                    .map_err(|e| CvaError::Freshness(e.to_string()))?
-            {
-                if candidate == start {
-                    let location = object.legacy_bytes();
-                    let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
-                    let len = u64::from_le_bytes(location[8..].try_into().unwrap());
-                    let end = offset + 8 + len;
-                    if start_marker
-                        .replace((offset, end, Sha256::digest(payload).into()))
-                        .is_some()
+        let scan = self.container.read_source()?;
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let object = frame.object;
+                    let payload = frame.payload.as_slice();
                     {
-                        return Err(CvaError::Freshness("duplicate import start marker".into()));
+                        if let Some(super::epoch_codec::ImportEpochRecord::Start(candidate)) =
+                            super::epoch_codec::decode(payload)
+                                .map_err(|e| CvaError::Freshness(e.to_string()))?
+                        {
+                            if candidate == start {
+                                let location = object.legacy_bytes();
+                                let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
+                                let len = u64::from_le_bytes(location[8..].try_into().unwrap());
+                                let end = offset + 8 + len;
+                                if start_marker
+                                    .replace((offset, end, Sha256::digest(payload).into()))
+                                    .is_some()
+                                {
+                                    return Err(CvaError::Freshness(
+                                        "duplicate import start marker".into(),
+                                    ));
+                                }
+                            }
+                        }
+                        Ok(())
                     }
+                };
+            let mut cursor = scan.physical_cursor_through(through)?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
                 }
-            }
-            Ok(())
-        })?;
+                Ok::<(), CvaError>(())
+            })()
+        }?;
         let (start_offset, marker_end, start_digest) = start_marker
             .ok_or_else(|| CvaError::Freshness("open import start marker is unavailable".into()))?;
 
         let mut episodes = BTreeSet::new();
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        scan.visit_payloads_through::<CvaError>(through, |object, payload| {
-            let chunk = object.legacy_bytes();
-            let offset = u64::from_le_bytes(chunk[..8].try_into().unwrap());
-            if offset <= start_offset {
-                return Ok(());
-            }
-            if let Some(version) = crate::archive_codec::publication::version_at(object, payload)? {
-                let (record, applying) = self
-                    .archive
-                    .read_publication(&mut self.container, version)?;
-                if applying.archive_version != version.archive_version {
-                    return Ok(());
-                }
-                if let crate::archive_codec::ArchiveRecord::Episode(episode) = record {
-                    if episode.origin == EpisodeOrigin::Import
-                        && episode_matches_source(self, &episode, &source_nodes)?
+        let scan = self.container.read_source()?;
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let object = frame.object;
+                    let payload = frame.payload.as_slice();
                     {
-                        episodes.insert(episode.id.0);
+                        let chunk = object.legacy_bytes();
+                        let offset = u64::from_le_bytes(chunk[..8].try_into().unwrap());
+                        if offset <= start_offset {
+                            return Ok(());
+                        }
+                        if let Some(version) =
+                            crate::archive_codec::publication::version_at(object, payload)?
+                        {
+                            let (record, applying) = self
+                                .archive
+                                .read_publication(&mut self.container, version)?;
+                            if applying.archive_version != version.archive_version {
+                                return Ok(());
+                            }
+                            if let crate::archive_codec::ArchiveRecord::Episode(episode) = record {
+                                if episode.origin == EpisodeOrigin::Import
+                                    && episode_matches_source(self, &episode, &source_nodes)?
+                                {
+                                    episodes.insert(episode.id.0);
+                                }
+                            }
+                        }
+                        Ok(())
                     }
+                };
+            let mut cursor = scan.physical_cursor_through(through)?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
                 }
-            }
-            Ok(())
-        })?;
+                Ok::<(), CvaError>(())
+            })()
+        }?;
         let mut cohort = BTreeSet::new();
         let mut outputs = BTreeMap::new();
-        let mut scan = crate::Container::open_read_only_for_scan(self.container.path())?;
-        scan.visit_payloads_through::<CvaError>(through, |object, payload| {
-            let chunk = object.legacy_bytes();
-            let offset = u64::from_le_bytes(chunk[..8].try_into().unwrap());
-            if offset <= start_offset {
-                return Ok(());
-            }
-            if let Some(completion) = crate::insomnia::completion::decode_completion(payload)
-                .map_err(|error| CvaError::Freshness(error.into()))?
-            {
-                if episodes.contains(&completion.episode_id.0) {
-                    let episode_key = completion.episode_id.0;
-                    let mut memory_ids = BTreeSet::new();
-                    for id in &completion.memory_ids {
-                        if !memory_ids.insert(*id) {
-                            return Err(CvaError::Freshness(
-                                "duplicate Memory in imported Insomnia completion".into(),
-                            ));
+        let scan = self.container.read_source()?;
+        {
+            let mut ingest_frame =
+                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+                    let object = frame.object;
+                    let payload = frame.payload.as_slice();
+                    {
+                        let chunk = object.legacy_bytes();
+                        let offset = u64::from_le_bytes(chunk[..8].try_into().unwrap());
+                        if offset <= start_offset {
+                            return Ok(());
                         }
-                    }
-                    let external_memory_refs = completion
-                        .external_memory_refs
-                        .iter()
-                        .cloned()
-                        .collect::<BTreeSet<_>>();
-                    let mut records = BTreeMap::new();
-                    for record in completion.records.iter().cloned() {
-                        if !memory_ids.contains(&record.id)
-                            || records.insert(record.id, record).is_some()
+                        if let Some(completion) =
+                            crate::insomnia::completion::decode_completion(payload)
+                                .map_err(|error| CvaError::Freshness(error.into()))?
                         {
-                            return Err(CvaError::Freshness(
-                                "import completion Memory output evidence conflicts".into(),
-                            ));
+                            if episodes.contains(&completion.episode_id.0) {
+                                let episode_key = completion.episode_id.0;
+                                let mut memory_ids = BTreeSet::new();
+                                for id in &completion.memory_ids {
+                                    if !memory_ids.insert(*id) {
+                                        return Err(CvaError::Freshness(
+                                            "duplicate Memory in imported Insomnia completion"
+                                                .into(),
+                                        ));
+                                    }
+                                }
+                                let external_memory_refs = completion
+                                    .external_memory_refs
+                                    .iter()
+                                    .cloned()
+                                    .collect::<BTreeSet<_>>();
+                                let mut records = BTreeMap::new();
+                                for record in completion.records.iter().cloned() {
+                                    if !memory_ids.contains(&record.id)
+                                        || records.insert(record.id, record).is_some()
+                                    {
+                                        return Err(CvaError::Freshness(
+                                            "import completion Memory output evidence conflicts"
+                                                .into(),
+                                        ));
+                                    }
+                                }
+                                for id in &completion.freshness_birth_memory_ids {
+                                    let record = records.get(id).ok_or_else(|| {
+                                        CvaError::Freshness(
+                                            "import birth has no first-publication record".into(),
+                                        )
+                                    })?;
+                                    if record.revision != 1
+                                        || record.source_episode_id != Some(completion.episode_id)
+                                        || self.memories.first_mutation_id(*id)
+                                            != Some(record.mutation_id.as_str())
+                                        || record.global_version <= start.pre.global_version
+                                    {
+                                        return Err(CvaError::Freshness(
+                                            "import birth attribution conflicts".into(),
+                                        ));
+                                    }
+                                    cohort.insert(*id);
+                                }
+                                let evidence = super::epoch_scope::ImportedInsomniaOutput {
+                                    episode_id: episode_key,
+                                    memory_ids,
+                                    external_memory_refs,
+                                    records,
+                                };
+                                if let Some(previous) = outputs.get(&episode_key) {
+                                    if previous != &evidence {
+                                        return Err(CvaError::Freshness(
+                                            "conflicting imported Insomnia completion receipts"
+                                                .into(),
+                                        ));
+                                    }
+                                } else {
+                                    outputs.insert(episode_key, evidence);
+                                }
+                            }
                         }
+                        Ok(())
                     }
-                    for id in &completion.freshness_birth_memory_ids {
-                        let record = records.get(id).ok_or_else(|| {
-                            CvaError::Freshness(
-                                "import birth has no first-publication record".into(),
-                            )
-                        })?;
-                        if record.revision != 1
-                            || record.source_episode_id != Some(completion.episode_id)
-                            || self.memories.first_mutation_id(*id)
-                                != Some(record.mutation_id.as_str())
-                            || record.global_version <= start.pre.global_version
-                        {
-                            return Err(CvaError::Freshness(
-                                "import birth attribution conflicts".into(),
-                            ));
-                        }
-                        cohort.insert(*id);
-                    }
-                    let evidence = super::epoch_scope::ImportedInsomniaOutput {
-                        episode_id: episode_key,
-                        memory_ids,
-                        external_memory_refs,
-                        records,
-                    };
-                    if let Some(previous) = outputs.get(&episode_key) {
-                        if previous != &evidence {
-                            return Err(CvaError::Freshness(
-                                "conflicting imported Insomnia completion receipts".into(),
-                            ));
-                        }
-                    } else {
-                        outputs.insert(episode_key, evidence);
-                    }
+                };
+            let mut cursor = scan.physical_cursor_through(through)?;
+            (|| {
+                while let Some(frame) = cursor.next_frame()? {
+                    ingest_frame(frame)?;
                 }
-            }
-            Ok(())
-        })?;
+                Ok::<(), CvaError>(())
+            })()
+        }?;
         let base_cut = self
             .activity_cut_at_archive_version(start.pre.archive_version)
             .map_err(|e| CvaError::Freshness(e.to_string()))?;

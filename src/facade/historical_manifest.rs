@@ -710,7 +710,9 @@ pub(super) fn build_with_fill(
             .map_err(|error| fail(&error.to_string()))?
             .len();
         let mut frozen = cva.freshness.clone();
-        frozen.bind_history_path(cva.container.path(), freeze_prefix);
+        frozen
+            .bind_history_source(&cva.container, freeze_prefix)
+            .map_err(CvaError::Freshness)?;
         Some(
             frozen
                 .import_event_evidence_in_scope(&crate::freshness_storage::ImportEventScope {

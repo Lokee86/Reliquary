@@ -271,6 +271,25 @@ fn dry_run_planning_and_output_refusal_preserve_both_files() {
 }
 
 #[test]
+fn independent_rewrite_refuses_mounted_writer_and_accepts_shared_readers() {
+    let temp = Temp::new();
+    let source = temp.path("leased-source.rel");
+    let output = temp.path("leased-output.rel");
+    seed_rel(&source);
+    let before = digest(&source);
+    let mounted = Cva::open(&source).unwrap();
+    assert!(plan_rewrite_file(&source, &RewriteRequest::default()).is_err());
+    assert!(!output.exists());
+    drop(mounted);
+    let snapshot = Cva::open_read_only(&source).unwrap();
+    let plan = plan_rewrite_file(&source, &RewriteRequest::default()).unwrap();
+    rewrite_from_plan(&source, &output, &plan).unwrap();
+    assert_eq!(digest(&source), before);
+    drop(snapshot);
+    assert_eq!(Cva::open(&output).unwrap().memory_ids().len(), 2);
+}
+
+#[test]
 fn accepted_plan_rejects_source_drift_before_creating_output() {
     let temp = Temp::new();
     let source_path = temp.path("drift-source.rel");
@@ -834,4 +853,21 @@ fn graph_baseline_rejects_rechecksummed_wrong_owner() {
     bytes[end - 32..end].copy_from_slice(&digest);
     fs::write(&output, bytes).unwrap();
     assert!(Cva::open(&output).is_err());
+}
+
+#[test]
+fn frozen_plan_refuses_replacement_with_identical_bytes() {
+    let temp = Temp::new();
+    let source = temp.path("replaced-source.rel");
+    let replacement = temp.path("replacement.rel");
+    let output = temp.path("replacement-output.rel");
+    seed_rel(&source);
+    let plan = plan_rewrite_file(&source, &RewriteRequest::default()).unwrap();
+    let original = fs::read(&source).unwrap();
+    fs::write(&replacement, &original).unwrap();
+    fs::remove_file(&source).unwrap();
+    fs::rename(&replacement, &source).unwrap();
+    assert!(rewrite_from_plan(&source, &output, &plan).is_err());
+    assert!(!output.exists());
+    assert_eq!(fs::read(&source).unwrap(), original);
 }

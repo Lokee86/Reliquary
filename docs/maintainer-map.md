@@ -30,6 +30,20 @@ hard-to-reverse decisions in [ADR0042](decisions/0042-minimal-lossless-current-h
 
 The temporary offline converter, physical transport, public migration APIs and CLI commands are deleted after canonical promotion. Current-only corpus acceptance is owned by `historical_current_corpus_tests.rs` and `tests/current_format_boundary.rs`.
 
+## Physical storage boundary
+
+`src/container/container_scan.rs` owns caller-driven frame traversal and physical
+clock outcomes. `container_lease.rs` owns handle-bound OS exclusion and path
+identity checks; `grouped_clock.rs` inspects only grouped physical clock headers.
+`container_access.rs` owns descriptor-derived read sources, the local read/write
+gate and identity validation; `container_repair.rs` owns physical tail plans and
+guarded truncation. `facade/semantic_maintenance.rs` owns REL/PHY acceptance of
+repair prefixes and explicitly selected semantic maintenance.
+`container.rs` owns guarded mutation. REL/PHY lifecycle composes owner replay from
+above. `scripts/check_physical_boundary.py` guards the pure import allowlist,
+callback inversion, raw-handle escape and implicit open-time maintenance, while
+the `container-no-upward-dependency` Pitlord rule enforces source edges.
+
 ## Owner maintenance and rewrite routing
 
 `facade/owner_maintenance.rs` owns shared prune-manifest ingestion, lookup and source-history validation. REL and PHY facades reconstruct that store on open; `cva_history_prune.rs` and `phylactery_history_prune.rs` coordinate transformed-copy emission while each domain retains its payload-retention proof. `facade/storage_reclamation.rs` remains conservative and separate. `src/rewrite/` owns policy types, planning, frozen source identity and semantic emission; facade entrypoints are in the REL/PHY modules. CLI conversion, policy-file validation and output dispatch live in `cli/src/rewrite_cmd.rs`; repeated profile repair is in `cli/src/repair_cmd.rs`. See [Rust API](api.md), [CLI](cli.md), and [behavioral contracts](behavioral-contracts.md#fresh-history-rewrite-contracts).
@@ -69,7 +83,7 @@ and REL Dream proof fingerprints with source-hash verification.
 
 ## Dream population prefix coordination
 
-`src/facade/cva_dream_population.rs` owns the private REL coordination of Memory first-publication metadata, direct Dream birth evidence, and accepted Insomnia/external birth cohorts at a physical boundary. Memory owns identity/local-version reconstruction; each source retains its birth/cohort proof validation; Container supplies a bounded read-only versioned visitor. The coordinator resolves no bodies and does not use current liveness or end-of-file birth indexes. `src/facade/cva_dream_journal_replay.rs` owns current Begin replay binding after source admission, while the Dream journal retains pass identity, roots and settlement semantics. `src/facade/cva_dream_begin_transport.rs` owns source-prefix materialization and exact destination encoding, used by import normalization/replay and ordinary Begin capture. `dream_population_authority_tests.rs`, `dream_population_proof_tests.rs` cover authority, proof parity, transformations and raw-byte measurements. The [population contract](dream-population-contract-2026-10-21.md) defines authority; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) separately tracks compact wire, replay and ordinary writer integration.
+`src/facade/cva_dream_population.rs` owns the private REL coordination of Memory first-publication metadata, direct Dream birth evidence, and accepted Insomnia/external birth cohorts at a physical boundary. Memory owns identity/local-version reconstruction; each source retains its birth/cohort proof validation; Container supplies a bounded read-only physical cursor; the coordinator owns iteration. The coordinator resolves no bodies and does not use current liveness or end-of-file birth indexes. `src/facade/cva_dream_journal_replay.rs` owns current Begin replay binding after source admission, while the Dream journal retains pass identity, roots and settlement semantics. `src/facade/cva_dream_begin_transport.rs` owns source-prefix materialization and exact destination encoding, used by import normalization/replay and ordinary Begin capture. `dream_population_authority_tests.rs`, `dream_population_proof_tests.rs` cover authority, proof parity, transformations and raw-byte measurements. The [population contract](dream-population-contract-2026-10-21.md) defines authority; the [linear plan](minimal-lossless-history-storage-linear-plan-2026-10-19.md) separately tracks compact wire, replay and ordinary writer integration.
 
 ## Purpose
 

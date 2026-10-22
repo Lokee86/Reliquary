@@ -157,12 +157,23 @@ fn entity_resolution_delta_dormant_wake_retarget_terminal_reset_preserve_full_po
     let materialized = EntityResolutionStore::materialized_changes(&mut container).unwrap();
     assert_eq!(materialized.len(), 6);
     let mut reopened = EntityResolutionStore::default();
-    container
-        .visit_payloads::<MemoryError>(|_, p| {
-            assert!(delta::is_current(p));
-            reopened.ingest(p)
-        })
-        .unwrap();
+    {
+        let mut ingest_frame = |frame: crate::container::PhysicalFrame| -> Result<(), MemoryError> {
+            let p = frame.payload.as_slice();
+            {
+                assert!(delta::is_current(p));
+                reopened.ingest(p)
+            }
+        };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), MemoryError>(())
+        })()
+    }
+    .unwrap();
     assert_eq!(reopened.records(), expected);
     let before = fs::read(container.path()).unwrap();
     assert!(

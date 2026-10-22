@@ -1,5 +1,8 @@
 use crate::conversation_compaction_codec::{DecodedCompactionChunk, decode, encode_live};
-use crate::{Container, ConversationCompaction, ConversationCompactionError, ObjectRef};
+use crate::{
+    Container, ConversationCompaction, ConversationCompactionError,
+    ConversationCompactionMaintenance, ObjectRef,
+};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug)]
@@ -59,15 +62,6 @@ impl ConversationCompactionOpenState {
         Ok(())
     }
 
-    pub(crate) fn finish(
-        self,
-        container: &mut Container,
-    ) -> Result<ConversationCompactionStore, ConversationCompactionError> {
-        let mut store = self.finish_unrecovered()?;
-        store.recover(container)?;
-        Ok(store)
-    }
-
     /// Builds the replay projection without changing physical chunks. Call `recover` only after
     /// owner-level evidence has been validated.
     pub(crate) fn finish_unrecovered(
@@ -77,18 +71,6 @@ impl ConversationCompactionOpenState {
             chunks: self.chunks,
             next_generation: self.next_generation.max(1),
         })
-    }
-
-    /// Builds the same visible compaction projection without reclaiming or rewriting chunks.
-    pub(crate) fn finish_without_reclaim(
-        self,
-    ) -> Result<ConversationCompactionStore, ConversationCompactionError> {
-        let mut store = ConversationCompactionStore {
-            chunks: self.chunks,
-            next_generation: self.next_generation.max(1),
-        };
-        store.remove_stale_rows();
-        Ok(store)
     }
 }
 
@@ -107,12 +89,16 @@ impl ConversationCompactionStore {
     }
 
     pub(crate) fn all_records(&self) -> Vec<ConversationCompaction> {
+        let stale = self.stale_chunks();
         let mut records = self
             .chunks
-            .values()
-            .filter_map(|chunk| match chunk {
-                StoredCompactionChunk::Live { record, .. } => Some(record.clone()),
+            .iter()
+            .filter_map(|(object, chunk)| match chunk {
+                StoredCompactionChunk::Live { record, .. } if !stale.contains(object) => {
+                    Some(record.clone())
+                }
                 StoredCompactionChunk::Free(_) => None,
+                _ => None,
             })
             .collect::<Vec<_>>();
         records.sort_by_key(|record| record.generation);
@@ -120,12 +106,13 @@ impl ConversationCompactionStore {
     }
 
     pub(crate) fn for_conversation(&self, conversation_id: &str) -> Vec<ConversationCompaction> {
+        let stale = self.stale_chunks();
         let mut records = self
             .chunks
-            .values()
-            .filter_map(|chunk| match chunk {
+            .iter()
+            .filter_map(|(object, chunk)| match chunk {
                 StoredCompactionChunk::Live { record, .. }
-                    if record.conversation_id == conversation_id =>
+                    if record.conversation_id == conversation_id && !stale.contains(object) =>
                 {
                     Some(record.clone())
                 }
@@ -179,8 +166,9 @@ impl ConversationCompactionStore {
     pub(crate) fn recover(
         &mut self,
         container: &mut Container,
-    ) -> Result<(), ConversationCompactionError> {
+    ) -> Result<ConversationCompactionMaintenance, ConversationCompactionError> {
         let stale = self.stale_chunks();
+        let mut reclaimed = 0;
         for object in stale {
             if self
                 .chunks
@@ -188,24 +176,17 @@ impl ConversationCompactionStore {
                 .is_some_and(|chunk| !chunk.is_free())
             {
                 self.free_and_coalesce(container, object)?;
+                reclaimed += 1;
             }
         }
-        if !self.chunks.is_empty() {
+        if reclaimed > 0 {
             container.sync()?;
         }
-        Ok(())
-    }
-
-    fn remove_stale_rows(&mut self) {
-        for object in self.stale_chunks() {
-            if self
-                .chunks
-                .get(&object)
-                .is_some_and(|chunk| !chunk.is_free())
-            {
-                self.chunks.remove(&object);
-            }
-        }
+        Ok(if reclaimed == 0 {
+            ConversationCompactionMaintenance::NothingToReclaim
+        } else {
+            ConversationCompactionMaintenance::Reclaimed { chunks: reclaimed }
+        })
     }
 
     fn stale_chunks(&self) -> BTreeSet<ObjectRef> {

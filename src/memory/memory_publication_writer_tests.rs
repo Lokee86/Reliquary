@@ -56,6 +56,7 @@ fn draft(mutation_id: &str, scope: &str) -> MemoryDraft {
 }
 
 trait MemoryOwner {
+    fn container(&self) -> &Container;
     fn publish(
         &mut self,
         id: Option<MemoryId>,
@@ -67,6 +68,9 @@ trait MemoryOwner {
 }
 
 impl MemoryOwner for Cva {
+    fn container(&self) -> &Container {
+        &self.container
+    }
     fn publish(
         &mut self,
         id: Option<MemoryId>,
@@ -84,6 +88,9 @@ impl MemoryOwner for Cva {
 }
 
 impl MemoryOwner for Phylactery {
+    fn container(&self) -> &Container {
+        &self.container
+    }
     fn publish(
         &mut self,
         id: Option<MemoryId>,
@@ -104,20 +111,31 @@ fn file_bytes(path: &Path) -> Vec<u8> {
     std::fs::read(path).unwrap()
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn payloads(container: &Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            result.push(payload.to_vec());
-            Ok(())
-        })
-        .unwrap();
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), ContainerError> {
+                let payload = frame.payload.as_slice();
+                {
+                    result.push(payload.to_vec());
+                    Ok(())
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
+            }
+            Ok::<(), ContainerError>(())
+        })()
+    }
+    .unwrap();
     result
 }
 
-fn memory_envelopes(path: &Path) -> Vec<Vec<u8>> {
-    payloads(path)
+fn memory_envelopes(container: &Container) -> Vec<Vec<u8>> {
+    payloads(container)
         .into_iter()
         .filter(|payload| {
             publication_envelope::decode(payload)
@@ -132,8 +150,8 @@ fn memory_envelopes(path: &Path) -> Vec<Vec<u8>> {
         .collect()
 }
 
-fn assert_no_legacy_publication_sidecars(path: &Path) {
-    let payloads = payloads(path);
+fn assert_no_legacy_publication_sidecars(container: &Container) {
+    let payloads = payloads(container);
     for magic in [
         b"CVAMEMV1".as_slice(),
         b"CVAVERS",
@@ -152,16 +170,16 @@ fn assert_no_legacy_publication_sidecars(path: &Path) {
 fn exercise_direct_writer(owner: &mut impl MemoryOwner, path: &Path) {
     let (first, created) = owner.publish(None, 0, draft("create", "first")).unwrap();
     assert!(created);
-    assert_eq!(memory_envelopes(path).len(), 1);
+    assert_eq!(memory_envelopes(owner.container()).len(), 1);
     assert_eq!(
-        payloads(path)
+        payloads(owner.container())
             .iter()
             .filter(|payload| payload.starts_with(b"CVAMBDY1"))
             .count(),
         1,
         "creation writes its immutable body separately"
     );
-    assert_no_legacy_publication_sidecars(path);
+    assert_no_legacy_publication_sidecars(owner.container());
 
     let after_creation = file_bytes(path);
     let (retry, created) = owner.publish(None, 0, draft("create", "first")).unwrap();
@@ -179,16 +197,16 @@ fn exercise_direct_writer(owner: &mut impl MemoryOwner, path: &Path) {
     assert!(created);
     assert_eq!(second.revision, 2);
     assert_eq!(owner.memory_version(), 2);
-    assert_eq!(memory_envelopes(path).len(), 2);
+    assert_eq!(memory_envelopes(owner.container()).len(), 2);
     assert_eq!(
-        payloads(path)
+        payloads(owner.container())
             .iter()
             .filter(|payload| payload.starts_with(b"CVAMBDY1"))
             .count(),
         1,
         "metadata-only delta reuses the immutable body"
     );
-    assert_no_legacy_publication_sidecars(path);
+    assert_no_legacy_publication_sidecars(owner.container());
 
     let before_tombstone = file_bytes(path);
     let outcome = owner.tombstone(first.id, second.revision).unwrap();
@@ -196,9 +214,9 @@ fn exercise_direct_writer(owner: &mut impl MemoryOwner, path: &Path) {
         panic!("first terminal write must publish")
     };
     assert_eq!(owner.memory_version(), 3);
-    assert_eq!(memory_envelopes(path).len(), 3);
-    assert_no_legacy_publication_sidecars(path);
-    let terminal_payload = memory_envelopes(path).pop().unwrap();
+    assert_eq!(memory_envelopes(owner.container()).len(), 3);
+    assert_no_legacy_publication_sidecars(owner.container());
+    let terminal_payload = memory_envelopes(owner.container()).pop().unwrap();
     let envelope = publication_envelope::decode(&terminal_payload)
         .unwrap()
         .unwrap();
@@ -245,7 +263,7 @@ fn direct_rel_and_phy_writes_are_one_envelope_each_and_reopen() {
     let reopened = Phylactery::open(&phy_path).unwrap();
     assert_eq!(reopened.memories.records().len(), 2);
     assert_eq!(reopened.memory_version(), 3);
-    assert_no_legacy_publication_sidecars(&phy_path);
+    assert_no_legacy_publication_sidecars(&reopened.container);
 }
 
 fn prepare_two_phy_envelopes(path: &Path) -> (Memory, u64, Option<i64>) {
@@ -261,14 +279,14 @@ fn prepare_two_phy_envelopes(path: &Path) -> (Memory, u64, Option<i64>) {
     phy.sync().unwrap();
     let time = phy.transaction_time_ns(first.global_version);
     let latest = phy.latest_global_version();
-    let payloads = payloads(path);
+    let payloads = payloads(&phy.container);
     assert!(payloads.last().unwrap().starts_with(b"CVAPUB01"));
-    assert_eq!(memory_envelopes(path).len(), 2);
+    assert_eq!(memory_envelopes(&phy.container).len(), 2);
     (first, latest, time)
 }
 
 #[test]
-fn truncated_final_memory_envelope_recovers_only_prior_state_and_clock() {
+fn truncated_final_memory_envelope_requires_explicit_repair_and_keeps_prior_state() {
     let scratch = Scratch::new();
     let source = scratch.file("crash-source.phy");
     let truncated = scratch.file("crash-tail.phy");
@@ -279,6 +297,28 @@ fn truncated_final_memory_envelope_recovers_only_prior_state_and_clock() {
     drop(container);
     for retained in start..bytes.len() {
         std::fs::write(&truncated, &bytes[..retained]).unwrap();
+        let damaged = file_bytes(&truncated);
+        if retained == start {
+            let mut accepted = Phylactery::open_read_only(&truncated).unwrap();
+            assert_eq!(accepted.memories.records().len(), 1, "prefix {retained}");
+            assert_eq!(accepted.memory_version(), 1, "prefix {retained}");
+            assert_eq!(accepted.latest_global_version(), first.global_version);
+            assert_eq!(accepted.transaction_time_ns(first.global_version), time);
+            assert_eq!(accepted.memory(first.id).unwrap().revision, 1);
+            assert_eq!(file_bytes(&truncated), damaged, "prefix {retained}");
+            continue;
+        }
+        assert!(
+            matches!(
+                Phylactery::open_read_only(&truncated),
+                Err(crate::PhylacteryError::Container(
+                    crate::ContainerError::RepairRequired { valid_end }
+                )) if valid_end == start as u64
+            ),
+            "prefix {retained}"
+        );
+        assert_eq!(file_bytes(&truncated), damaged, "prefix {retained}");
+        Phylactery::repair_incomplete_tail(&truncated).unwrap();
         let mut recovered = Phylactery::open(&truncated).unwrap();
         assert_eq!(recovered.memories.records().len(), 1, "prefix {retained}");
         assert_eq!(recovered.memory_version(), 1);
@@ -286,9 +326,9 @@ fn truncated_final_memory_envelope_recovers_only_prior_state_and_clock() {
         assert_eq!(recovered.transaction_time_ns(first.global_version), time);
         assert_eq!(recovered.memory(first.id).unwrap().revision, 1);
         assert!(recovered.latest_global_version() < latest);
+        assert_eq!(memory_envelopes(&recovered.container).len(), 1);
+        assert_no_legacy_publication_sidecars(&recovered.container);
         drop(recovered);
-        assert_eq!(memory_envelopes(&truncated).len(), 1);
-        assert_no_legacy_publication_sidecars(&truncated);
         assert_eq!(file_bytes(&truncated), bytes[..start]);
     }
 }

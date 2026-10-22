@@ -1,6 +1,7 @@
 //! Native Container framing, owner reopen, retry and subsequent live-use recovery.
 use super::*;
 use crate::{AcceptedMemoryUseReceipt, FreshnessDue, FreshnessState, FreshnessTransitionNotice};
+use sha2::{Digest, Sha256};
 
 fn reconstruct(cva: &mut Cva) -> HistoricalReconstructionReport {
     cva.reconstruct_historical_freshness(HistoricalReconstructionOptions::default())
@@ -39,26 +40,35 @@ fn historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries(
             super::historical_events::vectors(&mut cva);
         }
         cva.sync().unwrap();
-        let before = fs::read(&path).unwrap();
         let old = projection(&cva);
         let original_clocks = clocks(&cva);
+        drop(cva);
+        let before = fs::read(&path).unwrap();
+        let mut cva = Cva::open(&path).unwrap();
         let report = reconstruct(&mut cva);
         assert!(report.committed);
         let accepted = projection(&cva);
         assert_ne!(old, accepted);
         let accepted_due = cva.freshness_due.clone();
+        drop(cva);
         let complete = fs::read(&path).unwrap();
         let append_len = assert_one_frame(&before, &complete, b"CVAFRS06");
-        drop(cva);
         let crashed_path = path.with_file_name("checkpoint-prefix.rel");
 
         // Zero bytes, all 1..7-byte frame headers, the complete header,
         // every payload/checksum prefix, and the complete synchronized frame.
         for prefix in 0..=append_len {
             fs::write(&crashed_path, &complete[..before.len() + prefix]).unwrap();
+            let full = prefix == append_len;
+            if prefix != 0 && !full {
+                assert_eq!(
+                    Cva::repair_incomplete_tail(&crashed_path).unwrap(),
+                    crate::TailRepairOutcome::Repaired,
+                    "vectors={with_vectors}, prefix={prefix}"
+                );
+            }
             let mut reopened = Cva::open(&crashed_path)
                 .unwrap_or_else(|e| panic!("vectors={with_vectors}, prefix={prefix}: {e}"));
-            let full = prefix == append_len;
             assert_eq!(
                 projection(&reopened),
                 if full { accepted.clone() } else { old.clone() },
@@ -66,26 +76,29 @@ fn historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries(
             );
             assert_eq!(!reopened.freshness.import_settlements().is_empty(), full);
             assert_eq!(clocks(&reopened), original_clocks);
+            if full {
+                assert_eq!(reopened.freshness_due, accepted_due);
+            }
+            drop(reopened);
             assert_eq!(
                 fs::read(&crashed_path).unwrap(),
                 if full { &complete } else { &before }.clone()
             );
-            if full {
-                assert_eq!(reopened.freshness_due, accepted_due);
-            }
 
+            let mut reopened = Cva::open(&crashed_path).unwrap();
             let retry = reconstruct(&mut reopened);
             assert_eq!(retry.committed, !full);
             assert_eq!(retry.import_id, report.import_id);
             assert_eq!(retry.manifest_digest, report.manifest_digest);
             assert_eq!(retry.activity_cut, report.activity_cut);
             assert_eq!(projection(&reopened), accepted);
-            assert_eq!(fs::read(&crashed_path).unwrap(), complete);
             drop(reopened);
+            assert_eq!(fs::read(&crashed_path).unwrap(), complete);
             let mut twice = Cva::open(&crashed_path).unwrap();
             assert_eq!(twice.freshness_due, accepted_due);
             assert!(!reconstruct(&mut twice).committed);
             assert_eq!(projection(&twice), accepted);
+            drop(twice);
             assert_eq!(fs::read(&crashed_path).unwrap(), complete);
         }
         eprintln!(
@@ -161,13 +174,14 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
     }
     cva.sync().unwrap();
     let grown_due = cva.freshness_due.clone();
-    let grown = fs::read(&path).unwrap();
     let old_projection = projection(&cva);
     let old_visible = cva.freshness_records_at(1030).unwrap();
     assert!(ids.iter().all(|id| old_visible[id].score == -1));
     drop(cva);
+    let grown = fs::read(&path).unwrap();
+    let grown_digest: [u8; 32] = Sha256::digest(&grown).into();
     let mut cva = Cva::open(&path).unwrap();
-    assert_eq!(fs::read(&path).unwrap(), grown);
+    assert_eq!(cva.container.physical_digest().unwrap(), grown_digest);
     assert_eq!(cva.freshness_records_at(1030).unwrap(), old_visible);
     assert!(!reconstruct(&mut cva).committed);
     let mut notices = cva.drain_freshness_notifications(2);
@@ -186,7 +200,7 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
     assert!(cva.drain_freshness_notifications(10).is_empty());
     assert_eq!(cva.freshness_due, grown_due);
     assert_eq!(projection(&cva), old_projection);
-    assert_eq!(fs::read(&path).unwrap(), grown);
+    assert_eq!(cva.container.physical_digest().unwrap(), grown_digest);
 
     let mut delivered = ids.clone();
     delivered.reverse();
@@ -205,23 +219,29 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
     let live_visible = cva.freshness_records_at(1030).unwrap();
     assert!(ids.iter().all(|id| live_visible[id].score == 24));
     assert_eq!(cva.freshness.latest_import_settlement(), Some(&settlement));
-    let complete = fs::read(&path).unwrap();
-    let append_len = assert_one_frame(&grown, &complete, b"CVAFRS02");
     assert!(!reconstruct(&mut cva).committed);
     assert_eq!(
         cva.record_accepted_memory_use(receipt.clone(), 1).unwrap(),
         0
     );
-    assert_eq!(fs::read(&path).unwrap(), complete);
     drop(cva);
+    let complete = fs::read(&path).unwrap();
+    let append_len = assert_one_frame(&grown, &complete, b"CVAFRS02");
     let crashed_path = path.with_file_name("live-use-prefix.rel");
 
     // The real multi-recipient receipt is one native frame. A torn receipt
     // cannot award only some recipients or become a global suppression key.
     for prefix in 0..=append_len {
         fs::write(&crashed_path, &complete[..grown.len() + prefix]).unwrap();
-        let mut reopened = Cva::open(&crashed_path).unwrap();
         let full = prefix == append_len;
+        if prefix != 0 && !full {
+            assert_eq!(
+                Cva::repair_incomplete_tail(&crashed_path).unwrap(),
+                crate::TailRepairOutcome::Repaired,
+                "prefix={prefix}"
+            );
+        }
+        let mut reopened = Cva::open(&crashed_path).unwrap();
         assert_eq!(
             projection(&reopened),
             if full {
@@ -239,12 +259,13 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
             reopened.freshness.latest_import_settlement(),
             Some(&settlement)
         );
+        drop(reopened);
         let recovered = fs::read(&crashed_path).unwrap();
         assert_eq!(recovered, if full { &complete } else { &grown }.clone());
+        let mut reopened = Cva::open(&crashed_path).unwrap();
         let retry = reconstruct(&mut reopened);
         assert!(!retry.committed);
         assert_eq!(retry.manifest_digest, report.manifest_digest);
-        assert_eq!(fs::read(&crashed_path).unwrap(), recovered);
         assert_eq!(
             reopened
                 .record_accepted_memory_use(receipt.clone(), 4)
@@ -253,8 +274,8 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
         );
         assert_eq!(projection(&reopened), live_projection);
         assert_eq!(reopened.freshness_records_at(1030).unwrap(), live_visible);
-        assert_eq!(fs::read(&crashed_path).unwrap(), complete);
         drop(reopened);
+        assert_eq!(fs::read(&crashed_path).unwrap(), complete);
         let mut twice = Cva::open(&crashed_path).unwrap();
         assert!(!reconstruct(&mut twice).committed);
         assert_eq!(
@@ -264,6 +285,7 @@ fn historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipient
             0
         );
         assert_eq!(twice.freshness_records_at(1030).unwrap(), live_visible);
+        drop(twice);
         assert_eq!(fs::read(&crashed_path).unwrap(), complete);
     }
     eprintln!(

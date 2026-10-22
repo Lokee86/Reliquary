@@ -238,6 +238,29 @@ impl EntityResolutionStore {
         memories: &MemoryStore,
         entities: &EntityStore,
     ) -> Result<usize, MemoryError> {
+        let repairs = self.retired_entity_reference_repairs(memories, entities)?;
+        let repaired = repairs.len();
+        for (key, updated_at_ns, status) in repairs {
+            self.append(container, key, updated_at_ns, status)?;
+        }
+        Ok(repaired)
+    }
+
+    pub(crate) fn pending_retired_entity_reference_repairs(
+        &self,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+    ) -> Result<usize, MemoryError> {
+        Ok(self
+            .retired_entity_reference_repairs(memories, entities)?
+            .len())
+    }
+
+    fn retired_entity_reference_repairs(
+        &self,
+        memories: &MemoryStore,
+        entities: &EntityStore,
+    ) -> Result<Vec<(MemoryEntityMentionKey, i64, MemoryEntityResolutionStatus)>, MemoryError> {
         let values = self.current.values().cloned().collect::<Vec<_>>();
         let mut repairs = Vec::new();
 
@@ -293,12 +316,7 @@ impl EntityResolutionStore {
                 repairs.push((current.key, current.updated_at_ns, status));
             }
         }
-
-        let repaired = repairs.len();
-        for (key, updated_at_ns, status) in repairs {
-            self.append(container, key, updated_at_ns, status)?;
-        }
-        Ok(repaired)
+        Ok(repairs)
     }
 
     fn validate_write(

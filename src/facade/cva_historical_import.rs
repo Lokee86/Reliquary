@@ -330,7 +330,9 @@ impl Cva {
                 freeze_cut: frozen.cut(),
             };
             let mut history = self.freshness.clone();
-            history.bind_history_path(self.container.path(), replay.freeze_prefix);
+            history
+                .bind_history_source(&self.container, replay.freeze_prefix)
+                .map_err(CvaError::Freshness)?;
             frozen.retained = history
                 .retained_import_scores(
                     &replay,
@@ -364,7 +366,9 @@ impl Cva {
                 freeze_cut: frozen.cut(),
             };
             let mut history = self.freshness.clone();
-            history.bind_history_path(self.container.path(), frozen.source_bytes);
+            history
+                .bind_history_source(&self.container, frozen.source_bytes)
+                .map_err(CvaError::Freshness)?;
             frozen.settlement.semantic = Some(
                 history
                     .semantic_import_evidence(
@@ -423,7 +427,9 @@ impl Cva {
         let payload = settlement.encode();
         let mut staged = self.freshness.clone();
         if prepared.epoch {
-            staged.bind_history_path(self.container.path(), prepared.source_bytes);
+            staged
+                .bind_history_source(&self.container, prepared.source_bytes)
+                .map_err(CvaError::Freshness)?;
             staged.freeze_derived_birth_policy();
         }
         staged

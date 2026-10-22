@@ -208,7 +208,7 @@ pub(crate) fn observe_version_payload_state(
         return Ok(());
     }
     if let Some((start, count, transaction_time_ns)) =
-        crate::insomnia::completion::decode_embedded_version_range(payload)
+        crate::container::grouped_clock::insomnia_range(payload)
             .map_err(|_| ContainerError::InvalidVersionRecord)?
     {
         let count = u64::from(count);
@@ -224,7 +224,7 @@ pub(crate) fn observe_version_payload_state(
         }
     }
     if let Some((start, count, transaction_ns)) =
-        crate::external_source::publication::decode_embedded_version_range(payload)
+        crate::container::grouped_clock::external_range(payload)
             .map_err(|_| ContainerError::InvalidVersionRecord)?
     {
         observe_version_range(next_version, start, u64::from(count))?;

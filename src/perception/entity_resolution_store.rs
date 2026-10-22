@@ -31,13 +31,13 @@ impl EntityResolutionStore {
     {
         let mut projection = Self::default();
         let mut changes = std::collections::BTreeMap::new();
-        container.visit_payloads::<MemoryError>(|object, payload| {
-            if let Some(change) = projection.decode(payload)? {
+        let mut cursor = container.physical_cursor()?;
+        while let Some(frame) = cursor.next_frame()? {
+            if let Some(change) = projection.decode(&frame.payload)? {
                 projection.apply(change.clone())?;
-                changes.insert(object, change);
+                changes.insert(frame.object, change);
             }
-            Ok(())
-        })?;
+        }
         Ok(changes)
     }
     pub(crate) fn ingest(&mut self, payload: &[u8]) -> Result<(), MemoryError> {

@@ -33,6 +33,7 @@ fn make_envelope_history(path: &Path, kind: FileKind, tombstone: bool, backed_fi
         rel.bind_legacy_project_file(file.id, project_ref(&bytes))
             .unwrap();
         rel.sync().unwrap();
+        drop(rel);
     }
 
     let mut container = Container::open(path).unwrap();

@@ -162,24 +162,36 @@ fn file_hash(path: &Path) -> [u8; 32] {
     Sha256::digest(fs::read(path).unwrap()).into()
 }
 
-fn payloads(path: &Path) -> Vec<Vec<u8>> {
-    let mut container = Container::open(path).unwrap();
+fn payloads(container: &Container) -> Vec<Vec<u8>> {
     let mut result = Vec::new();
-    container
-        .visit_payloads::<ContainerError>(|_, payload| {
-            if let Some(envelope) = crate::container::publication_envelope::decode(payload)? {
-                result.push(envelope.body.to_vec());
-            } else {
-                result.push(payload.to_vec());
+    {
+        let mut ingest_frame =
+            |frame: crate::container::PhysicalFrame| -> Result<(), ContainerError> {
+                let payload = frame.payload.as_slice();
+                {
+                    if let Some(envelope) = crate::container::publication_envelope::decode(payload)?
+                    {
+                        result.push(envelope.body.to_vec());
+                    } else {
+                        result.push(payload.to_vec());
+                    }
+                    Ok(())
+                }
+            };
+        let mut cursor = container.physical_cursor().unwrap();
+        (|| {
+            while let Some(frame) = cursor.next_frame()? {
+                ingest_frame(frame)?;
             }
-            Ok(())
-        })
-        .unwrap();
+            Ok::<(), ContainerError>(())
+        })()
+    }
+    .unwrap();
     result
 }
 
-fn assert_compact_carrier_counts(path: &Path) {
-    let payloads = payloads(path);
+fn assert_compact_carrier_counts(container: &Container) {
+    let payloads = payloads(container);
     assert_eq!(
         payloads
             .iter()
@@ -284,7 +296,7 @@ fn rel_reclamation_retains_compact_relationship_history_and_discards_orphans() {
         |id| reopened.relationship_lifecycle_state(id).unwrap(),
         |global| reopened.transaction_time_ns(global),
     );
-    assert_compact_carrier_counts(&output);
+    assert_compact_carrier_counts(&reopened.container);
 }
 
 #[test]
@@ -313,5 +325,5 @@ fn phy_reclamation_retains_compact_relationship_history_and_discards_orphans() {
         |id| reopened.relationship_lifecycle_state(id).unwrap(),
         |global| reopened.transaction_time_ns(global),
     );
-    assert_compact_carrier_counts(&output);
+    assert_compact_carrier_counts(&reopened.container);
 }

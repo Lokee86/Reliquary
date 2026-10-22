@@ -1,153 +1,285 @@
-use super::{
-    CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header, truncated_or_io,
-};
+use super::{CHUNK_HEADER_LEN, ChunkRef, Container, ContainerError, ObjectRef, read_header};
 use crate::container_version::observe_version_payload_state;
 use std::collections::{BTreeMap, BTreeSet};
-use std::fs::OpenOptions;
-use std::io::{BufReader, Read, Seek, SeekFrom};
+use std::io;
 use std::path::Path;
 
+/// One opaque physical frame and the global clock observed after accepting it.
+pub(crate) struct PhysicalFrame {
+    pub object: ObjectRef,
+    pub payload: Vec<u8>,
+    pub latest_global: u64,
+}
+
+/// Caller-driven, bounded physical frame reader. It retains only clock metadata and
+/// the current frame; advancing releases the previous payload.
+pub(crate) struct PhysicalCursor<'a> {
+    container: &'a Container,
+    _guard: super::GateGuard,
+    offset: u64,
+    file_len: u64,
+    bounded: bool,
+    standalone_reservations: BTreeSet<u64>,
+    next_version: u64,
+    transaction_times: BTreeMap<u64, i64>,
+    done: bool,
+}
+
 impl Container {
-    /// Opens a read-only handle for bounded streaming queries.
-    ///
-    /// Unlike normal open, this does not scan, repair a truncated tail, or
-    /// initialize the in-memory version index. Use it only with read APIs.
+    /// Opens a read-only handle for bounded streaming queries. Header validation is
+    /// immediate; payload framing and clock validation happen as the cursor advances.
     pub(crate) fn open_read_only_for_scan(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
         let path = path.as_ref();
-        let mut file = OpenOptions::new().read(true).open(path)?;
+        let mut file = std::fs::OpenOptions::new().read(true).open(path)?;
+        let lease = super::lease::Lease::shared(&file)?;
         let (version, identity, owner_uuid, header_len) = read_header(&mut file)?;
         Ok(Self {
             file,
+            lease: Some(lease),
+            mutation_gate: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             path: path.to_path_buf(),
             version,
             identity,
             owner_uuid,
             header_len,
             next_version: 1,
-            transaction_times: BTreeMap::new(),
+            transaction_times: Default::default(),
             next_transaction_time_override: None,
             write_admission_closed: false,
             owner_write_scope: false,
         })
     }
 
-    pub fn open(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
-        Self::open_scanned(path, |_, _, _| Ok(()))
+    pub(crate) fn physical_cursor(&self) -> Result<PhysicalCursor<'_>, ContainerError> {
+        self.physical_cursor_through(u64::MAX)
     }
 
-    pub(crate) fn open_scanned<E>(
-        path: impl AsRef<Path>,
-        mut visitor: impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
-    ) -> Result<Self, E>
-    where
-        E: From<ContainerError>,
-    {
+    pub(crate) fn physical_cursor_through(
+        &self,
+        prefix_end: u64,
+    ) -> Result<PhysicalCursor<'_>, ContainerError> {
+        let guard = self.read_gate()?;
+        self.validate_path_identity()?;
+        let physical_len = self.file.metadata()?.len();
+        if prefix_end != u64::MAX && prefix_end < self.header_len {
+            return Err(ContainerError::TruncatedChunk(prefix_end));
+        }
+        let file_len = physical_len;
+        let file_len = if prefix_end == u64::MAX {
+            file_len
+        } else {
+            if prefix_end > file_len {
+                return Err(ContainerError::TruncatedChunk(prefix_end));
+            }
+            prefix_end
+        };
+        Ok(PhysicalCursor {
+            offset: self.header_len,
+            file_len,
+            bounded: file_len < physical_len,
+            container: self,
+            _guard: guard,
+            standalone_reservations: BTreeSet::new(),
+            next_version: 1,
+            transaction_times: BTreeMap::new(),
+            done: false,
+        })
+    }
+
+    /// Validates the complete physical prefix and reports the start of an incomplete tail.
+    /// Complete malformed frames and invalid clock records remain hard errors.
+    pub(crate) fn inspect_tail(&self) -> Result<Option<u64>, ContainerError> {
+        let mut cursor = self.physical_cursor()?;
+        loop {
+            match cursor.next_frame() {
+                Ok(Some(_)) => {}
+                Ok(None) => return Ok(None),
+                Err(ContainerError::RepairRequired { valid_end }) => return Ok(Some(valid_end)),
+                Err(error) => return Err(error),
+            }
+        }
+    }
+
+    pub(super) fn read_exact_at(
+        &self,
+        mut buffer: &mut [u8],
+        mut offset: u64,
+    ) -> Result<(), ContainerError> {
+        while !buffer.is_empty() {
+            #[cfg(unix)]
+            let read = {
+                use std::os::unix::fs::FileExt;
+                self.file.read_at(buffer, offset)?
+            };
+            #[cfg(windows)]
+            let read = {
+                use std::os::windows::fs::FileExt;
+                self.file.seek_read(buffer, offset)?
+            };
+            #[cfg(not(any(unix, windows)))]
+            let read = return Err(ContainerError::Io(io::Error::new(
+                io::ErrorKind::Unsupported,
+                "positional file reads are unsupported on this platform",
+            )));
+            if read == 0 {
+                return Err(ContainerError::Io(io::Error::new(
+                    io::ErrorKind::UnexpectedEof,
+                    "physical frame changed while reading",
+                )));
+            }
+            offset += read as u64;
+            buffer = &mut buffer[read..];
+        }
+        Ok(())
+    }
+
+    /// Opens a coherent shared read session; concurrent writable sessions refuse.
+    pub fn open_read_only(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
+        let mut container = Self::open_read_only_for_scan(path)?;
+        container.validate_path_identity()?;
+        let clock_state = {
+            let mut cursor = container.physical_cursor()?;
+            while cursor.next_frame()?.is_some() {}
+            cursor.finish_open_scan()?
+        };
+        container.apply_scan_clock(clock_state);
+        Ok(container)
+    }
+
+    pub fn open(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
+        Self::open_writer_validated(path.as_ref())
+    }
+
+    pub(crate) fn open_writer_validated(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
         let path = path.as_ref();
-        let mut file = OpenOptions::new()
-            .read(true)
-            .open(path)
-            .map_err(ContainerError::Io)?;
-        let (version, identity, owner_uuid, header_len) =
-            read_header(&mut file).map_err(E::from)?;
-        file = OpenOptions::new()
+        let mut file = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
-            .open(path)
-            .map_err(ContainerError::Io)?;
-        let actual = read_header(&mut file).map_err(E::from)?;
-        if actual != (version, identity, owner_uuid, header_len) {
-            return Err(E::from(ContainerError::InvalidIdentity));
-        }
+            .open(path)?;
+        let lease = super::lease::Lease::exclusive(&file)?;
+        let (version, identity, owner_uuid, header_len) = read_header(&mut file)?;
         let mut container = Self {
             file,
+            lease: Some(lease),
+            mutation_gate: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             path: path.to_path_buf(),
             version,
             identity,
             owner_uuid,
             header_len,
             next_version: 1,
-            transaction_times: BTreeMap::new(),
+            transaction_times: Default::default(),
             next_transaction_time_override: None,
             write_admission_closed: false,
             owner_write_scope: false,
         };
-        container.scan_payloads(&mut visitor)?;
+        container.validate_path_identity()?;
+        let clock_state = {
+            let mut cursor = container.physical_cursor()?;
+            while cursor.next_frame()?.is_some() {}
+            cursor.finish_open_scan()?
+        };
+        container.apply_scan_clock(clock_state);
         Ok(container)
     }
 
-    fn scan_payloads<E>(
-        &mut self,
-        visitor: &mut impl FnMut(ObjectRef, &[u8], u64) -> Result<(), E>,
-    ) -> Result<(), E>
-    where
-        E: From<ContainerError>,
-    {
-        const SCAN_BUFFER_BYTES: usize = 64 * 1024;
+    pub(crate) fn open_for_repair(path: impl AsRef<Path>) -> Result<Self, ContainerError> {
+        let path = path.as_ref();
+        let mut file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(path)?;
+        let lease = super::lease::Lease::exclusive(&file)?;
+        let (version, identity, owner_uuid, header_len) = read_header(&mut file)?;
+        let container = Self {
+            file,
+            lease: Some(lease),
+            mutation_gate: std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0)),
+            path: path.to_path_buf(),
+            version,
+            identity,
+            owner_uuid,
+            header_len,
+            next_version: 1,
+            transaction_times: Default::default(),
+            next_transaction_time_override: None,
+            write_admission_closed: false,
+            owner_write_scope: false,
+        };
+        container.validate_path_identity()?;
+        Ok(container)
+    }
+}
 
-        let file_len = self.file.metadata().map_err(ContainerError::Io)?.len();
-        let mut offset = self.header_len;
-        self.file
-            .seek(SeekFrom::Start(offset))
-            .map_err(ContainerError::Io)?;
-
-        let mut truncate_at = None;
-        let mut standalone_reservations = BTreeSet::new();
-        {
-            let file = &mut self.file;
-            let next_version = &mut self.next_version;
-            let transaction_times = &mut self.transaction_times;
-            let mut reader = BufReader::with_capacity(SCAN_BUFFER_BYTES, file);
-            let mut length_bytes = [0_u8; CHUNK_HEADER_LEN as usize];
-            let mut payload = Vec::new();
-
-            while offset < file_len {
-                if file_len - offset < CHUNK_HEADER_LEN {
-                    truncate_at = Some(offset);
-                    break;
-                }
-                reader
-                    .read_exact(&mut length_bytes)
-                    .map_err(|error| E::from(truncated_or_io(error, offset)))?;
-                let len = u64::from_le_bytes(length_bytes);
-                let end = offset
-                    .checked_add(CHUNK_HEADER_LEN)
-                    .and_then(|value| value.checked_add(len))
-                    .ok_or_else(|| E::from(ContainerError::ChunkTooLarge))?;
-                if end > file_len {
-                    truncate_at = Some(offset);
-                    break;
-                }
-                let payload_len =
-                    usize::try_from(len).map_err(|_| E::from(ContainerError::ChunkTooLarge))?;
-                payload.resize(payload_len, 0);
-                reader
-                    .read_exact(&mut payload)
-                    .map_err(|error| E::from(truncated_or_io(error, offset)))?;
-
-                let object = ObjectRef::from_chunk(ChunkRef { offset, len });
-
-                observe_version_payload_state(
-                    next_version,
-                    transaction_times,
-                    &mut standalone_reservations,
-                    &payload,
-                )
-                .map_err(E::from)?;
-                visitor(object, &payload, next_version.saturating_sub(1))?;
-                offset = end;
-            }
+impl PhysicalCursor<'_> {
+    /// Publishes clock state after a caller has consumed the entire physical file
+    /// during an owner-open replay. Historical bounded reads must not call this.
+    pub(crate) fn finish_open_scan(self) -> Result<ScanClockState, ContainerError> {
+        if !self.done || self.offset != self.file_len {
+            return Err(ContainerError::InvalidIdentity);
         }
-
-        if let Some(offset) = truncate_at {
-            self.recover_truncated_tail(offset).map_err(E::from)?;
-        }
-        Ok(())
+        Ok(ScanClockState {
+            next_version: self.next_version,
+            transaction_times: self.transaction_times,
+        })
     }
 
-    fn recover_truncated_tail(&mut self, offset: u64) -> Result<(), ContainerError> {
-        self.file.set_len(offset)?;
-        self.file.seek(SeekFrom::Start(offset))?;
-        self.file.sync_all()?;
-        Ok(())
+    pub(crate) fn next_frame(&mut self) -> Result<Option<PhysicalFrame>, ContainerError> {
+        if self.done || self.offset == self.file_len {
+            self.done = true;
+            return Ok(None);
+        }
+        if self.offset > self.file_len || self.file_len - self.offset < CHUNK_HEADER_LEN {
+            self.done = true;
+            if self.bounded {
+                return Err(ContainerError::TruncatedChunk(self.file_len));
+            }
+            return Err(ContainerError::RepairRequired {
+                valid_end: self.offset,
+            });
+        }
+        let start = self.offset;
+        let mut length_bytes = [0_u8; CHUNK_HEADER_LEN as usize];
+        self.container.read_exact_at(&mut length_bytes, start)?;
+        let len = u64::from_le_bytes(length_bytes);
+        let end = start
+            .checked_add(CHUNK_HEADER_LEN)
+            .and_then(|v| v.checked_add(len))
+            .ok_or(ContainerError::ChunkTooLarge)?;
+        if end > self.file_len {
+            self.done = true;
+            if self.bounded {
+                return Err(ContainerError::TruncatedChunk(start));
+            }
+            return Err(ContainerError::RepairRequired { valid_end: start });
+        }
+        let payload_len = usize::try_from(len).map_err(|_| ContainerError::ChunkTooLarge)?;
+        let mut payload = vec![0; payload_len];
+        self.container
+            .read_exact_at(&mut payload, start + CHUNK_HEADER_LEN)?;
+        observe_version_payload_state(
+            &mut self.next_version,
+            &mut self.transaction_times,
+            &mut self.standalone_reservations,
+            &payload,
+        )?;
+        self.offset = end;
+        Ok(Some(PhysicalFrame {
+            object: ObjectRef::from_chunk(ChunkRef { offset: start, len }),
+            payload,
+            latest_global: self.next_version.saturating_sub(1),
+        }))
+    }
+}
+
+pub(crate) struct ScanClockState {
+    next_version: u64,
+    transaction_times: BTreeMap<u64, i64>,
+}
+
+impl Container {
+    pub(crate) fn apply_scan_clock(&mut self, state: ScanClockState) {
+        self.next_version = state.next_version;
+        self.transaction_times = state.transaction_times;
     }
 }

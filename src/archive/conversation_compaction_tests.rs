@@ -136,3 +136,40 @@ fn compaction_chunks_do_not_create_false_reconciliation_divergence() {
         CvaRelation::Identical
     );
 }
+
+#[test]
+fn stale_compactions_are_projected_without_open_mutation_and_reclaimed_explicitly() {
+    let path = test_path();
+    let mut cva = Cva::create_project(&path).unwrap();
+    for (through, summary, generation, supersedes) in [
+        ("message-1", "older", 1, None),
+        ("message-2", "current", 2, Some("message-1")),
+    ] {
+        let record = crate::ConversationCompaction {
+            conversation_id: "conversation-1".into(),
+            through_message_id: through.into(),
+            summary: summary.into(),
+            generation,
+        };
+        let payload =
+            crate::conversation_compaction_codec::encode_live(&record, supersedes).unwrap();
+        cva.container.append(&payload).unwrap();
+    }
+    cva.container.sync().unwrap();
+    drop(cva);
+
+    let before = fs::read(&path).unwrap();
+    let mut reopened = Cva::open(&path).unwrap();
+    assert_eq!(fs::read(&path).unwrap(), before);
+    let current = reopened.conversation_compactions("conversation-1");
+    assert_eq!(current.len(), 1);
+    assert_eq!(current[0].through_message_id, "message-2");
+    assert_eq!(
+        reopened.maintain_conversation_compactions().unwrap(),
+        crate::ConversationCompactionMaintenance::Reclaimed { chunks: 1 }
+    );
+    assert_eq!(
+        reopened.maintain_conversation_compactions().unwrap(),
+        crate::ConversationCompactionMaintenance::NothingToReclaim
+    );
+}

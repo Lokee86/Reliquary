@@ -71,8 +71,7 @@ pub(super) fn commit<T>(
             runtime
                 .cva
                 .container
-                .backing_file()
-                .metadata()
+                .backing_metadata()
                 .map_err(operation)?
                 .len(),
         )
@@ -88,8 +87,7 @@ pub(super) fn commit<T>(
                 runtime
                     .cva
                     .container
-                    .backing_file()
-                    .metadata()
+                    .backing_metadata()
                     .map(|metadata| metadata.len() != before)
                     .unwrap_or(true)
             });

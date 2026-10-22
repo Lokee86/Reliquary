@@ -367,10 +367,12 @@ fn owner_scope_events_outside_epoch_interval_are_compared_by_normalized_facts() 
     left.container.sync().unwrap();
     right.container.sync().unwrap();
     left.freshness
-        .bind_history_path(&left_path, fs::metadata(&left_path).unwrap().len());
+        .bind_history_source(&left.container, fs::metadata(&left_path).unwrap().len())
+        .unwrap();
     right
         .freshness
-        .bind_history_path(&right_path, fs::metadata(&right_path).unwrap().len());
+        .bind_history_source(&right.container, fs::metadata(&right_path).unwrap().len())
+        .unwrap();
     let requested = BTreeSet::from([id]);
     let left_events = left
         .freshness

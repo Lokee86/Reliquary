@@ -30,6 +30,7 @@ fn reconcile_replays_file_memory_links_after_targets() {
         )
         .unwrap();
     left_cva.sync().unwrap();
+    drop(left_cva);
 
     let mut right_cva = Cva::open(&right).unwrap();
     let file = right_cva

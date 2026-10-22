@@ -2,7 +2,26 @@
 
 Parent index: [Documentation index](INDEX.md)
 
+**Accepted target versus current implementation:** The correction-only campaign's [complete target dependency DAG](dependency-convergence-target-dag-2026-10-21.md) specifies the permanent requirements of no cycles, no upward/backreaching dependencies even if acyclic, minimal justified coupling, explicit deny-by-default direct edges and owner-contract-only access. Its machine-readable model is [convergence-component-dag.json](../tools/pitlord/convergence-component-dag.json). This document continues to describe **currently implemented** behavior; the 34-component target is **not** an assertion that Rust modules have already been physically separated. In the target, Runtime may invoke Retrieval directly, Context Engine owns all final model context assembly, Ego only produces semantic artifacts, History is read-only, Maintenance contains reconciliation, and Freshness operates only when triggered.
+
+
 Current runtime settlement, normalization, owner maintenance and rewrite behavior is summarized in [Semantic maintenance and history rewrite](#semantic-maintenance-and-history-rewrite). Historical framing references below describe stable comparison schemas or frozen development evidence; runtime admission is current-only.
+
+## Physical access and replay
+
+Container owns physical framing, file identity, OS writer/shared-reader leases,
+ObjectRefs, physical clock observation and explicitly authorized tail repair.
+REL and PHY lifecycle code pulls opaque frames and feeds concrete owner replay
+states. Physical clock headers for grouped publications live in Container; owner
+body/proof validation stays above that boundary. Normal open does not truncate,
+reclaim compaction chunks or append Entity-resolution normalization revisions.
+
+Writer sessions retain an exclusive handle-bound lease. Coherent read sessions
+retain a shared lease and fail with typed contention while a writer is mounted.
+Semantic import admission is a separate policy gate and cannot waive the lease.
+See the [file lease contract](dependency-convergence-phase1-lock-contract-2026-10-21.md)
+for platform primitives, identity and publication limits. No V2 encoding changes
+are introduced by this boundary.
 
 ## Development-format lifecycle
 

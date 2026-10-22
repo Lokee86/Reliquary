@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from check_architecture import ROOT, WORKSPACE, arcana_candidates, executable, resolve
+from check_component_dag import validate_file as validate_component_target
 
 DIRECTORY = ROOT / "tools/pitlord"
 POLICY = DIRECTORY / "convergence.json"
@@ -366,9 +367,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--capture", action="store_true", help="initial capture only; creates provisional unreviewed debt and refuses overwrite")
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--check-target", action="store_true", help="validate the logical target DAG without scanning source")
     args = parser.parse_args()
     self_test()
-    if args.self_test:
+    count, edges = validate_component_target()
+    if args.self_test or args.check_target:
+        print(f"Logical target DAG: {count} components, {edges} justified edges, no upward reach or cycles")
         return 0
     validate_target()
     pitlord = resolve("PITLORD", "pitlord", [WORKSPACE / "pitlord/bin" / executable("pitlord")])
@@ -384,6 +388,8 @@ def main() -> int:
         current_snapshot = (ROOT / ".arcana/CURRENT").read_text().strip()
         if current_snapshot == original["arcana_snapshot"] and source_manifest(ROOT) != original["source_sha256"]:
             raise ValueError("Rust source changed with the original graph still active; run check_architecture.py --refresh")
+        if source_manifest(ROOT) != source_manifest(ROOT / ".lexicon/repo/source"):
+            raise ValueError("Rust source differs from the indexed graph; run check_architecture.py --refresh after source edits settle")
         validate_inventory()
     errors = validate(read(BASELINE), read(DEBT), findings(report))
     if errors:

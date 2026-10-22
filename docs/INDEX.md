@@ -1,7 +1,15 @@
 # Reliquary Memory v2 Documentation
 
-- [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — correction-only high-level architecture campaign to eliminate the core dependency knot, retire obsolete ownership surfaces, absorb directly related architectural corrections, and keep touched documentation current without implementing new roadmap features.
+- [Phase 1 implementation evidence and handoff](dependency-convergence-phase1-verification-2026-10-22.md) — source ownership, retained before-image, implementation evidence, completed local acceptance and Phase 2/3 handoff.
+- [Phase 1 convergence ratchet](dependency-convergence-phase1-ratchet-2026-10-22.md) — reviewed active ledger reconciliation and evidence freshness.
+- [Phase 1 storage foundation](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md) — physical boundary implementation and acceptance specification.
+- [Phase 1 file lease contract](dependency-convergence-phase1-lock-contract-2026-10-21.md) — concrete writer, coherent reader, identity and publication rules.
 
+
+- [Accepted target component DAG](dependency-convergence-target-dag-2026-10-21.md) — permanent no-cycle/no-upward dependency invariants and the complete logical allowlist for the correction-only refactor.
+- [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — correction-only high-level architecture campaign to eliminate the core dependency knot, retire obsolete ownership surfaces, absorb directly related architectural corrections, and keep touched documentation current without implementing new roadmap features.
+- [Semantic import-settlement minimization follow-up](semantic-import-settlement-minimization-plan-2026-10-21.md) — planned correction for the measured `CVAFRS06` proof-size regression without reopening the completed storage hard cut.
+- [Context Engine compaction refinement](context-engine-compaction-refinement-plan-2026-10-21.md) — unfinished deterministic trace stripping, bounded protected tail, structured validated retrieval mapping, reduction/consolidation, and current-turn pressure handling under the existing compaction ownership contract.
 - [Canonical migration results](canonical-history-migration-results-2026-10-21.md) - six disposable conversions, exact resolution history and full raw-byte accounting.
 - [Retained inert Entity Resolution contract](retained-entity-resolution-contract-2026-10-21.md) — frozen behavior, original bytes and distinct format admission.
 
@@ -136,10 +144,16 @@
 - [community-routing-validation-2026-08-29.md](community-routing-validation-2026-08-29.md) - Community Routing Validation 2026 08 29 documentation.
 - [community-scan-merge-benchmark-2026-08-27.md](community-scan-merge-benchmark-2026-08-27.md) - Community Scan Merge Benchmark 2026 08 27 documentation.
 - [configuration.md](configuration.md) - Configuration documentation.
+- [context-engine-compaction-refinement-plan-2026-10-21.md](context-engine-compaction-refinement-plan-2026-10-21.md) - Context Engine Compaction Refinement Plan 2026 10 21 documentation.
 - [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
 - [dependency-convergence-architecture-refactor-2026-10-21.md](dependency-convergence-architecture-refactor-2026-10-21.md) - Dependency Convergence Architecture Refactor 2026 10 21 documentation.
 - [dependency-convergence-phase0-2026-10-21.md](dependency-convergence-phase0-2026-10-21.md) - Dependency Convergence Phase0 2026 10 21 documentation.
+- [dependency-convergence-phase1-lock-contract-2026-10-21.md](dependency-convergence-phase1-lock-contract-2026-10-21.md) - Dependency Convergence Phase1 Lock Contract 2026 10 21 documentation.
+- [dependency-convergence-phase1-ratchet-2026-10-22.md](dependency-convergence-phase1-ratchet-2026-10-22.md) - Dependency Convergence Phase1 Ratchet 2026 10 22 documentation.
+- [dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md) - Dependency Convergence Phase1 Storage Foundation Spec 2026 10 21 documentation.
+- [dependency-convergence-phase1-verification-2026-10-22.md](dependency-convergence-phase1-verification-2026-10-22.md) - Dependency Convergence Phase1 Verification 2026 10 22 documentation.
+- [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
 - [development-format-hard-cut-interruption-spec-2026-10-19.md](development-format-hard-cut-interruption-spec-2026-10-19.md) - Development Format Hard Cut Interruption Spec 2026 10 19 documentation.
@@ -214,6 +228,7 @@
 - [retained-entity-resolution-contract-2026-10-21.md](retained-entity-resolution-contract-2026-10-21.md) - Retained Entity Resolution Contract 2026 10 21 documentation.
 - [roadmap.md](roadmap.md) - Roadmap documentation.
 - [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.
+- [semantic-import-settlement-minimization-plan-2026-10-21.md](semantic-import-settlement-minimization-plan-2026-10-21.md) - Semantic Import Settlement Minimization Plan 2026 10 21 documentation.
 - [storage-format.md](storage-format.md) - Storage Format documentation.
 - [tombstone-import-history-execution-contract.md](tombstone-import-history-execution-contract.md) - Tombstone Import History Execution Contract documentation.
 - [tombstone-import-history-final-verification-2026-10-18.md](tombstone-import-history-final-verification-2026-10-18.md) - Tombstone Import History Final Verification 2026 10 18 documentation.

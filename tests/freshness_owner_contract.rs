@@ -22,20 +22,24 @@ fn freshness_survives_public_copy_repack_and_reclamation() {
     let historical =
         [0u64, 999, 1000, 1507, 2000].map(|turn| source.freshness_records_at(turn).unwrap());
     let original = fs::read(&source_path).unwrap();
+    let owner_uuid = source.owner_uuid();
+    let policy = source.freshness_policy();
     let copies = [
         fixture.path("strict.rel"),
         fixture.path("repacked.rel"),
         fixture.path("reclaimed.rel"),
     ];
+    drop(source);
     Cva::reconcile(&source_path, &source_path, &copies[0]).unwrap();
+    let mut source = Cva::open(&source_path).unwrap();
     source
         .repack_missing_user_principal(&copies[1], "phy-00000000-0000-0000-0000-000000000123")
         .unwrap();
     source.reclaim_storage(&copies[2]).unwrap();
     for path in copies {
         let mut copied = Cva::open(&path).unwrap();
-        assert_eq!(copied.owner_uuid(), source.owner_uuid());
-        assert_eq!(copied.freshness_policy(), source.freshness_policy());
+        assert_eq!(copied.owner_uuid(), owner_uuid);
+        assert_eq!(copied.freshness_policy(), policy);
         assert_eq!(copied.freshness_record(id), expected);
         for (index, turn) in [0u64, 999, 1000, 1507, 2000].into_iter().enumerate() {
             assert_eq!(

@@ -8,22 +8,31 @@ Own future Reliquary implementation work. Completed behavior belongs in current 
 
 ## Overview
 
-The dependency-convergence architecture refactor is the current structural priority. It is limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md).
+The dependency-convergence architecture refactor is the current structural priority. It is limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) and its [permanent, explicitly allowlisted target component DAG](dependency-convergence-target-dag-2026-10-21.md). No cycle, upward/ancestral backreach (even if acyclic), unauthorized sibling coupling or unlisted direct dependency is permitted after convergence.
+
+Phase 1's physical storage boundary is implemented and accepted locally on
+Windows; its verification record documents platform limits. Its [execution specification](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md)
+and [file lease contract](dependency-convergence-phase1-lock-contract-2026-10-21.md)
+record the cursor, explicit repairs and writer/source publication rules. Later
+owner and domain convergence remains separate work.
 
 The active work is now concentrated in a small number of tracks:
 
-1. finish the current compact/lossless storage-history rewrite;
-2. complete Perception Observations and then Ego synthesis/context assembly;
+1. complete the semantic import-settlement minimization follow-up;
+2. complete Perception Observations, then Ego semantic synthesis and Context Engine final assembly;
 3. finish explicit Insomnia commit semantics;
 4. finish Warlock/Hermes consumer/release work around the implemented Gateway runtime;
 5. expand historical/version recovery deliberately; and
-6. continue product/security/interoperability hardening when those capabilities are actually needed.
+6. continue product/security/interoperability hardening when those capabilities are actually needed; and
+7. refine Context Engine compaction beneath the existing ownership contract.
 
 Completed Freshness, Dream, decision-routing, tombstone/import/rewrite, external-source-core, and Gateway implementation sequences are not roadmap items.
 
 ## Active storage/history track
 
-The current large active implementation is the compact/lossless history/storage rewrite.
+The compact/lossless history hard cut is complete. A separate follow-up is active because final accounting showed the semantic `CVAFRS06` import-settlement proof expanding from 395,533 bytes to 7,415,741 bytes across the six canonical fixtures. Physical-prefix authority must remain retired, but the settlement should be redesigned so reconstructible Freshness/Memory/import evidence is authenticated rather than copied into a second self-contained history.
+
+This follow-up does not reopen the completed 377-step implementation plan. It is tracked independently in [Semantic import-settlement minimization follow-up](semantic-import-settlement-minimization-plan-2026-10-21.md). The prior 5.235% whole-file result remains valid historical measurement of the completed hard cut, not the target result for this follow-up.
 
 Authoritative planning:
 
@@ -57,15 +66,32 @@ Implement the future work in [Perception future implementation plan](perception-
 
 Relationship should converge toward the relational-Observation model rather than remain a duplicated long-term authority.
 
-### 3. Ego synthesis and context assembly
+### 3. Ego synthesis and Context Engine assembly
 
-After the semantic substrate is stable, implement the existing future-only Ego plans:
+After the semantic substrate is stable, implement Ego's future semantic output generation and the Context Engine's future final-assembly responsibilities described in these existing plans:
 
-- [Memory-Web synthesis](ego-web-synthesis-plan.md)
-- [Cross-chat context](ego-cross-chat-context-plan.md)
-- [Cross-REL summary inclusion](ego-cross-rel-summary-inclusion-plan.md)
+- [Memory-Web synthesis](ego-web-synthesis-plan.md) — Ego creates and stores summaries; Context Engine selects/budgets/injects their content.
+- [Cross-chat context](ego-cross-chat-context-plan.md) — Context Engine selects from existing Archive conversation compactions; no new Ego summarizer.
+- [Cross-REL summary inclusion](ego-cross-rel-summary-inclusion-plan.md) — Context Engine includes eligible Ego-produced summaries from authorized scopes.
 
-Ego should compose existing owner state rather than become another semantic database.
+**Accepted target boundary (2026-10-21):** Context Engine owns all final model-facing context selection, budgeting, compaction and assembly. Ego owns semantic state and synthesis (Identity, Personality, Anchors, Memory-Web Summaries), not final injection. Runtime/Gateway executes and authorizes, but does not assemble context content. Maintain the one-way dependency Runtime → Context Engine → context producers, with no Ego → Context Engine imports. These are future capabilities, not additions to the correction-only dependency-convergence campaign.
+
+## Context Engine compaction refinement
+
+Refine current-session compaction under the existing Context Engine/host ownership contract rather than redesigning that boundary. The detailed unfinished work is tracked in [Context Engine compaction refinement plan](context-engine-compaction-refinement-plan-2026-10-21.md).
+
+The required direction is:
+
+- deterministically strip durable/retrievable pre-tail reasoning and completed tool traces before semantic summarization, with an immediate stop when that alone reaches target;
+- preserve a completed conversational continuity tail bounded by both turn count (initially approximately 10 turns) and a percentage token cap;
+- replace free-form/unvalidated retrieval references with structured output validated against current conversation/branch turn and fragment identities, then assemble the retrieval map deterministically;
+- reject and model-reduce oversized summary output rather than truncating it;
+- retain exceptional compaction-input capacity limits with hierarchical consolidation, while excluding generation-contract text from the conversation-content allocation;
+- make repeated same-turn compaction monotonic so accepted summarized history and the protected tail are not repeatedly reprocessed;
+- escalate to current-turn pressure only when older history cannot reach target, and automatically remove reasoning from a pressure-affected turn once it completes and authoritative/Echo storage succeeds; and
+- recalibrate the current 40% target and 20% raw-tail defaults from measurements rather than preserving them by compatibility.
+
+This work must first verify that Echo persistence/retrieval is sufficiently immediate and durable to back deterministic execution-trace eviction.
 
 ## Explicit Memory commit
 
@@ -152,7 +178,9 @@ Future synchronization must:
 
 ## External/import interoperability
 
-The framework-neutral external-source core is implemented. Remaining interoperability work is adapter/product work:
+**Deferred External Sources redesign (2026-10-21):** Warlock should duplicate/copy source material into Warlock by default to simplify Reliquary-side operation and integration. External Sources remains a distinct capability (not Project Environment and not subsumed by Import), but its current reference-only, host-canonical transcript model is **not assumed to be the final design** for Warlock. A substantial redesign is anticipated. Before implementing it, specify the exact source/copy authority, provenance and identities, edits/deletes/rewinds, retention/privacy, replay and recovery, and how the duplicate feeds semantic processing; do not conflate a Warlock copy with REL/PHY semantic ownership. Preserve existing behavior until a separate design is accepted. This is **new deferred product/integration work, outside the correction-only dependency-convergence campaign**. See [External canonical-transcript host integration plan](conversation-index-integration-plan.md).
+
+The framework-neutral external-source core is implemented under its **current** reference-only contract. Remaining interoperability work is adapter/product work, subject to the deferred Warlock redesign above:
 
 - real Hermes adapter and conformance;
 - production ChatGPT/Claude/provider import adapters where useful;

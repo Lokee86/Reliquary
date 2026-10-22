@@ -45,8 +45,8 @@ impl Cva {
         left_path: impl AsRef<Path>,
         right_path: impl AsRef<Path>,
     ) -> Result<CvaComparison, CvaReconcileError> {
-        let mut left = Self::open(left_path)?;
-        let mut right = Self::open(right_path)?;
+        let mut left = Self::open_read_only(left_path)?;
+        let mut right = Self::open_read_only(right_path)?;
         let left_id = owner_id(&left, "left")?;
         let right_id = owner_id(&right, "right")?;
         if left_id != right_id {
@@ -88,32 +88,73 @@ impl Cva {
         right_path: impl AsRef<Path>,
         output_path: impl AsRef<Path>,
     ) -> Result<CvaReconcileResult, CvaReconcileError> {
+        Self::reconcile_held(left_path, right_path, output_path).map(|(result, _output)| result)
+    }
+
+    /// Reconcile and retain the validated output's writer authority for callers
+    /// that publish the destination path atomically after this operation.
+    pub(crate) fn reconcile_held(
+        left_path: impl AsRef<Path>,
+        right_path: impl AsRef<Path>,
+        output_path: impl AsRef<Path>,
+    ) -> Result<(CvaReconcileResult, Cva), CvaReconcileError> {
         let left_path = left_path.as_ref();
         let right_path = right_path.as_ref();
         let output_path = output_path.as_ref();
+
+        // Keep shared OS leases on both inputs for the whole reconciliation.
+        // `compare` and the owner-specific replay paths may open their own
+        // short-lived readers, but these guards pin the exact source identities
+        // through output validation and publication readiness.
+        let left_guard = crate::Container::open_read_only_for_scan(left_path)?;
+        let right_guard = crate::Container::open_read_only_for_scan(right_path)?;
+        left_guard.validate_path_identity()?;
+        right_guard.validate_path_identity()?;
         if output_path.exists() {
             return Err(CvaReconcileError::OutputExists);
         }
 
-        let comparison = Self::compare(left_path, right_path)?;
-        let source = match comparison.relation {
-            CvaRelation::RightExtendsLeft => right_path,
-            _ => left_path,
-        };
-        if comparison.relation != CvaRelation::Diverged {
-            copy_and_validate(source, output_path)?;
-            return Ok(empty_result(comparison));
-        }
+        let reconciled: Result<(CvaReconcileResult, Cva), CvaReconcileError> = (|| {
+            let comparison = Self::compare(left_path, right_path)?;
+            let source = match comparison.relation {
+                CvaRelation::RightExtendsLeft => right_path,
+                _ => left_path,
+            };
+            if comparison.relation != CvaRelation::Diverged {
+                let output = copy_and_validate(source, output_path)?;
+                return Ok((empty_result(comparison), output));
+            }
 
-        if let Some(result) = crate::imports::reconcile_import_epochs(
-            left_path,
-            right_path,
-            output_path,
-            comparison.clone(),
-        )? {
-            return Ok(result);
+            if let Some(reconciled) = crate::imports::reconcile_import_epochs(
+                left_path,
+                right_path,
+                output_path,
+                comparison.clone(),
+            )? {
+                return Ok(reconciled);
+            }
+            reconcile_diverged(left_path, right_path, output_path, comparison)
+        })();
+
+        match reconciled {
+            Ok((result, output)) => {
+                let source_validation = left_guard
+                    .validate_path_identity()
+                    .and_then(|()| right_guard.validate_path_identity());
+                let output_validation = output.container.validate_path_identity();
+                if source_validation.is_err() || output_validation.is_err() {
+                    let cleanup_path = output_path.to_path_buf();
+                    let output_is_still_owned = output_validation.is_ok();
+                    if output_is_still_owned {
+                        let _ = fs::remove_file(cleanup_path);
+                    }
+                    drop(output);
+                    return Err(crate::ContainerError::UnstableSnapshot.into());
+                }
+                Ok((result, output))
+            }
+            Err(error) => Err(error),
         }
-        reconcile_diverged(left_path, right_path, output_path, comparison)
     }
 }
 
@@ -167,20 +208,31 @@ fn classify(common: usize, left: usize, right: usize) -> CvaRelation {
     }
 }
 
-pub(crate) fn copy_and_validate(source: &Path, output: &Path) -> Result<(), CvaReconcileError> {
-    fs::copy(source, output)?;
+pub(crate) fn copy_and_validate(source: &Path, output: &Path) -> Result<Cva, CvaReconcileError> {
+    let source_guard = crate::Container::open_read_only(source)?;
+    source_guard.validate_path_identity()?;
+    let mut destination = source_guard.create_empty_like(output)?;
+    {
+        let mut cursor = source_guard.physical_cursor()?;
+        while let Some(frame) = cursor.next_frame()? {
+            destination.append(&frame.payload)?;
+        }
+    }
+    destination.sync()?;
+    source_guard.validate_path_identity()?;
+    let output_guard = destination.read_source()?;
     let validated = (|| {
-        let source = Cva::open(source)?;
-        let reopened = Cva::open(output)?;
+        let source = Cva::open_read_only(source)?;
+        let reopened = Cva::open_from_container(destination)?;
         source.validate_historical_import_copy(&reopened)?;
         if !source.archive.activity_history_matches(&reopened.archive) {
             return Err(CvaReconcileError::Archive(
                 crate::ArchiveError::CorruptRecord("copied REL activity history changed"),
             ));
         }
-        Ok(())
+        Ok(reopened)
     })();
-    if validated.is_err() {
+    if validated.is_err() && output_guard.validate_path_identity().is_ok() {
         let _ = fs::remove_file(output);
     }
     validated

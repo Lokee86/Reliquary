@@ -35,6 +35,8 @@ mod compact_delta;
 mod freshness_trace;
 #[path = "facade/owner_maintenance.rs"]
 mod owner_maintenance;
+#[path = "facade/semantic_maintenance.rs"]
+mod semantic_maintenance;
 
 #[cfg(test)]
 #[path = "facade/historical_archive_fingerprint.rs"]
@@ -1098,7 +1100,8 @@ pub use container::{
     ReliquaryScopeKind,
 };
 pub use conversation_compaction_model::{
-    ConversationCompaction, ConversationCompactionError, MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
+    ConversationCompaction, ConversationCompactionError, ConversationCompactionMaintenance,
+    MAX_CONVERSATION_COMPACTION_SUMMARY_BYTES,
 };
 pub use conversation_metadata_model::{ConversationMetadata, ConversationPolicy};
 pub use conversation_search_model::ConversationSearchHit;
@@ -1107,6 +1110,7 @@ pub use cva::Cva;
 pub use cva_history_prune::{HistoryPruneReport, HistoryPruneRequest};
 pub use phylactery_profile_model::{MAX_PHYLACTERY_PROFILE_NAME_BYTES, PhylacteryProfile};
 pub use runtime_config::RuntimeConfig;
+pub use semantic_maintenance::{EntityResolutionMaintenance, TailRepairOutcome};
 pub use storage_reclamation::StorageReclamationReport;
 pub type Reliquary = Cva;
 pub use chronos_detection_model::{TemporalDetection, TemporalIndication, TemporalIndicationKind};
@@ -1767,6 +1771,9 @@ mod semantic_graph_reconcile_tests;
 #[cfg(test)]
 #[path = "semantic_graph/semantic_graph_tests.rs"]
 mod semantic_graph_tests;
+#[cfg(test)]
+#[path = "facade/semantic_maintenance_tests.rs"]
+mod semantic_maintenance_tests;
 #[cfg(test)]
 #[path = "retrieval/semantic_search_tests.rs"]
 mod semantic_search_tests;
