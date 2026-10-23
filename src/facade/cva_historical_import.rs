@@ -177,13 +177,6 @@ impl Cva {
             .clone()
             .ok_or_else(|| fail("accepted settlement lacks semantic authority"))
     }
-
-    pub(crate) fn validate_historical_import_settlements(&mut self) -> Result<(), CvaError> {
-        for settlement in self.freshness.import_settlements().to_vec() {
-            input::validate_settlement(self, &settlement)?;
-        }
-        Ok(())
-    }
 }
 
 #[path = "historical_reconstruction.rs"]

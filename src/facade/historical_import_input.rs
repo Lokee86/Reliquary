@@ -30,18 +30,3 @@ pub(super) fn admission_proof_scoped(
 ) -> Result<AdmissionProof, CvaError> {
     crate::history::import_admission::admission_proof_scoped(&parts(cva), scope)
 }
-pub(super) fn validate_settlement(
-    cva: &mut Cva,
-    cp: &crate::freshness_storage::HistoricalImportFreshnessSettlement,
-) -> Result<(), CvaError> {
-    crate::history::validate_historical_settlement(
-        &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
-        &cva.archive,
-        &cva.memories,
-        &cva.graph,
-        &cva.freshness,
-        &cva.dream_freshness,
-        &cva.import_epochs,
-        cp,
-    )
-}

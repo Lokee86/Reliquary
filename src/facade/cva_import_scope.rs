@@ -30,20 +30,6 @@ impl Cva {
         }
     }
 
-    pub(crate) fn validate_import_settlement_scope(
-        &mut self,
-        replay: &crate::freshness_storage::ImportEventScope,
-    ) -> Result<(), CvaError> {
-        let source = crate::owner_lifecycle::HistorySource::new(&self.container)
-            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
-        crate::history::validate_import_settlement_scope(
-            &source,
-            &self.archive,
-            &self.memories,
-            replay,
-        )
-    }
-
     pub(crate) fn import_epoch_scope(&mut self) -> Result<ImportEpochScope, CvaError> {
         let start = self.open_import_epoch().ok_or_else(|| {
             CvaError::Freshness("historical reconstruction requires an open import epoch".into())

@@ -1,6 +1,5 @@
 //! Read-only reconstruction and validation of one ImportEpoch source scope.
 
-use crate::freshness_storage::ImportEventScope;
 use crate::imports::epoch_codec::{self, ImportEpochRecord};
 use crate::imports::epoch_model::ImportStart;
 use crate::memory_store::MemoryStore;
@@ -210,68 +209,6 @@ pub(crate) fn replay_import_epoch_scope(
         cohort,
         outputs,
     })
-}
-
-/// Verify a frozen Freshness event scope against its physical Import epoch and
-/// owner-derived Archive/Insomnia facts.
-pub(crate) fn validate_import_settlement_scope(
-    source: &HistorySource<'_>,
-    archive: &Archive,
-    memories: &MemoryStore,
-    replay: &ImportEventScope,
-) -> Result<(), OwnerError> {
-    let mut start = None;
-    let mut cursor = source
-        .prefix_cursor(replay.freeze_prefix)
-        .map_err(|error| OwnerError::Container(error.0))?;
-    while let Some(frame) = cursor
-        .next_frame()
-        .map_err(|error| OwnerError::Container(error.0))?
-    {
-        let location = frame.object.legacy_bytes();
-        let offset = u64::from_le_bytes(location[..8].try_into().unwrap());
-        if offset == replay.start_prefix {
-            if Sha256::digest(&frame.payload).as_slice() != replay.start_evidence_digest {
-                return Err(OwnerError::Freshness(
-                    "import settlement start digest mismatch".into(),
-                ));
-            }
-            if let Some(ImportEpochRecord::Start(value)) = epoch_codec::decode(&frame.payload)
-                .map_err(|error| OwnerError::Freshness(error.to_string()))?
-            {
-                start = Some(value);
-            }
-        }
-    }
-    let start =
-        start.ok_or_else(|| OwnerError::Freshness("import settlement start unavailable".into()))?;
-    let source_nodes = import_source_nodes(archive, &start)?;
-    let scope = replay_import_epoch_scope(
-        source,
-        archive,
-        memories,
-        start,
-        replay.freeze_prefix,
-        source_nodes,
-    )?;
-    let import_id: String = replay
-        .import_id
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect();
-    if scope.start.owner_uuid != replay.owner
-        || scope.start.import_id != import_id
-        || scope.start_offset != replay.start_prefix
-        || scope.start_digest != replay.start_evidence_digest
-        || scope.base_cut != replay.base_cut
-        || scope.source_nodes != replay.source_nodes
-        || scope.cohort != replay.born_memories
-    {
-        return Err(OwnerError::Freshness(
-            "import settlement source/cohort evidence mismatch".into(),
-        ));
-    }
-    Ok(())
 }
 
 /// Resolve one accepted ImportStart using the original metadata/receipt/scan order.

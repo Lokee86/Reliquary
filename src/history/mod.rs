@@ -46,7 +46,6 @@ pub(crate) use epoch_scope_proof::{
 mod import_epoch_scope;
 pub(crate) use import_epoch_scope::{
     ImportEpochScope, import_source_nodes, replay_import_epoch_scope,
-    validate_import_settlement_scope,
 };
 
 mod settlement_births;
