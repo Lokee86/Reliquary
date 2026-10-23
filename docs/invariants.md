@@ -299,6 +299,8 @@ The isolated P5-C integration adds `conversation_submission_status` (ViewRel) an
 Gateway transcript reads join native prefixes under the existing owner → coordinator → journal observation order. Native stream records are excluded from the legacy session projection; only the exact requested leaf's journal-acknowledged continuation is reconstructed through the existing byte-length/hash-validated checkpoint reader. Historical/sibling leaves do not receive that continuation, completed generations remain Archive turns, and ViewRel/mount fencing still applies. Legacy non-native streams retain their existing projection. No stored format or second mutable authority changes.
 
 
+Owner-local evidence/read/publication capabilities contain no Gateway or Instance handles. Upper composition supplies the exact mounted owner and retains grant, epoch and post-I/O delivery checks. Insomnia evidence search, PHY Memory publication and Dream canonical reads use bounded contracts; these contracts do not select principals, schedule a second worker or admit a second writer.
+
 ## Related docs
 
 - [Architecture](architecture.md)

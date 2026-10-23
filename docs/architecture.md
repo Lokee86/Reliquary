@@ -356,6 +356,10 @@ Crate-root Rust modules are composition/publication seams owned by the overall a
 - `src/owner_lifecycle/metadata/*`
 - `src/owner_lifecycle/phy_profile/*`
 
+Runtime orchestration keeps Gateway, Instance, mounted REL/PHY execution and configured/offline provider wiring distinct. Insomnia extraction and evidence parsing consume explicit owner evidence ports; private Dream canonical decisions consume a read-only owner contract. Provider evaluation is separate from public offline publication adapters. Configuration values/codecs belong below switchboard route/auth resolution. The grouped Insomnia/Memory/Freshness append/sync is a single `owner_lifecycle/insomnia_application.rs` publication contract; Insomnia supplies frozen application values and retains candidate policy, without importing the aggregate completion codec or owning cross-store physical publication. Public root exports remain supported.
+
+The [Phase 5 execution receipt](dependency-convergence-phase5-execution-2026-10-23.md) separates actual source cuts from source-role corrections and retained Phase 6 facade dependencies. `check_runtime_boundaries.py` enforces the corrected seams and lower-to-Gateway/Instance prohibition. The current-source mode of the accepted component checker reports incremental import/SCC evidence without rewriting historical snapshots; neither lexical guards nor the source-import graph claim complete symbol-level dependency proof.
+
 ## Related docs
 
 - [Local configuration](configuration.md)

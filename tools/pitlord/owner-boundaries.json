@@ -2147,12 +2147,17 @@
       "path": "src/project_environment/write_guard_unix.rs",
       "component": "project-environment",
       "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_application.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
     }
   ],
   "module_components": [
     {
       "module": "dream_freshness",
-      "component": "dream"
+      "component": "public-consumers"
     },
     {
       "module": "dream_candidate_ranking",
@@ -2541,6 +2546,62 @@
     {
       "module": "owner_lifecycle::physical_fingerprint",
       "component": "owner-lifecycle"
+    },
+    {
+      "module": "model_config",
+      "component": "config-security"
+    },
+    {
+      "module": "model_config_codec",
+      "component": "config-security"
+    },
+    {
+      "module": "lexical_contract",
+      "component": "retrieval"
+    },
+    {
+      "module": "insomnia::processor::result",
+      "component": "insomnia"
+    },
+    {
+      "module": "insomnia::worker::model",
+      "component": "insomnia"
+    },
+    {
+      "module": "retrieval_config",
+      "component": "config-security"
+    },
+    {
+      "module": "dream_processing",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_community_naming_adapter",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_settlement",
+      "component": "dream"
+    },
+    {
+      "module": "dream_processor_frontier",
+      "component": "public-consumers"
+    },
+    {
+      "module": "dream_temporal_policy",
+      "component": "dream"
+    },
+    {
+      "module": "owner_lifecycle::insomnia_application",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "insomnia::processor::prepared",
+      "component": "insomnia"
+    },
+    {
+      "module": "insomnia::contract",
+      "component": "insomnia"
     }
   ],
   "producer_value_contracts": [
@@ -2884,12 +2945,6 @@
       "consumer": "vector-store",
       "owner": "switchboard",
       "symbol": "EmbeddingMode",
-      "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
-    },
-    {
-      "consumer": "vector-store",
-      "owner": "switchboard",
-      "symbol": "VectorNormalization",
       "reason": "Source-reviewed immutable persisted value, tag, error or lineage coordinate only; no producer implementation, provider trait or mutable store access."
     },
     {
@@ -3341,6 +3396,90 @@
       "owner": "freshness-store",
       "symbol": "FreshnessEventProof",
       "why": "Immutable accepted proof coordinate only; no physical writer, callback or owner store capability."
+    },
+    {
+      "consumer": "config-security",
+      "owner": "vector-store",
+      "symbol": "VectorNormalization",
+      "reason": "Immutable normalization enum and fixed wire tags only; no vector store or provider callback."
+    },
+    {
+      "consumer": "switchboard",
+      "owner": "vector-store",
+      "symbol": "VectorNormalization",
+      "reason": "Immutable normalization enum and fixed wire tags only; no vector store or provider callback."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "vector-store",
+      "symbol": "VectorNormalization",
+      "reason": "Phase5 reviewed immutable configuration default, persisted value, ID or typed error only; no mutable owner/provider capability."
+    },
+    {
+      "consumer": "dream",
+      "owner": "config-security",
+      "symbol": "DEFAULT_DREAM_INFERENCE_CONCURRENCY",
+      "reason": "Phase5 reviewed immutable configuration default, persisted value, ID or typed error only; no mutable owner/provider capability."
+    },
+    {
+      "consumer": "insomnia",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfileError",
+      "reason": "Phase5 reviewed immutable configuration default, persisted value, ID or typed error only; no mutable owner/provider capability."
+    },
+    {
+      "consumer": "insomnia",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfileId",
+      "reason": "Phase5 reviewed immutable configuration default, persisted value, ID or typed error only; no mutable owner/provider capability."
+    },
+    {
+      "consumer": "insomnia",
+      "owner": "vector-store",
+      "symbol": "MemoryVectorError",
+      "reason": "Phase5 reviewed immutable configuration default, persisted value, ID or typed error only; no mutable owner/provider capability."
+    },
+    {
+      "consumer": "insomnia",
+      "owner": "vector-store",
+      "symbol": "MemoryVectorId",
+      "reason": "Phase5 reviewed immutable configuration default, persisted value, ID or typed error only; no mutable owner/provider capability."
+    },
+    {
+      "consumer": "config-security",
+      "owner": "archive-store",
+      "symbol": "FragmentConfig",
+      "reason": "Phase5 reviewed immutable configuration default, persisted value, ID or typed error only; no mutable owner/provider capability."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "insomnia",
+      "symbol": "PreparedApplication",
+      "reason": "Frozen grouped-publication input/output or typed error value; owner lifecycle performs the single append/sync and imports no extractor/provider/service implementation."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "insomnia",
+      "symbol": "UserPublication",
+      "reason": "Frozen grouped-publication input/output or typed error value; owner lifecycle performs the single append/sync and imports no extractor/provider/service implementation."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "insomnia",
+      "symbol": "InsomniaProcessResult",
+      "reason": "Frozen grouped-publication input/output or typed error value; owner lifecycle performs the single append/sync and imports no extractor/provider/service implementation."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "insomnia",
+      "symbol": "InsomniaProcessError",
+      "reason": "Frozen grouped-publication input/output or typed error value; owner lifecycle performs the single append/sync and imports no extractor/provider/service implementation."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "insomnia",
+      "symbol": "INSOMNIA_EXTRACTOR_CONTRACT_VERSION",
+      "reason": "Fixed completion-contract version value only, copied unchanged into the lifecycle-owned completion codec."
     }
   ],
   "forbidden_symbols": [

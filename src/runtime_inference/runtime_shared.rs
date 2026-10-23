@@ -85,3 +85,11 @@ pub struct VisibleMemorySearchResult {
 #[path = "runtime_host_routes.rs"]
 mod routes;
 pub use routes::ReliquaryRuntimeRoutes;
+
+pub(crate) fn unix_now_ns() -> i64 {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    nanos.min(i64::MAX as u128) as i64
+}

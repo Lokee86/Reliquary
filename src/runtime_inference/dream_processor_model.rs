@@ -17,3 +17,11 @@ pub struct DreamProcessResult {
     pub pairs: Vec<DreamProcessedPair>,
     pub lifecycle: DreamLifecycleResult,
 }
+
+pub const DEFAULT_DREAM_FRONTIER_SIZE: usize = 6;
+
+#[derive(Debug)]
+pub struct DreamMemoryProcessOutcome {
+    pub memory_id: crate::MemoryId,
+    pub result: Result<DreamProcessResult, crate::DreamProcessError>,
+}

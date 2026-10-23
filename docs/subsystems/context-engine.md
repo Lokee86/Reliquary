@@ -55,6 +55,8 @@ Current behavior is limited to conversation views and compaction. **Accepted fut
 - `src/context_engine.rs`
 - `src/context_engine/**`
 
+Runtime convergence preserves the current context boundary: authorized Archive/Echo evidence and token-counter inputs enter deterministic selection/compaction; no Gateway or Instance handle is retained by the Context Engine. Provider execution and post-I/O owner/grant revalidation remain outside the projection policy. Cross-chat/Ego assembly and compaction refinement remain deferred.
+
 ## Related docs
 
 - [Architecture](../architecture.md)

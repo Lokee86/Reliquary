@@ -1050,7 +1050,7 @@ fn rel_pending(
 ) -> Result<(usize, usize), ReliquaryRuntimeHostError> {
     let mut vector_pending = 0;
     let mut dream_pending = 0;
-    let now_ns = crate::dream_cooldown::unix_now_ns();
+    let now_ns = crate::runtime_shared::unix_now_ns();
     for id in ids {
         let memory = cva.memory(*id).map_err(operation)?;
         if memory.archived {

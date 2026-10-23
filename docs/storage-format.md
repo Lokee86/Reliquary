@@ -1252,6 +1252,8 @@ Opt-in Freshness stage samples are process-local JSON diagnostics. They are not 
 - `src/container/**`
 - `src/compact_delta.rs`
 
+Runtime dependency convergence changes no on-disk or wire schema. Model endpoint/configuration codecs keep their existing keys, schemas, tags and byte order after relocation to `config_security/model_config_codec.rs`. Vector normalization retains tags `0` (none) and `1` (L2) in its vector-owned value contract. Insomnia completion and CVAFRS07 settlement formats remain with their accepted owners.
+
 ## Related docs
 
 - [Architecture](architecture.md)

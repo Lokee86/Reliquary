@@ -1,6 +1,7 @@
+use crate::model_config::ModelProvider;
 use crate::{
-    GeneralEndpoint, GeneralEndpointError, ModelProvider, ModelSwitchboard,
-    OpenAiCodexGeneralEndpoint, OpenAiReadyGeneralEndpoint,
+    GeneralEndpoint, GeneralEndpointError, ModelSwitchboard, OpenAiCodexGeneralEndpoint,
+    OpenAiReadyGeneralEndpoint,
 };
 use serde_json::Value;
 

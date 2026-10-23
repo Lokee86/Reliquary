@@ -1,4 +1,4 @@
-use crate::lexical_search::LexicalHit;
+use crate::lexical_contract::LexicalHit;
 use crate::{Cva, RetrievalConfig, SearchCandidate, SearchError, SemanticSearchHit};
 use std::collections::HashMap;
 

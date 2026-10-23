@@ -3023,8 +3023,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `config_security` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "5496f21f2e907085631574d8111e3106b32d06a1838a7bc4634c6450c97ccbf8",
-      "compiler_inventory_match": true,
+      "source_sha256": "bf5970e1a2adb6d245a64af62a8776b5c2359f3bbfae540114eddf07567c7ba2",
+      "compiler_inventory_match": false,
       "compiler_item_count": 30,
       "symbol_spans_sha256": "e7e8e0380ee80abb4d1ee35e87577582b9864525487a287d9cc9af0421612c38"
     },
@@ -3105,8 +3105,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `config_security` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "c2608b6d3f6225da26f5032fcb6e165cc8616dbd21cce9299d3ffb870c6d0803",
-      "compiler_inventory_match": true,
+      "source_sha256": "a8268f168cb6b747b8b9931f7d2a49c27897b3da5e08c51723e26f6e09bff90f",
+      "compiler_inventory_match": false,
       "compiler_item_count": 87,
       "symbol_spans_sha256": "a949fe8fa196c3c85d7dde299a1ab4c3c11b43669784737117b54404cbc0f797"
     },
@@ -3185,8 +3185,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `config_security` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "afbf56e5d88db8f39651492e7f291c5a7591e6428ff9e90f4e9a22a6bdf31eeb",
-      "compiler_inventory_match": true,
+      "source_sha256": "1ceae976c464ddec0b28e175be599b318a4662a86310b2c5ef1db4f42c6e0037",
+      "compiler_inventory_match": false,
       "compiler_item_count": 14,
       "symbol_spans_sha256": "6b00f4549530303884cdafd30f5ed60bfac2d85fb7c5f5b9d5e2107daec9002f"
     },
@@ -5532,8 +5532,8 @@
       "evidence": "direct source-role evidence: Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Phylactery extension implementation",
-      "source_sha256": "17f97962276ba3a7a34a518c109e0b419520d64b943df678790a893a85cc849f",
-      "compiler_inventory_match": true,
+      "source_sha256": "59984edb2d7e1efe170e7e58d6706f1c2d98eef7ba885e38184abbc60ea1875d",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "53506f40387d2b5577ebc7610e81b99945a59502121ee69c8d5f4e831e82c44b"
     },
@@ -7402,7 +7402,7 @@
       "reachability": "crate-root",
       "evidence": "Crate root exposes public facade and declares modules spanning components; retained as public-consumers composition node, with root-level imports requiring edge extraction.",
       "certainty": "crate-root-mixed-composition",
-      "source_sha256": "5266f2d52a80a725b987f39b3bcde5e913fa833449011d030c889f355a38ed18",
+      "source_sha256": "083300f7709e036345f4980899ee35fff9aec34c4fd501e843a654e121b3d444",
       "compiler_inventory_match": false,
       "compiler_item_count": 662,
       "symbol_spans_sha256": "90d9c063f6957c94ea77914d1bd80f479f6970b8c89f8fd3d62abb6ca00c7da8"
@@ -8933,8 +8933,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "1b1e2cc8aa92326d9a8194e93e8493ab9936057899de8de1e5d9b6a880a0696d",
-      "compiler_inventory_match": true,
+      "source_sha256": "8826ca315a7844b562a63e9e2aa29d2190bd954afd2f57212fa50c4276517c3d",
+      "compiler_inventory_match": false,
       "compiler_item_count": 14,
       "symbol_spans_sha256": "8933710150cac462bc92c821b827336f0d7529045a666cad6be64088069122fb"
     },
@@ -9028,8 +9028,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `perception` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "bf0848d47d7f4ad59e3939d17530154491cc294dbf842309c19a856abcdeeeb7",
-      "compiler_inventory_match": true,
+      "source_sha256": "39dd747a6b52bcd9846d07c105a13d87540b712371c1fe438a83c9f8c9c3da05",
+      "compiler_inventory_match": false,
       "compiler_item_count": 12,
       "symbol_spans_sha256": "77d9a4034a3ea71eb18d705cb52ab8eeb82089f7b58d7992ccea4027e7985a63"
     },
@@ -11019,8 +11019,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `retrieval` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "d405bb87d2cabdabb5b24234c39e82f9d09b2bc2cd7c49f87e9d7203f0b4a57e",
-      "compiler_inventory_match": true,
+      "source_sha256": "a5b82196846f9b601a14531daf8109b766e780f9098d16ea894bc7687d8a2154",
+      "compiler_inventory_match": false,
       "compiler_item_count": 69,
       "symbol_spans_sha256": "3814742075fbdf5ce426219025157e908e6b35fe316fb6d27eac3457937b385a"
     },
@@ -11042,8 +11042,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "1700a89e1457cd2f98542480e1a6c34d9b7eee667615693cb73820bbdf4ec5b2",
-      "compiler_inventory_match": true,
+      "source_sha256": "a222b9bf3baad611cf7ef28f67b0b9483654f9163c50bc7e7b60c088d52a5e8b",
+      "compiler_inventory_match": false,
       "compiler_item_count": 16,
       "symbol_spans_sha256": "737c0a663921a90dc258866ae853be4e7436de1f128b442c9c0ee82db37c3cb9"
     },
@@ -11288,8 +11288,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "41652c4a0df488fa22cc058b56851ef89f624dc5f1b7c5c4728cb47945db8087",
-      "compiler_inventory_match": true,
+      "source_sha256": "739283d29c40a1cda96175843b7ffae856bb0d6328ba4f840a064d3694ae4374",
+      "compiler_inventory_match": false,
       "compiler_item_count": 41,
       "symbol_spans_sha256": "d63b42fb17e8b9a225ec86403c626339d1f0fbc814f685f68b39a6aaed056a5d"
     },
@@ -11359,8 +11359,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `retrieval` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "d42dd64ce73f56fdceb59a8a74d9a8e6c6fa3845e2dd06dc20979e206b5b0f20",
-      "compiler_inventory_match": true,
+      "source_sha256": "104bf488b3f3fd708159318df1d14d888f9dc3039bdca4763ce54eb4e2ff63ec",
+      "compiler_inventory_match": false,
       "compiler_item_count": 35,
       "symbol_spans_sha256": "c96b75ca682c9ad07e0413fa6699eed162970659e3e68b9309bb74557dca830c"
     },
@@ -11371,7 +11371,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "debfb6800b7d0e63ac30273dc138b48893b6e894efef70dc7120b6047b55baf8",
+      "source_sha256": "1d56b917433981ec2023407f684fd0f81c98034a18415c0ab151653e4774ce3a",
       "compiler_inventory_match": false
     },
     {
@@ -11382,8 +11382,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "1647a834807100d161357da14010b2b483722fd56cf79238ef27960bb3894581",
-      "compiler_inventory_match": true,
+      "source_sha256": "ef7f77b331d5386f1673b54d7741dcc9dee8750b4a700f02f2ca01647d44c40b",
+      "compiler_inventory_match": false,
       "compiler_item_count": 9,
       "symbol_spans_sha256": "7e9786ad6e5334440a0b4b14ac113406c6bd50a21e1c256e15f8e5b9fb92e85c"
     },
@@ -11750,8 +11750,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `configured_decision`; responsibility assigned to `switchboard` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "fefe40d2d0e90c6596aed2df77a04be8ca3bd12837e2aed9f084a3249fc3cbf3",
-      "compiler_inventory_match": true,
+      "source_sha256": "a24e371e4d1019110ec572296f596886a9e5bf82390a8d8643c83ce49ce7d2f7",
+      "compiler_inventory_match": false,
       "compiler_item_count": 16,
       "symbol_spans_sha256": "bf70e30743bf987ff87d52974744ee4f02421d87e389b2fe4f6d6b1e936f4268"
     },
@@ -11762,8 +11762,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `configured_general`; responsibility assigned to `switchboard` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "05fed29a91bb47fde8990855db2fa2eff6074acbead30f7d15e325a185e30a86",
-      "compiler_inventory_match": true,
+      "source_sha256": "08258a9248602a3f1e6378c60ca74315e73c632a1060ec4ea897a0db10d9859b",
+      "compiler_inventory_match": false,
       "compiler_item_count": 20,
       "symbol_spans_sha256": "68b8c444256bbdd6f8627c6bf18fafa9f1c72161bcf720e7a937707d9b0b5fed"
     },
@@ -11786,8 +11786,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `configured_runtime_decision`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "b431bc08da4e56591e0e136c91520cd31db40477453dd81d0303c7bd83b13d76",
-      "compiler_inventory_match": true,
+      "source_sha256": "0b1b99c4440d796537b9c5a4df50a012722d39632b1d9f88a972e4896972e246",
+      "compiler_inventory_match": false,
       "compiler_item_count": 33,
       "symbol_spans_sha256": "b9cb684246e44037a2e7fd059d7019e0cf1f681fbb523ab8f75492e5c7d13259"
     },
@@ -11798,7 +11798,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "4d0fb1fe65e4ae4da27640ebc8d1a453e68042d19f4fe3e3c6fa359fd50fbb0f",
+      "source_sha256": "7b806fcabf5eb942a02a1ee1249a150b36d72dec0a920105e25e0dfcec993739",
       "compiler_inventory_match": false
     },
     {
@@ -11925,8 +11925,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `dream_canonical`; responsibility assigned to `dream` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "bb03be198fcb5f2745c0c8e6d2c79570eda1b1cfc963d3d5f6b0fa419b47bcaa",
-      "compiler_inventory_match": true,
+      "source_sha256": "7d51a990dc24b6efb9fc76615e3f5989e028245614f5fe8f9fb6b57fe12e0d10",
+      "compiler_inventory_match": false,
       "compiler_item_count": 10,
       "symbol_spans_sha256": "180c7683f47385217c4addef760f877051f84a183ba97292b7c1d04207ced812"
     },
@@ -12015,8 +12015,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `dream_community_naming`; responsibility assigned to `dream` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "3db2fe438f1a5cda13c45e2c1b179b7dc9fae9bde61294ad9ef272a3b0594432",
-      "compiler_inventory_match": true,
+      "source_sha256": "b9fdb0a5a046caa77ba271882d865159ef7ba550fd33ba59a54db9488346337c",
+      "compiler_inventory_match": false,
       "compiler_item_count": 26,
       "symbol_spans_sha256": "718d831a1725f400c7b1d696de0db79f8604566347c9fbf3c499ab2ed8b4ce4a"
     },
@@ -12074,8 +12074,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation, Phylactery extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation; Phylactery extension implementation",
-      "source_sha256": "37e706977685e6f93ea60e220097c92658c270c46d98050a784d99c72838e3b6",
-      "compiler_inventory_match": true,
+      "source_sha256": "10bded297bf8f568a3f5815d57cf7147ec50173e16dcca249f31c96e2f5017a3",
+      "compiler_inventory_match": false,
       "compiler_item_count": 16,
       "symbol_spans_sha256": "eeca5f5fa6524c58862155472fd4a27b159e406df8f81ca6c329a176132eb7a8"
     },
@@ -12113,13 +12113,13 @@
     },
     {
       "path": "src/runtime_inference/dream_freshness.rs",
-      "component": "dream",
+      "component": "public-consumers",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "owner-boundaries.json module_components `dream_freshness` via cfg(test)-stripped module_tree",
+      "evidence": "Phase5 pure settlement evaluation extracted to dream_settlement; remaining helpers coordinate Cva owner reads/publication for supported APIs and mounted runtime.",
       "certainty": "explicit-module-root",
-      "source_sha256": "f85c4fd36bfe252715de9069352a9f2206563b7c44882fb79d8b9625ec6cc7ab",
-      "compiler_inventory_match": true,
+      "source_sha256": "93cec913ea3d96e4d65bb576acf1ca47b1fbcd46a1b1ead2c4d8bbfa36f8baed",
+      "compiler_inventory_match": false,
       "compiler_item_count": 25,
       "symbol_spans_sha256": "86613f923cbe6fac637b0c57fec31f1d010f8cf13e69653f89b6a0a655177678"
     },
@@ -12131,8 +12131,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "3f8e439fd7af0d4b61273a39bcb666098f1c4410fac1f4b1df065c51d5f96a45",
-      "compiler_inventory_match": true,
+      "source_sha256": "db3bc30583bef743a219ad7bf82194ffa7e2175a0dd9c3ee66c65512871197bb",
+      "compiler_inventory_match": false,
       "compiler_item_count": 8,
       "symbol_spans_sha256": "cbf4ec3bda4d961c0f7a260d40d6d519bd33bbb06a68ba8a7511e5aadf0c42ae"
     },
@@ -12177,8 +12177,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `dream_owner_candidates`; responsibility assigned to `dream` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "f01b6828b3ac714cc18d1d8feaa6dd0fabdbd1dada4155416fc7c783648943cb",
-      "compiler_inventory_match": true,
+      "source_sha256": "44cb7d3565efb19241ce2fdb03a878428f916ff7ddea3c1a96dac541bb151ee2",
+      "compiler_inventory_match": false,
       "compiler_item_count": 6,
       "symbol_spans_sha256": "3f924f15cdf4d718bac72c4e659a5fa2ad429147884454bafba0acc0a4f17583"
     },
@@ -12271,8 +12271,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `dream_processor`; responsibility assigned to `dream` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "0eb3d19a99fe647f5f79ca839febea4a3dc3ebf2e2aa24c69c5b2e0dd23cf3fd",
-      "compiler_inventory_match": true,
+      "source_sha256": "5d1193ed0078a1b7adabcd8cdced607e3728b71cb31c43283394c4543bb8f6f1",
+      "compiler_inventory_match": false,
       "compiler_item_count": 17,
       "symbol_spans_sha256": "f9c6e8c81c6c164897ee2f35b26a7d6b09a165f90ab50bf98ec4a1e47d11bb73"
     },
@@ -12290,13 +12290,13 @@
     },
     {
       "path": "src/runtime_inference/dream_processor_frontier.rs",
-      "component": "dream",
+      "component": "public-consumers",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "source declarations/imports inspected for `dream_processor_frontier`; responsibility assigned to `dream` in target DAG",
+      "evidence": "Public DreamProcessor Cva/Phylactery offline frontier methods; provider evaluator is separately owned in dream_processor.",
       "certainty": "reviewed-source-role",
-      "source_sha256": "7215a13b65dceabd7e55ea8a623b59bac7c5749b5c2c6a21c7635a51ae0bf0e5",
-      "compiler_inventory_match": true,
+      "source_sha256": "d01dad38ee675978e4c738ffef72f1b3f38edfa17855c226e67a9cf9510f97a7",
+      "compiler_inventory_match": false,
       "compiler_item_count": 14,
       "symbol_spans_sha256": "a1aed38593d47986793bb89b011e50acaced14959181c741b46dea2420c884e7"
     },
@@ -12307,8 +12307,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `dream_processor_model`; responsibility assigned to `dream` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "a83ba8a447cbd03911a6d8a57039efe20c3388d84661c77a9499a1eb2709ddd8",
-      "compiler_inventory_match": true,
+      "source_sha256": "d5ee8aa559efc5fe1ce1bbcb172de18c6d0381bda854e60c49d83984a728e89f",
+      "compiler_inventory_match": false,
       "compiler_item_count": 18,
       "symbol_spans_sha256": "3450e971b171b49423cb3ec47c5b33021419b59482b3678740f9d4b0969993c6"
     },
@@ -12401,8 +12401,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "0deaaab88ca9e8346ecac8aafd89c49652e4113ba5c09fa69233ecf61e0820b5",
-      "compiler_inventory_match": true,
+      "source_sha256": "2da73df872d27f7b9f2bd4f57efced9cd05c2e8365ff75af16292657c7ee7f18",
+      "compiler_inventory_match": false,
       "compiler_item_count": 4,
       "symbol_spans_sha256": "95d2990282e6517b27da91bfc4c9bb61f65325186e6649ca48cb0a596695db5d"
     },
@@ -12481,8 +12481,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json module_components `embedding_endpoint` via cfg(test)-stripped module_tree",
       "certainty": "explicit-module-root",
-      "source_sha256": "c3f3e49192b35e2a88cd761b21eee233e9479f656cc7713f4ec5723029dbbfdf",
-      "compiler_inventory_match": true,
+      "source_sha256": "c322275945aa251eb61c8a6ae5708c8ac8d1506eeacdcf560476703751647a94",
+      "compiler_inventory_match": false,
       "compiler_item_count": 68,
       "symbol_spans_sha256": "13f1ac1ca7734b0e7b8039c857a69456a488ee9fe4ff97271274ab1a4d089049"
     },
@@ -12769,8 +12769,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `evidence`; responsibility assigned to `insomnia` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "e06cf140d58b20f493a5c261daa48fd6998b9f27ae92933975ab875ad8c1abe1",
-      "compiler_inventory_match": true,
+      "source_sha256": "4839bc324304bf5f4be36b4f8b42fddfa9b139f00fab0396703b998a9019f090",
+      "compiler_inventory_match": false,
       "compiler_item_count": 51,
       "symbol_spans_sha256": "f587feefcec6a3730d23f03f9e91d5ad750cba39dd3646d9c118c414b26a7d93"
     },
@@ -12781,7 +12781,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "e574f2be81aab92c2ebcd2b983a0bbcb0a465b023e1caeafec3dcc1e6a1a67a2",
+      "source_sha256": "8a9329dcca8d503def6f9730ff91183e919c4b6afdfd64b63f4feabbfb7a3b2c",
       "compiler_inventory_match": false
     },
     {
@@ -12791,7 +12791,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "649d14e7473f900fb313aa938044cf68b90460cfb2af59246bfb5ecc94aa2ef0",
+      "source_sha256": "b36d83e67a2df8e6c1bcf4ab0b7a531270ebfa6d5cfdbc19aecd4ebf2c07950c",
       "compiler_inventory_match": false
     },
     {
@@ -12801,8 +12801,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `extraction`; responsibility assigned to `insomnia` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "e04c5576695a4f98ea50cc2badef619f9e2d8ba284d3060b2047164c3cb47479",
-      "compiler_inventory_match": true,
+      "source_sha256": "33c53622464a5b2b3b47a679050229c2bf83203e090de18e54020f08b90ceeb8",
+      "compiler_inventory_match": false,
       "compiler_item_count": 139,
       "symbol_spans_sha256": "09419d07a566b52aa0fbd8ccf5ec58f8eaa43e4c4cc0381e46f1abf2fb7fb06e"
     },
@@ -12925,8 +12925,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `application`; responsibility assigned to `insomnia` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "8458b089fa205c8110306c08e1a4a8064fe36ff88e529b643b235ef3dea79315",
-      "compiler_inventory_match": true,
+      "source_sha256": "0bbd0e689a73e53362ea3be5d2371b9baaa0910eabe74f805d67ef5eaf8418c4",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "8f43ed41e40575d68213f799065c7145e1b50c857ff989f2d10047278cf02fba"
     },
@@ -12962,8 +12962,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "c4230490046d7dc0c8c9200271702fce9b5b23919a781ed262295c9ccfdf1c87",
-      "compiler_inventory_match": true,
+      "source_sha256": "e960410d3a3c9c9011087430674414c4bd93ea66b20bd1440ae5a46ed2468e2c",
+      "compiler_inventory_match": false,
       "compiler_item_count": 50,
       "symbol_spans_sha256": "56c9d9bd987ef49b5f4f24866ccc7d161850f91c9a817af9ff3616dd297b4221"
     },
@@ -13019,8 +13019,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "2eb11ce57336485ff78a5a0ab218020bc3d4ca7b0d69a2e2f8f0779023140ca1",
-      "compiler_inventory_match": true,
+      "source_sha256": "b247f0d95bca17463d0af270e11c63f99b737d23b0b42b5e38e2506836b3a816",
+      "compiler_inventory_match": false,
       "compiler_item_count": 16,
       "symbol_spans_sha256": "8fbf118122a4d0e487fac90489324c7b1ce475a84a2727626dcdb752c05fdd39"
     },
@@ -13087,8 +13087,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "owner-boundaries.json owner_files explicit assignment",
       "certainty": "reviewed-explicit",
-      "source_sha256": "4de91dbe3647f4c2e2950b38f2a5aa33cbb81e24f2c1b4d441dcab51de44c7e8",
-      "compiler_inventory_match": true,
+      "source_sha256": "b55ea0bfcecc25f53fb5e7bf3d1acfd7aacac54be4519cc988db94a14bd2866a",
+      "compiler_inventory_match": false,
       "compiler_item_count": 35,
       "symbol_spans_sha256": "2b83802d294232e7d1a62928839e2c43080d28dc6507a18fd2b3a5255e9a5332"
     },
@@ -13138,22 +13138,22 @@
     },
     {
       "path": "src/runtime_inference/insomnia/worker/runtime/outcome.rs",
-      "component": "insomnia",
+      "component": "public-consumers",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "source declarations/imports inspected for `outcome`; responsibility assigned to `insomnia` in target DAG",
+      "evidence": "Supported Cva offline drain adapter composition; mounted REL worker uses runtime_host_rel_insomnia and never this dispatcher. Worker config/results split into Insomnia-owned model.",
       "certainty": "reviewed-source-role",
-      "source_sha256": "e42fdeaa3bd01e28c5bec7ad18b4f777b2e06059a9efda1b4906b3e4419c8bfe",
-      "compiler_inventory_match": true,
+      "source_sha256": "c2ad4978a7d78993ba33d8dcfc08934ad7f0fb222d73a456be293ab17192f5e0",
+      "compiler_inventory_match": false,
       "compiler_item_count": 6,
       "symbol_spans_sha256": "a48207a60eae052741d71e1b02684af30f8c1ac02cc11f49d32d8ccd210d85b8"
     },
     {
       "path": "src/runtime_inference/insomnia/worker/runtime/progress.rs",
-      "component": "insomnia",
+      "component": "public-consumers",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "source declarations/imports inspected for `progress`; responsibility assigned to `insomnia` in target DAG",
+      "evidence": "Supported Cva offline drain adapter composition; mounted REL worker uses runtime_host_rel_insomnia and never this dispatcher. Worker config/results split into Insomnia-owned model.",
       "certainty": "reviewed-source-role",
       "source_sha256": "e7c3633dfff4ebfe432a9fb508d78c8f207ca538c77102229f7ad84157a623a9",
       "compiler_inventory_match": true,
@@ -13162,10 +13162,10 @@
     },
     {
       "path": "src/runtime_inference/insomnia/worker/runtime.rs",
-      "component": "insomnia",
+      "component": "public-consumers",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "source declarations/imports inspected for `runtime`; responsibility assigned to `insomnia` in target DAG",
+      "evidence": "Supported Cva offline drain adapter composition; mounted REL worker uses runtime_host_rel_insomnia and never this dispatcher. Worker config/results split into Insomnia-owned model.",
       "certainty": "reviewed-source-role",
       "source_sha256": "73342912c1242f638be4c9cf6d02ef43816563d04596ea5ae9af33e7cd123c63",
       "compiler_inventory_match": true,
@@ -13180,8 +13180,8 @@
       "evidence": "direct source-role evidence: Cva extension implementation",
       "certainty": "source-confirmed-public-composition",
       "notes": "Cva extension implementation",
-      "source_sha256": "d9036355d78370269b50bdd0c8232bca62ca662a8aafbd6a9fa22183d29d58bf",
-      "compiler_inventory_match": true,
+      "source_sha256": "31998d0ede95c965ad117d97123457f5833a69c01845948639120ebdc22ecbf8",
+      "compiler_inventory_match": false,
       "compiler_item_count": 99,
       "symbol_spans_sha256": "7c3129e28e1142f6b49d58e795e97b531ba1e70c856f3517768c95a7571125ba"
     },
@@ -13222,8 +13222,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `insomnia`; responsibility assigned to `insomnia` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "b760eeac6bcb803c7ebc266f2b9d6193d38a144fd1b83a49815aaf2ed99d29c5",
-      "compiler_inventory_match": true,
+      "source_sha256": "3638b6577eecf505c6e788a08d012924e3b347a5c7f165791d225ae69c47c548",
+      "compiler_inventory_match": false,
       "compiler_item_count": 43,
       "symbol_spans_sha256": "6b5156b1130844cd9a9cd5aebe5140581860741085627f23798065a6631252a5"
     },
@@ -13235,8 +13235,8 @@
       "evidence": "direct source-role evidence: InteractionRuntime extension implementation",
       "certainty": "source-confirmed-runtime-gateway",
       "notes": "InteractionRuntime extension implementation",
-      "source_sha256": "e17800cde3e275ec7a24d38418955246c60224f57ddc68c4d9c28acec02e1845",
-      "compiler_inventory_match": true,
+      "source_sha256": "49fec7866a0c1855585a695a6554a5bd8749f2fb248c2e0129c245dfad9fde93",
+      "compiler_inventory_match": false,
       "compiler_item_count": 75,
       "symbol_spans_sha256": "bc9ab49af92324b1cbd06b8abaa3f4a36d4bf18fe2bd72700884b2c778ee9bf2"
     },
@@ -13371,8 +13371,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `model_auth`; responsibility assigned to `switchboard` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "df581ab254f049d17d8e66b9ea3a00770583b1620f37854c59a4bf1da8223b74",
-      "compiler_inventory_match": true,
+      "source_sha256": "8a9f59187a0b35c0bb41d3d71bf202f3a4de0ffec220eabdffad87cd3afd16e4",
+      "compiler_inventory_match": false,
       "compiler_item_count": 19,
       "symbol_spans_sha256": "26d97cddf1469cec085baef4214c7d4ed253edc0fa5a421273a4dc63abfd2733"
     },
@@ -13383,22 +13383,10 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `model_switchboard`; responsibility assigned to `switchboard` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "8ce3905c8dd3b9aa5ec6a37990a6568dfd3460ff60327f41259b95c5de1117d3",
-      "compiler_inventory_match": true,
+      "source_sha256": "f310f2c185f8a2818047e2dc17eb826481f38c8863e5c2c2f280f88652e890db",
+      "compiler_inventory_match": false,
       "compiler_item_count": 173,
       "symbol_spans_sha256": "007f8368e44cbbc642a85e6d19f751239e53104ccbeac19fb6454987a27c0771"
-    },
-    {
-      "path": "src/runtime_inference/model_switchboard_codec.rs",
-      "component": "switchboard",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "source declarations/imports inspected for `model_switchboard_codec`; responsibility assigned to `switchboard` in target DAG",
-      "certainty": "reviewed-source-role",
-      "source_sha256": "cfcc7475181e0f6c5f8198181702b6d3d81e2f66c85bd31dfb8706526dc91825",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 25,
-      "symbol_spans_sha256": "ceecbdc5672e671f403388b09998279d6d8aaf7f637daccdf381582921917c2a"
     },
     {
       "path": "src/runtime_inference/model_switchboard_tests.rs",
@@ -13407,7 +13395,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "105d41fb01bc86f7fd0cc7e59893e995421a8b454832ee569803ad0c620954e1",
+      "source_sha256": "ed515833a5791d264de1edb07fee1bc7f0f0a169cdc46e3452c3663565292d6e",
       "compiler_inventory_match": false
     },
     {
@@ -13473,8 +13461,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `openai_codex_general`; responsibility assigned to `switchboard` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "74040467315a34141ec870f267ef5dd1c447dd322aa072a300686a75eb16771a",
-      "compiler_inventory_match": true,
+      "source_sha256": "60443617445bb593845a590989a0c1749bd813c4498af464ca66b74e83e85cb9",
+      "compiler_inventory_match": false,
       "compiler_item_count": 33,
       "symbol_spans_sha256": "7cff5c0dc4655e4c483f94f1ff7bbceeb06e52c9d641bf33536889fb3e4362aa"
     },
@@ -13505,8 +13493,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `openai_ready_embedding`; responsibility assigned to `switchboard` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "3ad67a058791e8064316a7fdeb16ecf302fdf1c581fb175b73139d1476b04bf7",
-      "compiler_inventory_match": true,
+      "source_sha256": "1990b69862dcc7e08e27ba3a75e739b8be27189f828dca262f78515aa972e57e",
+      "compiler_inventory_match": false,
       "compiler_item_count": 28,
       "symbol_spans_sha256": "21f1849ac6af98caf9bb61fff4f82b5b9985a51648452d5c3940c51027f7e818"
     },
@@ -13539,8 +13527,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `openai_ready_general`; responsibility assigned to `switchboard` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "60f8461df9367b16549b8c6c8eaf195f345a21cf82c9f1ac0ad081dc0c1b552f",
-      "compiler_inventory_match": true,
+      "source_sha256": "21c63b3f26986fee8e540ead276e129911645f14d1c91175a523b5571bb4e168",
+      "compiler_inventory_match": false,
       "compiler_item_count": 44,
       "symbol_spans_sha256": "f531aa21ff4cb8dfd19439bafc5fa79993f16d46cf141e1a8e0daf3f8d79a451"
     },
@@ -13839,8 +13827,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_ambient`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "5f70e9fe4db0ee75028307422474f62af6520b8a33b8a34b19b4faeed190b824",
-      "compiler_inventory_match": true,
+      "source_sha256": "c696145eb196311b0a00f487e4362814b3cf20722daae21d056cd78516be8d0b",
+      "compiler_inventory_match": false,
       "compiler_item_count": 53,
       "symbol_spans_sha256": "f481c61956b115928ffd994b06d116cf8bee09c9ed9207ab675c993449284795"
     },
@@ -13917,8 +13905,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_background`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "deb02dd141a9b3d292bd6646b2fd255fdde9955e210688ef00a0bfa30d599d25",
-      "compiler_inventory_match": true,
+      "source_sha256": "edb6173c6f30ec8aec894495c4fe5933937c771afbce722aaed2daa18ce34f28",
+      "compiler_inventory_match": false,
       "compiler_item_count": 11,
       "symbol_spans_sha256": "08acd3be5fb418ecf8c0907d0d7dc1b8fae18306b415892bb6c60cb14255b026"
     },
@@ -14775,8 +14763,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_phy_dream`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "6c09930cf91d58d9372c6fff685dabf12b881a19c5633ef156d9ffae6ae268d6",
-      "compiler_inventory_match": true,
+      "source_sha256": "4de2e2c91b6855a1141be92563c3a1848af6f16ee9315bd415abf824cec36d29",
+      "compiler_inventory_match": false,
       "compiler_item_count": 16,
       "symbol_spans_sha256": "e2cb458af304ddba771baaaece1231a45a07ee7fac40f0d0c126d86c3049616d"
     },
@@ -14855,8 +14843,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_rel_dream`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "00c26b8ba3745befbe37ee48e3ff569b15e68993c37d1c8c2aed3d9aa2f53e80",
-      "compiler_inventory_match": true,
+      "source_sha256": "4ad72c50cfe94475771d409a003241e90f87fd47baed1feb438986f6be5c0021",
+      "compiler_inventory_match": false,
       "compiler_item_count": 18,
       "symbol_spans_sha256": "263aa7beb6c4fbad93cf2dca504c14688b98de21bbd64357f8bc000596bb999b"
     },
@@ -14983,8 +14971,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_shared`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "f2e373cd14b61514ecf8b562756d684b5343ac70a6fce5637a3e381b0e866306",
-      "compiler_inventory_match": true,
+      "source_sha256": "2b7afd71d8ecb32e2a5c86e095da1aa2a9bf21a5ca4e7071d0a7fcea5245ea57",
+      "compiler_inventory_match": false,
       "compiler_item_count": 115,
       "symbol_spans_sha256": "dbae6009fc46176dc91428aaac16b2feaddb8af67c7c0efe5e6abf6b75631a5e"
     },
@@ -15839,6 +15827,116 @@
       "evidence": "Phase 4 Unix guard selected only by cfg(unix); explicitly mapped for source ownership, not compiled by this Windows profile.",
       "certainty": "reviewed-explicit",
       "source_sha256": "9db65e40e4e78364ad6e26b93aa0d2876ac8505c3b97b2fbee0a84adcb595bef",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/config_security/model_config.rs",
+      "component": "config-security",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 5 direct ownership cut; values/reads split from mixed facade/provider composition; module compiled at A5",
+      "certainty": "source-confirmed-phase5-owner",
+      "source_sha256": "304e2f261a8004f7cda7b37211abf6b8b62a80cd6b8d58a9239f72bbd379c553",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/config_security/model_config_codec.rs",
+      "component": "config-security",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 5 direct ownership cut; values/reads split from mixed facade/provider composition; module compiled at A5",
+      "certainty": "source-confirmed-phase5-owner",
+      "source_sha256": "f590c65ad2a9261bafa1496ad36c5842a31c3617c7d07d25ef7d771530ea5e2e",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/retrieval/lexical_contract.rs",
+      "component": "retrieval",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 5 direct ownership cut; values/reads split from mixed facade/provider composition; module compiled at A5",
+      "certainty": "source-confirmed-phase5-owner",
+      "source_sha256": "2a819fb8165b328d59912177ac51078ac22d7c32de44a609f60494cd9f51f8ea",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/runtime_inference/insomnia/processor/result.rs",
+      "component": "insomnia",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 5 direct ownership cut; values/reads split from mixed facade/provider composition; module compiled at A5",
+      "certainty": "source-confirmed-phase5-owner",
+      "source_sha256": "23c8e162cf763ab10250b9fe8c3ac5ff946b7e3eb8531dbe395ca7883c1db2b1",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/runtime_inference/insomnia/worker/model.rs",
+      "component": "insomnia",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 5 direct ownership cut; values/reads split from mixed facade/provider composition; module compiled at A5",
+      "certainty": "source-confirmed-phase5-owner",
+      "source_sha256": "ce330b6e9db20fd89c9ad818802c7830e1629cfdb28113487994927a4ac18b3c",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/config_security/retrieval_config.rs",
+      "component": "config-security",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "certainty": "source-confirmed-phase5-owner",
+      "evidence": "Phase 5 split: domain calculation/value contract separated from public offline composition",
+      "compiler_inventory_match": false,
+      "source_sha256": "8a19c76e959bb697d9fa0442d51d81ea2d70f4a466f3ed61b3e034b32501019d"
+    },
+    {
+      "path": "src/facade/dream_processing.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "certainty": "source-confirmed-phase5-owner",
+      "evidence": "Phase 5 split: domain calculation/value contract separated from public offline composition",
+      "compiler_inventory_match": false,
+      "source_sha256": "96b1bf91607b70c987e7ad5d7c2f95d36dc474b0d452814f2316ef0762255905"
+    },
+    {
+      "path": "src/facade/dream_community_naming.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "certainty": "source-confirmed-phase5-owner",
+      "evidence": "Phase 5 split: domain calculation/value contract separated from public offline composition",
+      "compiler_inventory_match": false,
+      "source_sha256": "0abb1f965f486541ff4492723aacde62f6d0e3c033aa1da03f3ca9c8df9c569e"
+    },
+    {
+      "path": "src/runtime_inference/dream_settlement.rs",
+      "component": "dream",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "certainty": "source-confirmed-phase5-owner",
+      "evidence": "Phase 5 split: domain calculation/value contract separated from public offline composition",
+      "compiler_inventory_match": false,
+      "source_sha256": "135278dc45bc2a7913a74a6ae567d8fd27de2d5511a246f9fa8488de3c8e926f"
+    },
+    {
+      "path": "src/runtime_inference/dream_temporal_policy.rs",
+      "component": "dream",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "certainty": "source-confirmed-phase5-owner",
+      "evidence": "Pure temporal analysis split from public Cva extension; source consumers migrate directly.",
+      "compiler_inventory_match": false,
+      "source_sha256": "fad1665a4d52db6f27975c4f6c8d542f8a2b9284d84203ac4f2b514f42a6c1cf"
+    },
+    {
+      "path": "src/owner_lifecycle/insomnia_application.rs",
+      "component": "owner-lifecycle",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "certainty": "source-confirmed-phase5-owner",
+      "evidence": "Canonical grouped Insomnia/Memory/Freshness append/sync moved unchanged out of Insomnia service; callers use one owner-lifecycle publisher.",
+      "source_sha256": "138a3e4ccef95a56aa41d5b4790d2ff44d64b64cc4ad93e4b4d1bbffe1f8e6d0",
       "compiler_inventory_match": false
     }
   ],
@@ -35043,5 +35141,30 @@
       "reason": "Existing packed-vector payload and schema codec values used for exact selected-row emission; no embedding provider or inference."
     }
   ],
-  "phase4_source_basis": "Reviewed local Phase 4 changes; original compiler inventory and historical snapshot remain immutable. Changed-source hashes updated without claiming compiler inventory coverage."
+  "phase4_source_basis": "Reviewed local Phase 4 changes; original compiler inventory and historical snapshot remain immutable. Changed-source hashes updated without claiming compiler inventory coverage.",
+  "phase5_delta": {
+    "baseline": "10cbe4b7",
+    "scope": "only moved/split Phase5 sources; inherited compiler inventory remains historical",
+    "added": {
+      "src/config_security/model_config.rs": "config-security",
+      "src/config_security/model_config_codec.rs": "config-security",
+      "src/retrieval/lexical_contract.rs": "retrieval",
+      "src/runtime_inference/insomnia/processor/result.rs": "insomnia",
+      "src/runtime_inference/insomnia/worker/model.rs": "insomnia",
+      "src/config_security/retrieval_config.rs": "config-security",
+      "src/facade/dream_processing.rs": "public-consumers",
+      "src/facade/dream_community_naming.rs": "public-consumers",
+      "src/runtime_inference/dream_settlement.rs": "dream",
+      "src/runtime_inference/dream_temporal_policy.rs": "dream",
+      "src/owner_lifecycle/insomnia_application.rs": "owner-lifecycle"
+    },
+    "removed": [
+      "src/runtime_inference/model_switchboard_codec.rs"
+    ],
+    "source_role_corrections": [
+      "dream_freshness upper prepare/commit after pure settlement split",
+      "dream_processor_frontier public offline methods",
+      "insomnia/worker/runtime supported Cva offline drain adapter after model split"
+    ]
+  }
 }

@@ -1,19 +1,11 @@
 use crate::{
-    CompatibilityProfileId, Cva, DreamCandidateConfig, DreamCandidateSet, DreamPairClassification,
-    DreamPairVerification, DreamProcessError, DreamProcessResult, DreamProcessedPair,
-    DreamProcessor, DreamVerificationPolicy, GeneralEndpoint, MemoryId, Phylactery,
+    CompatibilityProfileId, Cva, DEFAULT_DREAM_FRONTIER_SIZE, DreamCandidateConfig,
+    DreamCandidateSet, DreamMemoryProcessOutcome, DreamPairClassification, DreamPairVerification,
+    DreamProcessError, DreamProcessResult, DreamProcessedPair, DreamProcessor,
+    DreamVerificationPolicy, GeneralEndpoint, MemoryId, Phylactery,
 };
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::thread;
-
-pub const DEFAULT_DREAM_FRONTIER_SIZE: usize = 6;
-pub const DEFAULT_DREAM_INFERENCE_CONCURRENCY: usize = 12;
-
-#[derive(Debug)]
-pub struct DreamMemoryProcessOutcome {
-    pub memory_id: MemoryId,
-    pub result: Result<DreamProcessResult, DreamProcessError>,
-}
 
 type PairEvaluation =
     Result<(DreamPairClassification, Option<DreamPairVerification>), DreamProcessError>;

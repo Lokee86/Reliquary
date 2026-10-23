@@ -17,3 +17,26 @@ pub struct PackedVectorStats {
     pub rows: u64,
     pub matrix_bytes: u64,
 }
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum VectorNormalization {
+    None,
+    L2,
+}
+
+impl VectorNormalization {
+    pub(crate) fn tag(self) -> u8 {
+        match self {
+            Self::None => 0,
+            Self::L2 => 1,
+        }
+    }
+
+    pub(crate) fn from_tag(tag: u8) -> Option<Self> {
+        match tag {
+            0 => Some(Self::None),
+            1 => Some(Self::L2),
+            _ => None,
+        }
+    }
+}

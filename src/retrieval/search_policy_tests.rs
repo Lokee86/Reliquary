@@ -1,4 +1,5 @@
-use crate::lexical_search::{lexical_score, lexical_terms};
+use crate::lexical_contract::lexical_terms;
+use crate::lexical_search::lexical_score;
 use crate::search::combine_scores;
 use crate::{
     DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,

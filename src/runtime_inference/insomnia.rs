@@ -82,8 +82,8 @@ pub use progress::{
     DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS, InsomniaProgressEvent, InsomniaProgressReporter,
     InsomniaSemanticStage,
 };
-pub(crate) use runtime_step::RuntimeInsomniaClaim;
-pub use worker::{
+pub(crate) use worker::model::RuntimeInsomniaClaim;
+pub use worker::model::{
     DEFAULT_INSOMNIA_LEASE_NS, DEFAULT_INSOMNIA_MAX_ATTEMPTS, DEFAULT_INSOMNIA_POLL_NS,
     DEFAULT_INSOMNIA_RETRY_DELAY_NS, DEFAULT_INSOMNIA_SCOPE, DEFAULT_INSOMNIA_WORKERS,
     InsomniaDrainResult, InsomniaWorkerConfig, InsomniaWorkerError, MAX_INSOMNIA_WORKERS,

@@ -1,5 +1,5 @@
 use super::{WorkerShared, operation};
-use crate::dream_cooldown::unix_now_ns;
+use crate::runtime_shared::unix_now_ns;
 use crate::{
     DreamCandidateConfig, DreamPairClassification, DreamPairVerification, DreamProcessError,
     DreamProcessor, DreamVerificationPolicy, GeneralEndpoint, GeneralEndpointError, MemoryId,

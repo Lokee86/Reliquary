@@ -1,3 +1,4 @@
+use super::RuntimeInsomniaClaim;
 use super::backpressure;
 use super::evidence::{hydrate_evidence_parts, plan_evidence};
 use super::extraction::{InsomniaEvidenceRound, InsomniaExtractionError};
@@ -9,13 +10,6 @@ use crate::{
     InsomniaWorkerError, Phylactery,
 };
 use std::time::{SystemTime, UNIX_EPOCH};
-
-pub(crate) struct RuntimeInsomniaClaim {
-    pub(crate) work: InsomniaWork,
-    pub(crate) episode: crate::Episode,
-    pub(crate) turns: Vec<crate::ResolvedTurn>,
-    pub(crate) started_at_ns: i64,
-}
 
 impl Cva {
     pub(crate) fn claim_runtime_insomnia(

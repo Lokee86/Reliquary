@@ -217,6 +217,8 @@ Memory replay preserves stable IDs and mutation IDs and uses ordinary expected-r
 
 `with_entity_resolution_decision(...)` and `with_memory_retrieval_decision(...)` still accept exact host-injected endpoints. The reusable General adapter and canonical selector are private implementation details. General choice answers never include manufactured confidence; Entity's independent generative resolver and its route requirement are preserved. Retrieval's top-level versioned approval and query-rewrite contracts remain unchanged. Runtime errors never select another decision tier.
 
+Runtime convergence retains the existing public Gateway/Instance, ConfiguredRuntime, DreamProcessor, DreamCommunityNamer and Cva offline method signatures. Model configuration, retrieval defaults, worker results and vector normalization retain their crate-root exports and serialized representations while their internal owners change. Legacy runtime error/routes exports remain supported for the separate Phase 6 facade review.
+
 ## Related docs
 
 - [Local configuration](configuration.md)

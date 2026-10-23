@@ -1,7 +1,8 @@
-use crate::{
-    ConfigError, CredentialId, DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint,
-    ModelProvider, ModelReasoningEffort, VectorNormalization,
+use crate::model_config::{
+    DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelProvider,
+    ModelReasoningEffort,
 };
+use crate::{ConfigError, CredentialId, VectorNormalization};
 
 pub(crate) const GENERAL_MODEL_KEY: &str = "models.general";
 pub(crate) const INSOMNIA_MODEL_KEY: &str = "models.insomnia";

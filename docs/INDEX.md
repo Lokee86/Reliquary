@@ -181,6 +181,7 @@
 - [dependency-convergence-phase3-settlement-format-2026-10-23.md](dependency-convergence-phase3-settlement-format-2026-10-23.md) - Dependency Convergence Phase3 Settlement Format 2026 10 23 documentation.
 - [dependency-convergence-phase4-execution-2026-10-23.md](dependency-convergence-phase4-execution-2026-10-23.md) - Dependency Convergence Phase4 Execution 2026 10 23 documentation.
 - [dependency-convergence-phase4-project-environment-spec-2026-10-23.md](dependency-convergence-phase4-project-environment-spec-2026-10-23.md) - Dependency Convergence Phase4 Project Environment Spec 2026 10 23 documentation.
+- [dependency-convergence-phase5-execution-2026-10-23.md](dependency-convergence-phase5-execution-2026-10-23.md) - Dependency Convergence Phase5 Execution 2026 10 23 documentation.
 - [dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md](dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md) - Dependency Convergence Phase5 Runtime Orchestration Spec 2026 10 23 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
@@ -291,3 +292,5 @@
 - [Phase 3 to Phase 4 Project Environment handoff — ready](dependency-convergence-phase3-phase4-handoff-2026-10-23.md)
 
 - [Phase 4 execution evidence](dependency-convergence-phase4-execution-2026-10-23.md)
+
+- [Phase 5 runtime execution receipt](dependency-convergence-phase5-execution-2026-10-23.md)

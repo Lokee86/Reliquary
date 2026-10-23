@@ -270,6 +270,8 @@ Configured decision inheritance is implemented for Entity Resolution and Memory 
 
 Project Environment validates backend identity and the selected repository-relative subtree. Moving a whole checkout while preserving that subtree is supported. The current validation caller supplies no independent proof that a different subtree is the same moved project; such selection fails closed rather than silently reassociating a sibling folder. Earlier durably enrolled paths remain valid only for exact historical reads. See [Project Environment](subsystems/project-environment.md).
 
+Phase 5 source ownership verification uses the inherited cfg-aware component map, focused source negatives and direct owner/lock/caller review. Source-role corrections and retained public-adapter dependencies remain explicit; they are not counted as eliminated calls. Complete compiler-resolved symbol-level production graph proof remains unavailable. The Context Engine's deferred assembly/compaction work and Project Environment platform limitations are unchanged.
+
 ## Related docs
 - [Roadmap](roadmap.md)
 - [Architecture](architecture.md)

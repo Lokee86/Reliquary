@@ -1,7 +1,5 @@
-use crate::{
-    GeneralEndpoint, GeneralEndpointError, ModelProvider, ModelReasoningEffort, ModelRequestAuth,
-    ModelSwitchboard,
-};
+use crate::model_config::{ModelProvider, ModelReasoningEffort};
+use crate::{GeneralEndpoint, GeneralEndpointError, ModelRequestAuth, ModelSwitchboard};
 use reqwest::blocking::Client;
 use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, RETRY_AFTER, USER_AGENT};
 use serde_json::{Value, json};

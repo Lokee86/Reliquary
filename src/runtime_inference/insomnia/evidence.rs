@@ -1,9 +1,17 @@
 use super::extraction::{InsomniaEvidenceResult, InsomniaEvidenceTurn, InsomniaExtractionError};
-use crate::lexical_index::LexicalIndex;
-use crate::lexical_search::lexical_terms;
-use crate::{Archive, Container, Cva, Episode, Fragment, Node, ResolvedTurn};
+use crate::{Archive, Container, Episode, Fragment, Node, ResolvedTurn};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
+
+/// Bounded owner-local Archive search projection; carries no session or facade.
+pub(crate) trait EvidenceSearch {
+    fn ensure_current(
+        &mut self,
+        archive: &Archive,
+        container: &mut Container,
+    ) -> Result<(), crate::ArchiveError>;
+    fn search_fragments(&self, query: &str, limit: usize) -> Vec<Fragment>;
+}
 
 pub const MAX_INSOMNIA_EVIDENCE_REQUESTS: usize = 4;
 pub const MAX_INSOMNIA_EVIDENCE_TURNS: usize = 64;
@@ -54,25 +62,27 @@ fn parse_request(value: &Value) -> Result<EvidenceRequest, InsomniaExtractionErr
     })
 }
 
-pub(crate) fn resolve_evidence(
-    cva: &mut Cva,
+pub(crate) fn resolve_evidence_parts(
+    archive: &Archive,
+    lexical_index: &mut impl EvidenceSearch,
+    container: &mut Container,
     episode: &Episode,
     requests: &[EvidenceRequest],
 ) -> Result<(Vec<InsomniaEvidenceResult>, Vec<InsomniaEvidenceTurn>), InsomniaExtractionError> {
-    cva.lexical_index
-        .ensure_current(&cva.archive, &mut cva.container)
+    lexical_index
+        .ensure_current(archive, container)
         .map_err(|error| {
             InsomniaExtractionError::InvalidOutput(format!(
                 "Archive lexical index could not be built: {error}"
             ))
         })?;
-    let plans = plan_evidence(&cva.archive, &cva.lexical_index, episode, requests);
-    hydrate_evidence_parts(&cva.archive, &mut cva.container, &plans)
+    let plans = plan_evidence(archive, lexical_index, episode, requests);
+    hydrate_evidence_parts(archive, container, &plans)
 }
 
 pub(crate) fn plan_evidence(
     archive: &Archive,
-    lexical_index: &LexicalIndex,
+    lexical_index: &impl EvidenceSearch,
     _episode: &Episode,
     requests: &[EvidenceRequest],
 ) -> Vec<EvidencePlan> {
@@ -209,7 +219,7 @@ fn plan_range(archive: &Archive, request: &EvidenceRequest) -> Result<EvidenceSe
 }
 
 fn plan_search(
-    lexical_index: &LexicalIndex,
+    lexical_index: &impl EvidenceSearch,
     request: &EvidenceRequest,
 ) -> Result<EvidenceSelection, String> {
     let query = request.query.trim();
@@ -226,16 +236,12 @@ fn plan_search(
             "archive_search limit must be between 1 and {MAX_SEARCH_RESULTS}"
         ));
     }
-    let terms = lexical_terms(query);
-    let candidates = lexical_index.search(&terms, limit.saturating_mul(4));
+    let candidates = lexical_index.search_fragments(query, limit.saturating_mul(4));
     let conversation_filter = request.conversation_id.trim();
     let fragments = candidates
         .into_iter()
-        .filter(|hit| {
-            conversation_filter.is_empty() || hit.fragment.conversation_id == conversation_filter
-        })
+        .filter(|hit| conversation_filter.is_empty() || hit.conversation_id == conversation_filter)
         .take(limit)
-        .map(|hit| hit.fragment)
         .collect();
     Ok(EvidenceSelection::Search { fragments })
 }

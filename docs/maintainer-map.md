@@ -240,6 +240,8 @@ For shared decision configuration, route precedence, provider authentication and
 
 `src/project_environment/scope.rs` owns validated repository/current-subtree and enrolled historical path authority. Backend readers/uploads consume that scope. `src/facade/cva_project_environment.rs` owns REL lifecycle composition; Gateway ambient project operations own mounted authorization and post-I/O publication/delivery. Archive history/file-binding stores retain durable semantic evidence. See [Project Environment](subsystems/project-environment.md) and the [Phase 4 receipt](dependency-convergence-phase4-execution-2026-10-23.md).
 
+Runtime convergence seams are owned by `scripts/check_runtime_boundaries.py`, the accepted production component map and the incremental current-source component checker. Configuration model/codec/default ownership is in `src/config_security/model_config.rs`, `model_config_codec.rs`, `retrieval_config.rs` and `runtime_config.rs`. `src/retrieval/lexical_contract.rs` owns shared immutable lexical results/tokenization. `src/owner_lifecycle/insomnia_application.rs` owns canonical grouped publication and unchanged completion bytes. Insomnia owner contracts and worker/result values remain under `insomnia/`; supported Cva adapters remain distinct from those services. Dream canonical reads and pure settlement/provider evaluation remain domain contracts; offline Cva/PHY publication composition remains an upper adapter.
+
 ## Related docs
 
 - [Architecture](architecture.md)

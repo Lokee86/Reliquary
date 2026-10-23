@@ -201,8 +201,7 @@ fn second_archive_evidence_round_is_rejected() {
         "test-model",
         vec![response.clone(), response],
     ));
-    let error = extractor
-        .extract_with_evidence(&mut cva, &episode, &turns)
+    let error = super::processor::extract_with_evidence(&mut cva, &extractor, &episode, &turns)
         .unwrap_err();
     assert!(
         error

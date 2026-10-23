@@ -431,6 +431,66 @@ def self_test() -> None:
     assert len(cross) == 1 and len(unknown) == 1
 
 
+def current_source_report(mapping_path: Path, output: Path, baseline: Path | None = None) -> int:
+    """Incremental source evidence using the accepted map, not a fresh Arcana export."""
+    mapping = json.loads(mapping_path.read_text(encoding="utf-8"))
+    files, _, components, _ = component_manifest(mapping_path)
+    facts = set(mapping["cfg_profile"]["rustc_cfg_facts"])
+    owner_policy = json.loads((ROOT / "tools/pitlord/owner-boundaries.json").read_text(encoding="utf-8"))
+    values = {(r["consumer"], r["owner"], r["symbol"]) for r in owner_policy["producer_value_contracts"]}
+    edges, uncertain = source_import_edges(ROOT, files, facts, components, values)
+    dag = json.loads((ROOT / "tools/pitlord/convergence-component-dag.json").read_text(encoding="utf-8"))
+    allowed = {r["id"]: {e["to"] for e in r.get("depends_on", [])} for r in dag["components"]}
+    debt = json.loads((ROOT / "tools/pitlord/convergence-deferred-source-edges.json").read_text(encoding="utf-8"))
+    if debt.get("source_role_mapping_sha256") != sha256(mapping_path):
+        raise RuntimeError("deferred source-edge register does not pin the current production component map")
+    key = lambda r: (r["source_path"], r["target_path"], r["target_symbol"], r["consumer"], r["dependency"])
+    deferred = {key(r): r for r in debt["edges"]}
+    edge_key = lambda e: (e["source"]["path"], e["target"]["path"], e["target"]["name"], e["source_component"], e["target_component"])
+    before = json.loads(baseline.read_text(encoding="utf-8")) if baseline else {}
+    before_edges = before.get("source_imports", before.get("edges", []))
+    prior = {edge_key(e) for e in before_edges}
+    unresolved = []
+    for edge in edges:
+        source, target = edge["source_component"], edge["target_component"]
+        exact = (edge["source"]["path"], edge["target"]["path"], edge["target"]["name"], source, target)
+        if edge["category"] == "approved-immutable-value":
+            disposition = "accepted-immutable-value"
+        elif target in allowed.get(source, set()):
+            disposition = "accepted-target-dependency"
+        elif exact in deferred:
+            if deferred[exact]["source_sha256"] != sha256(ROOT / exact[0]):
+                raise RuntimeError(f"deferred source-edge hash mismatch: {exact[0]}")
+            disposition = f"retained-phase-{deferred[exact]['phase']}-debt"
+        elif exact in prior:
+            disposition = "inherited-baseline-nonconformance"
+        elif (source == PHASE6_PERCEPTION_FACADE_CLOSURE["source_component"]
+              and target == PHASE6_PERCEPTION_FACADE_CLOSURE["target_component"]
+              and edge["source"]["path"] in PHASE6_PERCEPTION_FACADE_CLOSURE["source_paths"]
+              and edge["target"]["path"].startswith(tuple(PHASE6_PERCEPTION_FACADE_CLOSURE["target_path_prefixes"]))):
+            disposition = "retained-phase-6-facade-debt"
+        else:
+            disposition = "unresolved"
+            unresolved.append(edge)
+        edge["disposition"] = disposition
+    groups = sccs(components, edges, {"strict-import"})
+    current_keys = {edge_key(row) for row in edges}
+    report = {"scope": "current cfg-aware source imports; not compiler-resolved symbol dependencies",
+              "mapping_sha256": sha256(mapping_path), "edges": edges, "uncertain": uncertain,
+              "strict_sccs": groups, "cycle_witnesses": [cycle_witness(g, edges, {"strict-import"}) for g in groups],
+              "unresolved": unresolved,
+              "baseline_sha256": sha256(baseline) if baseline else None,
+              "removed_edges": [e for e in before_edges if edge_key(e) not in current_keys],
+              "added_edges": [e for e in edges if edge_key(e) not in prior],
+              "mapped_existing_production_files": sum(r.get("classification") == "production" and (ROOT / p).is_file() for p, r in files.items()),
+              "unmapped_source_paths": sorted(str(p.relative_to(ROOT)).replace("\\", "/") for p in (ROOT / "src").rglob("*.rs") if str(p.relative_to(ROOT)).replace("\\", "/") not in files)}
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"import_rows": len(edges), "uncertain_imports": len(uncertain), "strict_sccs": groups,
+                      "unresolved_count": len(unresolved), "output": str(output)}, indent=2))
+    return int(bool(unresolved))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mapping", type=Path, default=ROOT / "tools/pitlord/production-components.json")
@@ -438,6 +498,9 @@ def main() -> int:
     parser.add_argument("--self-test", action="store_true", help="run focused graph-classification fixtures before the frozen snapshot export")
     parser.add_argument("--self-test-only", action="store_true", help="run fixtures and exit without querying snapshots")
     parser.add_argument("--reuse-edge-rows", action="store_true", help="reuse retained filtered edge JSONL; marks graph completeness unverified")
+    parser.add_argument("--current-source-only", action="store_true", help="measure current cfg-aware imports without querying or rewriting historical snapshots")
+    parser.add_argument("--output", type=Path, default=ROOT / ".verification-tmp/phase5-current-imports.json")
+    parser.add_argument("--baseline-imports", type=Path, help="exact retained before-image; inherited violations remain reported, never treated as eliminated")
     args = parser.parse_args()
     if args.self_test or args.self_test_only:
         self_test()
@@ -445,6 +508,8 @@ def main() -> int:
         if args.self_test_only:
             return 0
     mapping_path = args.mapping if args.mapping.is_absolute() else ROOT / args.mapping
+    if args.current_source_only:
+        return current_source_report(mapping_path, args.output, args.baseline_imports)
     binary = args.arcana if args.arcana.is_absolute() else (ROOT / args.arcana).resolve()
     if not mapping_path.is_file():
         raise FileNotFoundError(mapping_path)

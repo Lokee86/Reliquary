@@ -447,6 +447,8 @@ mod dream_classifier_model;
 mod dream_classifier_schema;
 #[path = "runtime_inference/dream_community_naming.rs"]
 mod dream_community_naming;
+#[path = "facade/dream_community_naming.rs"]
+mod dream_community_naming_adapter;
 #[path = "runtime_inference/dream_community_naming_context.rs"]
 mod dream_community_naming_context;
 #[path = "runtime_inference/dream_community_naming_error.rs"]
@@ -477,12 +479,16 @@ mod dream_owner_vectors;
 mod dream_pair_context;
 #[path = "runtime_inference/dream_pair_history.rs"]
 mod dream_pair_history;
+#[path = "runtime_inference/dream_settlement.rs"]
+mod dream_settlement;
 #[path = "runtime_inference/freshness_access.rs"]
 mod freshness_access;
 pub use freshness_access::{AcceptedMemoryUseReceipt, EgoFreshnessCandidate, EgoMemoryFreshness};
 #[cfg(test)]
 #[path = "facade/cva_reconcile_ego_compact_tests.rs"]
 mod cva_reconcile_ego_compact_tests;
+#[path = "facade/dream_processing.rs"]
+mod dream_processing;
 #[path = "runtime_inference/dream_processor.rs"]
 mod dream_processor;
 #[path = "runtime_inference/dream_processor_error.rs"]
@@ -499,6 +505,8 @@ mod dream_publisher_error;
 mod dream_publisher_model;
 #[path = "runtime_inference/dream_temporal.rs"]
 mod dream_temporal;
+#[path = "runtime_inference/dream_temporal_policy.rs"]
+mod dream_temporal_policy;
 #[path = "runtime_inference/dream_verifier.rs"]
 mod dream_verifier;
 #[path = "runtime_inference/dream_verifier_error.rs"]
@@ -803,6 +811,8 @@ mod interaction_stream_persistence;
 mod interaction_stream_record;
 #[path = "archive/interaction_stream_store.rs"]
 mod interaction_stream_store;
+#[path = "retrieval/lexical_contract.rs"]
+mod lexical_contract;
 #[path = "retrieval/lexical_index.rs"]
 mod lexical_index;
 #[path = "retrieval/lexical_search.rs"]
@@ -884,10 +894,12 @@ mod memory_vector_rebuild;
 mod memory_vector_store;
 #[path = "runtime_inference/model_auth.rs"]
 mod model_auth;
+#[path = "config_security/model_config.rs"]
+mod model_config;
+#[path = "config_security/model_config_codec.rs"]
+mod model_config_codec;
 #[path = "runtime_inference/model_switchboard.rs"]
 mod model_switchboard;
-#[path = "runtime_inference/model_switchboard_codec.rs"]
-mod model_switchboard_codec;
 #[path = "runtime_inference/multiplexing_journal.rs"]
 mod multiplexing_journal;
 pub use multiplexing_journal::{
@@ -1007,6 +1019,8 @@ mod relationship_rebuild;
 mod relationship_retained_structure;
 #[path = "perception/relationship_store.rs"]
 mod relationship_store;
+#[path = "config_security/retrieval_config.rs"]
+mod retrieval_config;
 #[path = "facade/review_clocks.rs"]
 mod review_clocks;
 #[path = "config_security/runtime_config.rs"]
@@ -1179,10 +1193,9 @@ pub use dream_lifecycle_error::DreamLifecycleError;
 pub use dream_lifecycle_model::DreamLifecycleResult;
 pub use dream_processor::DreamProcessor;
 pub use dream_processor_error::DreamProcessError;
-pub use dream_processor_frontier::{
-    DEFAULT_DREAM_FRONTIER_SIZE, DEFAULT_DREAM_INFERENCE_CONCURRENCY, DreamMemoryProcessOutcome,
+pub use dream_processor_model::{
+    DEFAULT_DREAM_FRONTIER_SIZE, DreamMemoryProcessOutcome, DreamProcessResult, DreamProcessedPair,
 };
-pub use dream_processor_model::{DreamProcessResult, DreamProcessedPair};
 pub use dream_publisher_error::DreamPublicationError;
 pub use dream_publisher_model::DreamPublicationOutcome;
 pub use dream_verifier::DreamVerifier;
@@ -1200,7 +1213,6 @@ pub use ego_model::{
 };
 pub use embedding_endpoint::{
     EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, SimulatedEmbeddingEndpoint,
-    VectorNormalization,
 };
 pub use entity_admission::MAX_ENTITY_ADMISSION_CONTEXT_MEMORIES;
 pub use entity_audit_model::{
@@ -1330,10 +1342,11 @@ pub use memory_vector_model::{
     MemoryVectorSet, MemoryVectorStats,
 };
 pub use model_auth::ModelRequestAuth;
-pub use model_switchboard::{
+pub use model_config::{
     DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelAuthKind,
-    ModelCapability, ModelProvider, ModelReasoningEffort, ModelSwitchboard, ModelSwitchboardConfig,
+    ModelCapability, ModelProvider, ModelReasoningEffort, ModelSwitchboardConfig,
 };
+pub use model_switchboard::ModelSwitchboard;
 pub use openai_codex_device_auth::{
     OPENAI_CODEX_AUTH_ISSUER, OPENAI_CODEX_DEVICE_LOGIN_TIMEOUT_SECS, OPENAI_CODEX_OAUTH_CLIENT_ID,
     OpenAiCodexDeviceAuth, OpenAiCodexDeviceAuthError, OpenAiCodexDeviceCode,
@@ -1349,6 +1362,7 @@ pub use openai_ready_general::OpenAiReadyGeneralEndpoint;
 pub use owner_lifecycle::OwnerError as CvaError;
 pub use owner_lifecycle::OwnerPhylacteryError as PhylacteryError;
 pub use packed_vector_error::PackedVectorError;
+pub use packed_vector_model::VectorNormalization;
 pub use packed_vector_model::{PackedVectorId, PackedVectorInfo, PackedVectorStats};
 pub use phylactery::Phylactery;
 pub use project_environment::{ProjectAdoptionSource, ProjectRepositoryMode};
@@ -1366,6 +1380,7 @@ pub use relationship_model::{
     Relationship, RelationshipDraft, RelationshipId, RelationshipParticipant,
     RelationshipRetainedRevision, RelationshipRetentionDescriptor, RelationshipStats,
 };
+pub use runtime_config::DEFAULT_DREAM_INFERENCE_CONCURRENCY;
 pub use runtime_host::memory_search::{
     DEFAULT_MEMORY_SEARCH_DEPTH, DEFAULT_MEMORY_SEARCH_RESULTS, MAX_MEMORY_SEARCH_DEPTH,
     MAX_MEMORY_SEARCH_QUERY_BYTES, MAX_MEMORY_SEARCH_RESULTS, MemorySearchItem, MemorySearchLane,
@@ -1393,6 +1408,10 @@ pub use runtime_host::{
     UnsupportedManagementOperation, WorkspaceManagement,
 };
 
+pub use retrieval_config::{
+    DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
+    DEFAULT_SEMANTIC_WEIGHT, RetrievalConfig,
+};
 pub use runtime_host::{
     LiveCapability, LiveCheckpoint, LiveCheckpointShape, LiveDiagnostics, LiveGeneratedArtifact,
     LiveGeneration, LiveGenerationStatus, LiveResumeToken, LiveRuntimeAdapter, LiveRuntimeError,
@@ -1400,10 +1419,7 @@ pub use runtime_host::{
     LiveToolEventKind,
 };
 pub use search_error::SearchError;
-pub use search_model::{
-    DEFAULT_LEXICAL_WEIGHT, DEFAULT_SEARCH_CANDIDATE_LIMIT, DEFAULT_SEARCH_RESULT_LIMIT,
-    DEFAULT_SEMANTIC_WEIGHT, RetrievalConfig, SearchCandidate,
-};
+pub use search_model::SearchCandidate;
 pub use semantic_node_model::{SemanticNodeKind, SemanticNodeRef};
 pub use semantic_search_error::SemanticSearchError;
 pub use semantic_search_model::{MAX_SEMANTIC_SEARCH_LIMIT, SemanticSearchHit};

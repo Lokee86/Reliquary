@@ -1,4 +1,4 @@
-use crate::lexical_search::lexical_terms;
+use crate::lexical_contract::lexical_terms;
 use crate::{
     Cva, EntityCandidateError, GraphDirection, GraphError, Memory, MemoryEntityMention, MemoryId,
     MemoryTextField, Phylactery,

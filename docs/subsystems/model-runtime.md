@@ -64,6 +64,10 @@ Provider retries or remote operation recovery must not change semantic operation
 - `src/runtime_inference/openai_*/**`
 - `src/runtime_inference/runtime_vector_step.rs`
 
+Configuration model values, validation and unchanged object codecs live in `config_security/model_config.rs` and `model_config_codec.rs`; retrieval defaults live in `retrieval_config.rs`. The switchboard consumes those contracts to resolve routes and credentials. Configuration validation does not construct a provider switchboard. `VectorNormalization` is a persisted vector value in `packed_vector_model.rs`; endpoint traits consume that value without owning it. Root public exports and wire tags are unchanged.
+
+Dream's provider evaluator accepts frozen candidate values. Supported offline processing and community publication methods compose it in `facade/dream_processing.rs` and `facade/dream_community_naming.rs`. They retain the existing public methods; mounted workers continue to release owner locks for provider I/O and revalidate before publication.
+
 ## Related docs
 
 - [Configuration](../configuration.md)

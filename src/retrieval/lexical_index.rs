@@ -1,4 +1,4 @@
-use crate::lexical_search::{LexicalHit, term_counts};
+use crate::lexical_contract::{LexicalHit, term_counts};
 
 #[path = "lexical_index/memory.rs"]
 mod memory;

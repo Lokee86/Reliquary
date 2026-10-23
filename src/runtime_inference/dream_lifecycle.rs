@@ -7,6 +7,42 @@ use crate::{
     MemoryDraft, MemoryId,
 };
 
+pub(crate) struct DreamOwnerReadParts<'a> {
+    pub(crate) container: &'a crate::Container,
+    pub(crate) archive: &'a crate::Archive,
+    pub(crate) memories: &'a crate::memory_store::MemoryStore,
+    pub(crate) dream_freshness: &'a crate::freshness_dream_journal::DreamFreshnessJournal,
+}
+
+impl crate::dream_canonical::DreamOwnerRead for DreamOwnerReadParts<'_> {
+    fn memory(&self, id: MemoryId) -> Result<Memory, crate::MemoryError> {
+        self.memories.memory(self.container, id)
+    }
+    fn memory_revision(&self, id: MemoryId, revision: u64) -> Result<Memory, crate::MemoryError> {
+        self.memories.memory_revision(self.container, id, revision)
+    }
+    fn is_publication_birth(&self, id: MemoryId) -> bool {
+        self.dream_freshness.is_publication_birth(id)
+    }
+    fn same_publication_cohort(&self, a: MemoryId, b: MemoryId) -> Result<bool, crate::CvaError> {
+        let history = crate::owner_lifecycle::HistorySource::new(self.container)
+            .map_err(|error| crate::CvaError::Container(error.0))?;
+        crate::history::same_publication_birth_cohort(&history, a, b)
+    }
+    fn authority_anchor(&self, memory: &Memory) -> Option<(String, String)> {
+        let node = memory.source_node_id.clone()?;
+        let conversation = memory
+            .source_episode_id
+            .and_then(|id| self.archive.episode(id))?
+            .conversation_id
+            .clone();
+        Some((conversation, node))
+    }
+    fn representative_key(&self, memory: &Memory) -> (u8, i64, [u8; 32]) {
+        crate::history::dream_representative::representative_key(self.archive, memory)
+    }
+}
+
 impl Cva {
     pub fn reconcile_dream_lifecycle(
         &mut self,
@@ -15,7 +51,15 @@ impl Cva {
         let relations = self.graph_relations();
         let mut revised = Vec::new();
         let mut archived = Vec::new();
-        let mut canonicalized = canonical_superseders(self, source_id, &relations)?;
+        let mut canonicalized = {
+            let parts = DreamOwnerReadParts {
+                container: &self.container,
+                archive: &self.archive,
+                memories: &self.memories,
+                dream_freshness: &self.dream_freshness,
+            };
+            canonical_superseders(&parts, source_id, &relations)?
+        };
 
         let mut superseded_targets: Vec<_> = relations
             .iter()
@@ -39,7 +83,15 @@ impl Cva {
         let source = self.memory(source_id)?;
         if !source.archived
             && source.lifecycle_state == "extracted"
-            && duplicate_component_has_active_peer(self, source_id, &relations)?
+            && {
+                let parts = DreamOwnerReadParts {
+                    container: &self.container,
+                    archive: &self.archive,
+                    memories: &self.memories,
+                    dream_freshness: &self.dream_freshness,
+                };
+                duplicate_component_has_active_peer(&parts, source_id, &relations)?
+            }
             && let Some(memory) =
                 self.revise_lifecycle(source_id, "archived", true, source.superseded_by)?
         {
@@ -51,7 +103,15 @@ impl Cva {
         if !source.archived && explicit_authority_promotes(&source) {
             canonicalized.push(source_id);
         }
-        if let Some(representative) = corroborated_representative(self, source_id, &relations)? {
+        if let Some(representative) = {
+            let parts = DreamOwnerReadParts {
+                container: &self.container,
+                archive: &self.archive,
+                memories: &self.memories,
+                dream_freshness: &self.dream_freshness,
+            };
+            corroborated_representative(&parts, source_id, &relations)?
+        } {
             canonicalized.push(representative);
         }
         canonicalized.sort_by_key(|id| id.0);

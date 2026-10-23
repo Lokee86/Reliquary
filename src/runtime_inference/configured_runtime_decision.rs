@@ -1,7 +1,8 @@
 use crate::general_decision::GeneralDecisionEndpoint;
+use crate::model_config::{GeneralModelEndpoint, ModelSwitchboardConfig};
 use crate::{
     ConfiguredDecisionEndpoint, DecisionEndpoint, DecisionEndpointError, DecisionModelEndpoint,
-    GeneralEndpoint, GeneralModelEndpoint, ModelSwitchboard, ModelSwitchboardConfig,
+    GeneralEndpoint, ModelSwitchboard,
 };
 use std::sync::Arc;
 

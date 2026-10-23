@@ -68,7 +68,7 @@ pub(super) fn apply_success(
             .lock()
             .map_err(|_| crate::InsomniaWorkerError::LockPoisoned)?;
         Some(publish_user_application(
-            &mut phylactery,
+            &mut **phylactery,
             &prepared.user_drafts,
         )?)
     };

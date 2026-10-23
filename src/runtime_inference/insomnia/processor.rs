@@ -1,87 +1,23 @@
 use crate::{
     Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor,
-    InsomniaRejection, InsomniaWork, InsomniaWorkState, Memory, MemoryError,
+    InsomniaWork, InsomniaWorkState,
 };
-use std::fmt;
 
 #[path = "processor/application.rs"]
 mod application;
 #[path = "processor/prepared.rs"]
 mod prepared;
+#[path = "processor/result.rs"]
+mod result;
 #[path = "processor/source_validation.rs"]
 mod source_validation;
 
-pub(crate) use application::{commit_application, prepare_application, publish_user_application};
+pub(crate) use crate::owner_lifecycle::insomnia_application::commit_application;
+pub(crate) use application::{prepare_application, publish_user_application};
 pub(crate) use prepared::{
     PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication,
 };
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct InsomniaProcessResult {
-    pub created: Vec<Memory>,
-    pub existing: Vec<Memory>,
-    pub user_created: Vec<Memory>,
-    pub user_existing: Vec<Memory>,
-    pub rejected: Vec<InsomniaRejection>,
-}
-
-#[derive(Debug)]
-pub enum InsomniaProcessError {
-    MissingEpisode,
-    InvalidClaim,
-    InvalidCandidate(String),
-    UserRoutingRequired,
-    Phylactery(String),
-    Extraction(InsomniaExtractionError),
-    Memory(MemoryError),
-    Queue(crate::InsomniaError),
-    Archive(crate::ArchiveError),
-}
-
-impl fmt::Display for InsomniaProcessError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::MissingEpisode => write!(f, "Insomnia episode is missing"),
-            Self::InvalidClaim => write!(f, "Insomnia work is not an active claim"),
-            Self::InvalidCandidate(message) => write!(f, "invalid Insomnia candidate: {message}"),
-            Self::UserRoutingRequired => write!(
-                f,
-                "Insomnia produced user-owned Memory but no Phylactery routing target was supplied"
-            ),
-            Self::Phylactery(message) => write!(f, "Phylactery routing failed: {message}"),
-            Self::Extraction(error) => write!(f, "{error}"),
-            Self::Memory(error) => write!(f, "{error}"),
-            Self::Queue(error) => write!(f, "{error}"),
-            Self::Archive(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-impl std::error::Error for InsomniaProcessError {}
-
-impl From<InsomniaExtractionError> for InsomniaProcessError {
-    fn from(value: InsomniaExtractionError) -> Self {
-        Self::Extraction(value)
-    }
-}
-
-impl From<MemoryError> for InsomniaProcessError {
-    fn from(value: MemoryError) -> Self {
-        Self::Memory(value)
-    }
-}
-
-impl From<crate::InsomniaError> for InsomniaProcessError {
-    fn from(value: crate::InsomniaError) -> Self {
-        Self::Queue(value)
-    }
-}
-
-impl From<crate::ArchiveError> for InsomniaProcessError {
-    fn from(value: crate::ArchiveError) -> Self {
-        Self::Archive(value)
-    }
-}
+pub use result::{InsomniaProcessError, InsomniaProcessResult};
 
 impl Cva {
     pub fn process_claimed_insomnia_episode<E: GeneralEndpoint>(
@@ -93,7 +29,7 @@ impl Cva {
         completed_at_ns: i64,
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
-        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
+        let extraction = extract_with_evidence(self, extractor, &episode, &turns)?;
         let mut prepared = prepare_application(
             &self.archive,
             &mut self.container,
@@ -132,7 +68,7 @@ impl Cva {
         completed_at_ns: i64,
     ) -> Result<InsomniaProcessResult, InsomniaProcessError> {
         let (episode, turns) = self.claimed_episode_input(claim, scope)?;
-        let extraction = extractor.extract_with_evidence(self, &episode, &turns)?;
+        let extraction = extract_with_evidence(self, extractor, &episode, &turns)?;
         let mut prepared = prepare_application(
             &self.archive,
             &mut self.container,
@@ -175,6 +111,29 @@ impl Cva {
     }
 }
 
+pub(super) fn extract_with_evidence<E: GeneralEndpoint>(
+    cva: &mut Cva,
+    extractor: &InsomniaExtractor<E>,
+    episode: &crate::Episode,
+    turns: &[crate::ResolvedTurn],
+) -> Result<crate::InsomniaExtraction, InsomniaExtractionError> {
+    use super::extraction::InsomniaExtractionStage;
+
+    match extractor.start(episode, turns)? {
+        InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
+        InsomniaExtractionStage::Evidence(round) => {
+            let (results, evidence_turns) = super::evidence::resolve_evidence_parts(
+                &cva.archive,
+                &mut cva.lexical_index,
+                &mut cva.container,
+                episode,
+                &round.requests,
+            )?;
+            extractor.finish_evidence(episode, turns, round, results, evidence_turns)
+        }
+    }
+}
+
 pub(crate) fn claimed_episode_input_parts(
     archive: &Archive,
     container: &mut Container,
@@ -198,5 +157,85 @@ fn validate_claim(claim: &InsomniaWork, scope: &str) -> Result<(), InsomniaProce
         Err(InsomniaProcessError::InvalidClaim)
     } else {
         Ok(())
+    }
+}
+
+impl super::evidence::EvidenceSearch for crate::lexical_index::LexicalIndex {
+    fn ensure_current(
+        &mut self,
+        archive: &Archive,
+        container: &mut Container,
+    ) -> Result<(), crate::ArchiveError> {
+        crate::lexical_index::LexicalIndex::ensure_current(self, archive, container)
+    }
+    fn search_fragments(&self, query: &str, limit: usize) -> Vec<crate::Fragment> {
+        self.search(&crate::lexical_contract::lexical_terms(query), limit)
+            .into_iter()
+            .map(|hit| hit.fragment)
+            .collect()
+    }
+}
+
+#[cfg(test)]
+impl Cva {
+    pub(crate) fn hydrate_grouped_import_completion_bodies(
+        &mut self,
+        completion: &mut crate::insomnia::completion::InsomniaCompletion,
+    ) -> Result<(), crate::CvaError> {
+        crate::owner_lifecycle::grouped_import_replay::hydrate_grouped_import_completion_bodies(
+            &mut self.container,
+            &self.memories,
+            completion,
+        )
+        .map_err(Into::into)
+    }
+    pub(crate) fn replay_grouped_import_completion(
+        &mut self,
+        completion: crate::insomnia::completion::InsomniaCompletion,
+    ) -> Result<bool, crate::CvaError> {
+        crate::owner_lifecycle::grouped_import_replay::replay_grouped_import_completion(
+            crate::owner_lifecycle::grouped_import_replay::GroupedImportDestination {
+                container: &mut self.container,
+                archive: &self.archive,
+                memories: &mut self.memories,
+                insomnia: &mut self.insomnia,
+                freshness: &mut self.freshness,
+                dream_freshness: &mut self.dream_freshness,
+            },
+            completion,
+        )
+    }
+}
+
+impl application::UserMemoryOwner for crate::Phylactery {
+    fn owner_id(&self) -> Option<String> {
+        crate::Phylactery::owner_id(self)
+    }
+    fn publish(
+        &mut self,
+        prepared: &PreparedUserMemory,
+        temporal: Option<crate::MemoryTemporalInference>,
+    ) -> Result<(crate::Memory, bool), crate::MemoryError> {
+        self.publish_memory_with_source_ref_and_temporal_inference(
+            None,
+            0,
+            prepared.memory.draft.clone(),
+            prepared.source_ref.clone(),
+            temporal,
+        )
+    }
+    fn memory(&mut self, id: crate::MemoryId) -> Result<crate::Memory, crate::MemoryError> {
+        crate::Phylactery::memory(self, id)
+    }
+    fn put_routing_metadata(
+        &mut self,
+        metadata: crate::MemoryRoutingMetadata,
+    ) -> Result<(), crate::MemoryError> {
+        self.memories
+            .put_routing_metadata(&mut self.container, metadata)
+            .map(|_| ())
+    }
+    fn sync(&mut self) -> Result<(), String> {
+        crate::Phylactery::sync(self).map_err(|error| error.to_string())
     }
 }

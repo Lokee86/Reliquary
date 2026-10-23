@@ -1,7 +1,8 @@
+use crate::model_config::ModelProvider;
 use crate::openai_ready_embedding_response::decode_response;
 use crate::{
-    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, ModelProvider, ModelRequestAuth,
-    ModelSwitchboard, VectorNormalization,
+    EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, ModelRequestAuth, ModelSwitchboard,
+    VectorNormalization,
 };
 use reqwest::blocking::Client;
 use reqwest::header::{AUTHORIZATION, CONTENT_TYPE};

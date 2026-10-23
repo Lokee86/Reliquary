@@ -1,4 +1,4 @@
-use crate::dream_cooldown::unix_now_ns;
+use crate::runtime_shared::unix_now_ns;
 use crate::{
     DEFAULT_DREAM_FRONTIER_SIZE, DEFAULT_DREAM_INFERENCE_CONCURRENCY, DreamCandidateConfig,
     DreamProcessError, DreamProcessor, DreamVerificationPolicy, EmbeddingEndpoint, GeneralEndpoint,

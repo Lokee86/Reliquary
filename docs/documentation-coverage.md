@@ -153,6 +153,8 @@ P2 event-scheduling behavior and the counterless accepted-use candidate path are
 
 `src/runtime_inference/configured_runtime_decision.rs` owns the canonical configured selector and endpoint construction. `general_decision.rs` owns structured General-to-Decision adaptation without invented confidence. `configured_runtime_decision_integration_tests.rs`, `general_decision_tests.rs`, and the Ready/Codex `*_seam_tests.rs` cover selection, authentication, consumer contracts and failures. Configuration persistence/auth and CLI set/show/clear are owned by the existing switchboard/config/CLI modules. Current behavior is documented in [Configuration](configuration.md), [Architecture](architecture.md), [Rust API](api.md), [CLI](cli.md), and [Behavioral contracts](behavioral-contracts.md).
 
+Runtime ownership cuts are documented in [Runtime multiplexing](subsystems/runtime-multiplexing.md), [Model runtime](subsystems/model-runtime.md) and [Architecture](architecture.md). The [Phase 5 execution receipt](dependency-convergence-phase5-execution-2026-10-23.md) owns task/source/test evidence and distinguishes immutable values, supported public adapters, source-role corrections and actual deleted dependencies. New model/worker/lexical contracts retain those owners; no persistent format or feature is added.
+
 ## Related docs
 
 - [Documentation policy](documentation-policy.md)

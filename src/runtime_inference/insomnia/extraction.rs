@@ -1,12 +1,10 @@
 use super::enrichment;
-use super::evidence::{EvidenceRequest, parse_evidence_requests, resolve_evidence};
+use super::evidence::{EvidenceRequest, parse_evidence_requests};
 use super::ledger;
 use super::metadata;
 use super::ownership::{self, InsomniaOwnership};
 use super::synthesis;
-use crate::{
-    Cva, Episode, GeneralEndpoint, GeneralEndpointError, InsomniaSemanticStage, ResolvedTurn,
-};
+use crate::{Episode, GeneralEndpoint, GeneralEndpointError, InsomniaSemanticStage, ResolvedTurn};
 use serde_json::{Value, json};
 use std::fmt;
 use std::sync::Arc;
@@ -218,21 +216,6 @@ impl<E: GeneralEndpoint> InsomniaExtractor<E> {
             InsomniaExtractionStage::Evidence(_) => Err(InsomniaExtractionError::InvalidOutput(
                 "archive evidence was requested but no evidence archive was supplied".into(),
             )),
-        }
-    }
-
-    pub(crate) fn extract_with_evidence(
-        &self,
-        cva: &mut Cva,
-        episode: &Episode,
-        turns: &[ResolvedTurn],
-    ) -> Result<InsomniaExtraction, InsomniaExtractionError> {
-        match self.start(episode, turns)? {
-            InsomniaExtractionStage::Complete(extraction) => Ok(extraction),
-            InsomniaExtractionStage::Evidence(round) => {
-                let (results, evidence_turns) = resolve_evidence(cva, episode, &round.requests)?;
-                self.finish_evidence(episode, turns, round, results, evidence_turns)
-            }
         }
     }
 

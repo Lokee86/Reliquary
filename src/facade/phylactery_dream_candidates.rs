@@ -2,7 +2,7 @@ use crate::dream_owner_candidates::{
     dream_candidates as dream_candidates_from_parts,
     dream_memory_context as dream_memory_context_from_parts,
 };
-use crate::dream_temporal::analyze_memory_temporal;
+use crate::dream_temporal_policy::analyze_memory_temporal;
 use crate::memory_source_time::memory_source_timestamp_ns;
 use crate::{
     CompatibilityProfileId, DreamCandidateConfig, DreamCandidateError, DreamCandidateSet,

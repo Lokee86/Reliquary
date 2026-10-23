@@ -70,6 +70,8 @@ Reference-only host-owned transcript integration composes through the external-s
 - `src/runtime_inference/multiplexing_journal*.rs`
 - `src/runtime_inference/workspace_management*.rs`
 
+Mounted REL workers use Insomnia's staged extraction and explicit Archive evidence projection; the extractor has no Cva/Gateway/Instance dependency. The owner-local `EvidenceSearch` and `UserMemoryOwner` capabilities expose only bounded evidence or publication operations. Gateway retains principal/grant selection, publication fencing and delivery. Dream canonical decisions consume a read-only `DreamOwnerRead` capability, with concrete owner access supplied by lifecycle composition. Worker configuration/result values are separate from supported offline Cva drain adapters. Shared execution maps, leases, queue transitions, host handoff and stream registries retain their existing owners.
+
 ## Related docs
 
 - [Architecture](../architecture.md)

@@ -153,6 +153,8 @@ The following do not block either release unless explicitly pulled into a produc
 - External canonical transcripts remain host-owned.
 - Consumer convenience never recreates ambient global mutation authority.
 
+Internal runtime convergence retains the implemented Gateway/Instance and mounted-owner execution contracts. It introduces no consumer release capability, host route, scheduler or compaction behavior; the remaining release/product work in this plan still needs its own acceptance. Current source-boundary evidence belongs in the [Phase 5 receipt](dependency-convergence-phase5-execution-2026-10-23.md).
+
 ## Related docs
 
 - [Runtime multiplexing](subsystems/runtime-multiplexing.md)

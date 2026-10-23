@@ -1,3 +1,4 @@
+use crate::VectorNormalization;
 use sha2::{Digest, Sha256};
 use std::fmt;
 
@@ -19,29 +20,6 @@ impl EmbeddingMode {
         match tag {
             1 => Some(Self::Query),
             2 => Some(Self::Document),
-            _ => None,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum VectorNormalization {
-    None,
-    L2,
-}
-
-impl VectorNormalization {
-    pub(crate) fn tag(self) -> u8 {
-        match self {
-            Self::None => 0,
-            Self::L2 => 1,
-        }
-    }
-
-    pub(crate) fn from_tag(tag: u8) -> Option<Self> {
-        match tag {
-            0 => Some(Self::None),
-            1 => Some(Self::L2),
             _ => None,
         }
     }

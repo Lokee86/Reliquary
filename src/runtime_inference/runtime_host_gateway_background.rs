@@ -120,7 +120,7 @@ impl GatewayRuntime {
             status.reliquary_memories = cva.memory_stats();
             status.reliquary_vectors = cva.memory_vector_stats();
             status.reliquary_perception_pending = pending;
-            let now = crate::dream_cooldown::unix_now_ns();
+            let now = crate::runtime_shared::unix_now_ns();
             for id in cva.memory_ids() {
                 if cva.memory(id).map_err(operation)?.archived {
                     continue;
@@ -171,7 +171,7 @@ impl GatewayRuntime {
             status.phylactery_memories = Some(phy.memory_stats());
             status.phylactery_vectors = Some(phy.memory_vector_stats());
             status.phylactery_perception_pending = pending;
-            let now = crate::dream_cooldown::unix_now_ns();
+            let now = crate::runtime_shared::unix_now_ns();
             for id in phy.memory_ids() {
                 if phy.memory(id).map_err(operation)?.archived {
                     continue;

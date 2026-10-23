@@ -204,7 +204,7 @@ impl InsomniaStore {
             .flat_map(|attempt| attempt.memory_ids.iter().copied())
     }
 
-    pub(super) fn active_claim(
+    pub(crate) fn active_claim(
         &self,
         episode_id: EpisodeId,
         token: InsomniaLeaseToken,

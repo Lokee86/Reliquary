@@ -6,8 +6,11 @@ use crate::config_object::{
     decode_fragments, decode_retrieval, decode_runtime, encode_fragments, encode_retrieval,
     encode_runtime, validate_fragments, validate_retrieval, validate_runtime,
 };
-use crate::model_switchboard::validate_switchboard;
-use crate::model_switchboard_codec::{
+use crate::model_config::validate_switchboard;
+use crate::model_config::{
+    DecisionModelEndpoint, EmbeddingModelEndpoint, GeneralModelEndpoint, ModelSwitchboardConfig,
+};
+use crate::model_config_codec::{
     CHRONOS_MODEL_KEY, DECISION_MODEL_SCHEMA_V1, DREAM_MODEL_KEY, EMBEDDING_MODEL_KEY,
     EMBEDDING_MODEL_SCHEMA_V2, ENTITY_EXTRACTION_MODEL_KEY, ENTITY_RESOLUTION_DECISION_MODEL_KEY,
     ENTITY_RESOLUTION_MODEL_KEY, GENERAL_DECISION_MODEL_KEY, GENERAL_MODEL_KEY,
@@ -17,7 +20,7 @@ use crate::model_switchboard_codec::{
 };
 use crate::{
     ConfigError, CredentialsConfig, FragmentConfig, JsonMasterKeyStore, MasterKey, MasterKeyError,
-    MasterKeyStore, ModelSwitchboardConfig, RetrievalConfig, RuntimeConfig,
+    MasterKeyStore, RetrievalConfig, RuntimeConfig,
 };
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -142,7 +145,8 @@ impl ReliquaryConfig {
     }
 
     pub fn validate_runtime(&self) -> Result<(), ConfigError> {
-        crate::ModelSwitchboard::new(self.models.clone(), self.credentials.clone())?;
+        validate_switchboard(&self.models)?;
+        crate::model_config::validate_credentials(&self.models, &self.credentials)?;
         Ok(())
     }
 
@@ -263,9 +267,7 @@ fn decode_known_runtime(object: RawConfigObject) -> Result<RuntimeConfig, Config
     decode_runtime(&object.payload)
 }
 
-fn decode_known_general(
-    object: RawConfigObject,
-) -> Result<crate::GeneralModelEndpoint, ConfigError> {
+fn decode_known_general(object: RawConfigObject) -> Result<GeneralModelEndpoint, ConfigError> {
     if object.flags != OBJECT_FLAGS_NONE {
         return Err(ConfigError::InvalidObject);
     }
@@ -276,18 +278,14 @@ fn decode_known_general(
     }
 }
 
-fn decode_known_decision(
-    object: RawConfigObject,
-) -> Result<crate::DecisionModelEndpoint, ConfigError> {
+fn decode_known_decision(object: RawConfigObject) -> Result<DecisionModelEndpoint, ConfigError> {
     if object.schema != DECISION_MODEL_SCHEMA_V1 || object.flags != OBJECT_FLAGS_NONE {
         return Err(ConfigError::InvalidObject);
     }
     decode_decision(&object.payload)
 }
 
-fn decode_known_embedding(
-    object: RawConfigObject,
-) -> Result<crate::EmbeddingModelEndpoint, ConfigError> {
+fn decode_known_embedding(object: RawConfigObject) -> Result<EmbeddingModelEndpoint, ConfigError> {
     if object.schema != EMBEDDING_MODEL_SCHEMA_V2 || object.flags != OBJECT_FLAGS_NONE {
         return Err(ConfigError::InvalidObject);
     }

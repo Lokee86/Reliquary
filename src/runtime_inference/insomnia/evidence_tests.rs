@@ -1,4 +1,4 @@
-use super::evidence::{parse_evidence_requests, resolve_evidence};
+use super::evidence::{parse_evidence_requests, resolve_evidence_parts};
 use crate::{Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, FragmentConfig};
 use serde_json::json;
 use std::fs;
@@ -86,7 +86,14 @@ fn evidence_resolves_exact_turn_range_and_lexical_search() {
         ]
     }))
     .unwrap();
-    let (results, turns) = resolve_evidence(&mut cva, &episode, &requests).unwrap();
+    let (results, turns) = resolve_evidence_parts(
+        &cva.archive,
+        &mut cva.lexical_index,
+        &mut cva.container,
+        &episode,
+        &requests,
+    )
+    .unwrap();
     assert_eq!(results.len(), 3);
     assert!(results.iter().all(|result| result.error.is_none()));
     assert!(

@@ -1,3 +1,4 @@
+use crate::model_config::DecisionModelEndpoint;
 use crate::{DecisionEndpoint, DecisionEndpointError, ModelRequestAuth, ModelSwitchboard};
 use reqwest::blocking::Client;
 use serde_json::{Value, json};
@@ -15,7 +16,7 @@ pub struct ConfiguredDecisionEndpoint {
 
 impl ConfiguredDecisionEndpoint {
     pub(crate) fn from_route(
-        endpoint: Option<&crate::DecisionModelEndpoint>,
+        endpoint: Option<&DecisionModelEndpoint>,
         auth: Option<ModelRequestAuth>,
         route: &'static str,
     ) -> Result<Self, DecisionEndpointError> {

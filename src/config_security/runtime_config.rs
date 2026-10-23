@@ -1,4 +1,5 @@
-use crate::DEFAULT_DREAM_INFERENCE_CONCURRENCY;
+/// Default concurrency shared by runtime configuration and Dream execution.
+pub const DEFAULT_DREAM_INFERENCE_CONCURRENCY: usize = 12;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeConfig {

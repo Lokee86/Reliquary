@@ -1,7 +1,16 @@
 use crate::graph_relation_sets::{duplicate_component, unique_superseder};
-use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;
-use crate::{Cva, DreamLifecycleError, GraphRelation, GraphRelationKind, Memory, MemoryId};
-use std::collections::{HashSet, VecDeque};
+use crate::{DreamLifecycleError, GraphRelation, GraphRelationKind, Memory, MemoryId};
+use std::collections::HashSet;
+
+/// Read-only owner facts used by canonical decisions; no facade or publication access.
+pub(crate) trait DreamOwnerRead {
+    fn memory(&self, id: MemoryId) -> Result<Memory, crate::MemoryError>;
+    fn memory_revision(&self, id: MemoryId, revision: u64) -> Result<Memory, crate::MemoryError>;
+    fn is_publication_birth(&self, id: MemoryId) -> bool;
+    fn same_publication_cohort(&self, a: MemoryId, b: MemoryId) -> Result<bool, crate::CvaError>;
+    fn authority_anchor(&self, memory: &Memory) -> Option<(String, String)>;
+    fn representative_key(&self, memory: &Memory) -> (u8, i64, [u8; 32]);
+}
 
 pub(crate) fn explicit_authority_promotes(memory: &Memory) -> bool {
     if !matches!(memory.authority_kind.as_str(), "direct" | "correction") {
@@ -18,7 +27,7 @@ pub(crate) fn explicit_authority_promotes(memory: &Memory) -> bool {
 }
 
 pub(crate) fn canonical_superseders(
-    cva: &mut Cva,
+    parts: &impl DreamOwnerRead,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Vec<MemoryId>, DreamLifecycleError> {
@@ -28,7 +37,7 @@ pub(crate) fn canonical_superseders(
             && (relation.source == source_id || relation.target == source_id)
     }) {
         if unique_superseder(relations, relation.target) == Some(relation.source)
-            && target_has_canonical_authority(cva, relation.target, relation.source)?
+            && target_has_canonical_authority(parts, relation.target, relation.source)?
         {
             candidates.push(relation.source);
         }
@@ -39,7 +48,7 @@ pub(crate) fn canonical_superseders(
 }
 
 pub(crate) fn corroborated_representative(
-    cva: &mut Cva,
+    parts: &impl DreamOwnerRead,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
@@ -50,8 +59,8 @@ pub(crate) fn corroborated_representative(
     let mut anchors = HashSet::new();
     let mut active = Vec::new();
     for id in component {
-        let memory = cva.memory(id)?;
-        if let Some(anchor) = authority_anchor(cva, &memory) {
+        let memory = parts.memory(id)?;
+        if let Some(anchor) = parts.authority_anchor(&memory) {
             anchors.insert(anchor);
         }
         if !memory.archived {
@@ -61,21 +70,19 @@ pub(crate) fn corroborated_representative(
     if anchors.len() < 2 || active.is_empty() {
         return Ok(None);
     }
-    active.sort_by_key(|memory| {
-        crate::history::dream_representative::representative_key(&cva.archive, memory)
-    });
+    active.sort_by_key(|memory| parts.representative_key(memory));
     Ok(active.first().map(|memory| memory.id))
 }
 
 pub(crate) fn existing_duplicate_representative(
-    cva: &mut Cva,
+    parts: &impl DreamOwnerRead,
     root_id: MemoryId,
     source_birth_version: u64,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
     duplicate_representative(
-        cva,
+        parts,
         root_id,
         source_birth_version,
         Some(source_id),
@@ -83,25 +90,8 @@ pub(crate) fn existing_duplicate_representative(
     )
 }
 
-/// Historical authority reads are implemented by the read-only History service.
-pub(crate) fn historical_duplicate_representative(
-    cva: &mut Cva,
-    root_id: MemoryId,
-    relations: &[GraphRelation],
-) -> Result<Option<MemoryId>, DreamLifecycleError> {
-    crate::history::dream_representative::historical_duplicate_representative(
-        &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
-        &cva.archive,
-        &cva.memories,
-        &cva.dream_freshness,
-        root_id,
-        relations,
-    )
-    .map_err(Into::into)
-}
-
 fn duplicate_representative(
-    cva: &mut Cva,
+    parts: &impl DreamOwnerRead,
     root_id: MemoryId,
     source_birth_version: u64,
     source_id: Option<MemoryId>,
@@ -112,33 +102,31 @@ fn duplicate_representative(
         // Only owner-local Memories with explicit durable birth enrollment can
         // represent an existing target; legacy rows and same-batch births are
         // excluded without recreating Dream's classifier or chronology key.
-        if !cva.freshness_is_publication_birth(id) {
+        if !parts.is_publication_birth(id) {
             continue;
         }
-        let first = cva.memory_revision(id, 1)?;
+        let first = parts.memory_revision(id, 1)?;
         if first.global_version >= source_birth_version {
             continue;
         }
         if let Some(source_id) = source_id
-            && cva
-                .freshness_same_publication_cohort(source_id, id)
+            && parts
+                .same_publication_cohort(source_id, id)
                 .map_err(|error| DreamLifecycleError::Freshness(error.to_string()))?
         {
             continue;
         }
-        let memory = cva.memory(id)?;
+        let memory = parts.memory(id)?;
         if !memory.archived {
             active.push(memory);
         }
     }
-    active.sort_by_key(|memory| {
-        crate::history::dream_representative::representative_key(&cva.archive, memory)
-    });
+    active.sort_by_key(|memory| parts.representative_key(memory));
     Ok(active.first().map(|memory| memory.id))
 }
 
 pub(crate) fn duplicate_component_has_active_peer(
-    cva: &mut Cva,
+    parts: &impl DreamOwnerRead,
     source_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<bool, DreamLifecycleError> {
@@ -146,28 +134,19 @@ pub(crate) fn duplicate_component_has_active_peer(
         .into_iter()
         .filter(|id| *id != source_id)
     {
-        if !cva.memory(id)?.archived {
+        if !parts.memory(id)?.archived {
             return Ok(true);
         }
     }
     Ok(false)
 }
 
-fn authority_anchor(cva: &Cva, memory: &Memory) -> Option<(String, String)> {
-    let node_id = memory.source_node_id.clone()?;
-    let conversation_id = memory
-        .source_episode_id
-        .and_then(|id| cva.episode(id))
-        .map(|episode| episode.conversation_id.clone())?;
-    Some((conversation_id, node_id))
-}
-
 fn target_has_canonical_authority(
-    cva: &mut Cva,
+    parts: &impl DreamOwnerRead,
     target: MemoryId,
     superseder: MemoryId,
 ) -> Result<bool, DreamLifecycleError> {
-    let current = cva.memory(target)?;
+    let current = parts.memory(target)?;
     if !current.archived {
         return Ok(current.lifecycle_state == "canonical");
     }
@@ -175,7 +154,7 @@ fn target_has_canonical_authority(
         return Ok(false);
     }
     for revision in (1..current.revision).rev() {
-        let previous = cva.memory_revision(target, revision)?;
+        let previous = parts.memory_revision(target, revision)?;
         if !previous.archived {
             return Ok(previous.lifecycle_state == "canonical");
         }

@@ -1,4 +1,4 @@
-use crate::ModelAuthKind;
+use crate::model_config::ModelAuthKind;
 use std::collections::BTreeMap;
 use std::fmt;
 use zeroize::Zeroize;

@@ -390,7 +390,7 @@ fn legacy_general_schema_decodes_without_reasoning() {
         bytes.extend_from_slice(&(value.len() as u32).to_le_bytes());
         bytes.extend_from_slice(value.as_bytes());
     }
-    let endpoint = crate::model_switchboard_codec::decode_general_v2(&bytes).unwrap();
+    let endpoint = crate::model_config_codec::decode_general_v2(&bytes).unwrap();
     assert_eq!(endpoint.provider, ModelProvider::OpenAiCodex);
     assert_eq!(endpoint.model, "legacy-codex");
     assert_eq!(endpoint.reasoning_effort, None);

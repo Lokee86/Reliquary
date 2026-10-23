@@ -2,7 +2,7 @@ use super::{
     DREAM_RETRY_POLL, RelShared, ReliquaryRuntimeHostError, notify_work, operation, stopped,
     wait_for_work,
 };
-use crate::dream_cooldown::unix_now_ns;
+use crate::runtime_shared::unix_now_ns;
 use crate::{
     CompatibilityProfileId, DreamCandidateConfig, DreamCandidateSet, DreamPairClassification,
     DreamPairVerification, DreamProcessError, DreamProcessor, DreamVerificationPolicy,

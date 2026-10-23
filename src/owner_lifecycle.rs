@@ -20,6 +20,9 @@ pub use error::OwnerError;
 #[path = "owner_lifecycle/memory_frames.rs"]
 pub(crate) mod memory_frames;
 
+#[path = "owner_lifecycle/insomnia_application.rs"]
+pub(crate) mod insomnia_application;
+
 #[path = "owner_lifecycle/insomnia_replay.rs"]
 pub(crate) mod insomnia_replay;
 

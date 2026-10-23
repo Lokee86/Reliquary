@@ -1,6 +1,7 @@
+use crate::dream_canonical::DreamOwnerRead;
 use crate::dream_pass_identity::initial_pass_id;
 use crate::{Cva, DreamPublicationOutcome, GraphRelationOrigin, MemoryId, PropagationEvent};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeSet;
 
 /// Capture the durable first-pass identity before any Dream relation is published.
 /// The Freshness owner returns the original frozen cut on retry.
@@ -82,48 +83,8 @@ pub(crate) fn record_publication_roots(
     cva.record_initial_dream_roots(&pass.pass_id, roots)
 }
 
-/// Frozen inputs for propagation. Runtime hosts release their owner mutex before
-/// evaluating this value; only preparation/commit touch the Container.
-pub(crate) struct InitialSettlementWork {
-    pass_id: String,
-    active_admission: bool,
-    proof: crate::FreshnessEventProof,
-    event: Option<PropagationEvent>,
-    adjacency: crate::freshness::MemoryAdjacency,
-    memberships: crate::freshness::CommunityMembership,
-    policy: crate::freshness::FreshnessPolicy,
-}
-pub(crate) struct InitialSettlementResult {
-    pass_id: String,
-    active_admission: bool,
-    proof: crate::FreshnessEventProof,
-    effects: BTreeMap<MemoryId, i16>,
-}
-impl InitialSettlementWork {
-    pub(crate) fn evaluate(
-        self,
-        workers: usize,
-    ) -> Result<InitialSettlementResult, crate::CvaError> {
-        let _trace = crate::freshness_trace::scope("initial_dream_evaluate");
-        let effects = crate::freshness_trace::measure("dream.propagation", || match self.event {
-            Some(event) => crate::freshness::propagate_with_policy(
-                &event,
-                &self.adjacency,
-                &self.memberships,
-                workers.max(1),
-                &self.policy,
-            )
-            .map_err(|error| crate::CvaError::Freshness(error.to_string())),
-            None => Ok(BTreeMap::new()),
-        })?;
-        Ok(InitialSettlementResult {
-            pass_id: self.pass_id,
-            active_admission: self.active_admission,
-            proof: self.proof,
-            effects,
-        })
-    }
-}
+use crate::dream_settlement::{InitialSettlementResult, InitialSettlementWork};
+
 impl InitialSettlementResult {
     pub(crate) fn commit(self, cva: &mut Cva) -> Result<(), crate::CvaError> {
         let _trace = crate::freshness_trace::scope("initial_dream_commit");
@@ -295,8 +256,14 @@ fn fold_duplicate_roots(
     roots: BTreeSet<MemoryId>,
     source_id: MemoryId,
 ) -> Result<BTreeSet<MemoryId>, crate::CvaError> {
+    let parts = crate::dream_lifecycle::DreamOwnerReadParts {
+        container: &cva.container,
+        archive: &cva.archive,
+        memories: &cva.memories,
+        dream_freshness: &cva.dream_freshness,
+    };
     let relations = cva.graph_relations();
-    let first = cva
+    let first = parts
         .memory_revision(source_id, 1)
         .map_err(crate::CvaError::from)?;
     let mut result = BTreeSet::new();
@@ -310,7 +277,7 @@ fn fold_duplicate_roots(
             continue;
         }
         let representative = crate::dream_canonical::existing_duplicate_representative(
-            cva,
+            &parts,
             root,
             first.global_version,
             source_id,
@@ -319,7 +286,7 @@ fn fold_duplicate_roots(
         .map_err(|error| crate::CvaError::Freshness(error.to_string()))?;
         if let Some(representative) = representative {
             result.insert(representative);
-        } else if !cva.memory(root).map_err(crate::CvaError::from)?.archived {
+        } else if !parts.memory(root).map_err(crate::CvaError::from)?.archived {
             result.insert(root);
         }
     }

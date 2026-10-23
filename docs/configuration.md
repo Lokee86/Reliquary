@@ -214,6 +214,8 @@ Encrypted credential bytes are intentionally nondeterministic because each save 
 
 - `src/config_security/**`
 
+Configuration contracts and object codecs are below provider routing: `model_config.rs`, `model_config_codec.rs`, `retrieval_config.rs` and `runtime_config.rs` own values/defaults/validation. Switchboard construction consumes those contracts for route/auth resolution. `ReliquaryConfig::validate_runtime` performs the same config-then-credential checks directly. Public names, unknown-object preservation, stored schema keys/tags and failure ordering remain unchanged.
+
 ## Related docs
 
 - [Architecture](architecture.md)

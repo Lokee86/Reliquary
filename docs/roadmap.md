@@ -8,7 +8,7 @@ Own future Reliquary implementation work. Completed behavior belongs in current 
 
 ## Overview
 
-The dependency-convergence architecture refactor has completed Phases 0–3 and is accepted locally. Phases 4–7 remain pending; the Phase 4 Project Environment handoff is ready in the [handoff record](dependency-convergence-phase3-phase4-handoff-2026-10-23.md). The campaign remains limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) and its [permanent, explicitly allowlisted target component DAG](dependency-convergence-target-dag-2026-10-21.md). No cycle, upward/ancestral backreach (even if acyclic), unauthorized sibling coupling or unlisted direct dependency is permitted after convergence.
+The dependency-convergence architecture refactor has completed Phases 0–3 and is accepted locally. Phase 4 Project Environment is integrated, and Phase 5 runtime convergence is tracked by its [execution receipt](dependency-convergence-phase5-execution-2026-10-23.md); Phases 6–7 retain public-facade and final graph closure. The campaign remains limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) and its [permanent, explicitly allowlisted target component DAG](dependency-convergence-target-dag-2026-10-21.md). No cycle, upward/ancestral backreach (even if acyclic), unauthorized sibling coupling or unlisted direct dependency is permitted after convergence.
 
 Phase 1's physical storage boundary is implemented and accepted locally on
 Windows; its verification record documents platform limits. Its [execution specification](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md)
@@ -18,7 +18,7 @@ owner and domain convergence remains separate work. Phase 2 owner-local converge
 
 Later work is now concentrated in a small number of tracks:
 
-1. continue the Phase 4 Project Environment handoff and later campaign work under their separate acceptance plans;
+1. complete the remaining public-facade and final source-graph campaign gates under their separate acceptance plans;
 2. complete Perception Observations, then Ego semantic synthesis and Context Engine final assembly;
 3. finish explicit Insomnia commit semantics;
 4. finish Warlock/Hermes consumer/release work around the implemented Gateway runtime;

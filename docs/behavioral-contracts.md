@@ -383,6 +383,8 @@ Independent oracle tests compare exact maps and input order. Fixed-seed batches 
 
 - `tests/**`
 
+Runtime convergence preserves independently disposable instances, one shared execution per durable owner, grant/epoch fencing, the durable pending journal, cancellation/finalization ordering, and checkpoint-before-delivery streams. Provider calls continue outside long owner locks; explicit owner evidence/publication ports alter source direction without granting new authority or changing configured/offline API behavior.
+
 ## Related docs
 
 - [Architecture](architecture.md)

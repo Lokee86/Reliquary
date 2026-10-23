@@ -1,7 +1,5 @@
-use crate::{
-    Credential, CredentialError, CredentialId, CredentialsConfig, ModelProvider,
-    ModelSwitchboardConfig, SecretString,
-};
+use crate::model_config::ModelProvider;
+use crate::{Credential, CredentialId, CredentialsConfig, SecretString};
 use std::collections::BTreeMap;
 
 #[derive(Clone, Eq, PartialEq)]
@@ -70,98 +68,6 @@ pub(crate) fn resolve_auth(
         },
         _ => unreachable!("validated credential kind"),
     }
-}
-
-pub(crate) fn validate_credentials(
-    config: &ModelSwitchboardConfig,
-    credentials: &CredentialsConfig,
-) -> Result<(), CredentialError> {
-    if let Some(endpoint) = &config.general_decision {
-        let credential = credentials.get(&endpoint.credential_id).ok_or_else(|| {
-            CredentialError::MissingCredential(endpoint.credential_id.as_str().into())
-        })?;
-        if credential.auth_kind() != crate::ModelAuthKind::ApiKey {
-            return Err(CredentialError::WrongAuthKind(
-                endpoint.credential_id.as_str().into(),
-            ));
-        }
-    }
-    if let Some(endpoint) = &config.entity_resolution_decision {
-        let credential = credentials.get(&endpoint.credential_id).ok_or_else(|| {
-            CredentialError::MissingCredential(endpoint.credential_id.as_str().into())
-        })?;
-        if credential.auth_kind() != crate::ModelAuthKind::ApiKey {
-            return Err(CredentialError::WrongAuthKind(
-                endpoint.credential_id.as_str().into(),
-            ));
-        }
-    }
-    if let Some(endpoint) = &config.memory_retrieval_decision {
-        let credential = credentials.get(&endpoint.credential_id).ok_or_else(|| {
-            CredentialError::MissingCredential(endpoint.credential_id.as_str().into())
-        })?;
-        if credential.auth_kind() != crate::ModelAuthKind::ApiKey {
-            return Err(CredentialError::WrongAuthKind(
-                endpoint.credential_id.as_str().into(),
-            ));
-        }
-    }
-
-    for (provider, id) in config
-        .general
-        .iter()
-        .map(|endpoint| (endpoint.provider, &endpoint.credential_id))
-        .chain(
-            config
-                .insomnia
-                .iter()
-                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
-        )
-        .chain(
-            config
-                .insomnia_metadata
-                .iter()
-                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
-        )
-        .chain(
-            config
-                .entity_extraction
-                .iter()
-                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
-        )
-        .chain(
-            config
-                .entity_resolution
-                .iter()
-                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
-        )
-        .chain(
-            config
-                .chronos
-                .iter()
-                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
-        )
-        .chain(
-            config
-                .dream
-                .iter()
-                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
-        )
-        .chain(
-            config
-                .embedding
-                .iter()
-                .map(|endpoint| (endpoint.provider, &endpoint.credential_id)),
-        )
-    {
-        let credential = credentials
-            .get(id)
-            .ok_or_else(|| CredentialError::MissingCredential(id.as_str().into()))?;
-        if credential.auth_kind() != provider.auth_kind() {
-            return Err(CredentialError::WrongAuthKind(id.as_str().into()));
-        }
-    }
-    Ok(())
 }
 
 fn bearer(token: &str) -> SecretString {
