@@ -1862,6 +1862,16 @@
       "path": "src/imports/historical_manifest_plan.rs",
       "component": "import",
       "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_embedding_model.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_reconstruction_model.rs",
+      "component": "import",
+      "classification": "production"
     }
   ],
   "module_components": [

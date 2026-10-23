@@ -1,58 +1,9 @@
 //! Sole operation boundary for explicit REL-local historical reconstruction.
 //! The exclusively borrowed Cva owns freeze, planning, scoring and settlement publication.
 use super::*;
-
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct HistoricalReconstructionOptions {
-    /// Request the bounded embedding-only operation before the final owner freeze.
-    /// Use the explicit endpoint or ConfiguredRuntime post-generation operation.
-    pub fill_missing_embeddings: bool,
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct HistoricalReconstructionReport {
-    pub import_id: [u8; 32],
-    pub manifest_digest: [u8; 32],
-    pub activity_cut: u64,
-    pub reconstructed_memories: usize,
-    /// False only for an exact accepted retry; true after native append and sync.
-    pub committed: bool,
-    /// Transient fill cost/coverage, absent for no-fill and accepted retries.
-    pub embedding: Option<HistoricalEmbeddingReport>,
-}
-
-#[derive(Debug)]
-pub enum HistoricalReconstructionError {
-    Owner(CvaError),
-    EmbeddingFillUnavailable,
-    EmbeddingFill(Box<HistoricalEmbeddingFailure>),
-}
-
-impl std::fmt::Display for HistoricalReconstructionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Owner(error) => write!(f, "historical reconstruction: {error}"),
-            Self::EmbeddingFill(error) => error.fmt(f),
-            Self::EmbeddingFillUnavailable => {
-                f.write_str("historical embedding-only fill is unavailable")
-            }
-        }
-    }
-}
-impl std::error::Error for HistoricalReconstructionError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Owner(error) => Some(error),
-            Self::EmbeddingFill(error) => Some(error.as_ref()),
-            _ => None,
-        }
-    }
-}
-impl From<CvaError> for HistoricalReconstructionError {
-    fn from(error: CvaError) -> Self {
-        Self::Owner(error)
-    }
-}
+pub use crate::imports::historical_reconstruction_model::{
+    HistoricalReconstructionError, HistoricalReconstructionOptions, HistoricalReconstructionReport,
+};
 
 impl Cva {
     /// Explicit offline/exclusive owner operation. Mounted callers must first
