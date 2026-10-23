@@ -325,48 +325,14 @@ pub(super) fn manifest_pass(
     cva: &Cva,
     source_records: &[super::encoding::Value],
 ) -> Result<super::encoding::Value, CvaError> {
-    use super::encoding::Value;
     let generation = cva
         .vector_generations
         .generations()
         .iter()
         .max_by_key(|g| g.vector_version)
-        .copied()
-        .ok_or_else(|| fail("completed fill lacks retained generation"))?;
-    // Source entries include a derived coverage_digest; the fill digest commits
-    // exactly fragment/bindings/availability/mode/evidence, without hashing it twice.
-    let records = source_records
-        .iter()
-        .map(|record| match record {
-            Value::Map(fields) => Ok(Value::Map(
-                fields
-                    .iter()
-                    .filter(|(k, _)| k != "coverage_digest")
-                    .cloned()
-                    .collect(),
-            )),
-            _ => Err(fail("malformed embedding source coverage")),
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-    Ok(Value::map([
-        ("contract_version", Value::Unsigned(2)),
-        ("disposition", Value::text("complete")),
-        (
-            "profile_id",
-            Value::bytes(generation.compatibility_profile_id.0),
-        ),
-        ("selected_generation_id", Value::bytes(generation.id.0)),
-        (
-            "source_archive_version",
-            Value::Unsigned(generation.source_archive_version),
-        ),
-        (
-            "coverage_digest",
-            Value::bytes(
-                Value::Array(records).digest("reliquary:historical-embedding-coverage:v2")?,
-            ),
-        ),
-    ]))
+        .copied();
+    crate::imports::historical_manifest_plan::embedding_pass(generation, source_records)
+        .map_err(CvaError::from)
 }
 
 pub(super) fn owner_error(

@@ -3,7 +3,7 @@ use super::{
     encoding::{Value, policy},
     fail, file_digest, input,
 };
-pub(super) use crate::history::community_proof::{community_proof, record_value, sorted};
+pub(super) use crate::history::community_proof::community_proof;
 use crate::{Cva, CvaError, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -85,14 +85,11 @@ pub(super) fn build_with_fill(
         None
     };
     let owner = if let Some(scope) = &scope {
-        let owner = cva
-            .owner_uuid()
-            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
-        if owner != scope.start.owner_uuid
-            || cva.freshness_policy() != crate::freshness::FreshnessPolicy::default_v1()
-        {
-            return Err(fail("unsupported import owner or policy"));
-        }
+        let owner = crate::imports::historical_manifest_plan::validate_epoch_owner(
+            cva.owner_uuid(),
+            scope.start.owner_uuid,
+        )?;
+        crate::imports::historical_manifest_plan::validate_epoch_policy(cva.freshness_policy())?;
         owner
     } else {
         cva.historical_reconstruction_owner()?
@@ -109,7 +106,7 @@ pub(super) fn build_with_fill(
     };
     let import_id = scope.as_ref().map_or_else(
         || historical_import_id(owner, corpus_digest),
-        |scope| decode_import_id(&scope.start.import_id),
+        |scope| crate::imports::historical_manifest_plan::decode_import_id(&scope.start.import_id),
     );
     let admission = input::admission_proof_scoped(cva, scope.as_ref())?;
     let born_ids: BTreeSet<_> = scope.as_ref().map_or_else(
@@ -117,18 +114,20 @@ pub(super) fn build_with_fill(
         |scope| scope.cohort.clone(),
     );
     for &id in &born_ids {
-        if !cva.freshness_is_publication_birth(id)
-            || !cva
-                .initial_dream_pass_settled(&crate::dream_pass_identity::initial_pass_id(owner, id))
-        {
-            return Err(fail(
-                "import cohort lacks settled first-cycle/publication evidence",
+        let publication_birth = cva.freshness_is_publication_birth(id);
+        let settled = publication_birth
+            && cva.initial_dream_pass_settled(&crate::dream_pass_identity::initial_pass_id(
+                owner, id,
             ));
-        }
+        crate::imports::historical_manifest_plan::validate_settled_birth(
+            publication_birth,
+            settled,
+        )?;
     }
-    if admission.initial.is_empty() && scope.is_none() {
-        return Err(fail("import has no supported active cohort"));
-    }
+    crate::imports::historical_manifest_plan::validate_supported_cohort(
+        scope.is_some(),
+        admission.initial.is_empty(),
+    )?;
     let owner_ids: BTreeSet<_> = if scope.is_none() {
         cva.memory_ids().into_iter().collect()
     } else {
@@ -170,116 +169,25 @@ pub(super) fn build_with_fill(
             .provisional_import_events(&replacement_ids, 0, cva.rel_turn_count())
             .map_err(CvaError::Freshness)?
     };
-    let mut manifest_cohort = if scope.is_some() {
-        born_ids.clone()
+    let replay_entries = if scope.is_some() {
+        Vec::new()
     } else {
-        owner_ids.clone()
-    };
-    if let Some(evidence) = &scoped_event_evidence {
-        manifest_cohort.extend(evidence.affected_recipients.iter().copied());
-    }
-    let mut untouched = Vec::new();
-    let base_recipient_records = if scope.is_some() {
-        ids.difference(&born_ids)
-            .map(|id| {
-                let record = admission.initial.get(id).ok_or_else(|| {
-                    fail("scoped pre-start recipient lacks its authenticated base record")
-                })?;
-                Ok(Value::map([
-                    ("memory_id", Value::bytes(id.0)),
-                    ("base_record", record_value(*record)),
-                ]))
-            })
-            .collect::<Result<Vec<_>, CvaError>>()?
-    } else {
-        for entry in cva
-            .freshness
+        cva.freshness
             .replay_entries()
             .map_err(CvaError::Freshness)?
-        {
-            if matches!(
-                &entry,
-                crate::freshness_storage::FreshnessReplayEntry::AcceptedUseReceipt { .. }
-            ) {
-                return Err(fail(
-                    "legacy reconstruction cannot replace retained accepted use without an import base",
-                ));
-            }
-            if let crate::freshness_storage::FreshnessReplayEntry::Event {
-                event_id, effects, ..
-            } = entry
-                && !superseded.contains(&event_id)
-            {
-                untouched.push(Value::map([
-                    ("event_id", Value::text(event_id)),
-                    (
-                        "recipients",
-                        Value::Array(effects.keys().map(|id| Value::bytes(id.0)).collect()),
-                    ),
-                ]));
-            }
-        }
-        Vec::new()
     };
-    let reconstructed_memories: BTreeSet<_> = if scope.is_some() {
-        manifest_cohort.clone()
-    } else {
-        admission.initial.keys().copied().collect()
-    };
-    let untouched_memory_ids: BTreeSet<_> = if scope.is_some() {
-        ids.difference(&reconstructed_memories).copied().collect()
-    } else {
-        owner_ids
-            .difference(&reconstructed_memories)
-            .copied()
-            .collect()
-    };
-    let mut replacement = Value::map([
-        (
-            "superseded_event_ids",
-            Value::Array(superseded.iter().map(Value::text).collect()),
-        ),
-        ("untouched_events", sorted(untouched)?),
-        (
-            if scope.is_some() {
-                "born_and_provisionally_affected_memories"
-            } else {
-                "reconstructed_memories"
-            },
-            Value::Array(
-                reconstructed_memories
-                    .iter()
-                    .map(|id| Value::bytes(id.0))
-                    .collect(),
-            ),
-        ),
-        (
-            if scope.is_some() {
-                "recipients_without_provisional_effects"
-            } else {
-                "untouched_memories"
-            },
-            Value::Array(
-                untouched_memory_ids
-                    .iter()
-                    .map(|id| Value::bytes(id.0))
-                    .collect(),
-            ),
-        ),
-        (
-            "isolation",
-            Value::text("verified-disjoint-provisional-dream-effects-v1"),
-        ),
-    ]);
-    if scope.is_some() {
-        let Value::Map(fields) = &mut replacement else {
-            unreachable!("historical replacement proof root is a map");
-        };
-        fields.push((
-            "base_recipient_records".to_owned(),
-            Value::Array(base_recipient_records),
-        ));
-    }
+    let replacement = crate::imports::historical_manifest_plan::replacement_proof(
+        scope.is_some(),
+        &ids,
+        &born_ids,
+        &owner_ids,
+        &admission.initial,
+        &superseded,
+        scoped_event_evidence
+            .as_ref()
+            .map(|evidence| &evidence.affected_recipients),
+        &replay_entries,
+    )?;
     let (graph, adjacency) = graph_proof(cva, &ids, &born_ids, scope.is_some())?;
     let snapshot = cva.community_snapshot();
     let scoped_snapshot = if scope.is_some() {
@@ -302,27 +210,16 @@ pub(super) fn build_with_fill(
         .flat_map(|s| s.communities)
         .flat_map(|c| c.members.into_iter().map(move |id| (id, c.id)))
         .collect();
-    let availability = admission
+    let memory_facts = admission
         .memory_inputs
         .iter()
-        .map(|(&id, input)| {
-            use crate::freshness::historical_planner::MemoryAvailability;
-            let value = match input.availability {
-                Some(position) if input.credit_eligible => {
-                    MemoryAvailability::Supported { position }
-                }
-                Some(_) => MemoryAvailability::CreditExcluded,
-                None => MemoryAvailability::Unsupported,
-            };
-            (id, value)
-        })
+        .map(|(&id, input)| (id, (input.availability, input.credit_eligible)))
         .collect();
-    let propagation = PropagationInputs {
+    let propagation = crate::imports::historical_manifest_plan::authorize_propagation(
         adjacency,
         memberships,
-        authorized: ids.clone(),
-        availability,
-    };
+        &memory_facts,
+    );
     let (vectors, sources) = vector_proof(
         cva,
         &timeline.activity_order,
@@ -391,7 +288,7 @@ pub(super) fn build_with_fill(
             vector_version: cva.vector_version(),
             community_generation: cva.community_snapshot().map(|snapshot| snapshot.generation),
             graph,
-            replacement,
+            replacement: replacement.value,
             order,
             last_source: timeline
                 .activity_order
@@ -416,7 +313,7 @@ pub(super) fn build_with_fill(
                     import_key: scope.start.import_key.clone(),
                     source_nodes: scope.source_nodes.clone(),
                     episodes: scope.episodes.clone(),
-                    recipient_cohort: manifest_cohort.clone(),
+                    recipient_cohort: replacement.cohort.clone(),
                 }),
         },
     )?;
@@ -434,7 +331,7 @@ pub(super) fn build_with_fill(
         initial: admission.initial,
         superseded,
         epoch: scope.is_some(),
-        cohort: manifest_cohort,
+        cohort: replacement.cohort,
         base_cut: scope.as_ref().map_or(0, |scope| scope.base_cut),
         start_evidence_digest: scope.as_ref().map_or(prefix, |scope| scope.start_digest),
         #[cfg(test)]
@@ -443,29 +340,5 @@ pub(super) fn build_with_fill(
 }
 
 pub(super) fn historical_import_id(owner: [u8; 16], corpus: [u8; 32]) -> [u8; 32] {
-    let mut hash = Sha256::new();
-    hash.update(b"reliquary:historical-import:v1\0");
-    hash.update([7]);
-    hash.update(2u32.to_le_bytes());
-    for (key, value) in [
-        ("corpus_digest", corpus.as_slice()),
-        ("owner_uuid", owner.as_slice()),
-    ] {
-        hash.update([5]);
-        hash.update((key.len() as u32).to_le_bytes());
-        hash.update(key.as_bytes());
-        hash.update([4]);
-        hash.update((value.len() as u32).to_le_bytes());
-        hash.update(value);
-    }
-    hash.finalize().into()
-}
-
-fn decode_import_id(value: &str) -> [u8; 32] {
-    let mut out = [0; 32];
-    for (index, byte) in out.iter_mut().enumerate() {
-        let pair = &value[index * 2..index * 2 + 2];
-        *byte = u8::from_str_radix(pair, 16).expect("validated durable import ID");
-    }
-    out
+    crate::imports::historical_manifest_plan::historical_import_id(owner, corpus)
 }
