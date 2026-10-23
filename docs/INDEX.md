@@ -1,7 +1,7 @@
 # Reliquary Memory v2 Documentation
 
-- [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 98 bounded correction-only tasks including the approved semantic settlement hard cut.
-- [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — bounded L/H/M/I checkpoints and the exact paused M3 handoff; original 98 task IDs and twelve gates retained.
+- [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 119 correction-only execution tasks (98 original plus 21 counted lifecycle/History/Maintenance/Import tasks), retaining the approved semantic settlement hard cut.
+- [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — 21 additional counted L/H/M/I execution tasks, evidence-backed 35/119 progress and the paused M3 handoff; original 98 IDs and twelve gates retained.
 - [Phase 2 owner-local boundaries — execution spec](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks to isolate durable semantic ownership without new roadmap work.
 - [Phase 2 baseline inventory](dependency-convergence-phase2-baseline-2026-10-22.md) — owner, edge, replay, consumer, test, and retained corpus before-image for B0.
 - [Phase 2 baseline verification](dependency-convergence-phase2-baseline-verification-2026-10-22.md) — exact baseline commands, results, timings, oracle hashes, and pending gates.

@@ -4,7 +4,7 @@ Parent index: [Documentation index](INDEX.md)
 
 ## Purpose
 
-Track the 98 tasks and 12 gates of the [Phase 3 specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) against actual local source, tests and corpus evidence.
+Track the **119 current Phase 3 execution tasks** (98 original P3.x IDs plus 21 additional L/H/M/I tasks) and twelve unchanged formal gates of the [Phase 3 specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) against actual local source, tests and corpus evidence.
 
 ## Overview
 
@@ -14,9 +14,9 @@ The [baseline](dependency-convergence-phase3-baseline-2026-10-22.md) and [curren
 
 ## Execution accounting realignment (documentation snapshot, 2026-10-22)
 
-The [execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md) clarifies that the lower REL/PHY lifecycle and replay migration was an **unrecorded prerequisite hidden inside P3.3**, while some read-only History, pruning and Import preparation was necessarily moved early to avoid duplicate code movement. **Formal acceptance remains 23 of 98 tasks and B0/B1/H3 (3 of 12 gates); M3 is not accepted.** Do not advance that count merely because a supporting extraction was committed or its targeted tests passed.
+The [execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md) promotes previously untracked REL/PHY lifecycle, read-only History, Maintenance and Import preparation into **21 additional, independently scoped execution tasks**, rather than leaving them as invisible prerequisites inside P3.3. **Current task progress is 35/119 (29.4%)**: 23 accepted original tasks plus 12 verified new extraction tasks, each closed only at its documented source/test scope. **Formal gate acceptance is still B0/B1/H3 (3 of 12); M3 is not accepted.** Do not award original integration/deletion task credit a second time when a new scoped extraction task is closed.
 
-To make progress observable without manufacturing task acceptance, the linked checkpoint register tracks **21 bounded current-cut outcomes: 12 verified preparations, 7 active/unverified and 2 pending**. "Verified preparation" means evidence at a named earlier source checkpoint; it is **not** a new full-phase pass and does not establish greenness of the current dirty tree. Update both counts independently on resumption, and retain the original P3.3 task rows as formally pending until each whole task's acceptance and deletion obligations are evidenced.
+The revised task breakdown comprises **98 original tasks** (23 accepted, 75 pending) and **21 added tasks** (12 verified/closed at scoped acceptance, 7 active/unverified, 2 pending): **35 complete or verified, 7 active, 77 pending = 119 total**. The [21-task register](dependency-convergence-phase3-execution-realignment-2026-10-22.md#added-execution-tasks--21-unique-bounded-outcomes-part-of-the-119-task-denominator) is part of the actual denominator, not an optional metrics overlay. "Verified (scoped)" is a completed new bounded task at an earlier committed source checkpoint; it does not establish greenness of the current dirty tree or acceptance of the original P3.3/P3.4/P3.7 integration and deletion tasks. Maintain unique IDs and acceptance proofs for both populations; never silently increase the denominator without increasing the completion register.
 
 At the snapshot, the last committed checkpoint was `1bfbc95`; an uncommitted REL pruning/reclamation, Import readiness/completion and owner-lifecycle hard cut follows it. The latest `.verification-tmp/phase3-maintenance-coordinator-check.log` compilation **failed** in `src/maintenance/reliquary_prune.rs` on an unresolved `crate::OwnerError` and ambiguous `output_path.as_ref()`; these have no green current-tree receipt. The last successful broader batch belongs to the earlier `1bfbc95` settlement/session checkpoint (**1,974 passed, zero failed, five ignored and four filtered**). No source/fixture/test/graph changes or migrations were made to perform the realignment.
 
@@ -39,9 +39,9 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | D3 | Pending | Stabilized graph refresh and source enforcement. |
 | A3 | Pending | Full integration, corpus and documentation acceptance. |
 
-## Task register
+## Task register — 119 total
 
-Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Totals: 23/98 original accepted + 12/21 additional verified = 35/119 closed or verified; 7 active and 77 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -143,6 +143,10 @@ Evidence for the baseline tasks is in the baseline document and its receipt. Lat
 | P3.11.06 | Pending | Awaiting prerequisite gate |
 | P3.11.07 | Pending | Awaiting prerequisite gate |
 | P3.11.08 | Pending | Awaiting prerequisite gate |
+
+## New execution tasks (21 additional IDs; counted, not merely notes)
+
+The complete [L.01–L.06, H.01–H.05, M.01–M.06 and I.01–I.04 task register](dependency-convergence-phase3-execution-realignment-2026-10-22.md) supplies the 21 independently credited scopes and evidence. These are separate execution tasks with **12 verified (scoped)**, **7 active/unverified** and **2 pending**. Each is individually credited once. Original integration/gate tasks are accepted only when their broader distinct obligations pass; a new verified extraction does not prematurely complete M3, P3 or I3.
 
 ## History source cut evidence
 
