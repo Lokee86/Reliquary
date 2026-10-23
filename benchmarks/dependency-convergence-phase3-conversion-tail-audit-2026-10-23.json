@@ -1,0 +1,69 @@
+{
+  "status": "verified_canonical_tail_shape_only_conversion_not_run",
+  "files": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "source_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "tail_bytes": 48,
+      "tail_frame_count": 1,
+      "family_counts": {
+        "4356414350525431": 1
+      },
+      "frames": [
+        {
+          "offset": 30742162,
+          "payload_bytes": 40,
+          "magic": "CVACPRT1"
+        }
+      ]
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "source_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "tail_bytes": 144,
+      "tail_frame_count": 3,
+      "family_counts": {
+        "4356414350525431": 3
+      },
+      "frames": [
+        {
+          "offset": 76541987,
+          "payload_bytes": 40,
+          "magic": "CVACPRT1"
+        },
+        {
+          "offset": 76542035,
+          "payload_bytes": 40,
+          "magic": "CVACPRT1"
+        },
+        {
+          "offset": 76542083,
+          "payload_bytes": 40,
+          "magic": "CVACPRT1"
+        }
+      ]
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "source_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "tail_bytes": 48,
+      "tail_frame_count": 1,
+      "family_counts": {
+        "4356414350525431": 1
+      },
+      "frames": [
+        {
+          "offset": 18315232,
+          "payload_bytes": 40,
+          "magic": "CVACPRT1"
+        }
+      ]
+    }
+  ],
+  "proof": {
+    "codec": "src/retrieval/compatibility_profile_codec.rs::encode_retirement/decode_retirement",
+    "layout": "CVACPRT1 magic8 + CompatibilityProfileId32;exactly40payloadbytes",
+    "constraint": "All canonical frames after the single settlement must be this exact40byte carrier. Reject converter input outside this bounded shape. Preserve every byte before settlement; replace only its framed payload; copy retirement frames exactly.",
+    "not_claimed": "No runtime format selection, corpus conversion/promotion, arbitrary relocation support, or C3 acceptance."
+  }
+}
