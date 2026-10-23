@@ -7,6 +7,8 @@ use crate::freshness_storage::FreshnessStore;
 use crate::{Container, ContainerError, ObjectRef};
 use std::fmt;
 
+pub(crate) type HistoryObject = ObjectRef;
+
 /// Physical source failure retained across the lifecycle/owner boundary.
 #[derive(Debug)]
 pub(crate) struct HistoryReadFailure(pub(crate) ContainerError);
@@ -103,6 +105,11 @@ impl<'a> HistoryReadAccess<'a> {
 
     pub(crate) fn owner_uuid(&self) -> Option<[u8; 16]> {
         self.container.owner_uuid()
+    }
+
+    pub(crate) fn required_owner_uuid(&self) -> Result<[u8; 16], HistoryReadFailure> {
+        self.owner_uuid()
+            .ok_or_else(|| ContainerError::InvalidIdentity.into())
     }
 
     /// Preserve the operation's path-metadata preflight before a held-source snapshot.

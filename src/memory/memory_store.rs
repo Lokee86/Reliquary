@@ -581,6 +581,35 @@ impl MemoryStore {
         (record.global_version == global_version).then_some(record)
     }
 
+    /// Produce canonical comparison evidence for a validated publication when
+    /// its local version is no longer represented by a retained live record.
+    /// The Memory owner owns decoding publication envelopes and terminal facts.
+    pub(crate) fn reconciliation_publication_evidence(
+        &self,
+        global_version: u64,
+        memory_version: u64,
+        payload: &[u8],
+    ) -> Result<Option<Vec<u8>>, MemoryError> {
+        if let Some(record) = self.record_at_publication(global_version, memory_version) {
+            let mut record = record.clone();
+            record.global_version = 0;
+            record.memory_version = 0;
+            return Ok(Some(crate::memory_codec::encode_record(&record)?));
+        }
+
+        let Some(envelope) = crate::container::publication_envelope::decode(payload)? else {
+            return Ok(None);
+        };
+        let Some(MemoryPublication::Tombstone { id, revision, .. }) =
+            publication::decode(envelope.body, global_version)?
+        else {
+            return Ok(None);
+        };
+        Ok(Some(crate::memory_codec::encode_tombstone(
+            crate::memory_codec::MemoryTombstone { id, revision },
+        )))
+    }
+
     /// Return accepted first-publication identities at a Memory-local cut.
     /// The result is ordered by each identity's first local version and keeps
     /// that revision's exact global coordinate, independently of current

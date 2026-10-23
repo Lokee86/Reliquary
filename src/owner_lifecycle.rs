@@ -3,7 +3,7 @@
 #[path = "owner_lifecycle/history_source.rs"]
 mod history_source;
 pub(crate) use history_source::{
-    HistoryFrame, HistoryReadAccess, HistoryReadFailure, HistorySource,
+    HistoryFrame, HistoryObject, HistoryReadAccess, HistoryReadFailure, HistorySource,
 };
 
 #[path = "owner_lifecycle/vocabulary.rs"]

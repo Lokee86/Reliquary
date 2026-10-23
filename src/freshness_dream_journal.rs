@@ -111,6 +111,29 @@ impl DreamFreshnessJournal {
         staged.ingest(&result)?;
         Ok(result)
     }
+
+    /// Produce clock-neutral comparison evidence for one accepted Dream replay
+    /// entry. Reconciliation always removes source turns and Graph coordinates.
+    pub(crate) fn rebase_import_payload(&self, payload: &[u8]) -> Result<Vec<u8>, String> {
+        let Some(entry) = self.replay_entry(payload)? else {
+            return Ok(Vec::new());
+        };
+        let mapped = match entry {
+            DreamEntry::Accept(id, _) => DreamEntry::Accept(id, 0),
+            DreamEntry::AcceptGraph(id, _, _, mut proof) => {
+                proof.graph_version = 0;
+                proof.community_generation = proof.community_generation.map(|_| 0);
+                proof.community_graph_version = proof.community_graph_version.map(|_| 0);
+                DreamEntry::AcceptGraph(id, 0, 0, proof)
+            }
+            DreamEntry::Intent(id, mutation, _, admitted) => {
+                DreamEntry::Intent(id, mutation, 0, admitted)
+            }
+            other => other,
+        };
+        self.encode_replay_entry(mapped)
+    }
+
     /// Return the pass ID only for a well-framed settled journal event. The
     /// concrete REL replay coordinator owns retaining completed proof state.
     pub(crate) fn settled_pass_id(payload: &[u8]) -> Result<Option<String>, String> {

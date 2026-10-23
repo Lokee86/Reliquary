@@ -221,8 +221,7 @@ fn inventory_from_history(
         let mut events = Vec::new();
         let mut dream = Vec::new();
         let mut owner_evidence = Vec::new();
-        let mut normalized_dream =
-            crate::freshness_dream_journal::DreamFreshnessJournal::new(history.owner_uuid());
+        let mut normalizer = history.epoch_normalizer();
         for chunk in history
             .physical_objects(&source)?
             .into_iter()
@@ -230,127 +229,29 @@ fn inventory_from_history(
             .skip(first)
         {
             let payload = history.read_object(&source, chunk)?;
-            if let Some(version) = crate::archive_codec::publication::version_at(chunk, &payload)? {
-                // Retain every accepted source-domain record in interval order,
-                // including unrelated records not named by the import receipt.
-                let record = history.archive_publication(&source, version)?;
-                archive_records.push(crate::archive_codec::publication::import_evidence(record)?);
-            }
-            if let Some((global, local)) =
-                crate::memory_compact_codec::publication::coordinates(&payload)?
-            {
-                owner_evidence.push(canonical_memory_publication(
-                    history.memory_record_at_publication(global, local),
-                    global,
-                    local,
-                    &payload,
-                )?);
-            }
-            if let Some((global, local)) =
-                crate::entity_compact_codec::publication::coordinates(&payload)?
-            {
-                let publication = entities
-                    .retained_publication_at(global, local)?
-                    .ok_or(crate::EntityError::InvalidVersion)?;
-                owner_evidence.push(publication.normalized_import_evidence()?);
-            }
-            if let Some((global, local)) =
-                crate::relationship_compact_codec::publication::coordinates(&payload)?
-            {
-                let publication = relationships
-                    .retained_publication_at(global, local)?
-                    .ok_or(crate::RelationshipError::InvalidVersion)?;
-                owner_evidence.push(publication.normalized_import_evidence()?);
-            }
-            if let Some(version) =
-                crate::graph_compact_codec::publication::version_at(chunk, &payload)?
-            {
-                owner_evidence.push(canonical_graph_publication(graph, &source, version)?);
-            }
-            if let Some(mut snapshot) =
-                crate::community_codec::decode_snapshot(&payload).map_err(crate::CvaError::from)?
-            {
-                snapshot.generation = 0;
-                snapshot.derived_graph_version = 0;
-                owner_evidence.push(
-                    crate::community_codec::encode_snapshot(&snapshot)
-                        .map_err(crate::CvaError::from)?,
-                );
-            }
-            if let Some(change) = resolution_changes.get(&chunk) {
-                owner_evidence.push(crate::entity_resolution_codec::comparison_carrier(change)?);
-            }
-            if crate::memory_routing_codec::decode(&payload)?.is_some()
-                || payload.starts_with(b"CVAPEP01")
-            {
-                owner_evidence.push(payload.clone());
-            }
-            for mut event in crate::freshness_storage::FreshnessReplayEntry::from_payload(&payload)
-                .map_err(crate::CvaError::Freshness)?
-            {
+            let frame = history.frame_evidence(
+                &source,
+                chunk,
+                &payload,
+                resolution_changes.get(&chunk),
+                entities,
+                relationships,
+                graph,
+                &mut normalizer,
+            )?;
+            // Retain every accepted source-domain Archive record in interval
+            // order, including records not named by the import receipt.
+            archive_records.extend(frame.archive_records);
+            owner_evidence.extend(frame.owner_evidence);
+            for mut event in frame.events {
                 normalize_event_coordinates(&mut event);
                 events.push(event);
             }
-            if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
-                let normalized = if let Some(mut pass) =
-                    history.materialized_dream_begin(&source, chunk, &payload)?
-                {
-                    pass.turn = 0;
-                    pass.graph_version_before = 0;
-                    let owner = history
-                        .owner_uuid()
-                        .ok_or(crate::ContainerError::InvalidIdentity)?;
-                    normalized_dream
-                        .ingest_materialized_begin(owner, pass.clone())
-                        .map_err(crate::CvaError::Freshness)?;
-                    crate::freshness_dream_journal::begin_comparison_carrier(owner, &pass)
-                } else {
-                    let bytes = crate::dream_replay_transport::rebase_payload(
-                        &normalized_dream,
-                        &payload,
-                        |_| Ok(0),
-                        |_| Ok(0),
-                        |mut proof| {
-                            proof.graph_version = 0;
-                            proof.community_generation = proof.community_generation.map(|_| 0);
-                            proof.community_graph_version =
-                                proof.community_graph_version.map(|_| 0);
-                            Ok(proof)
-                        },
-                    )
-                    .map_err(crate::CvaError::Freshness)?;
-                    normalized_dream
-                        .ingest(&bytes)
-                        .map_err(crate::CvaError::Freshness)?;
-                    bytes
-                };
-                if !normalized.is_empty() {
-                    dream.push(normalized);
-                }
+            if let Some(bytes) = frame.dream {
+                dream.push(bytes);
             }
-
-            if let Some(mut completion) = crate::insomnia::completion::decode_completion(&payload)
-                .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
-            {
-                // Global coordinates and transaction serialization time belong
-                // to the source file, not to the accepted extraction identity.
-                history.hydrate_grouped_completion(&source, &mut completion)?;
-                completion.bodies.sort_by_key(|body| body.id.0);
-                for (index, record) in completion.records.iter_mut().enumerate() {
-                    let coordinate = u64::try_from(index)
-                        .ok()
-                        .and_then(|offset| offset.checked_add(1))
-                        .ok_or_else(|| unsupported("too many grouped completion records"))?;
-                    record.global_version = coordinate;
-                    record.memory_version = coordinate;
-                }
-                completion.global_version_start = 1;
-                completion.transaction_time_ns = 1;
-                completion.freshness_birth_turn = completion.freshness_birth_turn.map(|_| 0);
-                completions.push(
-                    crate::insomnia::completion::encode_completion(&completion)
-                        .map_err(CvaReconcileError::InvalidInsomniaCompletion)?,
-                );
+            if let Some(completion) = frame.completion {
+                completions.push(completion);
             }
         }
         result.insert(
@@ -404,7 +305,7 @@ fn normalize_event_coordinates(event: &mut crate::freshness_storage::FreshnessRe
 fn validate_replay_interval(
     source: &crate::owner_lifecycle::HistorySource<'_>,
     archive: &crate::Archive,
-    insomnia: &crate::insomnia::store::InsomniaStore,
+    insomnia: &crate::insomnia::import_readiness::ImportReadiness<'_>,
     from: usize,
 ) -> Result<(), CvaReconcileError> {
     // Inspect the actual divergent payloads, not just current owner counts:
@@ -512,8 +413,8 @@ fn validate_replay_interval(
     // Dropping an outstanding queue/lease/failure would lose owner authority.
     for episode in archive.episodes.iter() {
         if insomnia
-            .work(episode.id)
-            .is_some_and(|work| work.state != crate::InsomniaWorkState::Complete)
+            .state(episode.id)
+            .is_some_and(|state| state != crate::InsomniaWorkState::Complete)
         {
             return Err(unsupported(
                 "outstanding Insomnia work in import reconciliation source",
@@ -521,47 +422,6 @@ fn validate_replay_interval(
         }
     }
     Ok(())
-}
-
-fn canonical_memory_publication(
-    record: Option<crate::memory_model::MemoryRecord>,
-    global_version: u64,
-    memory_version: u64,
-    payload: &[u8],
-) -> Result<Vec<u8>, CvaReconcileError> {
-    if let Some(record) = record {
-        let mut normalized = record.clone();
-        normalized.global_version = 0;
-        normalized.memory_version = 0;
-        // Established semantic comparison evidence, never a persisted carrier.
-        return Ok(crate::memory_codec::encode_record(&normalized)?);
-    }
-
-    // Compare terminal facts using the same established evidence representation.
-    let envelope = crate::container::publication_envelope::decode(payload)?
-        .ok_or(CvaReconcileError::InvalidMemoryVersionRecord)?;
-    if let Some(crate::memory_compact_codec::publication::MemoryPublication::Tombstone {
-        id,
-        revision,
-        ..
-    }) = crate::memory_compact_codec::publication::decode(envelope.body, global_version)?
-    {
-        return Ok(crate::memory_codec::encode_tombstone(
-            crate::memory_codec::MemoryTombstone { id, revision },
-        ));
-    }
-    Err(CvaReconcileError::InvalidMemoryVersionRecord)
-}
-
-fn canonical_graph_publication(
-    graph: &crate::graph_store::GraphStore,
-    source: &crate::owner_lifecycle::HistorySource<'_>,
-    version: crate::graph_codec::GraphVersionPayload,
-) -> Result<Vec<u8>, CvaReconcileError> {
-    let bytes = source
-        .read_object(version.mutation)
-        .map_err(|error| error.0)?;
-    Ok(graph.normalized_import_evidence(&bytes)?)
 }
 
 pub(super) fn unsupported(reason: &'static str) -> CvaReconcileError {
