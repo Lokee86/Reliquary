@@ -9,11 +9,16 @@ pub(super) fn open_read_only(path: &Path) -> Result<ReliquaryOwner, CvaReconcile
 }
 
 pub(super) fn finish_replay(
-    mut replay: crate::owner_lifecycle::ReliquaryReplay,
+    replay: crate::owner_lifecycle::ReliquaryReplay,
 ) -> Result<ReliquaryOwner, CvaReconcileError> {
+    finish_replay_with_due(replay).map(|(owner, _due)| owner)
+}
+
+pub(super) fn finish_replay_with_due(
+    mut replay: crate::owner_lifecycle::ReliquaryReplay,
+) -> Result<crate::owner_lifecycle::ReconstructedReliquary, CvaReconcileError> {
     let reconstruction = crate::history::reconstruct_reliquary(&mut replay)?;
-    let (owner, _freshness_due) = replay.into_owner(reconstruction);
-    Ok(owner)
+    Ok(replay.into_owner(reconstruction))
 }
 
 pub(super) fn copy_import_source(

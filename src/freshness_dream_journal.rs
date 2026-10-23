@@ -115,19 +115,37 @@ impl DreamFreshnessJournal {
     /// Produce clock-neutral comparison evidence for one accepted Dream replay
     /// entry. Reconciliation always removes source turns and Graph coordinates.
     pub(crate) fn rebase_import_payload(&self, payload: &[u8]) -> Result<Vec<u8>, String> {
+        self.rebase_replay_payload(
+            payload,
+            |_| Ok(0),
+            |_| Ok(0),
+            |mut proof| {
+                proof.graph_version = 0;
+                proof.community_generation = proof.community_generation.map(|_| 0);
+                proof.community_graph_version = proof.community_graph_version.map(|_| 0);
+                Ok(proof)
+            },
+        )
+    }
+
+    /// Rebase accepted journal coordinates with scalar-only mappings.
+    pub(crate) fn rebase_replay_payload(
+        &self,
+        payload: &[u8],
+        mut turn: impl FnMut(u64) -> Result<u64, String>,
+        mut graph: impl FnMut(u64) -> Result<u64, String>,
+        mut proof: impl FnMut(crate::FreshnessEventProof) -> Result<crate::FreshnessEventProof, String>,
+    ) -> Result<Vec<u8>, String> {
         let Some(entry) = self.replay_entry(payload)? else {
             return Ok(Vec::new());
         };
         let mapped = match entry {
-            DreamEntry::Accept(id, _) => DreamEntry::Accept(id, 0),
-            DreamEntry::AcceptGraph(id, _, _, mut proof) => {
-                proof.graph_version = 0;
-                proof.community_generation = proof.community_generation.map(|_| 0);
-                proof.community_graph_version = proof.community_graph_version.map(|_| 0);
-                DreamEntry::AcceptGraph(id, 0, 0, proof)
+            DreamEntry::Accept(id, cut) => DreamEntry::Accept(id, turn(cut)?),
+            DreamEntry::AcceptGraph(id, cut, version, pinned) => {
+                DreamEntry::AcceptGraph(id, turn(cut)?, graph(version)?, proof(pinned)?)
             }
-            DreamEntry::Intent(id, mutation, _, admitted) => {
-                DreamEntry::Intent(id, mutation, 0, admitted)
+            DreamEntry::Intent(id, mutation, cut, admitted) => {
+                DreamEntry::Intent(id, mutation, turn(cut)?, admitted)
             }
             other => other,
         };

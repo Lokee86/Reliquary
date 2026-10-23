@@ -159,6 +159,15 @@ impl Cva {
         }
     }
 
+    pub(crate) fn from_reconstructed(
+        owner: crate::owner_lifecycle::ReliquaryOwner,
+        due: crate::FreshnessDueDispatcher,
+    ) -> Self {
+        let mut result = Self::from_owner(owner);
+        result.freshness_due = due;
+        result
+    }
+
     pub fn open(path: impl AsRef<Path>) -> Result<Self, CvaError> {
         let container = Container::open(path)?;
         Self::open_from_container(container)
@@ -173,8 +182,6 @@ impl Cva {
         let mut replay = crate::owner_lifecycle::ReliquaryReplay::read(container)?;
         let reconstruction = crate::history::reconstruct_reliquary(&mut replay)?;
         let (owner, due) = replay.into_owner(reconstruction);
-        let mut result = Self::from_owner(owner);
-        result.freshness_due = due;
-        Ok(result)
+        Ok(Self::from_reconstructed(owner, due))
     }
 }

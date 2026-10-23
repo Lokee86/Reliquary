@@ -74,7 +74,7 @@ fn assert_unhandled_interval(cva: &mut Cva, payload: &[u8]) {
                 .snapshot()
                 .unwrap(),
             &cva.archive,
-            &cva.insomnia,
+            &crate::insomnia::import_readiness::ImportReadiness::new(&cva.insomnia),
             boundary
         ),
         Err(CvaReconcileError::UnsupportedSemanticOwner(

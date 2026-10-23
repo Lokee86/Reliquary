@@ -46,7 +46,13 @@ pub(crate) fn reconcile_import_epochs(
     right_path: &Path,
     output_path: &Path,
     comparison: CvaComparison,
-) -> Result<Option<(CvaReconcileResult, ReliquaryOwner)>, CvaReconcileError> {
+) -> Result<
+    Option<(
+        CvaReconcileResult,
+        crate::owner_lifecycle::ReconstructedReliquary,
+    )>,
+    CvaReconcileError,
+> {
     let mut left = super::reconciliation_copy::open_read_only(left_path)?;
     let mut right = super::reconciliation_copy::open_read_only(right_path)?;
     if left.import_epochs.statuses().is_empty() && right.import_epochs.statuses().is_empty() {
@@ -87,7 +93,12 @@ pub(crate) fn reconcile_import_epochs(
     let replay_source = crate::owner_lifecycle::HistoryReadAccess::new(&right.container)
         .snapshot()
         .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
-    validate_replay_interval(&replay_source, &right.archive, &right.insomnia, boundary)?;
+    validate_replay_interval(
+        &replay_source,
+        &right.archive,
+        &crate::insomnia::import_readiness::ImportReadiness::new(&right.insomnia),
+        boundary,
+    )?;
     let left_boundary = if comparison.common_chunk_count == 0 {
         0
     } else {
@@ -100,9 +111,7 @@ pub(crate) fn reconcile_import_epochs(
         super::reconciliation_interval::read_graph_range(&left, left_boundary, usize::MAX)?;
     let right_graph =
         super::reconciliation_interval::read_graph_range(&right, boundary, usize::MAX)?;
-    crate::graph_ordered_replay::replay_skips(&left_graph, &right_graph)
-        .map(|_| ())
-        .map_err(crate::owner_lifecycle::graph_ordered_replay::conflict_error)?;
+    crate::history::reconciliation_inventory::validate_graph_overlap(&left_graph, &right_graph)?;
     if left.rel_metadata.effective(&left.container)
         != right.rel_metadata.effective(&right.container)
         || left.freshness.policy() != right.freshness.policy()
@@ -140,16 +149,13 @@ fn inventory(cva: &ReliquaryOwner) -> Result<BTreeMap<String, CompletedEpoch>, C
         crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
         &cva.archive,
         &cva.memories,
-    );
-    let statuses = cva.import_epochs.statuses();
-    inventory_from_history(
-        &history,
-        &statuses,
         &cva.freshness,
         &cva.entities,
         &cva.relationships,
         &cva.graph,
-    )
+    );
+    let statuses = cva.import_epochs.statuses();
+    inventory_from_history(&history, &statuses)
 }
 
 /// Import policy over narrow, immutable History and owner read views. All
@@ -158,10 +164,6 @@ fn inventory(cva: &ReliquaryOwner) -> Result<BTreeMap<String, CompletedEpoch>, C
 fn inventory_from_history(
     history: &crate::history::reconciliation_inventory::ReconciliationRead<'_>,
     statuses: &[ImportEpochStatus],
-    freshness: &crate::freshness_storage::FreshnessStore,
-    entities: &crate::entity_store::EntityStore,
-    relationships: &crate::relationship_store::RelationshipStore,
-    graph: &crate::graph_store::GraphStore,
 ) -> Result<BTreeMap<String, CompletedEpoch>, CvaReconcileError> {
     let resolution_changes = history.materialized_resolution_changes()?;
     let mut positions = BTreeMap::new();
@@ -193,19 +195,14 @@ fn inventory_from_history(
         let ImportEpochStatus::Completed { start, complete } = status else {
             return Err(unsupported("open import epoch in divergent reconciliation"));
         };
-        let settlement = freshness
-            .import_settlements()
-            .iter()
-            .find(|settlement| hex(&settlement.import_id) == start.import_id)
-            .cloned()
+        let settlement = history
+            .settlement(&start.import_id)
             .ok_or_else(|| unsupported("completed import lacks a scoped settlement"))?;
         let semantic_scope = settlement.semantic.clone().ok_or_else(|| {
             crate::CvaError::Freshness("accepted settlement lacks semantic authority".into())
         })?;
-        let mut accepted_events = freshness
-            .requested_import_event_entries(
-                &semantic_scope.accepted_events.keys().cloned().collect(),
-            )
+        let mut accepted_events = history
+            .event_entries(&semantic_scope.accepted_events.keys().cloned().collect())
             .map_err(crate::CvaError::Freshness)?;
         for event in accepted_events.values_mut() {
             normalize_event_coordinates(event);
@@ -234,9 +231,6 @@ fn inventory_from_history(
                 chunk,
                 &payload,
                 resolution_changes.get(&chunk),
-                entities,
-                relationships,
-                graph,
                 &mut normalizer,
             )?;
             // Retain every accepted source-domain Archive record in interval
@@ -337,7 +331,7 @@ fn validate_replay_interval(
         {
             return Err(unsupported("unhandled owner payload in import interval"));
         }
-        if let Some(completion) = crate::insomnia::completion::decode_completion(&payload)
+        if let Some(completion) = crate::insomnia::import_replay::decode_completion(&payload)
             .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
         {
             if !completion.external_memory_refs.is_empty() {
@@ -367,30 +361,7 @@ fn validate_replay_interval(
         }
         // Accepted publications are replayed through current owner envelopes.
         // Unpublished bare native bodies carry no semantic clock.
-        if crate::insomnia::codec::decode_record(&payload)?.is_some()
-            || crate::memory_codec::decode_body(&payload)?.is_some()
-            || crate::memory_compact_codec::publication::decode(&payload, 1)?.is_some()
-            || crate::memory_compact_codec::publication::coordinates(&payload)?.is_some()
-            || crate::memory_routing_codec::decode(&payload)?.is_some()
-            || crate::entity_compact_codec::publication::decode(&payload, 1)?.is_some()
-            || crate::entity_compact_codec::publication::coordinates(&payload)?.is_some()
-            || crate::relationship_compact_codec::publication::decode(&payload, 1)?.is_some()
-            || crate::relationship_compact_codec::publication::coordinates(&payload)?.is_some()
-            || crate::entity_resolution_codec::delta::is_current(&payload)
-            || ((payload.starts_with(b"CVAGCM") || payload.starts_with(b"CVAGCB"))
-                && crate::graph_compact_codec::publication::decode(&payload, 1)?.is_some())
-            || crate::graph_codec::decode_node(&payload)?.is_some()
-            || crate::graph_compact_codec::publication::version_at(chunk, &payload)?.is_some()
-            || crate::community_codec::decode_snapshot(&payload)
-                .map_err(crate::CvaError::from)?
-                .is_some()
-            || !crate::freshness_storage::FreshnessReplayEntry::from_payload(&payload)
-                .map_err(crate::CvaError::Freshness)?
-                .is_empty()
-            || payload.starts_with(b"CVDREAM1")
-            || payload.starts_with(b"CVDREAM2")
-            || payload.starts_with(b"CVAPEP01")
-        {
+        if crate::history::import_replay_read::has_owner_record(chunk, &payload)? {
             continue;
         }
         let magic = payload.get(..8).unwrap_or(&[]);

@@ -94,7 +94,7 @@ fn envelope_range_and_import_interval_replay_one_revision_with_original_time() {
             .snapshot()
             .unwrap(),
         &source.archive,
-        &source.insomnia,
+        &crate::insomnia::import_readiness::ImportReadiness::new(&source.insomnia),
         index,
     )
     .unwrap();
@@ -122,16 +122,11 @@ fn envelope_range_and_import_interval_replay_one_revision_with_original_time() {
         Some(-123)
     );
     let (global, local) = publication::coordinates(&payload).unwrap().unwrap();
-    let evidence = super::canonical_memory_publication(
-        source
-            .memories
-            .record_at_publication(global, local)
-            .cloned(),
-        global,
-        local,
-        &payload,
-    )
-    .unwrap();
+    let evidence = source
+        .memories
+        .reconciliation_publication_evidence(global, local, &payload)
+        .unwrap()
+        .unwrap();
     let mut expected = source.memories.records().last().unwrap().clone();
     expected.global_version = 0;
     expected.memory_version = 0;
@@ -191,9 +186,12 @@ fn envelope_terminal_canonical_evidence_matches_existing_terminal_facts() {
     container.sync().unwrap();
     drop(container);
     let mut owner = Cva::open(&path).unwrap();
-    let record = owner.memories.record_at_publication(global, 2).cloned();
     assert_eq!(
-        super::canonical_memory_publication(record, global, 2, &payload).unwrap(),
+        owner
+            .memories
+            .reconciliation_publication_evidence(global, 2, &payload)
+            .unwrap()
+            .unwrap(),
         crate::memory_codec::encode_tombstone(crate::memory_codec::MemoryTombstone {
             id,
             revision: 2
@@ -230,7 +228,7 @@ fn import_classifier_rejects_unknown_and_malformed_envelopes() {
                     .snapshot()
                     .unwrap(),
                 &owner.archive,
-                &owner.insomnia,
+                &crate::insomnia::import_readiness::ImportReadiness::new(&owner.insomnia),
                 boundary
             )
             .is_err()

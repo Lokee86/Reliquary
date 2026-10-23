@@ -367,7 +367,7 @@ fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate
                 .snapshot()
                 .unwrap(),
             &source.archive,
-            &source.insomnia,
+            &crate::insomnia::import_readiness::ImportReadiness::new(&source.insomnia),
             index,
         )
         .unwrap();
@@ -392,12 +392,16 @@ fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate
         let version = publication::version_at(source_object, &payload)
             .unwrap()
             .unwrap();
-        let expected_evidence = super::canonical_graph_publication(
-            &source.graph,
-            &source.history_source().unwrap(),
-            version,
-        )
-        .unwrap();
+        let expected_evidence = source
+            .graph
+            .normalized_import_evidence(
+                &source
+                    .history_source()
+                    .unwrap()
+                    .read_object(version.mutation)
+                    .unwrap(),
+            )
+            .unwrap();
         let mut found = None;
         for object in output.container.chunks().unwrap() {
             let bytes = output.container.read(object).unwrap();

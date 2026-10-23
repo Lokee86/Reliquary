@@ -1073,7 +1073,7 @@ fn import_interval_classifier_rejects_malformed_and_foreign_publication_envelope
                     .snapshot()
                     .unwrap(),
                 &cva.archive,
-                &cva.insomnia,
+                &crate::insomnia::import_readiness::ImportReadiness::new(&cva.insomnia),
                 boundary
             )
             .is_err(),

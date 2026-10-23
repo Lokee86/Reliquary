@@ -58,7 +58,7 @@ fn archive_envelope_interval_replays_reserved_time_and_normalized_evidence() {
             .snapshot()
             .unwrap(),
         &source.archive,
-        &source.insomnia,
+        &crate::insomnia::import_readiness::ImportReadiness::new(&source.insomnia),
         index,
     )
     .unwrap();

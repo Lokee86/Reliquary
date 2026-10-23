@@ -29,7 +29,13 @@ pub(super) fn replay(
     known: BTreeMap<String, CompletedEpoch>,
     epochs: BTreeMap<String, CompletedEpoch>,
     boundary: usize,
-) -> Result<(CvaReconcileResult, ReliquaryOwner), CvaReconcileError> {
+) -> Result<
+    (
+        CvaReconcileResult,
+        crate::owner_lifecycle::ReconstructedReliquary,
+    ),
+    CvaReconcileError,
+> {
     let mut output = copy_import_source(left_path, output_path)?;
     let created_output =
         crate::owner_lifecycle::import_epoch_transport::hold_created_output_identity(
@@ -106,7 +112,7 @@ pub(super) fn replay(
             || coordinates.graph_transactions != 0;
         crate::owner_lifecycle::import_epoch_transport::sync(&output.container)?;
         let expected_archive = output.archive;
-        let reopened = super::reconciliation_copy::finish_replay(
+        let (reopened, due) = super::reconciliation_copy::finish_replay_with_due(
             crate::owner_lifecycle::ReliquaryReplay::read(output.container)?,
         )?;
         if !expected_archive.activity_history_matches(&reopened.archive)
@@ -146,7 +152,7 @@ pub(super) fn replay(
                     || left.packed_vectors.stats().objects > 0
                     || left.memory_vectors.stats().objects > 0),
         };
-        Ok((result, reopened))
+        Ok((result, (reopened, due)))
     })();
     if replay_result.is_err() {
         crate::owner_lifecycle::import_epoch_transport::cleanup_created_output_after_failure(

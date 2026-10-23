@@ -11,6 +11,10 @@ pub(crate) struct ReconciliationRead<'a> {
     access: HistoryReadAccess<'a>,
     archive: &'a Archive,
     memories: &'a MemoryStore,
+    freshness: &'a crate::freshness_storage::FreshnessStore,
+    entities: &'a crate::entity_store::EntityStore,
+    relationships: &'a crate::relationship_store::RelationshipStore,
+    graph: &'a crate::graph_store::GraphStore,
 }
 
 pub(crate) struct ReconciliationEpochNormalizer {
@@ -30,12 +34,46 @@ impl<'a> ReconciliationRead<'a> {
         access: HistoryReadAccess<'a>,
         archive: &'a Archive,
         memories: &'a MemoryStore,
+        freshness: &'a crate::freshness_storage::FreshnessStore,
+        entities: &'a crate::entity_store::EntityStore,
+        relationships: &'a crate::relationship_store::RelationshipStore,
+        graph: &'a crate::graph_store::GraphStore,
     ) -> Self {
         Self {
             access,
             archive,
             memories,
+            freshness,
+            entities,
+            relationships,
+            graph,
         }
+    }
+
+    pub(crate) fn settlement(
+        &self,
+        id: &str,
+    ) -> Option<crate::freshness_storage::HistoricalImportFreshnessSettlement> {
+        self.freshness
+            .import_settlements()
+            .iter()
+            .find(|s| {
+                s.import_id
+                    .iter()
+                    .map(|b| format!("{b:02x}"))
+                    .collect::<String>()
+                    == id
+            })
+            .cloned()
+    }
+    pub(crate) fn event_entries(
+        &self,
+        requested: &std::collections::BTreeSet<String>,
+    ) -> Result<
+        std::collections::BTreeMap<String, crate::freshness_storage::FreshnessReplayEntry>,
+        String,
+    > {
+        self.freshness.requested_import_event_entries(requested)
     }
 
     /// Preserve the existing first full-source physical scan checkpoint.
@@ -74,9 +112,6 @@ impl<'a> ReconciliationRead<'a> {
         object: HistoryObject,
         payload: &[u8],
         resolution: Option<&crate::entity_resolution_codec::DecodedEntityResolution>,
-        entities: &crate::entity_store::EntityStore,
-        relationships: &crate::relationship_store::RelationshipStore,
-        graph: &crate::graph_store::GraphStore,
         normalizer: &mut ReconciliationEpochNormalizer,
     ) -> Result<ReconciliationFrameEvidence, crate::CvaReconcileError> {
         let mut result = ReconciliationFrameEvidence {
@@ -104,7 +139,8 @@ impl<'a> ReconciliationRead<'a> {
         if let Some((global, local)) =
             crate::entity_compact_codec::publication::coordinates(payload)?
         {
-            let publication = entities
+            let publication = self
+                .entities
                 .retained_publication_at(global, local)?
                 .ok_or(crate::EntityError::InvalidVersion)?;
             result
@@ -114,7 +150,8 @@ impl<'a> ReconciliationRead<'a> {
         if let Some((global, local)) =
             crate::relationship_compact_codec::publication::coordinates(payload)?
         {
-            let publication = relationships
+            let publication = self
+                .relationships
                 .retained_publication_at(global, local)?
                 .ok_or(crate::RelationshipError::InvalidVersion)?;
             result
@@ -128,7 +165,7 @@ impl<'a> ReconciliationRead<'a> {
                 .map_err(|error| crate::CvaReconcileError::Container(error.0))?;
             result
                 .owner_evidence
-                .push(graph.normalized_import_evidence(&bytes)?);
+                .push(self.graph.normalized_import_evidence(&bytes)?);
         }
         if let Some(mut snapshot) =
             crate::community_codec::decode_snapshot(payload).map_err(crate::CvaError::from)?

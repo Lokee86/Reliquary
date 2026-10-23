@@ -190,7 +190,7 @@ fn append_interval_and_check(cva: &mut Cva, payloads: &[&[u8]], accepted: bool) 
             .snapshot()
             .unwrap(),
         &cva.archive,
-        &cva.insomnia,
+        &crate::insomnia::import_readiness::ImportReadiness::new(&cva.insomnia),
         boundary,
     );
     assert_eq!(result.is_ok(), accepted, "interval result: {result:?}");

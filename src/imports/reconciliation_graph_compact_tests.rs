@@ -265,7 +265,7 @@ fn replay_interval_classifier_accepts_valid_compact_graph_and_fails_closed_on_ba
                     .snapshot()
                     .unwrap(),
                 &cva.archive,
-                &cva.insomnia,
+                &crate::insomnia::import_readiness::ImportReadiness::new(&cva.insomnia),
                 boundary
             )
             .is_ok(),
@@ -291,9 +291,8 @@ fn last_graph_evidence(path: &std::path::Path) -> (Vec<u8>, Vec<u8>) {
     let version = last.unwrap();
     let raw = owner.container.read(version.mutation).unwrap();
     (
-        raw,
-        super::canonical_graph_publication(&owner.graph, &owner.history_source().unwrap(), version)
-            .unwrap(),
+        raw.clone(),
+        owner.graph.normalized_import_evidence(&raw).unwrap(),
     )
 }
 

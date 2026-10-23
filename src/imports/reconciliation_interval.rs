@@ -412,8 +412,11 @@ pub(super) fn replay_frame(
         let chunk = *physical_objects(source)?
             .get(index)
             .ok_or_else(|| unsupported("Dream source physical frame is absent"))?;
-        if let Some(mut pass) =
-            source.history_read_access().snapshot().map_err(|e| CvaError::Container(e.0))?.materialized_dream_begin(&source.archive, &source.memories, chunk, payload)?
+        if let Some(mut pass) = source
+            .history_read_access()
+            .snapshot()
+            .map_err(|e| CvaError::Container(e.0))?
+            .materialized_dream_begin(&source.archive, &source.memories, chunk, payload)?
         {
             pass.turn = turn(source, output, pass.turn).map_err(CvaError::Freshness)?;
             pass.graph_version_before =

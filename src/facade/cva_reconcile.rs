@@ -69,8 +69,8 @@ impl Cva {
                 output_path,
                 comparison.clone(),
             )? {
-                let (result, owner) = reconciled;
-                let output = Cva::open_from_container(owner.container)?;
+                let (result, (owner, due)) = reconciled;
+                let output = Cva::from_reconstructed(owner, due);
                 return Ok((result, output));
             }
             reconcile_diverged(left_path, right_path, output_path, comparison)

@@ -88,6 +88,8 @@ pub(crate) mod dream_replay;
 #[path = "owner_lifecycle/reliquary.rs"]
 mod reliquary;
 pub(crate) use reliquary::{ReliquaryOwner, initialize_reliquary};
+/// Validated native owner and its already reconstructed, non-durable due projection.
+pub(crate) type ReconstructedReliquary = (ReliquaryOwner, crate::FreshnessDueDispatcher);
 
 #[path = "owner_lifecycle/freshness_replay.rs"]
 mod freshness_replay;

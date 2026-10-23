@@ -53,13 +53,11 @@ fn canonical_memory_evidence(cva: Cva) -> Vec<Vec<u8>> {
     memory_versions(&mut owner)
         .into_iter()
         .map(|(global, local, payload)| {
-            super::canonical_memory_publication(
-                owner.memories.record_at_publication(global, local).cloned(),
-                global,
-                local,
-                &payload,
-            )
-            .unwrap()
+            owner
+                .memories
+                .reconciliation_publication_evidence(global, local, &payload)
+                .unwrap()
+                .unwrap()
         })
         .collect()
 }
@@ -95,7 +93,7 @@ fn replay_interval_accepts_compact_memory_created_after_its_boundary() {
             .snapshot()
             .unwrap(),
         &cva.archive,
-        &cva.insomnia,
+        &crate::insomnia::import_readiness::ImportReadiness::new(&cva.insomnia),
         boundary,
     )
     .unwrap();
@@ -118,7 +116,7 @@ fn replay_interval_rejects_malformed_and_unknown_compact_memory_families() {
                     .snapshot()
                     .unwrap(),
                 &cva.archive,
-                &cva.insomnia,
+                &crate::insomnia::import_readiness::ImportReadiness::new(&cva.insomnia),
                 boundary
             )
             .is_err()
