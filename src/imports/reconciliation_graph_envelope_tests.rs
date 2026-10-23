@@ -1,8 +1,10 @@
 use super::*;
+#[path = "reconciliation_owner_fixture_tests.rs"]
+mod owner_fixture;
 use crate::graph_compact_codec::publication::{self, GraphPublication, GraphTransaction};
 use crate::graph_compact_contract::GraphOrdinalMutation;
 use crate::{
-    EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphRelationKind, GraphRelationOrigin,
+    Cva, EpisodeBoundary, EpisodeConfig, EpisodeOrigin, GraphRelationKind, GraphRelationOrigin,
     InsomniaPriority, SemanticGraphRelationKind, SemanticNodeRef,
 };
 use std::{fs, path::PathBuf};
@@ -148,7 +150,7 @@ fn append_native_graph_batch(cva: &mut Cva, rows: Vec<GraphOrdinalMutation>) {
 }
 
 fn graph_transaction_in_epoch(
-    cva: &mut Cva,
+    cva: &mut crate::owner_lifecycle::ReliquaryOwner,
     epoch: &super::CompletedEpoch,
 ) -> (
     bool,
@@ -166,7 +168,7 @@ fn graph_transaction_in_epoch(
             return (
                 single,
                 rows,
-                cva.transaction_time_ns(version.global_version),
+                cva.container.transaction_time_ns(version.global_version),
             );
         }
     }
@@ -282,8 +284,8 @@ fn partial_or_full_duplicate_completed_batch(existing_members: usize) {
     right.sync().unwrap();
     drop(right);
 
-    let mut source = Cva::open(&right_path).unwrap();
-    let source_epoch = super::inventory(&mut source).unwrap();
+    let mut source = owner_fixture::into_owner(Cva::open(&right_path).unwrap());
+    let source_epoch = super::inventory(&source).unwrap();
     let source_epoch = source_epoch.get(&import_id).unwrap();
     let source_evidence = source_epoch.owner_evidence.clone();
     let source_transaction = graph_transaction_in_epoch(&mut source, source_epoch);
@@ -313,14 +315,14 @@ fn partial_or_full_duplicate_completed_batch(existing_members: usize) {
     let before_left = fs::read(&left_path).unwrap();
     let before_right = fs::read(&right_path).unwrap();
     Cva::reconcile(&left_path, &right_path, &merged_path).unwrap();
-    let mut merged = Cva::open(&merged_path).unwrap();
+    let mut merged = owner_fixture::into_owner(Cva::open(&merged_path).unwrap());
     let graph_transactions = merged.graph.transaction_global_versions().len();
     assert_eq!(
         merged.graph.stats().active_relations,
         2,
         "both edges are effective"
     );
-    let merged_epoch = super::inventory(&mut merged).unwrap();
+    let merged_epoch = super::inventory(&merged).unwrap();
     let merged_epoch = merged_epoch.get(&import_id).unwrap();
     let merged_evidence = &merged_epoch.owner_evidence;
     assert!(
@@ -358,8 +360,8 @@ fn completed_native_graph_batch_fully_duplicate_preserves_authority_on_retry() {
 fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate_noop() {
     for mode in 0..3 {
         let (_scratch, path, target, index, payload, time, expected) = fixture(mode);
-        let mut source = Cva::open(&path).unwrap();
-        let mut output = Cva::open(&target).unwrap();
+        let mut source = owner_fixture::into_owner(Cva::open(&path).unwrap());
+        let mut output = owner_fixture::into_owner(Cva::open(&target).unwrap());
         super::validate_replay_interval(
             &crate::owner_lifecycle::HistoryReadAccess::new(&source.container)
                 .snapshot()
@@ -382,15 +384,20 @@ fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate
         .unwrap();
         assert_eq!(coordinates.graph_transactions, 1);
         assert_eq!(coordinates.graph_mutations, expected.len());
-        assert_eq!(output.graph_version(), 1);
-        assert_eq!(output.memory_graph_version(), 1);
+        assert_eq!(output.graph.graph_version(), 1);
+        assert_eq!(output.graph.memory_graph_version(), 1);
         let global = output.graph.transaction_global_versions()[0];
-        assert_eq!(output.transaction_time_ns(global), time);
+        assert_eq!(output.container.transaction_time_ns(global), time);
         let source_object = source.container.chunks().unwrap()[index];
         let version = publication::version_at(source_object, &payload)
             .unwrap()
             .unwrap();
-        let expected_evidence = super::canonical_graph_publication(&mut source, version).unwrap();
+        let expected_evidence = super::canonical_graph_publication(
+            &source.graph,
+            &source.history_source().unwrap(),
+            version,
+        )
+        .unwrap();
         let mut found = None;
         for object in output.container.chunks().unwrap() {
             let bytes = output.container.read(object).unwrap();
@@ -411,7 +418,7 @@ fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate
             output.graph.normalized_import_evidence(&bytes).unwrap(),
             expected_evidence
         );
-        output.sync().unwrap();
+        output.container.sync().unwrap();
         let before = fs::read(&target).unwrap();
         crate::imports::reconciliation_interval::replay_frame(
             &mut source,
@@ -421,7 +428,7 @@ fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate
             &mut coordinates,
         )
         .unwrap();
-        output.sync().unwrap();
+        output.container.sync().unwrap();
         assert_eq!(fs::read(&target).unwrap(), before);
         assert_eq!(coordinates.graph_transactions, 1);
         assert_eq!(coordinates.duplicate_graph_mutations, expected.len());
@@ -431,8 +438,8 @@ fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate
 #[test]
 fn admitted_mixed_origin_graph_interval_rejects_replay_without_destination_mutation() {
     let (_scratch, path, target, index, payload, _, _) = fixture(3);
-    let mut source = Cva::open(&path).unwrap();
-    let mut output = Cva::open(&target).unwrap();
+    let mut source = owner_fixture::into_owner(Cva::open(&path).unwrap());
+    let mut output = owner_fixture::into_owner(Cva::open(&target).unwrap());
     let before = fs::read(&target).unwrap();
     let mut coordinates =
         crate::imports::reconciliation_interval::Coordinates::shared(&mut source, index).unwrap();
@@ -446,7 +453,7 @@ fn admitted_mixed_origin_graph_interval_rejects_replay_without_destination_mutat
         )
         .is_err()
     );
-    output.sync().unwrap();
-    assert_eq!(output.graph_version(), 0);
+    output.container.sync().unwrap();
+    assert_eq!(output.graph.graph_version(), 0);
     assert_eq!(fs::read(&target).unwrap(), before);
 }

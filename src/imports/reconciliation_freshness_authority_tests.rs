@@ -1,4 +1,6 @@
 use super::*;
+#[path = "reconciliation_owner_fixture_tests.rs"]
+mod owner_fixture;
 use crate::freshness_storage::{
     AcceptedImportEventEvidence, FreshnessEventProvenance, FreshnessReplayEntry,
     HistoricalImportFreshnessSettlement, ImportSemanticScope,
@@ -935,8 +937,8 @@ fn completed_scope_inventory(
     cva.sync().unwrap();
     drop(cva);
 
-    let mut reopened = Cva::open(&path).unwrap();
-    let epochs = super::inventory(&mut reopened).unwrap();
+    let mut reopened = owner_fixture::into_owner(Cva::open(&path).unwrap());
+    let epochs = super::inventory(&reopened).unwrap();
     let epoch = epochs.get(&start.import_id).unwrap();
     if let Some(expected) = envelope_evidence {
         assert!(
@@ -990,7 +992,8 @@ fn completed_scope_inventory(
             "Relationship create/delta/terminal envelopes"
         );
         let descriptor = reopened
-            .relationship_retention_descriptor(crate::RelationshipId([0x74; 32]))
+            .relationships
+            .retention_descriptor(crate::RelationshipId([0x74; 32]))
             .unwrap();
         assert_eq!(descriptor.tombstone_revision, 3);
         assert_eq!(descriptor.tombstone_relationship_version, 3);

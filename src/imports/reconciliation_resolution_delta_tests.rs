@@ -1,4 +1,7 @@
 use super::*;
+#[path = "reconciliation_owner_fixture_tests.rs"]
+mod owner_fixture;
+use crate::Cva;
 use crate::{EntityId, EntityResolutionReason, MemoryEntityResolutionStatus};
 
 #[test]
@@ -61,6 +64,8 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
     let payload = source.container.read(chunks[index]).unwrap();
     assert!(crate::entity_resolution_codec::delta::is_current(&payload));
     let before = std::fs::read(&source_path).unwrap();
+    let mut source = owner_fixture::into_owner(source);
+    let mut target = owner_fixture::into_owner(target);
     let mut coordinates =
         crate::imports::reconciliation_interval::Coordinates::shared(&mut source, index).unwrap();
     crate::imports::reconciliation_interval::replay_frame(
@@ -71,7 +76,14 @@ fn entity_resolution_delta_interval_uses_source_postimage_and_destination_eviden
         &mut coordinates,
     )
     .unwrap();
-    assert_eq!(target.entity_resolution(key), Some(&expected));
+    assert_eq!(
+        target
+            .entity_resolutions
+            .records()
+            .into_iter()
+            .find(|record| record.key == key),
+        Some(expected.clone())
+    );
     assert_eq!(std::fs::read(&source_path).unwrap(), before);
     let change = crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
         &mut source.container,

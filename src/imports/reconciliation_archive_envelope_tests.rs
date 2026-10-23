@@ -1,4 +1,7 @@
 use super::*;
+#[path = "reconciliation_owner_fixture_tests.rs"]
+mod owner_fixture;
+use crate::Cva;
 use crate::archive_codec::{
     ArchiveRecord,
     publication::{self, ArchivePublication},
@@ -59,6 +62,8 @@ fn archive_envelope_interval_replays_reserved_time_and_normalized_evidence() {
         index,
     )
     .unwrap();
+    let mut source = owner_fixture::into_owner(source);
+    let mut target = owner_fixture::into_owner(target);
     let mut coordinates =
         crate::imports::reconciliation_interval::Coordinates::shared(&mut source, index).unwrap();
     crate::imports::reconciliation_interval::replay_frame(
@@ -71,7 +76,7 @@ fn archive_envelope_interval_replays_reserved_time_and_normalized_evidence() {
     .unwrap();
     let version = *target.archive.record_version(2).unwrap();
     assert_eq!(
-        target.transaction_time_ns(version.global_version),
+        target.container.transaction_time_ns(version.global_version),
         Some(-123)
     );
     assert_eq!(

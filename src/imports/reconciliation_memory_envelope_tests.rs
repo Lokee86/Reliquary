@@ -1,4 +1,6 @@
 use super::*;
+#[path = "reconciliation_owner_fixture_tests.rs"]
+mod owner_fixture;
 use crate::memory_compact_codec::publication::{self, MemoryPublication};
 use crate::memory_compact_contract::MemoryDelta;
 use crate::{Cva, MemoryId};
@@ -85,8 +87,8 @@ fn envelope_range_and_import_interval_replay_one_revision_with_original_time() {
     let id = base(&source);
     fs::copy(&source, &target).unwrap();
     let (index, payload) = append_delta(&source, id);
-    let mut source = Cva::open(&source).unwrap();
-    let mut target = Cva::open(&target).unwrap();
+    let mut source = owner_fixture::into_owner(Cva::open(&source).unwrap());
+    let mut target = owner_fixture::into_owner(Cva::open(&target).unwrap());
     super::validate_replay_interval(
         &crate::owner_lifecycle::HistoryReadAccess::new(&source.container)
             .snapshot()
@@ -108,7 +110,10 @@ fn envelope_range_and_import_interval_replay_one_revision_with_original_time() {
     .unwrap();
     assert_eq!(coordinates.memory_revisions, 1);
     assert_eq!(coordinates.duplicate_memory_revisions, 0);
-    let revision = target.memory_revision(id, 2).unwrap();
+    let revision = target
+        .memories
+        .memory_revision(&mut target.container, id, 2)
+        .unwrap();
     assert_eq!(revision.scope, "personal");
     assert_eq!(
         target
@@ -117,8 +122,16 @@ fn envelope_range_and_import_interval_replay_one_revision_with_original_time() {
         Some(-123)
     );
     let (global, local) = publication::coordinates(&payload).unwrap().unwrap();
-    let evidence =
-        super::canonical_memory_publication(&mut source, global, local, &payload).unwrap();
+    let evidence = super::canonical_memory_publication(
+        source
+            .memories
+            .record_at_publication(global, local)
+            .cloned(),
+        global,
+        local,
+        &payload,
+    )
+    .unwrap();
     let mut expected = source.memories.records().last().unwrap().clone();
     expected.global_version = 0;
     expected.memory_version = 0;
@@ -178,8 +191,9 @@ fn envelope_terminal_canonical_evidence_matches_existing_terminal_facts() {
     container.sync().unwrap();
     drop(container);
     let mut owner = Cva::open(&path).unwrap();
+    let record = owner.memories.record_at_publication(global, 2).cloned();
     assert_eq!(
-        super::canonical_memory_publication(&mut owner, global, 2, &payload).unwrap(),
+        super::canonical_memory_publication(record, global, 2, &payload).unwrap(),
         crate::memory_codec::encode_tombstone(crate::memory_codec::MemoryTombstone {
             id,
             revision: 2

@@ -1,4 +1,6 @@
 use super::*;
+#[path = "reconciliation_owner_fixture_tests.rs"]
+mod owner_fixture;
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
 use crate::graph_codec::{GraphMutationPayload, GraphVersionPayload, encode_version};
 use crate::graph_compact_codec::{encode_batch, encode_mutation};
@@ -202,6 +204,8 @@ fn retained_compact_graph_interval_maps_source_local_graph_cut_to_destination_cu
     append_compact(&mut destination, 3, x, y);
     let destination_end = destination.container.chunks().unwrap().len();
 
+    let mut source = owner_fixture::into_owner(source);
+    let mut destination = owner_fixture::into_owner(destination);
     let mut coordinates = Coordinates::shared(&mut source, source_boundary).unwrap();
     coordinates
         .retained_epoch(
@@ -272,7 +276,7 @@ fn replay_interval_classifier_accepts_valid_compact_graph_and_fails_closed_on_ba
 }
 
 fn last_graph_evidence(path: &std::path::Path) -> (Vec<u8>, Vec<u8>) {
-    let mut owner = Cva::open(path).unwrap();
+    let mut owner = owner_fixture::into_owner(Cva::open(path).unwrap());
     let mut last = None;
     for object in owner.container.chunks().unwrap() {
         if let Some(version) = crate::graph_compact_codec::publication::version_at(
@@ -288,7 +292,8 @@ fn last_graph_evidence(path: &std::path::Path) -> (Vec<u8>, Vec<u8>) {
     let raw = owner.container.read(version.mutation).unwrap();
     (
         raw,
-        super::canonical_graph_publication(&mut owner, version).unwrap(),
+        super::canonical_graph_publication(&owner.graph, &owner.history_source().unwrap(), version)
+            .unwrap(),
     )
 }
 

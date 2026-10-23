@@ -1,4 +1,6 @@
 use super::*;
+#[path = "reconciliation_owner_fixture_tests.rs"]
+mod owner_fixture;
 use crate::{Cva, MemoryDraft, MemoryId};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -32,10 +34,10 @@ fn downgrade_header_to_v1(path: &Path) {
     fs::write(path, bytes).unwrap();
 }
 
-fn memory_versions(cva: &mut Cva) -> Vec<(u64, u64, Vec<u8>)> {
+fn memory_versions(owner: &mut crate::owner_lifecycle::ReliquaryOwner) -> Vec<(u64, u64, Vec<u8>)> {
     let mut versions = Vec::new();
-    for chunk in cva.container.chunks().unwrap() {
-        let payload = cva.container.read(chunk).unwrap();
+    for chunk in owner.container.chunks().unwrap() {
+        let payload = owner.container.read(chunk).unwrap();
         if let Some((global, local)) =
             crate::memory_compact_codec::publication::coordinates(&payload).unwrap()
         {
@@ -46,11 +48,18 @@ fn memory_versions(cva: &mut Cva) -> Vec<(u64, u64, Vec<u8>)> {
     versions
 }
 
-fn canonical_memory_evidence(cva: &mut Cva) -> Vec<Vec<u8>> {
-    memory_versions(cva)
+fn canonical_memory_evidence(cva: Cva) -> Vec<Vec<u8>> {
+    let mut owner = owner_fixture::into_owner(cva);
+    memory_versions(&mut owner)
         .into_iter()
         .map(|(global, local, payload)| {
-            super::canonical_memory_publication(cva, global, local, &payload).unwrap()
+            super::canonical_memory_publication(
+                owner.memories.record_at_publication(global, local).cloned(),
+                global,
+                local,
+                &payload,
+            )
+            .unwrap()
         })
         .collect()
 }
