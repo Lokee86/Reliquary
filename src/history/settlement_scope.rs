@@ -121,3 +121,55 @@ pub(crate) fn validate_historical_settlement(
     }
     Ok(())
 }
+
+/// Immutable owners needed for one retained historical settlement proof.
+pub(crate) struct HistoricalSettlementReadOwners<'a> {
+    archive: &'a crate::Archive,
+    memories: &'a crate::memory_store::MemoryStore,
+    graph: &'a crate::graph_store::GraphStore,
+    dream: &'a crate::freshness_dream_journal::DreamFreshnessJournal,
+    epochs: &'a crate::imports::ImportEpochStore,
+    freshness: &'a crate::freshness_storage::FreshnessStore,
+}
+impl<'a> HistoricalSettlementReadOwners<'a> {
+    pub(crate) fn new(
+        archive: &'a crate::Archive,
+        memories: &'a crate::memory_store::MemoryStore,
+        graph: &'a crate::graph_store::GraphStore,
+        dream: &'a crate::freshness_dream_journal::DreamFreshnessJournal,
+        epochs: &'a crate::imports::ImportEpochStore,
+        freshness: &'a crate::freshness_storage::FreshnessStore,
+    ) -> Self {
+        Self {
+            archive,
+            memories,
+            graph,
+            dream,
+            epochs,
+            freshness,
+        }
+    }
+    pub(crate) fn epoch_scope(
+        &self,
+        source: &crate::owner_lifecycle::HistoryReadAccess<'_>,
+        start: crate::imports::ImportStart,
+    ) -> Result<crate::history::ImportEpochScope, crate::owner_lifecycle::OwnerError> {
+        crate::history::read_import_epoch_scope(source, self.archive, self.memories, start)
+    }
+    pub(crate) fn validate(
+        &self,
+        source: &crate::owner_lifecycle::HistoryReadAccess<'_>,
+        settlement: &crate::freshness_storage::HistoricalImportFreshnessSettlement,
+    ) -> Result<(), crate::owner_lifecycle::OwnerError> {
+        validate_historical_settlement(
+            source,
+            self.archive,
+            self.memories,
+            self.graph,
+            self.freshness,
+            self.dream,
+            self.epochs,
+            settlement,
+        )
+    }
+}

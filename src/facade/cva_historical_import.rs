@@ -39,12 +39,6 @@ fn fail(message: &str) -> CvaError {
     CvaError::Freshness(message.into())
 }
 
-impl From<crate::history::manifest_encoding::HistoryProofError> for CvaError {
-    fn from(error: crate::history::manifest_encoding::HistoryProofError) -> Self {
-        Self::Freshness(error.to_string())
-    }
-}
-
 fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
     crate::owner_lifecycle::physical_fingerprint::file_digest(path)
 }
@@ -129,46 +123,40 @@ impl Cva {
         &mut self,
         prepared: &PreparedHistoricalImport,
     ) -> Result<bool, CvaError> {
-        let settlement = &prepared.settlement;
-        if let Some(committed) = crate::imports::historical_freeze::admit_prepared(
-            self.owner_uuid(),
-            prepared,
-            self.freshness.import_settlement(settlement.import_id),
-        )? {
-            return Ok(committed);
-        }
-        crate::imports::historical_freeze::validate_owner_cut(
-            prepared,
-            crate::imports::historical_freeze::HistoricalOwnerCut {
-                owner: settlement.owner,
-                activity: self.rel_turn_count(),
-                global: self.latest_global_version(),
-                archive: self.archive_version(),
-                graph: self.graph_version(),
-                memory_graph: self.memory_graph_version(),
-            },
-        )?;
-        crate::imports::historical_freeze::validate_physical_freeze(
-            prepared,
-            &crate::owner_lifecycle::HistoryReadAccess::new(&self.container),
-        )?;
-        if prepared.epoch {
-            let current = self.import_epoch_scope()?;
-            crate::imports::historical_freeze::validate_start_binding(
-                prepared,
-                current.start_digest,
-            )?;
-            input::validate_settlement(self, settlement)?;
-        }
-        let (staged, due) = crate::owner_lifecycle::historical_settlement::publish_settlement(
-            &mut self.container,
+        let cut = crate::imports::historical_freeze::HistoricalOwnerCut {
+            owner: prepared.settlement.owner,
+            activity: self.rel_turn_count(),
+            global: self.latest_global_version(),
+            archive: self.archive_version(),
+            graph: self.graph_version(),
+            memory_graph: self.memory_graph_version(),
+        };
+        let open_epoch = self.open_import_epoch();
+        let owners = crate::history::HistoricalSettlementReadOwners::new(
+            &self.archive,
+            &self.memories,
+            &self.graph,
+            &self.dream_freshness,
+            &self.import_epochs,
             &self.freshness,
-            settlement,
-            prepared.source_bytes,
-            prepared.epoch,
-        )?;
-        self.freshness = staged;
-        self.freshness_due = due;
+        );
+        let mut writer =
+            crate::owner_lifecycle::historical_settlement::HistoricalSettlementWriteAccess::new(
+                &mut self.container,
+                &self.freshness,
+            );
+        let Some(publication) = crate::imports::historical_commit::commit(
+            &mut writer,
+            &owners,
+            prepared,
+            cut,
+            open_epoch,
+        )?
+        else {
+            return Ok(false);
+        };
+        drop(writer);
+        self.freshness_due = publication.install(&mut self.freshness);
         self.freshness_notifications.clear();
         Ok(true)
     }

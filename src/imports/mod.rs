@@ -42,3 +42,5 @@ pub(crate) mod historical_reconstruction_model;
 pub(crate) mod historical_settlement_plan;
 
 pub(crate) mod historical_freeze;
+
+pub(crate) mod historical_commit;

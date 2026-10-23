@@ -141,3 +141,9 @@ impl From<crate::interaction_stream_error::InteractionStreamError> for OwnerErro
         }
     }
 }
+
+impl From<crate::history::manifest_encoding::HistoryProofError> for OwnerError {
+    fn from(error: crate::history::manifest_encoding::HistoryProofError) -> Self {
+        Self::Freshness(error.to_string())
+    }
+}

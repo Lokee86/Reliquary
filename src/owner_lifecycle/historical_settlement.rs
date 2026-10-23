@@ -43,3 +43,51 @@ fn publish_validated(
     append_result?;
     publication.acknowledge().map_err(map_error)
 }
+
+/// Exclusive physical authority for the existing Freshness settlement publisher.
+/// It exposes only immutable evidence and one validated domain publication.
+pub(crate) struct HistoricalSettlementWriteAccess<'a> {
+    container: &'a mut Container,
+    freshness: &'a FreshnessStore,
+}
+impl<'a> HistoricalSettlementWriteAccess<'a> {
+    pub(crate) fn new(container: &'a mut Container, freshness: &'a FreshnessStore) -> Self {
+        Self {
+            container,
+            freshness,
+        }
+    }
+    pub(crate) fn history_access(&self) -> super::HistoryReadAccess<'_> {
+        super::HistoryReadAccess::new(self.container)
+    }
+    pub(crate) fn accepted(&self, id: [u8; 32]) -> Option<&HistoricalImportFreshnessSettlement> {
+        self.freshness.import_settlement(id)
+    }
+    pub(crate) fn publish(
+        &mut self,
+        settlement: &HistoricalImportFreshnessSettlement,
+        source_bytes: u64,
+        epoch: bool,
+    ) -> Result<HistoricalSettlementPublicationResult, OwnerError> {
+        let (staged, due) = publish_settlement(
+            self.container,
+            self.freshness,
+            settlement,
+            source_bytes,
+            epoch,
+        )?;
+        Ok(HistoricalSettlementPublicationResult { staged, due })
+    }
+}
+
+/// Accepted publisher output; installation stays after successful sync and acknowledgement.
+pub(crate) struct HistoricalSettlementPublicationResult {
+    staged: FreshnessStore,
+    due: FreshnessDueDispatcher,
+}
+impl HistoricalSettlementPublicationResult {
+    pub(crate) fn install(self, freshness: &mut FreshnessStore) -> FreshnessDueDispatcher {
+        *freshness = self.staged;
+        self.due
+    }
+}

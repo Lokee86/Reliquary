@@ -1872,6 +1872,11 @@
       "path": "src/imports/historical_reconstruction_model.rs",
       "component": "import",
       "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_commit.rs",
+      "component": "import",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -2954,6 +2959,24 @@
       "owner": "freshness-store",
       "symbol": "FreshnessReplayEntry",
       "reason": "Immutable accepted historical scope, generation or replay evidence value used by Import planning; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "history",
+      "symbol": "HistoryProofError",
+      "reason": "Immutable canonical historical proof encoding failure mapped at the existing owner error boundary; no History capability, writer or callback."
+    },
+    {
+      "consumer": "import",
+      "owner": "vector-store",
+      "symbol": "CompatibilityProfileId",
+      "reason": "Immutable accepted vector profile or generation identity reported by the historical embedding operation; no vector store or writer authority."
+    },
+    {
+      "consumer": "import",
+      "owner": "vector-store",
+      "symbol": "VectorGenerationId",
+      "reason": "Immutable accepted vector profile or generation identity reported by the historical embedding operation; no vector store or writer authority."
     }
   ],
   "forbidden_symbols": [

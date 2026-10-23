@@ -45,10 +45,7 @@ impl<'a> DreamEvidenceReadAccess<'a> {
         crate::history::publication_birth_cohort(&source, member)
     }
 
-    pub(crate) fn committed_evidence(
-        &self,
-        pass: &crate::InitialDreamPass,
-    ) -> DreamEvidenceReadOutcome {
+    pub(crate) fn read_evidence(&self, pass: &crate::InitialDreamPass) -> DreamEvidenceReadOutcome {
         #[cfg(feature = "freshness-performance-trace")]
         let started = std::time::Instant::now();
         match self.history.snapshot() {

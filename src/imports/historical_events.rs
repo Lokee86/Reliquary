@@ -243,7 +243,7 @@ fn build_inner(
             proofs.insert(id, plan::unsupported_first_cycle());
             continue;
         };
-        let evidence_outcome = access.dream.committed_evidence(pass);
+        let evidence_outcome = access.dream.read_evidence(pass);
         #[cfg(feature = "freshness-performance-trace")]
         if evidence_outcome.result.is_ok() {
             traces.push(evidence_outcome.trace);
