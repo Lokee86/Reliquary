@@ -75,9 +75,26 @@ pub(crate) fn reconcile_import_epochs(
             }
         }
     }
-    let boundary = physical_boundary(&mut right, comparison.common_chunk_count)?;
-    validate_replay_interval(&mut right, boundary)?;
-    let left_boundary = physical_boundary(&mut left, comparison.common_chunk_count)?;
+    let boundary = if comparison.common_chunk_count == 0 {
+        0
+    } else {
+        let source = crate::owner_lifecycle::HistoryReadAccess::new(&right.container)
+            .snapshot()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+        physical_boundary(&source, comparison.common_chunk_count)?
+    };
+    let replay_source = crate::owner_lifecycle::HistoryReadAccess::new(&right.container)
+        .snapshot()
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+    validate_replay_interval(&replay_source, &right.archive, &right.insomnia, boundary)?;
+    let left_boundary = if comparison.common_chunk_count == 0 {
+        0
+    } else {
+        let source = crate::owner_lifecycle::HistoryReadAccess::new(&left.container)
+            .snapshot()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+        physical_boundary(&source, comparison.common_chunk_count)?
+    };
     let left_graph =
         super::reconciliation_interval::read_graph_range(&left, left_boundary, usize::MAX)?;
     let right_graph =
@@ -354,12 +371,34 @@ fn normalize_event_coordinates(event: &mut crate::freshness_storage::FreshnessRe
     }
 }
 
-fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconcileError> {
+fn validate_replay_interval(
+    source: &crate::owner_lifecycle::HistorySource<'_>,
+    archive: &crate::Archive,
+    insomnia: &crate::insomnia::store::InsomniaStore,
+    from: usize,
+) -> Result<(), CvaReconcileError> {
     // Inspect the actual divergent payloads, not just current owner counts:
     // terminal/deleted derived state is still retained authority.
-    let chunks = cva.container.chunks()?;
+    // Preserve Container::chunks()' full-source framing preflight before any
+    // payload-specific refusal: first collect every physical object, then read
+    // and classify only the requested interval.
+    let chunks = {
+        let mut cursor = source
+            .cursor()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+        let mut chunks = Vec::new();
+        while let Some(frame) = cursor
+            .next_frame()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?
+        {
+            chunks.push(frame.object);
+        }
+        chunks
+    };
     for chunk in chunks.into_iter().skip(from) {
-        let payload = cva.container.read(chunk)?;
+        let payload = source
+            .read_object(chunk)
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
         if payload.starts_with(b"CVAECR")
             || payload.starts_with(b"CVAEDL")
             || (payload.starts_with(b"CVAETM") && !payload.starts_with(b"CVAETM02"))
@@ -441,9 +480,9 @@ fn validate_replay_interval(cva: &mut Cva, from: usize) -> Result<(), CvaReconci
         }
     }
     // Dropping an outstanding queue/lease/failure would lose owner authority.
-    for episode in cva.archive.episodes.iter() {
-        if cva
-            .insomnia_work(episode.id)
+    for episode in archive.episodes.iter() {
+        if insomnia
+            .work(episode.id)
             .is_some_and(|work| work.state != crate::InsomniaWorkState::Complete)
         {
             return Err(unsupported(
@@ -553,13 +592,33 @@ fn same_authority(a: &CompletedEpoch, b: &CompletedEpoch) -> bool {
             == b.settlement.scope_identity().unwrap().born_memories
 }
 
-fn physical_boundary(cva: &mut Cva, common: usize) -> Result<usize, CvaReconcileError> {
+fn physical_boundary(
+    source: &crate::owner_lifecycle::HistorySource<'_>,
+    common: usize,
+) -> Result<usize, CvaReconcileError> {
     if common == 0 {
         return Ok(0);
     }
     let mut semantic = 0;
-    for (index, chunk) in cva.container.chunks()?.into_iter().enumerate() {
-        let payload = cva.container.read(chunk)?;
+    // Match the old chunks()+read() checkpoint: validate physical framing for
+    // the complete source before classifying an earlier common boundary.
+    let chunks = {
+        let mut cursor = source
+            .cursor()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+        let mut chunks = Vec::new();
+        while let Some(frame) = cursor
+            .next_frame()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?
+        {
+            chunks.push(frame.object);
+        }
+        chunks
+    };
+    for (index, chunk) in chunks.into_iter().enumerate() {
+        let payload = source
+            .read_object(chunk)
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
         if !crate::conversation_compaction_codec::is_compaction_payload(&payload) {
             semantic += 1;
             if semantic == common {
