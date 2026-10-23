@@ -791,9 +791,9 @@ def main() -> int:
             "status": "resolved-bounded-deferred-ownership",
             "reason": "Strict source-import SCCs and deterministic dispositions are reproducible from the retained source resolver. The 82 current cycle-forming rows are exactly the bounded Phase 6 perception facade-import closure; Arcana evidence is bounded to the induced source-file graph and does not claim symbol-level completeness.",
         },
-        "C03": "Pending comprehensive mapped-file guard application and review of immutable-value exception use.",
-        "C04": "Pending component-correct History/Import and Maintenance/Import witness disposition.",
-        "phase4_implementation_gate": "blocked until C01-C04 are explicitly closed",
+        "C03": "accepted-bounded-owner-physical-guards; see dependency-convergence-phase1-3-owner-closure-2026-10-23.json",
+        "C04": "accepted-bounded-history-import-maintenance-guards; see dependency-convergence-phase1-3-owner-closure-2026-10-23.json",
+        "phase4_implementation_gate": "bounded source-contract prerequisites recorded; complete symbol-level graph proof not claimed",
     }
     summary["open_obligations"] = [
         "Source-file assignment does not prove inline cfg or symbol ownership unless mapping evidence explicitly says so.",
