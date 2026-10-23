@@ -1,0 +1,164 @@
+{
+  "status": "accepted_current_only_corpus_promoted_old_codec_retired",
+  "format": "CVAFRS07",
+  "runtime_format_branches": 1,
+  "fixtures": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "original_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "converted_sha256": "a02c8696db754c53a73c896133b06df9828a32923aee610c9f918a16698f76d0",
+      "original_bytes": 30742210,
+      "converted_bytes": 29222523,
+      "source_unchanged": true,
+      "original_settlement_sha256": "66352984e788509818cf8ed5e419ba73922359d263335889b9dc5bac80cc60d6",
+      "new_settlement_sha256": "bb6d93a98d262cc2df725a71e21ddfadb5958b9ec7d8686b303587b870604a25",
+      "original_settlement_bytes": 1830473,
+      "new_settlement_bytes": 310786,
+      "preserved_prefix_bytes": 28911681,
+      "preserved_tail_bytes": 48,
+      "preserved_tail_frames": 1
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "original_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "converted_sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "original_bytes": 675300,
+      "converted_bytes": 675300,
+      "source_unchanged": true,
+      "physical_bytes_unchanged": true
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "original_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "converted_sha256": "76c15780bd7cfe7e3083dbff5684e236a8fd2090fb0a82ec3d66529d14307d87",
+      "original_bytes": 76542131,
+      "converted_bytes": 72905208,
+      "source_unchanged": true,
+      "original_settlement_sha256": "047ce66d41d989983aa14aa6fd80117e6ab285d489465e40ddbbf6fb1e895ccf",
+      "new_settlement_sha256": "e2bd4d3e94680da40f3320f9a3c35687eb9d255e92fa0c6fb74bb314e1e5b14e",
+      "original_settlement_bytes": 4330845,
+      "new_settlement_bytes": 693922,
+      "preserved_prefix_bytes": 72211134,
+      "preserved_tail_bytes": 144,
+      "preserved_tail_frames": 3
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "original_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "converted_sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "original_bytes": 1507220,
+      "converted_bytes": 1507220,
+      "source_unchanged": true,
+      "physical_bytes_unchanged": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "original_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "converted_sha256": "cbc38d055936fc5702a17c4d569557d8c35e8887d1946c5562ba419038de6ee3",
+      "original_bytes": 18315280,
+      "converted_bytes": 17174285,
+      "source_unchanged": true,
+      "original_settlement_sha256": "7e6adb0e43ea05376129b94db0ecb785047df415f8b7b02c4c26d9846695f53c",
+      "new_settlement_sha256": "3a0084e06a6dfedc45f400b25373db827618aad5ba6f02016abf24cc4c9dd598",
+      "original_settlement_bytes": 1254399,
+      "new_settlement_bytes": 113404,
+      "preserved_prefix_bytes": 17060825,
+      "preserved_tail_bytes": 48,
+      "preserved_tail_frames": 1
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "original_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "converted_sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "original_bytes": 3180063,
+      "converted_bytes": 3180063,
+      "source_unchanged": true,
+      "physical_bytes_unchanged": true
+    }
+  ],
+  "runtime_source_commit": "c6010fd",
+  "fixture_before_commit": "2b17004",
+  "semantic_oracle": {
+    "passed": true,
+    "test_count": 1,
+    "fixture_count": 6,
+    "semantic_mismatches": 0,
+    "seconds": 1595.17,
+    "inspection_preserved_bytes_and_mtime": true,
+    "feature": "history-oracle-fixtures",
+    "log_sha256": "9880567afbf0ce0547099ca44ba3a0b455c15f55a29f1593f02284b33bee4b14",
+    "binary_sha256": "aa08e0b47e600a8f5fe3622205351d369fb4f94a002d6b875d146c4df8514d13"
+  },
+  "metadata_updates": [
+    {
+      "path": "chatgpt-first14d/AUTHORITATIVE.txt",
+      "before_sha256": "560f8c5366049cf64738998095d9454f790f44fd62352b6d8cda0b67b43d3b8a",
+      "after_sha256": "4d4578f25d350230457fad4c04662c0cdc0829c73abaa7d74d5e9ec200c32748"
+    },
+    {
+      "path": "chatgpt-first14d/SHA256SUMS.txt",
+      "before_sha256": "19e4a591bb0128c1153638ee2e9e2b1f00a0ff7213290f9cb31233b134e14a53",
+      "after_sha256": "3a8793352c5a5a0b98a4cd7462b43fe006dcc9752a0e8f5c11f94deb9293ad2c"
+    },
+    {
+      "path": "chatgpt-first28d/AUTHORITATIVE.txt",
+      "before_sha256": "04e91e199fb40a5727d76ff3dcf0878e78fa0deaf15662b8c2fc2e87bec948f0",
+      "after_sha256": "d201e3d0506c28aa9bad431f4f1cccc74559a286e622d7edf7ea05b6eecfadf1"
+    },
+    {
+      "path": "chatgpt-first28d/SHA256SUMS.txt",
+      "before_sha256": "46382d326a8d3c62a516a0a3eec86168782644f86a2ea33e24f7b174cc2a03a4",
+      "after_sha256": "777954a194e638d79eb79fb965cacd248ab3cd80226c39fb620916410dfeb31b"
+    },
+    {
+      "path": "rhelm-david-r-ellis-pre-relationship/AUTHORITATIVE.txt",
+      "before_sha256": "675cc319704cb5d9acec01953cff395cd509ae6578ddf4876106a854a51a3eea",
+      "after_sha256": "210d2e6ec82801bda5afc07a5c4885aebdcf694e4d80d6154a115eba34ae7bd6"
+    },
+    {
+      "path": "rhelm-david-r-ellis-pre-relationship/SHA256SUMS.txt",
+      "before_sha256": "45795cf7ffa404cac0df050f5948fb65d1b34286a67461a05c0650f24dc4004c",
+      "after_sha256": "1131047fdb4f703771e53cef783863d73167c9a2b7be10d83716be26b3261187"
+    }
+  ],
+  "raw_byte_accounting": {
+    "original_all_six_bytes": 130962204,
+    "converted_all_six_bytes": 124664599,
+    "saved_bytes": 6297605,
+    "whole_file_reduction_percent": 4.808719468404792,
+    "original_settlement_payload_bytes": 7415717,
+    "new_settlement_payload_bytes": 1118112,
+    "settlement_reduction_percent": 84.92240197407749,
+    "compression_used": false,
+    "phy_files_unchanged": 3
+  },
+  "fixture_promotion_commit": "1ec88cc896531db99c17b672bfdedc22193a5474",
+  "retired_temporary_source_paths": [
+    "src/imports/owner_historical_audit_tests.rs",
+    "scripts/measure_phase3_settlement.py",
+    "scripts/measure_phase3_causal_basis.py",
+    "scripts/prototype_phase3_settlement_dictionary.py",
+    "scripts/prototype_phase3_settlement_causal.py",
+    ".verification-tmp/phase3_convert_current.py",
+    ".verification-tmp/phase3_s3_causal_roundtrip.py"
+  ],
+  "old_test_codec_retirement_commit": "acac280",
+  "wire_interning_and_prefix_delta_encoding": true,
+  "final_verification": {
+    "promoted_boundary": {
+      "passed": 1,
+      "failed": 0,
+      "files_reopened": 6,
+      "seconds": 32.35,
+      "log": ".verification-tmp/phase3-c3-promoted-boundary.log"
+    },
+    "codec_adversarial": {
+      "passed": 15,
+      "failed": 0,
+      "log": ".verification-tmp/phase3-c3-retired-codec-adversarial-rerun.log"
+    },
+    "production_owner_guard": "passed",
+    "history_read_only_guard": "passed",
+    "writer_inventory": "passed"
+  }
+}

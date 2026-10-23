@@ -150,135 +150,6 @@ fn encoder_refuses_a_basis_that_changes_accepted_output_or_record_population() {
     assert!(encode(&value, &basis).is_err());
 }
 
-/// Temporary C3 proof over hash-pinned before-images. This never opens a writer
-/// on a frozen file and never promotes a development corpus.
-#[test]
-#[ignore = "explicit Phase 3 frozen causal codec measurement"]
-fn frozen_compact_settlements_match_exact_original_scope_and_records() {
-    use crate::freshness::historical_contract::HistoricalScoreEvent;
-    use serde_json::{Value, json};
-    use std::{fs, path::Path, time::Instant};
-    fn bytes<const N: usize>(text: &str) -> [u8; N] {
-        assert_eq!(text.len(), N * 2);
-        let mut out = [0; N];
-        for (i, value) in out.iter_mut().enumerate() {
-            *value = u8::from_str_radix(&text[i * 2..i * 2 + 2], 16).unwrap();
-        }
-        out
-    }
-    fn record(v: &Value) -> FreshnessRecord {
-        FreshnessRecord {
-            score: v["score"].as_i64().unwrap().try_into().unwrap(),
-            admitted_at_turn: v["admitted_at_turn"].as_u64(),
-            accounted_turn: v["accounted_turn"].as_u64(),
-        }
-    }
-    let root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let artifact = fs::read(
-        root.join(".verification-tmp/phase3-s3-regeneration/phase3-s3-regeneration-audit.json"),
-    )
-    .unwrap();
-    let audit: Value = serde_json::from_slice(&artifact).unwrap();
-    let mut outcomes = Vec::new();
-    let expected_sizes = [310786usize, 693922, 113404];
-    for (index, f) in audit["fixtures"].as_array().unwrap().iter().enumerate() {
-        assert_eq!(
-            f["original_event_leaves_validated_against_prefix_journal"],
-            true
-        );
-        let name = f["fixture"].as_str().unwrap();
-        let path = root.join(".verification-tmp/phase3-before").join(name);
-        let source = fs::read(&path).unwrap();
-        assert_eq!(
-            Sha256::digest(&source).as_slice(),
-            bytes::<32>(f["source_sha256"].as_str().unwrap())
-        );
-        let offset = f["settlement_frame_offset"].as_u64().unwrap() as usize;
-        let length = u64::from_le_bytes(source[offset..offset + 8].try_into().unwrap()) as usize;
-        let original = &source[offset + 8..offset + 8 + length];
-        assert_eq!(
-            Sha256::digest(original).as_slice(),
-            bytes::<32>(f["original_settlement_sha256"].as_str().unwrap())
-        );
-        let value =
-            super::super::semantic_settlement::SemanticImportFreshnessSettlement::decode(original)
-                .unwrap();
-        let initial = f["causal_basis"]["initial_records"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|r| {
-                (
-                    MemoryId(bytes(r["memory_id"].as_str().unwrap())),
-                    record(&r["value"]),
-                )
-            })
-            .collect();
-        let events: Vec<_> = f["causal_basis"]["ordered_scorer_rows"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|r| HistoricalScoreEvent {
-                recipient: MemoryId(bytes(r["recipient"].as_str().unwrap())),
-                position: r["position"].as_u64().unwrap(),
-                event_id: bytes(r["event_id"].as_str().unwrap()),
-                amount: r["amount"].as_i64().unwrap().try_into().unwrap(),
-            })
-            .collect();
-        let ranked =
-            HistoricalCausalBasis::from_events(&initial, &events, value.scope.settlement_cut)
-                .unwrap();
-        let corrections = f["residual_records"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|r| {
-                let old = record(&r["original"]);
-                let new = record(&r["regenerated"]);
-                assert_eq!(
-                    (old.admitted_at_turn, old.accounted_turn),
-                    (new.admitted_at_turn, new.accounted_turn)
-                );
-                (
-                    MemoryId(bytes(r["memory_id"].as_str().unwrap())),
-                    old.score - new.score,
-                )
-            })
-            .collect();
-        let basis = HistoricalCausalBasis::from_canonical(
-            initial,
-            ranked.contributions().to_vec(),
-            corrections,
-            value.scope.settlement_cut,
-        )
-        .unwrap();
-        let start = Instant::now();
-        let payload = encode(&value, &basis).unwrap();
-        let encode_ns = start.elapsed().as_nanos();
-        assert_eq!(payload.len(), expected_sizes[index]);
-        let start = Instant::now();
-        let (decoded, decoded_basis) = decode(&payload)
-            .unwrap()
-            .resolve(&value.scope.accepted_events)
-            .unwrap();
-        let decode_ns = start.elapsed().as_nanos();
-        assert_eq!(decoded, value);
-        assert_eq!(decoded_basis, basis);
-        assert_eq!(decoded.encode().unwrap(), original);
-        assert_eq!(
-            Sha256::digest(fs::read(&path).unwrap()).as_slice(),
-            bytes::<32>(f["source_sha256"].as_str().unwrap())
-        );
-        outcomes.push(json!({"fixture":name,"original_payload_bytes":original.len(),"compact_payload_bytes":payload.len(),"encode_ns":encode_ns,"decode_ns":decode_ns,"exact_original_payload_roundtrip":true,"exact_basis_roundtrip":true,"new_payload_sha256":format!("{:x}",Sha256::digest(&payload))}));
-    }
-    let report = json!({"status":"rust_codec_prototype_not_runtime_or_conversion_acceptance","basis_audit_sha256":format!("{:x}",Sha256::digest(&artifact)),"fixtures":outcomes});
-    fs::write(
-        root.join(".verification-tmp/phase3-c3-rust-compact-measurement.json"),
-        serde_json::to_vec_pretty(&report).unwrap(),
-    )
-    .unwrap();
-}
-
 #[test]
 fn production_owner_refuses_previous_settlement_format_without_installing_records() {
     let mut store = super::super::FreshnessStore::default();
@@ -330,4 +201,259 @@ fn policy_preflight_precedes_missing_retained_leaf_and_installs_nothing() {
     );
     assert!(store.records().is_empty());
     assert!(store.import_settlements().is_empty());
+}
+
+#[derive(Default)]
+struct AdversarialOffsets {
+    memory_ids: Vec<std::ops::Range<usize>>,
+    text_prefixes: Vec<(usize, usize)>,
+    accepted_event_indexes: Vec<usize>,
+    superseded_bitmap: usize,
+    contribution_positions: Vec<usize>,
+    effect_ordinals: Vec<usize>,
+    correction_amounts: Vec<usize>,
+}
+
+fn adversarial_offsets(payload: &[u8]) -> AdversarialOffsets {
+    let mut r = CompactReader::new(&payload[..payload.len() - 32]);
+    r.take(8 + 16 + 7 * 32 + 6 * 8 + 1).unwrap();
+    let mut offsets = AdversarialOffsets::default();
+
+    for _ in 0..r.count(32).unwrap() {
+        let start = payload.len() - 32 - r.remaining();
+        r.take(32).unwrap();
+        offsets.memory_ids.push(start..start + 32);
+    }
+
+    let text_count = r.count(2).unwrap();
+    for _ in 0..text_count {
+        let prefix_offset = payload.len() - 32 - r.remaining();
+        let prefix = usize::try_from(r.var().unwrap()).unwrap();
+        offsets.text_prefixes.push((prefix_offset, prefix));
+        let suffix = r.count(1).unwrap();
+        r.take(suffix).unwrap();
+    }
+
+    let set_count = r.count(1).unwrap();
+    for _ in 0..set_count {
+        for _ in 0..r.count(1).unwrap() {
+            r.var().unwrap();
+        }
+    }
+    r.index(set_count).unwrap();
+    r.index(set_count).unwrap();
+
+    for _ in 0..r.count(2).unwrap() {
+        r.index(text_count).unwrap();
+        r.index(text_count).unwrap();
+    }
+
+    let accepted_count = r.count(41).unwrap();
+    for _ in 0..accepted_count {
+        offsets
+            .accepted_event_indexes
+            .push(payload.len() - 32 - r.remaining());
+        r.index(text_count).unwrap();
+        r.array::<32>().unwrap();
+        r.u64().unwrap();
+    }
+    offsets.superseded_bitmap = payload.len() - 32 - r.remaining();
+    r.take((accepted_count + 7) / 8).unwrap();
+
+    r.index(set_count).unwrap();
+    let record_keys_set = r.index(set_count).unwrap();
+    let mut anchor_count = 0;
+    for _ in 0..r.count(5).unwrap() {
+        r.record().unwrap();
+        anchor_count += 1;
+    }
+    assert_eq!(r.count(1).unwrap(), 2); // fixture has two record keys
+    for _ in 0..2 {
+        r.index(anchor_count).unwrap();
+    }
+
+    for _ in 0..r.count(4).unwrap() {
+        offsets
+            .contribution_positions
+            .push(payload.len() - 32 - r.remaining());
+        r.var().unwrap();
+        for _ in 0..r.count(2).unwrap() {
+            offsets
+                .effect_ordinals
+                .push(payload.len() - 32 - r.remaining());
+            r.var().unwrap();
+            r.signed().unwrap();
+        }
+    }
+    for _ in 0..r.count(2).unwrap() {
+        r.var().unwrap();
+        offsets
+            .correction_amounts
+            .push(payload.len() - 32 - r.remaining());
+        r.signed().unwrap();
+    }
+    r.finish().unwrap();
+    let _ = record_keys_set;
+    offsets
+}
+
+#[test]
+fn checksum_valid_memory_dictionary_duplicates_and_unsorted_entries_refuse() {
+    let (value, basis) = fixture();
+    let payload = encode(&value, &basis).unwrap();
+    let offsets = adversarial_offsets(&payload);
+    assert_eq!(offsets.memory_ids.len(), 2);
+
+    let mut duplicate = payload.clone();
+    let first = duplicate[offsets.memory_ids[0].clone()].to_vec();
+    duplicate[offsets.memory_ids[1].clone()].copy_from_slice(&first);
+    resign(&mut duplicate);
+    assert!(
+        decode(&duplicate)
+            .err()
+            .unwrap()
+            .contains("unordered or duplicate compact dictionary")
+    );
+
+    let mut unsorted = payload;
+    let first = unsorted[offsets.memory_ids[0].clone()].to_vec();
+    let second = unsorted[offsets.memory_ids[1].clone()].to_vec();
+    unsorted[offsets.memory_ids[0].clone()].copy_from_slice(&second);
+    unsorted[offsets.memory_ids[1].clone()].copy_from_slice(&first);
+    resign(&mut unsorted);
+    assert!(
+        decode(&unsorted)
+            .err()
+            .unwrap()
+            .contains("unordered or duplicate compact dictionary")
+    );
+}
+
+#[test]
+fn checksum_valid_nonmaximal_text_prefix_refuses() {
+    let (value, basis) = fixture();
+    let mut payload = encode(&value, &basis).unwrap();
+    let offsets = adversarial_offsets(&payload);
+    let index = offsets
+        .text_prefixes
+        .iter()
+        .position(|(_, prefix)| *prefix > 0)
+        .unwrap();
+    let (offset, prefix) = offsets.text_prefixes[index];
+    let texts: Vec<_> = value
+        .scope
+        .source_nodes
+        .iter()
+        .flat_map(|(c, n)| [c.as_str(), n.as_str()])
+        .chain(value.scope.accepted_events.keys().map(String::as_str))
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect();
+    assert!(prefix < 128 && payload[offset + 1] < 127);
+    // Preserve the exact reconstructed text: move one predecessor byte into
+    // the suffix. Only its nonmaximal representation is invalid, including
+    // when the maximal byte prefix splits a UTF-8 code point.
+    let byte = texts[index - 1].as_bytes()[prefix - 1];
+    payload[offset] = u8::try_from(prefix - 1).unwrap();
+    payload[offset + 1] += 1;
+    payload.insert(offset + 2, byte);
+    resign(&mut payload);
+    assert!(
+        decode(&payload)
+            .err()
+            .unwrap()
+            .contains("nonmaximal compact text prefix")
+    );
+}
+
+#[test]
+fn checksum_valid_zero_or_duplicate_causal_recipient_ordinals_refuse() {
+    let (value, basis) = fixture();
+    let payload = encode(&value, &basis).unwrap();
+    let offsets = adversarial_offsets(&payload);
+    assert!(offsets.effect_ordinals.len() >= 2);
+
+    let mut zero = payload.clone();
+    zero[offsets.effect_ordinals[0]] = 0;
+    resign(&mut zero);
+    assert!(
+        decode(&zero)
+            .err()
+            .unwrap()
+            .contains("zero compact ordinal delta")
+    );
+
+    // A zero delta after the first recipient would repeat its dictionary index.
+    let mut duplicate = payload;
+    duplicate[offsets.effect_ordinals[1]] = 0;
+    resign(&mut duplicate);
+    assert!(
+        decode(&duplicate)
+            .err()
+            .unwrap()
+            .contains("zero compact ordinal delta")
+    );
+}
+
+#[test]
+fn checksum_valid_zero_source_position_and_dirty_bitmap_padding_refuse() {
+    let (value, basis) = fixture();
+    let payload = encode(&value, &basis).unwrap();
+    let offsets = adversarial_offsets(&payload);
+    assert!(!offsets.contribution_positions.is_empty());
+
+    let mut zero_position = payload.clone();
+    zero_position[offsets.contribution_positions[0]] = 0;
+    resign(&mut zero_position);
+    assert!(
+        decode(&zero_position)
+            .err()
+            .unwrap()
+            .contains("invalid causal contribution order/extent")
+    );
+
+    let mut dirty_padding = payload;
+    dirty_padding[offsets.superseded_bitmap] |= 0x80;
+    resign(&mut dirty_padding);
+    assert!(
+        decode(&dirty_padding)
+            .err()
+            .unwrap()
+            .contains("nonzero compact bitmap padding")
+    );
+}
+
+#[test]
+fn checksum_valid_duplicate_accepted_event_identity_refuses() {
+    let (value, basis) = fixture();
+    let mut payload = encode(&value, &basis).unwrap();
+    let offsets = adversarial_offsets(&payload);
+    assert_eq!(offsets.accepted_event_indexes.len(), 2);
+    let first = offsets.accepted_event_indexes[0];
+    let second = offsets.accepted_event_indexes[1];
+    assert!(payload[first] < 128 && payload[second] < 128);
+    payload[second] = payload[first];
+    resign(&mut payload);
+    assert!(
+        decode(&payload)
+            .err()
+            .unwrap()
+            .contains("unordered compact accepted event identities")
+    );
+}
+
+#[test]
+fn checksum_valid_zero_causal_correction_refuses() {
+    let (value, basis) = fixture();
+    let mut payload = encode(&value, &basis).unwrap();
+    let offsets = adversarial_offsets(&payload);
+    assert_eq!(offsets.correction_amounts.len(), 1);
+    payload[offsets.correction_amounts[0]] = 0;
+    resign(&mut payload);
+    assert!(
+        decode(&payload)
+            .err()
+            .unwrap()
+            .contains("invalid causal score correction")
+    );
 }

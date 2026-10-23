@@ -1,0 +1,20 @@
+{
+  "source_receipt": "benchmarks/dependency-convergence-phase3-corpus-conversion-2026-10-23.json",
+  "source_receipt_sha256": "c29a5f665a9e900e6004eda9431ef3273828b059554b594b92fa76e77cee2534",
+  "format": "CVAFRS07",
+  "semantic_oracle_passed": true,
+  "positive_selected_corpora": 3,
+  "positive_selected_fixture_hashes": 6,
+  "negative_probe_count": 7,
+  "negative_rejections": {
+    "bad_format": "ValueError",
+    "oracle_false": "ValueError",
+    "duplicate_fixture": "ValueError",
+    "missing_fixture": "ValueError",
+    "extra_fixture": "ValueError",
+    "wrong_original_sha": "ValueError",
+    "malformed_converted_sha": "ValueError"
+  },
+  "all_negative_probes_rejected_before_corpus_copy_execution": true,
+  "scope": "direct helper probes only; no corpus source opened/copied, no acceptance binary invoked"
+}

@@ -130,7 +130,3 @@ pub(crate) fn reconstruct(
         &prepared, committed, None,
     ))
 }
-
-#[cfg(test)]
-#[path = "owner_historical_audit_tests.rs"]
-mod audit_tests;

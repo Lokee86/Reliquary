@@ -2489,10 +2489,3 @@ fn receipt_bytes(entry: &JournalEntry) -> usize {
         _ => 256,
     }
 }
-
-#[cfg(test)]
-pub(crate) fn decode_phase3_frozen_settlement(
-    payload: &[u8],
-) -> Result<semantic_settlement::SemanticImportFreshnessSettlement, String> {
-    semantic_settlement::SemanticImportFreshnessSettlement::decode(payload)
-}

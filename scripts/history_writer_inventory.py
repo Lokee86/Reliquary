@@ -54,7 +54,7 @@ FAMILIES = {
     "legacy_dream_cooldown": ["CVADREM1", "CVADREM2"],
     "freshness_policy": ["CVAFRP01"],
     "freshness_events": ["CVAFRS02"],
-    "freshness_import_settlement": ["CVAFRS03", "CVAFRS04", "CVAFRS05", "CVAFRS06"],
+    "freshness_import_settlement": ["CVAFRS03", "CVAFRS04", "CVAFRS05", "CVAFRS06", "CVAFRS07"],
     "freshness_legacy_activation": ["CVAFSA01"],
     "freshness_rewrite_baseline": ["CVAFRB01"],
     "import_epoch": ["CVAIEPS1", "CVAIEPC1"],
@@ -95,7 +95,7 @@ def production_text(path: Path) -> str:
 # production source is an audit failure, even if no writer has yet been added.
 RETIRED_IDENTITIES = {
     "CVADREM1", "CVADREM2", "CVADRP01", "CVAEANC1", "CVAEIDN1", "CVAEIDN2",
-    "CVAEPER1", "CVAEPRN1", "CVAESYN1", "CVAFRS03", "CVAFRS04", "CVAFRS05",
+    "CVAEPER1", "CVAEPRN1", "CVAESYN1", "CVAFRS03", "CVAFRS04", "CVAFRS05", "CVAFRS06",
     "CVAILEG1", "CVAILEG2", "CVARPRN1", "CVAXIDX1", "CVAXMEM1", "PRJCOR01",
 }
 FAMILIES = {family: [magic for magic in magics if magic not in RETIRED_IDENTITIES]

@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "phase": "inventory",
+  "fixture_root": "C:\\!bin\\workspace\\reliquary-fixtures\\local\\authoritative",
+  "source_before": {
+    "chatgpt-first14d\\project.prj.rel": "a02c8696db754c53a73c896133b06df9828a32923aee610c9f918a16698f76d0",
+    "chatgpt-first14d\\user.phy": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+    "chatgpt-first14d\\AUTHORITATIVE.txt": "4d4578f25d350230457fad4c04662c0cdc0829c73abaa7d74d5e9ec200c32748",
+    "chatgpt-first14d\\SHA256SUMS.txt": "3a8793352c5a5a0b98a4cd7462b43fe006dcc9752a0e8f5c11f94deb9293ad2c",
+    "chatgpt-first28d\\project.prj.rel": "76c15780bd7cfe7e3083dbff5684e236a8fd2090fb0a82ec3d66529d14307d87",
+    "chatgpt-first28d\\user.phy": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+    "chatgpt-first28d\\AUTHORITATIVE.txt": "d201e3d0506c28aa9bad431f4f1cccc74559a286e622d7edf7ea05b6eecfadf1",
+    "chatgpt-first28d\\SHA256SUMS.txt": "777954a194e638d79eb79fb965cacd248ab3cd80226c39fb620916410dfeb31b",
+    "rhelm-david-r-ellis-pre-relationship\\project.prj.rel": "cbc38d055936fc5702a17c4d569557d8c35e8887d1946c5562ba419038de6ee3",
+    "rhelm-david-r-ellis-pre-relationship\\user.phy": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+    "rhelm-david-r-ellis-pre-relationship\\AUTHORITATIVE.txt": "210d2e6ec82801bda5afc07a5c4885aebdcf694e4d80d6154a115eba34ae7bd6",
+    "rhelm-david-r-ellis-pre-relationship\\SHA256SUMS.txt": "1131047fdb4f703771e53cef783863d73167c9a2b7be10d83716be26b3261187"
+  },
+  "binary_sha256": "aa08e0b47e600a8f5fe3622205351d369fb4f94a002d6b875d146c4df8514d13",
+  "harness_sources": {
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_endpoints.rs": "10ac57e3c14015947be55547db139ba3ced740c0d117b30233b2d5738c7ed7b4",
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_fidelity.rs": "a9e0178e36c09b23f0119b23127f56c67efd85856682cdccc1e4d75f10adc269",
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_scenarios.rs": "3619ba54c87e852646812d530239f87223422bb9de30e9df176e07a3da8f1b31",
+    "src\\runtime_inference\\agentic_memory_frozen_fixture_tests.rs": "d1bbfb61a291d4996e172a5fca85e8cf133f8ce6b0fa2a5c9446b17a816ecf57",
+    "scripts\\agentic_memory_fixture_acceptance.py": "5419fc943b0c14167744e63653671419035cefbf0300657225c30d8254b352ec"
+  },
+  "head": "acac28047d0c7efff17bdfcfa07a54413b46f75d",
+  "results": [
+    {
+      "corpus": "first14d",
+      "command": [
+        "C:\\!bin\\workspace\\Reliquary\\target\\release\\deps\\reliquary_memory-598b1a280817108e.exe",
+        "agentic_frozen_fixture_acceptance",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "copy": "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-fixture-runs\\f9dd5560-c2d9-4c9f-9177-aaccc7821056\\first14d\\owner.rel",
+      "result": {
+        "inventory": {
+          "active_memories": 1016,
+          "activity_cut": 5857,
+          "current_vectors": 1016,
+          "dimensions": 1024,
+          "graph_relations": 11590,
+          "inference": "stored compatibility probes and target document vector replay; no live embedding or general inference",
+          "profile": "38b2c3d1ded65fdbc2a76086f1d2875c03eb4470afa63de8bbd0689cbf51c266"
+        },
+        "status": "passed"
+      }
+    },
+    {
+      "corpus": "first28d",
+      "command": [
+        "C:\\!bin\\workspace\\Reliquary\\target\\release\\deps\\reliquary_memory-598b1a280817108e.exe",
+        "agentic_frozen_fixture_acceptance",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "copy": "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-fixture-runs\\f9dd5560-c2d9-4c9f-9177-aaccc7821056\\first28d\\owner.rel",
+      "result": {
+        "inventory": {
+          "active_memories": 2191,
+          "activity_cut": 16465,
+          "current_vectors": 2191,
+          "dimensions": 1024,
+          "graph_relations": 34503,
+          "inference": "stored compatibility probes and target document vector replay; no live embedding or general inference",
+          "profile": "e012fa5173c94058e83749208bd3250628a4d533d01d96fe711c86a813c14258"
+        },
+        "status": "passed"
+      }
+    },
+    {
+      "corpus": "ellis",
+      "command": [
+        "C:\\!bin\\workspace\\Reliquary\\target\\release\\deps\\reliquary_memory-598b1a280817108e.exe",
+        "agentic_frozen_fixture_acceptance",
+        "--ignored",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "copy": "C:\\!bin\\workspace\\Reliquary\\bin\\agentic-fixture-runs\\f9dd5560-c2d9-4c9f-9177-aaccc7821056\\ellis\\owner.rel",
+      "result": {
+        "inventory": {
+          "active_memories": 703,
+          "activity_cut": 2972,
+          "current_vectors": 703,
+          "dimensions": 1024,
+          "graph_relations": 8995,
+          "inference": "stored compatibility probes and target document vector replay; no live embedding or general inference",
+          "profile": "3aad70f4c0083a74be98cc41b51515559c7ed26669597641e562299424ddcd82"
+        },
+        "status": "passed"
+      }
+    }
+  ],
+  "failure": null,
+  "scope": "REL-only native acceptance on disposable copies; deterministic oracle and stored-vector replay; F3 is a separate real-host gate",
+  "conversion_receipt": {
+    "path": "C:\\!bin\\workspace\\Reliquary\\benchmarks\\dependency-convergence-phase3-corpus-conversion-2026-10-23.json",
+    "sha256": "c29a5f665a9e900e6004eda9431ef3273828b059554b594b92fa76e77cee2534",
+    "format": "CVAFRS07",
+    "semantic_oracle_passed": true,
+    "scope": "current-format corpus inputs proven by the immutable Oct 21 promotion before-images and passing frozen semantic oracle"
+  },
+  "expected_source_hashes": {
+    "chatgpt-first14d\\project.prj.rel": "a02c8696db754c53a73c896133b06df9828a32923aee610c9f918a16698f76d0",
+    "chatgpt-first14d\\user.phy": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+    "chatgpt-first28d\\project.prj.rel": "76c15780bd7cfe7e3083dbff5684e236a8fd2090fb0a82ec3d66529d14307d87",
+    "chatgpt-first28d\\user.phy": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+    "rhelm-david-r-ellis-pre-relationship\\project.prj.rel": "cbc38d055936fc5702a17c4d569557d8c35e8887d1946c5562ba419038de6ee3",
+    "rhelm-david-r-ellis-pre-relationship\\user.phy": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0"
+  },
+  "corpus_input_scope": "current-format corpus inputs proven by the immutable Oct 21 promotion before-images and passing frozen semantic oracle",
+  "corpus_limitations": 0,
+  "source_after": {
+    "chatgpt-first14d\\project.prj.rel": "a02c8696db754c53a73c896133b06df9828a32923aee610c9f918a16698f76d0",
+    "chatgpt-first14d\\user.phy": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+    "chatgpt-first14d\\AUTHORITATIVE.txt": "4d4578f25d350230457fad4c04662c0cdc0829c73abaa7d74d5e9ec200c32748",
+    "chatgpt-first14d\\SHA256SUMS.txt": "3a8793352c5a5a0b98a4cd7462b43fe006dcc9752a0e8f5c11f94deb9293ad2c",
+    "chatgpt-first28d\\project.prj.rel": "76c15780bd7cfe7e3083dbff5684e236a8fd2090fb0a82ec3d66529d14307d87",
+    "chatgpt-first28d\\user.phy": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+    "chatgpt-first28d\\AUTHORITATIVE.txt": "d201e3d0506c28aa9bad431f4f1cccc74559a286e622d7edf7ea05b6eecfadf1",
+    "chatgpt-first28d\\SHA256SUMS.txt": "777954a194e638d79eb79fb965cacd248ab3cd80226c39fb620916410dfeb31b",
+    "rhelm-david-r-ellis-pre-relationship\\project.prj.rel": "cbc38d055936fc5702a17c4d569557d8c35e8887d1946c5562ba419038de6ee3",
+    "rhelm-david-r-ellis-pre-relationship\\user.phy": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+    "rhelm-david-r-ellis-pre-relationship\\AUTHORITATIVE.txt": "210d2e6ec82801bda5afc07a5c4885aebdcf694e4d80d6154a115eba34ae7bd6",
+    "rhelm-david-r-ellis-pre-relationship\\SHA256SUMS.txt": "1131047fdb4f703771e53cef783863d73167c9a2b7be10d83716be26b3261187"
+  },
+  "source_unchanged": true,
+  "acceptance_status": "executed"
+}

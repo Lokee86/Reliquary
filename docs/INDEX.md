@@ -1,7 +1,7 @@
 # Reliquary Memory v2 Documentation
 
 - [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 119 correction-only execution tasks (98 original plus 21 counted lifecycle/History/Maintenance/Import tasks), retaining the approved semantic settlement hard cut.
-- [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — 21 additional counted L/H/M/I execution tasks, evidence-backed 35/119 progress and the paused M3 handoff; original 98 IDs and twelve gates retained.
+- [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — 21 additional counted L/H/M/I execution tasks, evidence-backed execution and native-owner handoffs; original 98 IDs and twelve gates retained.
 - [Phase 2 owner-local boundaries — execution spec](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks to isolate durable semantic ownership without new roadmap work.
 - [Phase 2 baseline inventory](dependency-convergence-phase2-baseline-2026-10-22.md) — owner, edge, replay, consumer, test, and retained corpus before-image for B0.
 - [Phase 2 baseline verification](dependency-convergence-phase2-baseline-verification-2026-10-22.md) — exact baseline commands, results, timings, oracle hashes, and pending gates.
@@ -13,7 +13,7 @@
 
 - [Accepted target component DAG](dependency-convergence-target-dag-2026-10-21.md) — permanent no-cycle/no-upward dependency invariants and the complete logical allowlist for the correction-only refactor.
 - [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — correction-only high-level architecture campaign to eliminate the core dependency knot, retire obsolete ownership surfaces, absorb directly related architectural corrections, and keep touched documentation current without implementing new roadmap features.
-- [Semantic import-settlement minimization follow-up](semantic-import-settlement-minimization-plan-2026-10-21.md) — planned correction for the measured `CVAFRS06` proof-size regression without reopening the completed storage hard cut.
+- [Semantic import-settlement minimization follow-up](semantic-import-settlement-minimization-plan-2026-10-21.md) — original correction proposal for the measured `CVAFRS06` proof-size regression; selected current implementation is tracked by Phase 3 S3/C3.
 - [Context Engine compaction refinement](context-engine-compaction-refinement-plan-2026-10-21.md) — unfinished deterministic trace stripping, bounded protected tail, structured validated retrieval mapping, reduction/consolidation, and current-turn pressure handling under the existing compaction ownership contract.
 - [Canonical migration results](canonical-history-migration-results-2026-10-21.md) - six disposable conversions, exact resolution history and full raw-byte accounting.
 - [Retained inert Entity Resolution contract](retained-entity-resolution-contract-2026-10-21.md) — frozen behavior, original bytes and distinct format admission.
@@ -273,3 +273,5 @@
 
 - [Phase 2 execution and acceptance ledger](dependency-convergence-phase2-execution-2026-10-22.md)
 - [Phase 3 compact settlement format selection](dependency-convergence-phase3-settlement-format-2026-10-23.md)
+
+- [Phase 3 to Phase 4 Project Environment handoff](dependency-convergence-phase3-phase4-handoff-2026-10-23.md)

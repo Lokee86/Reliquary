@@ -77,6 +77,7 @@ impl HistoricalImportFreshnessSettlement {
             .ok_or("accepted settlement lacks causal numeric authority")?;
         super::compact_settlement::encode(&self.as_semantic(scope.clone()), basis)
     }
+    #[cfg(test)]
     pub(crate) fn decode(
         payload: &[u8],
         leaves: &BTreeMap<String, super::AcceptedImportEventEvidence>,
