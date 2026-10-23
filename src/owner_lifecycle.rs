@@ -149,3 +149,9 @@ pub(crate) mod import_birth_facts;
 
 #[path = "owner_lifecycle/historical_settlement.rs"]
 pub(crate) mod historical_settlement;
+
+#[path = "owner_lifecycle/historical_freshness_read.rs"]
+pub(crate) mod historical_freshness_read;
+
+#[path = "owner_lifecycle/physical_fingerprint.rs"]
+pub(crate) mod physical_fingerprint;

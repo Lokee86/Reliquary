@@ -190,7 +190,7 @@ fn build_inner(
                 OwnerError::Freshness("missing historical event target row".into())
             })?;
             let vector = if packed.schema().dimensions == profile.dimensions
-                && packed.schema().scalar == crate::ScalarType::F32
+                && packed.schema().scalar == lodestone_packed::ScalarType::F32
             {
                 row.chunks_exact(4)
                     .map(|bytes| f32::from_le_bytes(bytes.try_into().expect("four bytes")))
@@ -245,7 +245,9 @@ fn build_inner(
         };
         let evidence_outcome = access.dream.committed_evidence(pass);
         #[cfg(feature = "freshness-performance-trace")]
-        traces.push(evidence_outcome.trace);
+        if evidence_outcome.result.is_ok() {
+            traces.push(evidence_outcome.trace);
+        }
         let evidence = evidence_outcome.result?;
         plan::validate_first_cycle_roots(&pass.roots, &evidence.roots)?;
         plan::record_representatives(

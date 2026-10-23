@@ -110,6 +110,11 @@ impl<'a> HistoryReadAccess<'a> {
         std::fs::metadata(self.container.path()).map(|metadata| metadata.len())
     }
 
+    /// Exact path-byte fingerprint at the caller's existing drift-check checkpoint.
+    pub(crate) fn file_digest(&self) -> Result<[u8; 32], super::OwnerError> {
+        super::physical_fingerprint::file_digest(self.container.path())
+    }
+
     pub(crate) fn latest_global_version(&self) -> u64 {
         self.container.latest_version()
     }

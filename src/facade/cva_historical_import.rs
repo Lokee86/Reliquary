@@ -11,7 +11,6 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 #[cfg(test)]
 use std::collections::BTreeSet;
-use std::io::Read;
 #[path = "historical_embedding.rs"]
 mod embedding;
 #[path = "historical_embedding_model.rs"]
@@ -47,17 +46,7 @@ impl From<crate::history::manifest_encoding::HistoryProofError> for CvaError {
 }
 
 fn file_digest(path: &std::path::Path) -> Result<[u8; 32], CvaError> {
-    let mut file = std::fs::File::open(path).map_err(|e| fail(&e.to_string()))?;
-    let mut hash = Sha256::new();
-    let mut bytes = [0u8; 65536];
-    loop {
-        let size = file.read(&mut bytes).map_err(|e| fail(&e.to_string()))?;
-        if size == 0 {
-            break;
-        }
-        hash.update(&bytes[..size]);
-    }
-    Ok(hash.finalize().into())
+    crate::owner_lifecycle::physical_fingerprint::file_digest(path)
 }
 // All ordinary backing records are immutable except Archive conversation
 // compaction allocations. Bind physical coordinates as well as payloads so
@@ -75,171 +64,61 @@ impl Cva {
     ) -> Result<FrozenHistoricalImport, CvaError> {
         // An earlier import's settlement is not a retry of the open epoch.
         // Resolve the durable epoch identity before considering accepted evidence.
-        let accepted = if let Some(start) = self.open_import_epoch() {
-            self.freshness
-                .import_settlements()
-                .iter()
-                .find(|settlement| {
-                    settlement
-                        .import_id
-                        .iter()
-                        .map(|byte| format!("{byte:02x}"))
-                        .collect::<String>()
-                        == start.import_id
-                })
-        } else {
-            self.freshness.latest_import_settlement()
-        };
+        let accepted =
+            crate::owner_lifecycle::historical_freshness_read::HistoricalFreshnessReadAccess::new(
+                &self.container,
+                &self.freshness,
+            )
+            .accepted_settlement(
+                self.open_import_epoch()
+                    .as_ref()
+                    .map(|start| start.import_id.as_str()),
+            );
         if let Some(settlement) = accepted {
-            let settlement = settlement.clone();
             if self.open_import_epoch().is_some()
                 && self.import_epoch_scope()?.start_digest != settlement.start_evidence_digest
             {
                 return Err(fail("import settlement start evidence mismatch"));
             }
-            let mut initial = BTreeMap::new();
-            for (id, record) in &settlement.records {
-                let mut birth = FreshnessRecord::created();
-                if let Some(at) = record.admitted_at_turn {
-                    birth.admit(at).map_err(|e| fail(&e.to_string()))?;
-                }
-                initial.insert(*id, birth);
-            }
-            return Ok(FrozenHistoricalImport {
-                source_bytes: 0,
-                source_digest: [0; 32],
-                retained: Vec::new(),
-                epoch: false,
-                events: None,
-                propagation: None,
-                settlement,
-                initial,
-            });
+            return crate::imports::historical_freeze::accepted_retry(settlement);
         }
         let manifest = manifest::build_with_fill(self, requested_complete)?;
         let owner = self
             .owner_uuid()
             .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
         let events = events::build(self, &manifest)?;
-        let cohort = manifest.cohort.clone();
         self.container.sync()?;
-        let settlement = HistoricalImportFreshnessSettlement::from_import_scope(
-            HistoricalImportFreshnessScope {
+        let mut frozen = crate::imports::historical_freeze::from_manifest(
+            manifest,
+            events,
+            crate::imports::historical_freeze::HistoricalOwnerCut {
                 owner,
-                import_id: manifest.import_id,
-                start_evidence_digest: manifest.start_evidence_digest,
-                base_cut: manifest.base_cut,
-                settlement_cut: self.rel_turn_count(),
+                activity: self.rel_turn_count(),
+                global: self.latest_global_version(),
+                archive: self.archive_version(),
+                graph: self.graph_version(),
+                memory_graph: self.memory_graph_version(),
             },
-            manifest.corpus_digest,
-            manifest.digest,
-            manifest.digest,
-            cohort,
-            self.latest_global_version(),
-            manifest.input_bytes,
-            self.archive_version(),
-            self.graph_version(),
-            self.memory_graph_version(),
-            BTreeMap::new(),
-            manifest.superseded,
         );
-        let mut frozen = FrozenHistoricalImport {
-            source_bytes: manifest.input_bytes,
-            source_digest: manifest.input_digest,
-            retained: Vec::new(),
-            epoch: manifest.epoch,
-            events: Some(events),
-            propagation: Some(manifest.propagation),
-            settlement,
-            initial: manifest.initial,
-        };
         if frozen.epoch {
-            // The manifest binds provisional attribution and the full recipient proof.
-            // Bind planned propagation recipients separately before retaining result records.
-            let affected = frozen
-                .native_scores()?
-                .into_iter()
-                .map(|event| event.recipient);
-            frozen.settlement.cohort.extend(affected);
-            frozen
-                .initial
-                .retain(|id, _| frozen.settlement.cohort.contains(id));
-            let mut binding = Sha256::new();
-            binding.update(b"import-epoch-result-cohort-v1");
-            binding.update(frozen.settlement.manifest_digest);
-            for id in &frozen.settlement.cohort {
-                binding.update(id.0);
-            }
-            frozen.settlement.manifest_digest = binding.finalize().into();
+            crate::imports::historical_freeze::bind_result_cohort(&mut frozen)?;
             let scope = self.import_epoch_scope()?;
-            let replay = crate::freshness_storage::ImportEventScope {
-                owner,
-                import_id: frozen.settlement.import_id,
-                start_evidence_digest: scope.start_digest,
-                born_memories: scope.cohort,
-                affected_recipients: frozen
-                    .propagation
-                    .as_ref()
-                    .unwrap()
-                    .availability
-                    .keys()
-                    .copied()
-                    .collect(),
-                source_nodes: scope.source_nodes,
-                start_prefix: scope.start_offset,
-                freeze_prefix: frozen.settlement.input_bytes,
-                base_cut: scope.base_cut,
-                freeze_cut: frozen.cut(),
-            };
-            let mut history = self.freshness.clone();
-            history
-                .bind_history_source(&self.container, replay.freeze_prefix)
-                .map_err(CvaError::Freshness)?;
-            frozen.retained = history
-                .retained_import_scores(
-                    &replay,
-                    &frozen.settlement.cohort,
-                    &frozen.settlement.superseded,
-                )
-                .map_err(CvaError::Freshness)?;
-            frozen.settlement.semantic = Some(
-                history
-                    .semantic_import_evidence(
-                        &replay,
-                        &frozen.settlement.cohort,
-                        &frozen.settlement.superseded,
-                    )
-                    .map_err(CvaError::Freshness)?,
-            );
+            let replay = crate::imports::historical_freeze::framed_scope(&frozen, scope);
+            crate::imports::historical_freeze::attach_semantic_evidence(
+                &mut frozen,
+                &crate::owner_lifecycle::historical_freshness_read::HistoricalFreshnessReadAccess::new(&self.container, &self.freshness),
+                &replay,
+            )?;
         } else {
             let source_nodes = input::required_nodes(&self.archive, frozen.cut())?
                 .into_keys()
                 .collect();
-            let replay = crate::freshness_storage::ImportEventScope {
-                owner,
-                import_id: frozen.settlement.import_id,
-                start_evidence_digest: frozen.settlement.start_evidence_digest,
-                born_memories: frozen.settlement.cohort.clone(),
-                affected_recipients: frozen.settlement.cohort.clone(),
-                source_nodes,
-                start_prefix: 0,
-                freeze_prefix: frozen.source_bytes,
-                base_cut: frozen.settlement.base_cut,
-                freeze_cut: frozen.cut(),
-            };
-            let mut history = self.freshness.clone();
-            history
-                .bind_history_source(&self.container, frozen.source_bytes)
-                .map_err(CvaError::Freshness)?;
-            frozen.settlement.semantic = Some(
-                history
-                    .semantic_import_evidence(
-                        &replay,
-                        &frozen.settlement.cohort,
-                        &frozen.settlement.superseded,
-                    )
-                    .map_err(CvaError::Freshness)?,
-            );
+            let replay = crate::imports::historical_freeze::unframed_scope(&frozen, source_nodes);
+            crate::imports::historical_freeze::attach_semantic_evidence(
+                &mut frozen,
+                &crate::owner_lifecycle::historical_freshness_read::HistoricalFreshnessReadAccess::new(&self.container, &self.freshness),
+                &replay,
+            )?;
         }
         frozen.settlement.input_bytes = 0;
         Ok(frozen)
@@ -251,39 +130,34 @@ impl Cva {
         prepared: &PreparedHistoricalImport,
     ) -> Result<bool, CvaError> {
         let settlement = &prepared.settlement;
-        if self.owner_uuid() != Some(settlement.owner) {
-            return Err(fail("import settlement owner mismatch"));
+        if let Some(committed) = crate::imports::historical_freeze::admit_prepared(
+            self.owner_uuid(),
+            prepared,
+            self.freshness.import_settlement(settlement.import_id),
+        )? {
+            return Ok(committed);
         }
-        if let Some(old) = self.freshness.import_settlement(settlement.import_id) {
-            return if old == settlement {
-                Ok(false)
-            } else {
-                Err(fail("ImportManifestConflict"))
-            };
-        }
-        if settlement.semantic.is_none() {
-            return Err(fail("historical settlement representation/scope mismatch"));
-        }
-        if self.latest_global_version() != settlement.global_version
-            || self.archive_version() != settlement.archive_version
-            || self.rel_turn_count() != settlement.settlement_cut
-            || self.graph_version() != settlement.graph_version
-            || self.memory_graph_version() != settlement.memory_graph_version
-            || std::fs::metadata(self.container.path())
-                .map_err(|e| fail(&e.to_string()))?
-                .len()
-                != prepared.source_bytes
-            || file_digest(self.container.path())? != prepared.source_digest
-        {
-            return Err(fail("ImportInputDrift: discard and refreeze the attempt"));
-        }
+        crate::imports::historical_freeze::validate_owner_cut(
+            prepared,
+            crate::imports::historical_freeze::HistoricalOwnerCut {
+                owner: settlement.owner,
+                activity: self.rel_turn_count(),
+                global: self.latest_global_version(),
+                archive: self.archive_version(),
+                graph: self.graph_version(),
+                memory_graph: self.memory_graph_version(),
+            },
+        )?;
+        crate::imports::historical_freeze::validate_physical_freeze(
+            prepared,
+            &crate::owner_lifecycle::HistoryReadAccess::new(&self.container),
+        )?;
         if prepared.epoch {
             let current = self.import_epoch_scope()?;
-            if current.start_digest != settlement.start_evidence_digest {
-                return Err(fail(
-                    "historical settlement does not belong to the open epoch",
-                ));
-            }
+            crate::imports::historical_freeze::validate_start_binding(
+                prepared,
+                current.start_digest,
+            )?;
             input::validate_settlement(self, settlement)?;
         }
         let (staged, due) = crate::owner_lifecycle::historical_settlement::publish_settlement(

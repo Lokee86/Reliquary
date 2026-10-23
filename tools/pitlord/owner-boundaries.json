@@ -1832,6 +1832,36 @@
       "path": "src/owner_lifecycle/historical_settlement.rs",
       "component": "owner-lifecycle",
       "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_freeze.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/historical_freshness_read.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/physical_fingerprint.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_events.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_manifest_model.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_manifest_plan.rs",
+      "component": "import",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -2213,6 +2243,14 @@
     },
     {
       "module": "owner_lifecycle::historical_settlement",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::historical_freshness_read",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::physical_fingerprint",
       "component": "owner-lifecycle"
     }
   ],
@@ -2882,6 +2920,30 @@
       "owner": "freshness-store",
       "symbol": "HistoricalScoreEvent",
       "reason": "Immutable historical settlement policy, score or adjacency value; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "HistoricalImportFreshnessScope",
+      "reason": "Immutable accepted historical scope, generation or replay evidence value used by Import planning; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "ImportEventScope",
+      "reason": "Immutable accepted historical scope, generation or replay evidence value used by Import planning; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "vector-store",
+      "symbol": "VectorGeneration",
+      "reason": "Immutable accepted historical scope, generation or replay evidence value used by Import planning; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "FreshnessReplayEntry",
+      "reason": "Immutable accepted historical scope, generation or replay evidence value used by Import planning; no mutable store, writer or callback capability."
     }
   ],
   "forbidden_symbols": [
