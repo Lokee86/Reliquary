@@ -2,7 +2,7 @@
   "schema_version": 1,
   "date": "2026-10-22",
   "source_base": "957733a",
-  "status": "verified_preparation_archivist_pending",
+  "status": "verified_preparation",
   "gate": "I3",
   "gate_accepted": false,
   "task_progress": {
@@ -135,7 +135,7 @@
     "documentation": {
       "full": "passed",
       "changed": "passed",
-      "archivist": "running",
+      "archivist": "passed",
       "logs": [
         ".verification-tmp/phase3-i3-docs.log",
         ".verification-tmp/phase3-i3-docs-changed.log",
@@ -198,5 +198,6 @@
       "frozen_matches": true,
       "original_matches": true
     }
-  ]
+  ],
+  "source_commit": "fd623b2"
 }
