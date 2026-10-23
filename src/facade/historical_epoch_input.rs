@@ -8,18 +8,14 @@ pub(super) fn scoped_corpus_digest(
     cva: &mut Cva,
     source_nodes: &BTreeSet<(String, String)>,
 ) -> Result<[u8; 32], CvaError> {
-    let mut bindings = Vec::with_capacity(source_nodes.len());
-    for (conversation, id) in source_nodes {
-        let node = crate::history::source_proof::scoped_node(&cva.archive, conversation, id)?;
-        let bytes = cva
-            .archive
-            .content_bytes(&mut cva.container, node.content_id)?;
-        if crate::archive_store::hash_content(&bytes) != node.content_id {
-            return Err(fail("import-scoped source content proof mismatch"));
-        }
-        bindings.push(node_binding(&node));
-    }
-    crate::history::source_proof::corpus_digest(bindings).map_err(CvaError::from)
+    let access = crate::owner_lifecycle::HistoryReadAccess::new(&cva.container);
+    crate::history::source_proof::scoped_corpus_digest_with_content(
+        &access,
+        &cva.archive,
+        source_nodes,
+        "import-scoped source content proof mismatch",
+    )
+    .map_err(CvaError::from)
 }
 pub(super) fn admission_proof_for_scope(
     cva: &mut Cva,

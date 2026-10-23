@@ -61,7 +61,7 @@ impl Archive {
 
     pub(crate) fn content_bytes(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: ContentId,
     ) -> Result<Vec<u8>, ArchiveError> {
         let chunk = self.contents.get(id).ok_or(ArchiveError::MissingContent)?;
@@ -69,6 +69,13 @@ impl Archive {
             ArchiveRecord::Content(found, bytes) if found == id => Ok(bytes),
             _ => Err(ArchiveError::MissingContent),
         }
+    }
+
+    pub(crate) fn require_content(&self, id: ContentId) -> Result<(), ArchiveError> {
+        self.contents
+            .get(id)
+            .map(|_| ())
+            .ok_or(ArchiveError::MissingContent)
     }
 
     pub(crate) fn branch_nodes(

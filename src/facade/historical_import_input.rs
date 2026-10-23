@@ -7,17 +7,14 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(super) use crate::history::source_proof::{node_binding, required_nodes, source_key};
 pub(super) fn corpus_digest(cva: &mut Cva, through: u64) -> Result<[u8; 32], CvaError> {
     let nodes = required_nodes(&cva.archive, through)?;
-    let mut bindings = Vec::with_capacity(nodes.len());
-    for node in nodes.values() {
-        let bytes = cva
-            .archive
-            .content_bytes(&mut cva.container, node.content_id)?;
-        if crate::archive_store::hash_content(&bytes) != node.content_id {
-            return Err(fail("import source content proof mismatch"));
-        }
-        bindings.push(node_binding(node));
-    }
-    crate::history::source_proof::corpus_digest(bindings).map_err(CvaError::from)
+    let access = crate::owner_lifecycle::HistoryReadAccess::new(&cva.container);
+    crate::history::source_proof::corpus_digest_with_content(
+        &access,
+        &cva.archive,
+        nodes.into_values().collect(),
+        "import source content proof mismatch",
+    )
+    .map_err(CvaError::from)
 }
 pub(super) fn scoped_corpus_digest(
     cva: &mut Cva,
@@ -455,115 +452,16 @@ pub(super) fn validate_settlement(
     cva: &mut Cva,
     cp: &crate::freshness_storage::HistoricalImportFreshnessSettlement,
 ) -> Result<(), CvaError> {
-    let fail = |s: &str| CvaError::Freshness(s.into());
-    if cva.owner_uuid() != Some(cp.owner)
-        || cp.settlement_cut > cva.rel_turn_count()
-        || cp.global_version > cva.latest_global_version()
-        || cp.graph_version > cva.graph_version()
-        || cp.memory_graph_version > cva.memory_graph_version()
-        || cp.archive_version > cva.archive_version()
-    {
-        return Err(fail("import checkpoint input cut is unavailable"));
-    }
-    {
-        let scope = cp
-            .semantic
-            .as_ref()
-            .ok_or_else(|| fail("accepted settlement lacks semantic authority"))?;
-        cp.validate().map_err(CvaError::Freshness)?;
-        cva.validate_semantic_import_scope(cp, scope)?;
-        cva.freshness
-            .validate_semantic_import_evidence(scope)
-            .map_err(CvaError::Freshness)?;
-        let import_id: String = cp
-            .import_id
-            .iter()
-            .map(|byte| format!("{byte:02x}"))
-            .collect();
-        if cva.import_epoch_status(&import_id).is_some() {
-            return Ok(());
-        }
-        // An initial unframed V6 settlement retains the same exact publication
-        // cohort and birth-proof requirements as its persisted predecessors.
-    }
-
-    let original: BTreeSet<_> = cva
-        .memory_ids()
-        .into_iter()
-        .filter(|id| {
-            cva.memories
-                .first_global_version(*id)
-                .is_some_and(|version| version <= cp.global_version)
-        })
-        .collect();
-    if original != cp.cohort {
-        return Err(fail(
-            "import checkpoint cohort differs from its accepted Memory prefix",
-        ));
-    }
-    let source = crate::owner_lifecycle::HistorySource::new(&cva.container)
-        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
-    let births = crate::history::legacy_import_births(
-        &source,
+    crate::history::validate_historical_settlement(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
         &cva.archive,
         &cva.memories,
-        cp.global_version,
-        &cp.cohort,
-    )?;
-    for id in cp.cohort.difference(&births) {
-        let first = cva.memory_revision(*id, 1)?;
-        if first.global_version > cp.global_version
-            || !cva.freshness_is_publication_birth(*id)
-            || cva.freshness_publication_cohort(*id)? != BTreeSet::from([*id])
-            || cva.memories.first_mutation_id(*id) != Some(first.mutation_id.as_str())
-        {
-            return Err(fail(
-                "checkpoint lacks verified native singleton publication",
-            ));
-        }
-    }
-    if !births.is_subset(&cp.cohort) {
-        return Err(fail(
-            "import checkpoint does not cover a proven native import",
-        ));
-    }
-    let nodes = required_nodes(&cva.archive, cp.settlement_cut)?;
-    use crate::freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
-    let sources = nodes
-        .values()
-        .map(|node| HistoricalSource {
-            key: SourceKey {
-                conversation_id: node.conversation_id.clone(),
-                node_id: node.id.clone(),
-            },
-            parent_id: node.parent_id.clone(),
-            role: node.role.clone(),
-            timestamp_ns: node.timestamp_ns,
-        })
-        .collect();
-    let positions = nodes
-        .values()
-        .filter_map(|node| {
-            cva.activity_position_for_turn(&node.conversation_id, &node.id)
-                .map(|position| {
-                    (
-                        SourceKey {
-                            conversation_id: node.conversation_id.clone(),
-                            node_id: node.id.clone(),
-                        },
-                        position,
-                    )
-                })
-        })
-        .collect();
-    HistoricalTimeline::from_accepted_archive(sources, &positions, cp.settlement_cut)
-        .map_err(|e| fail(&e.to_string()))?;
-    if corpus_digest(cva, cp.settlement_cut)? != cp.corpus_digest {
-        return Err(fail(
-            "import settlement corpus identity differs from its source prefix",
-        ));
-    }
-    Ok(())
+        &cva.graph,
+        &cva.freshness,
+        &cva.dream_freshness,
+        &cva.import_epochs,
+        cp,
+    )
 }
 
 #[path = "historical_epoch_input.rs"]

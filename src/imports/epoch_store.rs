@@ -61,14 +61,14 @@ impl ImportEpochStore {
         Ok(())
     }
 
-    /// Completion markers may only be appended by the completion coordinator.
-    /// The private operation is visible to the nested coordinator only.
-    fn append_complete_coordinated(
+    /// Completion markers may only be appended when the offline Import
+    /// coordinator supplies its opaque publication value.
+    pub(crate) fn append_complete_publication(
         &mut self,
         container: &mut Container,
-        complete: ImportComplete,
+        publication: ImportCompletionPublication,
     ) -> Result<(), ImportError> {
-        self.append_complete_inner(container, complete)
+        self.append_complete_inner(container, publication.complete)
     }
 
     #[cfg(test)]
@@ -174,6 +174,19 @@ impl ImportEpochStore {
             return Err(ImportError::Epoch("import completion cut is not monotone"));
         }
         Ok(())
+    }
+}
+
+/// An opaque completion admitted by the Import coordinator after its
+/// readiness and historical-evidence checks. Its constructor is confined to
+/// the `imports` module; owner lifecycle can consume it but cannot author one.
+pub(crate) struct ImportCompletionPublication {
+    complete: ImportComplete,
+}
+
+impl ImportCompletionPublication {
+    pub(super) fn new(complete: ImportComplete) -> Self {
+        Self { complete }
     }
 }
 

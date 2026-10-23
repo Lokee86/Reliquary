@@ -268,3 +268,15 @@ If implementation encounters evidence that an existing symbol or invariant diffe
 ## Notes
 
 This interface design does not certify implementation gates or select the settlement format. Later measured design, source and corpus acceptance remain mandatory.
+
+
+## Read-checkpoint refinement during M3 implementation
+
+Review of retained-vector and scoped-corpus errors showed that eagerly constructing a fallible `HistorySource` before a logical preflight changes refusal precedence, and can introduce physical I/O to an empty proof. The concrete `owner_lifecycle::HistoryReadAccess` therefore holds only an immutable owner borrow and is constructed without I/O. It exposes bounded `snapshot()` capture and owner-local immutable record reads, with no Container accessor, writer, callback, or authorizing boolean. History captures `HistorySource` at the original physical-read checkpoint, after the applicable owner checks; a captured snapshot retains the existing identity and extent validation. This refines source acquisition rather than widening the component DAG. The accepted `HistorySource` remains the bounded scan capability. Root review accepts this concrete refinement against the unchanged DAG; error-order and empty-proof regressions remain required evidence.
+
+
+## Ordered REL reconstruction refinement
+
+The existing REL open sequence interleaves owner-local finishing with Archive, Memory and Graph History proofs, then derived Freshness due-index reconstruction, vector finishing, and final settlement/completion proofs. A monolithic lower lifecycle function cannot invoke History under the accepted DAG. The concrete `ReliquaryReplay` therefore keeps its physical Container private and supplies operation-specific finishing stages plus immutable read access. History composes those stages and its own proofs in the existing order; no stage invokes History or an ancestor service. The resulting concrete `ReliquaryOwner` and derived due index are returned to the public facade or an allowed Maintenance/Import consumer. This is the existing REL reconstruction sequence with explicit lower stages, not a generic transaction or owner framework.
+
+The due index in `freshness_due.rs` is exclusively a rebuildable owner-local projection over Freshness records, policy and the boundary index already classified as Freshness-store. It performs no publication, notifications, gateway work or filesystem access. Classifying this exact module as Freshness-store permits its fallible rebuild at the original reconstruction checkpoint; notification delivery remains above the store. Deferring the rebuild until after other owner checks is rejected because it changes error order. Root review accepts these concrete ownership refinements against the unchanged DAG; central compilation, refusal-order review and reopen/maintenance tests remain required before acceptance.

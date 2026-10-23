@@ -67,6 +67,40 @@ impl HistoryFrame {
     }
 }
 
+/// Immutable owner read access whose construction performs no I/O. A proof
+/// captures its bounded snapshot only when its original read checkpoint is
+/// reached, so logical preflight errors keep their precedence.
+pub(crate) struct HistoryReadAccess<'a> {
+    container: &'a Container,
+}
+
+impl<'a> HistoryReadAccess<'a> {
+    pub(crate) fn new(container: &'a Container) -> Self {
+        Self { container }
+    }
+
+    pub(crate) fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.container.owner_uuid()
+    }
+
+    pub(crate) fn latest_global_version(&self) -> u64 {
+        self.container.latest_version()
+    }
+
+    pub(crate) fn snapshot(&self) -> Result<HistorySource<'a>, HistoryReadFailure> {
+        HistorySource::new(self.container)
+    }
+
+    pub(crate) fn memory_revision(
+        &self,
+        memories: &crate::memory_store::MemoryStore,
+        id: crate::MemoryId,
+        revision: u64,
+    ) -> Result<crate::Memory, crate::MemoryError> {
+        memories.memory_revision(self.container, id, revision)
+    }
+}
+
 /// Read-only access to an immutable Container prefix.
 pub(crate) struct HistorySource<'a> {
     container: &'a Container,
@@ -144,6 +178,17 @@ impl<'a> HistorySource<'a> {
             .map_err(|error| error.to_string())
     }
 
+    /// Materialize one accepted immutable Memory revision through the held source.
+    pub(crate) fn memory_revision(
+        &self,
+        memories: &crate::memory_store::MemoryStore,
+        id: crate::MemoryId,
+        revision: u64,
+    ) -> Result<crate::Memory, crate::MemoryError> {
+        self.validate().map_err(|error| error.0)?;
+        memories.memory_revision(self.container, id, revision)
+    }
+
     /// Read one owner-local vector set while preserving immutable snapshot checks.
     pub(crate) fn memory_vector_set(
         &self,
@@ -189,6 +234,17 @@ impl<'a> HistorySource<'a> {
     > {
         self.validate().map_err(|error| error.0)?;
         archive.read_publication(self.container, version)
+    }
+
+    /// Read content through the immutable Archive view while enforcing the
+    /// captured physical source boundary.
+    pub(crate) fn archive_content_bytes(
+        &self,
+        archive: &crate::Archive,
+        id: crate::ContentId,
+    ) -> Result<Vec<u8>, crate::ArchiveError> {
+        self.validate().map_err(|error| error.0)?;
+        archive.content_bytes(self.container, id)
     }
 
     pub(crate) fn archive_retention_proof(

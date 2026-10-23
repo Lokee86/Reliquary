@@ -213,3 +213,12 @@ The [REL finalization preparation receipt](../benchmarks/dependency-convergence-
 ## Publication cohort continuation after f28ab2f
 
 The read-only publication birth-cohort and same-publication scans are moving from the Freshness facade into History through immutable lifecycle sources. Both retain external-publication decoding before Insomnia completion decoding and scan the entire source even after finding a match, so later malformed evidence is not skipped. No publication, scoring or admission policy moves into History. Test compilation and production owner/History guards passed. All **10 cohort tests** and the separate grouped-birth reopen recovery test passed, with zero failures. Full and changed-document policy checks pass. The prior 1,974-test batch belongs to `f28ab2f`; this subsequent move has the focused receipt only.
+
+
+## Settlement and completion-session continuation after e09f331
+
+Historical settlement validation now composes one History implementation for owner/cut availability, semantic epoch binding, accepted Freshness evidence, legacy physical and singleton births, accepted Archive timeline validation and corpus content binding. Timeline value types and pure algorithms are separated from the higher Freshness planner with public reexports preserved. Scoped corpus reads retain per-key lookup/content/hash order, including MissingContent before source capture and no snapshot for an empty scope. Memory revision and Archive content materialization now accept immutable physical access.
+
+Completion publication consumes an opaque Import-authored value through the concrete lifecycle `ImportSession`. Appends restore the closed admission fence before sync; staged epoch state is installed only after successful durability. The former Cva callback is removed from this completion write path. Compilation and production owner/History guards pass; the combined bounded regression batch is in progress. No M3, Import, settlement-design or format gate is accepted by this continuation.
+
+The [settlement/session receipt](../benchmarks/dependency-convergence-phase3-settlement-session-preparation-2026-10-22.json) records **1,974 passed, zero failed, five ignored and the same four long cases filtered**, in 119.56 seconds. This validates the complete read-only settlement proof and completion-session changes before the next reconstruction/readiness integration. Documentation checks for the combined continuation remain pending.

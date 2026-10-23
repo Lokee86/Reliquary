@@ -1,0 +1,22 @@
+{
+  "base_commit": "e09f331",
+  "state": "in-progress-not-accepted",
+  "gate": "M3",
+  "library": {
+    "passed": 1974,
+    "failed": 0,
+    "ignored": 5,
+    "filtered": 4,
+    "seconds": 119.56
+  },
+  "checks": [
+    "cargo check --tests passed",
+    "Production owner and History guards passed"
+  ],
+  "format_changed": false,
+  "known_gaps": [
+    "Ordered REL reconstruction integration pending",
+    "Remaining REL Maintenance and Import coordination pending",
+    "No full-suite or corpus-migration acceptance claimed"
+  ]
+}

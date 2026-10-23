@@ -112,16 +112,11 @@ impl Cva {
             post,
             historical_freshness_settlement_digest: settlement_digest(&settlement),
         };
-        let result = self.with_import_write_scope(|cva| {
-            epochs.append_complete_coordinated(&mut cva.container, complete.clone())
-        });
-        // Store append changes its own local state and admission. Keep the
-        // original owner state and fence until sync-before-acknowledgement.
-        self.container.set_write_admission_closed(true);
-        result?;
-        self.container.sync()?;
+        let publication =
+            crate::imports::epoch_store::ImportCompletionPublication::new(complete.clone());
+        let mut session = crate::owner_lifecycle::ImportSession::offline_rel(&mut self.container)?;
+        session.publish_completion(&mut epochs, publication)?;
         self.import_epochs = epochs;
-        self.container.set_write_admission_closed(false);
         Ok(ImportCompletionOutcome::Completed {
             complete,
             committed: true,

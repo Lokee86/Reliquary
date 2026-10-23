@@ -295,7 +295,7 @@ impl MemoryStore {
 
     pub(crate) fn memory_revision(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: MemoryId,
         revision: u64,
     ) -> Result<Memory, MemoryError> {
@@ -952,11 +952,7 @@ impl MemoryStore {
         Ok(())
     }
 
-    fn body_bytes(
-        &self,
-        container: &mut Container,
-        id: MemoryBodyId,
-    ) -> Result<Vec<u8>, MemoryError> {
+    fn body_bytes(&self, container: &Container, id: MemoryBodyId) -> Result<Vec<u8>, MemoryError> {
         if self.prune.get(id).is_some() {
             return Err(MemoryError::PayloadUnavailable(
                 crate::owner_lifecycle::PayloadUnavailable::Pruned,
@@ -1081,7 +1077,7 @@ impl MemoryStore {
 
     fn resolve_record(
         &self,
-        container: &mut Container,
+        container: &Container,
         record: &MemoryRecord,
     ) -> Result<Memory, MemoryError> {
         let body = self.body_bytes(container, record.body_id)?;

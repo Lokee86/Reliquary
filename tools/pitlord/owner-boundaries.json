@@ -1512,6 +1512,21 @@
       "path": "src/history/publication_cohorts.rs",
       "component": "history",
       "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_session.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/settlement_scope.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/historical_timeline.rs",
+      "component": "pure-codec",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -1646,6 +1661,14 @@
     {
       "module": "history::publication_cohorts",
       "component": "history"
+    },
+    {
+      "module": "history::settlement_scope",
+      "component": "history"
+    },
+    {
+      "module": "historical_timeline",
+      "component": "pure-codec"
     }
   ],
   "producer_value_contracts": [
@@ -2188,6 +2211,36 @@
       "owner": "memory-store",
       "symbol": "MemoryRef",
       "reason": "Immutable external-memory reference retained in accepted Insomnia output evidence."
+    },
+    {
+      "consumer": "history",
+      "owner": "pure-codec",
+      "symbol": "HistoricalSource",
+      "reason": "Immutable source timeline input value only; History owns accepted Archive selection and the pure algorithm has no owner capability."
+    },
+    {
+      "consumer": "history",
+      "owner": "pure-codec",
+      "symbol": "HistoricalTimeline",
+      "reason": "Immutable accepted Archive timeline result only; no Freshness service, storage, or scoring authority."
+    },
+    {
+      "consumer": "history",
+      "owner": "pure-codec",
+      "symbol": "SourceKey",
+      "reason": "Immutable source identity used as a timeline coordinate; no owner capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "pure-codec",
+      "symbol": "HistoricalTimeline",
+      "reason": "Immutable timeline value returned from the existing Freshness public planning API; no planner service or scoring authority."
+    },
+    {
+      "consumer": "import",
+      "owner": "pure-codec",
+      "symbol": "SourceKey",
+      "reason": "Immutable source coordinate used in the existing Import planning DTO; no owner capability."
     }
   ],
   "forbidden_symbols": [

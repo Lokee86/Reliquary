@@ -57,3 +57,34 @@ pub(crate) fn legacy_import_births(
     }
     Ok(births)
 }
+
+/// Authenticate legacy singleton births after the physical native-birth scan.
+/// The first revision is materialized before checking accepted Dream birth facts;
+/// the cohort scan is deferred until the original short-circuit reaches it.
+pub(crate) fn validate_legacy_singleton_births(
+    source: &HistorySource<'_>,
+    memories: &MemoryStore,
+    dream: &crate::freshness_dream_journal::DreamFreshnessJournal,
+    global_cut: u64,
+    cohort: &BTreeSet<MemoryId>,
+    births: &BTreeSet<MemoryId>,
+) -> Result<(), OwnerError> {
+    for id in cohort.difference(births) {
+        let first = source.memory_revision(memories, *id, 1)?;
+        if first.global_version > global_cut
+            || !dream.is_publication_birth(*id)
+            || super::publication_birth_cohort(source, *id)? != BTreeSet::from([*id])
+            || memories.first_mutation_id(*id) != Some(first.mutation_id.as_str())
+        {
+            return Err(OwnerError::Freshness(
+                "checkpoint lacks verified native singleton publication".into(),
+            ));
+        }
+    }
+    if !births.is_subset(cohort) {
+        return Err(OwnerError::Freshness(
+            "import checkpoint does not cover a proven native import".into(),
+        ));
+    }
+    Ok(())
+}

@@ -33,6 +33,7 @@ pub use rewrite::{RewriteError, RewritePlan, RewriteReport, RewriteRequest};
 mod compact_delta;
 #[path = "freshness/trace.rs"]
 mod freshness_trace;
+mod historical_timeline;
 mod maintenance;
 #[path = "maintenance/store.rs"]
 mod owner_maintenance;

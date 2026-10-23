@@ -115,3 +115,120 @@ pub(crate) fn timeline_facts(archive: &Archive) -> TimelineFacts {
         activity_count: archive.rel_turn_count(),
     }
 }
+
+/// Authenticate Archive content for already-selected source Nodes, then produce
+/// the canonical corpus digest. Selection stays with the caller so its logical
+/// refusal order precedes physical source validation.
+pub(crate) fn corpus_digest_with_content(
+    access: &crate::owner_lifecycle::HistoryReadAccess<'_>,
+    archive: &Archive,
+    nodes: Vec<Node>,
+    mismatch_message: &'static str,
+) -> Result<[u8; 32], OwnerError> {
+    let mut bindings = Vec::with_capacity(nodes.len());
+    let mut source = None;
+    for node in nodes {
+        archive.require_content(node.content_id)?;
+        if source.is_none() {
+            source = Some(
+                access
+                    .snapshot()
+                    .map_err(|error| OwnerError::Container(error.0))?,
+            );
+        }
+        bindings.push(node_binding_with_content(
+            source.as_ref().expect("source was initialized"),
+            archive,
+            node,
+            mismatch_message,
+        )?);
+    }
+    corpus_digest(bindings)
+}
+
+/// Resolve and authenticate scoped source Nodes one at a time. Empty scopes do
+/// not capture or validate a physical source.
+pub(crate) fn scoped_corpus_digest_with_content(
+    access: &crate::owner_lifecycle::HistoryReadAccess<'_>,
+    archive: &Archive,
+    source_nodes: &BTreeSet<(String, String)>,
+    mismatch_message: &'static str,
+) -> Result<[u8; 32], OwnerError> {
+    let mut bindings = Vec::with_capacity(source_nodes.len());
+    let mut source = None;
+    for (conversation, id) in source_nodes {
+        let node = scoped_node(archive, conversation, id)?;
+        archive.require_content(node.content_id)?;
+        if source.is_none() {
+            source = Some(
+                access
+                    .snapshot()
+                    .map_err(|error| OwnerError::Container(error.0))?,
+            );
+        }
+        bindings.push(node_binding_with_content(
+            source.as_ref().expect("source was initialized"),
+            archive,
+            node,
+            mismatch_message,
+        )?);
+    }
+    corpus_digest(bindings)
+}
+
+/// Authenticate one selected source Node's content and return its canonical
+/// binding. Keeping this operation per-node preserves scoped lookup/read order.
+pub(crate) fn node_binding_with_content(
+    source: &crate::owner_lifecycle::HistorySource<'_>,
+    archive: &Archive,
+    node: Node,
+    mismatch_message: &'static str,
+) -> Result<Value, OwnerError> {
+    let bytes = source.archive_content_bytes(archive, node.content_id)?;
+    if crate::archive_store::hash_content(&bytes) != node.content_id {
+        return Err(OwnerError::Freshness(mismatch_message.into()));
+    }
+    Ok(node_binding(&node))
+}
+
+/// Build and validate the accepted Archive activity clock for one source cut.
+/// The timeline algorithm is a pure value operation; History owns selecting the
+/// Archive facts that belong to this exact cut.
+pub(crate) fn accepted_archive_timeline(
+    archive: &Archive,
+    through: u64,
+) -> Result<crate::historical_timeline::HistoricalTimeline, OwnerError> {
+    use crate::historical_timeline::{HistoricalSource, HistoricalTimeline, SourceKey};
+
+    let nodes = required_nodes(archive, through)?;
+    let sources = nodes
+        .values()
+        .map(|node| HistoricalSource {
+            key: SourceKey {
+                conversation_id: node.conversation_id.clone(),
+                node_id: node.id.clone(),
+            },
+            parent_id: node.parent_id.clone(),
+            role: node.role.clone(),
+            timestamp_ns: node.timestamp_ns,
+        })
+        .collect();
+    let positions = nodes
+        .values()
+        .filter_map(|node| {
+            archive
+                .activity_position_for_turn(&node.conversation_id, &node.id)
+                .map(|position| {
+                    (
+                        SourceKey {
+                            conversation_id: node.conversation_id.clone(),
+                            node_id: node.id.clone(),
+                        },
+                        position,
+                    )
+                })
+        })
+        .collect();
+    HistoricalTimeline::from_accepted_archive(sources, &positions, through)
+        .map_err(|error| OwnerError::Freshness(error.to_string()))
+}

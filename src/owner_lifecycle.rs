@@ -2,7 +2,9 @@
 
 #[path = "owner_lifecycle/history_source.rs"]
 mod history_source;
-pub(crate) use history_source::{HistoryFrame, HistoryReadFailure, HistorySource};
+pub(crate) use history_source::{
+    HistoryFrame, HistoryReadAccess, HistoryReadFailure, HistorySource,
+};
 
 #[path = "owner_lifecycle/vocabulary.rs"]
 mod vocabulary;
@@ -111,3 +113,7 @@ mod reliquary_accepted_replay;
 pub(crate) use reliquary_accepted_replay::{
     ReliquaryAcceptedReplay, finish_reliquary_accepted_replay,
 };
+
+#[path = "owner_lifecycle/import_session.rs"]
+mod import_session;
+pub(crate) use import_session::ImportSession;
