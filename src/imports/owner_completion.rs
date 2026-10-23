@@ -1,39 +1,90 @@
-//! Native owner completion entry point for Import's completion policy.
-use crate::imports::{ImportCompletionOutcome, ImportWatermarks};
-use crate::owner_lifecycle::{ImportSession, OwnerError, ReliquaryOwner};
+//! Native owner entry point for Import's one canonical completion sequence.
+use crate::Archive;
+use crate::entity_resolution_store::EntityResolutionStore;
+use crate::freshness_dream_journal::DreamFreshnessJournal;
+use crate::freshness_storage::{FreshnessStore, HistoricalImportFreshnessSettlement};
+use crate::graph_store::GraphStore;
+use crate::imports::{ImportCompletionOutcome, ImportEpochStore, ImportWatermarks};
+use crate::insomnia::store::InsomniaStore;
+use crate::memory_store::MemoryStore;
+use crate::owner_lifecycle::{ImportCompletionAccess, OwnerError, ReliquaryOwner};
+use crate::processing_epoch_store::ProcessingEpochStore;
 
-/// Complete an open import using accepted facts from the concrete native owner.
-/// The ordering mirrors the former facade coordinator: validate retained
-/// settlements, recover durable epoch state, then apply start/receipt gates,
-/// derive the exact scope and readiness inputs, and finally publish completion.
+/// Immutable owner evidence captured for this completion request.
+pub(crate) struct CompletionReadViews<'a> {
+    pub(crate) archive: &'a Archive,
+    pub(crate) memories: &'a MemoryStore,
+    pub(crate) graph: &'a GraphStore,
+    pub(crate) freshness: &'a FreshnessStore,
+    pub(crate) dream_freshness: &'a DreamFreshnessJournal,
+    pub(crate) insomnia: &'a InsomniaStore,
+    pub(crate) processing_epochs: &'a ProcessingEpochStore,
+    pub(crate) entity_resolutions: &'a EntityResolutionStore,
+    pub(crate) watermarks: ImportWatermarks,
+    pub(crate) turn: u64,
+}
+
+/// Complete an open import using accepted facts from a concrete native owner.
+/// This wrapper gathers owner views; `complete_with_views` owns the sequence.
 pub(crate) fn complete(
     owner: &mut ReliquaryOwner,
     import_id: &str,
     now_ns: i64,
 ) -> Result<ImportCompletionOutcome, OwnerError> {
-    validate_retained_settlements(owner)?;
+    let views = CompletionReadViews {
+        archive: &owner.archive,
+        memories: &owner.memories,
+        graph: &owner.graph,
+        freshness: &owner.freshness,
+        dream_freshness: &owner.dream_freshness,
+        insomnia: &owner.insomnia,
+        processing_epochs: &owner.processing_epochs,
+        entity_resolutions: &owner.entity_resolutions,
+        watermarks: watermarks(owner),
+        turn: owner.archive.rel_turn_count(),
+    };
+    let mut access = ImportCompletionAccess::new(&mut owner.container);
+    complete_with_views(
+        &mut access,
+        &mut owner.import_epochs,
+        import_id,
+        now_ns,
+        views,
+    )
+}
 
-    let mut session = ImportSession::offline_rel(&mut owner.container)?;
-    let (mut epochs, recovered) = crate::imports::completion_coordinator::recover_import(
+/// The facade supplies its concrete constituent views and this lifecycle
+/// access; all recovery, refusal and publication ordering remains here.
+pub(crate) fn complete_with_views(
+    access: &mut ImportCompletionAccess<'_>,
+    epochs: &mut ImportEpochStore,
+    import_id: &str,
+    now_ns: i64,
+    views: CompletionReadViews<'_>,
+) -> Result<ImportCompletionOutcome, OwnerError> {
+    validate_retained_settlements(access, epochs, &views)?;
+
+    let mut session = access.session()?;
+    let (mut recovered_epochs, recovered) = crate::imports::completion_coordinator::recover_import(
         &mut session,
-        &owner.archive,
+        views.archive,
         import_id,
     )?;
     let start = match recovered {
         crate::imports::completion_coordinator::RecoveredImport::Completed(outcome) => {
-            owner.import_epochs = epochs;
+            *epochs = recovered_epochs;
             return Ok(outcome);
         }
         crate::imports::completion_coordinator::RecoveredImport::Open(start) => start,
     };
 
-    // Preserve the accepted recovered prefix even when a later start/receipt
-    // validation refuses completion.
-    owner.import_epochs = epochs.clone();
+    // Keep the accepted recovered prefix even if a later time or receipt gate
+    // refuses completion, matching the facade's former state transition.
+    *epochs = recovered_epochs.clone();
     drop(session);
 
     crate::imports::completion_coordinator::validate_started_at(&start, now_ns)?;
-    let Some(receipt) = owner
+    let Some(receipt) = views
         .archive
         .import_receipts
         .get(&start.import_key)
@@ -43,76 +94,74 @@ pub(crate) fn complete(
     };
     crate::imports::completion_coordinator::validate_receipt(&start, &receipt)?;
 
-    let settlement = owner
+    let settlement = views
         .freshness
         .import_settlements()
         .iter()
-        .find(|settlement| {
-            settlement
-                .import_id
-                .iter()
-                .map(|byte| format!("{byte:02x}"))
-                .collect::<String>()
-                == start.import_id
-        })
+        .find(|settlement| settlement_id(settlement) == start.import_id)
         .cloned();
-    let history = owner.history_read_access();
-    let settlement_owners = crate::history::HistoricalSettlementReadOwners::new(
-        &owner.archive,
-        &owner.memories,
-        &owner.graph,
-        &owner.dream_freshness,
-        &owner.import_epochs,
-        &owner.freshness,
-    );
-    let scope = settlement_owners.epoch_scope(&history, start.clone())?;
-    let current_watermarks = watermarks(owner);
-    let current_turn = owner.archive.rel_turn_count();
-    let insomnia = crate::insomnia::import_readiness::ImportReadiness::new(&owner.insomnia);
-    let dream = crate::dream_readiness::DreamReadiness::new(
-        &owner.dream_freshness,
-        &owner.processing_epochs,
-    );
+    let scope = crate::history::read_import_epoch_scope(
+        &access.history_access(),
+        views.archive,
+        views.memories,
+        start.clone(),
+    )?;
+    let insomnia = crate::insomnia::import_readiness::ImportReadiness::new(views.insomnia);
+    let dream =
+        crate::dream_readiness::DreamReadiness::new(views.dream_freshness, views.processing_epochs);
     let perception = crate::perception_import_readiness::ImportReadiness::new(
-        &owner.memories,
-        &owner.entity_resolutions,
+        views.memories,
+        views.entity_resolutions,
     );
 
-    let mut session = ImportSession::offline_rel(&mut owner.container)?;
+    let mut session = access.session()?;
     let outcome = crate::imports::completion_coordinator::complete_import(
         &mut session,
-        &mut epochs,
+        &mut recovered_epochs,
         &start,
         &receipt,
         settlement.as_ref(),
         &scope,
-        &owner.archive,
-        &owner.memories,
+        views.archive,
+        views.memories,
         &insomnia,
         &dream,
         &perception,
-        current_turn,
-        current_watermarks,
+        views.turn,
+        views.watermarks,
         now_ns,
     )?;
-    owner.import_epochs = epochs;
+    *epochs = recovered_epochs;
     Ok(outcome)
 }
 
-fn validate_retained_settlements(owner: &ReliquaryOwner) -> Result<(), OwnerError> {
-    let access = owner.history_read_access();
-    let owners = crate::history::HistoricalSettlementReadOwners::new(
-        &owner.archive,
-        &owner.memories,
-        &owner.graph,
-        &owner.dream_freshness,
-        &owner.import_epochs,
-        &owner.freshness,
-    );
-    for settlement in owner.freshness.import_settlements().to_vec() {
-        owners.validate(&access, &settlement)?;
+fn validate_retained_settlements(
+    access: &ImportCompletionAccess<'_>,
+    epochs: &ImportEpochStore,
+    views: &CompletionReadViews<'_>,
+) -> Result<(), OwnerError> {
+    let history = access.history_access();
+    for settlement in views.freshness.import_settlements().to_vec() {
+        crate::history::validate_historical_settlement(
+            &history,
+            views.archive,
+            views.memories,
+            views.graph,
+            views.freshness,
+            views.dream_freshness,
+            epochs,
+            &settlement,
+        )?;
     }
     Ok(())
+}
+
+fn settlement_id(settlement: &HistoricalImportFreshnessSettlement) -> String {
+    settlement
+        .import_id
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn watermarks(owner: &ReliquaryOwner) -> ImportWatermarks {

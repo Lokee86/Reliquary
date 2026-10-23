@@ -1524,6 +1524,11 @@
       "classification": "production"
     },
     {
+      "path": "src/owner_lifecycle/import_completion_access.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
       "path": "src/owner_lifecycle/import_epoch_transport.rs",
       "component": "owner-lifecycle",
       "classification": "production"

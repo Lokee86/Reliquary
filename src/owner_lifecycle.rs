@@ -120,6 +120,10 @@ pub(crate) use reliquary_accepted_replay::{
 mod import_session;
 pub(crate) use import_session::ImportSession;
 
+#[path = "owner_lifecycle/import_completion_access.rs"]
+mod import_completion_access;
+pub(crate) use import_completion_access::ImportCompletionAccess;
+
 #[path = "owner_lifecycle/import_epoch_transport.rs"]
 pub(crate) mod import_epoch_transport;
 
