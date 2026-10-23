@@ -45,6 +45,42 @@ impl<'a> DreamEvidenceReadAccess<'a> {
         crate::history::publication_birth_cohort(&source, member)
     }
 
+    /// Read publication-birth eligibility without exposing the Dream journal.
+    pub(crate) fn is_publication_birth(&self, member: MemoryId) -> bool {
+        self.dream.is_publication_birth(member)
+    }
+
+    /// Read the accepted initial-pass settlement fact for one publication.
+    pub(crate) fn initial_pass_settled(&self, pass_id: &str) -> bool {
+        self.dream.is_settled(pass_id)
+    }
+
+    /// Whether any Dream pass or publication initialization remains unfinished.
+    pub(crate) fn has_pending(&self) -> bool {
+        self.dream.has_pending()
+    }
+
+    /// Assemble owner-local graph admission from the retained read capabilities.
+    pub(crate) fn graph_admission(
+        &self,
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+        ids: &BTreeSet<MemoryId>,
+        cohort: &BTreeSet<MemoryId>,
+        scoped: bool,
+    ) -> crate::history::graph_proof::GraphAdmissionProof {
+        crate::history::graph_proof::read_graph_admission(
+            self.history,
+            archive,
+            memories,
+            self.dream,
+            self.graph,
+            ids,
+            cohort,
+            scoped,
+        )
+    }
+
     pub(crate) fn read_evidence(&self, pass: &crate::InitialDreamPass) -> DreamEvidenceReadOutcome {
         #[cfg(feature = "freshness-performance-trace")]
         let started = std::time::Instant::now();

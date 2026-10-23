@@ -35,6 +35,7 @@ pub use providers::normalize_agent;
 pub(crate) mod historical_event_plan;
 pub(crate) mod historical_events;
 pub(crate) mod historical_manifest_model;
+pub(crate) mod historical_manifest;
 
 pub(crate) mod historical_embedding_model;
 pub(crate) mod historical_manifest_plan;

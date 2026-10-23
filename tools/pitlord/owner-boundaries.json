@@ -1859,6 +1859,11 @@
       "classification": "production"
     },
     {
+      "path": "src/imports/historical_manifest.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
       "path": "src/imports/historical_manifest_plan.rs",
       "component": "import",
       "classification": "production"
