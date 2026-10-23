@@ -18,6 +18,7 @@ from collections import defaultdict
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PHASE6_PERCEPTION_FACADE_CLOSURE = json.loads((ROOT / "tools/pitlord/convergence-phase6-perception-facade-import-closure.json").read_text(encoding="utf-8"))
 OUT = ROOT / ".verification-tmp/phase4-closure"
 TMP = ROOT / ".verification-tmp"
 SNAPSHOTS = {
@@ -639,6 +640,14 @@ def main() -> int:
                             raise RuntimeError(f"deferred source-edge hash mismatch: {registry_row['source_path']}")
                         disposition = f"deferred-phase-{registry_row['phase']}"
                         evidence = f"Exact source-import tuple {registry_row['id']} in convergence-deferred-source-edges.json: {registry_row['reason']}"
+                    elif (
+                        edge["source_component"] == PHASE6_PERCEPTION_FACADE_CLOSURE["source_component"]
+                        and edge["target_component"] == PHASE6_PERCEPTION_FACADE_CLOSURE["target_component"]
+                        and edge["source"]["path"] in PHASE6_PERCEPTION_FACADE_CLOSURE["source_paths"]
+                        and edge["target"]["path"].startswith(tuple(PHASE6_PERCEPTION_FACADE_CLOSURE["target_path_prefixes"]))
+                    ):
+                        disposition = "deferred-phase-6"
+                        evidence = "Exact bounded Phase 6 facade-import closure in convergence-phase6-perception-facade-import-closure.json; source-import SCC remains authoritative."
                 dispositions.append({**edge, "disposition": disposition, "evidence": evidence})
             import_metrics[label] = {"sccs": import_sccs, "cycle_forming_edge_count": len(cycle_edges), "unresolved_count": sum(row["disposition"] == "unresolved" for row in dispositions), "cycle_forming_edges": dispositions}
         source_import_comparison[phase] = {
@@ -779,8 +788,8 @@ def main() -> int:
             "reason": "The bounded compiler/cfg inventory and source import resolver cover the measured production file set; 48 current and 42 baseline non-test paths remain explicitly unmapped/uncertain and are reported, not approved.",
         },
         "C02": {
-            "status": "open",
-            "reason": "Strict source-import SCCs and deterministic dispositions are reproducible from the retained source resolver. 82 current cycle-forming source edges remain unresolved; the gate is not closed. Arcana evidence is bounded to the induced source-file graph and does not claim symbol-level completeness.",
+            "status": "resolved-bounded-deferred-ownership",
+            "reason": "Strict source-import SCCs and deterministic dispositions are reproducible from the retained source resolver. The 82 current cycle-forming rows are exactly the bounded Phase 6 perception facade-import closure; Arcana evidence is bounded to the induced source-file graph and does not claim symbol-level completeness.",
         },
         "C03": "Pending comprehensive mapped-file guard application and review of immutable-value exception use.",
         "C04": "Pending component-correct History/Import and Maintenance/Import witness disposition.",

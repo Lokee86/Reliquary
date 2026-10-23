@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "status": "exact-bounded-phase6-deferred-ownership",
+  "scope": "Only current strict source-import rows in the Phase 1-3 SCC whose source is a macro-generated public-consumer perception façade module and whose target is a perception implementation module.",
+  "source_component": "public-consumers",
+  "target_component": "perception",
+  "phase": 6,
+  "source_paths": [
+    "src/perception/entity_audit.rs",
+    "src/perception/entity_candidates.rs",
+    "src/perception/entity_reconciliation.rs",
+    "src/perception/entity_reconciliation_commit.rs",
+    "src/perception/entity_reconciliation_owner.rs",
+    "src/perception/entity_reconciliation_prepare.rs",
+    "src/perception/entity_resolution_batch.rs",
+    "src/perception/entity_resolution_commit.rs",
+    "src/perception/entity_resolution_owner.rs",
+    "src/perception/entity_resolution_prepare.rs",
+    "src/perception/entity_resolution_processor.rs"
+  ],
+  "target_path_prefixes": ["src/perception/"],
+  "row_count": 82,
+  "reason": "The façade modules generate Cva/Phylactery public methods while importing perception-owned implementation contracts. Phase 6 owns this outward API migration; this bounded closure does not permit imports from other source areas or new dependencies.",
+  "authority": "The exact current source-import rows and SCC membership remain authoritative; Arcana induced file-node export is supplementary only and cannot prove cross-component completeness."
+}
