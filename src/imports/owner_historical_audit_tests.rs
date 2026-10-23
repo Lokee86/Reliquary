@@ -4,7 +4,7 @@
 //! frozen input. Its JSON output is a measurement artifact, not an acceptance receipt.
 
 use super::freeze;
-use crate::{Container, Cva};
+use crate::Container;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -231,17 +231,12 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
             settlement_row["payload_sha256"].as_str().unwrap()
         );
 
-        let full_owner = match Cva::open_read_only(&path) {
-            Ok(owner) => owner,
-            Err(error) => {
-                outcomes.push(json!({"fixture": fixture, "source_sha256": expected_hash, "status": "full_source_open_error", "error": error.to_string()}));
-                continue;
-            }
-        };
-        let Some(expected) = full_owner.freshness.import_settlements().first().cloned() else {
-            outcomes.push(json!({"fixture": fixture, "status": "missing_original_settlement"}));
-            continue;
-        };
+        // The frozen source's whole-owner history acceptance is a separate
+        // corpus oracle. Decode the exact authenticated frame here instead of
+        // repeating an unrelated whole-file open before every prefix audit.
+        let expected =
+            crate::freshness_storage::HistoricalImportFreshnessSettlement::decode(original_payload)
+                .unwrap();
         let mut prefix_material = Sha256::new();
         prefix_material.update(std::process::id().to_le_bytes());
         prefix_material.update(fixture.as_bytes());
@@ -338,6 +333,17 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
                 "error": error,
             }),
         });
+        let outcome = outcomes.last().unwrap();
+        eprintln!(
+            "S3 prefix {}: {}",
+            fixture,
+            outcome["status"].as_str().unwrap_or("measured")
+        );
+        fs::write(
+            report_dir.join("phase3-s3-regeneration-progress.json"),
+            serde_json::to_vec_pretty(&outcomes).unwrap(),
+        )
+        .unwrap();
         let _ = fs::remove_file(prefix_path);
     }
 
