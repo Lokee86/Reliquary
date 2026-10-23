@@ -39,6 +39,7 @@ pub(crate) mod historical_manifest_model;
 
 pub(crate) mod historical_embedding_model;
 pub(crate) mod historical_manifest_plan;
+pub(crate) mod historical_reconstruction;
 pub(crate) mod historical_reconstruction_model;
 pub(crate) mod historical_settlement_plan;
 

@@ -30,6 +30,31 @@ pub(crate) fn validate_epoch_policy(policy: FreshnessPolicy) -> Result<(), Owner
     Ok(())
 }
 
+/// Shared legacy whole-owner preflight for the facade entry point and native manifest.
+/// Inputs are already captured owner facts; this helper performs no reads or mutation.
+pub(crate) fn validate_legacy_owner_policy(
+    owner_uuid: Option<[u8; 16]>,
+    activity_cut: u64,
+    has_open_epoch: bool,
+    policy: FreshnessPolicy,
+    has_pending_dream_pass: bool,
+    insomnia: crate::InsomniaStats,
+) -> Result<[u8; 16], OwnerError> {
+    let owner = owner_uuid.ok_or_else(|| fail("historical import requires a durable REL owner"))?;
+    if (activity_cut == 0 && !has_open_epoch)
+        || policy != FreshnessPolicy::default_v1()
+        || has_pending_dream_pass
+    {
+        return Err(fail(
+            "unsupported import owner/policy or unfinished generation",
+        ));
+    }
+    if insomnia.pending + insomnia.processing + insomnia.failed + insomnia.terminal != 0 {
+        return Err(fail("import Insomnia generation is not complete"));
+    }
+    Ok(owner)
+}
+
 /// Require settled publication-birth evidence for one already selected cohort member.
 pub(crate) fn validate_settled_birth(
     is_publication_birth: bool,

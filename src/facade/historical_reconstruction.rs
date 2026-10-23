@@ -20,26 +20,31 @@ impl Cva {
         &mut self,
         options: HistoricalReconstructionOptions,
     ) -> Result<HistoricalReconstructionReport, HistoricalReconstructionError> {
-        if options.fill_missing_embeddings
-            && self.open_import_epoch().is_none()
-            && self.freshness.import_settlements().is_empty()
+        let open_epoch = if options.fill_missing_embeddings {
+            self.open_import_epoch()
+        } else {
+            None
+        };
+        let accepted_settlement_exists = if options.fill_missing_embeddings && open_epoch.is_none()
         {
-            return Err(HistoricalReconstructionError::EmbeddingFillUnavailable);
-        }
+            Some(!self.freshness.import_settlements().is_empty())
+        } else {
+            None
+        };
+        crate::imports::historical_reconstruction::validate_initial_fill_admission(
+            options.fill_missing_embeddings,
+            open_epoch.as_ref(),
+            accepted_settlement_exists,
+        )?;
         let frozen = self.freeze_historical_import()?;
-        if options.fill_missing_embeddings && frozen.epoch {
-            return Err(HistoricalReconstructionError::EmbeddingFillUnavailable);
-        }
-        let prepared = frozen.prepare_native()?;
+        let prepared = crate::imports::historical_reconstruction::prepare_without_endpoint(
+            frozen,
+            options.fill_missing_embeddings,
+        )?;
         let committed = self.commit_historical_import(&prepared)?;
-        Ok(HistoricalReconstructionReport {
-            import_id: prepared.settlement.import_id,
-            manifest_digest: prepared.settlement.manifest_digest,
-            activity_cut: prepared.settlement.settlement_cut,
-            reconstructed_memories: prepared.settlement.records.len(),
-            committed,
-            embedding: None,
-        })
+        Ok(crate::imports::historical_reconstruction::report(
+            &prepared, committed, None,
+        ))
     }
 }
 
@@ -89,9 +94,15 @@ impl Cva {
         let frozen = self
             .freeze_historical_import_with_fill(true)
             .map_err(|e| embedding::owner_error(e, report.clone()))?;
-        let prepared = frozen
-            .prepare_native()
-            .map_err(|e| embedding::owner_error(e, report.clone()))?;
+        let prepared =
+            crate::imports::historical_reconstruction::prepare_frozen(frozen).map_err(|error| {
+                match error {
+                    HistoricalReconstructionError::Owner(error) => {
+                        embedding::owner_error(error, report.clone())
+                    }
+                    error => error,
+                }
+            })?;
         if embedding::check_cancel(cancel).is_err() {
             return Err(embedding::cancelled_error(report));
         }
@@ -100,13 +111,10 @@ impl Cva {
         let committed = self
             .commit_historical_import(&prepared)
             .map_err(|e| embedding::owner_error(e, report.clone()))?;
-        Ok(HistoricalReconstructionReport {
-            import_id: prepared.settlement.import_id,
-            manifest_digest: prepared.settlement.manifest_digest,
-            activity_cut: prepared.settlement.settlement_cut,
-            reconstructed_memories: prepared.settlement.records.len(),
+        Ok(crate::imports::historical_reconstruction::report(
+            &prepared,
             committed,
-            embedding: Some(report),
-        })
+            Some(report),
+        ))
     }
 }

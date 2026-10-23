@@ -1,5 +1,4 @@
 //! Native Import manifest orchestration over narrow immutable owner reads.
-use crate::freshness::FreshnessPolicy;
 use crate::history::manifest_encoding::Value;
 use crate::owner_lifecycle::{HistoryReadAccess, OwnerError};
 use crate::{Archive, CommunitySnapshot};
@@ -55,23 +54,14 @@ pub(crate) fn build(
         super::historical_manifest_plan::validate_epoch_policy(views.freshness.policy())?;
         owner
     } else {
-        let owner = views
-            .cut
-            .owner_uuid
-            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
-        if (views.cut.activity_cut == 0 && scope.is_none())
-            || views.freshness.policy() != FreshnessPolicy::default_v1()
-            || views.dream.has_pending()
-        {
-            return Err(fail(
-                "unsupported import owner/policy or unfinished generation",
-            ));
-        }
-        let stats = views.cut.insomnia;
-        if stats.pending + stats.processing + stats.failed + stats.terminal != 0 {
-            return Err(fail("import Insomnia generation is not complete"));
-        }
-        owner
+        super::historical_manifest_plan::validate_legacy_owner_policy(
+            views.cut.owner_uuid,
+            views.cut.activity_cut,
+            scope.is_some(),
+            views.freshness.policy(),
+            views.dream.has_pending(),
+            views.cut.insomnia,
+        )?
     };
 
     // Preserve the original preflight order: owner policy, ancestry, timeline,

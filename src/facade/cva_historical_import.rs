@@ -3,10 +3,7 @@ use crate::freshness_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
 };
 use crate::history::manifest_encoding as encoding;
-use crate::{
-    Cva, CvaError, MemoryId,
-    freshness::{FreshnessPolicy, FreshnessRecord},
-};
+use crate::{Cva, CvaError, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 #[cfg(test)]
@@ -199,22 +196,14 @@ mod tests;
 
 impl Cva {
     fn historical_reconstruction_owner(&self) -> Result<[u8; 16], CvaError> {
-        let owner = self
-            .owner_uuid()
-            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
-        if (self.rel_turn_count() == 0 && self.open_import_epoch().is_none())
-            || self.freshness_policy() != FreshnessPolicy::default_v1()
-            || self.freshness_has_pending_dream_passes()
-        {
-            return Err(fail(
-                "unsupported import owner/policy or unfinished generation",
-            ));
-        }
-        let stats = self.insomnia_stats();
-        if stats.pending + stats.processing + stats.failed + stats.terminal != 0 {
-            return Err(fail("import Insomnia generation is not complete"));
-        }
-        Ok(owner)
+        crate::imports::historical_manifest_plan::validate_legacy_owner_policy(
+            self.owner_uuid(),
+            self.rel_turn_count(),
+            self.open_import_epoch().is_some(),
+            self.freshness_policy(),
+            self.freshness_has_pending_dream_passes(),
+            self.insomnia_stats(),
+        )
     }
 }
 
