@@ -66,15 +66,34 @@ fn promoted_canonical_corpus_reopens_after_runtime_retirement() {
         &fs::read(repo.join("benchmarks/canonical-history-promotion-2026-10-21.json")).unwrap(),
     )
     .unwrap();
+    let conversion: serde_json::Value = serde_json::from_slice(
+        &fs::read(
+            repo.join("benchmarks/dependency-convergence-phase3-corpus-conversion-2026-10-23.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(conversion["format"], "CVAFRS07");
     let root = repo.join("../reliquary-fixtures/local/authoritative");
     for row in report["fixtures"].as_array().unwrap() {
         let key = row["fixture"].as_str().unwrap();
         let path = root.join(key);
         let before = fs::read(&path).unwrap();
         let modified = fs::metadata(&path).unwrap().modified().unwrap();
+        let converted = conversion["fixtures"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|fixture| fixture["fixture"] == key)
+            .expect("missing conversion fixture");
+        assert_eq!(
+            converted["original_sha256"], row["canonical_sha256"],
+            "conversion before-image differs from immutable promotion for {key}"
+        );
         assert_eq!(
             format!("{:x}", Sha256::digest(&before)),
-            row["canonical_sha256"].as_str().unwrap()
+            converted["converted_sha256"].as_str().unwrap(),
+            "promoted converted hash {key}"
         );
         let heads = if key.ends_with(".rel") {
             let owner = Cva::open(&path).unwrap();
@@ -135,6 +154,7 @@ fn semantic_owners_require_current_durable_identity() {
 fn retired_freshness_and_import_evidence_reject_without_changing_source() {
     let root = directory();
     for magic in [
+        b"CVAFRS06",
         b"CVAFRS03",
         b"CVAFRS04",
         b"CVAFRS05",
