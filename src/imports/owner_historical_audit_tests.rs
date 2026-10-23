@@ -257,8 +257,7 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
         let prefix_hash = hex(&Sha256::digest(fs::read(&prefix_path).unwrap()));
 
         let result = (|| -> Result<Value, String> {
-            let container =
-                Container::open_read_only(&prefix_path).map_err(|error| error.to_string())?;
+            let container = Container::open(&prefix_path).map_err(|error| error.to_string())?;
             let mut replay = crate::owner_lifecycle::ReliquaryReplay::read(container)
                 .map_err(|error| error.to_string())?;
             let reconstruction = crate::history::reconstruct_reliquary(&mut replay)
@@ -342,6 +341,10 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
         let _ = fs::remove_file(prefix_path);
     }
 
+    let failed_regenerations = outcomes
+        .iter()
+        .filter(|row| row.get("status").is_some())
+        .count();
     let report = json!({
         "schema": 1,
         "purpose": "ignored test-only native S3 regeneration audit; no source or frozen corpus mutation",
@@ -374,4 +377,8 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
         );
     }
     assert_eq!(report["fixtures"].as_array().unwrap().len(), 3);
+    assert_eq!(
+        failed_regenerations, 0,
+        "regeneration failures are measurements unavailable, not successful parity"
+    );
 }
