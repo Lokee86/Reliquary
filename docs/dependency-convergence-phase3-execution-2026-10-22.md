@@ -34,14 +34,14 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | W3 | Accepted locally | Immutable planning, concrete lifecycle execution, owner-local replay, selected semantic/vector emission and source-preserving publication; W3 receipt below. |
 | R3 | Accepted locally | Generic Maintenance policy; lower producer replay; 86 final reconciliation and 90 Import tests; [receipt](../benchmarks/dependency-convergence-phase3-reconciliation-2026-10-22.json). |
 | I3 | Accepted locally | Native historical preparation, one completion sequence, epoch reconciliation, exact guards and bounded integration; [receipt](../benchmarks/dependency-convergence-phase3-import-2026-10-23.json). |
-| S3 | Pending | Measured settlement alternatives and selected design. |
+| S3 | Accepted locally | Exact causal reconstruction, measured authority corrections, two executable alternatives and selected CVAFRS07 design receipt. |
 | C3 | Pending | Format/corpus conversion, parity, promotion and deletion. |
 | D3 | Pending | Stabilized graph refresh and source enforcement. |
 | A3 | Pending | Full integration, corpus and documentation acceptance. |
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 65/98 original accepted + 21/21 additional verified = 86/119 closed; 33 original pending or active.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 71/98 original accepted + 21/21 additional verified = 92/119 closed; 27 original pending or active.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -110,12 +110,12 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.7.08 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
 | P3.8.01 | Accepted locally | I3 prerequisite accepted; six frozen hashes/current CVAFRS06 codec and exact per-file baseline retained; field audit and dictionary control receipt |
 | P3.8.02 | Accepted locally | Exact byte/authority accounting for every requested field; full-authority model round-trips all three frames exactly |
-| P3.8.03 | Active | Retained owner facts and causal reconstruction audited; native prefix regeneration still running |
-| P3.8.04 | Pending | Awaiting prerequisite gate |
-| P3.8.05 | Pending | Awaiting prerequisite gate |
-| P3.8.06 | Pending | Awaiting prerequisite gate |
-| P3.8.07 | Pending | Awaiting prerequisite gate |
-| P3.8.08 | Pending | Awaiting prerequisite gate |
+| P3.8.03 | Accepted locally | Independent native prefix/journal audit validates all three retained event populations; numeric basis survives relocation without physical prefix authority |
+| P3.8.04 | Accepted locally | Full-authority dictionary control versus causal basis plus sparse accepted score authority; measured cost, locality and bounds |
+| P3.8.05 | Accepted locally | All three original payloads reconstructed byte-for-byte; exact same-turn order and accepted/superseded journal identities preserved |
+| P3.8.06 | Accepted locally | CVAFRS07 canonical grammar, v7 domain, exact original scope digests and completion raw-payload binding frozen |
+| P3.8.07 | Accepted locally | Per-corpus executable Python time/peak allocation and Rust evidence audit recorded; no persistent cache or inference |
+| P3.8.08 | Accepted locally | Root-selected current-only CVAFRS07 design, bounded canonical conversion/deletion and runtime test obligations frozen |
 | P3.9.01 | Pending | Awaiting prerequisite gate |
 | P3.9.02 | Pending | Awaiting prerequisite gate |
 | P3.9.03 | Pending | Awaiting prerequisite gate |
@@ -316,3 +316,10 @@ A repository-local offline build of the current sibling Arcana source at `.verif
 ## S3 baseline and field audit task closure
 
 With I3 accepted, P3.8.01 and P3.8.02 close on the frozen six-file before-images, unchanged CVAFRS06 source, exact per-field measurements and independently executed dictionary control. These outcomes do not depend on selecting a representation. Current progress is **86/119 (72.3%) = 65 original accepted + 21 additional verified**; **33 original tasks remain pending or active**. The eight accepted gates are unchanged. P3.8.03 remains active because causal regeneration and retained-fact reconstruction are not yet fully verified; no S3 format freeze, codec implementation or corpus promotion is claimed.
+
+
+## S3 format selection and evidence closure
+
+All six S3 design tasks P3.8.03–.08 now close on the [selected CVAFRS07 design](dependency-convergence-phase3-settlement-format-2026-10-23.md) and [measurement receipt](../benchmarks/dependency-convergence-phase3-settlement-design-measurements-2026-10-23.json). Native release regeneration validates every original accepted journal leaf for all three REL fixtures. All initial anchor values are retained exactly; the two executable alternatives both reconstruct original CVAFRS06 payloads byte-for-byte. Regeneration alone differs in 2,165 accepted scores and four metadata fields, so the selected single grammar preserves exact original metadata and sparse nonzero score corrections. Candidate payloads total 1,118,112 bytes versus 1,140,580 for the full-postimage control. Prototype checksum, missing/changed journal leaf, duplicate ordinal and zero-delta probes refuse. These are design/prototype results, not runtime codec acceptance.
+
+Progress is **92/119 (77.3%) = 71 original accepted + 21 additional verified**, with **27 original tasks pending or active**. Nine of twelve gates are accepted locally; **C3/D3/A3 remain open**. C3 must implement the canonical Rust decoder using the existing scorer, validate all boundary/identity/corruption cases, convert disposable copies and pass the frozen semantic oracle before promotion. Runtime still uses CVAFRS06 at this design checkpoint; no corpus or graph snapshot has changed.

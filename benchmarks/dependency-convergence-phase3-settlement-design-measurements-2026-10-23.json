@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "status": "verified_design_measurements_not_runtime_acceptance",
+  "source_commit": "b25f6d2",
+  "regeneration_release_seconds": 241.16,
+  "regeneration_log": ".verification-tmp/phase3-s3-regeneration-leaf-proof-run.log",
+  "exact_basis_artifact_sha256": "346d700ad2b20ef77023811632758642ac54fb04ba75bc5ef0f6ac7c8586c31c",
+  "frozen_sources": {
+    "chatgpt-first14d/project.prj.rel": {
+      "after": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "before": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d"
+    },
+    "chatgpt-first14d/user.phy": {
+      "after": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "before": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63"
+    },
+    "chatgpt-first28d/project.prj.rel": {
+      "after": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "before": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92"
+    },
+    "chatgpt-first28d/user.phy": {
+      "after": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "before": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d"
+    },
+    "rhelm-david-r-ellis-pre-relationship/project.prj.rel": {
+      "after": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "before": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab"
+    },
+    "rhelm-david-r-ellis-pre-relationship/user.phy": {
+      "after": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "before": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0"
+    }
+  },
+  "regeneration": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "original_record_count": 1123,
+      "regenerated_record_count": 1123,
+      "residual_record_count": 0,
+      "nonrecord_field_differences": [
+        "start_evidence_digest",
+        "manifest_digest",
+        "input_digest",
+        "semantic_scope"
+      ],
+      "original_event_leaves_validated_against_prefix_journal": true,
+      "causal_basis_bytes": 92835
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "original_record_count": 2847,
+      "regenerated_record_count": 2847,
+      "residual_record_count": 2162,
+      "nonrecord_field_differences": [
+        "start_evidence_digest",
+        "manifest_digest",
+        "input_digest",
+        "semantic_scope"
+      ],
+      "original_event_leaves_validated_against_prefix_journal": true,
+      "causal_basis_bytes": 209869
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "original_record_count": 725,
+      "regenerated_record_count": 725,
+      "residual_record_count": 3,
+      "nonrecord_field_differences": [
+        "start_evidence_digest",
+        "manifest_digest",
+        "input_digest",
+        "semantic_scope"
+      ],
+      "original_event_leaves_validated_against_prefix_journal": true,
+      "causal_basis_bytes": 99231
+    }
+  ],
+  "control_payload_bytes": 1140580,
+  "causal_score_correction_candidate": {
+    "status": "measurement_prototype_not_selected",
+    "files": [
+      {
+        "fixture": "chatgpt-first14d/project.prj.rel",
+        "candidate_bytes": 310786,
+        "original_bytes": 1830473,
+        "exact_original_payload_roundtrip": true,
+        "score_corrections": 0,
+        "encode_seconds": 0.44608470000093803,
+        "decode_seconds": 0.5094269000110216,
+        "python_encode_peak_bytes": 3105133,
+        "python_decode_peak_bytes": 4921844,
+        "independent_journal_leaf_proof": true
+      },
+      {
+        "fixture": "chatgpt-first28d/project.prj.rel",
+        "candidate_bytes": 693922,
+        "original_bytes": 4330845,
+        "exact_original_payload_roundtrip": true,
+        "score_corrections": 2162,
+        "encode_seconds": 0.8488931999891065,
+        "decode_seconds": 1.1615815000259317,
+        "python_encode_peak_bytes": 6575980,
+        "python_decode_peak_bytes": 11355062,
+        "independent_journal_leaf_proof": true
+      },
+      {
+        "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+        "candidate_bytes": 113404,
+        "original_bytes": 1254399,
+        "exact_original_payload_roundtrip": true,
+        "score_corrections": 3,
+        "encode_seconds": 0.8207630999968387,
+        "decode_seconds": 0.6676070999819785,
+        "python_encode_peak_bytes": 2793620,
+        "python_decode_peak_bytes": 3070337,
+        "independent_journal_leaf_proof": true
+      }
+    ],
+    "total_candidate_bytes": 1118112
+  },
+  "interpretation": [
+    "Current native regeneration alone changes2165accepted scores; never replace original records with regenerated scores.",
+    "All admission/accounting anchors match; exact signed score corrections preserve irreducible accepted numeric authority without persisting complete output postimages.",
+    "All original event leaves validate against independent pre-settlement journal; exact copied recipient sets can be resolved there.",
+    "Original start/manifest/input digests are retained, because regenerated digests differ.",
+    "All source hashes match before/after; no runtime codec or corpus changed."
+  ],
+  "adversarial_prototype_probes": {
+    "status": "prototype_probes_passed_not_runtime_acceptance",
+    "probes": {
+      "chatgpt-first14d/project.prj.rel": [
+        "checksum-bit-0",
+        "checksum-bit-155393",
+        "checksum-bit-310785",
+        "absent-journal-leaf",
+        "changed-journal-digest",
+        "changed-journal-turn",
+        "zero-initial-source-position",
+        "duplicate-recipient-ordinal"
+      ],
+      "chatgpt-first28d/project.prj.rel": [
+        "checksum-bit-0",
+        "checksum-bit-346961",
+        "checksum-bit-693921",
+        "absent-journal-leaf",
+        "changed-journal-digest",
+        "changed-journal-turn",
+        "zero-initial-source-position",
+        "duplicate-recipient-ordinal",
+        "zero-correction-recipient-delta"
+      ],
+      "rhelm-david-r-ellis-pre-relationship/project.prj.rel": [
+        "checksum-bit-0",
+        "checksum-bit-56702",
+        "checksum-bit-113403",
+        "absent-journal-leaf",
+        "changed-journal-digest",
+        "changed-journal-turn",
+        "zero-initial-source-position",
+        "duplicate-recipient-ordinal",
+        "zero-correction-recipient-delta"
+      ]
+    }
+  }
+}

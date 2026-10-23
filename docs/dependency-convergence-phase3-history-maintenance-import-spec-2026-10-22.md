@@ -313,3 +313,10 @@ Progress is **84/119 closed (70.6%) = 63 original accepted + 21 additional verif
 
 
 S3's independent frozen-byte and exact field-audit tasks P3.8.01–.02 are now accepted after I3, using the existing six-file baseline and executed dictionary control. Progress is **86/119 closed = 65 original accepted + 21 additional verified**, with **33 original tasks pending or active**. P3.8.03 is active; S3/C3/D3/A3 gates remain pending. No representation, format or corpus change is selected by this task credit.
+
+
+## S3 format selection and evidence closure
+
+All six S3 design tasks P3.8.03–.08 now close on the [selected CVAFRS07 design](dependency-convergence-phase3-settlement-format-2026-10-23.md) and [measurement receipt](../benchmarks/dependency-convergence-phase3-settlement-design-measurements-2026-10-23.json). Native release regeneration validates every original accepted journal leaf for all three REL fixtures. All initial anchor values are retained exactly; the two executable alternatives both reconstruct original CVAFRS06 payloads byte-for-byte. Regeneration alone differs in 2,165 accepted scores and four metadata fields, so the selected single grammar preserves exact original metadata and sparse nonzero score corrections. Candidate payloads total 1,118,112 bytes versus 1,140,580 for the full-postimage control. Prototype checksum, missing/changed journal leaf, duplicate ordinal and zero-delta probes refuse. These are design/prototype results, not runtime codec acceptance.
+
+Progress is **92/119 (77.3%) = 71 original accepted + 21 additional verified**, with **27 original tasks pending or active**. Nine of twelve gates are accepted locally; **C3/D3/A3 remain open**. C3 must implement the canonical Rust decoder using the existing scorer, validate all boundary/identity/corruption cases, convert disposable copies and pass the frozen semantic oracle before promotion. Runtime still uses CVAFRS06 at this design checkpoint; no corpus or graph snapshot has changed.

@@ -272,3 +272,4 @@
 - [Phase 2 concrete owner contracts](dependency-convergence-phase2-contracts-2026-10-22.md)
 
 - [Phase 2 execution and acceptance ledger](dependency-convergence-phase2-execution-2026-10-22.md)
+- [Phase 3 compact settlement format selection](dependency-convergence-phase3-settlement-format-2026-10-23.md)
