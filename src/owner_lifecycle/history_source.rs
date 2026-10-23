@@ -137,6 +137,72 @@ impl<'a> HistoryReadAccess<'a> {
         crate::entity_resolution_store::EntityResolutionStore::materialized_changes(self.container)
     }
 
+    pub(crate) fn archive_replay_range(
+        &self,
+        archive: &crate::Archive,
+        project_files: &crate::project_file_binding_store::ProjectFileStore,
+        first: usize,
+        end: usize,
+    ) -> Result<crate::archive_ordered_replay::ArchiveTail, crate::ArchiveError> {
+        crate::archive_ordered_replay::read_archive_range(
+            crate::archive_ordered_replay::ArchiveReplaySource {
+                container: self.container,
+                archive,
+                project_files,
+            },
+            first,
+            end,
+        )
+    }
+    pub(crate) fn memory_replay_range(
+        &self,
+        memories: &crate::memory_store::MemoryStore,
+        first: usize,
+        end: usize,
+    ) -> Result<crate::memory_ordered_replay::MemoryTail, crate::CvaReconcileError> {
+        crate::memory_ordered_replay::read_memory_range(
+            crate::memory_ordered_replay::MemoryReplaySource {
+                container: self.container,
+                memories,
+            },
+            first,
+            end,
+        )
+    }
+    pub(crate) fn entity_replay_range(
+        &self,
+        entities: &crate::entity_store::EntityStore,
+        first: usize,
+        end: usize,
+    ) -> Result<crate::entity_ordered_replay::EntityTail, crate::EntityError> {
+        crate::entity_ordered_replay::read_entity_range(self.container, entities, first, end)
+    }
+    pub(crate) fn relationship_replay_range(
+        &self,
+        relationships: &crate::relationship_store::RelationshipStore,
+        first: usize,
+        end: usize,
+    ) -> Result<crate::relationship_ordered_replay::RelationshipTail, crate::RelationshipError>
+    {
+        crate::relationship_ordered_replay::read_relationship_range(
+            self.container,
+            relationships,
+            first,
+            end,
+        )
+    }
+    pub(crate) fn graph_replay_range(
+        &self,
+        graph: &crate::graph_store::GraphStore,
+        first: usize,
+        end: usize,
+    ) -> Result<
+        crate::graph_ordered_replay::GraphTail,
+        crate::graph_ordered_replay::GraphTailReadError,
+    > {
+        crate::graph_ordered_replay::read_graph_range(self.container, graph, first, end)
+    }
+
     pub(crate) fn current_memory(
         &self,
         memories: &crate::memory_store::MemoryStore,

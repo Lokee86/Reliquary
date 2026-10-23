@@ -10,7 +10,7 @@ use crate::{
 use std::collections::HashSet;
 
 pub(crate) struct MemoryReplaySource<'a> {
-    pub(crate) container: &'a mut Container,
+    pub(crate) container: &'a Container,
     pub(crate) memories: &'a MemoryStore,
 }
 
@@ -43,7 +43,7 @@ pub(crate) fn read_memory_range(
     start_chunk: usize,
     end_chunk: usize,
 ) -> Result<MemoryTail, CvaReconcileError> {
-    let chunks = source.container.chunks()?;
+    let chunks = source.container.chunk_refs()?;
     let mut revisions = Vec::new();
     let mut completions = Vec::new();
     let mut seen = HashSet::new();

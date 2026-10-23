@@ -47,17 +47,26 @@ impl Coordinates {
         end: usize,
     ) -> Result<Self, CvaReconcileError> {
         let mut result = Self::default();
-        result.resolutions =
-            crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
-                &mut source.container,
-            )?;
+        result.resolutions = source
+            .history_read_access()
+            .materialized_resolution_changes()?;
         result.graph.insert(0, 0);
         result.memory_graph.insert(0, 0);
         for chunk in physical_objects(source)?.into_iter().take(end) {
-            let payload = source.container.read(chunk)?;
-            if let Some(v) = crate::graph_compact_codec::publication::version_at(chunk, &payload)? {
+            let payload = source
+                .history_read_access()
+                .snapshot()
+                .map_err(|e| CvaError::Container(e.0))?
+                .read_object(chunk)
+                .map_err(|e| CvaError::Container(e.0))?;
+            if let Some(v) = crate::history::import_replay_read::graph_version(chunk, &payload)? {
                 result.graph.insert(v.graph_version, v.graph_version);
-                let mutation = source.container.read(v.mutation)?;
+                let mutation = source
+                    .history_read_access()
+                    .snapshot()
+                    .map_err(|e| CvaError::Container(e.0))?
+                    .read_object(v.mutation)
+                    .map_err(|e| CvaError::Container(e.0))?;
                 let changes = source
                     .graph
                     .decode_stored_mutations(&mutation)?
@@ -68,8 +77,8 @@ impl Coordinates {
                     result.memory_graph.insert(v.graph_version, v.graph_version);
                 }
             }
-            if let Some(s) =
-                crate::community_codec::decode_snapshot(&payload).map_err(CvaError::from)?
+            if let Some(s) = crate::history::import_replay_read::community_snapshot(&payload)
+                .map_err(CvaError::from)?
             {
                 result.community.insert(s.generation, s.generation);
             }
@@ -91,11 +100,21 @@ impl Coordinates {
             let mut graphs = Vec::new();
             let mut communities = Vec::new();
             for chunk in physical_objects(cva)?.into_iter().take(end).skip(first) {
-                let payload = cva.container.read(chunk)?;
+                let payload = cva
+                    .history_read_access()
+                    .snapshot()
+                    .map_err(|e| CvaError::Container(e.0))?
+                    .read_object(chunk)
+                    .map_err(|e| CvaError::Container(e.0))?;
                 if let Some(version) =
-                    crate::graph_compact_codec::publication::version_at(chunk, &payload)?
+                    crate::history::import_replay_read::graph_version(chunk, &payload)?
                 {
-                    let raw = cva.container.read(version.mutation)?;
+                    let raw = cva
+                        .history_read_access()
+                        .snapshot()
+                        .map_err(|e| CvaError::Container(e.0))?
+                        .read_object(version.mutation)
+                        .map_err(|e| CvaError::Container(e.0))?;
                     let changes = cva
                         .graph
                         .decode_stored_mutations(&raw)?
@@ -108,7 +127,8 @@ impl Coordinates {
                     ));
                 }
                 if let Some(snapshot) =
-                    crate::community_codec::decode_snapshot(&payload).map_err(CvaError::from)?
+                    crate::history::import_replay_read::community_snapshot(&payload)
+                        .map_err(CvaError::from)?
                 {
                     communities.push(snapshot.generation);
                 }
@@ -194,30 +214,16 @@ pub(super) fn replay_frame(
     payload: &[u8],
     coordinates: &mut Coordinates,
 ) -> Result<usize, CvaReconcileError> {
-    if crate::entity_resolution_codec::retained::is_source(payload) {
-        let bytes = crate::entity_resolution_codec::retained::encode(payload)?;
+    if let Some(bytes) = crate::perception_import_replay::retained_resolution_carrier(payload)? {
         crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
             &mut output.container,
             &bytes,
         )?;
         return Ok(0);
     }
-    if crate::entity_resolution_codec::retained::decode(payload)?.is_some() {
-        crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
-            &mut output.container,
-            payload,
-        )?;
-        return Ok(0);
-    }
-    let archive = crate::archive_ordered_replay::read_archive_range(
-        crate::archive_ordered_replay::ArchiveReplaySource {
-            container: &source.container,
-            archive: &source.archive,
-            project_files: &source.project_files,
-        },
-        index,
-        index + 1,
-    )?;
+    let archive =
+        crate::history::import_replay_read::ImportReplayRead::new(source.history_read_access())
+            .archive_range(&source.archive, &source.project_files, index, index + 1)?;
     crate::owner_lifecycle::archive_ordered_replay::replay_archive_tail(
         crate::owner_lifecycle::archive_ordered_replay::ArchiveReplayDestination {
             container: &mut output.container,
@@ -233,25 +239,27 @@ pub(super) fn replay_frame(
             &output.memories,
             &archive.file_memory_links,
         )?;
-    if let Some(mut completion) = crate::insomnia::completion::decode_completion(payload)
+    if let Some(mut completion) = crate::insomnia::import_replay::decode_completion(payload)
         .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
     {
-        crate::owner_lifecycle::grouped_import_replay::hydrate_grouped_import_completion_bodies(
-            &mut source.container,
-            &source.memories,
-            &mut completion,
-        )
-        .map_err(crate::owner_lifecycle::OwnerError::from)?;
+        source
+            .history_read_access()
+            .snapshot()
+            .map_err(|e| CvaError::Container(e.0))?
+            .hydrate_grouped_completion(&source.memories, &mut completion)
+            .map_err(crate::owner_lifecycle::OwnerError::from)?;
         for id in &completion.memory_ids {
             if completion.records.iter().any(|record| record.id == *id) {
                 continue;
             }
-            let mut incoming = source
-                .memories
-                .memory_revision(&mut source.container, *id, 1)?;
-            let mut existing = output
-                .memories
-                .memory_revision(&mut output.container, *id, 1)?;
+            let mut incoming =
+                source
+                    .history_read_access()
+                    .memory_revision(&source.memories, *id, 1)?;
+            let mut existing =
+                output
+                    .history_read_access()
+                    .memory_revision(&output.memories, *id, 1)?;
             incoming.global_version = 0;
             incoming.memory_version = 0;
             existing.global_version = 0;
@@ -279,14 +287,9 @@ pub(super) fn replay_frame(
         .map_err(Into::into);
     }
     if crate::memory_compact_codec::publication::coordinates(payload)?.is_some() {
-        let memory = crate::memory_ordered_replay::read_memory_range(
-            crate::memory_ordered_replay::MemoryReplaySource {
-                container: &mut source.container,
-                memories: &source.memories,
-            },
-            index,
-            index + 1,
-        )?;
+        let memory =
+            crate::history::import_replay_read::ImportReplayRead::new(source.history_read_access())
+                .memory_range(&source.memories, index, index + 1)?;
         let result = crate::memory_ordered_replay::replay_memory_tail(
             crate::memory_ordered_replay::MemoryReplayDestination {
                 archive: &output.archive,
@@ -304,33 +307,28 @@ pub(super) fn replay_frame(
             .memories
             .put_routing_metadata(&mut output.container, metadata)?;
     }
-    let entities = crate::entity_ordered_replay::read_entity_range(
-        &source.container,
-        &source.entities,
-        index,
-        index + 1,
-    )?;
-    let result = crate::entity_ordered_replay::replay_entity_tail(
+    let entities =
+        crate::history::import_replay_read::ImportReplayRead::new(source.history_read_access())
+            .entity_range(&source.entities, index, index + 1)?;
+    let result = crate::owner_lifecycle::import_epoch_transport::replay_entity_tail(
         &mut output.container,
         &mut output.entities,
         entities,
     )?;
     coordinates.entity_revisions += result.revisions;
     coordinates.duplicate_entity_revisions += result.duplicate_revisions;
-    let relationships = crate::relationship_ordered_replay::read_relationship_range(
-        &source.container,
-        &source.relationships,
-        index,
-        index + 1,
-    )?;
-    let result = crate::relationship_ordered_replay::replay_relationship_tail(
+    let relationships =
+        crate::history::import_replay_read::ImportReplayRead::new(source.history_read_access())
+            .relationship_range(&source.relationships, index, index + 1)?;
+    let result = crate::owner_lifecycle::import_epoch_transport::replay_relationship_tail(
         &mut output.container,
         &mut output.relationships,
         relationships,
     )?;
     coordinates.relationship_revisions += result.revisions;
     coordinates.duplicate_relationship_revisions += result.duplicate_revisions;
-    if let Some((_, graph_version)) = crate::graph_compact_codec::publication::coordinates(payload)?
+    if let Some((_, graph_version)) =
+        crate::history::import_replay_read::graph_coordinates(payload)?
     {
         let graph = read_graph_range(source, index, index + 1)?;
         let preserve_import_postimages = output.import_epochs.open().is_some();
@@ -358,7 +356,7 @@ pub(super) fn replay_frame(
         }
     }
     if let Some(mut snapshot) =
-        crate::community_codec::decode_snapshot(payload).map_err(CvaError::from)?
+        crate::history::import_replay_read::community_snapshot(payload).map_err(CvaError::from)?
     {
         let original = snapshot.generation;
         snapshot.derived_graph_version =
@@ -415,13 +413,7 @@ pub(super) fn replay_frame(
             .get(index)
             .ok_or_else(|| unsupported("Dream source physical frame is absent"))?;
         if let Some(mut pass) =
-            crate::owner_lifecycle::dream_begin_transport::materialized_dream_begin(
-                &source.container,
-                &source.archive,
-                &source.memories,
-                chunk,
-                payload,
-            )?
+            source.history_read_access().snapshot().map_err(|e| CvaError::Container(e.0))?.materialized_dream_begin(&source.archive, &source.memories, chunk, payload)?
         {
             pass.turn = turn(source, output, pass.turn).map_err(CvaError::Freshness)?;
             pass.graph_version_before =
@@ -482,7 +474,7 @@ pub(super) fn replay_frame(
                 .put(&mut output.container, memory, lane, state)?;
         }
     }
-    if let Some(record) = crate::insomnia::codec::decode_record(payload)? {
+    if let Some(record) = crate::insomnia::import_replay::decode_record(payload)? {
         // These records have no container coordinates. Preserve retries,
         // failures and lease transitions in their accepted physical order.
         match record {
@@ -502,17 +494,16 @@ pub(super) fn replay_frame(
             }
         }
     }
-    if crate::entity_resolution_codec::delta::is_current(payload) {
+    if crate::perception_import_replay::is_resolution_delta(payload) {
         let object = *physical_objects(source)?
             .get(index)
             .ok_or_else(|| unsupported("resolution source frame unavailable"))?;
         // Tests/direct callers may construct empty Coordinates; resolve against
         // the actual source prefix, never the destination's inherited evidence.
         if !coordinates.resolutions.contains_key(&object) {
-            coordinates.resolutions =
-                crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
-                    &mut source.container,
-                )?;
+            coordinates.resolutions = source
+                .history_read_access()
+                .materialized_resolution_changes()?;
         }
         let change = coordinates
             .resolutions
@@ -531,16 +522,6 @@ pub(super) fn read_graph_range(
     start_chunk: usize,
     end_chunk: usize,
 ) -> Result<crate::graph_ordered_replay::GraphTail, CvaReconcileError> {
-    crate::graph_ordered_replay::read_graph_range(
-        &source.container,
-        &source.graph,
-        start_chunk,
-        end_chunk,
-    )
-    .map_err(|error| match error {
-        crate::graph_ordered_replay::GraphTailReadError::Graph(error) => error.into(),
-        crate::graph_ordered_replay::GraphTailReadError::InvalidGraphVersionRecord => {
-            CvaReconcileError::InvalidGraphVersionRecord
-        }
-    })
+    crate::history::import_replay_read::ImportReplayRead::new(source.history_read_access())
+        .graph_range(&source.graph, start_chunk, end_chunk)
 }

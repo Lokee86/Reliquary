@@ -51,3 +51,19 @@ pub(crate) fn cleanup_created_output_after_failure(identity: CreatedOutputIdenti
         let _ = std::fs::remove_file(path);
     }
 }
+
+pub(crate) fn replay_entity_tail(
+    container: &mut Container,
+    owner: &mut crate::entity_store::EntityStore,
+    tail: crate::entity_ordered_replay::EntityTail,
+) -> Result<crate::entity_ordered_replay::EntityReplayResult, crate::EntityError> {
+    crate::entity_ordered_replay::replay_entity_tail(container, owner, tail)
+}
+pub(crate) fn replay_relationship_tail(
+    container: &mut Container,
+    owner: &mut crate::relationship_store::RelationshipStore,
+    tail: crate::relationship_ordered_replay::RelationshipTail,
+) -> Result<crate::relationship_ordered_replay::RelationshipReplayResult, crate::RelationshipError>
+{
+    crate::relationship_ordered_replay::replay_relationship_tail(container, owner, tail)
+}

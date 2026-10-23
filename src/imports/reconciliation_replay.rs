@@ -196,7 +196,7 @@ pub(super) fn replay_interval(
             .collect();
         for episode in episodes {
             if output.insomnia.work(episode.id).is_none() {
-                let source = crate::insomnia_admission::episode_source(
+                let source = crate::owner_lifecycle::insomnia_replay::episode_source(
                     &episode,
                     if episode.origin == crate::EpisodeOrigin::Import {
                         crate::InsomniaPriority::Import

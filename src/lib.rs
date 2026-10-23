@@ -1827,7 +1827,7 @@ use owner_lifecycle::memory_frames as memory_frame_admission;
 
 use history::memory_retention as memory_prune_admission;
 
-#[path = "facade/dream_replay_transport.rs"]
+#[path = "runtime_inference/dream_replay_transport.rs"]
 mod dream_replay_transport;
 
 mod source_identity;
@@ -1899,3 +1899,6 @@ mod graph_relation_sets;
 
 #[path = "facade/cva_import_scope.rs"]
 mod cva_import_scope;
+
+#[path = "perception/import_replay.rs"]
+pub(crate) mod perception_import_replay;
