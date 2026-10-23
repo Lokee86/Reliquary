@@ -23,6 +23,9 @@ pub(crate) mod memory_frames;
 #[path = "owner_lifecycle/insomnia_replay.rs"]
 pub(crate) mod insomnia_replay;
 
+#[path = "owner_lifecycle/insomnia_import_replay.rs"]
+pub(crate) mod insomnia_import_replay;
+
 #[path = "owner_lifecycle/open_route.rs"]
 pub(crate) mod open_route;
 

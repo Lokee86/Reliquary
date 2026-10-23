@@ -1,5 +1,7 @@
 use crate::{EpisodeBuildResult, EpisodeId, MemoryId, MemoryRef};
 
+pub const MAX_INSOMNIA_CANDIDATES: usize = 64;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum InsomniaPriority {
     ImmediateLive,

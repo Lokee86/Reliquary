@@ -331,8 +331,9 @@ fn validate_replay_interval(
         {
             return Err(unsupported("unhandled owner payload in import interval"));
         }
-        if let Some(completion) = crate::insomnia::import_replay::decode_completion(&payload)
-            .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
+        if let Some(completion) =
+            crate::owner_lifecycle::insomnia_import_replay::decode_completion(&payload)
+                .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
         {
             if !completion.external_memory_refs.is_empty() {
                 return Err(unsupported("import interval with external PHY publication"));

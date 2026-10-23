@@ -1,0 +1,192 @@
+{
+  "schema": "dependency-convergence-phase1-3-owner-closure.v1",
+  "status": "C03-comprehensive-owner-import/physical-guard-evidence-pass; C04-native-History/Import/Maintenance-source-boundaries-pass; component graph tracked separately",
+  "as_of": "2026-10-23",
+  "source_checkpoint": "current working tree after reviewed C03 ownership corrections",
+  "source_basis": [
+    "tools/pitlord/owner-boundaries.json",
+    "tools/pitlord/production-components.json",
+    "tools/pitlord/convergence-component-dag.json",
+    "scripts/check_owner_boundaries.py existing module and export resolver",
+    "scripts/check_history_boundaries.py",
+    "scripts/check_physical_boundary.py",
+    "scripts/check_component_dag.py",
+    "direct inspection of Insomnia completion, store, and Import callsites"
+  ],
+  "coverage": {
+    "current_rust_source_files": 1267,
+    "current_reachable_production_paths_in_component_map": 807,
+    "unresolved_current_reachable_production_files": 0,
+    "mapped_current_files": 838,
+    "current_excluded_or_uncertain_files": 48,
+    "registered_owner_production_files": 409,
+    "registered_history_production_files": 34,
+    "producer_value_contracts": 133,
+    "registered_owner_consumer_contracts": 128,
+    "scope_limit": "The owner checker and immutable-value-use enumeration cover registered owner source files, not every production method call or arbitrary macro expansion. Compiler/component inventory coverage does not upgrade the lexical owner checker into a call graph."
+  },
+  "C03": {
+    "status": "registered owner and physical boundaries pass after narrow ownership corrections",
+    "physical_guard": {
+      "command": "python scripts/check_physical_boundary.py",
+      "result": "pass",
+      "fixtures": 13,
+      "checked": [
+        "allowlist",
+        "callback",
+        "handle escape",
+        "open purity"
+      ]
+    },
+    "owner_guard": {
+      "commands": [
+        "python scripts/check_owner_boundaries.py --self-test",
+        "python scripts/check_owner_boundaries.py"
+      ],
+      "result": "fixtures and registered production owner-import check pass"
+    },
+    "immutable_value_use_audit": {
+      "method": "Existing check_owner_boundaries module tree, cfg(test) stripping, and export resolver applied to each producer_value_contract in the registered production owner-file set.",
+      "contracts": 128,
+      "referenced": 128,
+      "unused": [],
+      "matched_reference_rows": 397,
+      "interpretation": "All 128 remaining registered-owner-consumer contracts have observed uses. Two unused source-boundary exceptions were retired after the audit; the five Freshness service timeline-value contracts are separately evidenced.",
+      "audit_run": "Re-ran the existing helper under .verification-tmp/phase4-guards/audit_producer_values.py against the final 409 production owner-file set; this uses the existing checker module tree/export resolver rather than a new scanner.",
+      "retired_unused_contracts": [
+        {
+          "consumer": "freshness-store",
+          "owner": "graph-store",
+          "symbol": "CommunityId",
+          "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
+        },
+        {
+          "consumer": "history",
+          "owner": "freshness-store",
+          "symbol": "ImportEventScope",
+          "reason": "Immutable accepted physical and semantic settlement boundary used for owner-history verification."
+        }
+      ]
+    },
+    "freshness_historical_timeline_value_contracts": {
+      "contracts": 5,
+      "items": [
+        {
+          "symbol": "HistoricalSource",
+          "evidence": "src/freshness/historical_planner.rs:13 public re-export; the planner's public source input is a timeline source record."
+        },
+        {
+          "symbol": "HistoricalTimeline",
+          "evidence": "src/freshness/historical_planner.rs:13 public re-export and planner parameter at line 58."
+        },
+        {
+          "symbol": "PlannerError",
+          "evidence": "src/freshness/historical_planner.rs:13 public re-export and planning result at line 61."
+        },
+        {
+          "symbol": "SourceKey",
+          "evidence": "src/freshness/historical_planner.rs:13 public re-export; planner result coordinates use it at lines 19, 26-28."
+        },
+        {
+          "symbol": "TimelineEntry",
+          "evidence": "src/freshness/historical_planner.rs:13 public re-export of an immutable timeline result."
+        }
+      ],
+      "use_reason": "Immutable source timeline inputs, results, coordinates, and errors retained by the Freshness public planning API; no planner or owner capability.",
+      "guard_evidence": "In-memory extension of the existing owner checker to src/freshness/historical_planner.rs and src/freshness/historical_semantic.rs using component freshness produced zero findings. The files were not added to owner_files because they are service code, not owner-store modules."
+    },
+    "mapped_store_files_outside_owner_file_set": {
+      "files": [
+        {
+          "path": "src/container/container.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/container_access.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/container_error.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/container_lease.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/container_repair.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/container_scan.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/container_version.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/grouped_clock.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        },
+        {
+          "path": "src/container/publication_envelope.rs",
+          "component": "container",
+          "coverage": "checked by physical boundary guard"
+        }
+      ],
+      "additional_in_memory_check": "The two mapped Perception helpers initially outside owner_files were then persistently registered as perception-store, bringing the owner-file total to 409; production owner guard passes on the final manifest. Container files are physically in the exact source tree scanned by the physical guard. The two Archive interaction_stream files are InteractionRuntime implementations mapped to runtime-gateway, and memory_provenance_model.rs is a public cross-domain DTO mapped to public-consumers; they are not store files and are therefore not treated as missing store coverage."
+    },
+    "corrections": [
+      {
+        "finding": "Completion encoder was classified as InsomniaStore although the composite codec handles owner-lifecycle birth/completion proofs; InsomniaStore itself accepts InsomniaAttempt and does not call this codec.",
+        "change": "Mapped completion.rs and completion_compact_retained.rs to owner-lifecycle; moved MAX_INSOMNIA_CANDIDATES definition to Insomnia model.rs and retained the existing contract.rs public re-export. Completion wire encoding was unchanged."
+      },
+      {
+        "finding": "Import's replay adapter lived in Insomnia and forwarded Import calls across the target DAG without an Import-to-Insomnia-to-lifecycle route being authorized.",
+        "change": "Hard-cut the adapter to owner_lifecycle/insomnia_import_replay.rs, updated its three Import callsites, removed the old module and file, and registered the new path as owner-lifecycle. No forwarding shim remains."
+      }
+    ],
+    "deferred_edges": [
+      "Processor/application and Insomnia CVA service composition still consume the composite completion codec; retain these as explicit Phase 5 orchestration/service convergence edges rather than reclassifying service callers as lifecycle."
+    ]
+  },
+  "C04": {
+    "status": "History core read-only boundary and negative fixtures pass; History/Import core roles are distinguished",
+    "history_guard": {
+      "commands": [
+        "python scripts/check_history_boundaries.py --self-test",
+        "python scripts/check_history_boundaries.py"
+      ],
+      "result": "negative fixtures and History read-only production boundary pass"
+    },
+    "classification_evidence": [
+      "The exact 34 src/history production modules are registered to History.",
+      "History's completion proof consumes Import epoch model/store/codec evidence; these paths are import-store, not Import service callbacks.",
+      "Import completion coordination consumes History proof/read types, an allowed service-to-History dependency in the component DAG.",
+      "The four facade historical_embedding modules are composition/provider-callback code, not History owner implementation; they remain separately classified in the component inventory."
+    ],
+    "limits": "These guards establish History's bounded source write/callback policy and mapped direct source imports; they do not establish whole-program call-graph closure."
+  },
+  "target_dag": {
+    "commands": [
+      "python scripts/check_component_dag.py --self-test",
+      "python scripts/check_component_dag.py"
+    ],
+    "result": "34 components and 163 allowlisted target edges are acyclic; negative upward, cycle, unknown, peer, missing-reason, and History-write fixtures pass",
+    "caveat": "This validates the hand-authored target DAG, not complete source conformance. Actual mapped-source graph evidence is recorded in production-components.json."
+  },
+  "verification": {
+    "cargo_fmt_check": "pass",
+    "cargo_check": "pass; pre-existing warnings remain",
+    "wire_format_changed": false
+  }
+}

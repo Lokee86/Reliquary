@@ -579,6 +579,11 @@
       "classification": "production"
     },
     {
+      "path": "src/perception/entity_description_proof.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
       "path": "src/perception/entity_codec.rs",
       "component": "perception-store",
       "classification": "production"
@@ -610,6 +615,11 @@
     },
     {
       "path": "src/perception/entity_error.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_identity_guard.rs",
       "component": "perception-store",
       "classification": "production"
     },
@@ -1086,6 +1096,16 @@
     {
       "path": "src/runtime_inference/insomnia/codec.rs",
       "component": "insomnia-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/completion_compact_retained.rs",
+      "component": "owner-lifecycle",
       "classification": "production"
     },
     {
@@ -1964,8 +1984,8 @@
       "classification": "production"
     },
     {
-      "path": "src/runtime_inference/insomnia/import_replay.rs",
-      "component": "insomnia",
+      "path": "src/owner_lifecycle/insomnia_import_replay.rs",
+      "component": "owner-lifecycle",
       "classification": "production"
     },
     {
@@ -2112,7 +2132,7 @@
     },
     {
       "module": "insomnia::completion",
-      "component": "insomnia-store"
+      "component": "owner-lifecycle"
     },
     {
       "module": "owner_lifecycle::history_source",
@@ -2425,6 +2445,36 @@
   ],
   "producer_value_contracts": [
     {
+      "consumer": "freshness",
+      "owner": "pure-codec",
+      "symbol": "HistoricalSource",
+      "reason": "Immutable source timeline inputs retained by Freshness public planning API; no planner or owner capability."
+    },
+    {
+      "consumer": "freshness",
+      "owner": "pure-codec",
+      "symbol": "HistoricalTimeline",
+      "reason": "Immutable source timeline inputs/results retained by Freshness public planning API; no planner or owner capability."
+    },
+    {
+      "consumer": "freshness",
+      "owner": "pure-codec",
+      "symbol": "PlannerError",
+      "reason": "Immutable source timeline error retained by Freshness public planning API; no planner or owner capability."
+    },
+    {
+      "consumer": "freshness",
+      "owner": "pure-codec",
+      "symbol": "SourceKey",
+      "reason": "Immutable source timeline coordinate retained by Freshness public planning API; no planner or owner capability."
+    },
+    {
+      "consumer": "freshness",
+      "owner": "pure-codec",
+      "symbol": "TimelineEntry",
+      "reason": "Immutable source timeline result retained by Freshness public planning API; no planner or owner capability."
+    },
+    {
       "consumer": "archive-store",
       "owner": "memory-store",
       "symbol": "MemoryId",
@@ -2488,12 +2538,6 @@
       "consumer": "freshness-store",
       "owner": "memory-store",
       "symbol": "MemoryId",
-      "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
-    },
-    {
-      "consumer": "freshness-store",
-      "owner": "graph-store",
-      "symbol": "CommunityId",
       "why": "Immutable owner-qualified identity, error, or accepted proof coordinate; no owner capability or codec access."
     },
     {
@@ -2939,12 +2983,6 @@
       "owner": "archive-store",
       "symbol": "EpisodeOrigin",
       "reason": "Immutable Episode origin tag used to identify import publications."
-    },
-    {
-      "consumer": "history",
-      "owner": "freshness-store",
-      "symbol": "ImportEventScope",
-      "reason": "Immutable accepted physical and semantic settlement boundary used for owner-history verification."
     },
     {
       "consumer": "history",

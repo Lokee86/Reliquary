@@ -31,6 +31,153 @@ TEST_CFG = re.compile(r"#\s*\[\s*cfg\s*\(\s*test\s*\)\s*\]")
 IDENT = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
+def cfg_enabled(expression: str, facts: set[str]) -> bool:
+    """Evaluate Rust cfg predicates against an explicit rustc/Cargo profile.
+
+    Facts use rustc --print cfg spellings, with Cargo feature facts added by the
+    caller. Missing facts are false; unsupported predicate syntax is an error,
+    never an implicit production admission.
+    """
+    tokens = re.findall(r'"(?:\\.|[^"\\])*"|[A-Za-z_][A-Za-z0-9_]*|[(),=]', expression)
+    if re.sub(r'\s+', '', ''.join(tokens)) != re.sub(r'\s+', '', expression):
+        raise ValueError(f"unsupported cfg syntax: {expression}")
+    cursor = 0
+
+    def predicate() -> bool:
+        nonlocal cursor
+        if cursor >= len(tokens) or not IDENT.fullmatch(tokens[cursor]):
+            raise ValueError(f"invalid cfg predicate: {expression}")
+        name = tokens[cursor]
+        cursor += 1
+        if cursor < len(tokens) and tokens[cursor] == "=":
+            cursor += 1
+            if cursor >= len(tokens) or not tokens[cursor].startswith('"'):
+                raise ValueError(f"invalid cfg value: {expression}")
+            value = tokens[cursor]
+            cursor += 1
+            return f"{name}={value}" in facts
+        if cursor < len(tokens) and tokens[cursor] == "(":
+            cursor += 1
+            arguments = []
+            while cursor < len(tokens) and tokens[cursor] != ")":
+                arguments.append(predicate())
+                if cursor < len(tokens) and tokens[cursor] == ",":
+                    cursor += 1
+                elif cursor >= len(tokens) or tokens[cursor] != ")":
+                    raise ValueError(f"invalid cfg arguments: {expression}")
+            if cursor >= len(tokens):
+                raise ValueError(f"unclosed cfg predicate: {expression}")
+            cursor += 1
+            if name == "all":
+                return all(arguments)
+            if name == "any":
+                return any(arguments)
+            if name == "not" and len(arguments) == 1:
+                return not arguments[0]
+            raise ValueError(f"unsupported cfg predicate: {expression}")
+        return name in facts
+
+    result = predicate()
+    if cursor != len(tokens):
+        raise ValueError(f"trailing cfg tokens: {expression}")
+    return result
+
+
+def strip_inactive_cfg(source: str, facts: set[str]) -> str:
+    """Mask disabled cfg items, preserving source offsets and line numbers.
+
+    This helper covers explicit cfg attributes, not macro expansion or cfg_attr.
+    Consumers must record those separate uncertainty surfaces when present.
+    """
+    view = masked(source)
+    chars = list(source)
+    for match in re.finditer(r"#\s*\[\s*cfg\s*\(", view):
+        end_attribute = view.find("]", match.end())
+        if end_attribute < 0:
+            raise ValueError("unclosed cfg attribute")
+        expression = source[match.end():end_attribute].rstrip()
+        if not expression.endswith(")"):
+            raise ValueError("invalid cfg attribute")
+        if cfg_enabled(expression[:-1], facts):
+            continue
+        cursor = end_attribute + 1
+        # Attributes on the same item may themselves contain delimiters.
+        while True:
+            while cursor < len(view) and view[cursor].isspace():
+                cursor += 1
+            if view.startswith("#[", cursor):
+                attribute_end = view.find("]", cursor + 2)
+                if attribute_end < 0:
+                    raise ValueError("unclosed item attribute")
+                cursor = attribute_end + 1
+            else:
+                break
+        # A cfg can also guard a struct field/initializer. Its terminator is
+        # the first comma outside the field type/expression's delimiters.
+        item = re.match(r"(?:pub(?:\([^)]*\))?\s+)?(?:(?:async|unsafe)\s+)?"
+                        r"(?:fn|struct|enum|impl|mod|use|type|const|static|trait|extern|let)\b", view[cursor:])
+        field_end = None
+        field = re.match(r"(?:pub(?:\([^)]*\))?\s+)?[A-Za-z_]\w*\s*(?::(?!:)|,)", view[cursor:])
+        if not item and field:
+            depth = 0
+            for index in range(cursor, len(view)):
+                char = view[index]
+                if char in "(<[{":
+                    depth += 1
+                elif char in ")>]}" and depth:
+                    depth -= 1
+                elif char == "," and depth == 0:
+                    field_end = index + 1
+                    break
+                elif char == "}" and depth == 0:
+                    field_end = index
+                    break
+        brace, semi = view.find("{", cursor), view.find(";", cursor)
+        if field_end is not None:
+            end = field_end
+        elif semi >= 0 and (brace < 0 or semi < brace):
+            end = semi + 1
+        elif brace >= 0:
+            end = closing(view, brace) + 1
+            if end < len(view) and view[end] == ";":
+                end += 1
+        else:
+            raise ValueError("cfg attribute has no complete item")
+        for index in range(match.start(), end):
+            if chars[index] not in "\r\n":
+                chars[index] = " "
+    return "".join(chars)
+
+
+def cfg_span_status(source: str, span: dict | None, facts: set[str]) -> str:
+    """Classify a retained analyzer span under a caller-pinned cfg profile.
+
+    Reachability of the containing file is a separate prerequisite. Unknown
+    expansion/attribute mechanisms and absent spans remain explicit uncertainty.
+    """
+    view = masked(source)
+    if re.search(r"\binclude\s*!|#\s*\[\s*cfg_attr\b", view):
+        return "uncertain"
+    if not span or type(span.get("start_line")) is not int:
+        return "uncertain"
+    first = span["start_line"]
+    last = span.get("end_line", first)
+    if type(last) is not int or first < 1 or last < first:
+        return "uncertain"
+    try:
+        original = view.splitlines()
+        admitted = masked(strip_inactive_cfg(source, facts)).splitlines()
+    except ValueError:
+        return "uncertain"
+    if last > len(original):
+        return "uncertain"
+    # A start line inside a disabled item must not be admitted merely because
+    # an analyzer's overbroad end span includes the next enabled item.
+    if original[first - 1].strip() and not admitted[first - 1].strip():
+        return "inactive"
+    return "active" if any(line.strip() for line in admitted[first - 1:last]) else "inactive"
+
+
 def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -96,7 +243,7 @@ def split_use_tree(tree: str, prefix: str = "") -> list[tuple[str, str | None]]:
     return [(prefix + leaf.strip(), alias.strip() if alias else None)]
 
 
-def module_tree(root: Path) -> dict[str, str]:
+def module_tree(root: Path, cfg_facts: set[str] | None = None) -> dict[str, str]:
     """Read crate module declarations to resolve exact module paths to files."""
     modules: dict[str, str] = {}
     visited: set[tuple[Path, str]] = set()
@@ -106,7 +253,9 @@ def module_tree(root: Path) -> dict[str, str]:
         if key in visited or not file.is_file():
             return
         visited.add(key)
-        source = strip_cfg_test(file.read_text(encoding="utf-8"))
+        raw_source = file.read_text(encoding="utf-8")
+        source = (strip_cfg_test(raw_source) if cfg_facts is None
+                  else strip_inactive_cfg(raw_source, cfg_facts))
         view = masked(source)
         # Exclude inline modules from this compact module index; the owner file
         # manifest names persistent modules by their actual source path.
@@ -169,7 +318,7 @@ def namespace_at(namespace: str, spans: list[tuple[int, int, str]], offset: int)
     return namespace
 
 
-def export_resolver(modules: dict[str, str]):
+def export_resolver(modules: dict[str, str], cfg_facts: set[str] | None = None):
     """Resolve explicit and wildcard reexports to their defining source module."""
     aliases: dict[str, str] = {}
     stars: dict[str, list[str]] = {}
@@ -177,7 +326,9 @@ def export_resolver(modules: dict[str, str]):
     lexical_modules = dict(modules)
     sources = {}
     for namespace, path in {"": "src/lib.rs", **modules}.items():
-        code = masked(strip_cfg_test((ROOT / path).read_text(encoding="utf-8")))
+        raw_source = (ROOT / path).read_text(encoding="utf-8")
+        code = masked(strip_cfg_test(raw_source) if cfg_facts is None
+                      else strip_inactive_cfg(raw_source, cfg_facts))
         spans = inline_modules(namespace, code)
         sources[namespace] = (code, spans)
         for _start, _end, child in spans:
@@ -226,6 +377,56 @@ def export_resolver(modules: dict[str, str]):
         return path
 
     return resolve, lexical_modules
+
+
+def resolved_source_imports(root: Path, cfg_facts: set[str]) -> tuple[list[dict], list[dict]]:
+    """Expose the existing lexical import resolver for a pinned source profile.
+
+    Import rows have exact source lines and defining module paths. Wildcards and
+    unresolved crate targets are returned separately instead of being inferred
+    from a spanless analyzer file node. This is not a call/type inference engine.
+    """
+    global ROOT
+    original_root = ROOT
+    ROOT = root.resolve()
+    try:
+        modules = module_tree(ROOT, cfg_facts)
+        resolve, lexical = export_resolver(modules, cfg_facts)
+        by_file = {path: namespace for namespace, path in modules.items()}
+        by_file["src/lib.rs"] = ""
+        module_files = {"": "src/lib.rs", **modules}
+        rows, uncertain = [], []
+        for path, namespace in sorted(by_file.items()):
+            source = strip_inactive_cfg((ROOT / path).read_text(encoding="utf-8"), cfg_facts)
+            code = masked(source)
+            spans = inline_modules(namespace, code)
+            for match in USE.finditer(code):
+                context = namespace_at(namespace, spans, match.start())
+                for full_path, alias in split_use_tree(match.group(1)):
+                    full_path = re.sub(r"\s*::\s*", "::", full_path)
+                    canonical = normalize_reference(full_path, context, lexical)
+                    first = full_path.split("::")[0]
+                    if first not in {"crate", "self", "super"} and canonical == full_path and first not in modules:
+                        continue  # External crate import.
+                    canonical = resolve(canonical)
+                    parts = canonical.split("::")
+                    target = None
+                    for count in range(len(parts), 0, -1):
+                        module = "::".join(parts[:count])
+                        if module in module_files:
+                            target = module_files[module]
+                            break
+                    row = {"source_path": path, "line": source.count("\n", 0, match.start()) + 1,
+                           "import": full_path, "alias": alias, "canonical": canonical,
+                           "target_path": target, "target_symbol": parts[-1]}
+                    if "*" in parts or target is None:
+                        row["reason"] = "wildcard import" if "*" in parts else "unresolved defining module"
+                        uncertain.append(row)
+                    else:
+                        rows.append(row)
+        return rows, uncertain
+    finally:
+        ROOT = original_root
 
 
 def root_module_of(path: str) -> str:
@@ -458,6 +659,38 @@ def main_check(manifest: dict, dag: dict) -> list[str]:
 
 
 def fixture_check() -> None:
+    # An explicit default Windows profile must reject compound test/feature
+    # gates, while retaining enabled platform branches and their source spans.
+    facts = {"windows", 'target_os="windows"', "debug_assertions"}
+    for expression, expected in [
+        ("all()", True), ("any()", False), ("not(test)", True),
+        ('all(windows, not(test), target_os = "windows")', True),
+        ('all(test, feature = "history-oracle-fixtures")', False),
+        ('any(unix, feature = "entity-calibration")', False),
+        ('any(unix, windows,)', True),
+    ]:
+        assert cfg_enabled(expression, facts) == expected, expression
+    for invalid in ["not()", "not(test, windows)", "unknown(test)", "windows + unix"]:
+        try:
+            cfg_enabled(invalid, facts)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(f"unsupported cfg accepted: {invalid}")
+    gated = ('#[cfg(all(test, feature = "history-oracle-fixtures"))]\n'
+             '#[path = "tests.rs"]\nmod tests;\n'
+             '#[cfg(unix)]\nfn platform() { bad(); }\n'
+             '#[cfg(windows)]\nfn platform() { good(); }\n')
+    admitted = strip_inactive_cfg(gated, facts)
+    assert "mod tests" not in admitted and "bad()" not in admitted
+    assert "good()" in admitted and len(admitted) == len(gated)
+    assert admitted.count("\n") == gated.count("\n")
+    assert cfg_span_status(gated, {"start_line": 3, "end_line": 3}, facts) == "inactive"
+    assert cfg_span_status(gated, {"start_line": 7, "end_line": 7}, facts) == "active"
+    assert cfg_span_status(gated, None, facts) == "uncertain"
+    fields = 'struct F {\n#[cfg(test)]\nvalue: Map<A, B>,\n#[cfg(windows)]\nkept: bool,\n}'
+    field_view = strip_inactive_cfg(fields, facts)
+    assert 'Map<A, B>' not in field_view and 'kept: bool' in field_view
     # Isolated minimal model of grouped, aliased, upward and reexport imports.
     def detect(tree: str, modules: dict[str, str], symbols: dict[str, str]) -> set[str]:
         found = set()
@@ -624,6 +857,30 @@ def production_path_fixture_check() -> None:
         ROOT = original_root
 
 
+def source_import_profile_fixture_check() -> None:
+    import tempfile
+    temporary_root = ROOT / ".verification-tmp"
+    temporary_root.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="source-import-profile-", dir=temporary_root) as directory:
+        root = Path(directory)
+        (root / "src").mkdir()
+        (root / "src/lib.rs").write_text(
+            'mod producer; mod consumer; pub use producer::Value;\n'
+            '#[cfg(all(test, feature = "oracle"))] mod test_only;\n', encoding="utf-8")
+        (root / "src/producer.rs").write_text('pub struct Value; pub struct Other;\n', encoding="utf-8")
+        (root / "src/consumer.rs").write_text(
+            'use crate::Value as Alias;\n#[cfg(unix)] use crate::producer::Other;\n'
+            '#[cfg(windows)] mod nested { use crate::Value; }\nuse crate::producer::*;\n', encoding="utf-8")
+        (root / "src/test_only.rs").write_text('use crate::producer::Other;\n', encoding="utf-8")
+        rows, uncertain = resolved_source_imports(root, {"windows"})
+        consumers = [row for row in rows if row["source_path"] == "src/consumer.rs"]
+        assert len(consumers) == 2 and all(row["target_path"] == "src/producer.rs" for row in consumers)
+        assert all(row["target_symbol"] == "Value" for row in consumers)
+        assert consumers[0]["line"] == 1 and consumers[0]["alias"] == "Alias"
+        assert not any(row["source_path"] == "src/test_only.rs" for row in rows)
+        assert len(uncertain) == 1 and uncertain[0]["reason"] == "wildcard import"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check Phase 2 owner source boundaries.")
     parser.add_argument("--self-test", action="store_true")
@@ -631,6 +888,7 @@ def main() -> int:
     if args.self_test:
         fixture_check()
         production_path_fixture_check()
+        source_import_profile_fixture_check()
         print("Owner boundary checker fixtures passed")
         return 0
     errors = main_check(read_json(MANIFEST), read_json(DAG))

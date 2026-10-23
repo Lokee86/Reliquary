@@ -1,8 +1,8 @@
 use super::candidate_policy::validate_semantic_authority;
 use super::candidate_shape::validate_candidate_shape;
 use super::candidate_source::{RawSource, optional, parse_source, required_string, trim_source};
-use super::contract::MAX_INSOMNIA_CANDIDATES;
 use super::extraction::{InsomniaCandidate, InsomniaExtractionError, InsomniaRejection};
+use super::model::MAX_INSOMNIA_CANDIDATES;
 use super::ownership::InsomniaOwnership;
 #[cfg(test)]
 use crate::EpisodeId;

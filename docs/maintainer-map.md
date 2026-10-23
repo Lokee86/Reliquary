@@ -57,6 +57,8 @@ The REL open sequence uses `owner_lifecycle/reliquary_replay.rs` for concrete st
 
 ## Shared lifecycle vocabulary
 
+Grouped Insomnia completion transport is a composite owner-lifecycle concern: `runtime_inference/insomnia/completion.rs` and `completion_compact_retained.rs` combine exact Insomnia, Memory and Freshness evidence; they are explicitly registered as owner-lifecycle sources despite their present directory. Import's narrow replay adapter is `owner_lifecycle/insomnia_import_replay.rs`, and the shared candidate-count limit belongs to `runtime_inference/insomnia/model.rs`. The Insomnia store consumes accepted attempt facts without invoking that composite codec. Protect these boundaries with `scripts/check_owner_boundaries.py` and the completion/reconciliation tests; the source-component inventory and closure receipts distinguish retained analyzer uncertainty from verified source dependencies.
+
 `src/owner_lifecycle.rs` exposes typed lifecycle identities, terminal-state/idempotency checks, explicit target selection and historical payload availability. Its `history_source.rs` capability supplies bounded read-only physical snapshots, preserving Container framing, identity, clock and writer authority. It exposes no writer, facade accessor or callback. Domain stores retain persistence and validation. [ADR 0040](decisions/0040-terminal-tombstones-and-import-epochs.md) records the direction; the [execution contract](tombstone-import-history-execution-contract.md) distinguishes staged work from current behavior.
 
 ## Native historical import route

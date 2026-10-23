@@ -1,5 +1,6 @@
 #[path = "completion_compact_retained.rs"]
 mod compact_retained;
+use super::model::MAX_INSOMNIA_CANDIDATES;
 use crate::EpisodeId;
 use crate::memory_model::{GroupedBodyEncoding, GroupedBodySpan, MemoryRecord};
 use crate::{MemoryBodyId, MemoryRef, MemoryRoutingMetadata};
@@ -128,7 +129,7 @@ pub(crate) fn encode_completion(value: &InsomniaCompletion) -> Result<Vec<u8>, &
         out.extend_from_slice(&len.to_le_bytes());
         out.extend_from_slice(&encoded);
     }
-    if value.routing_metadata.len() > super::contract::MAX_INSOMNIA_CANDIDATES {
+    if value.routing_metadata.len() > MAX_INSOMNIA_CANDIDATES {
         return Err("too many completion routing metadata records");
     }
     let routing_count = u32::try_from(value.routing_metadata.len())
@@ -669,7 +670,7 @@ fn read_routing_metadata(
     cursor: &mut usize,
 ) -> Result<Vec<MemoryRoutingMetadata>, &'static str> {
     let count = read_u32(bytes, cursor)? as usize;
-    if count > super::contract::MAX_INSOMNIA_CANDIDATES {
+    if count > MAX_INSOMNIA_CANDIDATES {
         return Err("too many completion routing metadata records");
     }
     let mut values = Vec::with_capacity(count);

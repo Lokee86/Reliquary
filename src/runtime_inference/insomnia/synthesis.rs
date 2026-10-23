@@ -1,9 +1,9 @@
 use super::candidate::parse_candidates;
-use super::contract::MAX_INSOMNIA_CANDIDATES;
 use super::extraction::{
     InsomniaCandidate, InsomniaEvidenceTurn, InsomniaExtractionError, InsomniaRejection,
 };
 use super::ledger::LedgerEntry;
+use super::model::MAX_INSOMNIA_CANDIDATES;
 use super::ownership::InsomniaOwnership;
 use crate::ResolvedTurn;
 use serde_json::{Map, Value, json};

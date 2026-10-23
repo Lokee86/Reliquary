@@ -62,6 +62,14 @@ scripts/check_architecture.py        Lexicon/Arcana refresh + Pitlord architectu
 
 Do not copy large portions of previous Reliquary implementations as a migration shortcut. Reuse must preserve current ownership boundaries.
 
+## Production component evidence
+
+`tools/pitlord/production-components.json` assigns source responsibilities to the existing 34-component target. It records current and historical files, production/test/uncertain status, a pinned Windows default-feature cfg profile and explicit facade-extension ownership. It does not redefine the target DAG or make analyzer call bindings authoritative.
+
+The closure investigation uses the installed Rust compiler's private-item rustdoc JSON to corroborate current module and symbol reachability. With process-local `RUSTC_BOOTSTRAP=1`, run `cargo rustdoc --locked --lib -- --document-private-items -Z unstable-options --output-format json`; the output is `target/doc/reliquary_memory.json`. This audit command uses an unstable compiler output format, so its compiler version and output digest belong in its receipt. It is not a normal library-build requirement. The [compiler inventory](../benchmarks/dependency-convergence-phase1-3-compiler-inventory-2026-10-23.json) records the measured source files and private-item counts.
+
+The existing owner-boundary checker additionally exposes cfg evaluation and source-import resolution for the pinned profile. Its negative fixtures cover compound test/feature predicates, platform branches, source span preservation, renamed imports and wildcard uncertainty. Run `python scripts/check_owner_boundaries.py --self-test` and its ordinary production check after changing those helpers. A verified import, an approved immutable value, an analyzer-only call and an unresolved reference must remain separately reported. The [closure audit](dependency-convergence-phase1-3-closure-audit-2026-10-23.md) owns prerequisite acceptance; generating an inventory does not open the Phase 4 gate by itself.
+
 ## Freshness retrieval boundary verification
 
 `cargo test --test freshness_retrieval_boundary` exercises passive REL/PHY retrieval, real provenance/Episode hydration, Dream reads, graph traversal, lazy score cuts, exact accepted IDs, propagation, rejected receipts and durable replay. Existing `freshness_owner_contract`, `freshness_r2_contract` and recovery suites remain required coverage for the underlying engine. The [execution record](freshness-retrieval-boundary-verification-2026-10-15.md) records current results and the absent external acceptance producer.

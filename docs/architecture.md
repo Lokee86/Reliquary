@@ -39,6 +39,10 @@ REL pruning, reclamation and explicit tail repair dispatch through Maintenance. 
 
 Rewrite planning now receives immutable operation-specific owner borrows. Maintenance owns selection, referential closure, lineage-aware file coordination and selected semantic emission; concrete lifecycle owners replace facade objects during execution. Archive owns ordered local replay facts/publishers, shared by the existing reconciliation adapter. The planner effect guard rejects physical mutation and facade/provider capabilities. W3 acceptance is recorded separately in the execution ledger.
 
+## Grouped Insomnia completion boundary
+
+Grouped Insomnia completion encoding combines Insomnia receipts, Memory creations/body locations/routing and Freshness birth evidence. This is owner-lifecycle composition, not an InsomniaStore codec or a second Memory owner. The composite codec currently remains under `runtime_inference/insomnia/completion*.rs`; its explicit component assignment and production guards treat it as owner lifecycle. Import reaches its decoding/encoding and the lower Insomnia record reader through `owner_lifecycle/insomnia_import_replay.rs`. Insomnia's candidate-count bound is an owner-model value shared by the codec and service. The existing CVAINSC7/CVAINSC8 bytes and validation rules are unchanged. Physical placement of the remaining runtime services is separate Phase 5 work.
+
 ## Development-format lifecycle
 
 [ADR0042](decisions/0042-minimal-lossless-current-history.md) records the owner-specific compact history architecture. The [six-source oracle](canonical-history-migration-results-2026-10-21.md) now passes every concrete owner history and global ordering point. The six canonical files are promoted; reader and upgrader deletion is implemented, with post-retirement acceptance tracked in the linear plan.

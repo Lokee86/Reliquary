@@ -239,8 +239,9 @@ pub(super) fn replay_frame(
             &output.memories,
             &archive.file_memory_links,
         )?;
-    if let Some(mut completion) = crate::insomnia::import_replay::decode_completion(payload)
-        .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
+    if let Some(mut completion) =
+        crate::owner_lifecycle::insomnia_import_replay::decode_completion(payload)
+            .map_err(CvaReconcileError::InvalidInsomniaCompletion)?
     {
         source
             .history_read_access()
@@ -477,7 +478,7 @@ pub(super) fn replay_frame(
                 .put(&mut output.container, memory, lane, state)?;
         }
     }
-    if let Some(record) = crate::insomnia::import_replay::decode_record(payload)? {
+    if let Some(record) = crate::owner_lifecycle::insomnia_import_replay::decode_record(payload)? {
         // These records have no container coordinates. Preserve retries,
         // failures and lease transitions in their accepted physical order.
         match record {

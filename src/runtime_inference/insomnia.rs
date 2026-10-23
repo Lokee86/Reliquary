@@ -158,6 +158,3 @@ mod completion_compact_tests;
 
 #[path = "insomnia/import_readiness.rs"]
 pub(crate) mod import_readiness;
-
-#[path = "insomnia/import_replay.rs"]
-pub(crate) mod import_replay;

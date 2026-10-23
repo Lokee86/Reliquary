@@ -1,8 +1,8 @@
 use super::ledger;
+pub use super::model::MAX_INSOMNIA_CANDIDATES;
 use serde_json::Value;
 
 pub const INSOMNIA_EXTRACTOR_CONTRACT_VERSION: &str = "v3-4";
-pub const MAX_INSOMNIA_CANDIDATES: usize = 64;
 
 /// Public compatibility alias for the semantic selection prompt.
 ///
