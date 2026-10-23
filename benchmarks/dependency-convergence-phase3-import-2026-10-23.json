@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-23",
+  "gate": "I3",
+  "status": "accepted_locally",
+  "source_commit": "60d7098",
+  "progress": {
+    "closed": 84,
+    "total": 119,
+    "original_accepted": 63,
+    "added_verified": 21,
+    "original_pending": 35
+  },
+  "verification": {
+    "bounded_library": {
+      "passed": 1975,
+      "failed": 0,
+      "ignored": 6,
+      "filtered": 4,
+      "seconds": 108.5,
+      "log": ".verification-tmp/phase3-i3-final-bounded-library.log"
+    },
+    "cli": {
+      "passed": 32,
+      "failed": 0,
+      "seconds": 0.75,
+      "log": ".verification-tmp/phase3-i3-final-cli-tests.log"
+    },
+    "import_pre_completion_capability_checkpoint": {
+      "passed": 87,
+      "failed": 0,
+      "seconds": 3.96,
+      "log": ".verification-tmp/phase3-i3-protected-import-tests.log"
+    },
+    "owner_guard": ".verification-tmp/phase3-i3-final-owner-guard.log",
+    "owner_negative_fixtures": ".verification-tmp/phase3-i3-final-owner-fixtures.log",
+    "history_guard": ".verification-tmp/phase3-i3-final-history-guard.log",
+    "component_dag": "34 components;163 allowed edges;unchanged",
+    "physical_boundary": "passed including thirteen negative fixtures"
+  },
+  "deletions": [
+    "Production Import Cva coupling in all five reconciliation modules removed",
+    "Duplicate public/native completion sequence removed",
+    "Physical cross-owner source reads mediated through immutable History capabilities",
+    "No Import-to-Maintenance or lifecycle-to-History call introduced",
+    "Final reconstructed owner+due handoff preserves one reopen checkpoint"
+  ],
+  "remaining": [
+    "S3 measured representation selection",
+    "C3 current-only codec/corpus conversion and six-file semantic-clock oracle",
+    "D3 single graph refresh and tooling repair",
+    "A3 four long cases, ignored opt-in cases, full integration and documentation"
+  ],
+  "source_sha256": {
+    "src/imports/owner_completion.rs": "69ebdc81b0fe35f6a8ce6940382777530b1d63c225c750f7df9c8af8bf82c37d",
+    "src/imports/owner_historical.rs": "f7891cbd1d5e6ff7dec3000a7447df20a1eb30f90ac9a9c37af41fd8c489fd24",
+    "src/imports/reconciliation.rs": "6db47079f33630fcd912c82e0908f750bf46ab73f62614bf263cc3982d5bac70",
+    "src/imports/reconciliation_copy.rs": "6a46f4e58326f435969c0528d94b6f5f0aa76f36039bc7ca21c0f2e9ce1ef701",
+    "src/imports/reconciliation_replay.rs": "c572eb344df6fad9893ba1880a37933cd24e533ac856d14e90add8caa2ec5519",
+    "src/imports/reconciliation_interval.rs": "526f73279c333e34d7ad26ef622e43afe81152b0227a94ae2e76b62ce28e5fa8",
+    "src/imports/reconciliation_epoch_replay.rs": "c5de66e842752489de88ebeaadf6a136887d696b8f2865beca3b33660272b800",
+    "src/history/reconciliation_inventory.rs": "e160e403d220b691550708aa86e830485042eb87820994bf6828ec8f00f897f4",
+    "src/history/import_replay_read.rs": "57f9c32ea3898ff0131f6ccbda507d4e2ffb30051e53a7d107d5675e72af9651",
+    "src/history/settlement_completion_evidence.rs": "18fcb9b83eb03483af45e4e9afe3a55e64f2e7c3268914e3aaf57dfb5cf21b78",
+    "src/owner_lifecycle/import_completion_access.rs": "146fd0fa5819d4aeddd08a62a2c0aadcb00038f681406919a6538913830dfb3b",
+    "tools/pitlord/owner-boundaries.json": "6e805f8227850ed882759784971347dea3177ae51f01892f96b90a1bca71f9c2"
+  },
+  "documentation": {
+    "policy": "five findings confined to pre-existing unrelated untracked Phase4 spec; preserved",
+    "archivist": "pending quiescent gate",
+    "pitlord": "existing Arcana manifest parser/tool version mismatch pending D3; no graph refresh performed"
+  }
+}

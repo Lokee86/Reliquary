@@ -294,3 +294,19 @@ R3 continuation verification and the remaining I3 consumer inventory are recorde
 
 
 Further I3 native historical proof/scoring/publication preparation is recorded in the [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md) and [source-pinned preparation receipt](../benchmarks/dependency-convergence-phase3-native-historical-preparation-2026-10-22.json). It does not close I3 or advance the accepted task count; remaining manifest/event/reconstruction and epoch-reconciliation coordination is explicit.
+
+
+## Native Import integration continuation — 2026-10-23
+
+The local native cut now includes Manifest/event orchestration, historical prepare/commit, completed-epoch reconciliation and one canonical completion sequence shared by public adapters and native replay. History owns immutable cross-store evidence and interval interpretation; lifecycle owns scoped physical publication. All production Import modules, including normalizers and all five reconciliation files, are explicitly covered by the unchanged component-DAG guard. No Import-to-Maintenance edge or writable facade callback remains in those paths. The final validated owner and its reconstructed due projection pass together to the facade without a duplicate reopen.
+
+At source `60d7098`, the production owner guard and its negative fixtures, History read-only guard, physical-boundary guard and 34-component/163-edge DAG check pass. The CLI passes 32 tests. The preceding native reconciliation checkpoint passes 87 Import tests; the later completion capability consolidation has compilation and guard evidence, with its broader integration run still pending. These scoped results do not yet accept I3: progress remains 75/119 until the complete verification/deletion receipt is recorded.
+
+An opt-in S3 regeneration audit preserves all six frozen hashes and works only on disposable pre-settlement prefixes. Its first run reported three writer-authority errors, so it establishes no causal-basis size or residual parity. The harness was corrected at `1860a6b` to open only those disposable prefixes with writer authority and fail if any regeneration is unavailable. S3 representation selection, codec changes, canonical corpus conversion, the one D3 graph refresh and A3 long/oracle acceptance remain pending.
+
+
+## I3 accepted local continuation
+
+The [I3 receipt](../benchmarks/dependency-convergence-phase3-import-2026-10-23.json) accepts the eight original P3.7 outcomes and added I.03 after canonical completion/epoch integration, independent source review and full production-module guards. The final bounded library run passes **1,975 tests, zero failures, six ignored and four filtered**, with **32 CLI passes**. The sixth ignored case is the new opt-in S3 measurement harness, not an additional missing runtime regression. History, physical-boundary, owner negative fixtures and the unchanged 34-component/163-edge DAG pass.
+
+Progress is **84/119 closed (70.6%) = 63 original accepted + 21 additional verified**; **35 original tasks remain pending**. Eight of twelve gates are accepted locally; **S3/C3/D3/A3 remain pending**. Four deferred long cases, the five existing ignored cases, corpus conversion/oracles and final documentation acceptance remain obligations. No format/corpus or graph baseline changed for I3.

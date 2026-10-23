@@ -33,7 +33,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | P3 | Accepted locally | REL/PHY selection, owner retention/marker proofs, exact retained raw history/clocks, source/output guards and prune/reclaim tests; continuation matrix below. |
 | W3 | Accepted locally | Immutable planning, concrete lifecycle execution, owner-local replay, selected semantic/vector emission and source-preserving publication; W3 receipt below. |
 | R3 | Accepted locally | Generic Maintenance policy; lower producer replay; 86 final reconciliation and 90 Import tests; [receipt](../benchmarks/dependency-convergence-phase3-reconciliation-2026-10-22.json). |
-| I3 | Pending | Import coordination. |
+| I3 | Accepted locally | Native historical preparation, one completion sequence, epoch reconciliation, exact guards and bounded integration; [receipt](../benchmarks/dependency-convergence-phase3-import-2026-10-23.json). |
 | S3 | Pending | Measured settlement alternatives and selected design. |
 | C3 | Pending | Format/corpus conversion, parity, promotion and deletion. |
 | D3 | Pending | Stabilized graph refresh and source enforcement. |
@@ -41,7 +41,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 55/98 original accepted + 20/21 additional verified = 75/119 closed; one active and 43 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 63/98 original accepted + 21/21 additional verified = 84/119 closed; 35 original pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -100,14 +100,14 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.6.06 | Accepted locally | 86 final reconciliation tests and 90 Import tests include compact/terminal/retry/source-tail cases; R3 receipt |
 | P3.6.07 | Accepted locally | Exact-created-output cleanup guard; retained leases and existing atomic promotion/restore contract; R3 receipt |
 | P3.6.08 | Accepted locally | Production facade producer bridges retired to cfg(test); remaining I3 callbacks enumerated; R3 receipt |
-| P3.7.01 | Pending | Awaiting prerequisite gate |
-| P3.7.02 | Pending | Awaiting prerequisite gate |
-| P3.7.03 | Pending | Awaiting prerequisite gate |
-| P3.7.04 | Pending | Awaiting prerequisite gate |
-| P3.7.05 | Pending | Awaiting prerequisite gate |
-| P3.7.06 | Pending | Awaiting prerequisite gate |
-| P3.7.07 | Pending | Awaiting prerequisite gate |
-| P3.7.08 | Pending | Awaiting prerequisite gate |
+| P3.7.01 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
+| P3.7.02 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
+| P3.7.03 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
+| P3.7.04 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
+| P3.7.05 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
+| P3.7.06 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
+| P3.7.07 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
+| P3.7.08 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
 | P3.8.01 | Pending | Awaiting prerequisite gate |
 | P3.8.02 | Pending | Awaiting prerequisite gate |
 | P3.8.03 | Pending | Awaiting prerequisite gate |
@@ -285,3 +285,19 @@ The next local preparation checkpoint moves historical corpus/admission proof in
 Pure frozen settlement scoring now belongs to Import. Freshness stages and validates the replacement/due index; a narrow lifecycle publisher performs write-scope admission, append and sync before resident state is acknowledged. The epoch-scope Cva adapters moved from Import into the facade and delegate their metadata/receipt/snapshot scan to History. No broad Import writer-parts aggregate or upward callback was added.
 
 This is preparation, not I3 acceptance: manifest/event orchestration, historical reconstruction dispatch and completed-epoch reconciliation still require their native coordination cut. Progress remains **75/119 closed**, with **I.03 active**, and seven formal gates accepted. S3/C3/D3/A3 remain pending. No storage codec, canonical corpus or source graph baseline changed. Verification and exact source hashes are recorded in the [native historical preparation receipt](../benchmarks/dependency-convergence-phase3-native-historical-preparation-2026-10-22.json).
+
+
+## Native Import integration continuation — 2026-10-23
+
+The local native cut now includes Manifest/event orchestration, historical prepare/commit, completed-epoch reconciliation and one canonical completion sequence shared by public adapters and native replay. History owns immutable cross-store evidence and interval interpretation; lifecycle owns scoped physical publication. All production Import modules, including normalizers and all five reconciliation files, are explicitly covered by the unchanged component-DAG guard. No Import-to-Maintenance edge or writable facade callback remains in those paths. The final validated owner and its reconstructed due projection pass together to the facade without a duplicate reopen.
+
+At source `60d7098`, the production owner guard and its negative fixtures, History read-only guard, physical-boundary guard and 34-component/163-edge DAG check pass. The CLI passes 32 tests. The preceding native reconciliation checkpoint passes 87 Import tests; the later completion capability consolidation has compilation and guard evidence, with its broader integration run still pending. These scoped results do not yet accept I3: progress remains 75/119 until the complete verification/deletion receipt is recorded.
+
+An opt-in S3 regeneration audit preserves all six frozen hashes and works only on disposable pre-settlement prefixes. Its first run reported three writer-authority errors, so it establishes no causal-basis size or residual parity. The harness was corrected at `1860a6b` to open only those disposable prefixes with writer authority and fail if any regeneration is unavailable. S3 representation selection, codec changes, canonical corpus conversion, the one D3 graph refresh and A3 long/oracle acceptance remain pending.
+
+
+## I3 accepted local continuation
+
+The [I3 receipt](../benchmarks/dependency-convergence-phase3-import-2026-10-23.json) accepts the eight original P3.7 outcomes and added I.03 after canonical completion/epoch integration, independent source review and full production-module guards. The final bounded library run passes **1,975 tests, zero failures, six ignored and four filtered**, with **32 CLI passes**. The sixth ignored case is the new opt-in S3 measurement harness, not an additional missing runtime regression. History, physical-boundary, owner negative fixtures and the unchanged 34-component/163-edge DAG pass.
+
+Progress is **84/119 closed (70.6%) = 63 original accepted + 21 additional verified**; **35 original tasks remain pending**. Eight of twelve gates are accepted locally; **S3/C3/D3/A3 remain pending**. Four deferred long cases, the five existing ignored cases, corpus conversion/oracles and final documentation acceptance remain obligations. No format/corpus or graph baseline changed for I3.
