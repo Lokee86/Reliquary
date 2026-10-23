@@ -50,7 +50,15 @@ fn archive_envelope_interval_replays_reserved_time_and_normalized_evidence() {
     drop(container);
     let mut source = Cva::open(&source_path).unwrap();
     let mut target = Cva::open(&target_path).unwrap();
-    super::validate_replay_interval(&mut source, index).unwrap();
+    super::validate_replay_interval(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&source.container)
+            .snapshot()
+            .unwrap(),
+        &source.archive,
+        &source.insomnia,
+        index,
+    )
+    .unwrap();
     let mut coordinates =
         crate::imports::reconciliation_interval::Coordinates::shared(&mut source, index).unwrap();
     crate::imports::reconciliation_interval::replay_frame(

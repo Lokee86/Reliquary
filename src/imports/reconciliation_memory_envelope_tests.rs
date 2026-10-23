@@ -87,7 +87,15 @@ fn envelope_range_and_import_interval_replay_one_revision_with_original_time() {
     let (index, payload) = append_delta(&source, id);
     let mut source = Cva::open(&source).unwrap();
     let mut target = Cva::open(&target).unwrap();
-    super::validate_replay_interval(&mut source, index).unwrap();
+    super::validate_replay_interval(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&source.container)
+            .snapshot()
+            .unwrap(),
+        &source.archive,
+        &source.insomnia,
+        index,
+    )
+    .unwrap();
     let mut coordinates =
         crate::imports::reconciliation_interval::Coordinates::shared(&mut source, index).unwrap();
     crate::imports::reconciliation_interval::replay_frame(
@@ -202,6 +210,16 @@ fn import_classifier_rejects_unknown_and_malformed_envelopes() {
         let mut owner = Cva::create(&path).unwrap();
         let boundary = owner.container.chunks().unwrap().len();
         owner.container.append(&payload).unwrap();
-        assert!(super::validate_replay_interval(&mut owner, boundary).is_err());
+        assert!(
+            super::validate_replay_interval(
+                &crate::owner_lifecycle::HistoryReadAccess::new(&owner.container)
+                    .snapshot()
+                    .unwrap(),
+                &owner.archive,
+                &owner.insomnia,
+                boundary
+            )
+            .is_err()
+        );
     }
 }

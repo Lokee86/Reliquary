@@ -1065,7 +1065,15 @@ fn import_interval_classifier_rejects_malformed_and_foreign_publication_envelope
             cva.container.append(&envelope).unwrap();
         }
         assert!(
-            super::validate_replay_interval(&mut cva, boundary).is_err(),
+            super::validate_replay_interval(
+                &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container)
+                    .snapshot()
+                    .unwrap(),
+                &cva.archive,
+                &cva.insomnia,
+                boundary
+            )
+            .is_err(),
             "strict import classification must reject {name}"
         );
     }

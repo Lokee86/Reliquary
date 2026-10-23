@@ -360,7 +360,15 @@ fn native_graph_intervals_preserve_order_batch_shape_time_evidence_and_duplicate
         let (_scratch, path, target, index, payload, time, expected) = fixture(mode);
         let mut source = Cva::open(&path).unwrap();
         let mut output = Cva::open(&target).unwrap();
-        super::validate_replay_interval(&mut source, index).unwrap();
+        super::validate_replay_interval(
+            &crate::owner_lifecycle::HistoryReadAccess::new(&source.container)
+                .snapshot()
+                .unwrap(),
+            &source.archive,
+            &source.insomnia,
+            index,
+        )
+        .unwrap();
         let mut coordinates =
             crate::imports::reconciliation_interval::Coordinates::shared(&mut source, index)
                 .unwrap();

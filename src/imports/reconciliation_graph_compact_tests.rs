@@ -256,7 +256,15 @@ fn replay_interval_classifier_accepts_valid_compact_graph_and_fails_closed_on_ba
         let boundary = cva.container.chunks().unwrap().len();
         cva.container.append(payload).unwrap();
         assert_eq!(
-            super::validate_replay_interval(&mut cva, boundary).is_ok(),
+            super::validate_replay_interval(
+                &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container)
+                    .snapshot()
+                    .unwrap(),
+                &cva.archive,
+                &cva.insomnia,
+                boundary
+            )
+            .is_ok(),
             accepted,
             "{name}"
         );

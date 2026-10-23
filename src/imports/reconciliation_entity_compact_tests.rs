@@ -62,7 +62,14 @@ fn append_and_check(cva: &mut Cva, payloads: &[&[u8]], accepted: bool) {
     for payload in payloads {
         cva.container.append(payload).unwrap();
     }
-    let result = super::validate_replay_interval(cva, boundary);
+    let result = super::validate_replay_interval(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container)
+            .snapshot()
+            .unwrap(),
+        &cva.archive,
+        &cva.insomnia,
+        boundary,
+    );
     assert_eq!(result.is_ok(), accepted, "classifier result: {result:?}");
 }
 

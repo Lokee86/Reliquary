@@ -1,4 +1,6 @@
 //! A frozen one-shot native REL import and its atomic Freshness publication.
+#[cfg(test)]
+use crate::freshness::FreshnessPolicy;
 use crate::freshness_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
 };

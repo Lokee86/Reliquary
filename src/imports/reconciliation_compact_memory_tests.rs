@@ -81,7 +81,15 @@ fn replay_interval_accepts_compact_memory_created_after_its_boundary() {
         .unwrap();
     assert!(changed);
 
-    super::validate_replay_interval(&mut cva, boundary).unwrap();
+    super::validate_replay_interval(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container)
+            .snapshot()
+            .unwrap(),
+        &cva.archive,
+        &cva.insomnia,
+        boundary,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -95,6 +103,16 @@ fn replay_interval_rejects_malformed_and_unknown_compact_memory_families() {
         let mut cva = Cva::create(&path).unwrap();
         let boundary = cva.container.chunks().unwrap().len();
         cva.container.append(payload).unwrap();
-        assert!(super::validate_replay_interval(&mut cva, boundary).is_err());
+        assert!(
+            super::validate_replay_interval(
+                &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container)
+                    .snapshot()
+                    .unwrap(),
+                &cva.archive,
+                &cva.insomnia,
+                boundary
+            )
+            .is_err()
+        );
     }
 }

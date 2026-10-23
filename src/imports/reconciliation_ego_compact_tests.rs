@@ -69,7 +69,14 @@ fn assert_unhandled_interval(cva: &mut Cva, payload: &[u8]) {
     let boundary = cva.container.chunks().unwrap().len();
     cva.container.append(payload).unwrap();
     assert!(matches!(
-        super::validate_replay_interval(cva, boundary),
+        super::validate_replay_interval(
+            &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container)
+                .snapshot()
+                .unwrap(),
+            &cva.archive,
+            &cva.insomnia,
+            boundary
+        ),
         Err(CvaReconcileError::UnsupportedSemanticOwner(
             "unhandled owner payload in import interval"
         ))
