@@ -1,24 +1,9 @@
 use super::model::*;
-use crate::{
-    Cva, HistoryGenerationId, MemoryId, Phylactery,
-    compatibility_profile_model::CompatibilityProfileId,
-};
+use crate::{HistoryGenerationId, MemoryId, compatibility_profile_model::CompatibilityProfileId};
 use sha2::{Digest, Sha256};
-use std::fmt;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct RewriteError(pub String);
-impl fmt::Display for RewriteError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-impl std::error::Error for RewriteError {}
-impl From<String> for RewriteError {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
+use super::RewriteError;
+use super::plan_source::{PhylacteryRewritePlanSource, ReliquaryRewritePlanSource};
 
 fn parse_id(value: &str, label: &str) -> Result<[u8; 32], RewriteError> {
     if value.len() != 64 {
@@ -166,7 +151,10 @@ fn revision_numbers(
     }
 }
 
-fn latest_rel_memory(source: &mut Cva, id: MemoryId) -> Result<crate::Memory, RewriteError> {
+fn latest_rel_memory(
+    source: &mut ReliquaryRewritePlanSource<'_>,
+    id: MemoryId,
+) -> Result<crate::Memory, RewriteError> {
     match source.memory(id) {
         Ok(memory) => Ok(memory),
         Err(_) => {
@@ -193,7 +181,10 @@ fn latest_rel_memory(source: &mut Cva, id: MemoryId) -> Result<crate::Memory, Re
     }
 }
 
-fn latest_phy_memory(source: &mut Phylactery, id: MemoryId) -> Result<crate::Memory, RewriteError> {
+fn latest_phy_memory(
+    source: &mut PhylacteryRewritePlanSource<'_>,
+    id: MemoryId,
+) -> Result<crate::Memory, RewriteError> {
     match source.memory(id) {
         Ok(memory) => Ok(memory),
         Err(_) => {
@@ -213,7 +204,7 @@ fn latest_phy_memory(source: &mut Phylactery, id: MemoryId) -> Result<crate::Mem
 }
 
 fn selected_revisions_rel(
-    source: &mut Cva,
+    source: &mut ReliquaryRewritePlanSource<'_>,
     candidates: &[(MemoryId, bool, String, Vec<u8>)],
     request: &RewriteRequest,
 ) -> Result<Vec<MemoryRevisionSelection>, RewriteError> {
@@ -249,7 +240,7 @@ fn selected_revisions_rel(
 }
 
 fn selected_revisions_phy(
-    source: &mut Phylactery,
+    source: &mut PhylacteryRewritePlanSource<'_>,
     candidates: &[(MemoryId, bool, String, Vec<u8>)],
     request: &RewriteRequest,
 ) -> Result<Vec<MemoryRevisionSelection>, RewriteError> {
@@ -390,7 +381,7 @@ fn validate_common(request: &RewriteRequest) -> Result<Vec<CompatibilityProfileI
     Ok(ids)
 }
 
-impl Cva {
+impl ReliquaryRewritePlanSource<'_> {
     pub fn plan_rewrite(&mut self, request: &RewriteRequest) -> Result<RewritePlan, RewriteError> {
         let requested_profiles = validate_common(request)?;
         let all_profiles = self.compatibility_profiles.profiles();
@@ -501,7 +492,7 @@ impl Cva {
                 .map(|(id, ..)| *id)
                 .collect();
             let mut expanded = memory_link_closure(&retained, |id| latest_rel_memory(self, id))?;
-            let semantic = crate::rewrite::semantic_state::semantic_closure_rel(self, &expanded)?;
+            let semantic = self.semantic_closure(&expanded)?;
             expanded.extend(semantic.expanded_memory_ids);
             apply_semantic_closure(&mut candidates, &expanded, request)?;
             if expanded == retained {
@@ -599,8 +590,9 @@ impl Cva {
         } else {
             selected.as_slice()
         };
-        let conversations = crate::cva_reconcile_archive::rewrite_archive_conversations(
-            self,
+        let conversations = super::archive_selection::rewrite_archive_conversations(
+            self.archive,
+            self.container,
             provenance,
             &request.archive,
         )
@@ -623,7 +615,7 @@ impl Cva {
     }
 }
 
-impl Phylactery {
+impl PhylacteryRewritePlanSource<'_> {
     pub fn plan_rewrite(&mut self, request: &RewriteRequest) -> Result<RewritePlan, RewriteError> {
         if request.include_rel_ego_synthesis {
             return Err(RewriteError(
@@ -711,7 +703,7 @@ impl Phylactery {
                 .map(|(id, ..)| *id)
                 .collect();
             let mut expanded = memory_link_closure(&retained, |id| latest_phy_memory(self, id))?;
-            let semantic = crate::rewrite::semantic_state::semantic_closure_phy(self, &expanded)?;
+            let semantic = self.semantic_closure(&expanded)?;
             expanded.extend(semantic.expanded_memory_ids);
             apply_semantic_closure(&mut candidates, &expanded, request)?;
             if expanded == retained {

@@ -24,3 +24,7 @@ pub(crate) mod compactions;
 
 mod reliquary_prune;
 pub(crate) use reliquary_prune::{ReliquaryPruneParts, prune_reliquary};
+
+pub(crate) mod rewrite;
+
+pub(crate) mod archive_replay_error;

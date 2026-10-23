@@ -1577,6 +1577,86 @@
       "path": "src/maintenance/reliquary_prune.rs",
       "component": "maintenance",
       "classification": "production"
+    },
+    {
+      "path": "src/maintenance/cva_reconcile_error.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/cva_reconcile_conflict.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/archive_selection.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/closure.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/error.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/mod.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/model.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/plan.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/plan_source.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/semantic_emit.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/graph_endpoint_admission.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/archive_emit.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/file.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/rewrite/owner_access.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/archive_replay_error.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/ordered_replay.rs",
+      "component": "archive-store",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -1755,6 +1835,70 @@
     {
       "module": "maintenance::reliquary_prune",
       "component": "maintenance"
+    },
+    {
+      "module": "cva_reconcile_error",
+      "component": "maintenance"
+    },
+    {
+      "module": "cva_reconcile_conflict",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::model",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::error",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::closure",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::plan",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::plan_source",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::archive_selection",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::semantic_emit",
+      "component": "maintenance"
+    },
+    {
+      "module": "graph_endpoint_admission",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "maintenance::rewrite::owner_access",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::file",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::rewrite::archive_emit",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::archive_replay_error",
+      "component": "maintenance"
+    },
+    {
+      "module": "archive_ordered_replay",
+      "component": "archive-store"
     }
   ],
   "producer_value_contracts": [
@@ -2357,14 +2501,42 @@
       "owner": "pure-codec",
       "symbol": "PayloadUnavailable",
       "reason": "Immutable owner-local pruned-payload outcome used by transformed-copy verification; no lifecycle writer authority."
+    },
+    {
+      "consumer": "maintenance",
+      "owner": "pure-codec",
+      "symbol": "HistoricalPayload",
+      "reason": "Immutable retained-payload and terminal-state vocabulary used by rewrite planning; no store, callback, publication or writer capability."
+    },
+    {
+      "consumer": "maintenance",
+      "owner": "pure-codec",
+      "symbol": "LifecycleState",
+      "reason": "Immutable retained-payload and terminal-state vocabulary used by rewrite planning; no store, callback, publication or writer capability."
+    },
+    {
+      "consumer": "maintenance",
+      "owner": "pure-codec",
+      "symbol": "RelMetadata",
+      "reason": "Immutable concrete owner metadata, profile or terminal outcome used by rewrite selection and emission; no facade, provider or callback capability."
+    },
+    {
+      "consumer": "maintenance",
+      "owner": "pure-codec",
+      "symbol": "PhylacteryProfile",
+      "reason": "Immutable concrete owner metadata, profile or terminal outcome used by rewrite selection and emission; no facade, provider or callback capability."
+    },
+    {
+      "consumer": "maintenance",
+      "owner": "pure-codec",
+      "symbol": "TombstoneOutcome",
+      "reason": "Immutable concrete owner metadata, profile or terminal outcome used by rewrite selection and emission; no facade, provider or callback capability."
     }
   ],
   "forbidden_symbols": [
     "Cva",
     "Phylactery",
     "CvaError",
-    "CvaReconcileError",
-    "CvaReconcileConflict",
     "CvaOpenOptions",
     "Runtime",
     "RuntimeGateway",
@@ -2389,6 +2561,16 @@
       "consumer": "owner-lifecycle",
       "path": "lodestone_packed::ScalarType",
       "reason": "Immutable packed-vector scalar tag used while validating derived external-index backing against vector-store records."
+    },
+    {
+      "consumer": "maintenance",
+      "path": "lodestone_packed::PackedVectors",
+      "reason": "Existing packed-vector payload and schema codec values used for exact selected-row emission; no embedding provider or inference."
+    },
+    {
+      "consumer": "maintenance",
+      "path": "lodestone_packed::VectorSchema",
+      "reason": "Existing packed-vector payload and schema codec values used for exact selected-row emission; no embedding provider or inference."
     }
   ]
 }

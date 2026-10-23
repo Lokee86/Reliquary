@@ -53,7 +53,7 @@ impl Archive {
 
     pub(crate) fn file_bytes(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: FileId,
     ) -> Result<Vec<u8>, ArchiveError> {
         let file = self.files.get(id).ok_or(ArchiveError::MissingFile)?;

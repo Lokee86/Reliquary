@@ -1,13 +1,14 @@
+use crate::owner_lifecycle::OwnerError;
 use crate::{
-    ArchiveError, CompatibilityProfileError, ContainerError, CvaError, CvaReconcileConflict,
-    EntityError, GraphError, InsomniaError, MemoryError, RelationshipError,
+    ArchiveError, CompatibilityProfileError, ContainerError, CvaReconcileConflict, EntityError,
+    GraphError, InsomniaError, MemoryError, RelationshipError,
 };
 use std::fmt;
 use std::io;
 
 #[derive(Debug)]
 pub enum CvaReconcileError {
-    Cva(CvaError),
+    Cva(OwnerError),
     Container(ContainerError),
     Archive(ArchiveError),
     Memories(MemoryError),
@@ -123,8 +124,8 @@ impl CvaReconcileError {
     }
 }
 
-impl From<CvaError> for CvaReconcileError {
-    fn from(value: CvaError) -> Self {
+impl From<OwnerError> for CvaReconcileError {
+    fn from(value: OwnerError) -> Self {
         Self::Cva(value)
     }
 }

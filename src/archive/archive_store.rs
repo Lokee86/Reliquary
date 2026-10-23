@@ -53,7 +53,7 @@ impl Archive {
 
     pub(crate) fn content(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: ContentId,
     ) -> Result<String, ArchiveError> {
         String::from_utf8(self.content_bytes(container, id)?).map_err(|_| ArchiveError::InvalidUtf8)

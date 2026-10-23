@@ -1,9 +1,9 @@
+use super::owner_access::{PhylacteryRewriteAccess, ReliquaryRewriteAccess, RewriteOwnerAccess};
 use super::{
     FreshnessRewriteMode, IdentityPolicy, RewriteError, RewritePlan, RewriteReport, RewriteRequest,
 };
-use crate::{
-    Container, Cva, FileKind, HistoryGenerationId, Memory, MemoryDraft, MemoryId, Phylactery,
-};
+use crate::owner_lifecycle::{PhylacteryOwner, ReliquaryOwner};
+use crate::{Container, FileKind, HistoryGenerationId, Memory, MemoryDraft, MemoryId};
 use std::{collections::BTreeSet, path::Path};
 use uuid::Uuid;
 
@@ -16,14 +16,20 @@ pub fn plan_rewrite_file(
         Container::open_read_only(source).map_err(|error| RewriteError(error.to_string()))?;
     match container.identity().map(|identity| identity.file_kind) {
         Some(FileKind::Reliquary) | None => {
-            let mut rel =
-                Cva::open_read_only(source).map_err(|error| RewriteError(error.to_string()))?;
-            rel.plan_rewrite(request)
+            let mut rel = super::owner_access::open_rel(
+                Container::open_read_only(source)
+                    .map_err(|error| RewriteError(error.to_string()))?,
+            )
+            .map_err(|error| RewriteError(error.to_string()))?;
+            super::owner_access::plan_rel(&rel, request)
         }
         Some(FileKind::Phylactery) => {
-            let mut phy = Phylactery::open_read_only(source)
-                .map_err(|error| RewriteError(error.to_string()))?;
-            phy.plan_rewrite(request)
+            let mut phy = super::owner_access::open_phy(
+                Container::open_read_only(source)
+                    .map_err(|error| RewriteError(error.to_string()))?,
+            )
+            .map_err(|error| RewriteError(error.to_string()))?;
+            super::owner_access::plan_phy(&phy, request)
         }
     }
 }
@@ -219,7 +225,7 @@ fn validate_emitted(
     match probe.identity().map(|identity| identity.file_kind) {
         Some(FileKind::Phylactery) => {
             let phy =
-                Phylactery::open_from_container(probe).map_err(|e| RewriteError(e.to_string()))?;
+                super::owner_access::open_phy(probe).map_err(|e| RewriteError(e.to_string()))?;
             let expected_active = plan
                 .memory_decisions
                 .iter()
@@ -241,7 +247,8 @@ fn validate_emitted(
             Ok(phy.container)
         }
         Some(FileKind::Reliquary) | None => {
-            let rel = Cva::open_from_container(probe).map_err(|e| RewriteError(e.to_string()))?;
+            let rel =
+                super::owner_access::open_rel(probe).map_err(|e| RewriteError(e.to_string()))?;
             let expected_active = plan
                 .memory_decisions
                 .iter()
@@ -274,9 +281,12 @@ fn emit_rel(
     generation: HistoryGenerationId,
     staging_guard: &mut Option<crate::container::PhysicalReadSource>,
 ) -> Result<Container, RewriteError> {
-    let mut source = Cva::open_read_only(source_path).map_err(|e| RewriteError(e.to_string()))?;
+    let mut source = super::owner_access::open_rel(
+        Container::open_read_only(source_path).map_err(|error| RewriteError(error.to_string()))?,
+    )
+    .map_err(|e| RewriteError(e.to_string()))?;
     let keep = retained_ids(plan)?;
-    let semantic = crate::rewrite::semantic_state::semantic_closure_rel(&source, &keep)?;
+    let semantic = super::owner_access::semantic_closure_rel(&source, &keep)?;
     let revision_sets = load_selected_revisions_rel(&mut source, plan)?;
     let selected: Vec<_> = revision_sets
         .iter()
@@ -302,9 +312,12 @@ fn emit_rel(
             effective.push((memory.id, source_record, source_carry));
         }
     }
-    let mut output =
-        Cva::create_rel_with_uuid(output_path, destination_owner, metadata.type_label.clone())
-            .map_err(|e| RewriteError(e.to_string()))?;
+    let mut output = super::owner_access::create_rel(
+        output_path,
+        destination_owner,
+        metadata.type_label.clone(),
+    )
+    .map_err(|e| RewriteError(e.to_string()))?;
     *staging_guard = Some(
         output
             .container
@@ -327,7 +340,7 @@ fn emit_rel(
     } else {
         all_selected.as_slice()
     };
-    crate::cva_reconcile_archive::replay_rewrite_archive(
+    super::archive_emit::replay_rewrite_archive(
         &mut source,
         &mut output,
         archive_memories,
@@ -358,7 +371,7 @@ fn emit_rel(
         destination_cut,
         parse_digest(&plan.policy_digest)?,
     )?;
-    crate::cva_reconcile_archive::replay_rewrite_file_links(&source, &mut output, &keep)
+    super::archive_emit::replay_rewrite_file_links(&source, &mut output, &keep)
         .map_err(|error| RewriteError(error.to_string()))?;
     copy_compact_profiles_rel(&mut source, &mut output, &all_selected, plan)?;
     let retained_graph_memories: Vec<_> = source
@@ -377,7 +390,7 @@ fn emit_rel(
             &retained_graph_memories,
         )
         .map_err(|e| RewriteError(e.to_string()))?;
-    crate::rewrite::semantic_state::copy_semantic_state_rel(
+    super::owner_access::copy_semantic_state_rel(
         &source,
         &mut output,
         &semantic,
@@ -401,17 +414,19 @@ fn emit_phy(
             "Phylactery has no REL Freshness clock to preserve".into(),
         ));
     }
-    let mut source =
-        Phylactery::open_read_only(source_path).map_err(|e| RewriteError(e.to_string()))?;
+    let mut source = super::owner_access::open_phy(
+        Container::open_read_only(source_path).map_err(|error| RewriteError(error.to_string()))?,
+    )
+    .map_err(|e| RewriteError(e.to_string()))?;
     let keep = retained_ids(plan)?;
-    let semantic = crate::rewrite::semantic_state::semantic_closure_phy(&source, &keep)?;
+    let semantic = super::owner_access::semantic_closure_phy(&source, &keep)?;
     let revision_sets = load_selected_revisions_phy(&mut source, plan)?;
     let all_selected: Vec<_> = revision_sets
         .iter()
         .flat_map(|(_, _, revisions)| revisions.iter().cloned())
         .collect();
     let profile = source.profile();
-    let mut output = Phylactery::create_with_uuid(output_path, destination_owner)
+    let mut output = super::owner_access::create_phy(output_path, destination_owner)
         .map_err(|e| RewriteError(e.to_string()))?;
     *staging_guard = Some(
         output
@@ -489,15 +504,15 @@ fn emit_phy(
             &retained_graph_memories,
         )
         .map_err(|e| RewriteError(e.to_string()))?;
-    crate::rewrite::semantic_state::copy_semantic_state_phy(&source, &mut output, &semantic)?;
+    super::owner_access::copy_semantic_state_phy(&source, &mut output, &semantic)?;
     output.sync().map_err(|e| RewriteError(e.to_string()))?;
     let _ = generation;
     Ok(output.container)
 }
 
 fn copy_compact_profiles_rel(
-    source: &mut Cva,
-    output: &mut Cva,
+    source: &mut ReliquaryOwner,
+    output: &mut ReliquaryOwner,
     selected: &[Memory],
     plan: &RewritePlan,
 ) -> Result<(), RewriteError> {
@@ -560,7 +575,7 @@ fn copy_compact_profiles_rel(
 }
 
 fn compact_memory_rows_rel(
-    source: &mut Cva,
+    source: &mut ReliquaryOwner,
     selected: &[Memory],
     profile: crate::CompatibilityProfileId,
 ) -> Result<Option<(Vec<crate::MemoryBodyId>, crate::VectorSchema, Vec<u8>)>, RewriteError> {
@@ -608,7 +623,7 @@ fn compact_memory_rows_rel(
 }
 
 fn compact_archive_rows_rel(
-    source: &mut Cva,
+    source: &mut ReliquaryOwner,
     retained_fragments: &std::collections::HashSet<crate::FragmentId>,
     profile: crate::CompatibilityProfileId,
 ) -> Result<Option<(Vec<crate::FragmentId>, crate::VectorSchema, Vec<u8>)>, RewriteError> {
@@ -652,8 +667,8 @@ fn compact_archive_rows_rel(
 }
 
 fn copy_compact_profiles_phy(
-    source: &mut Phylactery,
-    output: &mut Phylactery,
+    source: &mut PhylacteryOwner,
+    output: &mut PhylacteryOwner,
     selected: &[Memory],
     plan: &RewritePlan,
 ) -> Result<(), RewriteError> {
@@ -689,7 +704,7 @@ fn copy_compact_profiles_phy(
 }
 
 fn compact_memory_rows_phy(
-    source: &mut Phylactery,
+    source: &mut PhylacteryOwner,
     selected: &[Memory],
     profile: crate::CompatibilityProfileId,
 ) -> Result<Option<(Vec<crate::MemoryBodyId>, crate::VectorSchema, Vec<u8>)>, RewriteError> {
@@ -737,7 +752,7 @@ fn compact_memory_rows_phy(
 }
 
 fn emit_memories_rel(
-    output: &mut Cva,
+    output: &mut ReliquaryOwner,
     selected: Vec<(MemoryId, bool, Vec<Memory>)>,
     effective: &[(MemoryId, crate::FreshnessRecord, u64)],
     mode: FreshnessRewriteMode,
@@ -884,7 +899,7 @@ fn retained_ids(plan: &RewritePlan) -> Result<BTreeSet<MemoryId>, RewriteError> 
 }
 
 fn load_selected_revisions_rel(
-    source: &mut Cva,
+    source: &mut ReliquaryOwner,
     plan: &RewritePlan,
 ) -> Result<Vec<(MemoryId, bool, Vec<Memory>)>, RewriteError> {
     plan.selected_revisions
@@ -915,7 +930,7 @@ fn load_selected_revisions_rel(
 }
 
 fn load_selected_revisions_phy(
-    source: &mut Phylactery,
+    source: &mut PhylacteryOwner,
     plan: &RewritePlan,
 ) -> Result<Vec<(MemoryId, bool, Vec<Memory>)>, RewriteError> {
     plan.selected_revisions
@@ -1037,8 +1052,8 @@ fn hex32(bytes: &[u8; 32]) -> String {
 /// selection. Prior rewrite baselines and superseded provisional events are not
 /// retained history and do not seed this independent projection.
 fn recompute_retained_freshness(
-    source: &Cva,
-    output: &Cva,
+    source: &ReliquaryOwner,
+    output: &ReliquaryOwner,
     memories: &[Memory],
 ) -> Result<Vec<(MemoryId, crate::FreshnessRecord, u64)>, RewriteError> {
     use crate::freshness_storage::FreshnessReplayEntry as E;

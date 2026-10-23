@@ -1,7 +1,7 @@
 # Dependency Convergence — Phase 3: History, Maintenance, Import and Reconciliation
 
 Date: 2026-10-22
-Status: **Correction-only execution specification; 59/119 tasks closed locally, gates B0/B1/H3/M3/P3 accepted; W3 onward pending**
+Status: **Correction-only execution specification; 67/119 tasks closed locally, gates B0/B1/H3/M3/P3/W3 accepted; R3 onward pending**
 Parent: [Dependency convergence architecture refactor](dependency-convergence-architecture-refactor-2026-10-21.md)
 Authoritative DAG: [Accepted logical component DAG](dependency-convergence-target-dag-2026-10-21.md) and [machine allowlist](../tools/pitlord/convergence-component-dag.json)
 Predecessor: [Phase 2 accepted local execution record](dependency-convergence-phase2-execution-2026-10-22.md) and [Phase 3 owner-contract handoff](dependency-convergence-phase3-handoff-2026-10-22.md)
@@ -268,7 +268,7 @@ Choose a **staged hard cut**, not perpetual expand-contract. Before each subsyst
 
 **Execution evidence for every task:** ID, target owner, removed/added direct dependency with mode, modified code symbols, focused test command/result, format/source hash implications, deletion obligation, blocker classification, and checkpoint. This is verification, not a requirement to execute inference at each task. Retain Phase 0 and Phase 2 graph evidence and Phase 1/2 acceptance as immutable prior receipts.
 
-**Completion criteria:** all 98 tasks and twelve gates accepted; sole History is read-only; Maintenance owns destructive policy; Import owns epoch semantics; no owner-to-facade or unlisted upward dependencies; one runtime semantic settlement format with development corpus promoted and no old conversion machinery; original and converted six-file histories equivalent at accepted semantic cuts; no unexpected source-file mutation, history/clock/provenance/privacy regression; whole Rust/CLI/source/doc suite green on the declared supported environment. Phase 3 must not declare completion based solely on an architectural graph or a field-size percentage.
+**Completion criteria:** all 119 unique tasks (98 original plus 21 added) and twelve gates accepted; sole History is read-only; Maintenance owns destructive policy; Import owns epoch semantics; no owner-to-facade or unlisted upward dependencies; one runtime semantic settlement format with development corpus promoted and no old conversion machinery; original and converted six-file histories equivalent at accepted semantic cuts; no unexpected source-file mutation, history/clock/provenance/privacy regression; whole Rust/CLI/source/doc suite green on the declared supported environment. Phase 3 must not declare completion based solely on an architectural graph or a field-size percentage.
 
 **Phase 4 handoff:** Project Environment/Lore/Git repository authority and path authorization, with no new project VCS or cloud sync. Runtime/Gateway and facade convergence remain Phases 5 and 6. No reopen of the completed minimal-lossless-history 377-step program or implementation of unrelated roadmap features.
 

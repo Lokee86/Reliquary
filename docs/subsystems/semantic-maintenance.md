@@ -46,7 +46,7 @@ Profile retirement is semantic owner state, distinct from deleting arbitrary his
 
 ## Rewrite
 
-The rewrite API separates planning from execution. A `RewritePlan` binds source identity/head and policy digest; execution revalidates that source before creating a destination and refuses an already-existing destination.
+The rewrite API separates planning from execution. Its canonical implementation is `src/maintenance/rewrite/`; the supported public module only reexports it. Immutable planning views exclude physical writers, and emission uses concrete lifecycle owners and owner-local publishers. A `RewritePlan` binds source identity/head and policy digest; execution revalidates that source before creating a destination and refuses an already-existing destination.
 
 Policy controls owner identity/generation, selected Memories, embedding profiles, Freshness treatment, Archive selection/provenance for REL, and permitted Ego state. PreserveOwner history rollover records explicit predecessor lineage; incompatible history generations fail closed during reconciliation.
 

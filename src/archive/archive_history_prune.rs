@@ -169,7 +169,7 @@ impl Archive {
 
     pub(crate) fn node_content(
         &self,
-        container: &mut Container,
+        container: &Container,
         node: &Node,
     ) -> Result<String, ArchiveError> {
         if self.prune.node_is_pruned(node) {

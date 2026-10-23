@@ -31,7 +31,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | H3 | Accepted locally (source cut) | One read-only proof path; final targeted 23 History + source-order regression passed. Full-run identity anomaly is retained below for A3. |
 | M3 | Accepted locally | Canonical explicit Maintenance operation boundary, validated lifecycle/History reconstruction, thin public dispatch and obsolete facade policy deletion; continuation matrix below. |
 | P3 | Accepted locally | REL/PHY selection, owner retention/marker proofs, exact retained raw history/clocks, source/output guards and prune/reclaim tests; continuation matrix below. |
-| W3 | Pending | Rewrite. |
+| W3 | Accepted locally | Immutable planning, concrete lifecycle execution, owner-local replay, selected semantic/vector emission and source-preserving publication; W3 receipt below. |
 | R3 | Pending | Generic reconciliation. |
 | I3 | Pending | Import coordination. |
 | S3 | Pending | Measured settlement alternatives and selected design. |
@@ -41,7 +41,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 39/98 original accepted + 20/21 additional verified = 59/119 closed; one active and 59 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 47/98 original accepted + 20/21 additional verified = 67/119 closed; one active and 51 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -84,14 +84,14 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.4.06 | Accepted locally | Retired profile/vector, compact body and description tests pass in continuation matrix; continuation receipt |
 | P3.4.07 | Accepted locally | Frozen source, writer lease, destination collision and identity-guarded cleanup preserved; continuation receipt |
 | P3.4.08 | Accepted locally | Old facade policy routes removed; REL/PHY prune/reclaim and production source/DAG guards pass; continuation receipt |
-| P3.5.01 | Pending | Awaiting prerequisite gate |
-| P3.5.02 | Pending | Awaiting prerequisite gate |
-| P3.5.03 | Pending | Awaiting prerequisite gate |
-| P3.5.04 | Pending | Awaiting prerequisite gate |
-| P3.5.05 | Pending | Awaiting prerequisite gate |
-| P3.5.06 | Pending | Awaiting prerequisite gate |
-| P3.5.07 | Pending | Awaiting prerequisite gate |
-| P3.5.08 | Pending | Awaiting prerequisite gate |
+| P3.5.01 | Accepted locally | Canonical model, plan, semantic emission and file coordinator under Maintenance; public reexports and lineage read adapters retained; W3 receipt |
+| P3.5.02 | Accepted locally | Immutable owner planning borrows and effect guard; referential closure separated from concrete destination emission; W3 receipt |
+| P3.5.03 | Accepted locally | Exact retained owner facts and local Archive/Memory/Graph/Ego/vector publishers; no facade/provider callback; W3 receipt |
+| P3.5.04 | Accepted locally | New/preserved owner identity, lineage and generation refusal semantics preserved; W3 receipt |
+| P3.5.05 | Accepted locally | Exact selected Memory/Archive vector rows and profile state; no embedding inference; W3 receipt |
+| P3.5.06 | Accepted locally | Held source digest/identity and no-overwrite atomic publication retained; stale source and collision tests pass; W3 receipt |
+| P3.5.07 | Accepted locally | Controlled selection, retained revisions, profiles, imports, Ego and Graph verified by library and public rewrite matrix; W3 receipt |
+| P3.5.08 | Accepted locally | Old production rewrite planner/file/model and semantic policy routes removed; compatibility module is reexports/read adapters only; W3 receipt |
 | P3.6.01 | Pending | Awaiting prerequisite gate |
 | P3.6.02 | Pending | Awaiting prerequisite gate |
 | P3.6.03 | Pending | Awaiting prerequisite gate |
@@ -238,7 +238,7 @@ Completion publication consumes an opaque Import-authored value through the conc
 The [settlement/session receipt](../benchmarks/dependency-convergence-phase3-settlement-session-preparation-2026-10-22.json) records **1,974 passed, zero failed, five ignored and the same four long cases filtered**, in 119.56 seconds. This validates the complete read-only settlement proof and completion-session changes before the next reconstruction/readiness integration. Documentation checks for the combined continuation remain pending.
 ## REL Maintenance and Import resumed checkpoint
 
-Current progress: **59/119 closed (49.6%)**, **one active**, **59 pending**. M3/P3 close their original distinct integration/deletion obligations here; W3/R3/I3/S3/C3/D3/A3 remain pending. The detailed scope attribution, deferred tests, final source order and next W3 handoff are in the [realignment continuation](dependency-convergence-phase3-execution-realignment-2026-10-22.md#verified-source-continuation-after-ceaa5b8).
+At `d685e0c`: **59/119 closed (49.6%)**, **one active**, **59 pending**. M3/P3 close their original distinct integration/deletion obligations here; W3/R3/I3/S3/C3/D3/A3 remain pending. The detailed scope attribution, deferred tests, final source order and next W3 handoff are in the [realignment continuation](dependency-convergence-phase3-execution-realignment-2026-10-22.md#verified-source-continuation-after-ceaa5b8).
 
 The [REL Maintenance/Import continuation receipt](../benchmarks/dependency-convergence-phase3-rel-maintenance-import-resume-2026-10-22.json) contains source hashes and exact passing-test names grouped into a nonadditive verification matrix. The bounded library run passed **1,975 tests**, zero failed, five ignored and four filtered in **72.04s**. Final Import policy extraction then passed **90 Import tests** in **4.09s**; The final source passed the locked CLI check and **32 CLI tests**. Production owner/History, physical and logical DAG guards pass, including negative fixtures. All six canonical hashes remain unchanged. An earlier restricted run was terminated after filesystem/transport fixture failures; it is not counted as success. No full A3 pass or corpus migration is claimed.
 
@@ -247,3 +247,13 @@ History takes a borrowed replay and returns session-free reconstructed state. Th
 Pitlord documentation ownership remains blocked by the existing Arcana manifest error; D3 refresh has not been performed. Documentation and public integration results are recorded in the continuation receipt after their final runs.
 
 Final public integration after the package-only cache rebuild passed **25 suites: 163 tests, zero failed and one ignored**. The first integration build failed before runtime on missing cached linkable dependencies; it is not a pass. Locked final-source CLI check and all **32 CLI tests** passed. Full and changed-document policy checks passed after the realignment schema repair; final Archivist integrity is recorded in the receipt.
+
+## W3 Maintenance rewrite acceptance
+
+Current progress: **67/119 closed (56.3%)** = **47 original accepted + 20 added verified**, **one active (I.03)** and **51 original pending**. Gates **B0/B1/H3/M3/P3/W3 are locally accepted (6/12)**. Next is **P3.6/R3 generic reconciliation**; I3 and settlement/format/final gates remain separate.
+
+The [W3 receipt](../benchmarks/dependency-convergence-phase3-rewrite-2026-10-22.json) pins the source and exact passing rewrite/reconciliation matrix. The bounded library batch passed **1,975 tests**, zero failed, five ignored and the same four long cases filtered, in **73.99s**. All **18 public rewrite contract tests** passed in **1.57s**; locked CLI check and **32 CLI tests** passed in **0.84s**. Owner/physical guards and negative fixtures pass. The new planner effect guard and its negative fixtures pass. All six canonical hashes match the frozen baseline. No format change or D3 source graph refresh occurred.
+
+Maintenance now owns model/error, immutable planning, referential closure, selected semantic and vector emission, and physical file coordination. Public `rewrite` exports and lineage getters remain source-compatible. Concrete lifecycle owners replace production Cva/Phylactery execution inputs. Archive owns ordered local replay facts and publishers; the remaining generic reconciliation adapter uses that contract. The existing graph endpoint validator is under lower lifecycle. New error value ownership and exact immutable DTO/packed-codec contracts are explicit in the source manifest; the 34-node/163-edge logical authority is unchanged.
+
+The fresh rewrite writer validates the enrolled Freshness record transition without retaining a runtime notification cache; the final normal reopen still validates/rebuilds derived state. Existing public variants, error text, copy/clock behavior and refusal ordering are retained. Dead facade Archive rewrite policy and production `src/rewrite/{file,model,plan}.rs` implementations are removed. Earlier moved-test/compile failures remain non-passing attempts. Full A3 long/prefix/corpus acceptance remains pending.

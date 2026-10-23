@@ -34,7 +34,7 @@ impl Archive {
 
     pub(crate) fn conversation_turns(
         &self,
-        container: &mut Container,
+        container: &Container,
         conversation_id: &str,
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
@@ -44,7 +44,7 @@ impl Archive {
 
     pub(crate) fn historical_conversation_turns(
         &self,
-        container: &mut Container,
+        container: &Container,
         conversation_id: &str,
         leaf_node_id: &str,
     ) -> Result<Vec<ResolvedTurn>, ArchiveError> {
@@ -56,7 +56,7 @@ impl Archive {
 
     pub(crate) fn conversation_turn_page(
         &self,
-        container: &mut Container,
+        container: &Container,
         conversation_id: &str,
         end_node_id: &str,
         limit: usize,
@@ -88,7 +88,7 @@ impl Archive {
 
     fn resolve_turn(
         &self,
-        container: &mut Container,
+        container: &Container,
         node: crate::Node,
     ) -> Result<ResolvedTurn, ArchiveError> {
         let content = self.node_content(container, &node)?;

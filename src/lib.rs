@@ -387,13 +387,13 @@ mod cva_principal_repack;
 mod cva_reconcile;
 #[path = "facade/cva_reconcile_archive.rs"]
 mod cva_reconcile_archive;
-#[path = "facade/cva_reconcile_conflict.rs"]
+#[path = "maintenance/cva_reconcile_conflict.rs"]
 mod cva_reconcile_conflict;
 #[path = "facade/cva_reconcile_conflict_map.rs"]
 mod cva_reconcile_conflict_map;
 #[path = "facade/cva_reconcile_entity.rs"]
 mod cva_reconcile_entity;
-#[path = "facade/cva_reconcile_error.rs"]
+#[path = "maintenance/cva_reconcile_error.rs"]
 mod cva_reconcile_error;
 #[path = "facade/cva_reconcile_freshness.rs"]
 mod cva_reconcile_freshness;
@@ -1811,7 +1811,7 @@ mod history;
 
 use owner_lifecycle::insomnia_replay as insomnia_admission;
 
-#[path = "facade/graph_endpoint_admission.rs"]
+#[path = "owner_lifecycle/graph_endpoint_admission.rs"]
 mod graph_endpoint_admission;
 use owner_lifecycle::memory_provenance as memory_provenance_admission;
 
@@ -1858,3 +1858,6 @@ pub(crate) mod perception_import_readiness;
 
 #[path = "facade/cva_import_completion.rs"]
 mod cva_import_completion;
+
+#[path = "archive/ordered_replay.rs"]
+pub(crate) mod archive_ordered_replay;

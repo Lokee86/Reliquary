@@ -443,6 +443,11 @@ impl Container {
     }
 
     pub fn chunks(&mut self) -> Result<Vec<ObjectRef>, ContainerError> {
+        self.chunk_refs()
+    }
+
+    /// Immutable physical enumeration shared by read-only owner operations.
+    pub(crate) fn chunk_refs(&self) -> Result<Vec<ObjectRef>, ContainerError> {
         let _read = self.read_gate()?;
         let mut chunks = Vec::new();
         let mut cursor = self.physical_cursor()?;
