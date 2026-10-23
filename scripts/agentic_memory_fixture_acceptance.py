@@ -24,9 +24,9 @@ def digest(path: Path) -> str:
             value.update(chunk)
     return value.hexdigest()
 
-def source_hashes(root: Path) -> dict:
+def source_hashes(root: Path, corpora=CORPORA) -> dict:
     return {str(Path(directory) / name): digest(root / directory / name)
-            for _, directory, _, _ in CORPORA
+            for _, directory, _, _ in corpora
             for name in ("project.prj.rel", "user.phy", "AUTHORITATIVE.txt", "SHA256SUMS.txt")}
 
 def local(path: Path) -> Path:
@@ -35,20 +35,91 @@ def local(path: Path) -> Path:
         raise ValueError(f"output must remain inside active worktree: {path}")
     return path
 
+def converted_corpora(receipt_path: Path) -> tuple[list[tuple[str, str, str, str]], dict]:
+    receipt_path = local(receipt_path)
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    if not isinstance(receipt, dict):
+        raise ValueError("conversion receipt must be a JSON object")
+    if receipt.get("format") != "CVAFRS07":
+        raise ValueError("conversion receipt must select CVAFRS07")
+    semantic_oracle = receipt.get("semantic_oracle")
+    if not isinstance(semantic_oracle, dict) or semantic_oracle.get("passed") is not True:
+        raise ValueError("conversion receipt lacks a passing frozen semantic oracle")
+
+    promotion_path = ROOT / "benchmarks/canonical-history-promotion-2026-10-21.json"
+    promotion = json.loads(promotion_path.read_text(encoding="utf-8"))
+    expected = {
+        f"{directory}/{name}"
+        for _, directory, _, _ in CORPORA
+        for name in ("project.prj.rel", "user.phy")
+    }
+
+    def unique_fixtures(document: dict, label: str) -> dict:
+        if not isinstance(document, dict):
+            raise ValueError(f"{label} receipt must be a JSON object")
+        rows = document.get("fixtures")
+        if not isinstance(rows, list):
+            raise ValueError(f"{label} receipt must contain a fixture list")
+        indexed = {}
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError(f"{label} receipt has a malformed fixture row")
+            key = row.get("fixture")
+            if not isinstance(key, str) or key in indexed:
+                raise ValueError(f"{label} receipt has a missing or duplicate fixture")
+            indexed[key] = row
+        if set(indexed) != expected:
+            raise ValueError(f"{label} receipt must identify the six promoted REL/PHY fixtures")
+        return indexed
+
+    converted = unique_fixtures(receipt, "conversion")
+    promoted = unique_fixtures(promotion, "promotion")
+    selected = []
+    for label, directory, _, _ in CORPORA:
+        hashes = []
+        for name in ("project.prj.rel", "user.phy"):
+            key = f"{directory}/{name}"
+            row = converted[key]
+            original = row.get("original_sha256")
+            current = row.get("converted_sha256")
+            if original != promoted[key].get("canonical_sha256"):
+                raise ValueError(f"conversion before-image differs from immutable promotion for {key}")
+            if not isinstance(current, str) or len(current) != 64 or any(c not in "0123456789abcdef" for c in current):
+                raise ValueError(f"conversion receipt has an invalid converted SHA256 for {key}")
+            hashes.append(current)
+        selected.append((label, directory, hashes[0], hashes[1]))
+    return selected, {
+        "path": str(receipt_path),
+        "sha256": digest(receipt_path),
+        "format": receipt["format"],
+        "semantic_oracle_passed": True,
+        "scope": "current-format corpus inputs proven by the immutable Oct 21 promotion before-images and passing frozen semantic oracle",
+    }
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--phase", choices=["inventory", "functional", "fidelity"], required=True)
     parser.add_argument("--fixture-root", type=Path, default=ROOT.parent / "reliquary-fixtures/local/authoritative")
+    parser.add_argument("--conversion-receipt", type=Path,
+                        help="opt in to promoted CVAFRS07 inputs bound to the Oct 21 immutable before-images")
     parser.add_argument("--out", type=Path)
     args = parser.parse_args()
     binary = local(args.binary)
-    out = local(args.out or ROOT / f"benchmarks/agentic-memory-fixture-{args.phase}-2026-10-16.json")
+    conversion = None
+    corpora = CORPORA
+    if args.conversion_receipt is not None:
+        corpora, conversion = converted_corpora(args.conversion_receipt)
+    default_report_date = "2026-10-23" if conversion else "2026-10-16"
+    out = local(args.out or ROOT / f"benchmarks/agentic-memory-fixture-{args.phase}-{default_report_date}.json")
     scratch = local(ROOT / "bin/agentic-fixture-runs" / str(uuid.uuid4()))
-    before = source_hashes(args.fixture_root)
-    for _, directory, rel_hash, phy_hash in CORPORA:
+    before = source_hashes(args.fixture_root, corpora)
+    expected_sources = {}
+    for _, directory, rel_hash, phy_hash in corpora:
         for name, expected in [("project.prj.rel", rel_hash), ("user.phy", phy_hash)]:
-            if before[str(Path(directory) / name)] != expected:
+            relative = str(Path(directory) / name)
+            expected_sources[relative] = expected
+            if before[relative] != expected:
                 raise ValueError(f"authoritative frozen input hash mismatch: {directory}/{name}")
     scratch.mkdir(parents=True)
     source_files = sorted((ROOT / "src/runtime_inference").glob("agentic_memory_frozen_fixture_*.rs")) + [Path(__file__).resolve()]
@@ -58,8 +129,12 @@ def main() -> int:
               "head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
               "results": [], "failure": None,
               "scope": "REL-only native acceptance on disposable copies; deterministic oracle and stored-vector replay; F3 is a separate real-host gate"}
+    if conversion:
+        report["conversion_receipt"] = conversion
+        report["expected_source_hashes"] = expected_sources
+        report["corpus_input_scope"] = conversion["scope"]
     try:
-        for label, directory, rel_hash, _ in CORPORA:
+        for label, directory, rel_hash, _ in corpora:
             case = scratch / label
             case.mkdir()
             copied = case / "owner.rel"
@@ -78,11 +153,13 @@ def main() -> int:
             result = json.loads(result_path.read_text(encoding="utf-8"))
             report["results"].append({"corpus": label, "command": command, "copy": str(copied), "result": result})
             print(f"{args.phase}: {label}: {result.get('status', 'executed')}", flush=True)
+            if conversion and result.get("status") == "corpus_limitation":
+                raise RuntimeError(f"{label}: CVAFRS07 conversion input was blocked by corpus format")
     except Exception as error:
         report["failure"] = str(error)
     finally:
         report["corpus_limitations"] = sum(row["result"].get("status") == "corpus_limitation" for row in report["results"])
-        report["source_after"] = source_hashes(args.fixture_root)
+        report["source_after"] = source_hashes(args.fixture_root, corpora)
         report["source_unchanged"] = report["source_after"] == before
         if not report["source_unchanged"]:
             report["failure"] = "authoritative source bytes changed during execution"
