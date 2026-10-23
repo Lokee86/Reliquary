@@ -1962,6 +1962,41 @@
       "path": "src/imports/reconciliation_epoch_replay.rs",
       "component": "import",
       "classification": "production"
+    },
+    {
+      "path": "src/imports/mod.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/prepare.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/providers.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/hermes.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/chatgpt.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/claude.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/contract.rs",
+      "component": "import",
+      "classification": "production"
     }
   ],
   "module_components": [
