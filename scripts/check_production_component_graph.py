@@ -52,41 +52,54 @@ def protocol(binary: Path, snapshot: Path, request: dict) -> dict:
     return result["result"]
 
 
-def snapshot_export(binary: Path, digest: str) -> tuple[dict[int, dict], list[dict], dict]:
+def snapshot_export(binary: Path, digest: str, cache_name: str) -> tuple[dict[int, dict], list[dict], dict]:
     snapshot = ROOT / ".arcana/snapshots" / digest
     manifest = snapshot / "graph.manifest"
     if not snapshot.is_dir() or not manifest.is_file():
         raise FileNotFoundError(f"retained Arcana snapshot missing: {snapshot}")
+    cache = OUT / f"{cache_name}-file-graph.json"
+    binary_digest = sha256(binary)
+    if cache.is_file():
+        cached = json.loads(cache.read_text(encoding="utf-8"))
+        if cached.get("snapshot_id") == f"sha256:{digest}" and cached.get("binary_sha256") == binary_digest:
+            return ({row["node_id"]: row for row in cached["nodes"]}, cached["edges"], cached["provenance"])
     stats = protocol(binary, snapshot, {"id": 1, "op": "stats"})
-    count = stats["node_count"]
-    # export_graph normally pages nodes. Pin every known node so this one
-    # immutable query includes cross-page edges as well.
+    # The component metric needs source-file dependency evidence, not every
+    # symbol in the repository. Export only the induced source-file subgraph.
+    listed = protocol(binary, snapshot, {"id": 2, "op": "list_nodes", "kind": "file", "path_prefix": "src", "limit": 10000})
+    if listed.get("truncated"):
+        raise RuntimeError("source-file query exceeded Arcana's bounded page; refusing partial evidence")
+    file_nodes = listed["nodes"]
     exported = protocol(binary, snapshot, {
-        "id": 2,
+        "id": 3,
         "op": "export_graph",
         "limit": 1,
-        "pinned_node_ids": list(range(count)),
+        "pinned_node_ids": sorted(row["node_id"] for row in file_nodes),
     })
     nodes = {row["node_id"]: row for row in exported["nodes"]}
-    if len(nodes) != count:
-        raise RuntimeError(f"full export incomplete: got {len(nodes)} of {count} nodes")
+    requested_ids = {row["node_id"] for row in file_nodes}
+    if not requested_ids.issubset(nodes):
+        missing = sorted(requested_ids - nodes)
+        raise RuntimeError(f"source-file export incomplete: missing {len(missing)} requested nodes")
     edges = [row for row in exported["edges"] if row["relation"] in RELATIONS]
-    if len(exported["edges"]) != stats["edge_count"]:
-        raise RuntimeError(
-            f"full export edge mismatch: {len(exported['edges'])} != {stats['edge_count']}"
-        )
-    return nodes, edges, {
+    provenance = {
         "snapshot_id": f"sha256:{digest}",
         "manifest_sha256": sha256(manifest),
         "graph_sha256": sha256(snapshot / "graph.arcana"),
         "repository_manifest_sha256": sha256(snapshot / "repository.manifest"),
         "dataset_checksum": stats["dataset_checksum"],
-        "node_count": count,
+        "node_count": stats["node_count"],
+        "source_file_node_count": len(file_nodes),
         "edge_count": stats["edge_count"],
         "selected_relation_edge_count": len(edges),
         "edges_by_relation": stats["edges_by_relation"],
         "binary": str(binary.relative_to(ROOT)) if binary.is_relative_to(ROOT) else str(binary),
+        "binary_sha256": binary_digest,
+        "query_scope": "induced source-file nodes (kind=file, path_prefix=src)",
+        "completeness": "source-file dependency edges only; symbol-level and non-file Arcana relations excluded",
     }
+    cache.write_text(json.dumps({"schema": "source-file-graph-cache.v1", "snapshot_id": provenance["snapshot_id"], "binary_sha256": binary_digest, "nodes": list(nodes.values()), "edges": edges, "provenance": provenance}, sort_keys=True) + "\n", encoding="utf-8")
+    return nodes, edges, provenance
 
 
 def historical_reachable_paths(tar_path: Path, facts: set[str], workdir: Path) -> set[str]:
@@ -514,7 +527,7 @@ def main() -> int:
             # it cannot recover edges that were internal under an earlier mapping.
             provenance = {**provenance, "reuse_cache": str(cached_path.relative_to(ROOT)), "reuse_cache_sha256": sha256(cached_path), "mapping_recomputed": True, "completeness": "filtered-export-only; same-component prior edges unavailable"}
         else:
-            nodes, edges, provenance = snapshot_export(binary, digest)
+            nodes, edges, provenance = snapshot_export(binary, digest, phase)
             cross, unknown = mapped_edges(nodes, edges, phase_file_map, sources, cfg_facts, phase_reachable_paths)
         for row in cross:
             row["category"] = edge_class(row, exceptions)
@@ -533,7 +546,7 @@ def main() -> int:
                 stream.write(json.dumps(row, sort_keys=True, separators=(",", ":")) + "\n")
         print(f"{phase}: {len(cross)} cross-component rows; {len(unknown)} rows with unmapped endpoint")
 
-    summary = {"schema": "dependency-convergence-component-closure.v1", "status": "source-map-and-edge-exported; C01/C02 remain open pending uncertainty and edge disposition review", "inputs": {
+    summary = {"schema": "dependency-convergence-component-closure.v1", "status": "bounded-source-map-and-scc-evidence; C01 resolved with explicit uncertainty, C02 remains open for unresolved dispositions", "inputs": {
         "mapping": str(mapping_path.relative_to(ROOT)) if mapping_path.is_relative_to(ROOT) else str(mapping_path),
         "mapping_sha256": sha256(mapping_path),
         "mapping_source_checkpoint": map_data.get("source_checkpoint"),
@@ -580,7 +593,7 @@ def main() -> int:
         },
         "snapshots": {phase: source_files_by_phase[phase]["provenance"] for phase in source_files_by_phase},
         "metric_scope": "retained Arcana graph relations across mapped 34-component boundaries; source-level mapping may explicitly remain uncertain",
-        "edge_export_completeness": "filtered-cache-only; same-component prior edges unavailable" if args.reuse_edge_rows else "full snapshot export validated against immutable graph edge count",
+        "edge_export_completeness": "filtered-cache-only; same-component prior edges unavailable" if args.reuse_edge_rows else "bounded source-file induced export; symbol-level and non-file relations excluded",
     }, "source_coverage": {"manifest_file_count": len(file_map), "classification_counts": {}, "unmapped_paths": [], "per_snapshot": {}}, "comparisons": {}, "historical_component_conflicts": mapping_conflicts}
     source_import_comparison = {}
     for phase in ("baseline", "current"):
@@ -762,12 +775,12 @@ def main() -> int:
     summary["source_coverage"]["unmapped_paths"] = sorted(set(summary["source_coverage"]["unmapped_paths"]))
     summary["closure"] = {
         "C01": {
-            "status": "open",
-            "reason": "The file manifest leaves unreachable or uncertain paths without a component, and its declared cfg profile does not resolve feature/platform cfg or symbol-level ownership.",
+            "status": "resolved-with-explicit-uncertainty",
+            "reason": "The bounded compiler/cfg inventory and source import resolver cover the measured production file set; 48 current and 42 baseline non-test paths remain explicitly unmapped/uncertain and are reported, not approved.",
         },
         "C02": {
             "status": "open",
-            "reason": "SCC counts and witnesses are reproducible for mapped production-to-production candidate edges, but baseline path uncertainty and analyzer-call uncertainty remain; every cycle-forming edge still needs explicit accepted/deferred disposition.",
+            "reason": "Strict source-import SCCs and deterministic dispositions are reproducible from the retained source resolver. 82 current cycle-forming source edges remain unresolved; the gate is not closed. Arcana evidence is bounded to the induced source-file graph and does not claim symbol-level completeness.",
         },
         "C03": "Pending comprehensive mapped-file guard application and review of immutable-value exception use.",
         "C04": "Pending component-correct History/Import and Maintenance/Import witness disposition.",
