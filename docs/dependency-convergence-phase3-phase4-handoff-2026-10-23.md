@@ -55,6 +55,9 @@ Phase 3's own D3 and A3 gates are locally accepted, but **that does not prove Ph
 
 Before Phase 4 implementation, inspect the actual production-only target-component SCC and annotate residual Phase 1/2/3 contract violations versus Phase 4–7 deferred cuts. Do not re-open accepted feature/format work or silently change the immutable initial graph. The Phase 3 fingerprint-ratchet pass means all *currently reported* forbidden findings are classified and no new unreviewed fingerprint passes; it is not a claim that the original knot is gone. The accepted logical 34-component DAG remains the target, not measured source completion.
 
+
+The completed [Phase 1–3 source-closure diagnostic](dependency-convergence-phase1-3-closure-audit-2026-10-23.md) records the measured coarse graph, the currently approved immutable-value store imports, and the C-01–C-07 closure register. **C-01–C-04 source-conformance evidence must be resolved before Phase 4 implementation**; do not interpret the reported giant area SCC as a proven store-ownership regression, and do not accept the hand-authored target DAG as proof of actual production-source conformance.
+
 ## Related docs
 
 - [Parent architecture campaign](dependency-convergence-architecture-refactor-2026-10-21.md)

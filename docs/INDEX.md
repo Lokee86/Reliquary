@@ -15,6 +15,7 @@
 
 
 - [Accepted target component DAG](dependency-convergence-target-dag-2026-10-21.md) — permanent no-cycle/no-upward dependency invariants and the complete logical allowlist for the correction-only refactor.
+- [Phase 1–3 production-source closure audit](dependency-convergence-phase1-3-closure-audit-2026-10-23.md) — compared frozen and current dependency evidence, separated owner-store contracts from service cycles, and defined bounded closure prerequisites before Phase 4.
 - [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — Phases 0–3 accepted; Phases 4–7 pending.
 - [Semantic import-settlement minimization follow-up](semantic-import-settlement-minimization-plan-2026-10-21.md) — original correction proposal for the measured `CVAFRS06` proof-size regression; selected current implementation is tracked by Phase 3 S3/C3.
 - [Context Engine compaction refinement](context-engine-compaction-refinement-plan-2026-10-21.md) — unfinished deterministic trace stripping, bounded protected tail, structured validated retrieval mapping, reduction/consolidation, and current-turn pressure handling under the existing compaction ownership contract.

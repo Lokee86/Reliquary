@@ -1,0 +1,298 @@
+{
+  "schema": "dependency-convergence-phase1-3-closure-audit.v1",
+  "status": "source-audit-complete; source-conformance-verification-open; no-implementation",
+  "source": {
+    "old_source": "c43d33c136f560fdca2249619866e1acf9b7fdf3",
+    "phase3_commit": "448d77abbad3e7717db77958ae90a23b514834de",
+    "baseline_snapshot": "dd2b924fcfed5222dac8f7032c03fb22a4892888cdd892d4c18ef81df6cf3259",
+    "current_snapshot": "e128d7e9b19bca5422781e4eea0eeb2d737d02b7e1251750a72b94efe99dcea4"
+  },
+  "source_files": {
+    "historical": 1102,
+    "current": 1267,
+    "current_registered_owner_files": 405,
+    "current_registered_store_files": 247
+  },
+  "same_current_policy_areas": 22,
+  "raw_all_relation_edges": {
+    "before": 9537,
+    "after": 10468
+  },
+  "candidate_cfg_exclusions": {
+    "before": 6546,
+    "after": 6730,
+    "filter": "File/test-name gates, cfg(test) external and inline module blocks, and directly annotated test symbols. Not a full Rust cfg model."
+  },
+  "candidate_source_relations": {
+    "before": 2991,
+    "after": 3738
+  },
+  "comparison": {
+    "imports": {
+      "before": {
+        "unique_pairs": 52,
+        "raw_pairs": 84,
+        "largest_scc": 10,
+        "sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "facade",
+            "freshness",
+            "memory",
+            "perception",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ],
+        "raw_sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "container",
+            "ego",
+            "facade",
+            "freshness",
+            "history-rewrite",
+            "memory",
+            "native-import",
+            "perception",
+            "project-environment",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ]
+      },
+      "after": {
+        "unique_pairs": 81,
+        "raw_pairs": 118,
+        "largest_scc": 16,
+        "sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "external-source",
+            "facade",
+            "freshness",
+            "history",
+            "history-rewrite",
+            "maintenance",
+            "memory",
+            "native-import",
+            "owner-lifecycle",
+            "perception",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ],
+        "raw_sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "container",
+            "ego",
+            "external-source",
+            "facade",
+            "freshness",
+            "history",
+            "history-rewrite",
+            "maintenance",
+            "memory",
+            "native-import",
+            "owner-lifecycle",
+            "perception",
+            "project-environment",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ]
+      }
+    },
+    "all": {
+      "before": {
+        "unique_pairs": 106,
+        "raw_pairs": 145,
+        "largest_scc": 16,
+        "sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "container",
+            "ego",
+            "external-source",
+            "facade",
+            "freshness",
+            "history-rewrite",
+            "memory",
+            "native-import",
+            "perception",
+            "project-environment",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ],
+        "raw_sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "container",
+            "ego",
+            "external-source",
+            "facade",
+            "freshness",
+            "history-rewrite",
+            "memory",
+            "native-import",
+            "perception",
+            "project-environment",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ]
+      },
+      "after": {
+        "unique_pairs": 144,
+        "raw_pairs": 200,
+        "largest_scc": 19,
+        "sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "container",
+            "ego",
+            "external-source",
+            "facade",
+            "freshness",
+            "history",
+            "history-rewrite",
+            "maintenance",
+            "memory",
+            "native-import",
+            "owner-lifecycle",
+            "perception",
+            "project-environment",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ],
+        "raw_sccs": [
+          [
+            "archive",
+            "chronos",
+            "config-security",
+            "container",
+            "ego",
+            "external-source",
+            "facade",
+            "freshness",
+            "history",
+            "history-rewrite",
+            "maintenance",
+            "memory",
+            "native-import",
+            "owner-lifecycle",
+            "perception",
+            "project-environment",
+            "retrieval",
+            "runtime-inference",
+            "semantic-graph"
+          ]
+        ]
+      }
+    }
+  },
+  "registered_store_direct_cross_imports": {
+    "observed": 56,
+    "matched_explicit_immutable_value_contracts": 56,
+    "unmatched": 0,
+    "coverage": "both source and target must map to one of the current 247 registered store source files; does not certify unregistered source or calls"
+  },
+  "source_review_examples": [
+    {
+      "path": "src/archive/archive_search.rs",
+      "line": 1,
+      "observation": "Cva public method implementation is under archive path, not an ArchiveStore method"
+    },
+    {
+      "path": "src/retrieval/conversation_search.rs",
+      "line": 1,
+      "observation": "Cva public method implementation is under retrieval path"
+    },
+    {
+      "path": "src/runtime_inference/configured_runtime_historical.rs",
+      "line": 4,
+      "observation": "ConfiguredRuntime depends on Cva"
+    },
+    {
+      "path": "src/facade/cva_memory_vectors.rs",
+      "line": 3,
+      "observation": "Cva facade accepts EmbeddingEndpoint"
+    },
+    {
+      "path": "src/archive/file_memory_link_model.rs",
+      "line": 1,
+      "observation": "Immutable MemoryId import; explicitly approved"
+    },
+    {
+      "path": "src/memory/memory_model.rs",
+      "line": 1,
+      "observation": "Immutable EpisodeId import; explicitly approved"
+    },
+    {
+      "path": "src/history/completion_proof.rs",
+      "line": 5,
+      "observation": "History reads Import epoch store/codec/models"
+    },
+    {
+      "path": "src/imports/completion_coordinator.rs",
+      "line": 7,
+      "observation": "Import service consumes History scope/proof"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_ordered_replay.rs",
+      "line": 2,
+      "observation": "Owner replay consumes Insomnia store/codec physically housed under runtime module path"
+    }
+  ],
+  "main_conclusions": [
+    "Phase1 production physical boundary is supported by accepted negative guards; reported Container outward edges are test-only.",
+    "No unmatched store-to-store import in 247 registered store files; immutable producer-value references make coarse owner area SCC misleading.",
+    "The global production candidate area SCC remains large and Phase2 SCC-shrink exit proof was not established.",
+    "Runtime/facade composition is genuinely connected and explicitly deferred to Phases5-6.",
+    "The accepted target 34-node DAG was validated by model-only checker, not proven from full production Rust source."
+  ],
+  "closure_tasks": [
+    "C-01",
+    "C-02",
+    "C-03",
+    "C-04"
+  ],
+  "deferred_tasks": [
+    "C-05",
+    "C-06"
+  ],
+  "handoff_gate": "C-07",
+  "limits": [
+    "cfg(test) filtering is heuristic, not exact Rust compilation",
+    "Arcana calls and some imports may include analyzer artifacts",
+    "405 registered owner source files do not cover all 1267 current Rust files",
+    "Area SCC is not equivalent to component SCC",
+    "source-level correctness of 34-component graph is not yet proven"
+  ],
+  "documentation": "docs/dependency-convergence-phase1-3-closure-audit-2026-10-23.md",
+  "historical_evidence_preserved_sha256": "0667a63adeecfae60cb2c53de5987f9b147db6e2e934d68169ee6edb628c2cce"
+}
