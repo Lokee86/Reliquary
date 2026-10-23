@@ -1,0 +1,41 @@
+{
+  "status": "control_prototype_only_not_selected",
+  "scope": "full authority dictionary, retains all postimages and therefore does not alone satisfy P3.9.02",
+  "runtime_codec_changes": false,
+  "corpus_changes": false,
+  "files": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "current_bytes": 1830473,
+      "candidate_bytes": 330642,
+      "exact_original_roundtrip": true,
+      "encode_seconds": 0.3023174999980256,
+      "decode_seconds": 0.5594166999799199,
+      "python_encode_peak_bytes": 2443829,
+      "python_decode_peak_bytes": 5048773,
+      "source_sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d"
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "current_bytes": 4330845,
+      "candidate_bytes": 724700,
+      "exact_original_roundtrip": true,
+      "encode_seconds": 0.6533655000384897,
+      "decode_seconds": 1.5596427000127733,
+      "python_encode_peak_bytes": 5335287,
+      "python_decode_peak_bytes": 11643065,
+      "source_sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92"
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "current_bytes": 1254399,
+      "candidate_bytes": 85238,
+      "exact_original_roundtrip": true,
+      "encode_seconds": 0.28222459997050464,
+      "decode_seconds": 0.4025891000055708,
+      "python_encode_peak_bytes": 1047931,
+      "python_decode_peak_bytes": 3148791,
+      "source_sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab"
+    }
+  ]
+}
