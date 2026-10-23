@@ -1,0 +1,34 @@
+{
+  "schema": "reliquary-phase3-worktree-cleanup.v1",
+  "status": "completed-with-independent-archive-and-recoverable-branch-tips",
+  "cleanup_date": "2026-10-23",
+  "reference_main_before_cleanup": "7f1e2b3bdd7253570a9cd79eeecc3138facf3b9d",
+  "removed_auxiliary_worktrees": 13,
+  "removed_local_branches": 6,
+  "archive": "C:\\!bin\\workspace\\_Reliquary-Phase3-Rescue-2026-10-23\\worktrees-2026-10-23.zip",
+  "archive_sha256": "ce18cb8a18d9574aff8ff86569544240f9aa868beb464e3fe337f0353d5850ed",
+  "archive_size_bytes": 851189,
+  "verified_archive_entries": 194,
+  "preserved_uncommitted_file_entries": 161,
+  "archive_recovery_manifest": "C:\\!bin\\workspace\\_Reliquary-Phase3-Rescue-2026-10-23\\branch-recovery-refs.json",
+  "pinned_hidden_archive_refs": [
+    "refs/archive/reliquary-phase3-2026-10-23/phase3__agentic-receipt-adapter b6bbca2d1e349bd12b5285002d412b1f1955ecfc",
+    "refs/archive/reliquary-phase3-2026-10-23/phase3__current-docs-final 5e1706ddcb9124a0861ebc00c396945c23349ffc",
+    "refs/archive/reliquary-phase3-2026-10-23/phase3__d3-obsolete-adapters 87e3e2613ff6f9f8fc2ef0b8e3e488d2a4e80836",
+    "refs/archive/reliquary-phase3-2026-10-23/phase3__local-events 70d975a1882986afb8253e07727fc5a94cb8900f",
+    "refs/archive/reliquary-phase3-2026-10-23/phase3__local-manifest 9ffc01c0ef9a46f49dd4ab57568bac836c406d63",
+    "refs/archive/reliquary-phase3-2026-10-23/phase3__local-reconciliation da6b7ad6bead9b4572b7973d83bb9c5a5fd95f01"
+  ],
+  "remaining_local_branches": [
+    "main"
+  ],
+  "remaining_worktrees": 1,
+  "source_mutations_by_cleanup": 0,
+  "validation_limitation": "All obsolete dirty states are preserved byte-for-byte in the ZIP with patches and branch tip hashes. Previous helpers/tests map to replacement mechanisms in main, but exact semantic equivalence of every old hunk was not independently proven.",
+  "main_worktree_status_before_commit": [
+    " M .gitignore",
+    " M docs/INDEX.md",
+    " M docs/dependency-convergence-architecture-refactor-2026-10-21.md",
+    "?? docs/dependency-convergence-phase4-project-environment-spec-2026-10-23.md"
+  ]
+}

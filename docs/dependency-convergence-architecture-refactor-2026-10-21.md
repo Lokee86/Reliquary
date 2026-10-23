@@ -592,6 +592,8 @@ The later linear plan should give each phase the same internal structure.
 - architecture graph/policy checks;
 - formatting/build/static gates;
 - current-format retained-corpus checks where persistence changed.
+- direct actual-production-source dependency conformance against the target component map (unmapped sources or analyzer uncertainties explicitly disclosed; no accepting target-model acyclicity as source-graph evidence);
+- worktree and branch closure receipt: every parallel change is integrated, justified as superseded, or independently preserved; unreviewed dirty worktree changes cannot be silently treated as completed implementation.
 
 ## Target architectural properties
 

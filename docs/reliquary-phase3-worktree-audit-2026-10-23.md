@@ -1,7 +1,7 @@
 # Reliquary Phase 3 worktree and branch audit
 
 Date: 2026-10-23  
-Status: Audited, **not cleaned**.  
+Status: **audited, preserved and cleaned**.
 Primary repository: `C:\!bin\workspace\Reliquary`  
 HEAD: `084ba07` on `main`. Source evidence: `.verification-tmp/phase3-worktree-inventory-2026-10-23.json`, `.verification-tmp/phase3-worktree-content-comparison-2026-10-23.json`, and `.verification-tmp/phase3-branch-content-comparison-2026-10-23.json`.
 
@@ -11,7 +11,7 @@ Explain the 13 auxiliary worktrees, determine which Phase 3 work appears incorpo
 
 ## Overview
 
-This audit compares all auxiliary Git histories and worktree contents to accepted main, distinguishes integrated copies from potentially unpreserved dirty work, and defines a non-destructive cleanup sequence. No cleanup has occurred.
+This audit compares all auxiliary Git histories and worktree contents against accepted main, distinguishes integrated copies from potentially unpreserved dirty work, and specifies safe cleanup. The preservation and removal steps were subsequently completed and are recorded below.
 
 ## Findings
 
@@ -47,7 +47,7 @@ For example, `phase3-birth-replay` and `phase3-epoch-proof` still define older h
 
 The older `phase3-selection` worktree has `external_source` index/storage changes that correspond to the present `external_index` extraction; `phase3-phy-lifecycle` has older PHYL profile module paths now placed in owner lifecycle. These are likely superseded drafts but require focused hunk review.
 
-## Concrete cleanup sequence — NOT EXECUTED
+## Verified cleanup sequence — subsequently executed
 
 1. Protect `main`, the untracked Phase 4 specification, `.gitignore`, and the 199 locally ahead commits. Validate remote status before any push; do not force-push.
 2. **Archive all eight dirty worktrees in a verified, independent location**, including binary Git patches, index state, worktree HEAD, and every untracked file. Merely preserving branch refs cannot preserve dirty content.
@@ -55,6 +55,20 @@ The older `phase3-selection` worktree has `external_source` index/storage change
 4. If a genuinely missing invariant is found, make a bounded fix against **current main** with a regression test. Do not merge an obsolete detached Phase 3 checkout wholesale.
 5. After archival/verification, remove the five clean auxiliary worktrees and then the redundant dirty ones. Delete local branches only after their tips/histories are confirmed preserved or redundant.
 6. Verify `git worktree list --porcelain`, branch inventory and `main` Git status afterward. Keep Phase 4 implementation and its untracked spec outside this cleanup.
+
+## Cleanup execution
+
+After independently verifying every uncommitted source entry, **all 13 auxiliary worktrees were removed**, and the **six** temporary local Phase 3 branch names were deleted with their exact tip commits preserved under \`refs/archive/reliquary-phase3-2026-10-23/*\`.
+
+- Recovery archive: \`C:\!bin\workspace\_Reliquary-Phase3-Rescue-2026-10-23\worktrees-2026-10-23.zip\`.
+- Archive SHA-256: \`ce18cb8a18d9574aff8ff86569544240f9aa868beb464e3fe337f0353d5850ed\`.
+- The archive includes 161 uncommitted file entries, status manifests, staged and unstaged Git patches, and tip commit hashes. The recorded hashes were verified before removal.
+- Recovery ref mapping: \`C:\!bin\workspace\_Reliquary-Phase3-Rescue-2026-10-23\branch-recovery-refs.json\`.
+- [Completion receipt](../benchmarks/reliquary-phase3-worktree-cleanup-2026-10-23.json).
+
+The old Import settlement helper signatures were compared to the current History/Import proof and replay flow; tests for tombstoned-episode rejection and external-index backing validation exist in current main under revised implementations. This review does not prove every old hunk is semantically identical. **The complete dirty source remains recoverable.**
+
+The worktree cleanup does not satisfy the separately open C-01–C-04 component-graph verification requirements. The refactor campaign now requires documented worktree integration disposition before subsequent phase acceptance.
 
 ## Confidence limits
 
