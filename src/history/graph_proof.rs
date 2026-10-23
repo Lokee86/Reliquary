@@ -284,3 +284,120 @@ pub(crate) fn finalize(
     ]);
     Ok((value, selection.neighbors))
 }
+
+fn graph_admission_failure(message: &str) -> OwnerError {
+    OwnerError::Freshness(message.into())
+}
+/// Assemble the retained graph admission proof without writer or facade access.
+pub(crate) struct GraphAdmissionProof {
+    pub(crate) result: Result<(Value, crate::freshness::MemoryAdjacency), OwnerError>,
+    #[cfg(feature = "freshness-performance-trace")]
+    pub(crate) traces: Vec<crate::history::dream_evidence::DreamEvidenceTrace>,
+}
+pub(crate) fn read_graph_admission(
+    access: &crate::owner_lifecycle::HistoryReadAccess<'_>,
+    archive: &crate::Archive,
+    memories: &crate::memory_store::MemoryStore,
+    births: &crate::freshness_dream_journal::DreamFreshnessJournal,
+    graph: &crate::graph_store::GraphStore,
+    ids: &BTreeSet<MemoryId>,
+    cohort: &BTreeSet<MemoryId>,
+    scoped: bool,
+) -> GraphAdmissionProof {
+    #[cfg(feature = "freshness-performance-trace")]
+    let mut traces = Vec::new();
+    let result = (|| -> Result<(Value, crate::freshness::MemoryAdjacency), OwnerError> {
+        use crate::history::graph_proof as proof;
+        let mut selection =
+            proof::select(graph.active_semantic_relations(), ids, scoped, memories)?;
+        for &id in ids {
+            let target = access.current_memory(memories, id)?.superseded_by;
+            let exists = target.is_none_or(|target| memories.contains_memory(target));
+            proof::observe_supersession(&mut selection, id, target, exists, ids, scoped)?;
+        }
+        let mut authorities = Vec::new();
+        for id in selection.duplicates.iter().copied() {
+            let representative =
+                crate::history::dream_representative::historical_duplicate_representative(
+                    access,
+                    archive,
+                    memories,
+                    births,
+                    id,
+                    &graph.active_relations(),
+                )
+                .map_err(|e| graph_admission_failure(&e.to_string()))?
+                .ok_or_else(|| {
+                    graph_admission_failure("unresolved historical duplicate authority")
+                })?;
+            let memory = access.current_memory(memories, representative)?;
+            if memory.archived
+                || memory.superseded_by.is_some()
+                || !matches!(memory.lifecycle_state.as_str(), "knowledge" | "canonical")
+            {
+                return Err(graph_admission_failure(
+                    "unresolved historical duplicate authority",
+                ));
+            }
+            let body_id = memories.current_body_id(representative)?;
+            authorities.push(proof::authority_value(id, representative, body_id));
+        }
+        let passes = access.retained_completed_dream_passes(archive, memories)?;
+        let turn_count = archive.rel_turn_count();
+        let mut dream = Vec::new();
+        for (id, pass) in passes {
+            if !cohort.contains(&id) {
+                continue;
+            }
+            proof::validate_pass(id, &pass, cohort, ids, turn_count)?;
+            let (roots, duplicate_origin) = {
+                let source = access
+                    .snapshot()
+                    .map_err(|error| OwnerError::Container(error.0))?;
+                let proof = crate::history::dream_evidence::read_dream_evidence(
+                    &source, graph, births, &pass,
+                )?;
+                {
+                    #[cfg(feature = "freshness-performance-trace")]
+                    traces.push(proof.trace);
+                    (proof.roots, proof.duplicate_origin)
+                }
+            };
+            if roots != pass.roots {
+                return Err(graph_admission_failure(
+                    "retained first-cycle roots conflict with accepted graph proof",
+                ));
+            }
+            let representatives =
+                crate::history::dream_representative::historical_dream_representatives(
+                    access,
+                    archive,
+                    memories,
+                    births,
+                    &graph.active_relations(),
+                    id,
+                    &pass.roots,
+                )?;
+            dream.push(proof::dream_value(
+                id,
+                pass,
+                duplicate_origin,
+                representatives,
+            ));
+        }
+        let (value, adjacency) = proof::finalize(
+            selection,
+            authorities,
+            dream,
+            graph.graph_version(),
+            graph.memory_graph_version(),
+        )
+        .map_err(OwnerError::from)?;
+        Ok((value, adjacency))
+    })();
+    GraphAdmissionProof {
+        result,
+        #[cfg(feature = "freshness-performance-trace")]
+        traces,
+    }
+}

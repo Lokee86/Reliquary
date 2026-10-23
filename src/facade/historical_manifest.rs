@@ -8,13 +8,7 @@ use crate::{Cva, CvaError, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-#[derive(Clone, Debug)]
-pub(super) struct PropagationInputs {
-    pub adjacency: crate::freshness::MemoryAdjacency,
-    pub memberships: crate::freshness::CommunityMembership,
-    pub authorized: BTreeSet<MemoryId>,
-    pub availability: BTreeMap<MemoryId, crate::freshness::historical_planner::MemoryAvailability>,
-}
+pub(super) use crate::imports::historical_settlement_plan::PropagationInputs;
 pub(super) struct Manifest {
     pub propagation: PropagationInputs,
     pub input_digest: [u8; 32],
@@ -43,67 +37,21 @@ fn graph_proof(
     cohort: &BTreeSet<MemoryId>,
     scoped: bool,
 ) -> Result<(Value, crate::freshness::MemoryAdjacency), CvaError> {
-    use crate::history::graph_proof as proof;
-    let mut selection = proof::select(
-        cva.graph.active_semantic_relations(),
-        ids,
-        scoped,
+    let proof = crate::history::graph_proof::read_graph_admission(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
+        &cva.archive,
         &cva.memories,
-    )?;
-    for &id in ids {
-        let target = cva.memory(id)?.superseded_by;
-        let exists = target.is_none_or(|target| cva.memories.contains_memory(target));
-        proof::observe_supersession(&mut selection, id, target, exists, ids, scoped)?;
+        &cva.dream_freshness,
+        &cva.graph,
+        ids,
+        cohort,
+        scoped,
+    );
+    #[cfg(feature = "freshness-performance-trace")]
+    for trace in proof.traces {
+        crate::cva_freshness::record_dream_evidence_trace(trace);
     }
-    let mut authorities = Vec::new();
-    for id in selection.duplicates.iter().copied() {
-        let representative = crate::dream_canonical::historical_duplicate_representative(
-            cva,
-            id,
-            &cva.graph_relations(),
-        )
-        .map_err(|e| fail(&e.to_string()))?
-        .ok_or_else(|| fail("unresolved historical duplicate authority"))?;
-        let memory = cva.memory(representative)?;
-        if memory.archived
-            || memory.superseded_by.is_some()
-            || !matches!(memory.lifecycle_state.as_str(), "knowledge" | "canonical")
-        {
-            return Err(fail("unresolved historical duplicate authority"));
-        }
-        let body_id = cva.memory_body_id(representative)?;
-        authorities.push(proof::authority_value(id, representative, body_id));
-    }
-    let passes = cva.historical_completed_initial_dream_passes()?;
-    let turn_count = cva.rel_turn_count();
-    let mut dream = Vec::new();
-    for (id, pass) in passes {
-        if !cohort.contains(&id) {
-            continue;
-        }
-        proof::validate_pass(id, &pass, cohort, ids, turn_count)?;
-        let (roots, duplicate_origin) = cva.initial_dream_committed_evidence(&pass)?;
-        if roots != pass.roots {
-            return Err(fail(
-                "retained first-cycle roots conflict with accepted graph proof",
-            ));
-        }
-        let representatives = cva.historical_dream_representatives(id, &pass.roots)?;
-        dream.push(proof::dream_value(
-            id,
-            pass,
-            duplicate_origin,
-            representatives,
-        ));
-    }
-    proof::finalize(
-        selection,
-        authorities,
-        dream,
-        cva.graph_version(),
-        cva.memory_graph_version(),
-    )
-    .map_err(CvaError::from)
+    proof.result
 }
 fn vector_proof(
     cva: &mut Cva,
@@ -113,178 +61,36 @@ fn vector_proof(
     scoped_nodes: Option<&BTreeSet<(String, String)>>,
     scoped_base_cut: Option<u64>,
 ) -> Result<(Value, Vec<Value>), CvaError> {
-    use crate::cva_semantic_source::SemanticSourceReadiness;
-    use crate::history::vector_proof::{
-        VectorFragmentReadiness, VectorNodeKey, VectorProofBuilder, VectorRowFacts,
-        VectorTargetBinding,
+    use crate::owner_lifecycle::semantic_source::{
+        HistoricalVectorReadAccess, SemanticSourceReadParts,
     };
-
-    let generation = cva
-        .vector_generations
-        .generations()
-        .iter()
-        .max_by_key(|g| g.vector_version)
-        .copied();
-    let mut proof = VectorProofBuilder::new();
-    for (index, key) in order.iter().enumerate() {
-        let position = index as u64 + 1;
-        let key_facts = VectorNodeKey {
-            conversation_id: key.conversation_id.clone(),
-            node_id: key.node_id.clone(),
-        };
-        if !VectorProofBuilder::include_source(&key_facts, position, scoped_nodes, scoped_base_cut)
-        {
-            continue;
-        }
-        let node = cva
-            .archive
-            .nodes
-            .get(&key.conversation_id, &key.node_id)
-            .ok_or_else(|| fail("missing historical source"))?;
-        proof.record_source(input::node_binding(node), position);
-    }
-
-    for fragment in cva.fragments() {
-        let nodes = cva.archive.fragment_nodes_for(&fragment)?;
-        let node_keys: Vec<_> = nodes
-            .iter()
-            .map(|node| VectorNodeKey {
-                conversation_id: node.conversation_id.clone(),
-                node_id: node.id.clone(),
-            })
-            .collect();
-        if !VectorProofBuilder::fragment_scope(&node_keys, scoped_nodes)? {
-            continue;
-        }
-        let position = cva.semantic_fragment_position(fragment.id)?;
-        if !VectorProofBuilder::fragment_after_base(position, scoped_base_cut) {
-            continue;
-        }
-        let activity_nodes = nodes
-            .iter()
-            .filter(|n| {
-                cva.activity_position_for_turn(&n.conversation_id, &n.id)
-                    .is_some()
-            })
-            .count();
-        let readiness = generation
-            .map(|g| cva.prepare_semantic_fragment(fragment.id, g.id))
-            .transpose()?
-            .map(|readiness| match readiness {
-                SemanticSourceReadiness::Ready(source) => VectorFragmentReadiness {
-                    complete: true,
-                    source_digest: source.source_digest,
-                    generation_id: source.generation.id.0,
-                    profile_id: source.generation.compatibility_profile_id.0,
-                    invalid_vectors: source.invalid_vectors as u64,
-                    rows: source
-                        .vectors
-                        .into_iter()
-                        .map(|vector| VectorRowFacts {
-                            fragment_id: vector.fragment_id.0,
-                            row: vector.row,
-                            component_bytes: vector
-                                .components
-                                .iter()
-                                .flat_map(|component| component.to_le_bytes())
-                                .collect(),
-                        })
-                        .collect(),
-                },
-                SemanticSourceReadiness::Pending => VectorFragmentReadiness {
-                    complete: false,
-                    source_digest: [0; 32],
-                    generation_id: [0; 32],
-                    profile_id: [0; 32],
-                    invalid_vectors: 0,
-                    rows: Vec::new(),
-                },
-            });
-        proof.record_fragment(
-            fragment.id.0,
-            &fragment.conversation_id,
-            &fragment.start_node_id,
-            &fragment.end_node_id,
-            nodes.iter().map(input::node_binding).collect(),
-            position,
-            activity_nodes,
-            readiness,
-        )?;
-    }
-
-    for profile in cva.compatibility_profiles.profiles() {
-        let descriptor = crate::compatibility_profile_codec::encode_profile(&profile)
-            .map_err(|e| fail(&e.to_string()))?;
-        proof.record_profile(profile.id.0, descriptor);
-    }
-
-    let mut ids: Vec<_> = target_ids.iter().copied().collect();
-    ids.sort();
-    for id in ids {
-        let body = cva.memory_body_id(id)?;
-        for profile in cva.compatibility_profiles.profiles() {
-            let Some(location) = cva.memory_vector_location(profile.id, body) else {
-                proof.record_target(VectorTargetBinding {
-                    memory_id: id.0,
-                    body_id: body.0,
-                    profile_id: profile.id.0,
-                    binding_id: None,
-                    packed_id: None,
-                    row: None,
-                    row_bytes: None,
-                    usable: false,
-                });
-                continue;
-            };
-            let set = cva
-                .memory_vectors(location.set_id)
-                .map_err(|e| fail(&e.to_string()))?;
-            if set.compatibility_profile_id != profile.id
-                || set.memory_body_ids.get(location.row as usize) != Some(&body)
-            {
-                return Err(fail("historical target vector binding conflict"));
-            }
-            let packed = cva.packed_vectors(set.packed_vector_id)?;
-            let row = packed
-                .row(location.row as usize)
-                .ok_or_else(|| fail("missing historical target row"))?;
-            let compatible = packed.schema().dimensions == profile.dimensions
-                && packed.schema().scalar == crate::ScalarType::F32;
-            let components: Vec<_> = row
-                .chunks_exact(4)
-                .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
-                .collect();
-            let usable = compatible
-                && crate::freshness::semantic_policy::cosine_similarity(&components, &components)
-                    .is_ok();
-            proof.record_target(VectorTargetBinding {
-                memory_id: id.0,
-                body_id: body.0,
-                profile_id: profile.id.0,
-                binding_id: Some(set.id.0),
-                packed_id: Some(set.packed_vector_id.0),
-                row: Some(location.row),
-                row_bytes: Some(row.to_vec()),
-                usable,
-            });
-        }
-    }
-
-    let generation_facts = generation.map(|g| {
-        (
-            g.id.0,
-            g.compatibility_profile_id.0,
-            g.archive_vector_id.0,
-            g.source_archive_version,
-            g.vector_version,
-        )
-    });
+    let vectors = HistoricalVectorReadAccess::new(
+        SemanticSourceReadParts {
+            container: &cva.container,
+            archive: &cva.archive,
+            freshness: &cva.freshness,
+            generations: &cva.vector_generations,
+            compatibility_profiles: &cva.compatibility_profiles,
+            archive_vectors: &cva.archive_vectors,
+            packed_vectors: &cva.packed_vectors,
+        },
+        &cva.memory_vectors,
+    );
+    let proof = crate::history::vector_proof::read_vector_admission(
+        &cva.archive,
+        &cva.memories,
+        &vectors,
+        order,
+        target_ids,
+        scoped_nodes,
+        scoped_base_cut,
+    )?;
     let embedding_pass = if requested_complete {
-        super::embedding::manifest_pass(cva, &proof.fragments_for_embedding())?
+        super::embedding::manifest_pass(cva, proof.fragments_for_embedding())?
     } else {
         Value::text("not-requested")
     };
-    Ok(proof.finish(generation_facts, embedding_pass))
+    Ok(proof.finish(embedding_pass))
 }
 #[cfg(test)]
 pub(super) fn build(cva: &mut Cva) -> Result<Manifest, CvaError> {

@@ -7,47 +7,18 @@ use crate::freshness_storage::{SemanticEventEvidence, SemanticFragmentEvidence};
 use crate::{Cva, CvaError, FragmentId, VectorGenerationId};
 use sha2::{Digest, Sha256};
 
-impl AcceptedSemanticSource {
-    pub(crate) fn represents(&self, conversation: &str, node: &str) -> bool {
-        match &self.fragment {
-            Some(fragment) => fragment
-                .sources
-                .iter()
-                .any(|(c, n)| c == conversation && n == node),
-            None => self.node.conversation_id == conversation && self.node.id == node,
-        }
-    }
-}
-
 impl Cva {
     pub(crate) fn semantic_fragment_sources(
         &self,
         id: FragmentId,
     ) -> Result<Vec<(String, String)>, CvaError> {
-        let fragment = self
-            .archive
-            .fragments
-            .get(id)
-            .ok_or_else(|| CvaError::Freshness("missing semantic fragment".into()))?;
-        let mut sources: Vec<_> = self
-            .archive
-            .fragment_nodes_for(fragment)?
-            .into_iter()
-            .map(|n| (n.conversation_id, n.id))
-            .collect();
-        sources.sort();
-        Ok(sources)
+        crate::owner_lifecycle::semantic_source::fragment_sources(&self.archive, id)
     }
-
     pub(crate) fn semantic_fragment_position(
         &self,
         id: FragmentId,
     ) -> Result<Option<u64>, CvaError> {
-        Ok(self
-            .semantic_fragment_sources(id)?
-            .iter()
-            .filter_map(|(c, n)| self.activity_position_for_turn(c, n))
-            .max())
+        crate::owner_lifecycle::semantic_source::fragment_position(&self.archive, id)
     }
 
     pub(crate) fn semantic_evidence_position(
@@ -106,109 +77,18 @@ impl Cva {
         id: FragmentId,
         generation_id: VectorGenerationId,
     ) -> Result<SemanticSourceReadiness, CvaError> {
-        let owner_uuid = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
-            "semantic fragment owner",
-        ))?;
-        let fragment = self
-            .archive
-            .fragments
-            .get(id)
-            .ok_or_else(|| CvaError::Freshness("missing semantic fragment".into()))?
-            .clone();
-        let nodes = self.archive.fragment_nodes_for(&fragment)?;
-        let Some((activity_position, node)) = nodes
-            .iter()
-            .filter_map(|n| {
-                self.activity_position_for_turn(&n.conversation_id, &n.id)
-                    .map(|at| (at, n))
-            })
-            .max_by_key(|(at, _)| *at)
-        else {
-            return Ok(SemanticSourceReadiness::Pending);
-        };
-        let node = node.clone();
-        let generation = self.vector_generation(generation_id)?;
-        if self
-            .archive
-            .fragments
-            .archive_version(id)
-            .is_none_or(|v| v > generation.source_archive_version)
-            || self
-                .archive
-                .activity_cut_at_archive_version(generation.source_archive_version)?
-                < activity_position
-        {
-            return Ok(SemanticSourceReadiness::Pending);
-        }
-        let profile = self
-            .compatibility_profiles
-            .get(generation.compatibility_profile_id)
-            .ok_or_else(|| CvaError::Freshness("missing semantic fragment profile".into()))?
-            .clone();
-        let set = self.archive_vectors(generation.archive_vector_id)?;
-        let Some(row) = set.fragment_ids.iter().position(|f| *f == id) else {
-            return Ok(SemanticSourceReadiness::Pending);
-        };
-        let packed = self.packed_vectors(set.packed_vector_id)?;
-        if packed.schema().dimensions != profile.dimensions
-            || packed.schema().scalar != crate::ScalarType::F32
-        {
-            return Err(CvaError::Freshness(
-                "incompatible semantic fragment matrix".into(),
-            ));
-        }
-        let bytes = packed
-            .row(row)
-            .ok_or_else(|| CvaError::Freshness("missing fragment row".into()))?;
-        let components: Vec<f32> = bytes
-            .chunks_exact(4)
-            .map(|b| f32::from_le_bytes(b.try_into().expect("four bytes")))
-            .collect();
-        let invalid = cosine_similarity(&components, &components).is_err();
-        let mut digest = Sha256::new();
-        digest.update(b"reliquary:semantic-fragment-evidence:v1\0");
-        digest.update(owner_uuid);
-        digest.update(id.0);
-        // Pin every represented Node, including non-activity context; positions
-        // are resolved separately so reconciliation may rebase accepted order.
-        for n in &nodes {
-            for text in [&n.conversation_id, &n.id] {
-                digest.update((text.len() as u64).to_le_bytes());
-                digest.update(text.as_bytes());
-            }
-            digest.update(n.content_id.0);
-        }
-        digest.update(generation.id.0);
-        digest.update(generation.compatibility_profile_id.0);
-        digest.update((row as u64).to_le_bytes());
-        digest.update(bytes);
-        digest.update([u8::from(invalid)]);
-        let policy = SemanticPolicy::default();
-        Ok(SemanticSourceReadiness::Ready(AcceptedSemanticSource {
-            owner_uuid,
-            fragment: Some(SemanticFragmentEvidence {
-                fragment_id: id,
-                sources: self.semantic_fragment_sources(id)?,
-            }),
-            node,
-            activity_position,
-            generation,
-            base_policy: self.freshness.policy(),
-            semantic_policy: policy,
-            policy_digest: policy
-                .digest()
-                .map_err(|e| CvaError::Freshness(e.to_string()))?,
-            source_digest: digest.finalize().into(),
-            vectors: if invalid {
-                Vec::new()
-            } else {
-                vec![SemanticSourceVector {
-                    fragment_id: id,
-                    row: row as u64,
-                    components,
-                }]
+        crate::owner_lifecycle::semantic_source::prepare_semantic_fragment(
+            crate::owner_lifecycle::semantic_source::SemanticSourceReadParts {
+                container: &self.container,
+                archive: &self.archive,
+                freshness: &self.freshness,
+                generations: &self.vector_generations,
+                compatibility_profiles: &self.compatibility_profiles,
+                archive_vectors: &self.archive_vectors,
+                packed_vectors: &self.packed_vectors,
             },
-            invalid_vectors: usize::from(invalid),
-        }))
+            id,
+            generation_id,
+        )
     }
 }

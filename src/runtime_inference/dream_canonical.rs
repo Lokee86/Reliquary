@@ -1,3 +1,4 @@
+use crate::graph_relation_sets::{duplicate_component, unique_superseder};
 use crate::memory_source_time_admission::reliquary_memory_source_timestamp_ns;
 use crate::{Cva, DreamLifecycleError, GraphRelation, GraphRelationKind, Memory, MemoryId};
 use std::collections::{HashSet, VecDeque};
@@ -60,7 +61,9 @@ pub(crate) fn corroborated_representative(
     if anchors.len() < 2 || active.is_empty() {
         return Ok(None);
     }
-    active.sort_by_key(|memory| representative_key(cva, memory));
+    active.sort_by_key(|memory| {
+        crate::history::dream_representative::representative_key(&cva.archive, memory)
+    });
     Ok(active.first().map(|memory| memory.id))
 }
 
@@ -80,63 +83,21 @@ pub(crate) fn existing_duplicate_representative(
     )
 }
 
-/// Historical owner proof pins final authority without using physical publication
-/// order or excluding the representative's own birth cohort.
+/// Historical authority reads are implemented by the read-only History service.
 pub(crate) fn historical_duplicate_representative(
     cva: &mut Cva,
     root_id: MemoryId,
     relations: &[GraphRelation],
 ) -> Result<Option<MemoryId>, DreamLifecycleError> {
-    let mut visited = HashSet::new();
-    let mut queue = VecDeque::from([root_id]);
-    let mut active = Vec::new();
-    while let Some(id) = queue.pop_front() {
-        if !visited.insert(id) {
-            continue;
-        }
-        let Some(current) = historical_supersession_terminal(cva, id, relations)? else {
-            return Ok(None);
-        };
-        queue.extend(duplicate_component(id, relations));
-        if current != id {
-            queue.push_back(current);
-            continue;
-        }
-        let memory = cva.memory(current)?;
-        if !memory.archived && cva.freshness_is_publication_birth(current) {
-            active.push(memory);
-        }
-    }
-    active.sort_by_key(|memory| representative_key(cva, memory));
-    Ok(active.first().map(|memory| memory.id))
-}
-
-fn historical_supersession_terminal(
-    cva: &mut Cva,
-    root_id: MemoryId,
-    relations: &[GraphRelation],
-) -> Result<Option<MemoryId>, DreamLifecycleError> {
-    let mut current = root_id;
-    let mut visited = HashSet::new();
-    loop {
-        if !visited.insert(current) {
-            return Ok(None);
-        }
-        let memory = cva.memory(current)?;
-        let Some(superseder) = memory.superseded_by else {
-            break;
-        };
-        // Both existing owners must agree. A bare pointer, conflicting active
-        // edge, cycle or unproved publication cannot confer representation.
-        if !memory.archived
-            || unique_superseder(relations, current) != Some(superseder)
-            || !cva.freshness_is_publication_birth(superseder)
-        {
-            return Ok(None);
-        }
-        current = superseder;
-    }
-    Ok(Some(current))
+    crate::history::dream_representative::historical_duplicate_representative(
+        &crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
+        &cva.archive,
+        &cva.memories,
+        &cva.dream_freshness,
+        root_id,
+        relations,
+    )
+    .map_err(Into::into)
 }
 
 fn duplicate_representative(
@@ -170,7 +131,9 @@ fn duplicate_representative(
             active.push(memory);
         }
     }
-    active.sort_by_key(|memory| representative_key(cva, memory));
+    active.sort_by_key(|memory| {
+        crate::history::dream_representative::representative_key(&cva.archive, memory)
+    });
     Ok(active.first().map(|memory| memory.id))
 }
 
@@ -190,27 +153,6 @@ pub(crate) fn duplicate_component_has_active_peer(
     Ok(false)
 }
 
-fn duplicate_component(source_id: MemoryId, relations: &[GraphRelation]) -> Vec<MemoryId> {
-    let mut visited = HashSet::from([source_id]);
-    let mut queue = VecDeque::from([source_id]);
-    while let Some(current) = queue.pop_front() {
-        for relation in relations.iter().filter(|relation| {
-            relation.kind == GraphRelationKind::DuplicateOf
-                && (relation.source == current || relation.target == current)
-        }) {
-            let neighbor = if relation.source == current {
-                relation.target
-            } else {
-                relation.source
-            };
-            if visited.insert(neighbor) {
-                queue.push_back(neighbor);
-            }
-        }
-    }
-    visited.into_iter().collect()
-}
-
 fn authority_anchor(cva: &Cva, memory: &Memory) -> Option<(String, String)> {
     let node_id = memory.source_node_id.clone()?;
     let conversation_id = memory
@@ -218,20 +160,6 @@ fn authority_anchor(cva: &Cva, memory: &Memory) -> Option<(String, String)> {
         .and_then(|id| cva.episode(id))
         .map(|episode| episode.conversation_id.clone())?;
     Some((conversation_id, node_id))
-}
-
-fn representative_key(cva: &Cva, memory: &Memory) -> (u8, i64, [u8; 32]) {
-    let state_rank = match memory.lifecycle_state.as_str() {
-        "canonical" => 0,
-        "knowledge" => 1,
-        "extracted" => 2,
-        _ => 3,
-    };
-    (
-        state_rank,
-        reliquary_memory_source_timestamp_ns(&cva.archive, memory).unwrap_or(i64::MAX),
-        memory.id.0,
-    )
 }
 
 fn target_has_canonical_authority(
@@ -253,20 +181,4 @@ fn target_has_canonical_authority(
         }
     }
     Ok(false)
-}
-
-fn unique_superseder(relations: &[GraphRelation], target: MemoryId) -> Option<MemoryId> {
-    let mut sources: Vec<_> = relations
-        .iter()
-        .filter(|relation| {
-            relation.kind == GraphRelationKind::Supersedes && relation.target == target
-        })
-        .map(|relation| relation.source)
-        .collect();
-    sources.sort_by_key(|id| id.0);
-    sources.dedup();
-    match sources.as_slice() {
-        [source] => Some(*source),
-        _ => None,
-    }
 }

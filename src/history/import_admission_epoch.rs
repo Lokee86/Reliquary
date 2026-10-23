@@ -1,27 +1,27 @@
 //! Import-epoch-scoped source, birth, and pre-start recipient proof.
 use super::{AdmissionProof, HistoricalMemoryInput, Value, fail, node_binding, source_key};
-use crate::{Cva, CvaError, EpisodeOrigin, MemoryId, freshness::FreshnessRecord};
+use crate::{EpisodeOrigin, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
 pub(super) fn scoped_corpus_digest(
-    cva: &mut Cva,
+    cva: &super::ImportAdmissionReadParts<'_>,
     source_nodes: &BTreeSet<(String, String)>,
-) -> Result<[u8; 32], CvaError> {
-    let access = crate::owner_lifecycle::HistoryReadAccess::new(&cva.container);
+) -> Result<[u8; 32], crate::owner_lifecycle::OwnerError> {
+    let access = &cva.access;
     crate::history::source_proof::scoped_corpus_digest_with_content(
         &access,
         &cva.archive,
         source_nodes,
         "import-scoped source content proof mismatch",
     )
-    .map_err(CvaError::from)
+    .map_err(crate::owner_lifecycle::OwnerError::from)
 }
 pub(super) fn admission_proof_for_scope(
-    cva: &mut Cva,
+    cva: &super::ImportAdmissionReadParts<'_>,
     scope: &crate::imports::ImportEpochScope,
-) -> Result<AdmissionProof, CvaError> {
-    let fail = |message: &str| CvaError::Freshness(message.into());
+) -> Result<AdmissionProof, crate::owner_lifecycle::OwnerError> {
+    let fail = |message: &str| crate::owner_lifecycle::OwnerError::Freshness(message.into());
     let owner = cva
         .owner_uuid()
         .ok_or_else(|| fail("missing import owner"))?;
@@ -38,9 +38,12 @@ pub(super) fn admission_proof_for_scope(
     let mut completed = BTreeSet::new();
     let mut births = BTreeMap::<MemoryId, crate::EpisodeId>::new();
     let mut publications = BTreeMap::<[u8; 32], BTreeSet<[u8; 32]>>::new();
-    let scan = &cva.container;
+    let scan = cva
+        .access
+        .snapshot()
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
     {
-        let mut ingest_frame = |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
+        let mut ingest_frame = |frame: crate::owner_lifecycle::HistoryFrame| -> Result<(), crate::owner_lifecycle::OwnerError> {
             let object = frame.object;
             let payload = frame.payload.as_slice();
             {
@@ -92,12 +95,17 @@ pub(super) fn admission_proof_for_scope(
                 Ok(())
             }
         };
-        let mut cursor = scan.physical_cursor()?;
+        let mut cursor = scan
+            .cursor()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
         (|| {
-            while let Some(frame) = cursor.next_frame()? {
+            while let Some(frame) = cursor
+                .next_frame()
+                .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?
+            {
                 ingest_frame(frame)?;
             }
-            Ok::<(), CvaError>(())
+            Ok::<(), crate::owner_lifecycle::OwnerError>(())
         })()
     }?;
 
@@ -223,7 +231,10 @@ pub(super) fn admission_proof_for_scope(
                 memories.push(Value::map([
                     ("memory_id", Value::bytes(id.0)),
                     ("status", Value::text("tombstoned")),
-                    ("base_record", super::super::manifest::record_value(record)),
+                    (
+                        "base_record",
+                        crate::history::community_proof::record_value(record),
+                    ),
                     (
                         "tombstone_revision",
                         Value::Unsigned(retained.tombstone_revision),
@@ -362,7 +373,7 @@ pub(super) fn admission_proof_for_scope(
                 ("revision", Value::Unsigned(memory.revision)),
                 (
                     "base_record",
-                    super::super::manifest::record_value(*base_record),
+                    crate::history::community_proof::record_value(*base_record),
                 ),
             ]);
             (key, origin, base_record.admitted_at_turn, sources)
@@ -506,7 +517,7 @@ pub(super) fn admission_proof_for_scope(
             ),
             (
                 "scoring_proof_digest",
-                super::super::manifest::record_value(proof_record)
+                crate::history::community_proof::record_value(proof_record)
                     .digest("reliquary:historical-provisional-record:v1")
                     .map(Value::bytes)?,
             ),
@@ -551,12 +562,12 @@ pub(super) fn admission_proof_for_scope(
 }
 
 fn validate_memory_provenance(
-    cva: &mut Cva,
+    cva: &super::ImportAdmissionReadParts<'_>,
     memory: &crate::Memory,
     expected_episode: Option<&crate::EpisodeId>,
     necessary: &mut BTreeSet<(String, String)>,
-) -> Result<(), CvaError> {
-    let fail = |message: &str| CvaError::Freshness(message.into());
+) -> Result<(), crate::owner_lifecycle::OwnerError> {
+    let fail = |message: &str| crate::owner_lifecycle::OwnerError::Freshness(message.into());
     if expected_episode.is_some_and(|expected| memory.source_episode_id != Some(*expected)) {
         return Err(fail(
             "Memory birth Episode conflicts with scoped publication",

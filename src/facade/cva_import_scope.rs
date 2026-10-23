@@ -1,5 +1,5 @@
 //! Store-derived attribution for one open native import epoch.
-use super::ImportStart;
+use crate::imports::ImportStart;
 use crate::{Cva, CvaError, history::ImportEpochScope};
 
 impl Cva {
@@ -52,25 +52,15 @@ impl Cva {
     }
 
     fn import_epoch_scope_for(&mut self, start: ImportStart) -> Result<ImportEpochScope, CvaError> {
-        // Keep the old metadata check ahead of receipt lookup. HistorySource is
-        // created only after that owner-level pre-scan succeeds.
-        let through = std::fs::metadata(self.container.path())
-            .map_err(|error| CvaError::Freshness(error.to_string()))?
-            .len();
-        let source_nodes = crate::history::import_source_nodes(&self.archive, &start)?;
-        let source = crate::owner_lifecycle::HistorySource::new(&self.container)
-            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
-        crate::history::replay_import_epoch_scope(
-            &source,
+        crate::history::read_import_epoch_scope(
+            &crate::owner_lifecycle::HistoryReadAccess::new(&self.container),
             &self.archive,
             &self.memories,
             start,
-            through,
-            source_nodes,
         )
     }
 }
 
 #[cfg(test)]
-#[path = "epoch_scope_tests.rs"]
+#[path = "../imports/epoch_scope_tests.rs"]
 mod tests;

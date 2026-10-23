@@ -291,3 +291,6 @@ Choose a **staged hard cut**, not perpetual expand-contract. Before each subsyst
 This is a specification only. It does not certify an in-flight Phase 2 worktree, run long historical tests, modify the development corpus or authorize new inference. The accepted DAG JSON, current owner contracts and previous correction/feature exclusions govern any ambiguity.
 
 R3 continuation verification and the remaining I3 consumer inventory are recorded in the [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md) and [reconciliation receipt](../benchmarks/dependency-convergence-phase3-reconciliation-2026-10-22.json). The [settlement field audit](../benchmarks/dependency-convergence-phase3-settlement-field-audit-2026-10-22.json) is preparatory measurement only; P3.8's reconstruction, selection and freeze obligations remain unchanged.
+
+
+Further I3 native historical proof/scoring/publication preparation is recorded in the [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md) and [source-pinned preparation receipt](../benchmarks/dependency-convergence-phase3-native-historical-preparation-2026-10-22.json). It does not close I3 or advance the accepted task count; remaining manifest/event/reconstruction and epoch-reconciliation coordination is explicit.

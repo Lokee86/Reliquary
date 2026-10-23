@@ -1848,7 +1848,7 @@ use history::archive_retention as archive_prune_admission;
 
 #[path = "facade/cva_conversation_tombstone.rs"]
 mod cva_conversation_tombstone;
-#[path = "facade/memory_source_time.rs"]
+#[path = "history/memory_source_time.rs"]
 mod memory_source_time_admission;
 
 #[path = "freshness/dream_pass_identity.rs"]
@@ -1893,3 +1893,9 @@ mod memory_ordered_replay;
 
 #[path = "facade/cva_native_import.rs"]
 mod cva_native_import;
+
+#[path = "semantic_graph/relation_sets.rs"]
+mod graph_relation_sets;
+
+#[path = "facade/cva_import_scope.rs"]
+mod cva_import_scope;

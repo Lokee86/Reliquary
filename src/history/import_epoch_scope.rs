@@ -273,3 +273,27 @@ pub(crate) fn validate_import_settlement_scope(
     }
     Ok(())
 }
+
+/// Resolve one accepted ImportStart using the original metadata/receipt/scan order.
+pub(crate) fn read_import_epoch_scope(
+    access: &crate::owner_lifecycle::HistoryReadAccess<'_>,
+    archive: &crate::Archive,
+    memories: &crate::memory_store::MemoryStore,
+    start: crate::imports::ImportStart,
+) -> Result<crate::history::ImportEpochScope, crate::owner_lifecycle::OwnerError> {
+    let through = access
+        .path_length()
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Freshness(error.to_string()))?;
+    let source_nodes = crate::history::import_source_nodes(archive, &start)?;
+    let source = access
+        .snapshot()
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+    crate::history::replay_import_epoch_scope(
+        &source,
+        archive,
+        memories,
+        start,
+        through,
+        source_nodes,
+    )
+}

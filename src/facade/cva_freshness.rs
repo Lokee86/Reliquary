@@ -846,120 +846,19 @@ impl Cva {
         &self,
         pass: &crate::InitialDreamPass,
     ) -> Result<(std::collections::BTreeSet<MemoryId>, bool), CvaError> {
-        let mut scan = self.container.read_source()?;
-        let mut objects = self.container.read_source()?;
-        let mut roots = std::collections::BTreeSet::new();
-        let mut duplicate_origin = false;
+        let access = crate::owner_lifecycle::HistoryReadAccess::new(&self.container);
+        let source = access
+            .snapshot()
+            .map_err(|error| CvaError::Container(error.0))?;
+        let proof = crate::history::dream_evidence::read_dream_evidence(
+            &source,
+            &self.graph,
+            &self.dream_freshness,
+            pass,
+        )?;
         #[cfg(feature = "freshness-performance-trace")]
-        let trace_started = std::time::Instant::now();
-        #[cfg(feature = "freshness-performance-trace")]
-        let (
-            mut trace_payload_bytes,
-            mut trace_object_bytes,
-            mut trace_chunks,
-            mut trace_mutations,
-            mut trace_filtered,
-        ) = (0_u64, 0_u64, 0_u64, 0_u64, 0_u64);
-        {
-            let mut ingest_frame =
-                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
-                    let object = frame.object;
-                    let payload = frame.payload.as_slice();
-                    {
-                        #[cfg(feature = "freshness-performance-trace")]
-                        {
-                            trace_payload_bytes += payload.len() as u64;
-                            trace_chunks += 1;
-                        }
-                        let Some(version) =
-                            crate::graph_compact_codec::publication::version_at(object, payload)?
-                        else {
-                            return Ok(());
-                        };
-                        let end = self
-                            .dream_freshness
-                            .accepted_graph_cut(&pass.pass_id)
-                            .map(|(graph, _)| graph)
-                            .unwrap_or(self.graph_version());
-                        if version.graph_version <= pass.graph_version_before
-                            || version.graph_version > end
-                        {
-                            #[cfg(feature = "freshness-performance-trace")]
-                            {
-                                trace_filtered += 1;
-                            }
-                            return Ok(());
-                        }
-                        let payload = objects.read(version.mutation)?;
-                        #[cfg(feature = "freshness-performance-trace")]
-                        {
-                            trace_object_bytes += payload.len() as u64;
-                        }
-                        let mutations =
-                            self.graph
-                                .decode_stored_mutations(&payload)?
-                                .ok_or_else(|| {
-                                    CvaError::Freshness(
-                                        "committed Dream graph version lacks its mutation".into(),
-                                    )
-                                })?;
-                        #[cfg(feature = "freshness-performance-trace")]
-                        {
-                            trace_mutations += mutations.len() as u64;
-                        }
-                        for mutation in mutations {
-                            if mutation.origin != crate::GraphRelationOrigin::Dream
-                                || !mutation.active
-                            {
-                                continue;
-                            }
-                            let (Some(source), Some(target)) =
-                                (mutation.source.as_memory(), mutation.target.as_memory())
-                            else {
-                                continue;
-                            };
-                            let neighbor = if source == pass.source_id {
-                                Some(target)
-                            } else if target == pass.source_id {
-                                Some(source)
-                            } else {
-                                None
-                            };
-                            if let Some(neighbor) =
-                                neighbor.filter(|id| pass.preexisting_ids.contains(id))
-                            {
-                                duplicate_origin |= mutation.kind.code()
-                                    == crate::GraphRelationKind::DuplicateOf.code();
-                                roots.insert(neighbor);
-                            }
-                        }
-                        Ok(())
-                    }
-                };
-            let mut cursor = scan.physical_cursor()?;
-            (|| {
-                while let Some(frame) = cursor.next_frame()? {
-                    ingest_frame(frame)?;
-                }
-                Ok::<(), CvaError>(())
-            })()
-        }?;
-        #[cfg(feature = "freshness-performance-trace")]
-        crate::freshness_trace::record(
-            "dream.initial_dream_committed_roots",
-            trace_started.elapsed().as_nanos(),
-            crate::freshness_trace::Counts {
-                payload_bytes: Some(trace_payload_bytes),
-                object_bytes: Some(trace_object_bytes),
-                chunks_visited: Some(trace_chunks),
-                graph_mutations_decoded: Some(trace_mutations),
-                community_snapshots_encountered: None,
-                community_snapshots_matched: None,
-                version_filtered_records: Some(trace_filtered),
-                ..Default::default()
-            },
-        );
-        Ok((roots, duplicate_origin))
+        record_dream_evidence_trace(proof.trace);
+        Ok((proof.roots, proof.duplicate_origin))
     }
 
     pub(crate) fn recover_committed_initial_dream_event(
@@ -1198,3 +1097,21 @@ impl Cva {
 #[cfg(test)]
 #[path = "freshness_recovery_tests.rs"]
 mod recovery_tests;
+
+#[cfg(feature = "freshness-performance-trace")]
+pub(crate) fn record_dream_evidence_trace(
+    trace: crate::history::dream_evidence::DreamEvidenceTrace,
+) {
+    crate::freshness_trace::record(
+        "dream.initial_dream_committed_roots",
+        trace.elapsed_ns,
+        crate::freshness_trace::Counts {
+            payload_bytes: Some(trace.payload_bytes),
+            object_bytes: Some(trace.object_bytes),
+            chunks_visited: Some(trace.chunks),
+            graph_mutations_decoded: Some(trace.mutations),
+            version_filtered_records: Some(trace.filtered),
+            ..Default::default()
+        },
+    );
+}

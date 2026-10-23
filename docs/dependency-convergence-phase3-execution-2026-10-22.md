@@ -276,3 +276,12 @@ I3 continues with its remaining explicit Cva epoch/historical reconstruction ada
 
 
 Further I3 preparation moved grouped completion hydration/publication and Dream Begin transport into explicit lifecycle owner-part operations. Source and destination compact Dream population proofs still use their own exact bounded physical prefixes. Import callers consume these contracts directly; obsolete internal Cva methods are test-only adapters. The coherent follow-up check passed and **90 Import tests passed in 3.50s**, zero failed; the production owner guard passed. This is recorded as preparation in the R3 receipt without closing I3 or any additional task. Historical reconstruction and completed-epoch ambient Cva access remain the next extraction work.
+
+
+## I3 native historical evidence preparation
+
+The next local preparation checkpoint moves historical corpus/admission proof into immutable History operations, including exact epoch scans and refusal ordering. History also owns the retained Dream roots/representatives and graph/vector admission reads. The native semantic fragment reader is shared with live adapters; public signatures and retained proof bytes are unchanged. Vector evidence preparation finishes before the existing provider-fill proof runs, without a History callback. Graph proof returns diagnostic traces on failure as well as success so the adapter preserves tracing observations.
+
+Pure frozen settlement scoring now belongs to Import. Freshness stages and validates the replacement/due index; a narrow lifecycle publisher performs write-scope admission, append and sync before resident state is acknowledged. The epoch-scope Cva adapters moved from Import into the facade and delegate their metadata/receipt/snapshot scan to History. No broad Import writer-parts aggregate or upward callback was added.
+
+This is preparation, not I3 acceptance: manifest/event orchestration, historical reconstruction dispatch and completed-epoch reconciliation still require their native coordination cut. Progress remains **75/119 closed**, with **I.03 active**, and seven formal gates accepted. S3/C3/D3/A3 remain pending. No storage codec, canonical corpus or source graph baseline changed. Verification and exact source hashes are recorded in the [native historical preparation receipt](../benchmarks/dependency-convergence-phase3-native-historical-preparation-2026-10-22.json).

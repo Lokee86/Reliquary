@@ -232,3 +232,41 @@ pub(crate) fn accepted_archive_timeline(
     HistoricalTimeline::from_accepted_archive(sources, &positions, through)
         .map_err(|error| OwnerError::Freshness(error.to_string()))
 }
+
+/// Compose the accepted Archive timeline without taking a writer or publishing a score.
+pub(crate) fn historical_freshness_timeline(
+    archive: &Archive,
+) -> Result<
+    crate::freshness::historical_planner::HistoricalTimeline,
+    crate::freshness::historical_planner::PlannerError,
+> {
+    use crate::freshness::historical_planner::{HistoricalSource, HistoricalTimeline, SourceKey};
+    let facts = crate::history::source_proof::timeline_facts(archive);
+    let sources = facts
+        .sources
+        .into_iter()
+        .map(|node| HistoricalSource {
+            key: SourceKey {
+                conversation_id: node.conversation_id,
+                node_id: node.id,
+            },
+            parent_id: node.parent_id,
+            role: node.role,
+            timestamp_ns: node.timestamp_ns,
+        })
+        .collect();
+    let positions = facts
+        .positions
+        .into_iter()
+        .map(|((conversation_id, node_id), position)| {
+            (
+                SourceKey {
+                    conversation_id,
+                    node_id,
+                },
+                position,
+            )
+        })
+        .collect();
+    HistoricalTimeline::from_accepted_archive(sources, &positions, facts.activity_count)
+}

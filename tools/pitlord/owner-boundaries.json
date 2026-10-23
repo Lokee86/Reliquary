@@ -1777,6 +1777,61 @@
       "path": "src/owner_lifecycle/grouped_import_replay.rs",
       "component": "owner-lifecycle",
       "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/semantic_source.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/dream_evidence.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/relation_sets.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/dream_representative.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/memory_source_time.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/import_birth_facts.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/import_admission.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/import_admission_epoch.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_settlement_plan.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_settlement.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/historical_settlement.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -2118,6 +2173,46 @@
     },
     {
       "module": "owner_lifecycle::grouped_import_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::semantic_source",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "history::dream_evidence",
+      "component": "history"
+    },
+    {
+      "module": "graph_relation_sets",
+      "component": "graph-store"
+    },
+    {
+      "module": "history::dream_representative",
+      "component": "history"
+    },
+    {
+      "module": "memory_source_time_admission",
+      "component": "history"
+    },
+    {
+      "module": "owner_lifecycle::import_birth_facts",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "history::import_admission",
+      "component": "history"
+    },
+    {
+      "module": "history::import_admission::epoch",
+      "component": "history"
+    },
+    {
+      "module": "freshness::historical_settlement",
+      "component": "freshness-store"
+    },
+    {
+      "module": "owner_lifecycle::historical_settlement",
       "component": "owner-lifecycle"
     }
   ],
@@ -2751,6 +2846,42 @@
       "owner": "pure-codec",
       "symbol": "TombstoneOutcome",
       "reason": "Immutable concrete owner metadata, profile or terminal outcome used by rewrite selection and emission; no facade, provider or callback capability."
+    },
+    {
+      "consumer": "history",
+      "owner": "pure-codec",
+      "symbol": "PlannerError",
+      "reason": "Existing immutable historical timeline refusal value returned by accepted Archive source proof composition; no writer, store or higher callback."
+    },
+    {
+      "consumer": "history",
+      "owner": "pure-codec",
+      "symbol": "LifecycleState",
+      "reason": "Immutable active or terminal retained Memory outcome used by read-only admission proof; no writer, store or callback capability."
+    },
+    {
+      "consumer": "history",
+      "owner": "freshness",
+      "symbol": "MemoryAdjacency",
+      "reason": "Immutable historical settlement policy, score or adjacency value; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "FreshnessPolicy",
+      "reason": "Immutable historical settlement policy, score or adjacency value; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "FreshnessRecord",
+      "reason": "Immutable historical settlement policy, score or adjacency value; no mutable store, writer or callback capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "HistoricalScoreEvent",
+      "reason": "Immutable historical settlement policy, score or adjacency value; no mutable store, writer or callback capability."
     }
   ],
   "forbidden_symbols": [

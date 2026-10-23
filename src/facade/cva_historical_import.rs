@@ -1,5 +1,4 @@
 //! A frozen one-shot native REL import and its atomic Freshness publication.
-use crate::freshness::historical_scorer::{HistoricalScoreEvent, score_historical_records};
 use crate::freshness_storage::{
     HistoricalImportFreshnessScope, HistoricalImportFreshnessSettlement,
 };
@@ -34,152 +33,9 @@ mod manifest;
 #[path = "historical_import_transform.rs"]
 mod transform;
 
-#[derive(Clone, Debug)]
-struct FrozenHistoricalImport {
-    source_bytes: u64,
-    source_digest: [u8; 32],
-    retained: Vec<HistoricalScoreEvent>,
-    epoch: bool,
-    events: Option<events::NativeHistoricalEvents>,
-    propagation: Option<manifest::PropagationInputs>,
-    settlement: HistoricalImportFreshnessSettlement,
-    initial: BTreeMap<MemoryId, FreshnessRecord>,
-}
-#[derive(Clone, Debug)]
-struct PreparedHistoricalImport {
-    source_bytes: u64,
-    source_digest: [u8; 32],
-    epoch: bool,
-    settlement: HistoricalImportFreshnessSettlement,
-}
-impl FrozenHistoricalImport {
-    /// Only the owner-derived batch can enter production scoring.
-    fn prepare_native(&self) -> Result<PreparedHistoricalImport, CvaError> {
-        let Some(_) = &self.events else {
-            return Ok(PreparedHistoricalImport {
-                source_bytes: self.source_bytes,
-                source_digest: self.source_digest,
-                epoch: self.epoch,
-                settlement: self.settlement.clone(),
-            });
-        };
-        let mut scores = self.native_scores()?;
-        scores.extend(self.retained.clone());
-        self.prepare(&scores)
-    }
-    fn native_scores(&self) -> Result<Vec<HistoricalScoreEvent>, CvaError> {
-        let Some(batch) = &self.events else {
-            return Ok(Vec::new());
-        };
-        let inputs = self
-            .propagation
-            .as_ref()
-            .ok_or_else(|| fail("missing frozen propagation proof"))?;
-        if batch
-            .ordered
-            .iter()
-            .any(|(_, event)| event.position > self.settlement.settlement_cut)
-        {
-            return Err(fail(
-                "historical source event exceeds frozen checkpoint cut",
-            ));
-        }
-        let events: Vec<_> = batch
-            .ordered
-            .iter()
-            .map(|(_, event)| event.clone())
-            .collect();
-        let outcomes = crate::freshness::historical_propagation::propagate_historical_events(
-            &events,
-            &inputs.adjacency,
-            &inputs.memberships,
-            &inputs.authorized,
-            &inputs.availability,
-            1,
-            &FreshnessPolicy::default_v1(),
-        )
-        .map_err(|e| fail(&e.to_string()))?;
-        let scores: Vec<_> = batch
-            .ordered
-            .iter()
-            .zip(outcomes)
-            .flat_map(|((id, event), outcome)| {
-                outcome
-                    .candidates
-                    .into_iter()
-                    .map(move |(recipient, amount)| HistoricalScoreEvent {
-                        recipient,
-                        position: event.position,
-                        event_id: *id,
-                        amount,
-                    })
-            })
-            .collect();
-        Ok(scores)
-    }
-    fn import_id(&self) -> [u8; 32] {
-        self.settlement.import_id
-    }
-    fn cut(&self) -> u64 {
-        self.settlement.settlement_cut
-    }
-    fn initial_records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
-        &self.initial
-    }
-    /// Scores only positive historical contributions for supported admitted recipients.
-    /// Internal coordinator evidence must be covered by the frozen canonical manifest.
-    fn prepare(
-        &self,
-        events: &[HistoricalScoreEvent],
-    ) -> Result<PreparedHistoricalImport, CvaError> {
-        let mut positions = BTreeMap::new();
-        for event in events {
-            if event.amount <= 0
-                || event.amount > 50
-                || self
-                    .initial
-                    .get(&event.recipient)
-                    .is_none_or(|r| r.admitted_at_turn.is_none())
-            {
-                return Err(CvaError::Freshness(
-                    "unsupported historical contribution/recipient".into(),
-                ));
-            }
-            if positions
-                .insert(event.event_id, event.position)
-                .is_some_and(|old| old != event.position)
-            {
-                return Err(CvaError::Freshness(
-                    "one historical event has conflicting source positions".into(),
-                ));
-            }
-        }
-        let mut settlement = self.settlement.clone();
-        settlement.records = if self.epoch && self.initial.is_empty() && events.is_empty() {
-            BTreeMap::new()
-        } else {
-            score_historical_records(
-                &self.initial,
-                events,
-                settlement.settlement_cut,
-                &FreshnessPolicy::default_v1(),
-            )
-            .map_err(|e| CvaError::Freshness(e.to_string()))?
-        };
-        settlement.validate().map_err(CvaError::Freshness)?;
-        Ok(PreparedHistoricalImport {
-            source_bytes: self.source_bytes,
-            source_digest: self.source_digest,
-            epoch: self.epoch,
-            settlement,
-        })
-    }
-}
-impl PreparedHistoricalImport {
-    fn records(&self) -> &BTreeMap<MemoryId, FreshnessRecord> {
-        &self.settlement.records
-    }
-}
+use crate::imports::historical_settlement_plan::{
+    FrozenHistoricalImport, PreparedHistoricalImport,
+};
 fn fail(message: &str) -> CvaError {
     CvaError::Freshness(message.into())
 }
@@ -430,41 +286,13 @@ impl Cva {
             }
             input::validate_settlement(self, settlement)?;
         }
-        let payload = settlement.encode();
-        let mut staged = self.freshness.clone();
-        if prepared.epoch {
-            staged
-                .bind_history_source(&self.container, prepared.source_bytes)
-                .map_err(CvaError::Freshness)?;
-            staged.freeze_derived_birth_policy();
-        }
-        staged
-            .ingest_import_settlement(&payload)
-            .map_err(CvaError::Freshness)?;
-        let mut due = crate::FreshnessDueDispatcher::default();
-        due.rebuild(
-            staged.records().iter().map(|(&id, &r)| (id, r)),
-            settlement.settlement_cut,
-            &self.freshness_policy(),
-        )
-        .map_err(|e| fail(&e.to_string()))?;
-        due.configure_initial_decay_carries(staged.initial_decay_carries())
-            .map_err(|e| fail(&e.to_string()))?;
-        // Admit only the authenticated settlement append; no worker or completion authority.
-        self.container.set_owner_write_scope(prepared.epoch);
-        let append_result = (|| {
-            staged
-                .persist_policy_if_needed(&mut self.container, settlement.owner)
-                .map_err(CvaError::Freshness)?;
-            self.container.append(&payload)?;
-            self.container.sync()?;
-            Ok::<(), CvaError>(())
-        })();
-        self.container.set_owner_write_scope(false);
-        append_result?;
-        staged
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)?;
+        let (staged, due) = crate::owner_lifecycle::historical_settlement::publish_settlement(
+            &mut self.container,
+            &self.freshness,
+            settlement,
+            prepared.source_bytes,
+            prepared.epoch,
+        )?;
         self.freshness = staged;
         self.freshness_due = due;
         self.freshness_notifications.clear();

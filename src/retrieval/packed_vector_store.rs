@@ -64,7 +64,7 @@ impl PackedVectorStore {
 
     pub(crate) fn get(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: PackedVectorId,
     ) -> Result<PackedVectors, PackedVectorError> {
         let entry = self

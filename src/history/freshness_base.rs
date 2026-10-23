@@ -33,12 +33,7 @@ pub(crate) struct HistoricalFreshnessBaseCut {
     pub(crate) global_cut: u64,
 }
 
-/// The bounded external birth evidence History needs; the external publisher's
-/// envelope and storage representation remain owned by its source adapter.
-pub(crate) struct ExternalBirthFacts {
-    pub(crate) birth_turn: Option<u64>,
-    pub(crate) records: Vec<(MemoryId, u64, String)>,
-}
+pub(crate) use crate::owner_lifecycle::import_birth_facts::ExternalBirthFacts;
 
 pub(crate) fn historical_freshness_base(
     source: &HistorySource<'_>,

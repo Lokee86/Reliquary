@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "source_base": "957733a",
+  "status": "verified_preparation_archivist_pending",
+  "gate": "I3",
+  "gate_accepted": false,
+  "task_progress": {
+    "closed": 75,
+    "total": 119,
+    "original_accepted": 55,
+    "added_verified": 20,
+    "added_active": [
+      "I.03"
+    ]
+  },
+  "source_sha256": {
+    "src/archive/episode_store.rs": "40da94cbebbdc65ccc815cf680edc915e4cb6afea475e3d2761db19c5b53eaea",
+    "src/facade/cva_freshness.rs": "94face1f7b65e9ccecdee00d3b948e2da82eb11786a01caf271ba2485817968b",
+    "src/facade/cva_historical_dream.rs": "7ba9fb8a6d2a9e31acdd8c512a3f952dde01ea6a3bc71d86821fd5b52ecd9bc6",
+    "src/facade/cva_historical_freshness.rs": "7e6df776c8e1588c47fbcc9fcbab393d0fddc341fa58628d51ff47d15563e5a6",
+    "src/facade/cva_historical_import.rs": "4f18f84c7fa4930a1d0143b63a009a73c04eaa1fd73d1d2aeb0ba8b8cd16b7be",
+    "src/facade/cva_import_scope.rs": "973619b66380a261b2686e03e0990667b60c2f03f320dc7736a20d941caa6801",
+    "src/facade/cva_semantic_fragment.rs": "97e8f0561cf33db184a4e2af66932aca523e1505e33e01b7a3732da2bb8401f1",
+    "src/facade/cva_semantic_source.rs": "db425bce81c1c3724180f88ed5d5886fbf8a5bedbafb664a1d5338574d124608",
+    "src/facade/historical_import_base.rs": "ad2e56766e33e6eed2a9e36b4bf614a8d95dc472ee974acd3cd45627f9b02069",
+    "src/facade/historical_import_input.rs": "f664b6adc251efe9f647a4dc2ef41ecd8a9f4ef74a19274c2aa9df14e8a557b3",
+    "src/facade/historical_manifest.rs": "d8b7bb747049a225e78fc59df36b6936652e8784ed5eb909bdad29163a106e7a",
+    "src/freshness/historical_settlement.rs": "b65ef30057a12c891f23aeb0ebdd07192a6d6023fc48a11c4b41744a539f8b19",
+    "src/freshness/mod.rs": "072900ede7b8e394582ca79a8e1b418e7e4316d0af73a641ea9b5013e099aa17",
+    "src/history/dream_evidence.rs": "280248df2148bd4ff9e3a0d4af54c3f12340bb0cff1bb3471702317812dc9887",
+    "src/history/dream_representative.rs": "e0c8675d3a06649240434353dff3bbdb9c10d1a214241a4f6e7d11d2731dd552",
+    "src/history/freshness_base.rs": "2948cfd261f4de8039b617e9c7c7f6415f251939226981df9e7ea800de348747",
+    "src/history/graph_proof.rs": "ef22243b98f451e92ba3f46571fb5e1d86758e5105e10ea3efbdbc834ec78cd8",
+    "src/history/import_admission.rs": "602ec62c9dd8598f14d19fad8ce3b598efaede7ee26145e13021e89c6c761342",
+    "src/history/import_admission_epoch.rs": "81d8c8873e0903cbc35351128c9461dedddee9db0790cbf58a8fd83b9acc267b",
+    "src/history/import_epoch_scope.rs": "bed9ffd3b14af0c466207dfeacb97abd34c7bfaf0ff26b0e4e6ca96aa968887e",
+    "src/history/memory_source_time.rs": "3dc9138ac11fff62c53859947c5ba6b563baf2a282a9df03382b084850ffaeca",
+    "src/history/mod.rs": "e7779f4b17dbe2a9c6053edbd3bfee59a37f52b9415a44091dbb584e4b2e82c3",
+    "src/history/source_proof.rs": "5522ea17e94736a28f9bdaf70847e66f1a0d2c141e4430e826afaa1585be6fe6",
+    "src/history/vector_proof.rs": "a11aa22eadca123535eb6afefe549411ed08246f71c352dbf9684755106dfb77",
+    "src/imports/historical_settlement_plan.rs": "e55d0061af09b78e04786405610ba63e48c0c891425bbad817e37c83f4eaa3cd",
+    "src/imports/mod.rs": "87a1cf31f41783ee336843644c40883ae8187ba4f6556f63607ed4ef92bc5d8b",
+    "src/lib.rs": "2939607fca3e5fdb4dd07b8dbf7a209acd682ed2ad3235157126dd8db345d5ed",
+    "src/owner_lifecycle.rs": "97f346fc6fdce495e2d4669784675898bf046d092fb2a2229b382b7a26946803",
+    "src/owner_lifecycle/historical_settlement.rs": "ca2cf45de9e54a186a25f0702c463e7564ea83d52a26225edb7f6f7896f9d8ef",
+    "src/owner_lifecycle/history_source.rs": "bdfffcefefcbc36823cd6f01ef63361ca1949675e8043966f49108b798c91eba",
+    "src/owner_lifecycle/import_birth_facts.rs": "49ee41a5762cbe4ad5ded79ade18e4eded2c47380a79c7d079f4080758cfab1e",
+    "src/owner_lifecycle/semantic_source.rs": "06a114e27f4078d8d1572703fc1880a8cb66bc7fc5455d47470510e9df7f9950",
+    "src/retrieval/packed_vector_store.rs": "156feb9bbd7d60dcb40d694e33af2eb29a42d1cbe2ba6b35f8de765e7f5a9b25",
+    "src/runtime_inference/dream_canonical.rs": "bb03be198fcb5f2745c0c8e6d2c79570eda1b1cfc963d3d5f6b0fa419b47bcaa",
+    "src/semantic_graph/relation_sets.rs": "f209964f637fcc8638286fc7376ec1c1795c87182661cd13a248b2364f5b478c"
+  },
+  "boundary_manifest_sha256": "12d70abc6769616587572c3f07690127f049bd0c8e64dcba4ed0edc2a0c46789",
+  "changes": [
+    "History owns immutable admission/corpus/epoch scans, graph and vector admission, retained Dream roots and representative proof.",
+    "Native semantic fragment reader is shared by live and historical adapters.",
+    "Import owns pure frozen historical scoring over accepted DTOs.",
+    "Freshness stages a private validated settlement publication; lifecycle alone toggles bypass, appends and syncs; resident installation follows acknowledgement.",
+    "Import epoch-scope Cva adapters live in facade and delegate canonical bounded History inspection.",
+    "Graph telemetry is retained on success and failure, without a History callback or writer."
+  ],
+  "verification": {
+    "feature_check": {
+      "status": "passed",
+      "command": "cargo check --locked --tests --features freshness-performance-trace",
+      "log": ".verification-tmp/phase3-i3-scope-native-check.log"
+    },
+    "owner_guard": {
+      "status": "passed",
+      "log": ".verification-tmp/phase3-i3-current-owner.log"
+    },
+    "history_guard": {
+      "status": "passed",
+      "log": ".verification-tmp/phase3-i3-current-history.log"
+    },
+    "cli": {
+      "status": "passed",
+      "tests": 32,
+      "log": ".verification-tmp/phase3-i3-cli-tests.log"
+    },
+    "historical_regressions": {
+      "status": "passed",
+      "tests": 68,
+      "failed": 0,
+      "ignored": 1,
+      "seconds": 30.3,
+      "log": ".verification-tmp/phase3-i3-native-historical-tests.log"
+    },
+    "previous_admission_only_slice": {
+      "status": "passed",
+      "tests": 68,
+      "failed": 0,
+      "ignored": 1,
+      "seconds": 28.65,
+      "log": ".verification-tmp/phase3-i3-admission-tests.log",
+      "scope": "Before later graph/vector/publication/scope changes; not a final-source pass."
+    },
+    "epoch_scope": {
+      "status": "passed",
+      "tests": 3,
+      "failed": 0,
+      "seconds": 0.22,
+      "log": ".verification-tmp/phase3-i3-native-scope-tests.log"
+    },
+    "bounded_library": {
+      "status": "passed",
+      "tests": 1975,
+      "failed": 0,
+      "ignored": 5,
+      "filtered": 4,
+      "seconds": 82.9,
+      "log": ".verification-tmp/phase3-i3-bounded-library.log",
+      "deferred_to_A3": [
+        "historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries",
+        "historical_native_due_reopen_and_every_live_use_prefix_preserve_all_recipients",
+        "canonical_history_scaling_measurement",
+        "long_owner_reopen_keeps_finite_receipts_and_exact_evicted_retry"
+      ],
+      "ignored_tests": "Five existing explicit opt-in obligations remain pending A3; not claimed passed."
+    },
+    "misfiltered_semantic_command": {
+      "tests": 0,
+      "log": ".verification-tmp/phase3-i3-native-semantic-tests.log",
+      "note": "cva_semantic_fragment matched no test names; no verification credit. The bounded full-library run above includes the actual semantic fragment tests."
+    },
+    "source_guard_fixtures": {
+      "owner": "passed",
+      "history": "passed",
+      "logs": [
+        ".verification-tmp/phase3-i3-owner-fixtures.log",
+        ".verification-tmp/phase3-i3-history-fixtures.log"
+      ]
+    },
+    "documentation": {
+      "full": "passed",
+      "changed": "passed",
+      "archivist": "running",
+      "logs": [
+        ".verification-tmp/phase3-i3-docs.log",
+        ".verification-tmp/phase3-i3-docs-changed.log",
+        ".verification-tmp/phase3-i3-ddocs.log"
+      ]
+    }
+  },
+  "review": {
+    "standards": "Local Luna reviewed read-only capabilities, native owner staging and lifecycle transport; no remaining actionable finding after correction.",
+    "specification": "Local Luna compared extraction to HEAD refusal order, canonical fields, retry/admission/sync ordering and error mapping; no remaining finding.",
+    "corrected_findings": [
+      "Preserve traces from graph attempts that fail after accepted root inspection.",
+      "Keep write-scope/append/sync transport in lifecycle rather than the Freshness staging module."
+    ]
+  },
+  "remaining": [
+    "Native manifest/event orchestration without facade callbacks.",
+    "Native historical reconstruction entrypoint and completion binding.",
+    "Replace ambient Cva in Import-specific reconciliation and copy/reopen.",
+    "I3 full acceptance matrix and absence guards.",
+    "S3 format/projection selection, C3 conversion, D3 one-time graph refresh and A3 long/canonical oracle checks."
+  ],
+  "format_changed": false,
+  "canonical_corpus_changed": false,
+  "source_graph_refreshed": false,
+  "canonical_hash_verification": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "frozen_matches": true,
+      "original_matches": true
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "frozen_matches": true,
+      "original_matches": true
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "frozen_matches": true,
+      "original_matches": true
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "frozen_matches": true,
+      "original_matches": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "frozen_matches": true,
+      "original_matches": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "frozen_matches": true,
+      "original_matches": true
+    }
+  ]
+}

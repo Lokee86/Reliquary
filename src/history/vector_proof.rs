@@ -282,3 +282,201 @@ impl VectorProofBuilder {
 fn proof_error(error: HistoryProofError) -> OwnerError {
     OwnerError::Freshness(error.to_string())
 }
+
+fn vector_admission_failure(message: &str) -> OwnerError {
+    OwnerError::Freshness(message.into())
+}
+pub(crate) struct PreparedVectorProof {
+    proof: VectorProofBuilder,
+    generation: Option<([u8; 32], [u8; 32], [u8; 32], u64, u64)>,
+}
+impl PreparedVectorProof {
+    pub(crate) fn fragments_for_embedding(&self) -> &[Value] {
+        self.proof.fragments_for_embedding()
+    }
+    pub(crate) fn finish(self, embedding_pass: Value) -> (Value, Vec<Value>) {
+        self.proof.finish(self.generation, embedding_pass)
+    }
+}
+/// Read accepted source and target vector evidence before any provider-fill proof.
+pub(crate) fn read_vector_admission(
+    archive: &crate::Archive,
+    memories: &crate::memory_store::MemoryStore,
+    vectors: &crate::owner_lifecycle::semantic_source::HistoricalVectorReadAccess<'_>,
+    order: &[crate::freshness::historical_planner::SourceKey],
+    target_ids: &BTreeSet<crate::MemoryId>,
+    scoped_nodes: Option<&BTreeSet<(String, String)>>,
+    scoped_base_cut: Option<u64>,
+) -> Result<PreparedVectorProof, OwnerError> {
+    use crate::history::vector_proof::{
+        VectorFragmentReadiness, VectorNodeKey, VectorProofBuilder, VectorRowFacts,
+        VectorTargetBinding,
+    };
+    use crate::owner_lifecycle::semantic_source::SemanticSourceReadiness;
+
+    let generation = vectors.generation();
+    let mut proof = VectorProofBuilder::new();
+    for (index, key) in order.iter().enumerate() {
+        let position = index as u64 + 1;
+        let key_facts = VectorNodeKey {
+            conversation_id: key.conversation_id.clone(),
+            node_id: key.node_id.clone(),
+        };
+        if !VectorProofBuilder::include_source(&key_facts, position, scoped_nodes, scoped_base_cut)
+        {
+            continue;
+        }
+        let node = archive
+            .nodes
+            .get(&key.conversation_id, &key.node_id)
+            .ok_or_else(|| vector_admission_failure("missing historical source"))?;
+        proof.record_source(crate::history::source_proof::node_binding(node), position);
+    }
+
+    for fragment in archive.fragments() {
+        let nodes = archive.fragment_nodes_for(&fragment)?;
+        let node_keys: Vec<_> = nodes
+            .iter()
+            .map(|node| VectorNodeKey {
+                conversation_id: node.conversation_id.clone(),
+                node_id: node.id.clone(),
+            })
+            .collect();
+        if !VectorProofBuilder::fragment_scope(&node_keys, scoped_nodes)? {
+            continue;
+        }
+        let position =
+            crate::owner_lifecycle::semantic_source::fragment_position(archive, fragment.id)?;
+        if !VectorProofBuilder::fragment_after_base(position, scoped_base_cut) {
+            continue;
+        }
+        let activity_nodes = nodes
+            .iter()
+            .filter(|n| {
+                archive
+                    .activity_position_for_turn(&n.conversation_id, &n.id)
+                    .is_some()
+            })
+            .count();
+        let readiness = generation
+            .map(|g| vectors.fragment(fragment.id, g.id))
+            .transpose()?
+            .map(|readiness| match readiness {
+                SemanticSourceReadiness::Ready(source) => VectorFragmentReadiness {
+                    complete: true,
+                    source_digest: source.source_digest,
+                    generation_id: source.generation.id.0,
+                    profile_id: source.generation.compatibility_profile_id.0,
+                    invalid_vectors: source.invalid_vectors as u64,
+                    rows: source
+                        .vectors
+                        .into_iter()
+                        .map(|vector| VectorRowFacts {
+                            fragment_id: vector.fragment_id.0,
+                            row: vector.row,
+                            component_bytes: vector
+                                .components
+                                .iter()
+                                .flat_map(|component| component.to_le_bytes())
+                                .collect(),
+                        })
+                        .collect(),
+                },
+                SemanticSourceReadiness::Pending => VectorFragmentReadiness {
+                    complete: false,
+                    source_digest: [0; 32],
+                    generation_id: [0; 32],
+                    profile_id: [0; 32],
+                    invalid_vectors: 0,
+                    rows: Vec::new(),
+                },
+            });
+        proof.record_fragment(
+            fragment.id.0,
+            &fragment.conversation_id,
+            &fragment.start_node_id,
+            &fragment.end_node_id,
+            nodes
+                .iter()
+                .map(crate::history::source_proof::node_binding)
+                .collect(),
+            position,
+            activity_nodes,
+            readiness,
+        )?;
+    }
+
+    for profile in vectors.profiles() {
+        let descriptor = crate::compatibility_profile_codec::encode_profile(&profile)
+            .map_err(|e| vector_admission_failure(&e.to_string()))?;
+        proof.record_profile(profile.id.0, descriptor);
+    }
+
+    let mut ids: Vec<_> = target_ids.iter().copied().collect();
+    ids.sort();
+    for id in ids {
+        let body = memories.current_body_id(id)?;
+        for profile in vectors.profiles() {
+            let Some(location) = vectors.target_location(profile.id, body) else {
+                proof.record_target(VectorTargetBinding {
+                    memory_id: id.0,
+                    body_id: body.0,
+                    profile_id: profile.id.0,
+                    binding_id: None,
+                    packed_id: None,
+                    row: None,
+                    row_bytes: None,
+                    usable: false,
+                });
+                continue;
+            };
+            let set = vectors
+                .target_set(location.set_id)
+                .map_err(|e| vector_admission_failure(&e.to_string()))?;
+            if set.compatibility_profile_id != profile.id
+                || set.memory_body_ids.get(location.row as usize) != Some(&body)
+            {
+                return Err(vector_admission_failure(
+                    "historical target vector binding conflict",
+                ));
+            }
+            let packed = vectors.packed(set.packed_vector_id)?;
+            let row = packed
+                .row(location.row as usize)
+                .ok_or_else(|| vector_admission_failure("missing historical target row"))?;
+            let compatible = packed.schema().dimensions == profile.dimensions
+                && packed.schema().scalar == lodestone_packed::ScalarType::F32;
+            let components: Vec<_> = row
+                .chunks_exact(4)
+                .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
+                .collect();
+            let usable = compatible
+                && crate::freshness::semantic_policy::cosine_similarity(&components, &components)
+                    .is_ok();
+            proof.record_target(VectorTargetBinding {
+                memory_id: id.0,
+                body_id: body.0,
+                profile_id: profile.id.0,
+                binding_id: Some(set.id.0),
+                packed_id: Some(set.packed_vector_id.0),
+                row: Some(location.row),
+                row_bytes: Some(row.to_vec()),
+                usable,
+            });
+        }
+    }
+
+    let generation_facts = generation.map(|g| {
+        (
+            g.id.0,
+            g.compatibility_profile_id.0,
+            g.archive_vector_id.0,
+            g.source_archive_version,
+            g.vector_version,
+        )
+    });
+    Ok(PreparedVectorProof {
+        proof,
+        generation: generation_facts,
+    })
+}

@@ -3,33 +3,9 @@ use crate::freshness::semantic_policy::{SemanticPolicy, cosine_similarity};
 use crate::{Cva, CvaError, FragmentId, Node, VectorGeneration};
 use sha2::{Digest, Sha256};
 
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct SemanticSourceVector {
-    pub fragment_id: FragmentId,
-    pub row: u64,
-    pub components: Vec<f32>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) struct AcceptedSemanticSource {
-    pub owner_uuid: [u8; 16],
-    pub fragment: Option<crate::freshness_storage::SemanticFragmentEvidence>,
-    pub node: Node,
-    pub activity_position: u64,
-    pub generation: VectorGeneration,
-    pub base_policy: crate::freshness::FreshnessPolicy,
-    pub semantic_policy: SemanticPolicy,
-    pub policy_digest: [u8; 32],
-    pub source_digest: [u8; 32],
-    pub vectors: Vec<SemanticSourceVector>,
-    pub invalid_vectors: usize,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub(crate) enum SemanticSourceReadiness {
-    Pending,
-    Ready(AcceptedSemanticSource),
-}
+pub(crate) use crate::owner_lifecycle::semantic_source::{
+    AcceptedSemanticSource, SemanticSourceReadiness, SemanticSourceVector,
+};
 
 impl Cva {
     /// Rediscover retained fragments containing this accepted turn; each fragment

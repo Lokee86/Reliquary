@@ -33,3 +33,5 @@ pub(crate) fn initial_dream_pass_identity(owner: [u8; 16], source: crate::Memory
 }
 
 pub(crate) mod reconciliation;
+
+pub(crate) mod historical_settlement;

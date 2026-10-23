@@ -26,29 +26,14 @@ impl Cva {
         source_id: MemoryId,
         roots: &std::collections::BTreeSet<MemoryId>,
     ) -> Result<BTreeMap<MemoryId, MemoryId>, CvaError> {
-        self.memory(source_id)?;
-        let relations = self.graph_relations();
-        let mut result = BTreeMap::new();
-        for &root in roots {
-            self.memory(root)?;
-            let duplicate = relations.iter().any(|relation| {
-                relation.kind == crate::GraphRelationKind::DuplicateOf
-                    && (relation.source == root || relation.target == root)
-            });
-            let superseded = self.memory(root)?.superseded_by.is_some();
-            let representative = if duplicate || superseded {
-                crate::dream_canonical::historical_duplicate_representative(self, root, &relations)
-                    .map_err(|error| CvaError::Freshness(error.to_string()))?
-                    .ok_or_else(|| {
-                        CvaError::Freshness(
-                            "historical duplicate root has no verified representative".into(),
-                        )
-                    })?
-            } else {
-                root
-            };
-            result.insert(root, representative);
-        }
-        Ok(result)
+        crate::history::dream_representative::historical_dream_representatives(
+            &crate::owner_lifecycle::HistoryReadAccess::new(&self.container),
+            &self.archive,
+            &self.memories,
+            &self.dream_freshness,
+            &self.graph_relations(),
+            source_id,
+            roots,
+        )
     }
 }

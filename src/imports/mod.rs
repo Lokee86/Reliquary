@@ -3,7 +3,6 @@ pub(crate) mod completion_coordinator;
 mod contract;
 pub(crate) mod epoch_codec;
 pub(crate) mod epoch_model;
-mod epoch_scope;
 pub(crate) mod epoch_store;
 mod hermes;
 pub(crate) mod native_commit;
@@ -34,3 +33,5 @@ pub use claude::normalize_claude;
 pub use providers::normalize_agent;
 
 pub(crate) mod historical_event_plan;
+
+pub(crate) mod historical_settlement_plan;

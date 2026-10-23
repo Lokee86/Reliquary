@@ -66,7 +66,7 @@ impl Archive {
 
     pub(crate) fn episode_turns(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: EpisodeId,
     ) -> Result<Vec<crate::ResolvedTurn>, ArchiveError> {
         let episode = self

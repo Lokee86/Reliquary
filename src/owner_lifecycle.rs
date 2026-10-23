@@ -140,3 +140,12 @@ pub(crate) mod dream_begin_transport;
 
 #[path = "owner_lifecycle/grouped_import_replay.rs"]
 pub(crate) mod grouped_import_replay;
+
+#[path = "owner_lifecycle/semantic_source.rs"]
+pub(crate) mod semantic_source;
+
+#[path = "owner_lifecycle/import_birth_facts.rs"]
+pub(crate) mod import_birth_facts;
+
+#[path = "owner_lifecycle/historical_settlement.rs"]
+pub(crate) mod historical_settlement;

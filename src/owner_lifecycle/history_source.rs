@@ -79,8 +79,35 @@ impl<'a> HistoryReadAccess<'a> {
         Self { container }
     }
 
+    pub(crate) fn owner_id(&self) -> Option<String> {
+        self.container.owner_id()
+    }
+    pub(crate) fn episode_turns(
+        &self,
+        archive: &crate::Archive,
+        id: crate::EpisodeId,
+    ) -> Result<Vec<crate::ResolvedTurn>, crate::ArchiveError> {
+        archive.episode_turns(self.container, id)
+    }
+
+    pub(crate) fn retained_completed_dream_passes(
+        &self,
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+    ) -> Result<
+        std::collections::BTreeMap<crate::MemoryId, crate::InitialDreamPass>,
+        super::OwnerError,
+    > {
+        super::dream_replay::retained_completed_passes(self.container, archive, memories)
+    }
+
     pub(crate) fn owner_uuid(&self) -> Option<[u8; 16]> {
         self.container.owner_uuid()
+    }
+
+    /// Preserve the operation's path-metadata preflight before a held-source snapshot.
+    pub(crate) fn path_length(&self) -> std::io::Result<u64> {
+        std::fs::metadata(self.container.path()).map(|metadata| metadata.len())
     }
 
     pub(crate) fn latest_global_version(&self) -> u64 {
@@ -179,11 +206,16 @@ impl<'a> HistorySource<'a> {
         Ok(HistoryCursor { cursor })
     }
 
-    pub(crate) fn read(&self, object: ObjectRef) -> Result<Vec<u8>, String> {
-        self.validate().map_err(|error| error.to_string())?;
+    /// Read an object through this exact held source, preserving physical error type.
+    pub(crate) fn read_object(&self, object: ObjectRef) -> Result<Vec<u8>, HistoryReadFailure> {
+        self.validate()?;
         self.container
             .read_through(object, self.physical_end)
-            .map_err(|error| error.to_string())
+            .map_err(Into::into)
+    }
+
+    pub(crate) fn read(&self, object: ObjectRef) -> Result<Vec<u8>, String> {
+        self.read_object(object).map_err(|error| error.to_string())
     }
 
     /// Materialize one accepted immutable Memory revision through the held source.

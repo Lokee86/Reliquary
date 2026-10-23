@@ -65,3 +65,11 @@ mod transformed_copy;
 pub(crate) use transformed_copy::{HistoricalCopyView, historical_copy_preserves_import_authority};
 
 pub(crate) mod freshness_reconciliation;
+
+pub(crate) mod dream_evidence;
+
+pub(crate) mod dream_representative;
+
+pub(crate) mod import_admission;
+
+pub(crate) use import_epoch_scope::read_import_epoch_scope;

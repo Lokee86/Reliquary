@@ -121,3 +121,12 @@ Independent Luna preparation also produced the [six-file settlement field audit]
 
 
 The accepted R3 continuation closes the eight original P3.6 tasks: **75/119 closed (63.0%) = 55 original accepted + 20 added verified**, with **I.03 active and 43 original pending**. Gates B0/B1/H3/M3/P3/W3/R3 are accepted locally (7/12). Continue **P3.7/I3** from the remaining consumer list in the receipt; no renewed source graph capture or settlement codec change is authorized ahead of the specified gates.
+
+
+## I3 native historical evidence preparation
+
+The next local preparation checkpoint moves historical corpus/admission proof into immutable History operations, including exact epoch scans and refusal ordering. History also owns the retained Dream roots/representatives and graph/vector admission reads. The native semantic fragment reader is shared with live adapters; public signatures and retained proof bytes are unchanged. Vector evidence preparation finishes before the existing provider-fill proof runs, without a History callback. Graph proof returns diagnostic traces on failure as well as success so the adapter preserves tracing observations.
+
+Pure frozen settlement scoring now belongs to Import. Freshness stages and validates the replacement/due index; a narrow lifecycle publisher performs write-scope admission, append and sync before resident state is acknowledged. The epoch-scope Cva adapters moved from Import into the facade and delegate their metadata/receipt/snapshot scan to History. No broad Import writer-parts aggregate or upward callback was added.
+
+This is preparation, not I3 acceptance: manifest/event orchestration, historical reconstruction dispatch and completed-epoch reconciliation still require their native coordination cut. Progress remains **75/119 closed**, with **I.03 active**, and seven formal gates accepted. S3/C3/D3/A3 remain pending. No storage codec, canonical corpus or source graph baseline changed. Verification and exact source hashes are recorded in the [native historical preparation receipt](../benchmarks/dependency-convergence-phase3-native-historical-preparation-2026-10-22.json).
