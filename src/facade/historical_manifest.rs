@@ -8,29 +8,8 @@ use crate::{Cva, CvaError, MemoryId, freshness::FreshnessRecord};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub(super) use crate::imports::historical_manifest_model::Manifest;
 pub(super) use crate::imports::historical_settlement_plan::PropagationInputs;
-pub(super) struct Manifest {
-    pub propagation: PropagationInputs,
-    pub input_digest: [u8; 32],
-    pub input_bytes: u64,
-    pub memory_inputs: BTreeMap<MemoryId, input::HistoricalMemoryInput>,
-    pub timeline: crate::freshness::historical_planner::HistoricalTimeline,
-    pub digest: [u8; 32],
-    pub corpus_digest: [u8; 32],
-    pub import_id: [u8; 32],
-    pub initial: BTreeMap<MemoryId, FreshnessRecord>,
-    pub superseded: BTreeSet<String>,
-    /// Whether this proof is bound to one authenticated import epoch.
-    pub epoch: bool,
-    /// Born and provisionally affected recipients; legacy retains the owner set.
-    pub cohort: BTreeSet<MemoryId>,
-    /// Pre-start activity watermark for an epoch.
-    pub base_cut: u64,
-    /// Digest of the durable ImportStart evidence for an epoch.
-    pub start_evidence_digest: [u8; 32],
-    #[cfg(test)]
-    pub value: Value,
-}
 fn graph_proof(
     cva: &mut Cva,
     ids: &BTreeSet<MemoryId>,

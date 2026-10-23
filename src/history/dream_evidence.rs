@@ -2,6 +2,90 @@
 use crate::owner_lifecycle::{HistorySource, OwnerError};
 use crate::{InitialDreamPass, MemoryId};
 use std::collections::BTreeSet;
+
+/// Narrow immutable access to retained Dream proof inputs.  Callers cannot
+/// obtain the underlying stores or select a different read checkpoint.
+pub(crate) struct DreamEvidenceReadAccess<'a> {
+    history: &'a crate::owner_lifecycle::HistoryReadAccess<'a>,
+    graph: &'a crate::graph_store::GraphStore,
+    dream: &'a crate::freshness_dream_journal::DreamFreshnessJournal,
+}
+
+impl<'a> DreamEvidenceReadAccess<'a> {
+    pub(crate) fn new(
+        history: &'a crate::owner_lifecycle::HistoryReadAccess<'a>,
+        graph: &'a crate::graph_store::GraphStore,
+        dream: &'a crate::freshness_dream_journal::DreamFreshnessJournal,
+    ) -> Self {
+        Self {
+            history,
+            graph,
+            dream,
+        }
+    }
+
+    pub(crate) fn retained_completed(
+        &self,
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+    ) -> Result<std::collections::BTreeMap<crate::MemoryId, crate::InitialDreamPass>, OwnerError>
+    {
+        self.history
+            .retained_completed_dream_passes(archive, memories)
+    }
+
+    pub(crate) fn publication_cohort(
+        &self,
+        member: crate::MemoryId,
+    ) -> Result<BTreeSet<crate::MemoryId>, OwnerError> {
+        let source = self
+            .history
+            .snapshot()
+            .map_err(|error| OwnerError::Container(error.0))?;
+        crate::history::publication_birth_cohort(&source, member)
+    }
+
+    pub(crate) fn committed_evidence(
+        &self,
+        pass: &crate::InitialDreamPass,
+    ) -> DreamEvidenceReadOutcome {
+        #[cfg(feature = "freshness-performance-trace")]
+        let started = std::time::Instant::now();
+        match self.history.snapshot() {
+            Ok(source) => read_dream_evidence_diagnostic(&source, self.graph, self.dream, pass),
+            Err(error) => DreamEvidenceReadOutcome {
+                result: Err(OwnerError::Container(error.0)),
+                #[cfg(feature = "freshness-performance-trace")]
+                trace: DreamEvidenceTrace {
+                    elapsed_ns: started.elapsed().as_nanos(),
+                    payload_bytes: 0,
+                    object_bytes: 0,
+                    chunks: 0,
+                    mutations: 0,
+                    filtered: 0,
+                },
+            },
+        }
+    }
+
+    pub(crate) fn representatives(
+        &self,
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+        source_id: crate::MemoryId,
+        roots: &BTreeSet<crate::MemoryId>,
+    ) -> Result<std::collections::BTreeMap<crate::MemoryId, crate::MemoryId>, OwnerError> {
+        crate::history::dream_representative::historical_dream_representatives(
+            self.history,
+            archive,
+            memories,
+            self.dream,
+            &self.graph.active_relations(),
+            source_id,
+            roots,
+        )
+    }
+}
 pub(crate) struct CommittedDreamEvidence {
     pub(crate) roots: BTreeSet<MemoryId>,
     pub(crate) duplicate_origin: bool,
@@ -9,6 +93,7 @@ pub(crate) struct CommittedDreamEvidence {
     pub(crate) trace: DreamEvidenceTrace,
 }
 #[cfg(feature = "freshness-performance-trace")]
+#[derive(Clone, Copy)]
 pub(crate) struct DreamEvidenceTrace {
     pub(crate) elapsed_ns: u128,
     pub(crate) payload_bytes: u64,
@@ -17,12 +102,26 @@ pub(crate) struct DreamEvidenceTrace {
     pub(crate) mutations: u64,
     pub(crate) filtered: u64,
 }
+pub(crate) struct DreamEvidenceReadOutcome {
+    pub(crate) result: Result<CommittedDreamEvidence, OwnerError>,
+    #[cfg(feature = "freshness-performance-trace")]
+    pub(crate) trace: DreamEvidenceTrace,
+}
 pub(crate) fn read_dream_evidence(
     source: &HistorySource<'_>,
     graph: &crate::graph_store::GraphStore,
     dream: &crate::freshness_dream_journal::DreamFreshnessJournal,
     pass: &InitialDreamPass,
 ) -> Result<CommittedDreamEvidence, OwnerError> {
+    read_dream_evidence_diagnostic(source, graph, dream, pass).result
+}
+
+fn read_dream_evidence_diagnostic(
+    source: &HistorySource<'_>,
+    graph: &crate::graph_store::GraphStore,
+    dream: &crate::freshness_dream_journal::DreamFreshnessJournal,
+    pass: &InitialDreamPass,
+) -> DreamEvidenceReadOutcome {
     let mut roots = std::collections::BTreeSet::new();
     let mut duplicate_origin = false;
     #[cfg(feature = "freshness-performance-trace")]
@@ -35,7 +134,7 @@ pub(crate) fn read_dream_evidence(
         mut trace_mutations,
         mut trace_filtered,
     ) = (0_u64, 0_u64, 0_u64, 0_u64, 0_u64);
-    {
+    let scan_result = {
         let mut ingest_frame =
             |frame: crate::owner_lifecycle::HistoryFrame| -> Result<(), OwnerError> {
                 let object = frame.object;
@@ -108,10 +207,10 @@ pub(crate) fn read_dream_evidence(
                     Ok(())
                 }
             };
-        let mut cursor = source
-            .cursor()
-            .map_err(|error| OwnerError::Container(error.0))?;
         (|| {
+            let mut cursor = source
+                .cursor()
+                .map_err(|error| OwnerError::Container(error.0))?;
             while let Some(frame) = cursor
                 .next_frame()
                 .map_err(|error| OwnerError::Container(error.0))?
@@ -120,18 +219,25 @@ pub(crate) fn read_dream_evidence(
             }
             Ok::<(), OwnerError>(())
         })()
-    }?;
-    Ok(CommittedDreamEvidence {
+    };
+    #[cfg(feature = "freshness-performance-trace")]
+    let trace = DreamEvidenceTrace {
+        elapsed_ns: trace_started.elapsed().as_nanos(),
+        payload_bytes: trace_payload_bytes,
+        object_bytes: trace_object_bytes,
+        chunks: trace_chunks,
+        mutations: trace_mutations,
+        filtered: trace_filtered,
+    };
+    let result = scan_result.map(|()| CommittedDreamEvidence {
         roots,
         duplicate_origin,
         #[cfg(feature = "freshness-performance-trace")]
-        trace: DreamEvidenceTrace {
-            elapsed_ns: trace_started.elapsed().as_nanos(),
-            payload_bytes: trace_payload_bytes,
-            object_bytes: trace_object_bytes,
-            chunks: trace_chunks,
-            mutations: trace_mutations,
-            filtered: trace_filtered,
-        },
-    })
+        trace,
+    });
+    DreamEvidenceReadOutcome {
+        result,
+        #[cfg(feature = "freshness-performance-trace")]
+        trace,
+    }
 }

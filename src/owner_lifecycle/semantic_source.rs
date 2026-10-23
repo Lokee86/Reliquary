@@ -227,6 +227,33 @@ impl<'a> HistoricalVectorReadAccess<'a> {
     pub(crate) fn profiles(&self) -> Vec<crate::CompatibilityProfile> {
         self.semantic.compatibility_profiles.profiles()
     }
+    pub(crate) fn profile(
+        &self,
+        id: crate::CompatibilityProfileId,
+    ) -> Result<crate::CompatibilityProfile, OwnerError> {
+        self.semantic
+            .compatibility_profiles
+            .get(id)
+            .cloned()
+            .ok_or_else(|| {
+                OwnerError::CompatibilityProfiles(crate::CompatibilityProfileError::MissingProfile)
+            })
+    }
+    pub(crate) fn fragments(&self) -> Vec<crate::Fragment> {
+        self.semantic.archive.fragments()
+    }
+    pub(crate) fn fragment_position(
+        &self,
+        id: crate::FragmentId,
+    ) -> Result<Option<u64>, OwnerError> {
+        fragment_position(self.semantic.archive, id)
+    }
+    pub(crate) fn fragment_sources(
+        &self,
+        id: crate::FragmentId,
+    ) -> Result<Vec<(String, String)>, OwnerError> {
+        fragment_sources(self.semantic.archive, id)
+    }
     pub(crate) fn fragment(
         &self,
         id: crate::FragmentId,
