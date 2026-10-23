@@ -958,6 +958,8 @@ mod phylactery_memory_vectors;
 #[path = "facade/phylactery_packed_vectors.rs"]
 mod phylactery_packed_vectors;
 
+#[path = "facade/cva_project_environment.rs"]
+mod cva_project_environment;
 #[path = "memory/processing_epoch_model.rs"]
 mod processing_epoch_model;
 #[path = "memory/processing_epoch_store.rs"]

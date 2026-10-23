@@ -1,16 +1,18 @@
-use super::lore::{
-    block_on_lore, current_revision, globals, maintain_reserved_ignore, require_lore_repository,
-};
+use super::lore::{block_on_lore, current_revision, globals, maintain_reserved_ignore};
 use crate::{ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef};
 use lore::file::LoreFileStageArgs;
 use lore::interface::{LoreArray, LoreEvent, LoreEventCallback, LoreString};
 use lore::revision::LoreRevisionCommitArgs;
-use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-pub(crate) fn checkpoint_project(project_dir: &Path) -> Result<ProjectRevisionRef, String> {
-    let repository = require_lore_repository(project_dir)?;
-    maintain_reserved_ignore(&repository, project_dir)?;
+pub(crate) fn checkpoint_prepared(
+    scope: &super::ValidatedProjectScope,
+) -> Result<ProjectRevisionRef, String> {
+    let repository = scope.lore_repository()?;
+    let project_dir = scope.project_dir();
+    scope.revalidate()?;
+    maintain_reserved_ignore(scope)?;
+    let _tree = super::upload_paths::validate_checkpoint_tree(scope)?;
     let stage_path = repository.project_path(project_dir)?;
     let staged = Arc::new(Mutex::new(0usize));
     let staged_callback = staged.clone();

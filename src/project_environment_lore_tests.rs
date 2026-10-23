@@ -82,8 +82,13 @@ fn lore_upload_requires_existing_repository_without_replacing_it() {
     let external = temp_dir("missing-repo-source").join("evidence.txt");
     fs::write(&external, b"evidence").unwrap();
 
-    let error =
-        crate::project_environment::prepare_upload(&correlation, &project, &external).unwrap_err();
+    let error = crate::project_environment::ValidatedProjectScope::current(
+        &project,
+        &correlation,
+        std::slice::from_ref(&correlation),
+    )
+    .and_then(|scope| crate::project_environment::prepare_upload(&scope, &external))
+    .unwrap_err();
 
     assert!(error.contains("managed Lore repository is missing"));
     assert!(!project.join(".lore").exists());
@@ -227,4 +232,101 @@ fn project_instance(
             )]),
         )
         .unwrap()
+}
+
+#[test]
+fn lore_same_repository_sibling_is_not_project_authority() {
+    let root = temp_dir("scope-root");
+    let bootstrap = temp_dir("scope-bootstrap").join("root.rel");
+    drop(
+        host()
+            .create_project_environment_rel(&bootstrap, &root, ProjectRepositoryMode::ManagedLore)
+            .unwrap(),
+    );
+    let project = root.join("project");
+    let sibling = root.join("project-other");
+    fs::create_dir_all(&project).unwrap();
+    fs::create_dir_all(&sibling).unwrap();
+    let (host, instance, owner, _) = mounted_project(&project);
+    let source = temp_dir("scope-source").join("proof.txt");
+    fs::write(&source, b"scope proof").unwrap();
+    let file = host
+        .ingest_project_attachment_for(&instance, &owner, &project, &source)
+        .unwrap();
+    let before = fs::read(root.join(".loreignore")).unwrap();
+    for selected in [&sibling, &root] {
+        assert!(
+            host.validate_project_environment_for(&instance, &owner, selected)
+                .is_err()
+        );
+        assert!(
+            host.project_repository_root_for(&instance, &owner, selected)
+                .is_err()
+        );
+        assert!(
+            host.ingest_project_attachment_for(&instance, &owner, selected, &source)
+                .is_err()
+        );
+        assert!(
+            host.resolved_file_bytes_for(&instance, &owner, Some(selected), file.id)
+                .is_err()
+        );
+    }
+    assert_eq!(fs::read(root.join(".loreignore")).unwrap(), before);
+    assert!(!sibling.join("warlock").exists());
+    assert_eq!(
+        host.resolved_file_bytes_for(&instance, &owner, Some(&project), file.id)
+            .unwrap(),
+        b"scope proof"
+    );
+}
+
+#[test]
+fn lore_scope_requires_enrolled_history_and_strict_logical_paths() {
+    let project = temp_dir("logical-scope");
+    let rel = temp_dir("logical-rel").join("project.rel");
+    let cva = host()
+        .create_project_environment_rel(&rel, &project, ProjectRepositoryMode::ManagedLore)
+        .unwrap();
+    let correlation = cva.latest_project_revision_correlation().unwrap();
+    let scope = crate::project_environment::ValidatedProjectScope::current(
+        &project,
+        &correlation,
+        &cva.project_revision_correlations(),
+    )
+    .unwrap();
+    for path in [
+        ".",
+        "../secret",
+        "/secret",
+        "C:/secret",
+        "a\\b",
+        "a/../b",
+        "a//b",
+        "a:b",
+        ".WARLOCK/secret",
+        ".lore/secret",
+        "a./secret",
+    ] {
+        let reference = crate::ProjectFileRef {
+            revision: correlation.project_revision.clone(),
+            path: path.into(),
+            content_hash: None,
+        };
+        assert!(
+            crate::project_environment::read_project_file(&scope, &reference).is_err(),
+            "accepted {path}"
+        );
+    }
+    let mut reference = crate::ProjectFileRef {
+        revision: correlation.project_revision.clone(),
+        path: "sibling/file.txt".into(),
+        content_hash: None,
+    };
+    reference.revision.repository.project_path = "sibling".into();
+    assert!(
+        crate::project_environment::read_project_file(&scope, &reference)
+            .unwrap_err()
+            .contains("not enrolled")
+    );
 }

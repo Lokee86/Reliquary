@@ -1,12 +1,11 @@
 use super::ProjectRepositoryMode;
-use super::git::{maintain_reserved_exclude, prepare_git_repository, require_git_repository};
+use super::git::prepare_git_repository;
 use super::lore::{
-    PreparedLoreRepository, current_revision, initial_checkpoint, maintain_reserved_ignore,
-    prepare_managed_lore, require_lore_repository,
+    PreparedLoreRepository, current_revision, initial_checkpoint, prepare_managed_lore,
 };
 use super::lore_checkpoint;
 use crate::{
-    Cva, ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
+    ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRepositoryRef,
     ProjectRevisionCorrelation, ProjectRevisionRef,
 };
 use std::path::{Path, PathBuf};
@@ -18,16 +17,18 @@ pub(crate) struct PreparedProjectRepository {
 }
 
 impl PreparedProjectRepository {
-    pub(crate) fn correlate(&self, cva: &mut Cva) -> Result<(), String> {
-        cva.correlate_project_revision_with_management(self.revision.clone(), self.management)
-            .map(|_| ())
-            .map_err(|error| error.to_string())
+    pub(crate) fn revision(&self) -> &ProjectRevisionRef {
+        &self.revision
     }
 
-    pub(crate) fn validate(&self, cva: &Cva) -> Result<(), String> {
-        let actual = cva.latest_project_revision_correlation().ok_or_else(|| {
-            "Project REL has no repository correlation after bootstrap".to_string()
-        })?;
+    pub(crate) fn management(&self) -> ProjectRepositoryManagement {
+        self.management
+    }
+
+    pub(crate) fn validate_correlation(
+        &self,
+        actual: &ProjectRevisionCorrelation,
+    ) -> Result<(), String> {
         if actual.project_revision != self.revision
             || actual.repository_management != self.management
         {
@@ -47,6 +48,9 @@ pub(crate) fn prepare_project_repository(
     project_dir: &Path,
     mode: ProjectRepositoryMode,
 ) -> Result<PreparedProjectRepository, String> {
+    let canonical = std::fs::canonicalize(project_dir)
+        .map_err(|error| format!("failed to resolve project folder: {error}"))?;
+    let project_dir = canonical.as_path();
     match mode {
         ProjectRepositoryMode::ManagedLore => {
             prepare_lore(project_dir, ProjectRepositoryManagement::WarlockManaged)
@@ -109,76 +113,63 @@ pub(crate) fn current_revision_for(
     project_dir: &Path,
     correlation: &ProjectRevisionCorrelation,
 ) -> Result<ProjectRevisionRef, String> {
-    let expected = &correlation.project_revision.repository;
-    match expected.kind {
+    let scope = super::ValidatedProjectScope::current(
+        project_dir,
+        correlation,
+        std::slice::from_ref(correlation),
+    )?;
+    let repository = match correlation.project_revision.repository.kind {
         ProjectRepositoryKind::Lore => {
-            let repository = require_lore_repository(project_dir)?;
-            let state = current_revision(&repository)?;
-            if state.repository_id != expected.repository_id {
-                return Err(format!(
-                    "Project repository identity mismatch: REL expects {}, current repository is {}",
-                    expected.repository_id, state.repository_id
-                ));
-            }
-            maintain_reserved_ignore(&repository, project_dir)?;
-            Ok(ProjectRevisionRef {
-                repository: ProjectRepositoryRef {
-                    kind: ProjectRepositoryKind::Lore,
-                    repository_id: state.repository_id,
-                    project_path: repository.project_path(project_dir)?,
-                },
-                revision: state.revision,
-            })
+            let repository = scope.require_lore(correlation)?;
+            let current = current_revision(&repository)?;
+            (
+                ProjectRepositoryKind::Lore,
+                current.repository_id,
+                current.revision,
+            )
         }
         ProjectRepositoryKind::Git => {
-            let repository = require_git_repository(project_dir)?;
-            if repository.repository_id != expected.repository_id {
-                return Err(format!(
-                    "Project repository identity mismatch: REL expects {}, current repository is {}",
-                    expected.repository_id, repository.repository_id
-                ));
-            }
-            maintain_reserved_exclude(&repository)?;
-            Ok(ProjectRevisionRef {
-                repository: ProjectRepositoryRef {
-                    kind: ProjectRepositoryKind::Git,
-                    repository_id: repository.repository_id,
-                    project_path: repository.project_path,
-                },
-                revision: repository.head,
-            })
+            let repository = scope.require_git(correlation)?;
+            (
+                ProjectRepositoryKind::Git,
+                repository.repository_id,
+                repository.head,
+            )
         }
-    }
+    };
+    Ok(ProjectRevisionRef {
+        repository: ProjectRepositoryRef {
+            kind: repository.0,
+            repository_id: repository.1,
+            project_path: scope.project_path().to_string(),
+        },
+        revision: repository.2,
+    })
 }
 
 pub(crate) fn repository_root(
     project_dir: &Path,
     correlation: &ProjectRevisionCorrelation,
 ) -> Result<PathBuf, String> {
-    let expected = &correlation.project_revision.repository;
-    match expected.kind {
-        ProjectRepositoryKind::Lore => {
-            let repository = require_lore_repository(project_dir)?;
-            let current = current_revision(&repository)?;
-            if current.repository_id != expected.repository_id {
-                return Err("Project repository identity does not match the open REL".into());
-            }
-            Ok(repository.root)
-        }
-        ProjectRepositoryKind::Git => {
-            let repository = require_git_repository(project_dir)?;
-            if repository.repository_id != expected.repository_id {
-                return Err("Project repository identity does not match the open REL".into());
-            }
-            Ok(repository.root)
-        }
-    }
+    let scope = super::ValidatedProjectScope::current(
+        project_dir,
+        correlation,
+        std::slice::from_ref(correlation),
+    )?;
+    scope.revalidate_current(correlation)?;
+    Ok(scope.repository_root().to_path_buf())
 }
 
 pub(crate) fn checkpoint_manual_lore(
     project_dir: &Path,
     correlation: &ProjectRevisionCorrelation,
 ) -> Result<ProjectRevisionRef, String> {
+    let scope = super::ValidatedProjectScope::current(
+        project_dir,
+        correlation,
+        std::slice::from_ref(correlation),
+    )?;
+    scope.revalidate_current(correlation)?;
     if correlation.project_revision.repository.kind != ProjectRepositoryKind::Lore
         || correlation.repository_management != ProjectRepositoryManagement::External
     {
@@ -186,9 +177,11 @@ pub(crate) fn checkpoint_manual_lore(
             "explicit Lore checkpoint is available only for manually managed Lore Projects".into(),
         );
     }
-    let revision = lore_checkpoint::checkpoint_project(project_dir)?;
-    if revision.repository.repository_id != correlation.project_revision.repository.repository_id {
-        return Err("Lore repository identity changed during checkpoint".into());
+    let revision = lore_checkpoint::checkpoint_prepared(&scope)?;
+    if revision.repository.repository_id != correlation.project_revision.repository.repository_id
+        || revision.repository.project_path != correlation.project_revision.repository.project_path
+    {
+        return Err("Lore repository identity or project path changed during checkpoint".into());
     }
     Ok(revision)
 }

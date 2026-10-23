@@ -1,19 +1,18 @@
-use super::git::{require_git_repository, validate_reference_repository};
 use super::git_command::git_owned;
 use super::lore_file::sha256;
+use super::scope::ValidatedProjectScope;
 use crate::{ProjectFileRef, ProjectRepositoryKind};
 use std::ffi::OsString;
-use std::path::Path;
 
 pub(crate) fn read_git_project_file(
-    project_dir: &Path,
+    scope: &ValidatedProjectScope,
     reference: &ProjectFileRef,
 ) -> Result<Vec<u8>, String> {
     if reference.revision.repository.kind != ProjectRepositoryKind::Git {
         return Err("Project file is not backed by Git".into());
     }
-    let repository = require_git_repository(project_dir)?;
-    validate_reference_repository(&repository, reference)?;
+    scope.authorize_historical(reference)?;
+    let repository = scope.git_repository()?;
     let object = format!("{}:{}", reference.revision.revision, reference.path);
     let bytes = git_owned(
         &repository.root,

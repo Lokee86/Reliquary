@@ -13,7 +13,7 @@ GROUPS = {
     "agentic_completion": "complete_agentic_memory_delivery",
     "external_index": "update_external_index_for rebuild_external_index_for",
     "external_processing": "process_external_window_for",
-    "published": "prepare_conversation_branch_at_leaf set_rel_metadata_for create_knowledge_memory_for replace_knowledge_memory_for rename_knowledge_community_for mutate_knowledge_relation_for validate_project_environment_for checkpoint_manual_project_for ingest_project_attachment_for set_conversation_title_for put_conversation_compaction_for put_echo_event_for",
+    "published": "prepare_conversation_branch_at_leaf set_rel_metadata_for create_knowledge_memory_for replace_knowledge_memory_for rename_knowledge_community_for mutate_knowledge_relation_for checkpoint_manual_project_for ingest_project_attachment_for set_conversation_title_for put_conversation_compaction_for put_echo_event_for",
     "owner_semantic_mutation": "create_knowledge_memory_for_owner replace_knowledge_memory_for_owner mutate_knowledge_relation_for_owner rename_knowledge_community_for_owner",
     "delegated": "set_rel_metadata create_knowledge_memory refresh_principal_projection_for",
     "ephemeral": "set_rel_processing_enabled_for",
@@ -24,7 +24,7 @@ GROUPS = {
     "private": "set_phylactery_profile quiesce_phy quiesce_phy_for reopen_phy reopen_phy_for unmount_phy mount_phy_path",
     "conversation": "process_conversation_submission_if_next submit_conversation admit_conversation_writer cancel_conversation_submission process_next_conversation_submission set_conversation_policy resume_conversation_submission cancel_conversation_generation start_conversation_generation checkpoint_conversation_generation complete_conversation_generation complete_conversation_generation_with_artifacts record_conversation_generation_tool_event",
     "attachment": "select_managed_conversation_leaf clear_managed_conversation_selection select_rel detach_instance select_managed_conversation attach_conversation_viewer detach_conversation_viewer mark_managed_conversation_resumed attach_authenticated_instance refresh_authenticated_instance with_admission_adapter",
-    "read": "workspace_management live_runtime_adapter conversation_submission_status conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for latest_project_revision_correlation_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories search_visible_archive search_archive_owner conversation_revision_for conversation_branch_id_for_leaf conversation_branch_leaf_for_id conversation_branch_start_node_ids_for conversation_compactions_for conversation_echo_events_for read_memory_provenance_for_owner resolve_knowledge_provenance_for_owner owner_mount_is_path_scoped background_status_for phy_background_status_for background_worker_state_for external_index_status_for search_external_source_for search_external_lexical_for hydrate_external_chunks_for read_external_memory_evidence_for read_memory_source_evidence_for"
+    "read": "workspace_management live_runtime_adapter conversation_submission_status conversation_policy conversation_generation_status new new_with_host state_dir capability_state capability_authority authorize active_rel_id instance_managed_state mounted_rel_ids mounted_phy_ids owner_admission conversation_summaries conversation_summaries_for conversation_transcript conversation_transcript_for search_conversation_branch search_conversation_branch_for echo_events echo_events_for read_echo_source_for files_for_source files_for_source_for project_file_ref project_file_ref_for file_bytes file_bytes_for search_archive search_archive_for read_reliquary_knowledge read_reliquary_knowledge_for knowledge_memory knowledge_memory_for read_memory_provenance read_memory_provenance_for resolve_external_memory_provenance_for rel_metadata rel_metadata_for dependency_closure dependency_closure_for retrieve_reliquary_memories_for background_status viewable_rel_owners conversation_transcript_page conversation_transcript_page_for search_dependency_archive_for search_dependency_archive conversation_summaries_page search_archive_page search_memories_by_text_for search_memories_by_text retrieve_reliquary_memories project_repository_root_for validate_project_environment_for latest_project_revision_correlation_for resolved_file_bytes_for visible_semantic_owners semantic_owner knowledge_memory_for_owner read_knowledge_for_owner entity_stats_for_owner entities_for_owner semantic_graph_relations_for_owner memory_routing_metadata_for_owner phylactery_profile search_visible_memories search_visible_archive search_archive_owner conversation_revision_for conversation_branch_id_for_leaf conversation_branch_leaf_for_id conversation_branch_start_node_ids_for conversation_compactions_for conversation_echo_events_for read_memory_provenance_for_owner resolve_knowledge_provenance_for_owner owner_mount_is_path_scoped background_status_for phy_background_status_for background_worker_state_for external_index_status_for search_external_source_for search_external_lexical_for hydrate_external_chunks_for read_external_memory_evidence_for read_memory_source_evidence_for"
 }
 CLASSIFICATION = {name: group for group, names in GROUPS.items() for name in names.split()}
 # Conservatively recognize state-changing Cva verbs in production gateway/worker
@@ -231,8 +231,19 @@ def check_gateway(source):
             }.get(name, ())
             if not route or not all(step in route_body for step in route):
                 errors.append(f"{name}: missing classified attachment/authority route")
-        elif category == "read" and WRITE.search(body):
-            errors.append(f"{name}: authoritative write in read classification")
+        elif category == "read":
+            if WRITE.search(body):
+                errors.append(f"{name}: authoritative write in read classification")
+            if name == "validate_project_environment_for":
+                required = (
+                    "self.authorize(", "OwnerGrant::ManageProject",
+                    "latest_project_revision_correlation()", "current_revision_for(",
+                    "self.deliver_rel(",
+                )
+                if not all(step in route_body for step in required):
+                    errors.append(f"{name}: missing authorized read validation and post-I/O delivery")
+                if "with_rel_mutation(" in body or "correlate_project_revision_with_management(" in body:
+                    errors.append(f"{name}: read validation cannot rec correlate the Project REL")
         elif category == "delegated":
             expected = {"set_rel_metadata": "set_rel_metadata_for(", "create_knowledge_memory": "create_knowledge_memory_for(", "refresh_principal_projection_for": "commit_principal_projection("}[name]
             if expected not in body:
@@ -349,6 +360,11 @@ def self_test():
     expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.admit_unmounted_path(rel_path); } }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } create_project_rel(rel_path); } }"))
     expect(check_gateway("impl GatewayRuntime { pub fn create_project_environment_rel(&self) { self.lifecycle.lock(); if rel_path.exists() { return Err(()); } self.admit_unmounted_path(rel_path); create_project_rel(rel_path); } }"))
+    validation = "impl GatewayRuntime { pub fn validate_project_environment_for(&self) { let token = self.authorize(instance, owner_id, OwnerGrant::ManageProject)?; let correlation = self.with_rel(|runtime| runtime.cva.latest_project_revision_correlation()); let current = current_revision_for(project_dir, &correlation); self.project_io_completed(); self.deliver_rel(instance, &token, current) } }"
+    expect(not check_gateway(validation))
+    expect(check_gateway(validation.replace("OwnerGrant::ManageProject", "OwnerGrant::ViewRel")))
+    expect(check_gateway(validation.replace("self.deliver_rel(instance, &token, current)", "Ok(current)")))
+    expect(check_gateway(validation.replace("current_revision_for(project_dir, &correlation)", "current_revision_for(project_dir, &correlation); self.with_rel_mutation(|| cva.correlate_project_revision_with_management())")))
     expect(check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) {} }"))
     expect(not check_gateway("impl GatewayRuntime { pub fn set_phylactery_profile(&self) { self.with_phy(|_| {}); } }"))
     expect(check_worker("fn commit() { runtime.cva.publish_memory(); }"))

@@ -363,7 +363,7 @@ fn project_attachment_ingest_is_synced_and_survives_reopen() {
     let project_dir = test_path("ingest-project");
     std::fs::create_dir_all(&project_dir).unwrap();
     let rel_path = test_path("ingest-project.rel");
-    let cva = crate::project_environment::create_project_rel(
+    let cva = crate::cva_project_environment::create_project_rel(
         &rel_path,
         &project_dir,
         crate::ProjectRepositoryMode::ManualLore,
@@ -397,7 +397,16 @@ fn project_attachment_ingest_is_synced_and_survives_reopen() {
     let reopened = Cva::open_project(&rel_path).unwrap();
     assert_eq!(reopened.project_file_ref(file.id), Some(reference.clone()));
     assert_eq!(
-        crate::project_environment::read_project_file(&project_dir, &reference).unwrap(),
+        crate::project_environment::read_project_file(
+            &crate::project_environment::ValidatedProjectScope::current(
+                &project_dir,
+                &reopened.latest_project_revision_correlation().unwrap(),
+                &reopened.project_revision_correlations()
+            )
+            .unwrap(),
+            &reference
+        )
+        .unwrap(),
         bytes
     );
 }

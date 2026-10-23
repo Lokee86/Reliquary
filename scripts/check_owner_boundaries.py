@@ -475,6 +475,14 @@ def main_check(manifest: dict, dag: dict) -> list[str]:
         path_owner[path] = component
         if row.get("classification") == "production":
             module_owner[modules_by_file[path]] = component
+
+    # Project Environment operations that touch a backend must receive the
+    # private validated scope. Keep this check independent of the component
+    # import graph: a well-typed upward import and an ambient path argument are
+    # separate boundary failures.
+    project_contract = manifest.get("project_environment_scope_contract")
+    if project_contract:
+        errors.extend(project_environment_scope_errors(ROOT, project_contract))
     for row in manifest.get("module_components", []):
         module, component = row.get("module"), row.get("component")
         if module not in module_files:
@@ -656,6 +664,102 @@ def main_check(manifest: dict, dag: dict) -> list[str]:
                         f"({source_component} -> {target_component})"
                     )
     return sorted(set(errors))
+
+
+def function_parameters(source: str, name: str) -> str | None:
+    """Return one Rust function's parameter text without parsing its body."""
+    code = masked(source)
+    match = re.search(rf"\bfn\s+{re.escape(name)}\s*\(", code)
+    if not match:
+        return None
+    start = code.find("(", match.start())
+    depth = 0
+    end = None
+    for index in range(start, len(code)):
+        if code[index] == "(":
+            depth += 1
+        elif code[index] == ")":
+            depth -= 1
+            if depth == 0:
+                end = index
+                break
+    if end is None:
+        raise ValueError(f"unclosed parameter list for {name}")
+    return source[start + 1:end]
+
+
+def named_parameter_types(parameters: str) -> dict[str, str]:
+    """Split one Rust signature's parameters and retain each explicit type."""
+    code = masked(parameters)
+    items: list[str] = []
+    start = 0
+    depths = {"(": 0, "[": 0, "{": 0, "<": 0}
+    pairs = {")": "(", "]": "[", "}": "{", ">": "<"}
+    for index, char in enumerate(code):
+        if char in depths:
+            depths[char] += 1
+        elif char in pairs:
+            opening = pairs[char]
+            depths[opening] = max(0, depths[opening] - 1)
+        elif char == "," and not any(depths.values()):
+            items.append(parameters[start:index].strip())
+            start = index + 1
+    items.append(parameters[start:].strip())
+
+    result: dict[str, str] = {}
+    for item in items:
+        if not item:
+            continue
+        view = masked(item)
+        depth = 0
+        colon = None
+        for index, char in enumerate(view):
+            if char in "([{<":
+                depth += 1
+            elif char in ")]}>":
+                depth = max(0, depth - 1)
+            elif char == ":" and depth == 0 and (index + 1 == len(view) or view[index + 1] != ":") and (index == 0 or view[index - 1] != ":"):
+                colon = index
+                break
+        if colon is None:
+            continue
+        name = re.sub(r"^(?:mut\s+)?", "", view[:colon].strip())
+        if re.fullmatch(r"[A-Za-z_]\w*", name):
+            result[name] = item[colon + 1:].strip()
+    return result
+
+
+def project_environment_scope_errors(root: Path, contract: dict) -> list[str]:
+    errors: list[str] = []
+    scope_type = contract.get("scope_type", "ValidatedProjectScope")
+    for operation in contract.get("backend_operations", []):
+        path, name = operation["path"], operation["function"]
+        source_path = root / path
+        if not source_path.is_file():
+            errors.append(f"{path}: required validated-scope operation is missing")
+            continue
+        parameters = function_parameters(source_path.read_text(encoding="utf-8"), name)
+        if parameters is None:
+            errors.append(f"{path}: required function `{name}` is missing")
+            continue
+        typed_parameters = named_parameter_types(parameters)
+        expected_names = operation.get("parameters")
+        if expected_names is not None and set(typed_parameters) != set(expected_names):
+            errors.append(
+                f"{path}: `{name}` parameters must be exactly "
+                + ", ".join(expected_names)
+            )
+        scope_parameter_type = re.sub(r"\s+", "", masked(typed_parameters.get("scope", "")))
+        accepted_scope_type = rf"&(?:'[A-Za-z_]\w*)?(?:mut)?(?:(?:crate|super)::)*{re.escape(scope_type)}"
+        if not re.fullmatch(accepted_scope_type, scope_parameter_type):
+            errors.append(f"{path}: `{name}` must receive `{scope_type}`")
+        forbidden = set(typed_parameters) & set(contract.get("forbidden_ambient_parameters", []))
+        if forbidden:
+            errors.append(
+                f"{path}: `{name}` receives ambient authorization inputs: "
+                + ", ".join(sorted(forbidden))
+            )
+    return errors
 
 
 def fixture_check() -> None:
@@ -881,6 +985,56 @@ def source_import_profile_fixture_check() -> None:
         assert len(uncertain) == 1 and uncertain[0]["reason"] == "wildcard import"
 
 
+def project_environment_scope_fixture_check() -> None:
+    import tempfile
+    temporary_root = ROOT / ".verification-tmp"
+    temporary_root.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="project-scope-ratchet-", dir=temporary_root) as directory:
+        root = Path(directory)
+        (root / "src/project_environment").mkdir(parents=True)
+        contract = {
+            "scope_type": "ValidatedProjectScope",
+            "forbidden_ambient_parameters": ["project_dir", "correlation", "repository_root", "root"],
+            "backend_operations": [{
+                "path": "src/project_environment/git_file.rs",
+                "function": "read_git_project_file",
+                "parameters": ["scope", "reference"],
+            }],
+        }
+        path = root / "src/project_environment/git_file.rs"
+        path.write_text(
+            "fn read_git_project_file(scope: &ValidatedProjectScope, reference: &Ref) {}",
+            encoding="utf-8",
+        )
+        assert not project_environment_scope_errors(root, contract)
+        path.write_text(
+            "fn read_git_project_file(project_dir: &Path, reference: &Ref) {}",
+            encoding="utf-8",
+        )
+        errors = project_environment_scope_errors(root, contract)
+        assert any("must receive `ValidatedProjectScope`" in error for error in errors)
+        assert any("ambient authorization inputs" in error for error in errors)
+        path.write_text(
+            "fn read_git_project_file(scope: &Ref, reference: &ValidatedProjectScope) {}",
+            encoding="utf-8",
+        )
+        assert any("must receive `ValidatedProjectScope`" in error
+                   for error in project_environment_scope_errors(root, contract))
+        path.write_text(
+            "fn read_git_project_file(scope: Option<&ValidatedProjectScope>, reference: &Ref) {}",
+            encoding="utf-8",
+        )
+        assert any("must receive `ValidatedProjectScope`" in error
+                   for error in project_environment_scope_errors(root, contract))
+        path.write_text(
+            "fn read_git_project_file(scope: &ValidatedProjectScope, correlation: &Correlation) {}",
+            encoding="utf-8",
+        )
+        extra_errors = project_environment_scope_errors(root, contract)
+        assert any("ambient authorization inputs" in error for error in extra_errors)
+        assert any("parameters must be exactly" in error for error in extra_errors)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check Phase 2 owner source boundaries.")
     parser.add_argument("--self-test", action="store_true")
@@ -889,6 +1043,7 @@ def main() -> int:
         fixture_check()
         production_path_fixture_check()
         source_import_profile_fixture_check()
+        project_environment_scope_fixture_check()
         print("Owner boundary checker fixtures passed")
         return 0
     errors = main_check(read_json(MANIFEST), read_json(DAG))

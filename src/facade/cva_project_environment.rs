@@ -1,13 +1,14 @@
-use super::{ProjectAdoptionSource, ProjectRepositoryMode, prepare_project_repository};
-use crate::Cva;
+use crate::{Cva, ProjectAdoptionSource, ProjectRepositoryMode, ProjectRevisionRef};
 use std::path::Path;
 
+/// Creates a project REL and publishes the repository association at the
+/// upper owner lifecycle boundary.
 pub(crate) fn create_project_rel(
     rel_path: &Path,
     project_dir: &Path,
     mode: ProjectRepositoryMode,
 ) -> Result<Cva, String> {
-    let repository = prepare_project_repository(project_dir, mode)?;
+    let repository = crate::project_environment::prepare_project_repository(project_dir, mode)?;
     let mut cva = match Cva::create_project(rel_path) {
         Ok(cva) => cva,
         Err(error) => {
@@ -15,11 +16,14 @@ pub(crate) fn create_project_rel(
             return Err(error.to_string());
         }
     };
-    if let Err(error) = repository.correlate(&mut cva) {
+    if let Err(error) = cva.correlate_project_revision_with_management(
+        repository.revision().clone(),
+        repository.management(),
+    ) {
         drop(cva);
         let _ = std::fs::remove_file(rel_path);
         repository.rollback();
-        return Err(error);
+        return Err(error.to_string());
     }
     if let Err(error) = cva.sync() {
         drop(cva);
@@ -27,7 +31,10 @@ pub(crate) fn create_project_rel(
         repository.rollback();
         return Err(error.to_string());
     }
-    repository.validate(&cva)?;
+    let actual = cva
+        .latest_project_revision_correlation()
+        .ok_or_else(|| "Project REL has no repository correlation after bootstrap".to_string())?;
+    repository.validate_correlation(&actual)?;
     Ok(cva)
 }
 
@@ -60,8 +67,14 @@ pub(crate) fn adopt_project_rel(
     project_dir: &Path,
     mode: ProjectRepositoryMode,
 ) -> Result<Cva, String> {
-    let repository = prepare_project_repository(project_dir, mode)?;
-    let mut cva = Cva::open(&source.path).map_err(|error| error.to_string())?;
+    let repository = crate::project_environment::prepare_project_repository(project_dir, mode)?;
+    let mut cva = match Cva::open(&source.path) {
+        Ok(cva) => cva,
+        Err(error) => {
+            repository.rollback();
+            return Err(error.to_string());
+        }
+    };
     if cva.owner_id().as_deref() != Some(source.owner_id.as_str()) {
         repository.rollback();
         return Err("Project adoption source changed durable owner identity".into());
@@ -70,14 +83,30 @@ pub(crate) fn adopt_project_rel(
         repository.rollback();
         return Err("Project adoption source acquired repository correlation".into());
     }
-    if let Err(error) = repository.correlate(&mut cva) {
+    if let Err(error) = cva.correlate_project_revision_with_management(
+        repository.revision().clone(),
+        repository.management(),
+    ) {
         repository.rollback();
-        return Err(error);
+        return Err(error.to_string());
     }
     if let Err(error) = cva.sync() {
         repository.rollback();
         return Err(error.to_string());
     }
-    repository.validate(&cva)?;
+    let actual = cva
+        .latest_project_revision_correlation()
+        .ok_or_else(|| "Project REL has no repository correlation after adoption".to_string())?;
+    repository.validate_correlation(&actual)?;
     Ok(cva)
+}
+
+pub(crate) fn validate_project_environment_cva(
+    cva: &mut Cva,
+    project_dir: &Path,
+) -> Result<ProjectRevisionRef, String> {
+    let correlation = cva
+        .latest_project_revision_correlation()
+        .ok_or_else(|| "Project REL has no repository correlation".to_string())?;
+    crate::project_environment::current_revision_for(project_dir, &correlation)
 }

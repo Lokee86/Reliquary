@@ -26,9 +26,29 @@ pub(crate) fn git_with_index(
 ) -> Result<Vec<u8>, String> {
     let env = [(
         OsString::from("GIT_INDEX_FILE"),
-        index.as_os_str().to_owned(),
+        // Git's Windows environment parser rejects extended-length Win32 prefixes.
+        // Keep the index in the authorized repository, expressed in Git path syntax.
+        git_index_path(index),
     )];
     git_output_os(root, args, input, &env)
+}
+
+fn git_index_path(index: &Path) -> OsString {
+    #[cfg(windows)]
+    {
+        let raw = index.to_string_lossy();
+        let raw = raw.strip_prefix(r"\\?\").unwrap_or(&raw);
+        let path = if let Some(unc) = raw.strip_prefix(r"UNC\") {
+            format!("//{}", unc.replace('\\', "/"))
+        } else {
+            raw.replace('\\', "/")
+        };
+        OsString::from(path)
+    }
+    #[cfg(not(windows))]
+    {
+        index.as_os_str().to_owned()
+    }
 }
 
 pub(crate) fn git_owned(root: &Path, args: &[OsString]) -> Result<Vec<u8>, String> {

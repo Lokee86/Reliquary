@@ -161,6 +161,7 @@
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
 - [dependency-convergence-architecture-refactor-2026-10-21.md](dependency-convergence-architecture-refactor-2026-10-21.md) - Dependency Convergence Architecture Refactor; Phases 0–3 accepted, Phases 4–7 pending.
 - [dependency-convergence-phase0-2026-10-21.md](dependency-convergence-phase0-2026-10-21.md) - Dependency Convergence Phase0 2026 10 21 documentation.
+- [dependency-convergence-phase1-3-closure-audit-2026-10-23.md](dependency-convergence-phase1-3-closure-audit-2026-10-23.md) - Dependency Convergence Phase1 3 Closure Audit 2026 10 23 documentation.
 - [dependency-convergence-phase1-lock-contract-2026-10-21.md](dependency-convergence-phase1-lock-contract-2026-10-21.md) - Dependency Convergence Phase1 Lock Contract 2026 10 21 documentation.
 - [dependency-convergence-phase1-ratchet-2026-10-22.md](dependency-convergence-phase1-ratchet-2026-10-22.md) - Dependency Convergence Phase1 Ratchet 2026 10 22 documentation.
 - [dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md) - Dependency Convergence Phase1 Storage Foundation Spec 2026 10 21 documentation.
@@ -178,6 +179,9 @@
 - [dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) - Dependency Convergence Phase3 History Maintenance Import Spec 2026 10 22 documentation.
 - [dependency-convergence-phase3-phase4-handoff-2026-10-23.md](dependency-convergence-phase3-phase4-handoff-2026-10-23.md) - Dependency Convergence Phase3 Phase4 Handoff 2026 10 23 documentation.
 - [dependency-convergence-phase3-settlement-format-2026-10-23.md](dependency-convergence-phase3-settlement-format-2026-10-23.md) - Dependency Convergence Phase3 Settlement Format 2026 10 23 documentation.
+- [dependency-convergence-phase4-execution-2026-10-23.md](dependency-convergence-phase4-execution-2026-10-23.md) - Dependency Convergence Phase4 Execution 2026 10 23 documentation.
+- [dependency-convergence-phase4-project-environment-spec-2026-10-23.md](dependency-convergence-phase4-project-environment-spec-2026-10-23.md) - Dependency Convergence Phase4 Project Environment Spec 2026 10 23 documentation.
+- [dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md](dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md) - Dependency Convergence Phase5 Runtime Orchestration Spec 2026 10 23 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
@@ -250,6 +254,7 @@
 - [native-import.md](native-import.md) - Native Import documentation.
 - [perception-subsystem-plan.md](perception-subsystem-plan.md) - Perception Subsystem Plan documentation.
 - [publication-envelope-contract-2026-10-20.md](publication-envelope-contract-2026-10-20.md) - Publication Envelope Contract 2026 10 20 documentation.
+- [reliquary-phase3-worktree-audit-2026-10-23.md](reliquary-phase3-worktree-audit-2026-10-23.md) - Reliquary Phase3 Worktree Audit 2026 10 23 documentation.
 - [retained-entity-resolution-contract-2026-10-21.md](retained-entity-resolution-contract-2026-10-21.md) - Retained Entity Resolution Contract 2026 10 21 documentation.
 - [roadmap.md](roadmap.md) - Roadmap documentation.
 - [semantic-import-pruning-history-rewrite-evidence-2026-10-18.md](semantic-import-pruning-history-rewrite-evidence-2026-10-18.md) - Semantic Import Pruning History Rewrite Evidence 2026 10 18 documentation.
@@ -284,3 +289,5 @@
 - [Phase 3 compact settlement format selection](dependency-convergence-phase3-settlement-format-2026-10-23.md)
 
 - [Phase 3 to Phase 4 Project Environment handoff — ready](dependency-convergence-phase3-phase4-handoff-2026-10-23.md)
+
+- [Phase 4 execution evidence](dependency-convergence-phase4-execution-2026-10-23.md)

@@ -266,6 +266,10 @@ Performance hardening's P0/final integrated local release comparison is accepted
 
 Configured decision inheritance is implemented for Entity Resolution and Memory Retrieval. General structured JSON supplies no calibrated choice probabilities; the adapter excludes confidence fields and cannot terminally satisfy Entity's decision threshold. Entity uses its existing generative resolver, and hosted Entity processing still requires its separate `entity_resolution` route. This change does not qualify live-model retrieval quality or change retrieval strategy. Specialized/shared decision APIs retain their existing confidence and error policies.
 
+## Project relocation proof
+
+Project Environment validates backend identity and the selected repository-relative subtree. Moving a whole checkout while preserving that subtree is supported. The current validation caller supplies no independent proof that a different subtree is the same moved project; such selection fails closed rather than silently reassociating a sibling folder. Earlier durably enrolled paths remain valid only for exact historical reads. See [Project Environment](subsystems/project-environment.md).
+
 ## Related docs
 - [Roadmap](roadmap.md)
 - [Architecture](architecture.md)

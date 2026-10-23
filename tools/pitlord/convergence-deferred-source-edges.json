@@ -2,7 +2,7 @@
   "version": 1,
   "status": "source-bounded-existing-debt; not-target-allowlist",
   "source_role_mapping": "production-components.json",
-  "source_role_mapping_sha256": "d6a18949d2e65d9c10e0fee152954b54a2635b3bcd6aeef533537a0a7e3bab34",
+  "source_role_mapping_sha256": "fb5990ae71bc26531b85bbce60ed8d4fb4b92bba06c826e7a42d1a20dc2356d8",
   "input_analysis_sha256": "f4679daef620efb70f4bde89134c06da0d43c79815490858ae3cc172d1973edb",
   "scope": "Exact current source imports participating in observed cycles and not accepted by the target DAG or explicit producer value contracts. This register preserves later-phase debt; it does not permit new dependencies or close the whole target DAG.",
   "policy": [
@@ -12,39 +12,11 @@
     "Analyzer-only calls remain separate uncertainty and are not upgraded to verified source imports."
   ],
   "counts_by_phase": {
-    "4": 2,
+    "4": 0,
     "5": 167,
     "6": 1137
   },
   "edges": [
-    {
-      "id": "846a72d4fccf486252a1",
-      "source_path": "src/project_environment/lifecycle.rs",
-      "source_line": 2,
-      "source_sha256": "501870ab7b380f5b683949fabfd597c27c6c447e83a59b75a51b1b9c433a75fb",
-      "target_path": "src/facade/cva.rs",
-      "target_symbol": "Cva",
-      "consumer": "project-environment",
-      "dependency": "public-consumers",
-      "phase": 4,
-      "finding": "P4",
-      "disposition": "deferred-migration-debt",
-      "reason": "Existing Project Environment lifecycle/repository code consumes Cva; P4.2 removes this upward composition boundary."
-    },
-    {
-      "id": "dfa1ee8e3c1e72b6904a",
-      "source_path": "src/project_environment/repository.rs",
-      "source_line": 8,
-      "source_sha256": "785d62cdadf8f87fc48cd6e78fa91a8b913b379014a3f8c8b736b06868e03637",
-      "target_path": "src/facade/cva.rs",
-      "target_symbol": "Cva",
-      "consumer": "project-environment",
-      "dependency": "public-consumers",
-      "phase": 4,
-      "finding": "P4",
-      "disposition": "deferred-migration-debt",
-      "reason": "Existing Project Environment lifecycle/repository code consumes Cva; P4.2 removes this upward composition boundary."
-    },
     {
       "id": "488dc20bb26309ae8314",
       "source_path": "src/config_security/config.rs",

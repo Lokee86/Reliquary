@@ -1,9 +1,9 @@
 use super::PreparedProjectAttachment;
 use super::lore::{
     PreparedLoreRepository, block_on_lore, current_revision, globals, maintain_reserved_ignore,
-    require_lore_repository,
 };
 use super::lore_file::{repository_relative, sha256};
+use super::scope::ValidatedProjectScope;
 use super::upload_paths::{find_tracked_match, mime_type, upload_destination};
 use crate::{ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef};
 use lore::file::LoreFileStageArgs;
@@ -13,25 +13,11 @@ use std::fs;
 use std::path::Path;
 
 pub(crate) fn prepare_upload(
-    project_dir: &Path,
+    scope: &ValidatedProjectScope,
     source: &Path,
 ) -> Result<PreparedProjectAttachment, String> {
-    prepare_upload_inner(project_dir, source)
-}
-
-pub(crate) fn prepare_manual_upload(
-    project_dir: &Path,
-    source: &Path,
-) -> Result<PreparedProjectAttachment, String> {
-    // Manual repository management excludes routine Warlock checkpoints, but attachment
-    // ingestion is an explicit exception so external files can still acquire exact provenance.
-    prepare_upload_inner(project_dir, source)
-}
-
-fn prepare_upload_inner(
-    project_dir: &Path,
-    source: &Path,
-) -> Result<PreparedProjectAttachment, String> {
+    let project_dir = scope.project_dir();
+    let repository = scope.lore_repository()?;
     if !source.is_file() {
         return Err(format!("attachment is not a file: {}", source.display()));
     }
@@ -43,25 +29,23 @@ fn prepare_upload_inner(
     let bytes = fs::read(source).map_err(|error| format!("failed to read attachment: {error}"))?;
     let byte_length = bytes.len() as u64;
     let content_hash = sha256(&bytes);
-    let repository = require_lore_repository(project_dir)?;
-    maintain_reserved_ignore(&repository, project_dir)?;
+    maintain_reserved_ignore(scope)?;
     let current = current_revision(&repository)?;
 
     let (path, revision) = match find_tracked_match(
         &repository,
-        project_dir,
+        scope,
         byte_length,
         content_hash,
         &current.revision,
     )? {
         Some(path) => (path, current),
         None => {
-            let destination = upload_destination(project_dir, &filename, content_hash)?;
-            if destination != source {
-                fs::write(&destination, &bytes)
-                    .map_err(|error| format!("failed to materialize project upload: {error}"))?;
-            }
-            let path = repository_relative(&repository.root, &destination)?;
+            let mut destination = upload_destination(scope, &filename, content_hash)?;
+            super::upload_paths::materialize(scope, &mut destination, &bytes)?;
+            let path = repository_relative(&repository.root, destination.path())?;
+            scope.revalidate()?;
+            scope.resolve_current_path(&path)?;
             commit_file(&repository, &path, &filename)?;
             (path, current_revision(&repository)?)
         }

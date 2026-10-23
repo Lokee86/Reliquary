@@ -1,26 +1,13 @@
-use super::{PreparedProjectAttachment, git_upload, lore_upload};
-use crate::{ProjectRepositoryKind, ProjectRepositoryManagement, ProjectRevisionCorrelation};
+use super::{PreparedProjectAttachment, git_upload, lore_upload, scope::ValidatedProjectScope};
+use crate::ProjectRepositoryKind;
 use std::path::Path;
-
 pub(crate) fn prepare_upload(
-    correlation: &ProjectRevisionCorrelation,
-    project_dir: &Path,
+    scope: &ValidatedProjectScope,
     source: &Path,
 ) -> Result<PreparedProjectAttachment, String> {
-    match (
-        correlation.project_revision.repository.kind,
-        correlation.repository_management,
-    ) {
-        (ProjectRepositoryKind::Lore, ProjectRepositoryManagement::WarlockManaged) => {
-            lore_upload::prepare_upload(project_dir, source)
-        }
-        (ProjectRepositoryKind::Lore, ProjectRepositoryManagement::External) => {
-            lore_upload::prepare_manual_upload(project_dir, source)
-        }
-        (ProjectRepositoryKind::Git, _) => git_upload::prepare_upload(
-            project_dir,
-            source,
-            &correlation.project_revision.repository,
-        ),
+    scope.revalidate()?;
+    match scope.repository_kind() {
+        ProjectRepositoryKind::Lore => lore_upload::prepare_upload(scope, source),
+        ProjectRepositoryKind::Git => git_upload::prepare_upload(scope, source),
     }
 }

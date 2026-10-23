@@ -35,7 +35,7 @@ fn fixture() -> (
     let project = test_path("project-authorization");
     std::fs::create_dir_all(&project).unwrap();
     let rel_path = test_path("project-authorization.rel");
-    let cva = crate::project_environment::create_project_rel(
+    let cva = crate::cva_project_environment::create_project_rel(
         &rel_path,
         &project,
         crate::ProjectRepositoryMode::ManualLore,

@@ -1,6 +1,6 @@
 # Phase 4 — Project Environment and Repository Boundary Convergence
 
-**Status:** Specified for review; **not implemented**.  
+**Status:** Implemented locally; verification evidence and limitations are recorded in the [execution receipt](dependency-convergence-phase4-execution-2026-10-23.md).
 **Date:** 2026-10-23.  
 **Repository:** Reliquary.  
 **Campaign:** `docs/dependency-convergence-architecture-refactor-2026-10-21.md`, Phase 4.  
@@ -350,4 +350,4 @@ Phase 4 is complete when:
 
 ## Notes
 
-Phase 4 remains **specified, not implemented**. The cleanup of historic Phase 3 worktrees does not satisfy C-01–C-04 or close any Phase 4 execution gate. Existing 39 bounded implementation tasks and seven gates are unchanged.
+Phase 4 was executed locally against this specification. The [execution receipt](dependency-convergence-phase4-execution-2026-10-23.md) records actual source, tests and gate limitations; this specification retains the original 39-task, seven-gate execution design. Historic worktree cleanup remains distinct from source-conformance or implementation acceptance.

@@ -1,0 +1,612 @@
+{
+  "schema": "reliquary.phase4.acceptance.v1",
+  "date": "2026-10-23",
+  "baseline_commit": "4785ad1edbb80a8deeafa90d612e2208af7a7d2b",
+  "scope": "Correction-only project environment convergence",
+  "task_denominator": 39,
+  "gate_denominator": 7,
+  "status": "implemented-locally-verified-with-disclosed-gaps",
+  "source_sha256": {
+    "src/facade/cva_project_environment.rs": "2e8cddb13201ba250e86fe17d04c39e019542d5f11e459c1a5ef5099e04f5d8d",
+    "src/lib.rs": "5266f2d52a80a725b987f39b3bcde5e913fa833449011d030c889f355a38ed18",
+    "src/project_environment.rs": "93c8ea4c15a8a2c5ba44e8172b6df620b1488e68140229738e1868d00b2c822a",
+    "src/project_environment/attachment.rs": "c1c2d1adbb857dd924c34b988059389c7f3ec5c01c0de66d203c8a476da8def1",
+    "src/project_environment/file.rs": "c7054918404e4d86cad95f60c7576b47e34cce4252db4ef051235e33a38d6581",
+    "src/project_environment/git.rs": "be83248f1202fd7e11cf419d3e7693b30bbca10f38422619f0da331be3ebe2d3",
+    "src/project_environment/git_command.rs": "d365d9c42bdf115c08bf681b23ad54282e99ee176b8a4528b701a29b68dbbe69",
+    "src/project_environment/git_file.rs": "cb669cf6b03061c5330d1d5d143bb8af5628698cfe7318783e6a6bb3e0a44e15",
+    "src/project_environment/git_snapshot.rs": "6a0be5308148cd1f63bc73b933b17d7bafd5195056e08064b3690ca2bafcb390",
+    "src/project_environment/git_upload.rs": "c212388a5219bac1380b69d0c8ffd617c310ec8de46a0e2392fd4e6af513e703",
+    "src/project_environment/lore.rs": "62f795a1f313667545ad2a7db6a3d08b91ac9792d7aa30a2b97a0935bdaf3742",
+    "src/project_environment/lore_checkpoint.rs": "3061b6cb3565a69e639f71f6c2dff0042590b2df137cc68178d22c12ad821077",
+    "src/project_environment/lore_file.rs": "a5e758fca6c255b32fc2810fedb34e00026310365a07d3f372808e9610448386",
+    "src/project_environment/lore_upload.rs": "653068a200beeb5633836d9b5e0b6428d4b8bbe8d9620e4377938c09b505fffa",
+    "src/project_environment/repository.rs": "97d8fadfbb662494ad3596e78a01fbebf4d431eb2b18d1eb6da1e713992c98f3",
+    "src/project_environment/scope.rs": "66c7350f304e82a371944653603a92365aaa57c5f702098a9b13abaa46ff9a82",
+    "src/project_environment/upload_paths.rs": "8640c96024a4cf2b4322da980213715fc086768d442856f2d7aebecd68c4670d",
+    "src/project_environment/write_guard.rs": "6f671dca2c5fa9fb48b4271b68dd443f51c3779a7fc3ac3253021727f4855b94",
+    "src/project_environment/write_guard_unix.rs": "9db65e40e4e78364ad6e26b93aa0d2876ac8505c3b97b2fbee0a84adcb595bef",
+    "src/project_environment/write_guard_windows.rs": "805cfad5a540d50a541a77d450ffc4d23e08657c0079412751b68b4c8bc5bc9b",
+    "src/project_environment_git_tests.rs": "9e41c8a95305c8a3baa1144e43605cc09758447636fadb7088bc85a49548413f",
+    "src/project_environment_lore_tests.rs": "f1d02a30b9686f127b683c6e17a5d3f3b9c000c97d92439e0f38b5383e503e07",
+    "src/project_environment_tests.rs": "d0ee5da495372b51ef99862e821f9815ac0d7d9e3e05513aab5165d770fb87f5",
+    "src/runtime_inference/runtime_host_gateway_ambient_project.rs": "5fa67a199b4f5b26633a138025b43bb2a392665f0314aab3f3ddde00282349f4",
+    "src/runtime_inference/runtime_host_gateway_ambient_tests.rs": "0dbaaa79f05db81018332550cdd288b9f06b55ac05a636fa30a7c62c42ac8951",
+    "src/runtime_inference/runtime_host_gateway_mutation_events_tests.rs": "86bb95d2c68aaf1339790d1a9990f5a2ca5a59cd1f7d6a58f09de8a520cd2ef6",
+    "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs": "e7ed5b084882412d96be5c993e77e78b2b3c857649c1989ae87698127d16480d",
+    "src/runtime_inference/runtime_host_gateway_project_tests.rs": "89bf1d1588435f6e57bae9381dc04852a0a88dad81a6147f81f1aca781f9e103"
+  },
+  "retired_sources": [
+    "src/project_environment/lifecycle.rs"
+  ],
+  "format_changes": false,
+  "unchanged_owner_source_trees": [
+    "src/archive",
+    "src/container",
+    "src/history",
+    "src/imports",
+    "src/owner_lifecycle"
+  ],
+  "preserved_backend_markers": [
+    "warlock.repositoryId",
+    ".warlock/",
+    "warlock/uploads",
+    "refs/warlock/snapshots"
+  ],
+  "tests": {
+    "cli": {
+      "passed": 32,
+      "failed": 0,
+      "ignored": 0
+    },
+    "library": {
+      "passed": 1999,
+      "failed": 0,
+      "ignored": 5,
+      "elapsed_seconds": 669.22
+    },
+    "integration": {
+      "passed": 163,
+      "failed": 0,
+      "ignored": 1,
+      "targets": 25
+    },
+    "project_environment": {
+      "passed": 25,
+      "failed": 0,
+      "ignored": 0,
+      "filter": "project_environment",
+      "log": ".test-tmp/phase4-project-final.log"
+    },
+    "initial_full_attempt": {
+      "passed": 1991,
+      "failed": 6,
+      "ignored": 5,
+      "not_completed": 2,
+      "disposition": "interrupted after six known Git snapshot failures; all 25 project cases pass after corrected index placement"
+    },
+    "full": {
+      "passed": 2162,
+      "failed": 0,
+      "ignored": 6,
+      "exit_code": 0,
+      "log": ".test-tmp/phase4-full-final.log",
+      "command": "cargo test --locked -j 1 --config profile.test.package.reliquary-memory.debug=0",
+      "incremental": false
+    },
+    "ignored_cases": [
+      [
+        "cva_historical_import::tests::historical_retained_corpus::historical_retained_corpus_native_acceptance",
+        "requires a hash-pinned retained REL; run scripts/freshness_historical_corpus.py"
+      ],
+      [
+        "cva_semantic_source::tests::semantic_release_measurement",
+        "release measurement; run explicitly with --ignored --nocapture"
+      ],
+      [
+        "runtime_host::gateway::agentic_memory::graph::frozen_fixture_tests::agentic_frozen_fixture_acceptance",
+        "requires worktree-local copies of authoritative REL fixtures; use scripts/agentic_memory_fixture_acceptance.py"
+      ],
+      [
+        "runtime_host::gateway::tests::p6_harness::crash::p6_crash_child",
+        "runner invokes this in an isolated subprocess that must abort"
+      ],
+      [
+        "runtime_host::gateway::tests::p6_harness::crash::p6_crash_recover",
+        "runner reopens physical files left by the abrupt crash child"
+      ],
+      [
+        "promoted_canonical_corpus_reopens_after_runtime_retirement",
+        "explicit local promoted six-file corpus admission"
+      ]
+    ]
+  },
+  "documentation": {
+    "policy": "passed",
+    "changed_from": "passed",
+    "archivist": "passed",
+    "pitlord_docs": "unavailable: neither installed nor repository-built binary implements docs"
+  },
+  "architecture": {
+    "owner_guard": "passed",
+    "history_guard": "passed",
+    "physical_guard": "passed",
+    "multiplexing_guard": "96 fixtures / 166 APIs passed",
+    "target_dag": "34 components / 163 edges and negative fixtures passed",
+    "source_graph": {
+      "status": "passed bounded refreshed source architecture and convergence guards",
+      "snapshot": "sha256:7fc9afe72d7cd05c7beac8193e59c6342348b3c8d9458b293f86d1a4db10dab7",
+      "base_rules": 25,
+      "base_source_nodes": 105932,
+      "base_relationships": 9196,
+      "convergence_rules": 21,
+      "convergence_source_nodes": 91516,
+      "convergence_relationships": 245202,
+      "classified_findings": 4626,
+      "new_or_stale_debt": 0,
+      "log": ".test-tmp/phase4-architecture-accepted.log",
+      "full_symbol_component_proof": false
+    },
+    "ledger_update": {
+      "snapshot": "sha256:7fc9afe72d7cd05c7beac8193e59c6342348b3c8d9458b293f86d1a4db10dab7",
+      "before_count": 4620,
+      "after_count": 4626,
+      "before_sha256": {
+        "convergence-baseline.json": "f7cedcd8afba7bba09e10685c49dfbd09585ce0bf4121f5ca4a759d0d4c11fd6",
+        "convergence-debt.json": "da608835a25dcc923885069480c98bf765d4fcf02b4b4a4e1304bd87f722f36e"
+      },
+      "after_sha256": {
+        "convergence-baseline.json": "099ccc1a249991e47a58bf1a4c7698979b7321f9972adc8a126fe9666191a828",
+        "convergence-debt.json": "6c5250143c490fff928c93d191fb5bf7f47e7f573e24f6f4e4391f8645407204"
+      },
+      "retired_source_confirmed": [
+        {
+          "fingerprint": "sha256:60d71b4b0819b53cad8d169c02ea086721d5148eaf81d78f3487c95152a4b7e6",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "facade",
+          "categories": [
+            "construction/init"
+          ],
+          "phase": 4,
+          "source": "src/project_environment/lifecycle.rs",
+          "source_name": "adopt_project_rel",
+          "target": "src/facade/cva_lifecycle.rs",
+          "target_name": "open",
+          "relation": "calls",
+          "disposition": "Keep as a Phase 4 boundary debt: repository preparation and rollback should use a narrow project-correlation owner contract.",
+          "review_note": "src/project_environment/lifecycle.rs coordinates repository bootstrap/adoption and the captured Cva operation open is used to establish or validate project correlation.",
+          "evidence_status": "source-confirmed"
+        },
+        {
+          "fingerprint": "sha256:737c623f24912047e8a54ee36403aac6cc4cc658dfdf7bc004de4cff594b8608",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "facade",
+          "categories": [
+            "read dependency"
+          ],
+          "phase": 4,
+          "source": "src/project_environment/repository.rs",
+          "source_name": "validate",
+          "target": "src/facade/cva.rs",
+          "target_name": "latest_project_revision_correlation",
+          "relation": "calls",
+          "disposition": "Keep as a Phase 4 boundary debt: repository preparation and rollback should use a narrow project-correlation owner contract.",
+          "review_note": "src/project_environment/repository.rs coordinates repository bootstrap/adoption and the captured Cva operation latest_project_revision_correlation is used to establish or validate project correlation.",
+          "evidence_status": "source-confirmed"
+        },
+        {
+          "fingerprint": "sha256:843be50bc069623885f19f1ffe2d548e8d556f2767df7abc694ec8df0ba2d519",
+          "reviewed": true,
+          "source_area": "runtime-inference",
+          "target_area": "facade",
+          "categories": [
+            "mutation dependency"
+          ],
+          "phase": 4,
+          "source": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "source_name": "validate_project_environment_cva",
+          "target": "src/facade/cva.rs",
+          "target_name": "correlate_project_revision_with_management",
+          "relation": "calls",
+          "disposition": "Gateway/Instance retains authorization, sequencing, mount/worker lifecycle and delivery. Replace Cva/Phylactery reach-through with owner execution/read/mutation contracts below runtime; preserve exact leases, receipts, watermarks and repository correlations. Retire obsolete RuntimeHost/facade forwarding after migration.",
+          "evidence_status": "source-confirmed",
+          "review_note": "Source review: Gateway mount opens Cva/Phylactery; conversation/recovery/generation reads Archive/stream owner state and syncs publication; mutation_events takes owner snapshots; owner_publication verifies Memory revision receipts; PHY worker locks owner state; reconciliation opens/compares/promotes explicit copies. Current aggregate access is real runtime-to-facade coupling, not independent RuntimeHost ownership."
+        },
+        {
+          "fingerprint": "sha256:8bdc403a03f100083d7a410f89623491c50dc2ecea140d218bb01c78dd8f871f",
+          "reviewed": true,
+          "source_area": "runtime-inference",
+          "target_area": "facade",
+          "categories": [
+            "read dependency"
+          ],
+          "phase": 4,
+          "source": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "source_name": "validate_project_environment_cva",
+          "target": "src/facade/cva.rs",
+          "target_name": "latest_project_revision_correlation",
+          "relation": "calls",
+          "disposition": "Gateway/Instance retains authorization, sequencing, mount/worker lifecycle and delivery. Replace Cva/Phylactery reach-through with owner execution/read/mutation contracts below runtime; preserve exact leases, receipts, watermarks and repository correlations. Retire obsolete RuntimeHost/facade forwarding after migration.",
+          "evidence_status": "source-confirmed",
+          "review_note": "Source review: Gateway mount opens Cva/Phylactery; conversation/recovery/generation reads Archive/stream owner state and syncs publication; mutation_events takes owner snapshots; owner_publication verifies Memory revision receipts; PHY worker locks owner state; reconciliation opens/compares/promotes explicit copies. Current aggregate access is real runtime-to-facade coupling, not independent RuntimeHost ownership."
+        },
+        {
+          "fingerprint": "sha256:928104c7fedcc7cad572cb6a25abf2c824d4a5fa3a03b57b85df15fccf666938",
+          "reviewed": true,
+          "source_area": "runtime-inference",
+          "target_area": "facade",
+          "categories": [
+            "mutation dependency"
+          ],
+          "phase": 4,
+          "source": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "source_name": "validate_project_environment_cva",
+          "target": "src/facade/cva.rs",
+          "target_name": "sync",
+          "relation": "calls",
+          "disposition": "Gateway/Instance retains authorization, sequencing, mount/worker lifecycle and delivery. Replace Cva/Phylactery reach-through with owner execution/read/mutation contracts below runtime; preserve exact leases, receipts, watermarks and repository correlations. Retire obsolete RuntimeHost/facade forwarding after migration.",
+          "evidence_status": "source-confirmed",
+          "review_note": "Source review: Gateway mount opens Cva/Phylactery; conversation/recovery/generation reads Archive/stream owner state and syncs publication; mutation_events takes owner snapshots; owner_publication verifies Memory revision receipts; PHY worker locks owner state; reconciliation opens/compares/promotes explicit copies. Current aggregate access is real runtime-to-facade coupling, not independent RuntimeHost ownership."
+        },
+        {
+          "fingerprint": "sha256:c0e7ff0036e32f2509b6b6d89522bb37e28035c96737907007698da1d5e4fdaf",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "facade",
+          "categories": [
+            "mutation dependency"
+          ],
+          "phase": 4,
+          "source": "src/project_environment/repository.rs",
+          "source_name": "correlate",
+          "target": "src/facade/cva.rs",
+          "target_name": "correlate_project_revision_with_management",
+          "relation": "calls",
+          "disposition": "Keep as a Phase 4 boundary debt: repository preparation and rollback should use a narrow project-correlation owner contract.",
+          "review_note": "src/project_environment/repository.rs coordinates repository bootstrap/adoption and the captured Cva operation correlate_project_revision_with_management is used to establish or validate project correlation.",
+          "evidence_status": "source-confirmed"
+        },
+        {
+          "fingerprint": "sha256:e785cfb9691d62cdd21f39e466700aab9de38c43ff2f04f25151e9a195fce795",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "facade",
+          "categories": [
+            "construction/init"
+          ],
+          "phase": 4,
+          "source": "src/project_environment/lifecycle.rs",
+          "source_name": "create_project_rel",
+          "target": "src/facade/cva_lifecycle.rs",
+          "target_name": "create_project",
+          "relation": "calls",
+          "disposition": "Keep as a Phase 4 boundary debt: repository preparation and rollback should use a narrow project-correlation owner contract.",
+          "review_note": "src/project_environment/lifecycle.rs coordinates repository bootstrap/adoption and the captured Cva operation create_project is used to establish or validate project correlation.",
+          "evidence_status": "source-confirmed"
+        },
+        {
+          "fingerprint": "sha256:f0ad251be94c40e1ed961979ae79d5e51ea6dba396b704391d6792865f3fccec",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "facade",
+          "categories": [
+            "construction/init"
+          ],
+          "phase": 4,
+          "source": "src/project_environment/lifecycle.rs",
+          "source_name": "inspect_project_adoption_source",
+          "target": "src/facade/cva_lifecycle.rs",
+          "target_name": "open_read_only",
+          "relation": "calls",
+          "disposition": "Keep as a Phase 4 boundary debt: repository preparation and rollback should use a narrow project-correlation owner contract.",
+          "review_note": "Source reviewed in current Rust tree: src/project_environment/lifecycle.rs::inspect_project_adoption_source now reaches src/facade/cva_lifecycle.rs::open_read_only; this is the existing reviewed responsibility relocated/renamed during Phase 1, not a newly accepted owner edge. Existing phase/disposition retained.",
+          "evidence_status": "source-confirmed"
+        }
+      ],
+      "added_reviewed": [
+        {
+          "fingerprint": "sha256:13cd6484495a6972afc81a0ad12902e64fc93fdcece78e077cad72d648bee59d",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_git_tests.rs",
+          "source_name": "enrolled_historical_subtree_remains_readable_and_unenrolled_or_malformed_refs_fail",
+          "target": "src/runtime_inference/runtime_host_gateway.rs",
+          "target_name": "mount_rel",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:2678cf41f6b95a29e5d6092bc3a6e3c454a3b8813373f1576270675949d38503",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_lore_tests.rs",
+          "source_name": "lore_same_repository_sibling_is_not_project_authority",
+          "target": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "target_name": "create_project_environment_rel",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:28bd256ed9db2f54f1c6ee1246c7933b12ebc4113fe7816c5d2e2bf2fb606573",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_git_tests.rs",
+          "source_name": "same_repository_sibling_is_rejected_for_root_validation_upload_and_read",
+          "target": "src/runtime_inference/runtime_host_gateway_ambient_project.rs",
+          "target_name": "ingest_project_attachment_for",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:44629deed947c425fd51b4c4cead948206cfa65ba98bf2abf651b4335720a4a4",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_tests.rs",
+          "source_name": "project_upload_rejects_junction_escape_for_both_backends",
+          "target": "src/runtime_inference/runtime_host_gateway.rs",
+          "target_name": "mount_rel",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:54a59991de310db19f27e7ddb5691d59cd05e06216d17c860c3d2a465698ce17",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_git_tests.rs",
+          "source_name": "enrolled_historical_subtree_remains_readable_and_unenrolled_or_malformed_refs_fail",
+          "target": "src/runtime_inference/interaction_runtime.rs",
+          "target_name": "new",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:66ed2e84c96c38466fa51008c90068b0541076096ee160bbe1c678d46f84767e",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_git_tests.rs",
+          "source_name": "enrolled_historical_subtree_remains_readable_and_unenrolled_or_malformed_refs_fail",
+          "target": "src/runtime_inference/runtime_host_gateway.rs",
+          "target_name": "attach_instance",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:67e6838c764ab252e6aaf7efa4d75b0b700ec3ce30995e4c7cd6ef124b44e11e",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_git_tests.rs",
+          "source_name": "enrolled_historical_subtree_remains_readable_and_unenrolled_or_malformed_refs_fail",
+          "target": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "target_name": "create_project_environment_rel",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:8f3bc9a28aa2c1b4c00f981463f449d2bf03dfbd8c3fc5901460aff9cf0c955a",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_git_tests.rs",
+          "source_name": "whole_checkout_move_preserves_enrolled_project_history",
+          "target": "src/runtime_inference/runtime_host_gateway_ambient_project.rs",
+          "target_name": "ingest_project_attachment_for",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:b28df91fe2d8e7e4f2b9f00e112ee4e027109ee66ea25e78c863d1c679e2bc61",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_tests.rs",
+          "source_name": "project_upload_rejects_junction_escape_for_both_backends",
+          "target": "src/runtime_inference/interaction_runtime.rs",
+          "target_name": "new",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:b549177bcf447f642a28cd7ee9547410ec1ddce889ae1c8239142ab337d51aec",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_tests.rs",
+          "source_name": "project_write_guard_pins_parent_against_replacement",
+          "target": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "target_name": "create_project_environment_rel",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:c6a5b048ac6175fe59692b2f9724a78caedfe5de7bd8b8815d6cf2c3959b2bd7",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_tests.rs",
+          "source_name": "project_upload_rejects_junction_escape_for_both_backends",
+          "target": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "target_name": "create_project_environment_rel",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:ceffce4c8af7565fe6b4875db55c67a4c8f3246679327567b5f297eb8f081366",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_lore_tests.rs",
+          "source_name": "lore_scope_requires_enrolled_history_and_strict_logical_paths",
+          "target": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+          "target_name": "create_project_environment_rel",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        },
+        {
+          "fingerprint": "sha256:ee1af99efe1d85a7183d9cd3fc7665e84adac7e2d4f960fb38ba43a7e9fb0bb1",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "freshness",
+          "categories": [
+            "read dependency"
+          ],
+          "phase": 4,
+          "source": "src/project_environment/upload_paths.rs",
+          "source_name": "validate_checkpoint_tree",
+          "target": "src/freshness/freshness_storage_ordering.rs",
+          "target_name": "visit",
+          "relation": "calls",
+          "disposition": "Retain this exact analyzer finding as a reviewed false target resolution; no Project Environment to Freshness dependency is authorized.",
+          "evidence_status": "analyzer-artifact",
+          "review_note": "upload_paths.rs:174-200 defines and calls a nested local fn visit(scope, dir, guards), including its recursion. The module imports only Project Environment and std types; it does not import or call Freshness. Arcana resolved the local visit call to the unrelated freshness_storage_ordering.rs method named visit. Source and target identities are pinned by this exact fingerprint."
+        },
+        {
+          "fingerprint": "sha256:f85642d9afbd1cf3075898e7a6d5219a47859f0799db085ce48a7c52950210b8",
+          "reviewed": true,
+          "source_area": "project-environment",
+          "target_area": "runtime-inference",
+          "categories": [
+            "test-only"
+          ],
+          "phase": 4,
+          "source": "src/project_environment_lore_tests.rs",
+          "source_name": "lore_same_repository_sibling_is_not_project_authority",
+          "target": "src/runtime_inference/runtime_host_gateway_ambient_project.rs",
+          "target_name": "ingest_project_attachment_for",
+          "relation": "calls",
+          "disposition": "Retain the exact Phase 4 acceptance-test dependency; it is not a production owner edge.",
+          "evidence_status": "test-only",
+          "review_note": "Reviewed the named acceptance test and runtime_host.rs cfg(test) module registration (lines 120-130). This call exercises public Gateway composition for project scope, history, relocation, or filesystem refusal."
+        }
+      ],
+      "reclassified_supported_shared_type": {
+        "fingerprint": "sha256:e8c5b2b707b3cc74b67a033c41bf685dbc05150afad1418fabf51235c3faf336",
+        "reviewed": true,
+        "source_area": "runtime-inference",
+        "target_area": "facade",
+        "categories": [
+          "shared type"
+        ],
+        "phase": 4,
+        "source": "src/runtime_inference/runtime_host_gateway_project_lifecycle.rs",
+        "source_name": "runtime_host_gateway_project_lifecycle.rs",
+        "target": "src/facade/cva.rs",
+        "target_name": "Cva",
+        "relation": "imports",
+        "disposition": "Retain the supported public Gateway lifecycle signature Cva value type while actual create/open/correlation/publication composition lives in upper cva_project_environment. Do not add lower Project Environment to Cva dependencies.",
+        "evidence_status": "source-confirmed",
+        "review_note": "Phase 4 source review: runtime_host_gateway_project_lifecycle.rs imports Cva solely for existing public create/adopt return values and validation parameter. The three former validate_project_environment_cva correlation/sync calls are gone; functions delegate to the upper lifecycle coordinator. This exact shared-type import remains source-confirmed, not an obsolete repository mutation path."
+      },
+      "frozen_graph_sha256": "0667a63adeecfae60cb2c53de5987f9b147db6e2e934d68169ee6edb628c2cce",
+      "policy_changed": false,
+      "recapture": false
+    }
+  },
+  "platforms": {
+    "windows": "25 focused project cases and full Rust acceptance passed",
+    "unix": "implementation provided; not compiled/tested on Windows-only host"
+  },
+  "compilation": {
+    "locked_check": "passed",
+    "format": "passed",
+    "cli_locked_check": "passed",
+    "cli_format": "passed"
+  },
+  "gates": {
+    "B4": "accepted bounded inventory/prerequisites; original denominator preserved",
+    "A4": "validated scope and Windows refusal coverage passed; Unix implementation unverified",
+    "H4": "exact historical bytes and accepted enrollment passed",
+    "M4": "current/lifecycle/upload/checkpoint and authorization race tests passed",
+    "V4": "no duplicate VCS proven; Archive semantic evidence retained",
+    "D4": "refreshed bounded architecture and exact convergence ratchet passed; full symbol-level proof not claimed",
+    "I4": "locked Rust/CLI and documentation policy/integrity passed; Pitlord docs command unavailable"
+  },
+  "known_gaps": [
+    "Unix guard implementation not compiled/tested on this Windows-only host",
+    "Pitlord documentation ownership command absent in both installed and repository-built binaries",
+    "Inherited full symbol-level 34-component production graph proof remains unverified"
+  ],
+  "concurrent_changes_preserved": [
+    "docs/dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md"
+  ]
+}

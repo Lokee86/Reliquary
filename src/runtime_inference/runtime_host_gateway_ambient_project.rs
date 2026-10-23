@@ -62,18 +62,6 @@ impl GatewayRuntime {
             .map_err(operation)?;
         #[cfg(test)]
         self.project_io_completed();
-        if current.repository.project_path != correlation.project_revision.repository.project_path {
-            self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
-                runtime
-                    .cva
-                    .correlate_project_revision_with_management(
-                        current.clone(),
-                        correlation.repository_management,
-                    )
-                    .map_err(operation)?;
-                Ok(((), false, vec![]))
-            })?;
-        }
         self.deliver_rel(instance, &token, current)
     }
 
@@ -97,6 +85,11 @@ impl GatewayRuntime {
         #[cfg(test)]
         self.project_io_completed();
         self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
+            if runtime.cva.latest_project_revision_correlation().as_ref() != Some(&correlation) {
+                return Err(operation(
+                    "Project association changed during repository I/O",
+                ));
+            }
             runtime
                 .cva
                 .correlate_project_revision_with_management(
@@ -123,13 +116,23 @@ impl GatewayRuntime {
                 .latest_project_revision_correlation()
                 .ok_or_else(|| operation("Project REL has no repository correlation"))
         })?;
+        let scope = crate::project_environment::ValidatedProjectScope::current(
+            project_dir,
+            &correlation,
+            std::slice::from_ref(&correlation),
+        )
+        .map_err(operation)?;
         // Read/hash the attachment outside the owner lock.
         let prepared =
-            crate::project_environment::prepare_upload(&correlation, project_dir, source)
-                .map_err(operation)?;
+            crate::project_environment::prepare_upload(&scope, source).map_err(operation)?;
         #[cfg(test)]
         self.project_io_completed();
         let file = self.with_rel_mutation(&token, RelMutationFamily::Project, |runtime| {
+            if runtime.cva.latest_project_revision_correlation().as_ref() != Some(&correlation) {
+                return Err(operation(
+                    "Project association changed during repository I/O",
+                ));
+            }
             runtime
                 .cva
                 .correlate_project_revision_with_management(
@@ -160,13 +163,27 @@ impl GatewayRuntime {
         file_id: crate::FileId,
     ) -> Result<Vec<u8>, ReliquaryRuntimeHostError> {
         let token = self.explicit_rel_token(instance, owner_id)?;
-        let reference =
-            self.with_rel(&token, |runtime| Ok(runtime.cva.project_file_ref(file_id)))?;
+        // Capture the owning Archive binding and its independently accepted history together.
+        let (reference, current, history) = self.with_rel(&token, |runtime| {
+            Ok((
+                runtime.cva.project_file_ref(file_id),
+                runtime.cva.latest_project_revision_correlation(),
+                runtime.cva.project_revision_correlations(),
+            ))
+        })?;
         let bytes = match reference {
             Some(reference) => {
                 let project_dir = project_dir
                     .ok_or_else(|| operation("Project file has no local repository association"))?;
-                let bytes = crate::project_environment::read_project_file(project_dir, &reference)
+                let current = current
+                    .ok_or_else(|| operation("Project REL has no repository correlation"))?;
+                let scope = crate::project_environment::ValidatedProjectScope::current(
+                    project_dir,
+                    &current,
+                    &history,
+                )
+                .map_err(operation)?;
+                let bytes = crate::project_environment::read_project_file(&scope, &reference)
                     .map_err(operation)?;
                 #[cfg(test)]
                 self.project_io_completed();

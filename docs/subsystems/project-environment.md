@@ -8,7 +8,7 @@ Describe current project repository/file ownership and the Git/Lore integration 
 
 ## Overview
 
-Project Environment resolves project repository roots, revision identity, file references, upload materialization, project creation/adoption, and repository-specific checkpoint behavior. Project VCS history remains owned by the selected repository backend rather than being recreated inside REL semantic history.
+Project Environment resolves project repository roots, revision identity, file references, upload materialization and repository-specific checkpoint behavior through one private `ValidatedProjectScope`. Upper lifecycle composition creates/opens RELs and publishes initial correlations; Project Environment returns repository preparation facts and rollback capability. Project VCS history remains owned by the selected repository backend rather than being recreated inside REL semantic history.
 
 ## Repository modes
 
@@ -24,13 +24,17 @@ The mode derives from durable project revision correlation and repository-manage
 
 `ProjectFileRef` identifies project content through repository/revision semantics rather than unstable ambient paths. Reads and uploaded attachments resolve through the project repository boundary.
 
-Upload preparation validates/materializes the host input before the resulting file reference participates in semantic operations.
+The scope binds the selected canonical local mount to the independently accepted backend kind, repository ID and current repository-relative project subtree. Historical reads additionally require the referenced subtree to occur in that REL's accepted correlation history. File paths use strict repository-relative components, exclude reserved state and cannot escape their accepted subtree. Historical files can be absent from the working tree.
+
+Upload preparation validates the current scope before backend mutation, excludes sibling dedupe candidates, and materializes only inside the selected project. Gateway captures the owning binding/history under the owner lock, performs repository I/O outside it, and reauthorizes delivery/publication. Repository proof and mounted `ViewRel`/`ManageProject` grants are independent checks.
 
 ## Creation and adoption
 
 Project creation establishes the selected repository mode and the REL/project correlation. Adoption validates an existing project source before attaching it to Reliquary.
 
-Repository discovery must not accidentally treat the enclosing Reliquary development repository as the project being adopted.
+The unassociated creation/adoption exception uses the explicitly selected folder and existing lifecycle admission; it is not available for an already associated REL. Git bootstrap preserves HEAD and index. Lore initialization and explicit manual checkpoints retain existing policy.
+
+Whole-checkout moves work when durable identity and the relative selected subtree stay unchanged. The existing caller contract cannot distinguish a changed subtree from a sibling selection, so validation refuses that change. Previously enrolled paths remain historical read authority only. A future caller must supply independent owner/mount relocation evidence before relative-subtree reassociation can be supported.
 
 ## VCS authority
 
@@ -50,6 +54,8 @@ Reliquary may retain exact project revision/file references, but it must not gro
 
 - `src/project_environment.rs`
 - `src/project_environment/**`
+- `src/facade/cva_project_environment.rs`
+- `src/runtime_inference/runtime_host_gateway_ambient_project.rs`
 - `src/project_environment_*_tests.rs`
 
 ## Related docs
@@ -62,4 +68,4 @@ Reliquary may retain exact project revision/file references, but it must not gro
 
 ## Notes
 
-Future simplification may move more project-history responsibilities to Lore/Git, but current project/revision/file resolution behavior remains owned here.
+Archive project correlations, exact file bindings and ordinary embedded files remain semantic history. No duplicate repository tree/ancestry implementation was identified for deletion. Stored PRJCOR02/PRJFILE1 bytes and durable Warlock-named backend markers are unchanged.

@@ -47,6 +47,7 @@ impl PreparedLoreRepository {
 pub(crate) fn prepare_managed_lore(project_dir: &Path) -> Result<PreparedLoreRepository, String> {
     validate_project_dir(project_dir)?;
     let root = find_lore_root(project_dir).unwrap_or_else(|| project_dir.to_path_buf());
+    super::scope::validate_repository_path(&project_relative_path(&root, project_dir)?)?;
     let created_repository = !root.join(LORE_DIR).is_dir() && !root.join(".urc").is_dir();
     if created_repository && let Err(error) = create_repository(&root, project_dir) {
         let _ = fs::remove_dir_all(root.join(LORE_DIR));
@@ -94,11 +95,28 @@ pub(crate) fn require_lore_repository(
     })
 }
 
-pub(crate) fn maintain_reserved_ignore(
-    repository: &PreparedLoreRepository,
-    project_dir: &Path,
-) -> Result<(), String> {
-    ensure_reserved_ignored(&repository.root, project_dir)
+pub(crate) fn maintain_reserved_ignore(scope: &super::ValidatedProjectScope) -> Result<(), String> {
+    let mut guard = super::WriteGuard::for_lore_ignore(scope)?;
+    let mut current = match guard.read_existing()? {
+        Some(bytes) => {
+            String::from_utf8(bytes).map_err(|_| "Lore ignore file is not UTF-8".to_string())?
+        }
+        None => String::new(),
+    };
+    let pattern = if scope.project_path() == "." {
+        ".warlock/".into()
+    } else {
+        format!("{}/.warlock/", scope.project_path())
+    };
+    if current.lines().any(|line| line.trim() == pattern) {
+        return Ok(());
+    }
+    if !current.is_empty() && !current.ends_with('\n') {
+        current.push('\n');
+    }
+    current.push_str(&pattern);
+    current.push('\n');
+    guard.write_replace(current.as_bytes())
 }
 
 pub(crate) fn initial_checkpoint(

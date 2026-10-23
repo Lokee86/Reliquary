@@ -306,3 +306,80 @@ fn project_instance(
         )
         .unwrap()
 }
+
+#[cfg(windows)]
+#[test]
+fn project_upload_rejects_junction_escape_for_both_backends() {
+    for mode in [
+        ProjectRepositoryMode::Git,
+        ProjectRepositoryMode::ManagedLore,
+    ] {
+        let project = temp_dir("junction-project");
+        if mode == ProjectRepositoryMode::Git {
+            init_git(&project);
+        }
+        let outside = temp_dir("junction-outside");
+        let host = host();
+        let cva = host
+            .create_project_environment_rel(&rel_path("junction-rel"), &project, mode)
+            .unwrap();
+        let owner = cva.owner_id().unwrap();
+        host.mount_rel(crate::InteractionRuntime::new(cva)).unwrap();
+        let instance = project_instance(&host, &owner);
+        let link = project.join("warlock");
+        let status = Command::new("cmd")
+            .args(["/c", "mklink", "/J"])
+            .arg(&link)
+            .arg(&outside)
+            .output()
+            .unwrap();
+        assert!(
+            status.status.success(),
+            "junction setup failed: {:?}",
+            status
+        );
+        let source = temp_dir("junction-source").join("proof.txt");
+        fs::write(&source, b"never outside").unwrap();
+        assert!(
+            host.ingest_project_attachment_for(&instance, &owner, &project, &source)
+                .is_err()
+        );
+        assert!(!outside.join("uploads").exists());
+        assert!(!outside.join("generated").exists());
+        // Remove the junction entry itself; the outside directory remains intact.
+        fs::remove_dir(&link).unwrap();
+        assert!(outside.is_dir());
+    }
+}
+
+#[cfg(windows)]
+#[test]
+fn project_write_guard_pins_parent_against_replacement() {
+    let project = temp_dir("pinned-project");
+    let cva = host()
+        .create_project_environment_rel(
+            &rel_path("pinned-rel"),
+            &project,
+            ProjectRepositoryMode::ManagedLore,
+        )
+        .unwrap();
+    let current = cva.latest_project_revision_correlation().unwrap();
+    let scope = crate::project_environment::ValidatedProjectScope::current(
+        &project,
+        &current,
+        &cva.project_revision_correlations(),
+    )
+    .unwrap();
+    let target = scope.project_dir().join("warlock/uploads/proof.txt");
+    let guard = crate::project_environment::WriteGuard::for_path(&scope, &target).unwrap();
+    assert!(fs::rename(project.join("warlock"), project.join("redirected")).is_err());
+    let mut file = guard.create_new().unwrap();
+    std::io::Write::write_all(&mut file, b"guarded bytes").unwrap();
+    drop(file);
+    drop(guard);
+    fs::rename(project.join("warlock"), project.join("redirected")).unwrap();
+    assert_eq!(
+        fs::read(project.join("redirected/uploads/proof.txt")).unwrap(),
+        b"guarded bytes"
+    );
+}

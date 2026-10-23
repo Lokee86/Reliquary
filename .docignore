@@ -1,0 +1,10 @@
+# Generated verification/build state has no authored documentation targets.
+/target/
+/cli/target/
+/.test-tmp/
+/.verification-tmp/
+/.pytest_tmp/
+/.go-cache/
+/.arcana/
+/.lexicon/
+/.grimoire/

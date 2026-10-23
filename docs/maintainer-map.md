@@ -236,6 +236,10 @@ For workload definitions and matched comparisons, inspect `examples/freshness_pe
 
 For shared decision configuration, route precedence, provider authentication and General adaptation, start with [Configuration](configuration.md), [Architecture](architecture.md#decision-endpoint-inheritance), and [Behavioral contracts](behavioral-contracts.md#decision-inheritance-contracts). Implementation owners are `runtime_inference/model_switchboard*.rs`, `model_auth.rs`, `configured_runtime_decision.rs`, `configured_runtime.rs`, and `general_decision.rs`; CLI commands live in `cli/src/config_args.rs` and `config_cmd.rs`. Verification is the switchboard suite, selector and runtime integration tests, adapter/provider seam tests, Entity engine and retrieval controller suites.
 
+## Project repository authorization
+
+`src/project_environment/scope.rs` owns validated repository/current-subtree and enrolled historical path authority. Backend readers/uploads consume that scope. `src/facade/cva_project_environment.rs` owns REL lifecycle composition; Gateway ambient project operations own mounted authorization and post-I/O publication/delivery. Archive history/file-binding stores retain durable semantic evidence. See [Project Environment](subsystems/project-environment.md) and the [Phase 4 receipt](dependency-convergence-phase4-execution-2026-10-23.md).
+
 ## Related docs
 
 - [Architecture](architecture.md)

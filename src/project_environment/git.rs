@@ -16,6 +16,8 @@ pub(crate) struct PreparedGitRepository {
 
 pub(crate) fn prepare_git_repository(project_dir: &Path) -> Result<PreparedGitRepository, String> {
     let root = discover_root(project_dir)?;
+    let project_path = project_relative_path(&root, project_dir)?;
+    super::scope::validate_repository_path(&project_path)?;
     let head = git_text(&root, &["rev-parse", "--verify", "HEAD^{commit}"])?;
     let repository_id = match local_repository_id(&root)? {
         Some(id) if !id.trim().is_empty() => id,
@@ -32,7 +34,7 @@ pub(crate) fn prepare_git_repository(project_dir: &Path) -> Result<PreparedGitRe
     let repository = PreparedGitRepository {
         root: root.clone(),
         repository_id,
-        project_path: project_relative_path(&root, project_dir)?,
+        project_path,
         head,
     };
     maintain_reserved_exclude(&repository)?;
@@ -56,16 +58,6 @@ pub(crate) fn require_git_repository(project_dir: &Path) -> Result<PreparedGitRe
         project_path,
         head,
     })
-}
-
-pub(crate) fn validate_reference_repository(
-    repository: &PreparedGitRepository,
-    reference: &crate::ProjectFileRef,
-) -> Result<(), String> {
-    if repository.repository_id != reference.revision.repository.repository_id {
-        return Err("Project file repository identity does not match the open Git project".into());
-    }
-    Ok(())
 }
 
 fn discover_root(project_dir: &Path) -> Result<PathBuf, String> {

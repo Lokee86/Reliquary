@@ -1,26 +1,33 @@
 use super::lore::PreparedLoreRepository;
 use super::lore_file::{read_lore_path, repository_relative, sha256};
+use super::scope::ValidatedProjectScope;
+use super::write_guard::WriteGuard;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 pub(crate) fn find_tracked_match(
     repository: &PreparedLoreRepository,
-    project_dir: &Path,
+    scope: &ValidatedProjectScope,
     byte_length: u64,
     content_hash: [u8; 32],
     revision: &str,
 ) -> Result<Option<String>, String> {
+    let project_dir = scope.project_dir();
     let mut files = Vec::new();
     // Search ordinary project content, but keep the reserved project data tree out of
     // the general scan. Tracked uploads are admitted explicitly below; generated
     // artifacts are never attachment-dedupe candidates.
-    collect_candidates(project_dir, &mut files, true)?;
+    collect_candidates(scope, project_dir, &mut files, true)?;
     let uploads = project_dir.join("warlock/uploads");
     if uploads.is_dir() {
-        collect_candidates(&uploads, &mut files, false)?;
+        collect_candidates(scope, &uploads, &mut files, false)?;
     }
     files.sort();
     for file in files {
+        let logical = repository_relative(&repository.root, &file)?;
+        if scope.resolve_current_path(&logical).is_err() {
+            continue;
+        }
         let metadata = match fs::metadata(&file) {
             Ok(metadata) => metadata,
             Err(_) => continue,
@@ -28,8 +35,12 @@ pub(crate) fn find_tracked_match(
         if metadata.len() != byte_length {
             continue;
         }
-        let local = match fs::read(&file) {
-            Ok(bytes) if sha256(&bytes) == content_hash => bytes,
+        let mut guard = match WriteGuard::for_existing_file(scope, &file) {
+            Ok(guard) => guard,
+            Err(_) => continue,
+        };
+        let local = match guard.read_existing()? {
+            Some(bytes) if sha256(&bytes) == content_hash => bytes,
             _ => continue,
         };
         let path = repository_relative(&repository.root, &file)?;
@@ -45,17 +56,23 @@ pub(crate) fn find_tracked_match(
 }
 
 pub(crate) fn upload_destination(
-    project_dir: &Path,
+    scope: &ValidatedProjectScope,
     filename: &str,
     content_hash: [u8; 32],
-) -> Result<PathBuf, String> {
+) -> Result<WriteGuard, String> {
+    scope.revalidate()?;
+    let project_dir = scope.project_dir();
+    let prefix = if scope.project_path() == "." {
+        String::new()
+    } else {
+        format!("{}/", scope.project_path())
+    };
+    scope.resolve_current_path(&format!("{prefix}warlock/uploads/{filename}"))?;
+    scope.resolve_current_path(&format!("{prefix}warlock/generated/check"))?;
     let warlock = project_dir.join("warlock");
     let uploads = warlock.join("uploads");
     let generated = warlock.join("generated");
-    fs::create_dir_all(&uploads)
-        .map_err(|error| format!("failed to create project uploads directory: {error}"))?;
-    fs::create_dir_all(&generated)
-        .map_err(|error| format!("failed to create project generated directory: {error}"))?;
+    let _generated = WriteGuard::for_path(scope, &generated.join("reserved-placeholder"))?;
     let original = Path::new(filename);
     let stem = original
         .file_stem()
@@ -70,14 +87,11 @@ pub(crate) fn upload_destination(
         } else {
             format!("{stem}-{index}")
         };
-        let candidate = uploads.join(name);
-        if !candidate.exists() {
-            return Ok(candidate);
-        }
-        if candidate.is_file()
-            && fs::read(&candidate).is_ok_and(|bytes| sha256(&bytes) == content_hash)
-        {
-            return Ok(candidate);
+        let mut candidate = WriteGuard::for_path(scope, &uploads.join(&name))?;
+        match candidate.read_existing()? {
+            None => return Ok(candidate),
+            Some(bytes) if sha256(&bytes) == content_hash => return Ok(candidate),
+            Some(_) => {}
         }
     }
     unreachable!()
@@ -103,10 +117,12 @@ pub(crate) fn mime_type(filename: &str) -> Option<String> {
 }
 
 fn collect_candidates(
+    scope: &ValidatedProjectScope,
     root: &Path,
     files: &mut Vec<PathBuf>,
     skip_legacy_data_root: bool,
 ) -> Result<(), String> {
+    let _directory = WriteGuard::for_directory(scope, root)?;
     for entry in fs::read_dir(root).map_err(|error| format!("failed to scan project: {error}"))? {
         let entry = entry.map_err(|error| format!("failed to scan project: {error}"))?;
         let path = entry.path();
@@ -114,10 +130,17 @@ fn collect_candidates(
         if entry
             .file_type()
             .map_err(|error| error.to_string())?
+            .is_symlink()
+        {
+            continue;
+        }
+        if entry
+            .file_type()
+            .map_err(|error| error.to_string())?
             .is_dir()
         {
             if !(skip_legacy_data_root && name == "warlock") && !excluded_dir(&name) {
-                collect_candidates(&path, files, false)?;
+                collect_candidates(scope, &path, files, false)?;
             }
         } else if name != ".loreignore" {
             files.push(path);
@@ -143,4 +166,51 @@ fn excluded_dir(name: &str) -> bool {
             | "tmp"
             | "temp"
     )
+}
+
+/// Refuse redirected checkpoint inputs before asking Lore to scan the selected tree.
+pub(crate) fn validate_checkpoint_tree(
+    scope: &ValidatedProjectScope,
+) -> Result<Vec<WriteGuard>, String> {
+    fn visit(
+        scope: &ValidatedProjectScope,
+        dir: &Path,
+        guards: &mut Vec<WriteGuard>,
+    ) -> Result<(), String> {
+        guards.push(WriteGuard::for_directory(scope, dir)?);
+        for entry in fs::read_dir(dir).map_err(|e| e.to_string())? {
+            let entry = entry.map_err(|e| e.to_string())?;
+            let name = entry.file_name().to_string_lossy().to_ascii_lowercase();
+            if matches!(name.as_str(), ".warlock" | ".git" | ".lore" | ".urc") {
+                continue;
+            }
+            let metadata = fs::symlink_metadata(entry.path()).map_err(|e| e.to_string())?;
+            let logical = repository_relative(scope.repository_root(), &entry.path())?;
+            scope.resolve_current_path(&logical)?;
+            if metadata.file_type().is_symlink() {
+                return Err("checkpoint contains a redirected project path".into());
+            }
+            if metadata.is_dir() {
+                visit(scope, &entry.path(), guards)?;
+            } else {
+                guards.push(WriteGuard::for_existing_file(scope, &entry.path())?);
+            }
+        }
+        Ok(())
+    }
+    let mut guards = Vec::new();
+    visit(scope, scope.project_dir(), &mut guards)?;
+    Ok(guards)
+}
+
+/// A new upload never overwrites an existing file or follows a final symlink.
+pub(crate) fn materialize(
+    scope: &ValidatedProjectScope,
+    destination: &mut WriteGuard,
+    bytes: &[u8],
+) -> Result<(), String> {
+    scope.revalidate()?;
+    destination.materialize(bytes)?;
+    scope.revalidate()?;
+    Ok(())
 }

@@ -1,6 +1,5 @@
-use super::lore::{
-    PreparedLoreRepository, block_on_lore, current_revision, globals, require_lore_repository,
-};
+use super::lore::{PreparedLoreRepository, block_on_lore, globals};
+use super::scope::ValidatedProjectScope;
 use crate::ProjectFileRef;
 use lore::file::LoreFileWriteArgs;
 use lore::interface::LoreString;
@@ -10,11 +9,11 @@ use std::path::Path;
 use uuid::Uuid;
 
 pub(crate) fn read_lore_project_file(
-    project_dir: &Path,
+    scope: &ValidatedProjectScope,
     reference: &ProjectFileRef,
 ) -> Result<Vec<u8>, String> {
-    let repository = require_lore_repository(project_dir)?;
-    validate_repository(&repository, project_dir, reference)?;
+    scope.authorize_historical(reference)?;
+    let repository = scope.lore_repository()?;
     let bytes = read_lore_path(&repository, &reference.path, &reference.revision.revision)?;
     if let Some(expected) = reference.content_hash
         && sha256(&bytes) != expected
@@ -29,7 +28,14 @@ pub(crate) fn read_lore_path(
     path: &str,
     revision: &str,
 ) -> Result<Vec<u8>, String> {
-    let output = std::env::temp_dir().join(format!("warlock-lore-read-{}", Uuid::new_v4()));
+    let output = repository
+        .root
+        .join(if repository.root.join(".lore").is_dir() {
+            ".lore"
+        } else {
+            ".urc"
+        })
+        .join(format!("warlock-read-{}", Uuid::new_v4()));
     let historical_path = repository.root.join(path).to_string_lossy().to_string();
     let status = block_on_lore(lore::file::write(
         globals(&repository.root),
@@ -66,16 +72,4 @@ pub(crate) fn repository_relative(root: &Path, path: &Path) -> Result<String, St
 
 pub(crate) fn sha256(bytes: &[u8]) -> [u8; 32] {
     Sha256::digest(bytes).into()
-}
-
-fn validate_repository(
-    repository: &PreparedLoreRepository,
-    _project_dir: &Path,
-    reference: &ProjectFileRef,
-) -> Result<(), String> {
-    let current = current_revision(repository)?;
-    if current.repository_id != reference.revision.repository.repository_id {
-        return Err("Project file repository identity does not match the open project".into());
-    }
-    Ok(())
 }

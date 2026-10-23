@@ -1,8 +1,8 @@
 use super::PreparedProjectAttachment;
-use super::git::require_git_repository;
 use super::git_command::{git_bytes_with_input, git_owned};
 use super::git_snapshot::snapshot_file;
 use super::lore_file::sha256;
+use super::scope::ValidatedProjectScope;
 use super::upload_paths::{mime_type, upload_destination};
 use crate::{ProjectFileRef, ProjectRepositoryKind, ProjectRepositoryRef, ProjectRevisionRef};
 use std::ffi::OsString;
@@ -10,9 +10,8 @@ use std::fs;
 use std::path::Path;
 
 pub(crate) fn prepare_upload(
-    project_dir: &Path,
+    scope: &ValidatedProjectScope,
     source: &Path,
-    expected_repository: &ProjectRepositoryRef,
 ) -> Result<PreparedProjectAttachment, String> {
     if !source.is_file() {
         return Err(format!("attachment is not a file: {}", source.display()));
@@ -23,26 +22,17 @@ pub(crate) fn prepare_upload(
         .ok_or_else(|| "attachment filename is not valid UTF-8".to_string())?
         .to_string();
     let bytes = fs::read(source).map_err(|error| format!("failed to read attachment: {error}"))?;
-    let repository = require_git_repository(project_dir)?;
-    if expected_repository.kind != ProjectRepositoryKind::Git
-        || expected_repository.repository_id != repository.repository_id
-    {
-        return Err("Git repository identity does not match the Project REL association".into());
-    }
+    let repository = scope.git_repository()?;
     let content_hash = sha256(&bytes);
     let byte_length = bytes.len() as u64;
 
-    let (path, revision) = match find_tracked_match(&repository, &bytes)? {
+    let (path, revision) = match find_tracked_match(scope, &repository, &bytes)? {
         Some(path) => (path, repository.head.clone()),
         None => {
-            let destination = upload_destination(project_dir, &filename, content_hash)?;
-            if destination != source {
-                fs::write(&destination, &bytes).map_err(|error| {
-                    format!("failed to materialize Git project upload: {error}")
-                })?;
-            }
-            let path = repository_relative(&repository.root, &destination)?;
-            let revision = snapshot_file(&repository, &path, &bytes)?;
+            let mut destination = upload_destination(scope, &filename, content_hash)?;
+            super::upload_paths::materialize(scope, &mut destination, &bytes)?;
+            let path = repository_relative(&repository.root, destination.path())?;
+            let revision = snapshot_file(scope, &path, &bytes)?;
             (path, revision)
         }
     };
@@ -67,6 +57,7 @@ pub(crate) fn prepare_upload(
 }
 
 fn find_tracked_match(
+    scope: &ValidatedProjectScope,
     repository: &super::git::PreparedGitRepository,
     bytes: &[u8],
 ) -> Result<Option<String>, String> {
@@ -116,8 +107,21 @@ fn find_tracked_match(
         {
             continue;
         }
-        let working = repository.root.join(path);
-        if working.is_file() && fs::read(&working).is_ok_and(|current| current == bytes) {
+        if scope.authorize_file_path(path).is_err() {
+            continue;
+        }
+        let working = match scope.resolve_current_path(path) {
+            Ok(path) => path,
+            Err(_) => continue,
+        };
+        let mut guard = match super::WriteGuard::for_existing_file(scope, &working) {
+            Ok(guard) => guard,
+            Err(_) => continue,
+        };
+        if guard
+            .read_existing()?
+            .is_some_and(|current| current == bytes)
+        {
             return Ok(Some(path.to_string()));
         }
     }

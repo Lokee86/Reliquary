@@ -2047,6 +2047,106 @@
       "path": "src/imports/contract.rs",
       "component": "import",
       "classification": "production"
+    },
+    {
+      "path": "src/project_environment.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/scope.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/attachment.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/file.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_command.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_file.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_snapshot.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/git_upload.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_checkpoint.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_file.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_repository.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_runtime.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/lore_upload.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/repository.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/upload_paths.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/write_guard.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/write_guard_windows.rs",
+      "component": "project-environment",
+      "classification": "production"
+    },
+    {
+      "path": "src/project_environment/write_guard_unix.rs",
+      "component": "project-environment",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -3282,5 +3382,71 @@
       "path": "lodestone_packed::VectorSchema",
       "reason": "Existing packed-vector payload and schema codec values used for exact selected-row emission; no embedding provider or inference."
     }
-  ]
+  ],
+  "project_environment_scope_contract": {
+    "scope_type": "ValidatedProjectScope",
+    "forbidden_ambient_parameters": [
+      "project_dir",
+      "correlation",
+      "repository_root",
+      "root"
+    ],
+    "backend_operations": [
+      {
+        "path": "src/project_environment/file.rs",
+        "function": "read_project_file",
+        "parameters": [
+          "scope",
+          "reference"
+        ]
+      },
+      {
+        "path": "src/project_environment/attachment.rs",
+        "function": "prepare_upload",
+        "parameters": [
+          "scope",
+          "source"
+        ]
+      },
+      {
+        "path": "src/project_environment/git_file.rs",
+        "function": "read_git_project_file",
+        "parameters": [
+          "scope",
+          "reference"
+        ]
+      },
+      {
+        "path": "src/project_environment/lore_file.rs",
+        "function": "read_lore_project_file",
+        "parameters": [
+          "scope",
+          "reference"
+        ]
+      },
+      {
+        "path": "src/project_environment/git_upload.rs",
+        "function": "prepare_upload",
+        "parameters": [
+          "scope",
+          "source"
+        ]
+      },
+      {
+        "path": "src/project_environment/lore_upload.rs",
+        "function": "prepare_upload",
+        "parameters": [
+          "scope",
+          "source"
+        ]
+      },
+      {
+        "path": "src/project_environment/lore_checkpoint.rs",
+        "function": "checkpoint_prepared",
+        "parameters": [
+          "scope"
+        ]
+      }
+    ]
+  }
 }

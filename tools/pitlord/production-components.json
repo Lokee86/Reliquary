@@ -747,7 +747,6 @@
         "src/project_environment/git_file.rs",
         "src/project_environment/git_snapshot.rs",
         "src/project_environment/git_upload.rs",
-        "src/project_environment/lifecycle.rs",
         "src/project_environment/lore.rs",
         "src/project_environment/lore_checkpoint.rs",
         "src/project_environment/lore_file.rs",
@@ -756,7 +755,11 @@
         "src/project_environment/lore_upload.rs",
         "src/project_environment/repository.rs",
         "src/project_environment/upload_paths.rs",
-        "src/project_environment.rs"
+        "src/project_environment.rs",
+        "src/project_environment/scope.rs",
+        "src/project_environment/write_guard.rs",
+        "src/project_environment/write_guard_windows.rs",
+        "src/project_environment/write_guard_unix.rs"
       ],
       "source_status": "mapped"
     },
@@ -1375,7 +1378,8 @@
         "src/runtime_inference/insomnia/processor.rs",
         "src/runtime_inference/insomnia/runtime_step.rs",
         "src/runtime_inference/insomnia/worker.rs",
-        "src/runtime_inference/runtime_vector_step.rs"
+        "src/runtime_inference/runtime_vector_step.rs",
+        "src/facade/cva_project_environment.rs"
       ],
       "source_status": "mapped"
     }
@@ -7398,8 +7402,8 @@
       "reachability": "crate-root",
       "evidence": "Crate root exposes public facade and declares modules spanning components; retained as public-consumers composition node, with root-level imports requiring edge extraction.",
       "certainty": "crate-root-mixed-composition",
-      "source_sha256": "698246b95b408ca1d284d61fc6701369c48fef8b0d56e79b94037ac4f8779724",
-      "compiler_inventory_match": true,
+      "source_sha256": "5266f2d52a80a725b987f39b3bcde5e913fa833449011d030c889f355a38ed18",
+      "compiler_inventory_match": false,
       "compiler_item_count": 662,
       "symbol_spans_sha256": "90d9c063f6957c94ea77914d1bd80f479f6970b8c89f8fd3d62abb6ca00c7da8"
     },
@@ -10558,8 +10562,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "27a25efac50498fc9995917e9bd904fe3b0d69630d19756391bb21f14f0b3aa4",
-      "compiler_inventory_match": true,
+      "source_sha256": "c1c2d1adbb857dd924c34b988059389c7f3ec5c01c0de66d203c8a476da8def1",
+      "compiler_inventory_match": false,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "63dfa747a30fc3834149c9054329786f10404fd2bb1ffd995c8617db8f9f8868"
     },
@@ -10570,8 +10574,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "4b02124ddba6b1cc5ad67b53f6c1cc8f2536a002722485fcc75d623c94aaca37",
-      "compiler_inventory_match": true,
+      "source_sha256": "c7054918404e4d86cad95f60c7576b47e34cce4252db4ef051235e33a38d6581",
+      "compiler_inventory_match": false,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "71ffed9ff051de6beb489949b3ff5d768b1c9c30e3b2903d9edfda3a7e5efa0b"
     },
@@ -10582,8 +10586,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "be2423f8b49d0a8a41ed1ae51e3562c347f8ee23e3fb094dc0eb16fefb6fc42c",
-      "compiler_inventory_match": true,
+      "source_sha256": "be83248f1202fd7e11cf419d3e7693b30bbca10f38422619f0da331be3ebe2d3",
+      "compiler_inventory_match": false,
       "compiler_item_count": 19,
       "symbol_spans_sha256": "0274c0c3531e91445cf08f5a102f80934a487a87c82cdc2a6a973ea15c48a4d3"
     },
@@ -10594,8 +10598,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "db7b417a4dfa576cf3e2d205a7f73aec4627fede74483030fef75fddd9f43d0b",
-      "compiler_inventory_match": true,
+      "source_sha256": "d365d9c42bdf115c08bf681b23ad54282e99ee176b8a4528b701a29b68dbbe69",
+      "compiler_inventory_match": false,
       "compiler_item_count": 9,
       "symbol_spans_sha256": "59aa1a4d724579e45beffe17d49676942a51265bcb42d8ae012ebd6f585c0528"
     },
@@ -10606,8 +10610,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "f77a6d53b8142f2b9fabd84fb081e51ca5d3d789012731c2c42654adeb3bcba6",
-      "compiler_inventory_match": true,
+      "source_sha256": "cb669cf6b03061c5330d1d5d143bb8af5628698cfe7318783e6a6bb3e0a44e15",
+      "compiler_inventory_match": false,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "c1eb28fb77fe3a4b3ea61184859fb55ccbeef4b340e44f67590a0fe8c1e3dcb9"
     },
@@ -10618,8 +10622,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "7c1f62ff36eef803a53ddf565f2e46ccd9246985873e220333060211bbff3f6c",
-      "compiler_inventory_match": true,
+      "source_sha256": "6a0be5308148cd1f63bc73b933b17d7bafd5195056e08064b3690ca2bafcb390",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "f3670b00af98e2c18dc8bf3c2a87ff853ee8ba446bfa3ce7420b822bc48d1fad"
     },
@@ -10630,22 +10634,10 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "b6ae0a9b8bab6586c3c1c0f161ffdea9da7607c2350dab7258cab56b9f9ab059",
-      "compiler_inventory_match": true,
+      "source_sha256": "c212388a5219bac1380b69d0c8ffd617c310ec8de46a0e2392fd4e6af513e703",
+      "compiler_inventory_match": false,
       "compiler_item_count": 4,
       "symbol_spans_sha256": "e2799e47781f6b16b96b1252b0c2087d575bad3f369d98b6e93b275df3f145ae"
-    },
-    {
-      "path": "src/project_environment/lifecycle.rs",
-      "component": "project-environment",
-      "classification": "production",
-      "reachability": "reachable-profile-module",
-      "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
-      "certainty": "reviewed-area-role",
-      "source_sha256": "501870ab7b380f5b683949fabfd597c27c6c447e83a59b75a51b1b9c433a75fb",
-      "compiler_inventory_match": true,
-      "compiler_item_count": 4,
-      "symbol_spans_sha256": "bbd4aea9f52594952ba5d09871f3b5da02cabfa0eea1410e62f2da73a7d05984"
     },
     {
       "path": "src/project_environment/lore.rs",
@@ -10654,8 +10646,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "c0c350deac9d9a2cda058adb99825d2ae9daa4cc3798b88abaab169ddab84992",
-      "compiler_inventory_match": true,
+      "source_sha256": "62f795a1f313667545ad2a7db6a3d08b91ac9792d7aa30a2b97a0935bdaf3742",
+      "compiler_inventory_match": false,
       "compiler_item_count": 26,
       "symbol_spans_sha256": "e3d15552743267bd13adb1a7bd4a897c1835362b4845699143bb47b6af6562cb"
     },
@@ -10666,8 +10658,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "5b4cf3fe13e73c098f0ecd1fa3148365d5bd2e5884b41d8c77464499c8729036",
-      "compiler_inventory_match": true,
+      "source_sha256": "3061b6cb3565a69e639f71f6c2dff0042590b2df137cc68178d22c12ad821077",
+      "compiler_inventory_match": false,
       "compiler_item_count": 2,
       "symbol_spans_sha256": "24852b537bdc772fa5eb34ddc63d149872dbe61791f37a896f5cd0962fc86e02"
     },
@@ -10678,8 +10670,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "6b0d22f4db25fc833ba7c91edea01692419fb9599528ca98da725bbe12f5da73",
-      "compiler_inventory_match": true,
+      "source_sha256": "a5e758fca6c255b32fc2810fedb34e00026310365a07d3f372808e9610448386",
+      "compiler_inventory_match": false,
       "compiler_item_count": 6,
       "symbol_spans_sha256": "30c46874fd089f933168669fe0de8fdafa76dd081fee482e312ba74e8b02d418"
     },
@@ -10714,8 +10706,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "3ea626ff27e7e9ced0e66d69b0897a8e38f977b202ae38dc62d2fda93d224bd0",
-      "compiler_inventory_match": true,
+      "source_sha256": "653068a200beeb5633836d9b5e0b6428d4b8bbe8d9620e4377938c09b505fffa",
+      "compiler_inventory_match": false,
       "compiler_item_count": 5,
       "symbol_spans_sha256": "4381d0afb5674282f20a6c0885e8f5766eff419d73f8d66dbdc26998291b3d77"
     },
@@ -10726,8 +10718,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "785d62cdadf8f87fc48cd6e78fa91a8b913b379014a3f8c8b736b06868e03637",
-      "compiler_inventory_match": true,
+      "source_sha256": "97d8fadfbb662494ad3596e78a01fbebf4d431eb2b18d1eb6da1e713992c98f3",
+      "compiler_inventory_match": false,
       "compiler_item_count": 14,
       "symbol_spans_sha256": "7b525010cca3fba1dfb46f38e2101b48d4dbd038c40658ac15d5db8358943f45"
     },
@@ -10738,8 +10730,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "99a2e9639ed4662e2921ee7d5313203e011ddc63925333ffded4d91c08f2e9ac",
-      "compiler_inventory_match": true,
+      "source_sha256": "8640c96024a4cf2b4322da980213715fc086768d442856f2d7aebecd68c4670d",
+      "compiler_inventory_match": false,
       "compiler_item_count": 6,
       "symbol_spans_sha256": "6b6b0572dfda2345be2e0d1dd7100f3bdb448f77b3e33397465d10e4cb1feb8f"
     },
@@ -10750,8 +10742,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source path group `project_environment` reviewed against target component responsibility; module reachable=True",
       "certainty": "reviewed-area-role",
-      "source_sha256": "69ba6964b9f36267e1a05de10a6b6574758e2e274ee4290d539ead0c4689ef48",
-      "compiler_inventory_match": true,
+      "source_sha256": "93c8ea4c15a8a2c5ba44e8172b6df620b1488e68140229738e1868d00b2c822a",
+      "compiler_inventory_match": false,
       "compiler_item_count": 34,
       "symbol_spans_sha256": "5505b60b99c5c4aec5276465de3df015407e7a37c791f7faa91d18489021c479"
     },
@@ -10762,7 +10754,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "fd2b01b3f11a978bf667aa87561c6960c4a8463bc2901095b2e723c52701648f",
+      "source_sha256": "9e41c8a95305c8a3baa1144e43605cc09758447636fadb7088bc85a49548413f",
       "compiler_inventory_match": false
     },
     {
@@ -10772,7 +10764,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "0225c4cc1e2d6245995f4865aafb5f1a048ce03d3b0c28dfb1dfc3a81cde876b",
+      "source_sha256": "f1d02a30b9686f127b683c6e17a5d3f3b9c000c97d92439e0f38b5383e503e07",
       "compiler_inventory_match": false
     },
     {
@@ -10782,7 +10774,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "3319aea34cf788a584b0a6674f2cc7d18ef0024249eabd9c44331e5e168db3e8",
+      "source_sha256": "d0ee5da495372b51ef99862e821f9815ac0d7d9e3e05513aab5165d770fb87f5",
       "compiler_inventory_match": false
     },
     {
@@ -13893,8 +13885,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_ambient_project`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "8251b7dd2e09e7dda4cd6fd1ffe155ea39e5cae61c712bb0248f7129c216eb15",
-      "compiler_inventory_match": true,
+      "source_sha256": "5fa67a199b4f5b26633a138025b43bb2a392665f0314aab3f3ddde00282349f4",
+      "compiler_inventory_match": false,
       "compiler_item_count": 8,
       "symbol_spans_sha256": "6a0d7b6590ea796407a63d1ed731a342e3fcee9b983b978f507ea440fa8faa52"
     },
@@ -13905,7 +13897,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "82e39c67247738b6c97eb069d15c8fbf1f64c7175c006ed8867fa6acb7443d85",
+      "source_sha256": "0dbaaa79f05db81018332550cdd288b9f06b55ac05a636fa30a7c62c42ac8951",
       "compiler_inventory_match": false
     },
     {
@@ -14343,7 +14335,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "5c0586583d78e0d7bbc15b15ca82feef4c7d5b5aefe0e4f70a66c60a4c8b5d88",
+      "source_sha256": "86bb95d2c68aaf1339790d1a9990f5a2ca5a59cd1f7d6a58f09de8a520cd2ef6",
       "compiler_inventory_match": false
     },
     {
@@ -14457,8 +14449,8 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_project_lifecycle`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-source-role",
-      "source_sha256": "a97c292b19b8ce758ec10c0ce8851445fd917263febf8ccd5163405d1018b784",
-      "compiler_inventory_match": true,
+      "source_sha256": "e7ed5b084882412d96be5c993e77e78b2b3c857649c1989ae87698127d16480d",
+      "compiler_inventory_match": false,
       "compiler_item_count": 8,
       "symbol_spans_sha256": "4ec214c2062caf03f08626c3b2f0f28b0dfff86ba14ac4dcd3f3716e976e00fc"
     },
@@ -14469,7 +14461,7 @@
       "reachability": "test-only",
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
-      "source_sha256": "47cfc98c0722d4943b4bebe71021d98ba507c68b01e3cffc60c76c1071efffee",
+      "source_sha256": "89bf1d1588435f6e57bae9381dc04852a0a88dad81a6147f81f1aca781f9e103",
       "compiler_inventory_match": false
     },
     {
@@ -15797,6 +15789,56 @@
       "evidence": "No owner_files or module_components assignment; ownership unresolved",
       "certainty": "unresolved",
       "source_sha256": "79372ae838ebfebaf70801886a410b96b6260031aae84fa9f150f0ba406d3671",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/project_environment/scope.rs",
+      "component": "project-environment",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 4 working-tree scope module, directly reachable from src/project_environment.rs.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "66c7350f304e82a371944653603a92365aaa57c5f702098a9b13abaa46ff9a82",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/project_environment/write_guard.rs",
+      "component": "project-environment",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 4 working-tree write guard, directly reachable from src/project_environment.rs.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "6f671dca2c5fa9fb48b4271b68dd443f51c3779a7fc3ac3253021727f4855b94",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/facade/cva_project_environment.rs",
+      "component": "public-consumers",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 4 lifecycle composition moved above Project Environment; public-consumers invokes the project-environment capability.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "2e8cddb13201ba250e86fe17d04c39e019542d5f11e459c1a5ef5099e04f5d8d",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/project_environment/write_guard_windows.rs",
+      "component": "project-environment",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Phase 4 platform write guard implementation, selected by cfg(windows/unix) from src/project_environment/write_guard.rs.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "805cfad5a540d50a541a77d450ffc4d23e08657c0079412751b68b4c8bc5bc9b",
+      "compiler_inventory_match": false
+    },
+    {
+      "path": "src/project_environment/write_guard_unix.rs",
+      "component": "project-environment",
+      "classification": "production",
+      "reachability": "inactive-under-recorded-windows-profile",
+      "evidence": "Phase 4 Unix guard selected only by cfg(unix); explicitly mapped for source ownership, not compiled by this Windows profile.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "9db65e40e4e78364ad6e26b93aa0d2876ac8505c3b97b2fbee0a84adcb595bef",
       "compiler_inventory_match": false
     }
   ],
@@ -35000,5 +35042,6 @@
       "path": "lodestone_packed::VectorSchema",
       "reason": "Existing packed-vector payload and schema codec values used for exact selected-row emission; no embedding provider or inference."
     }
-  ]
+  ],
+  "phase4_source_basis": "Reviewed local Phase 4 changes; original compiler inventory and historical snapshot remain immutable. Changed-source hashes updated without claiming compiler inventory coverage."
 }

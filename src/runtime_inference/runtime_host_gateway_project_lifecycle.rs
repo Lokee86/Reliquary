@@ -19,7 +19,7 @@ impl GatewayRuntime {
         if rel_path.exists() {
             return Err(super::operation("new Project REL target already exists"));
         }
-        crate::project_environment::create_project_rel(rel_path, project_dir, mode)
+        crate::cva_project_environment::create_project_rel(rel_path, project_dir, mode)
             .map_err(super::operation)
     }
     pub fn inspect_project_adoption_source(
@@ -27,7 +27,7 @@ impl GatewayRuntime {
         rel_path: &Path,
     ) -> Result<ProjectAdoptionSource, super::ReliquaryRuntimeHostError> {
         let _claim = self.admit_unmounted_path(rel_path)?;
-        crate::project_environment::inspect_project_adoption_source(rel_path)
+        crate::cva_project_environment::inspect_project_adoption_source(rel_path)
             .map_err(super::operation)
     }
     pub fn adopt_project_environment_rel(
@@ -37,7 +37,7 @@ impl GatewayRuntime {
         mode: ProjectRepositoryMode,
     ) -> Result<Cva, super::ReliquaryRuntimeHostError> {
         let _claim = self.admit_unmounted_path(&source.path)?;
-        crate::project_environment::adopt_project_rel(source, project_dir, mode)
+        crate::cva_project_environment::adopt_project_rel(source, project_dir, mode)
             .map_err(super::operation)
     }
     pub fn validate_project_environment_cva(
@@ -45,20 +45,8 @@ impl GatewayRuntime {
         cva: &mut Cva,
         project_dir: &Path,
     ) -> Result<ProjectRevisionRef, super::ReliquaryRuntimeHostError> {
-        let correlation = cva
-            .latest_project_revision_correlation()
-            .ok_or_else(|| super::operation("Project REL has no repository correlation"))?;
-        let current = crate::project_environment::current_revision_for(project_dir, &correlation)
-            .map_err(super::operation)?;
-        if current.repository.project_path != correlation.project_revision.repository.project_path {
-            cva.correlate_project_revision_with_management(
-                current.clone(),
-                correlation.repository_management,
-            )
-            .map_err(super::operation)?;
-            cva.sync().map_err(super::operation)?;
-        }
-        Ok(current)
+        crate::cva_project_environment::validate_project_environment_cva(cva, project_dir)
+            .map_err(super::operation)
     }
     pub fn reconcile_rel_file(
         &self,

@@ -104,7 +104,7 @@ fn project_upload_publishes_after_sync_and_failed_read_publishes_nothing() {
     let project = test_path("p44-project-folder");
     std::fs::create_dir_all(&project).unwrap();
     let rel_path = test_path("p44-project-rel.rel");
-    let cva = crate::project_environment::create_project_rel(
+    let cva = crate::cva_project_environment::create_project_rel(
         &rel_path,
         &project,
         crate::ProjectRepositoryMode::ManualLore,
