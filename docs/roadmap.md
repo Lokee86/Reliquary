@@ -14,11 +14,11 @@ Phase 1's physical storage boundary is implemented and accepted locally on
 Windows; its verification record documents platform limits. Its [execution specification](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md)
 and [file lease contract](dependency-convergence-phase1-lock-contract-2026-10-21.md)
 record the cursor, explicit repairs and writer/source publication rules. Later
-owner and domain convergence remains separate work. Phase 2 owner-local convergence is tracked in the [91-task Phase 2 specification](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) and locally accepted [execution record](dependency-convergence-phase2-execution-2026-10-22.md). The next correction-only design is the [119-task Phase 3 History/Maintenance/Import specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md), which includes the previously approved settlement-size correction and development-format hard cut. It preserves current owner authority, Phase 1 storage and the deferred Phase 3 settlement correction; it does not implement new Perception, Ego, Context or Warlock features.
+owner and domain convergence remains separate work. Phase 2 owner-local convergence is tracked in the [91-task Phase 2 specification](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) and locally accepted [execution record](dependency-convergence-phase2-execution-2026-10-22.md). The active [119-task Phase 3 History/Maintenance/Import specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) preserves current owner authority and Phase 1 storage while completing boundary extraction and the CVAFRS07 settlement cut. It does not implement new Perception, Ego, Context or Warlock features.
 
 The active work is now concentrated in a small number of tracks:
 
-1. complete the semantic import-settlement minimization follow-up;
+1. complete the Phase 3 CVAFRS07 frozen-corpus conversion, oracles, promotion and C3 acceptance;
 2. complete Perception Observations, then Ego semantic synthesis and Context Engine final assembly;
 3. finish explicit Insomnia commit semantics;
 4. finish Warlock/Hermes consumer/release work around the implemented Gateway runtime;
@@ -30,9 +30,9 @@ Completed Freshness, Dream, decision-routing, tombstone/import/rewrite, external
 
 ## Active storage/history track
 
-The compact/lossless history hard cut is complete. A separate follow-up is active because final accounting showed the semantic `CVAFRS06` import-settlement proof expanding from 395,533 bytes to 7,415,741 bytes across the six canonical fixtures. Physical-prefix authority must remain retired, but the settlement should be redesigned so reconstructible Freshness/Memory/import evidence is authenticated rather than copied into a second self-contained history.
+The earlier CVAFRS06 settlement measured 395,533 bytes before normalization and 7,415,741 bytes across six canonical fixtures afterward. Those figures are historical measurements of the prior self-contained proof. The selected current-only CVAFRS07 design retains exact semantic scope and accepted-event journal references, stores a chronological causal numeric basis and sparse irreducible score corrections, and omits copied per-event recipient sets and complete derived output postimages. Its expanded UTF-8 budget is 64 MiB.
 
-This follow-up does not reopen the completed 377-step implementation plan. It is tracked independently in [Semantic import-settlement minimization follow-up](semantic-import-settlement-minimization-plan-2026-10-21.md). The prior 5.235% whole-file result remains valid historical measurement of the completed hard cut, not the target result for this follow-up.
+The six-file CVAFRS07 corpus conversion, semantic/clock/source-byte/mtime oracles, promotion and C3 acceptance remain pending in the [Phase 3 specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) and [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md). The prior 5.235% whole-file result remains historical measurement of the completed earlier hard cut, not a result for this settlement format.
 
 Authoritative planning:
 
