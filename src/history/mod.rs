@@ -65,6 +65,7 @@ mod transformed_copy;
 pub(crate) use transformed_copy::{HistoricalCopyView, historical_copy_preserves_import_authority};
 
 pub(crate) mod freshness_reconciliation;
+pub(crate) mod reconciliation_inventory;
 
 pub(crate) mod dream_evidence;
 

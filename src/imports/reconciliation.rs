@@ -134,15 +134,40 @@ pub(crate) fn reconcile_import_epochs(
 }
 
 fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaReconcileError> {
-    let resolution_changes =
-        crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
-            &mut cva.container,
-        )?;
+    let history = crate::history::reconciliation_inventory::ReconciliationRead::new(
+        crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
+        &cva.archive,
+        &cva.memories,
+    );
+    let statuses = cva.import_epoch_statuses();
+    inventory_from_history(
+        &history,
+        &statuses,
+        &cva.freshness,
+        &cva.entities,
+        &cva.relationships,
+        &cva.graph,
+    )
+}
+
+/// Import policy over narrow, immutable History and owner read views. All
+/// physical source reads and Container-dependent materialization stay below
+/// this boundary in History.
+fn inventory_from_history(
+    history: &crate::history::reconciliation_inventory::ReconciliationRead<'_>,
+    statuses: &[ImportEpochStatus],
+    freshness: &crate::freshness_storage::FreshnessStore,
+    entities: &crate::entity_store::EntityStore,
+    relationships: &crate::relationship_store::RelationshipStore,
+    graph: &crate::graph_store::GraphStore,
+) -> Result<BTreeMap<String, CompletedEpoch>, CvaReconcileError> {
+    let resolution_changes = history.materialized_resolution_changes()?;
     let mut positions = BTreeMap::new();
     let mut starts = BTreeMap::new();
-    let chunks = cva.container.chunks()?;
+    let source = history.snapshot().map_err(|error| error.0)?;
+    let chunks = history.physical_objects(&source)?;
     for (index, chunk) in chunks.into_iter().enumerate() {
-        let payload = cva.container.read(chunk)?;
+        let payload = history.read_object(&source, chunk)?;
         match super::epoch_codec::decode(&payload).map_err(crate::CvaError::Import)? {
             Some(super::epoch_codec::ImportEpochRecord::Start(start)) => {
                 if starts.insert(start.import_id, index).is_some() {
@@ -162,20 +187,20 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
         }
     }
     let mut result = BTreeMap::new();
-    for status in cva.import_epoch_statuses() {
+    for status in statuses.iter().cloned() {
         let ImportEpochStatus::Completed { start, complete } = status else {
             return Err(unsupported("open import epoch in divergent reconciliation"));
         };
-        let settlement = cva
-            .freshness
+        let settlement = freshness
             .import_settlements()
             .iter()
             .find(|settlement| hex(&settlement.import_id) == start.import_id)
             .cloned()
             .ok_or_else(|| unsupported("completed import lacks a scoped settlement"))?;
-        let semantic_scope = cva.semantic_scope_for_import_settlement(&settlement)?;
-        let mut accepted_events = cva
-            .freshness
+        let semantic_scope = settlement.semantic.clone().ok_or_else(|| {
+            crate::CvaError::Freshness("accepted settlement lacks semantic authority".into())
+        })?;
+        let mut accepted_events = freshness
             .requested_import_event_entries(
                 &semantic_scope.accepted_events.keys().cloned().collect(),
             )
@@ -195,25 +220,34 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
         let mut dream = Vec::new();
         let mut owner_evidence = Vec::new();
         let mut normalized_dream =
-            crate::freshness_dream_journal::DreamFreshnessJournal::new(cva.owner_uuid());
-        for chunk in cva.container.chunks()?.into_iter().take(end).skip(first) {
-            let payload = cva.container.read(chunk)?;
+            crate::freshness_dream_journal::DreamFreshnessJournal::new(history.owner_uuid());
+        for chunk in history
+            .physical_objects(&source)?
+            .into_iter()
+            .take(end)
+            .skip(first)
+        {
+            let payload = history.read_object(&source, chunk)?;
             if let Some(version) = crate::archive_codec::publication::version_at(chunk, &payload)? {
                 // Retain every accepted source-domain record in interval order,
                 // including unrelated records not named by the import receipt.
-                let (record, _) = cva.archive.read_publication(&mut cva.container, version)?;
+                let record = history.archive_publication(&source, version)?;
                 archive_records.push(crate::archive_codec::publication::import_evidence(record)?);
             }
             if let Some((global, local)) =
                 crate::memory_compact_codec::publication::coordinates(&payload)?
             {
-                owner_evidence.push(canonical_memory_publication(cva, global, local, &payload)?);
+                owner_evidence.push(canonical_memory_publication(
+                    history.memory_record_at_publication(global, local),
+                    global,
+                    local,
+                    &payload,
+                )?);
             }
             if let Some((global, local)) =
                 crate::entity_compact_codec::publication::coordinates(&payload)?
             {
-                let publication = cva
-                    .entities
+                let publication = entities
                     .retained_publication_at(global, local)?
                     .ok_or(crate::EntityError::InvalidVersion)?;
                 owner_evidence.push(publication.normalized_import_evidence()?);
@@ -221,8 +255,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             if let Some((global, local)) =
                 crate::relationship_compact_codec::publication::coordinates(&payload)?
             {
-                let publication = cva
-                    .relationships
+                let publication = relationships
                     .retained_publication_at(global, local)?
                     .ok_or(crate::RelationshipError::InvalidVersion)?;
                 owner_evidence.push(publication.normalized_import_evidence()?);
@@ -230,7 +263,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             if let Some(version) =
                 crate::graph_compact_codec::publication::version_at(chunk, &payload)?
             {
-                owner_evidence.push(canonical_graph_publication(cva, version)?);
+                owner_evidence.push(canonical_graph_publication(graph, &source, version)?);
             }
             if let Some(mut snapshot) =
                 crate::community_codec::decode_snapshot(&payload).map_err(crate::CvaError::from)?
@@ -258,16 +291,11 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             }
             if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
                 let normalized = if let Some(mut pass) =
-                    crate::owner_lifecycle::dream_begin_transport::materialized_dream_begin(
-                        &cva.container,
-                        &cva.archive,
-                        &cva.memories,
-                        chunk,
-                        &payload,
-                    )? {
+                    history.materialized_dream_begin(&source, chunk, &payload)?
+                {
                     pass.turn = 0;
                     pass.graph_version_before = 0;
-                    let owner = cva
+                    let owner = history
                         .owner_uuid()
                         .ok_or(crate::ContainerError::InvalidIdentity)?;
                     normalized_dream
@@ -304,7 +332,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             {
                 // Global coordinates and transaction serialization time belong
                 // to the source file, not to the accepted extraction identity.
-                crate::owner_lifecycle::grouped_import_replay::hydrate_grouped_import_completion_bodies(&mut cva.container,&cva.memories,&mut completion).map_err(crate::owner_lifecycle::OwnerError::from)?;
+                history.hydrate_grouped_completion(&source, &mut completion)?;
                 completion.bodies.sort_by_key(|body| body.id.0);
                 for (index, record) in completion.records.iter_mut().enumerate() {
                     let coordinate = u64::try_from(index)
@@ -494,15 +522,12 @@ fn validate_replay_interval(
 }
 
 fn canonical_memory_publication(
-    cva: &mut Cva,
+    record: Option<crate::memory_model::MemoryRecord>,
     global_version: u64,
     memory_version: u64,
     payload: &[u8],
 ) -> Result<Vec<u8>, CvaReconcileError> {
-    if let Some(record) = cva
-        .memories
-        .record_at_publication(global_version, memory_version)
-    {
+    if let Some(record) = record {
         let mut normalized = record.clone();
         normalized.global_version = 0;
         normalized.memory_version = 0;
@@ -527,11 +552,14 @@ fn canonical_memory_publication(
 }
 
 fn canonical_graph_publication(
-    cva: &mut Cva,
+    graph: &crate::graph_store::GraphStore,
+    source: &crate::owner_lifecycle::HistorySource<'_>,
     version: crate::graph_codec::GraphVersionPayload,
 ) -> Result<Vec<u8>, CvaReconcileError> {
-    let bytes = cva.container.read(version.mutation)?;
-    Ok(cva.graph.normalized_import_evidence(&bytes)?)
+    let bytes = source
+        .read_object(version.mutation)
+        .map_err(|error| error.0)?;
+    Ok(graph.normalized_import_evidence(&bytes)?)
 }
 
 pub(super) fn unsupported(reason: &'static str) -> CvaReconcileError {

@@ -123,6 +123,20 @@ impl<'a> HistoryReadAccess<'a> {
         HistorySource::new(self.container)
     }
 
+    /// Reconstruct accepted EntityResolution changes without exposing the
+    /// physical Container to the History consumer.
+    pub(crate) fn materialized_resolution_changes(
+        &self,
+    ) -> Result<
+        std::collections::BTreeMap<
+            ObjectRef,
+            crate::entity_resolution_codec::DecodedEntityResolution,
+        >,
+        crate::MemoryError,
+    > {
+        crate::entity_resolution_store::EntityResolutionStore::materialized_changes(self.container)
+    }
+
     pub(crate) fn current_memory(
         &self,
         memories: &crate::memory_store::MemoryStore,
@@ -279,6 +293,36 @@ impl<'a> HistorySource<'a> {
     > {
         self.validate().map_err(|error| error.0)?;
         archive.read_publication(self.container, version)
+    }
+
+    /// Resolve one Dream Begin against its source-time Archive/Memory state.
+    pub(crate) fn materialized_dream_begin(
+        &self,
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+        object: ObjectRef,
+        payload: &[u8],
+    ) -> Result<Option<crate::InitialDreamPass>, super::OwnerError> {
+        super::dream_begin_transport::materialized_dream_begin(
+            self.container,
+            archive,
+            memories,
+            object,
+            payload,
+        )
+    }
+
+    /// Hydrate accepted grouped completion bodies from the immutable source.
+    pub(crate) fn hydrate_grouped_completion(
+        &self,
+        memories: &crate::memory_store::MemoryStore,
+        completion: &mut crate::insomnia::completion::InsomniaCompletion,
+    ) -> Result<(), crate::MemoryError> {
+        super::grouped_import_replay::hydrate_grouped_import_completion_bodies(
+            self.container,
+            memories,
+            completion,
+        )
     }
 
     /// Read content through the immutable Archive view while enforcing the

@@ -31,7 +31,7 @@ impl EntityResolutionStore {
     }
 
     pub(crate) fn materialized_changes(
-        container: &mut Container,
+        container: &Container,
     ) -> Result<std::collections::BTreeMap<crate::ObjectRef, DecodedEntityResolution>, MemoryError>
     {
         let mut projection = Self::default();

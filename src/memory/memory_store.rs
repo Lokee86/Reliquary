@@ -1004,7 +1004,7 @@ impl MemoryStore {
 
     pub(crate) fn retained_body_bytes(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: MemoryBodyId,
     ) -> Result<Vec<u8>, MemoryError> {
         self.body_bytes(container, id)

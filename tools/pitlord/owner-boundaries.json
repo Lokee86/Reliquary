@@ -1179,6 +1179,11 @@
       "classification": "production"
     },
     {
+      "path": "src/history/reconciliation_inventory.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
       "path": "src/owner_lifecycle/history_source.rs",
       "component": "owner-lifecycle",
       "classification": "production"

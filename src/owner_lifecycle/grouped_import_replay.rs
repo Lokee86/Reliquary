@@ -13,7 +13,7 @@ pub(crate) struct GroupedImportDestination<'a> {
     pub(crate) dream_freshness: &'a mut crate::freshness_dream_journal::DreamFreshnessJournal,
 }
 pub(crate) fn hydrate_grouped_import_completion_bodies(
-    container: &mut crate::Container,
+    container: &crate::Container,
     memories: &crate::memory_store::MemoryStore,
     completion: &mut InsomniaCompletion,
 ) -> Result<(), crate::MemoryError> {
