@@ -263,6 +263,15 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
                     "pre-settlement prefix unexpectedly contains an accepted settlement".into(),
                 );
             }
+            // Resolve every original event leaf against the retained journal,
+            // independently of the settlement being replaced. This proves
+            // recipient/digest/turn references can survive without copied sets.
+            owner.freshness.validate_semantic_import_evidence(
+                expected
+                    .semantic
+                    .as_ref()
+                    .ok_or("original lacks semantic scope")?,
+            )?;
             let frozen = freeze(&owner).map_err(|error| error.to_string())?;
             let mut scores = frozen.native_scores().map_err(|error| error.to_string())?;
             scores.extend(frozen.retained.clone());
@@ -290,6 +299,29 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
                     }));
                 }
             }
+            let mut metadata_differences = Vec::new();
+            macro_rules! compare_field {
+                ($($field:ident),* $(,)?) => { $(if expected.$field != prepared.settlement.$field { metadata_differences.push(stringify!($field)); })* };
+            }
+            compare_field!(
+                owner,
+                import_id,
+                start_evidence_digest,
+                corpus_digest,
+                manifest_digest,
+                input_digest,
+                cohort,
+                base_cut,
+                settlement_cut,
+                global_version,
+                archive_version,
+                graph_version,
+                memory_graph_version,
+                superseded
+            );
+            if expected.semantic != prepared.settlement.semantic {
+                metadata_differences.push("semantic_scope");
+            }
             let expected_nonrecord_payload = expected_without_records.encode();
             let actual_nonrecord_payload = actual_without_records.encode();
             let original_scores_raw_bytes = expected.records.len() * 32
@@ -311,6 +343,8 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
                 "generated_source_bytes": prepared.source_bytes,
                 "generated_source_sha256": hex(&prepared.source_digest),
                 "settlement_nonrecord_fields_equal": expected_without_records == actual_without_records,
+                "nonrecord_field_differences": metadata_differences,
+                "original_event_leaves_validated_against_prefix_journal": true,
                 "settlement_nonrecord_wire_equal": expected_nonrecord_payload == actual_nonrecord_payload,
                 "original_record_count": expected.records.len(),
                 "regenerated_record_count": prepared.settlement.records.len(),
