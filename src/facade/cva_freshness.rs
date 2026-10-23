@@ -1102,16 +1102,12 @@ mod recovery_tests;
 pub(crate) fn record_dream_evidence_trace(
     trace: crate::history::dream_evidence::DreamEvidenceTrace,
 ) {
-    crate::freshness_trace::record(
-        "dream.initial_dream_committed_roots",
+    crate::freshness::record_dream_evidence_scan(
         trace.elapsed_ns,
-        crate::freshness_trace::Counts {
-            payload_bytes: Some(trace.payload_bytes),
-            object_bytes: Some(trace.object_bytes),
-            chunks_visited: Some(trace.chunks),
-            graph_mutations_decoded: Some(trace.mutations),
-            version_filtered_records: Some(trace.filtered),
-            ..Default::default()
-        },
+        trace.payload_bytes,
+        trace.object_bytes,
+        trace.chunks,
+        trace.mutations,
+        trace.filtered,
     );
 }

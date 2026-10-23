@@ -21,9 +21,10 @@ mod memory_envelope_tests;
 #[path = "reconciliation_resolution_delta_tests.rs"]
 mod resolution_delta_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
+use crate::CvaReconcileError;
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
+use crate::owner_lifecycle::ReliquaryOwner;
 use crate::reconciliation_values::{CvaComparison, CvaReconcileResult};
-use crate::{Cva, CvaReconcileError};
 use std::{collections::BTreeMap, path::Path};
 
 pub(super) struct CompletedEpoch {
@@ -45,18 +46,18 @@ pub(crate) fn reconcile_import_epochs(
     right_path: &Path,
     output_path: &Path,
     comparison: CvaComparison,
-) -> Result<Option<(CvaReconcileResult, Cva)>, CvaReconcileError> {
-    let mut left = Cva::open_read_only(left_path)?;
-    let mut right = Cva::open_read_only(right_path)?;
-    if left.import_epoch_statuses().is_empty() && right.import_epoch_statuses().is_empty() {
+) -> Result<Option<(CvaReconcileResult, ReliquaryOwner)>, CvaReconcileError> {
+    let mut left = super::reconciliation_copy::open_read_only(left_path)?;
+    let mut right = super::reconciliation_copy::open_read_only(right_path)?;
+    if left.import_epochs.statuses().is_empty() && right.import_epochs.statuses().is_empty() {
         return Ok(None);
     }
-    if left.open_import_epoch().is_some() || right.open_import_epoch().is_some() {
+    if left.import_epochs.open().is_some() || right.import_epochs.open().is_some() {
         return Err(unsupported("open import epoch in divergent reconciliation"));
     }
     // A conflict in source revision authority is independent of replay support.
     // Detect it before copying a destination or comparing coordinate-bound data.
-    for receipt in right.native_import_receipts() {
+    for receipt in right.archive.import_receipts.values().cloned() {
         left.archive.validate_import_revisions(&receipt)?;
     }
     let left_epochs = inventory(&mut left)?;
@@ -102,8 +103,9 @@ pub(crate) fn reconcile_import_epochs(
     crate::graph_ordered_replay::replay_skips(&left_graph, &right_graph)
         .map(|_| ())
         .map_err(crate::owner_lifecycle::graph_ordered_replay::conflict_error)?;
-    if left.rel_metadata() != right.rel_metadata()
-        || left.freshness_policy() != right.freshness_policy()
+    if left.rel_metadata.effective(&left.container)
+        != right.rel_metadata.effective(&right.container)
+        || left.freshness.policy() != right.freshness.policy()
     {
         return Err(unsupported(
             "import replay owner metadata or policy conflict",
@@ -133,13 +135,13 @@ pub(crate) fn reconcile_import_epochs(
     result.map(Some)
 }
 
-fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaReconcileError> {
+fn inventory(cva: &ReliquaryOwner) -> Result<BTreeMap<String, CompletedEpoch>, CvaReconcileError> {
     let history = crate::history::reconciliation_inventory::ReconciliationRead::new(
         crate::owner_lifecycle::HistoryReadAccess::new(&cva.container),
         &cva.archive,
         &cva.memories,
     );
-    let statuses = cva.import_epoch_statuses();
+    let statuses = cva.import_epochs.statuses();
     inventory_from_history(
         &history,
         &statuses,

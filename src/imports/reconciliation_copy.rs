@@ -1,17 +1,16 @@
 //! Import-owned semantic copy validation over the shared physical copy primitive.
+use crate::CvaReconcileError;
 use crate::owner_lifecycle::{ReliquaryOwner, import_epoch_transport};
-use crate::{Container, CvaReconcileError};
 use std::path::Path;
 
 pub(super) fn open_read_only(path: &Path) -> Result<ReliquaryOwner, CvaReconcileError> {
     let container = import_epoch_transport::open_read_only_container(path)?;
-    open_from_container(container)
+    finish_replay(crate::owner_lifecycle::ReliquaryReplay::read(container)?)
 }
 
-pub(super) fn open_from_container(
-    container: Container,
+pub(super) fn finish_replay(
+    mut replay: crate::owner_lifecycle::ReliquaryReplay,
 ) -> Result<ReliquaryOwner, CvaReconcileError> {
-    let mut replay = crate::owner_lifecycle::ReliquaryReplay::read(container)?;
     let reconstruction = crate::history::reconstruct_reliquary(&mut replay)?;
     let (owner, _freshness_due) = replay.into_owner(reconstruction);
     Ok(owner)
@@ -26,7 +25,7 @@ pub(super) fn copy_import_source(
         crate::owner_lifecycle::import_epoch_transport::hold_created_output_identity(&destination)?;
     let result = (|| {
         let source = open_read_only(source)?;
-        let reopened = open_from_container(destination)?;
+        let reopened = finish_replay(crate::owner_lifecycle::ReliquaryReplay::read(destination)?)?;
         validate_historical_import_copy(&source, &reopened)?;
         if !source.archive.activity_history_matches(&reopened.archive) {
             return Err(CvaReconcileError::Archive(

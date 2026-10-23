@@ -14,6 +14,23 @@ impl RelMetadataStore {
         Ok(())
     }
 
+    pub(crate) fn effective(&self, container: &Container) -> RelMetadata {
+        if let Some(metadata) = self.current() {
+            return metadata.clone();
+        }
+        crate::RelMetadata {
+            type_label: container
+                .identity()
+                .and_then(|identity| identity.scope)
+                .map(|scope| match scope {
+                    crate::ReliquaryScopeKind::Organization => "Organization".to_owned(),
+                    crate::ReliquaryScopeKind::Project => "Project".to_owned(),
+                    crate::ReliquaryScopeKind::Connection => "Connection".to_owned(),
+                }),
+            dependencies: Vec::new(),
+        }
+    }
+
     pub(crate) fn current(&self) -> Option<&RelMetadata> {
         self.current.as_ref()
     }

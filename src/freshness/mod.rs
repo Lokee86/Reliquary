@@ -35,3 +35,27 @@ pub(crate) fn initial_dream_pass_identity(owner: [u8; 16], source: crate::Memory
 pub(crate) mod reconciliation;
 
 pub(crate) mod historical_settlement;
+
+/// Record immutable evidence-scan counters without exposing the trace store.
+#[cfg(feature = "freshness-performance-trace")]
+pub(crate) fn record_dream_evidence_scan(
+    elapsed_ns: u128,
+    payload_bytes: u64,
+    object_bytes: u64,
+    chunks: u64,
+    mutations: u64,
+    filtered: u64,
+) {
+    crate::freshness_trace::record(
+        "dream.initial_dream_committed_roots",
+        elapsed_ns,
+        crate::freshness_trace::Counts {
+            payload_bytes: Some(payload_bytes),
+            object_bytes: Some(object_bytes),
+            chunks_visited: Some(chunks),
+            graph_mutations_decoded: Some(mutations),
+            version_filtered_records: Some(filtered),
+            ..Default::default()
+        },
+    );
+}

@@ -106,7 +106,9 @@ pub(super) fn replay(
             || coordinates.graph_transactions != 0;
         crate::owner_lifecycle::import_epoch_transport::sync(&output.container)?;
         let expected_archive = output.archive;
-        let reopened = super::reconciliation_copy::open_from_container(output.container)?;
+        let reopened = super::reconciliation_copy::finish_replay(
+            crate::owner_lifecycle::ReliquaryReplay::read(output.container)?,
+        )?;
         if !expected_archive.activity_history_matches(&reopened.archive)
             || !reopened
                 .archive

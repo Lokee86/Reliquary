@@ -70,7 +70,16 @@ fn freeze(owner: &ReliquaryOwner) -> Result<FrozenHistoricalImport, OwnerError> 
         &mut traces,
     );
     #[cfg(feature = "freshness-performance-trace")]
-    let _ = traces;
+    for trace in traces {
+        crate::freshness::record_dream_evidence_scan(
+            trace.elapsed_ns,
+            trace.payload_bytes,
+            trace.object_bytes,
+            trace.chunks,
+            trace.mutations,
+            trace.filtered,
+        );
+    }
     result
 }
 

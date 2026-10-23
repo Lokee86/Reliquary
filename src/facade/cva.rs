@@ -74,17 +74,7 @@ impl Cva {
     }
 
     pub fn rel_metadata(&self) -> crate::RelMetadata {
-        if let Some(metadata) = self.rel_metadata.current() {
-            return metadata.clone();
-        }
-        crate::RelMetadata {
-            type_label: self.legacy_scope_kind().map(|scope| match scope {
-                crate::ReliquaryScopeKind::Organization => "Organization".to_owned(),
-                crate::ReliquaryScopeKind::Project => "Project".to_owned(),
-                crate::ReliquaryScopeKind::Connection => "Connection".to_owned(),
-            }),
-            dependencies: Vec::new(),
-        }
+        self.rel_metadata.effective(&self.container)
     }
 
     pub fn set_rel_metadata(
