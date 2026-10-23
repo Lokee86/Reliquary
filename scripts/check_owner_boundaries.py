@@ -604,6 +604,18 @@ def production_path_fixture_check() -> None:
                 (ROOT / "src/owner.rs").write_text(source, encoding="utf-8")
                 errors = main_check(manifest, dag)
                 assert bool(errors) == rejected, ("history", source, errors)
+            # Import consumes scoped lifecycle operations and History facts,
+            # never facade, Container, or generic Maintenance policy. Exercise
+            # the forbidden dependencies through renamed imports as well.
+            dag["components"] = [row if row["id"] != "import" else {"id": "import", "depends_on": []} for row in dag["components"]]
+            manifest["owner_files"][0]["component"] = "import"
+            for source in [
+                "use crate::physical::Container as ImportReader;",
+                "use crate::service::Cva as NativeOwner;",
+                "fn invalid() { crate::maintenance::authorize(); }",
+            ]:
+                (ROOT / "src/owner.rs").write_text(source, encoding="utf-8")
+                assert main_check(manifest, dag), ("import", source)
             manifest["owner_files"][0]["component"] = "archive-store"
             (ROOT / "src/child.rs").write_text("pub struct Hidden;", encoding="utf-8")
             (ROOT / "src/owner.rs").write_text('#[path = "child.rs"] mod child;', encoding="utf-8")
