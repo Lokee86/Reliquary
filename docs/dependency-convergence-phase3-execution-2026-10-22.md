@@ -12,6 +12,16 @@ Execution starts at `b113bcf` on `main`; accepted Phase 2 source is `1380d0b`. P
 
 The [baseline](dependency-convergence-phase3-baseline-2026-10-22.md) and [current baseline receipt](../benchmarks/dependency-convergence-phase3-baseline-2026-10-22.json) pin 1,134 source hashes with zero mismatches and six canonical hashes independently verified against Phase 2. Immutable local before-images are held under `.verification-tmp/phase3-before/`. Earlier Phase 2 test/oracle passes remain prior receipts, not new Phase 3 passes.
 
+## Execution accounting realignment (documentation snapshot, 2026-10-22)
+
+The [execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md) clarifies that the lower REL/PHY lifecycle and replay migration was an **unrecorded prerequisite hidden inside P3.3**, while some read-only History, pruning and Import preparation was necessarily moved early to avoid duplicate code movement. **Formal acceptance remains 23 of 98 tasks and B0/B1/H3 (3 of 12 gates); M3 is not accepted.** Do not advance that count merely because a supporting extraction was committed or its targeted tests passed.
+
+To make progress observable without manufacturing task acceptance, the linked checkpoint register tracks **21 bounded current-cut outcomes: 12 verified preparations, 7 active/unverified and 2 pending**. "Verified preparation" means evidence at a named earlier source checkpoint; it is **not** a new full-phase pass and does not establish greenness of the current dirty tree. Update both counts independently on resumption, and retain the original P3.3 task rows as formally pending until each whole task's acceptance and deletion obligations are evidenced.
+
+At the snapshot, the last committed checkpoint was `1bfbc95`; an uncommitted REL pruning/reclamation, Import readiness/completion and owner-lifecycle hard cut follows it. The latest `.verification-tmp/phase3-maintenance-coordinator-check.log` compilation **failed** in `src/maintenance/reliquary_prune.rs` on an unresolved `crate::OwnerError` and ambiguous `output_path.as_ref()`; these have no green current-tree receipt. The last successful broader batch belongs to the earlier `1bfbc95` settlement/session checkpoint (**1,974 passed, zero failed, five ignored and four filtered**). No source/fixture/test/graph changes or migrations were made to perform the realignment.
+
+M3 now closes only the Maintenance mutation-authorization/service boundary and its lower validated lifecycle prerequisites; **P3 still separately accepts full REL/PHY prune/reclaim policy, exact retained history and obsolete prune route deletion**. Opportunistically completed Import preparation does not allow I3 to bypass R3. The original frozen 34-component DAG, six canonical source hashes, current-only format rule and one-time D3 source graph refresh remain authoritative.
+
 ## Gates
 
 | Gate | State | Evidence / remaining obligation |
@@ -19,7 +29,7 @@ The [baseline](dependency-convergence-phase3-baseline-2026-10-22.md) and [curren
 | B0 | Accepted locally | Source/hash verification, bounded operation inventory and starting guards in baseline. |
 | B1 | Accepted locally (design) | [Concrete contracts](dependency-convergence-phase3-contracts-2026-10-22.md), reviewed against exact DAG; implementation proofs remain pending. |
 | H3 | Accepted locally (source cut) | One read-only proof path; final targeted 23 History + source-order regression passed. Full-run identity anomaly is retained below for A3. |
-| M3 | In progress | PHY prune/reclamation and shared physical copy extracted; REL and remaining Maintenance entrypoints pending. |
+| M3 | In progress | Lower REL/PHY lifecycle and shared frozen copy extracted; REL Maintenance authorization/prune/reclaim integration active and current dirty cut fails compilation. Independent P3 prune/reclaim gate remains pending. |
 | P3 | Pending | Prune and reclaim. |
 | W3 | Pending | Rewrite. |
 | R3 | Pending | Generic reconciliation. |

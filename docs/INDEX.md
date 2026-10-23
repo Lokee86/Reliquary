@@ -1,6 +1,7 @@
 # Reliquary Memory v2 Documentation
 
 - [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 98 bounded correction-only tasks including the approved semantic settlement hard cut.
+- [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — bounded L/H/M/I checkpoints and the exact paused M3 handoff; original 98 task IDs and twelve gates retained.
 - [Phase 2 owner-local boundaries — execution spec](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks to isolate durable semantic ownership without new roadmap work.
 - [Phase 2 baseline inventory](dependency-convergence-phase2-baseline-2026-10-22.md) — owner, edge, replay, consumer, test, and retained corpus before-image for B0.
 - [Phase 2 baseline verification](dependency-convergence-phase2-baseline-verification-2026-10-22.md) — exact baseline commands, results, timings, oracle hashes, and pending gates.
@@ -165,6 +166,7 @@
 - [dependency-convergence-phase3-baseline-2026-10-22.md](dependency-convergence-phase3-baseline-2026-10-22.md) - Dependency Convergence Phase3 Baseline 2026 10 22 documentation.
 - [dependency-convergence-phase3-contracts-2026-10-22.md](dependency-convergence-phase3-contracts-2026-10-22.md) - Dependency Convergence Phase3 Contracts 2026 10 22 documentation.
 - [dependency-convergence-phase3-execution-2026-10-22.md](dependency-convergence-phase3-execution-2026-10-22.md) - Dependency Convergence Phase3 Execution 2026 10 22 documentation.
+- [dependency-convergence-phase3-execution-realignment-2026-10-22.md](dependency-convergence-phase3-execution-realignment-2026-10-22.md) - Phase 3 execution realignment and owner-lifecycle checkpoint evidence.
 - [dependency-convergence-phase3-handoff-2026-10-22.md](dependency-convergence-phase3-handoff-2026-10-22.md) - Dependency Convergence Phase3 Handoff 2026 10 22 documentation.
 - [dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) - Dependency Convergence Phase3 History Maintenance Import Spec 2026 10 22 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.

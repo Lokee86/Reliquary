@@ -1,11 +1,12 @@
 # Dependency Convergence — Phase 3: History, Maintenance, Import and Reconciliation
 
 Date: 2026-10-22
-Status: **Implementation-ready correction-only specification — not implemented**
+Status: **Correction-only execution specification; implementation in progress (formal acceptance tracked separately)**
 Parent: [Dependency convergence architecture refactor](dependency-convergence-architecture-refactor-2026-10-21.md)
 Authoritative DAG: [Accepted logical component DAG](dependency-convergence-target-dag-2026-10-21.md) and [machine allowlist](../tools/pitlord/convergence-component-dag.json)
 Predecessor: [Phase 2 accepted local execution record](dependency-convergence-phase2-execution-2026-10-22.md) and [Phase 3 owner-contract handoff](dependency-convergence-phase3-handoff-2026-10-22.md)
 Pre-approved storage correction: [Semantic import-settlement minimization](semantic-import-settlement-minimization-plan-2026-10-21.md)
+Execution sequencing and evidence overlay: [Phase 3 execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md)
 
 ## Purpose
 
@@ -15,7 +16,7 @@ Remove historical, maintenance, import and reconciliation policy from broad faca
 
 This spec builds directly on Phase 1 physical storage and Phase 2 owner-local state. The Phase 2 ledger reports 91 tasks/12 gates locally accepted, the 34-component DAG unchanged, full feature-enabled Rust and CLI suites green, and the six-source historical oracle green. **That ledger is the source of those acceptance claims, not an independent current validation of the worktree or a claim Phase 2 has been committed.** Gate B0 must pin the exact accepted source checkpoint before Phase 3 code begins. No concurrent Phase 2 changes are absorbed silently.
 
-There are **98 bounded execution tasks in twelve blocking sections**. Tasks are deterministic Rust/source/fixture changes; no task requires repeated LLM inference, rebuilding semantic Dreams, model calls, or restarting historical normalization. The full Arcana/Lexicon source graph is refreshed **once after source stabilization**, not once per task. Long opt-in historical oracles run at the phase integration/corpus gates, not in every owner checkpoint.
+There are **98 stable numbered execution tasks in twelve formal acceptance sections**. The owner-lifecycle work embedded in P3.3 proved larger than its original task breakdown, so the [execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md) now identifies narrower, evidence-backed enabling checkpoints. These do not expand the 98-task denominator or claim gate acceptance. Tasks are deterministic Rust/source/fixture changes; no task requires repeated LLM inference, rebuilding semantic Dreams, model calls, or restarting historical normalization. The full Arcana/Lexicon source graph is refreshed **once after source stabilization**, not once per task. Long opt-in historical oracles run at the phase integration/corpus gates, not in every owner checkpoint.
 
 ## Problem statement
 
@@ -69,7 +70,7 @@ Arrow means **consumer depends on dependency**, not ownership transfer. The acce
 
 Choose a **staged hard cut**, not perpetual expand-contract. Before each subsystem cut, record the final owner/function and all consumers. Move the implementation once, migrate callers directly, delete old paths and prove the production dependency direction. A short, explicitly bounded **red migration window** is allowed while coherent source consumers move; localized tests apply during the cut, full Rust/integration gates at the named block closure. Temporary wrappers are allowed only when an actual external API requires them, and remain outward delegates rather than dual internal owners.
 
-**Dependency/order constraints:** P3.0→P3.1 are mandatory prerequisites. P3.2 establishes History; P3.3–P3.6 converge higher Maintenance and existing rewrite/reconciliation. P3.7 Import depends on stable owner proof and History seams. P3.8 freezes the corrected settlement representation. **P3.9 is the only planned format-changing migration**, with separate approved design, proof tests, disposable conversion, canonical corpus promotion/commit, and immediate old codec/converter deletion. P3.10 ratchets once code stabilizes; P3.11 is a full integration/behavior/history/corpus gate. Independent narrow tests may run in parallel; no simultaneous edits to `src/facade`/import completion without explicit single owner.
+**Dependency/order constraints:** P3.0→P3.1 are mandatory prerequisites. Owner-lifecycle REL/PHY reconstruction and bounded replay are explicit enabling checkpoints before M3 acceptance, not a new DAG component or a second M3 policy owner. Verified History, pruning and Import preparations may be credited against later tasks without granting their formal gate ahead of its declared prerequisite; full P3 prune/reclaim acceptance is not an implicit M3 prerequisite. The [execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md) controls the checkpoint ledger and paused hard-cut handoff.  P3.2 establishes History; P3.3–P3.6 converge higher Maintenance and existing rewrite/reconciliation. P3.7 Import depends on stable owner proof and History seams. P3.8 freezes the corrected settlement representation. **P3.9 is the only planned format-changing migration**, with separate approved design, proof tests, disposable conversion, canonical corpus promotion/commit, and immediate old codec/converter deletion. P3.10 ratchets once code stabilizes; P3.11 is a full integration/behavior/history/corpus gate. Independent narrow tests may run in parallel; no simultaneous edits to `src/facade`/import completion without explicit single owner.
 
 **Testing policy:** deterministic Rust source/tests and immutable six-file history oracles only. Real model inference is not a phase requirement. No repeated exhaustive full-scan or 6,000-second history oracle per step. Run focused tests per move, full Rust suite at H3/M3/I3/C3 final integration as appropriate, the exhaustive oracle on converted corpus only after freeze and at final A3. Use the source index/Arcana if **already current**, otherwise targeted `rg`; regenerate source graph **once** at D3. Never relaunch index scans to answer documentation questions.
 
@@ -95,7 +96,7 @@ Choose a **staged hard cut**, not perpetual expand-contract. Before each subsyst
 | --- | --- | --- | --- |
 | **P3.1.01** | B0 | Define History deep interface over accepted read-only owner cuts and proofs | History never owns writer, Freshness reinforcement or Maintenance/Import dependency |
 | **P3.1.02** | P3.1.01 | Define Maintenance as coordinator for explicit prune, reclaim, repair, rewrite and generic reconciliation | Owner-specific validation stays in each store; no reverse import |
-| **P3.1.03** | P3.1.02 | Define Import as exclusive epoch/readiness/completion, historical settlement and epoch-aware reconciliation coordinator | Import invokes lower History/owner/Maintenance primitives, never the reverse |
+| **P3.1.03** | P3.1.02 | Define Import as exclusive epoch/readiness/completion, historical settlement and epoch-aware reconciliation coordinator | Import invokes permitted lower History/owner/owner-lifecycle primitives; neither Import → Maintenance nor the reverse is allowed |
 | **P3.1.04** | P3.1.03 | Choose concrete existing inspect/plan/authorize/emit/verify/publish shapes and error boundaries | No universal transaction manager, service locator or duplicate replay |
 | **P3.1.05** | P3.1.04 | Freeze current file identity, read snapshot, exclusive write lease, collision, generation and crash/retry guarantees | Failed read/plan leaves bytes unchanged; fail closed on stale source |
 | **P3.1.06** | P3.1.05 | Specify temporary Cva/PHY/CLI public adapters above operation owners until Phase 6 | Thin delegation, not duplicate policy or bidirectional facade dependency |
@@ -124,13 +125,13 @@ Choose a **staged hard cut**, not perpetual expand-contract. Before each subsyst
 | Task | Prerequisite | Concrete change | Verification/deletion obligation |
 | --- | --- | --- | --- |
 | **P3.3.01** | H3 | Bind owner-neutral maintenance manifest store and proof metadata to high Maintenance operation | No second manifest store or generic semantic owner |
-| **P3.3.02** | P3.3.01 | Move cross-owner retention/eligibility policy out of facade/store reachthrough into Maintenance using owner proofs | Exact owner authorization and invalid-reference rejection |
+| **P3.3.02** | P3.3.01 | Establish the single Maintenance authorization and cross-owner retention/eligibility admission boundary using owner proofs; complete operation-specific prune/reclaim policy at P3.4 | Exact owner authorization and invalid-reference rejection; no implicit full P3 gate |
 | **P3.3.03** | P3.3.02 | Compose accepted watermark, publication and relocation-normalized history proof through History | No `History -> Maintenance` backreach |
 | **P3.3.04** | P3.3.03 | Preserve REL Archive retention versus PHY own-domain maintenance limits | No automatic cross-scope access or Archive behavior added to PHY |
 | **P3.3.05** | P3.3.04 | Freeze explicit maintenance authorizer and stable source snapshot before destructive transformed copy | Ordinary owner open remains byte-pure |
 | **P3.3.06** | P3.3.05 | Keep Phase 1 tail/compaction/Entity repair explicitly selected and properly writer-guarded | No new auto-repair, no temporary unsafe write route |
 | **P3.3.07** | P3.3.06 | Migrate supported public maintenance entrypoints to thin outward error-mapping dispatch | Same API/CLI semantics and refusal outcomes |
-| **P3.3.08** | P3.3.07 | Delete duplicated facade maintenance policy, tests against canonical service boundary | M3 no store-to-Maintenance/facade dependency |
+| **P3.3.08** | P3.3.07 | Delete duplicated facade Maintenance authorization/repair and common policy routes moved in M3; remove domain-specific prune/reclaim duplicates under P3.4 | M3 no store-to-Maintenance/facade dependency; P3 remains independently gated |
 
 **Gate M3:** One Maintenance mutation authorization boundary; accepted owner-local facts and Phase 1 file identity/lease upheld.
 
