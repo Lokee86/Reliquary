@@ -1,5 +1,5 @@
 use crate::{Cva, CvaReconcileError, CvaReconcileResult};
-use std::fs::{self, File};
+use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -140,17 +140,9 @@ fn sibling_path(path: &Path, suffix: &str) -> PathBuf {
 }
 
 pub(crate) fn atomic_replace(from: &Path, to: &Path) -> Result<(), CvaReconcileError> {
-    fs::rename(from, to)?;
-    Ok(())
+    crate::atomic_publication::atomic_replace(from, to).map_err(CvaReconcileError::from)
 }
 
-#[cfg(unix)]
 pub(crate) fn sync_parent(parent: &Path) -> Result<(), CvaReconcileError> {
-    File::open(parent)?.sync_all()?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-pub(crate) fn sync_parent(_parent: &Path) -> Result<(), CvaReconcileError> {
-    Ok(())
+    crate::atomic_publication::sync_parent(parent).map_err(CvaReconcileError::from)
 }

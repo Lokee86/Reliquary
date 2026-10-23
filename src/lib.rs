@@ -372,7 +372,7 @@ pub use freshness_event_proof::{FreshnessEventCut, FreshnessEventProof};
 #[path = "facade/cva_freshness_due.rs"]
 mod cva_freshness_due;
 pub use cva_freshness_due::FreshnessTransitionNotice;
-#[path = "facade/cva_memory_publish.rs"]
+#[path = "owner_lifecycle/memory_publish.rs"]
 mod cva_memory_publish;
 #[path = "facade/cva_memory_retrieval.rs"]
 mod cva_memory_retrieval;
@@ -385,26 +385,34 @@ mod cva_packed_vectors;
 mod cva_principal_repack;
 #[path = "facade/cva_reconcile.rs"]
 mod cva_reconcile;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_archive.rs"]
 mod cva_reconcile_archive;
-#[path = "maintenance/cva_reconcile_conflict.rs"]
+#[path = "owner_lifecycle/cva_reconcile_conflict.rs"]
 mod cva_reconcile_conflict;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_conflict_map.rs"]
 mod cva_reconcile_conflict_map;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_entity.rs"]
 mod cva_reconcile_entity;
-#[path = "maintenance/cva_reconcile_error.rs"]
+#[path = "owner_lifecycle/cva_reconcile_error.rs"]
 mod cva_reconcile_error;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_freshness.rs"]
 mod cva_reconcile_freshness;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_graph.rs"]
 mod cva_reconcile_graph;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_interaction.rs"]
 mod cva_reconcile_interaction;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_memory.rs"]
 mod cva_reconcile_memory;
 #[path = "facade/cva_reconcile_promote.rs"]
 mod cva_reconcile_promote;
+#[cfg(test)]
 #[path = "facade/cva_reconcile_relationship.rs"]
 mod cva_reconcile_relationship;
 #[path = "facade/cva_reconcile_repack.rs"]
@@ -1861,3 +1869,27 @@ mod cva_import_completion;
 
 #[path = "archive/ordered_replay.rs"]
 pub(crate) mod archive_ordered_replay;
+
+#[path = "owner_lifecycle/reconciliation_values.rs"]
+mod reconciliation_values;
+
+#[path = "perception/entity_ordered_replay.rs"]
+pub(crate) mod entity_ordered_replay;
+
+#[path = "perception/relationship_ordered_replay.rs"]
+pub(crate) mod relationship_ordered_replay;
+
+#[path = "semantic_graph/ordered_replay.rs"]
+mod graph_ordered_replay;
+
+#[path = "archive/interaction_stream_reconciliation.rs"]
+mod interaction_stream_reconciliation;
+
+#[path = "owner_lifecycle/atomic_publication.rs"]
+mod atomic_publication;
+
+#[path = "owner_lifecycle/memory_ordered_replay.rs"]
+mod memory_ordered_replay;
+
+#[path = "facade/cva_native_import.rs"]
+mod cva_native_import;

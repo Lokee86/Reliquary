@@ -117,3 +117,26 @@ pub(crate) use reliquary_accepted_replay::{
 #[path = "owner_lifecycle/import_session.rs"]
 mod import_session;
 pub(crate) use import_session::ImportSession;
+
+#[path = "owner_lifecycle/graph_ordered_replay.rs"]
+pub(crate) mod graph_ordered_replay;
+
+#[path = "owner_lifecycle/archive_ordered_replay.rs"]
+pub(crate) mod archive_ordered_replay;
+#[path = "owner_lifecycle/archive_replay_error.rs"]
+pub(crate) mod archive_replay_error;
+
+#[path = "owner_lifecycle/physical_copy.rs"]
+pub(crate) mod physical_copy;
+
+#[path = "owner_lifecycle/freshness_reconciliation.rs"]
+pub(crate) mod freshness_reconciliation;
+
+#[path = "owner_lifecycle/native_import.rs"]
+pub(crate) mod native_import;
+
+#[path = "owner_lifecycle/dream_begin_transport.rs"]
+pub(crate) mod dream_begin_transport;
+
+#[path = "owner_lifecycle/grouped_import_replay.rs"]
+pub(crate) mod grouped_import_replay;

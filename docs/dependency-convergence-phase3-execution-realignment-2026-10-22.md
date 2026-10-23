@@ -98,7 +98,7 @@ Next source work is **P3.5/W3 rewrite**. Preserve the source receipts and curren
 
 ## W3 accepted continuation
 
-Current progress is **67/119 closed (56.3%)**: **47 original tasks accepted + 20 added tasks verified**; **I.03 remains active and 51 original tasks remain pending**. **B0/B1/H3/M3/P3/W3 are accepted locally (6/12)**. The [W3 receipt](../benchmarks/dependency-convergence-phase3-rewrite-2026-10-22.json) records 1,975 bounded library passes, 18 public rewrite contract passes and 32 CLI passes, exact source hashes, planner/physical/owner guards and unchanged canonical hashes. The original eight P3.5 obligations close on their distinct canonical policy, immutable input, concrete emission, exact selection, source/lineage refusal, public integration and obsolete-route deletion evidence.
+The W3 checkpoint progress was **67/119 closed (56.3%)**: **47 original tasks accepted + 20 added tasks verified**; **I.03 remains active and 51 original tasks remain pending**. **B0/B1/H3/M3/P3/W3 are accepted locally (6/12)**. The [W3 receipt](../benchmarks/dependency-convergence-phase3-rewrite-2026-10-22.json) records 1,975 bounded library passes, 18 public rewrite contract passes and 32 CLI passes, exact source hashes, planner/physical/owner guards and unchanged canonical hashes. The original eight P3.5 obligations close on their distinct canonical policy, immutable input, concrete emission, exact selection, source/lineage refusal, public integration and obsolete-route deletion evidence.
 
 Next work is **P3.6/R3**, separating generic Maintenance reconciliation from Import epoch policy. Reuse the accepted local Archive replay and validated lifecycle/History seams. No Import-to-Maintenance callback is permitted. I3 remains after R3; S3/C3 still require measured representation alternatives and verified current-only corpus conversion; D3/A3 retain the single source refresh and full long/oracle acceptance obligations.
 
@@ -111,3 +111,13 @@ Next work is **P3.6/R3**, separating generic Maintenance reconciliation from Imp
 ## Notes
 
 A passing bounded batch does not replace A3 full integration or the C3 converted-corpus oracle. The four deferred long tests, ignored opt-in tests and earlier H3 full-run identity anomaly remain explicit acceptance obligations.
+
+
+## R3 continuation verification
+
+The [reconciliation receipt](../benchmarks/dependency-convergence-phase3-reconciliation-2026-10-22.json) records the generic Maintenance move, lower producer replay, explicit Import coordinate mapping and identity-owned cleanup. The bounded library run passed 1,975 tests before final review corrections; final source passed 86 reconciliation tests and 90 Import tests. Owner/History production guards and negative fixtures pass, as does the physical boundary guard. Full/changed documentation policy, Archivist integrity and all 32 CLI tests passed for this continuation. I3's remaining callback consumers are explicitly enumerated in the receipt.
+
+Independent Luna preparation also produced the [six-file settlement field audit](../benchmarks/dependency-convergence-phase3-settlement-field-audit-2026-10-22.json). The 207,071-byte event-spine candidate is conditional on framed-import proof reconstruction and is not approved for initial unframed scopes; the full-authority dictionary layout models 1,140,580 bytes. These are measurements only. No S3 selection, codec change, C3 conversion, source graph refresh or final A3 oracle is claimed.
+
+
+The accepted R3 continuation closes the eight original P3.6 tasks: **75/119 closed (63.0%) = 55 original accepted + 20 added verified**, with **I.03 active and 43 original pending**. Gates B0/B1/H3/M3/P3/W3/R3 are accepted locally (7/12). Continue **P3.7/I3** from the remaining consumer list in the receipt; no renewed source graph capture or settlement codec change is authorized ahead of the specified gates.

@@ -146,7 +146,7 @@ fn replay_archive_tail(
             Ok(()) => {}
             Err(ArchiveReplayWriteError::Archive(error)) => {
                 return Err(
-                    crate::maintenance::archive_replay_error::archive_replay_error(
+                    crate::owner_lifecycle::archive_replay_error::archive_replay_error(
                         &destination.archive,
                         &entry.record,
                         error,

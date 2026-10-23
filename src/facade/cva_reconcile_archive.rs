@@ -1,4 +1,3 @@
-use crate::cva_reconcile::with_replayed_transaction_time;
 use crate::cva_reconcile_conflict_map::archive_replay_error;
 use crate::{Cva, CvaReconcileError};
 
@@ -68,11 +67,10 @@ pub(crate) fn replay_file_memory_links(
     destination: &mut Cva,
     links: &[FileMemoryLinkReplay],
 ) -> Result<usize, CvaReconcileError> {
-    let before = destination.archive_version();
-    for entry in links {
-        with_replayed_transaction_time(destination, entry.transaction_time_ns, |destination| {
-            destination.link_file_to_memory(entry.link.file_id, entry.link.memory_id)
-        })?;
-    }
-    Ok(destination.archive_version().saturating_sub(before) as usize)
+    crate::owner_lifecycle::archive_ordered_replay::replay_file_memory_links(
+        &mut destination.container,
+        &mut destination.archive,
+        &destination.memories,
+        links,
+    )
 }

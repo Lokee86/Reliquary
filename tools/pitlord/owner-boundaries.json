@@ -1579,13 +1579,13 @@
       "classification": "production"
     },
     {
-      "path": "src/maintenance/cva_reconcile_error.rs",
-      "component": "maintenance",
+      "path": "src/owner_lifecycle/cva_reconcile_error.rs",
+      "component": "owner-lifecycle",
       "classification": "production"
     },
     {
-      "path": "src/maintenance/cva_reconcile_conflict.rs",
-      "component": "maintenance",
+      "path": "src/owner_lifecycle/cva_reconcile_conflict.rs",
+      "component": "owner-lifecycle",
       "classification": "production"
     },
     {
@@ -1649,13 +1649,133 @@
       "classification": "production"
     },
     {
-      "path": "src/maintenance/archive_replay_error.rs",
+      "path": "src/archive/ordered_replay.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reconciliation_values.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/entity_ordered_replay.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/relationship_ordered_replay.rs",
+      "component": "perception-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/semantic_graph/ordered_replay.rs",
+      "component": "graph-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/graph_ordered_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/archive/interaction_stream_reconciliation.rs",
+      "component": "archive-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/atomic_publication.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_ordered_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/memory_publish.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/physical_copy.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/archive_ordered_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/archive_replay_error.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_compare.rs",
       "component": "maintenance",
       "classification": "production"
     },
     {
-      "path": "src/archive/ordered_replay.rs",
-      "component": "archive-store",
+      "path": "src/maintenance/reconciliation_copy.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/freshness_reconciliation.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/freshness_reconciliation.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/freshness_reconciliation.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/reconciliation.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_repack.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_replay.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reconciliation_owner_access.rs",
+      "component": "maintenance",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/native_commit.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/native_import.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/dream_begin_transport.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/grouped_import_replay.rs",
+      "component": "owner-lifecycle",
       "classification": "production"
     }
   ],
@@ -1838,11 +1958,11 @@
     },
     {
       "module": "cva_reconcile_error",
-      "component": "maintenance"
+      "component": "owner-lifecycle"
     },
     {
       "module": "cva_reconcile_conflict",
-      "component": "maintenance"
+      "component": "owner-lifecycle"
     },
     {
       "module": "maintenance::rewrite",
@@ -1893,12 +2013,112 @@
       "component": "maintenance"
     },
     {
-      "module": "maintenance::archive_replay_error",
+      "module": "archive_ordered_replay",
+      "component": "archive-store"
+    },
+    {
+      "module": "reconciliation_values",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "entity_ordered_replay",
+      "component": "perception-store"
+    },
+    {
+      "module": "relationship_ordered_replay",
+      "component": "perception-store"
+    },
+    {
+      "module": "graph_ordered_replay",
+      "component": "graph-store"
+    },
+    {
+      "module": "owner_lifecycle::graph_ordered_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "interaction_stream_reconciliation",
+      "component": "archive-store"
+    },
+    {
+      "module": "atomic_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "memory_ordered_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "cva_memory_publish",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::physical_copy",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::archive_ordered_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::archive_replay_error",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "maintenance::reconciliation_compare",
       "component": "maintenance"
     },
     {
-      "module": "archive_ordered_replay",
-      "component": "archive-store"
+      "module": "maintenance::reconciliation_copy",
+      "component": "maintenance"
+    },
+    {
+      "module": "owner_lifecycle::insomnia_replay",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "history::freshness_reconciliation",
+      "component": "history"
+    },
+    {
+      "module": "maintenance::freshness_reconciliation",
+      "component": "maintenance"
+    },
+    {
+      "module": "owner_lifecycle::freshness_reconciliation",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "freshness::reconciliation",
+      "component": "freshness-store"
+    },
+    {
+      "module": "maintenance::reconciliation_repack",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reconciliation_replay",
+      "component": "maintenance"
+    },
+    {
+      "module": "maintenance::reconciliation_owner_access",
+      "component": "maintenance"
+    },
+    {
+      "module": "imports::native_commit",
+      "component": "import"
+    },
+    {
+      "module": "owner_lifecycle::native_import",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::dream_begin_transport",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::grouped_import_replay",
+      "component": "owner-lifecycle"
     }
   ],
   "producer_value_contracts": [

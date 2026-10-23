@@ -32,65 +32,6 @@ pub(crate) enum SemanticSourceReadiness {
 }
 
 impl Cva {
-    pub(crate) fn freshness_replay_semantic_event(
-        &mut self,
-        event_id: String,
-        evidence: crate::freshness_storage::SemanticEventEvidence,
-        effects: std::collections::BTreeMap<crate::MemoryId, i16>,
-    ) -> Result<(), CvaError> {
-        let owner = self.owner_uuid().ok_or(CvaError::InvalidContainerIdentity(
-            "semantic replay requires owner",
-        ))?;
-        if evidence.owner_uuid != owner
-            || self.semantic_evidence_position(&evidence)? != evidence.accepted_turn
-            || event_id != evidence.event_id()
-            || evidence.base_policy_digest != freshness_policy_digest(self.freshness.policy())
-            || evidence.semantic_policy_version != SemanticPolicy::default().version
-            || evidence.semantic_policy_digest
-                != SemanticPolicy::default()
-                    .digest()
-                    .map_err(|e| CvaError::Freshness(e.to_string()))?
-        {
-            return Err(CvaError::Freshness(
-                "unsupported or conflicting semantic replay evidence".into(),
-            ));
-        }
-        if self
-            .freshness
-            .contains_event(&event_id)
-            .map_err(CvaError::Freshness)?
-        {
-            return if self
-                .freshness
-                .semantic_event_matches(&event_id, &evidence, &effects)
-                .map_err(CvaError::Freshness)?
-            {
-                Ok(())
-            } else {
-                Err(CvaError::Freshness(
-                    "semantic replay identity conflicts".into(),
-                ))
-            };
-        }
-        let payload = self
-            .freshness
-            .encode_semantic_event(owner, evidence.clone(), effects.clone())
-            .map_err(CvaError::Freshness)?;
-        self.freshness
-            .validate_semantic_preappend(owner, &payload)
-            .map_err(CvaError::Freshness)?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
-            .map_err(CvaError::Freshness)?;
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.freshness
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)?;
-        self.freshness_refresh_due(effects.keys().copied(), evidence.accepted_turn)?;
-        Ok(())
-    }
-
     /// Rediscover retained fragments containing this accepted turn; each fragment
     /// is independently accepted once at its availability. No new fragments are created.
     pub(crate) fn apply_accepted_semantic_reinforcement(
@@ -237,14 +178,7 @@ impl Cva {
 }
 
 fn freshness_policy_digest(policy: crate::freshness::FreshnessPolicy) -> [u8; 32] {
-    let mut digest = Sha256::new();
-    digest.update(b"reliquary:freshness-policy:v1\0");
-    digest.update(policy.decay_turns_per_point.to_le_bytes());
-    digest.update(policy.access_principal.to_le_bytes());
-    digest.update(policy.linkage_principal.to_le_bytes());
-    digest.update(policy.local_hop_cost.to_le_bytes());
-    digest.update(policy.outside_hop_cost.to_le_bytes());
-    digest.finalize().into()
+    crate::freshness::semantic_policy::freshness_policy_digest(policy)
 }
 
 #[cfg(test)]

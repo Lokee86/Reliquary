@@ -1,0 +1,792 @@
+{
+  "schema": 2,
+  "purpose": "read-only physical CVAFRS06 field audit and modeled candidate sizes; no acceptance claim",
+  "baseline": "benchmarks/dependency-convergence-phase3-baseline-2026-10-22.json",
+  "baseline_source_commit": "1380d0b",
+  "baseline_file_count": 6,
+  "container_framing": {
+    "header": "CVA magic, v2.0, little-endian header length (16 or 40 bytes)",
+    "chunk": "u64 little-endian payload length followed by exact payload bytes",
+    "publication": "CVAPUB01 envelope, body offset 17 for clock tag 0/2 or 25 for tag 1"
+  },
+  "codec_basis": {
+    "source": "src/freshness/freshness_semantic_settlement.rs encode/decode; src/freshness_storage.rs put_record",
+    "record_wire_bytes": "i16 score; optional admitted and accounted turns (each tag+u64); exact observed bytes are retained per record, including tag-dependent lengths",
+    "candidate_size_status": "modeled exact byte counts for the described schemas; no new codec implemented"
+  },
+  "aggregate": {
+    "current_payload_bytes": 7415717,
+    "current_physical_frame_bytes": 7415741,
+    "lossless_dictionary_bytes": 1434615,
+    "lossless_prefix_delta_deduplicated_bytes": 1140580,
+    "event_spine_reconstruction_bytes": 314133,
+    "event_spine_retained_postimages_bytes": 207071,
+    "field_bytes": {
+      "magic": 24,
+      "owner_uuid": 48,
+      "identity_and_proof_digests": 672,
+      "activity_and_owner_cuts": 144,
+      "reserved": 3,
+      "born_memory_ids": 150252,
+      "affected_recipient_ids": 150252,
+      "source_nodes": 1943288,
+      "accepted_event_count": 12,
+      "accepted_event_ids": 12765,
+      "accepted_event_payload_digests": 3552,
+      "accepted_event_turns": 888,
+      "accepted_event_recipient_sets": 4759100,
+      "superseded_ids": 12777,
+      "cohort_ids": 150252,
+      "record_count": 12,
+      "record_keys": 150240,
+      "record_values": 81340,
+      "checksum": 96
+    },
+    "counts": {
+      "born_memories": 4695,
+      "affected_recipients": 4695,
+      "source_nodes": 25294,
+      "accepted_events": 111,
+      "event_recipient_occurrences": 148708,
+      "distinct_event_recipients": 4674,
+      "superseded_events": 111,
+      "cohort": 4695,
+      "freshness_records": 4695,
+      "distinct_memory_ids_across_fields": 4695,
+      "distinct_text_values_across_fields": 22111,
+      "unique_event_recipient_sets": 111,
+      "duplicate_event_recipient_set_occurrences": 0,
+      "unique_freshness_record_values": 1679,
+      "duplicate_freshness_record_value_occurrences": 3016,
+      "duplicate_source_node_pairs_within_settlement": 0
+    }
+  },
+  "candidate_comparison": {
+    "lossless_dictionary": "Full semantic authority retained. Sorted unique MemoryId and UTF-8 text dictionaries replace repeated inline values with ULEB128 indexes; all event digests/turns/effects, cohorts and complete records remain. No semantic reconstruction dependency.",
+    "lossless_prefix_delta_deduplicated": "Full semantic authority retained. Adds UTF-8 byte prefix-compressed strings, sorted MemoryId dictionary, a deduplicated shared table of sorted per-field ID sets encoded as delta ULEB indexes, and a deduplicated table of exact variable-length record-value bytes. Event recipient sets are re-used when equal to another field/event set.",
+    "event_id_spine_reconstruction": "Aggressive optimistic bound: retains selected event IDs plus a superseded tag and one ordered leaf commitment, but drops FreshnessRecord postimages and requires excluded-settlement replay to reconstruct them. This has a circularity/replay risk and is not the smallest justified no-semantic-loss candidate.",
+    "event_id_spine_retained_postimages": "Conditional framed-scope candidate only: preserves all exact FreshnessRecord postimages, affected/cohort sets, accepted event IDs, superseded tags, and a commitment; derives source_nodes and born IDs from retained framed proofs and resolves event details by exact IDs. It avoids circular postimage replay. Not justified for all current supported scopes because an initial/unframed legacy predecessor has no ImportStart/receipt from which exact source_nodes can be derived, yet Freshness validation and scope consumers still use them.",
+    "smallest_currently_justified_without_semantic_reconstruction": {
+      "candidate": "lossless_prefix_delta_deduplicated",
+      "bytes": 1140580,
+      "reason": "The current implementation explicitly supports initial/unframed settlements. Their source_nodes cannot be assumed derivable from an Archive ImportReceipt; preserving all authority fields is the only measured candidate here that is safe across framed and initial scopes without a separately proven initial-source derivation or contract change."
+    },
+    "two_stage_hydration_feasibility": {
+      "framed_scopes": "Architecturally feasible without codec callbacks or Archive/Insomnia logic in Freshness: Freshness decodes a compact envelope retaining postimages, cuts, sets, event IDs and root; Freshness resolves exact event IDs/leaves using its own journal. After owner stores are finished, History derives source_nodes from ImportStart+Archive ImportReceipt and born IDs from Insomnia completion/Episode/Memory first-mutation proofs, then validates/hydrates before exposing the final settlement projection.",
+      "initial_unframed_scopes": "Not proven feasible for the 207,071-byte candidate. `history/epoch_scope_proof.rs` explicitly takes an InitialHistory branch when no epoch exists, requiring base_cut=0 and born_memories=cohort but with no receipt to reconstruct source_nodes. `freshness_import_events.rs::validate_semantic_import_evidence` uses source_nodes to authorize superseded source events, and `scope_identity()` exposes the exact set to callers. Retain source_nodes for this branch or establish a new exact derivation and update/prove all consumers before counting these savings.",
+      "minimal_seam": "Use a distinct decoded compact-envelope type in Freshness; locally validate exact event IDs/root and apply retained record postimages; defer the source/birth-dependent supersession check. Add a History-owned finalizer after Archive/Memory/epoch reconstruction and before final validation/public exposure. History must hydrate a complete semantic settlement, with the initial branch retaining source_nodes (or a separately proven equivalent). Completion hashing remains over exact physical compact bytes.",
+      "current_blockers": [
+        "FreshnessStore::ingest_import_settlement currently decodes full semantic authority and calls validate_semantic_import_evidence immediately.",
+        "History::validate_settlement_scope requires semantic Some, then validates framed receipt/birth proofs or the explicit InitialHistory path.",
+        "Import readiness and reconciliation consume scope_identity source_nodes/born_memories; they cannot receive an unresolved projection.",
+        "Completion proof decodes the settlement before final History hydration and binds the raw payload digest; the compact envelope must expose owner/import/start/cut identity during that scan."
+      ]
+    },
+    "retained_evidence_and_transforms": {
+      "prune_reclaim": "Current REL prune/reclaim validation compares transformed-copy semantic settlements, ImportEpoch status, Freshness policy/current projection, owner evidence digest, and clocks. A compact format can survive only if Archive ImportReceipt plus required Episode/Node/Insomnia/Memory birth proofs and referenced CVAFRS02 event frames remain available; current transformed-copy proof is the validation seam.",
+      "rewrite": "Current rewrite emits a new owner generation and does not copy ImportEpochStore/settlement frames; it is a generation boundary rather than preservation of CVAFRS06. Any requirement to inspect old settlement authority across rewrite needs explicit lineage/format scope.",
+      "same_turn_attribution": "Cuts cannot by themselves distinguish exact events at the same activity turn. Preserve accepted event IDs explicitly and resolve each ID uniquely against retained CVAFRS02; recompute canonical digest/turn/recipient leaves and verify the aggregate commitment.",
+      "source_functions": [
+        "src/freshness/freshness_semantic_settlement.rs encode/decode",
+        "src/freshness/freshness_import_events.rs::validate_semantic_import_evidence",
+        "src/freshness/freshness_import_settlement.rs::ingest_import_settlement and scope_identity",
+        "src/history/settlement_scope.rs::validate_settlement_scope",
+        "src/history/epoch_scope_proof.rs::prepare_semantic_import_scope and validate_semantic_import_births",
+        "src/history/transformed_copy.rs::historical_copy_preserves_import_authority",
+        "src/maintenance/reliquary_prune.rs and src/maintenance/reclamation.rs",
+        "src/maintenance/rewrite/file.rs::emit_rel"
+      ]
+    },
+    "limitations": [
+      "Dictionary candidate size assumes a new canonical schema with deterministic lexicographic dictionaries and ULEB128 indexes; bytes are exact for that stated layout, not measured runtime output.",
+      "Reconstruction candidate savings are conditional. The postimage-retaining candidate avoids base-state replay but still requires retained owner proofs, exact event lookup, transform retention and completion-digest migration to be proven at S3/C3.",
+      "The report keeps baseline source hashes and file sizes; a checksum validates each settlement payload. No corpus bytes are written."
+    ]
+  },
+  "files": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "path": ".verification-tmp/phase3-before/chatgpt-first14d/project.prj.rel",
+      "bytes": 30742210,
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "header_bytes": 40,
+      "physical_frames": 46989,
+      "publication_envelope_frame_counts": {
+        "publication_envelope_17": 17814
+      },
+      "settlement_count": 1,
+      "settlement_field_bytes": {
+        "magic": 8,
+        "owner_uuid": 16,
+        "identity_and_proof_digests": 224,
+        "activity_and_owner_cuts": 48,
+        "reserved": 1,
+        "born_memory_ids": 35940,
+        "affected_recipient_ids": 35940,
+        "source_nodes": 468564,
+        "accepted_event_count": 4,
+        "accepted_event_ids": 4140,
+        "accepted_event_payload_digests": 1152,
+        "accepted_event_turns": 288,
+        "accepted_event_recipient_sets": 1187344,
+        "superseded_ids": 4144,
+        "cohort_ids": 35940,
+        "record_count": 4,
+        "record_keys": 35936,
+        "record_values": 20748,
+        "checksum": 32
+      },
+      "settlement_totals": {
+        "current_payload_bytes": 1830473,
+        "current_physical_frame_bytes": 1830481,
+        "lossless_dictionary_bytes": 385493,
+        "lossless_prefix_delta_deduplicated_bytes": 330642,
+        "event_spine_reconstruction_bytes": 76310,
+        "event_spine_retained_postimages_bytes": 58014
+      },
+      "settlements": [
+        {
+          "frame_offset": 28911681,
+          "payload_bytes": 1830473,
+          "physical_frame_bytes": 1830481,
+          "physical_frame_overhead_bytes": 8,
+          "publication_envelope_bytes": 0,
+          "payload_sha256": "66352984e788509818cf8ed5e419ba73922359d263335889b9dc5bac80cc60d6",
+          "counts": {
+            "born_memories": 1123,
+            "affected_recipients": 1123,
+            "source_nodes": 5857,
+            "accepted_events": 36,
+            "event_recipient_occurrences": 37100,
+            "distinct_event_recipients": 1118,
+            "superseded_events": 36,
+            "cohort": 1123,
+            "freshness_records": 1123,
+            "distinct_memory_ids_across_fields": 1123,
+            "distinct_text_values_across_fields": 5967,
+            "unique_event_recipient_sets": 36,
+            "duplicate_event_recipient_set_occurrences": 0,
+            "unique_freshness_record_values": 763,
+            "duplicate_freshness_record_value_occurrences": 360,
+            "duplicate_source_node_pairs_within_settlement": 0
+          },
+          "field_bytes": {
+            "magic": 8,
+            "owner_uuid": 16,
+            "identity_and_proof_digests": 224,
+            "activity_and_owner_cuts": 48,
+            "reserved": 1,
+            "born_memory_ids": 35940,
+            "affected_recipient_ids": 35940,
+            "source_nodes": 468564,
+            "accepted_event_count": 4,
+            "accepted_event_ids": 4140,
+            "accepted_event_payload_digests": 1152,
+            "accepted_event_turns": 288,
+            "accepted_event_recipient_sets": 1187344,
+            "superseded_ids": 4144,
+            "cohort_ids": 35940,
+            "record_count": 4,
+            "record_keys": 35936,
+            "record_values": 20748,
+            "checksum": 32
+          },
+          "lossless_dictionary_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "memory_id_dictionary": 35938,
+              "text_dictionary": 223481,
+              "born_memory_id_indexes": 2120,
+              "affected_recipient_id_indexes": 2120,
+              "source_node_text_indexes": 23302,
+              "accepted_event_full_authority": 71430,
+              "superseded_event_text_indexes": 73,
+              "cohort_id_indexes": 2120,
+              "record_keys_and_values": 24580,
+              "checksum": 32
+            },
+            "total_bytes": 385493
+          },
+          "lossless_prefix_delta_deduplicated_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "memory_id_dictionary": 35938,
+              "prefix_compressed_text_dictionary": 213036,
+              "shared_delta_id_set_table": 38298,
+              "born_id_set_reference": 1,
+              "affected_id_set_reference": 1,
+              "source_node_pair_text_indexes": 23302,
+              "accepted_event_full_authority": 1549,
+              "superseded_text_indexes": 73,
+              "cohort_id_set_reference": 1,
+              "record_key_set_reference": 1,
+              "deduplicated_record_value_table": 16009,
+              "record_value_indexes": 2104,
+              "checksum": 32
+            },
+            "total_bytes": 330642,
+            "table_counts": {
+              "memory_ids": 1123,
+              "text_strings": 5967,
+              "id_sets": 37,
+              "unique_record_values": 763
+            },
+            "set_deduplication": {
+              "recipient_set_occurrences": 36,
+              "unique_recipient_sets": 36,
+              "unique_sets_shared_across_all_fields": 37,
+              "source_node_pairs_are_canonical_unique_within_settlement": true
+            }
+          },
+          "event_id_spine_reconstruction_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "event_id_spine_and_superseded_tag": 4101,
+              "affected_recipient_ids_retained": 35940,
+              "replacement_cohort_ids_retained": 35940,
+              "checksum": 32
+            },
+            "total_bytes": 76310,
+            "saved_bytes_vs_current": 1754163,
+            "saved_percent_vs_current": 95.83113217184848,
+            "reconstructed_fields": [
+              "event payload digest, activity turn and recipient effects (resolve accepted event IDs in CVAFRS02)",
+              "born Memory set (Import receipt plus retained Insomnia completion and first Memory publication proof)",
+              "source Nodes (Archive ImportReceipt)",
+              "full FreshnessRecord postimages (replay retained pre-settlement owner history and exact accepted event effects)"
+            ],
+            "retained_fields": [
+              "owner/import/start identity, corpus/manifest/input/policy digests and owner/activity cuts",
+              "accepted event IDs with superseded membership bit and aggregate canonical-leaf commitment",
+              "affected-recipient and replacement-cohort Memory IDs"
+            ],
+            "requires": [
+              "fail closed if any referenced accepted event is missing or its recomputed leaf root differs",
+              "a replay path that excludes the target settlement to avoid circular postimage reconstruction",
+              "retained event history and required base state through prune/repack/rewrite",
+              "preserve accepted same-turn attribution by exact event IDs; cuts alone are insufficient"
+            ]
+          },
+          "event_id_spine_retained_postimages_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "retained_memory_id_dictionary": 35938,
+              "shared_delta_set_table_for_affected_cohort_record_keys": 1126,
+              "affected_set_reference": 1,
+              "cohort_set_reference": 1,
+              "record_key_set_reference": 1,
+              "prefix_compressed_accepted_event_id_table": 2400,
+              "event_spine_indexes_and_superseded_bits": 73,
+              "canonical_event_leaf_commitment": 32,
+              "deduplicated_exact_record_postimages": 16009,
+              "record_value_indexes": 2104,
+              "checksum": 32
+            },
+            "total_bytes": 58014,
+            "saved_bytes_vs_current": 1772459,
+            "saved_percent_vs_current": 96.83065524593917,
+            "table_counts": {
+              "retained_memory_ids": 1123,
+              "deduplicated_id_sets": 1,
+              "accepted_event_ids": 36,
+              "unique_record_values": 763
+            },
+            "reconstructed_from_retained_authority": [
+              "source_nodes from the retained Archive ImportReceipt",
+              "born Memory IDs from import completion, Episode path, revision-1 Memory publication, and first-mutation proof",
+              "event digest, activity turn and recipient effects by exact accepted event ID lookup in retained CVAFRS02"
+            ],
+            "retained_to_avoid_circular_postimage_replay": [
+              "all 20-byte FreshnessRecord postimages, keyed by the exact record-key ID set",
+              "affected and cohort ID sets, exact accepted event ID spine, superseded bit per event, and aggregate event-leaf commitment"
+            ],
+            "proof_obligations": [
+              "resolve every accepted event ID uniquely and verify its canonical digest, turn, recipient effects, and ordered aggregate commitment",
+              "preserve the exact ID spine so same-activity-turn event selection is not inferred from cuts alone",
+              "prove source-node and birth derivation from retained Archive receipt and Memory/Insomnia proofs after prune/reclaim",
+              "update settlement completion hashing to the canonical compact payload and retain exact owner/import identity and cuts"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "path": ".verification-tmp/phase3-before/chatgpt-first14d/user.phy",
+      "bytes": 675300,
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "header_bytes": 40,
+      "physical_frames": 2409,
+      "publication_envelope_frame_counts": {
+        "publication_envelope_17": 1088
+      },
+      "settlement_count": 0,
+      "settlement_field_bytes": {},
+      "settlement_totals": {
+        "current_payload_bytes": 0,
+        "current_physical_frame_bytes": 0,
+        "lossless_dictionary_bytes": 0,
+        "lossless_prefix_delta_deduplicated_bytes": 0,
+        "event_spine_reconstruction_bytes": 0,
+        "event_spine_retained_postimages_bytes": 0
+      },
+      "settlements": []
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "path": ".verification-tmp/phase3-before/chatgpt-first28d/project.prj.rel",
+      "bytes": 76542131,
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "header_bytes": 40,
+      "physical_frames": 151185,
+      "publication_envelope_frame_counts": {
+        "publication_envelope_17": 49956
+      },
+      "settlement_count": 1,
+      "settlement_field_bytes": {
+        "magic": 8,
+        "owner_uuid": 16,
+        "identity_and_proof_digests": 224,
+        "activity_and_owner_cuts": 48,
+        "reserved": 1,
+        "born_memory_ids": 91108,
+        "affected_recipient_ids": 91108,
+        "source_nodes": 1317204,
+        "accepted_event_count": 4,
+        "accepted_event_ids": 3450,
+        "accepted_event_payload_digests": 960,
+        "accepted_event_turns": 240,
+        "accepted_event_recipient_sets": 2594328,
+        "superseded_ids": 3454,
+        "cohort_ids": 91108,
+        "record_count": 4,
+        "record_keys": 91104,
+        "record_values": 46444,
+        "checksum": 32
+      },
+      "settlement_totals": {
+        "current_payload_bytes": 4330845,
+        "current_physical_frame_bytes": 4330853,
+        "lossless_dictionary_bytes": 881375,
+        "lossless_prefix_delta_deduplicated_bytes": 724700,
+        "event_spine_reconstruction_bytes": 185968,
+        "event_spine_retained_postimages_bytes": 118215
+      },
+      "settlements": [
+        {
+          "frame_offset": 72211134,
+          "payload_bytes": 4330845,
+          "physical_frame_bytes": 4330853,
+          "physical_frame_overhead_bytes": 8,
+          "publication_envelope_bytes": 0,
+          "payload_sha256": "047ce66d41d989983aa14aa6fd80117e6ab285d489465e40ddbbf6fb1e895ccf",
+          "counts": {
+            "born_memories": 2847,
+            "affected_recipients": 2847,
+            "source_nodes": 16465,
+            "accepted_events": 30,
+            "event_recipient_occurrences": 81069,
+            "distinct_event_recipients": 2839,
+            "superseded_events": 30,
+            "cohort": 2847,
+            "freshness_records": 2847,
+            "distinct_memory_ids_across_fields": 2847,
+            "distinct_text_values_across_fields": 13052,
+            "unique_event_recipient_sets": 30,
+            "duplicate_event_recipient_set_occurrences": 0,
+            "unique_freshness_record_values": 785,
+            "duplicate_freshness_record_value_occurrences": 2062,
+            "duplicate_source_node_pairs_within_settlement": 0
+          },
+          "field_bytes": {
+            "magic": 8,
+            "owner_uuid": 16,
+            "identity_and_proof_digests": 224,
+            "activity_and_owner_cuts": 48,
+            "reserved": 1,
+            "born_memory_ids": 91108,
+            "affected_recipient_ids": 91108,
+            "source_nodes": 1317204,
+            "accepted_event_count": 4,
+            "accepted_event_ids": 3450,
+            "accepted_event_payload_digests": 960,
+            "accepted_event_turns": 240,
+            "accepted_event_recipient_sets": 2594328,
+            "superseded_ids": 3454,
+            "cohort_ids": 91108,
+            "record_count": 4,
+            "record_keys": 91104,
+            "record_values": 46444,
+            "checksum": 32
+          },
+          "lossless_dictionary_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "memory_id_dictionary": 91106,
+              "text_dictionary": 485176,
+              "born_memory_id_indexes": 5568,
+              "affected_recipient_id_indexes": 5568,
+              "source_node_text_indexes": 65704,
+              "accepted_event_full_authority": 159787,
+              "superseded_event_text_indexes": 61,
+              "cohort_id_indexes": 5568,
+              "record_keys_and_values": 62508,
+              "checksum": 32
+            },
+            "total_bytes": 881375
+          },
+          "lossless_prefix_delta_deduplicated_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "memory_id_dictionary": 91106,
+              "prefix_compressed_text_dictionary": 460403,
+              "shared_delta_id_set_table": 83979,
+              "born_id_set_reference": 1,
+              "affected_id_set_reference": 1,
+              "source_node_pair_text_indexes": 65704,
+              "accepted_event_full_authority": 1291,
+              "superseded_text_indexes": 61,
+              "cohort_id_set_reference": 1,
+              "record_key_set_reference": 1,
+              "deduplicated_record_value_table": 16471,
+              "record_value_indexes": 5352,
+              "checksum": 32
+            },
+            "total_bytes": 724700,
+            "table_counts": {
+              "memory_ids": 2847,
+              "text_strings": 13052,
+              "id_sets": 31,
+              "unique_record_values": 785
+            },
+            "set_deduplication": {
+              "recipient_set_occurrences": 30,
+              "unique_recipient_sets": 30,
+              "unique_sets_shared_across_all_fields": 31,
+              "source_node_pairs_are_canonical_unique_within_settlement": true
+            }
+          },
+          "event_id_spine_reconstruction_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "event_id_spine_and_superseded_tag": 3423,
+              "affected_recipient_ids_retained": 91108,
+              "replacement_cohort_ids_retained": 91108,
+              "checksum": 32
+            },
+            "total_bytes": 185968,
+            "saved_bytes_vs_current": 4144877,
+            "saved_percent_vs_current": 95.70596500221089,
+            "reconstructed_fields": [
+              "event payload digest, activity turn and recipient effects (resolve accepted event IDs in CVAFRS02)",
+              "born Memory set (Import receipt plus retained Insomnia completion and first Memory publication proof)",
+              "source Nodes (Archive ImportReceipt)",
+              "full FreshnessRecord postimages (replay retained pre-settlement owner history and exact accepted event effects)"
+            ],
+            "retained_fields": [
+              "owner/import/start identity, corpus/manifest/input/policy digests and owner/activity cuts",
+              "accepted event IDs with superseded membership bit and aggregate canonical-leaf commitment",
+              "affected-recipient and replacement-cohort Memory IDs"
+            ],
+            "requires": [
+              "fail closed if any referenced accepted event is missing or its recomputed leaf root differs",
+              "a replay path that excludes the target settlement to avoid circular postimage reconstruction",
+              "retained event history and required base state through prune/repack/rewrite",
+              "preserve accepted same-turn attribution by exact event IDs; cuts alone are insufficient"
+            ]
+          },
+          "event_id_spine_retained_postimages_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "retained_memory_id_dictionary": 91106,
+              "shared_delta_set_table_for_affected_cohort_record_keys": 2850,
+              "affected_set_reference": 1,
+              "cohort_set_reference": 1,
+              "record_key_set_reference": 1,
+              "prefix_compressed_accepted_event_id_table": 2011,
+              "event_spine_indexes_and_superseded_bits": 61,
+              "canonical_event_leaf_commitment": 32,
+              "deduplicated_exact_record_postimages": 16471,
+              "record_value_indexes": 5352,
+              "checksum": 32
+            },
+            "total_bytes": 118215,
+            "saved_bytes_vs_current": 4212630,
+            "saved_percent_vs_current": 97.27039411477436,
+            "table_counts": {
+              "retained_memory_ids": 2847,
+              "deduplicated_id_sets": 1,
+              "accepted_event_ids": 30,
+              "unique_record_values": 785
+            },
+            "reconstructed_from_retained_authority": [
+              "source_nodes from the retained Archive ImportReceipt",
+              "born Memory IDs from import completion, Episode path, revision-1 Memory publication, and first-mutation proof",
+              "event digest, activity turn and recipient effects by exact accepted event ID lookup in retained CVAFRS02"
+            ],
+            "retained_to_avoid_circular_postimage_replay": [
+              "all 20-byte FreshnessRecord postimages, keyed by the exact record-key ID set",
+              "affected and cohort ID sets, exact accepted event ID spine, superseded bit per event, and aggregate event-leaf commitment"
+            ],
+            "proof_obligations": [
+              "resolve every accepted event ID uniquely and verify its canonical digest, turn, recipient effects, and ordered aggregate commitment",
+              "preserve the exact ID spine so same-activity-turn event selection is not inferred from cuts alone",
+              "prove source-node and birth derivation from retained Archive receipt and Memory/Insomnia proofs after prune/reclaim",
+              "update settlement completion hashing to the canonical compact payload and retain exact owner/import identity and cuts"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "path": ".verification-tmp/phase3-before/chatgpt-first28d/user.phy",
+      "bytes": 1507220,
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "header_bytes": 40,
+      "physical_frames": 7192,
+      "publication_envelope_frame_counts": {
+        "publication_envelope_17": 2215
+      },
+      "settlement_count": 0,
+      "settlement_field_bytes": {},
+      "settlement_totals": {
+        "current_payload_bytes": 0,
+        "current_physical_frame_bytes": 0,
+        "lossless_dictionary_bytes": 0,
+        "lossless_prefix_delta_deduplicated_bytes": 0,
+        "event_spine_reconstruction_bytes": 0,
+        "event_spine_retained_postimages_bytes": 0
+      },
+      "settlements": []
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "path": ".verification-tmp/phase3-before/rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "bytes": 18315280,
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "header_bytes": 40,
+      "physical_frames": 39144,
+      "publication_envelope_frame_counts": {
+        "publication_envelope_17": 10998
+      },
+      "settlement_count": 1,
+      "settlement_field_bytes": {
+        "magic": 8,
+        "owner_uuid": 16,
+        "identity_and_proof_digests": 224,
+        "activity_and_owner_cuts": 48,
+        "reserved": 1,
+        "born_memory_ids": 23204,
+        "affected_recipient_ids": 23204,
+        "source_nodes": 157520,
+        "accepted_event_count": 4,
+        "accepted_event_ids": 5175,
+        "accepted_event_payload_digests": 1440,
+        "accepted_event_turns": 360,
+        "accepted_event_recipient_sets": 977428,
+        "superseded_ids": 5179,
+        "cohort_ids": 23204,
+        "record_count": 4,
+        "record_keys": 23200,
+        "record_values": 14148,
+        "checksum": 32
+      },
+      "settlement_totals": {
+        "current_payload_bytes": 1254399,
+        "current_physical_frame_bytes": 1254407,
+        "lossless_dictionary_bytes": 167747,
+        "lossless_prefix_delta_deduplicated_bytes": 85238,
+        "event_spine_reconstruction_bytes": 51855,
+        "event_spine_retained_postimages_bytes": 30842
+      },
+      "settlements": [
+        {
+          "frame_offset": 17060825,
+          "payload_bytes": 1254399,
+          "physical_frame_bytes": 1254407,
+          "physical_frame_overhead_bytes": 8,
+          "publication_envelope_bytes": 0,
+          "payload_sha256": "7e6adb0e43ea05376129b94db0ecb785047df415f8b7b02c4c26d9846695f53c",
+          "counts": {
+            "born_memories": 725,
+            "affected_recipients": 725,
+            "source_nodes": 2972,
+            "accepted_events": 45,
+            "event_recipient_occurrences": 30539,
+            "distinct_event_recipients": 717,
+            "superseded_events": 45,
+            "cohort": 725,
+            "freshness_records": 725,
+            "distinct_memory_ids_across_fields": 725,
+            "distinct_text_values_across_fields": 3092,
+            "unique_event_recipient_sets": 45,
+            "duplicate_event_recipient_set_occurrences": 0,
+            "unique_freshness_record_values": 131,
+            "duplicate_freshness_record_value_occurrences": 594,
+            "duplicate_source_node_pairs_within_settlement": 0
+          },
+          "field_bytes": {
+            "magic": 8,
+            "owner_uuid": 16,
+            "identity_and_proof_digests": 224,
+            "activity_and_owner_cuts": 48,
+            "reserved": 1,
+            "born_memory_ids": 23204,
+            "affected_recipient_ids": 23204,
+            "source_nodes": 157520,
+            "accepted_event_count": 4,
+            "accepted_event_ids": 5175,
+            "accepted_event_payload_digests": 1440,
+            "accepted_event_turns": 360,
+            "accepted_event_recipient_sets": 977428,
+            "superseded_ids": 5179,
+            "cohort_ids": 23204,
+            "record_count": 4,
+            "record_keys": 23200,
+            "record_values": 14148,
+            "checksum": 32
+          },
+          "lossless_dictionary_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "memory_id_dictionary": 23202,
+              "text_dictionary": 54919,
+              "born_memory_id_indexes": 1324,
+              "affected_recipient_id_indexes": 1324,
+              "source_node_text_indexes": 11762,
+              "accepted_event_full_authority": 57648,
+              "superseded_event_text_indexes": 91,
+              "cohort_id_indexes": 1324,
+              "record_keys_and_values": 15824,
+              "checksum": 32
+            },
+            "total_bytes": 167747
+          },
+          "lossless_prefix_delta_deduplicated_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "memory_id_dictionary": 23202,
+              "prefix_compressed_text_dictionary": 13089,
+              "shared_delta_id_set_table": 31357,
+              "born_id_set_reference": 1,
+              "affected_id_set_reference": 1,
+              "source_node_pair_text_indexes": 11762,
+              "accepted_event_full_authority": 1936,
+              "superseded_text_indexes": 91,
+              "cohort_id_set_reference": 1,
+              "record_key_set_reference": 1,
+              "deduplicated_record_value_table": 2737,
+              "record_value_indexes": 731,
+              "checksum": 32
+            },
+            "total_bytes": 85238,
+            "table_counts": {
+              "memory_ids": 725,
+              "text_strings": 3092,
+              "id_sets": 46,
+              "unique_record_values": 131
+            },
+            "set_deduplication": {
+              "recipient_set_occurrences": 45,
+              "unique_recipient_sets": 45,
+              "unique_sets_shared_across_all_fields": 46,
+              "source_node_pairs_are_canonical_unique_within_settlement": true
+            }
+          },
+          "event_id_spine_reconstruction_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "event_id_spine_and_superseded_tag": 5118,
+              "affected_recipient_ids_retained": 23204,
+              "replacement_cohort_ids_retained": 23204,
+              "checksum": 32
+            },
+            "total_bytes": 51855,
+            "saved_bytes_vs_current": 1202544,
+            "saved_percent_vs_current": 95.86614785247757,
+            "reconstructed_fields": [
+              "event payload digest, activity turn and recipient effects (resolve accepted event IDs in CVAFRS02)",
+              "born Memory set (Import receipt plus retained Insomnia completion and first Memory publication proof)",
+              "source Nodes (Archive ImportReceipt)",
+              "full FreshnessRecord postimages (replay retained pre-settlement owner history and exact accepted event effects)"
+            ],
+            "retained_fields": [
+              "owner/import/start identity, corpus/manifest/input/policy digests and owner/activity cuts",
+              "accepted event IDs with superseded membership bit and aggregate canonical-leaf commitment",
+              "affected-recipient and replacement-cohort Memory IDs"
+            ],
+            "requires": [
+              "fail closed if any referenced accepted event is missing or its recomputed leaf root differs",
+              "a replay path that excludes the target settlement to avoid circular postimage reconstruction",
+              "retained event history and required base state through prune/repack/rewrite",
+              "preserve accepted same-turn attribution by exact event IDs; cuts alone are insufficient"
+            ]
+          },
+          "event_id_spine_retained_postimages_candidate": {
+            "components": {
+              "fixed_metadata": 297,
+              "retained_memory_id_dictionary": 23202,
+              "shared_delta_set_table_for_affected_cohort_record_keys": 728,
+              "affected_set_reference": 1,
+              "cohort_set_reference": 1,
+              "record_key_set_reference": 1,
+              "prefix_compressed_accepted_event_id_table": 2989,
+              "event_spine_indexes_and_superseded_bits": 91,
+              "canonical_event_leaf_commitment": 32,
+              "deduplicated_exact_record_postimages": 2737,
+              "record_value_indexes": 731,
+              "checksum": 32
+            },
+            "total_bytes": 30842,
+            "saved_bytes_vs_current": 1223557,
+            "saved_percent_vs_current": 97.54129268279073,
+            "table_counts": {
+              "retained_memory_ids": 725,
+              "deduplicated_id_sets": 1,
+              "accepted_event_ids": 45,
+              "unique_record_values": 131
+            },
+            "reconstructed_from_retained_authority": [
+              "source_nodes from the retained Archive ImportReceipt",
+              "born Memory IDs from import completion, Episode path, revision-1 Memory publication, and first-mutation proof",
+              "event digest, activity turn and recipient effects by exact accepted event ID lookup in retained CVAFRS02"
+            ],
+            "retained_to_avoid_circular_postimage_replay": [
+              "all 20-byte FreshnessRecord postimages, keyed by the exact record-key ID set",
+              "affected and cohort ID sets, exact accepted event ID spine, superseded bit per event, and aggregate event-leaf commitment"
+            ],
+            "proof_obligations": [
+              "resolve every accepted event ID uniquely and verify its canonical digest, turn, recipient effects, and ordered aggregate commitment",
+              "preserve the exact ID spine so same-activity-turn event selection is not inferred from cuts alone",
+              "prove source-node and birth derivation from retained Archive receipt and Memory/Insomnia proofs after prune/reclaim",
+              "update settlement completion hashing to the canonical compact payload and retain exact owner/import identity and cuts"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "path": ".verification-tmp/phase3-before/rhelm-david-r-ellis-pre-relationship/user.phy",
+      "bytes": 3180063,
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "header_bytes": 40,
+      "physical_frames": 19588,
+      "publication_envelope_frame_counts": {
+        "publication_envelope_17": 5221
+      },
+      "settlement_count": 0,
+      "settlement_field_bytes": {},
+      "settlement_totals": {
+        "current_payload_bytes": 0,
+        "current_physical_frame_bytes": 0,
+        "lossless_dictionary_bytes": 0,
+        "lossless_prefix_delta_deduplicated_bytes": 0,
+        "event_spine_reconstruction_bytes": 0,
+        "event_spine_retained_postimages_bytes": 0
+      },
+      "settlements": []
+    }
+  ]
+}

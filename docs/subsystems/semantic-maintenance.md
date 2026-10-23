@@ -103,3 +103,6 @@ Explicit retired-Entity reference repair and its read-only inspection are implem
 ## Notes
 
 Completed tombstone/import/pruning/rewrite execution plans are retired. Verification artifacts remain as evidence; current behavior lives here and in the exact API/storage documents.
+
+
+Generic divergent reconciliation is implemented in `src/maintenance/reconciliation_repack.rs`; common-prefix comparison is in `reconciliation_compare.rs`, physical-copy authority checks in `reconciliation_copy.rs`, and Freshness merge/turn policy in `freshness_reconciliation.rs`. Producer-owned ordered replay and explicit lifecycle admission preserve existing conflict/error values, transaction timestamps and terminal-state rules. Epoch-specific continuation remains Import-owned and consumes the shared lower replay/copy primitives. On failure, cleanup checks the exact created destination identity before removing a path. Public reconcile/promote adapters retain source leases and no-overwrite/atomic-promotion behavior. I3 still tracks the remaining Cva-based epoch and historical reconstruction adapters.

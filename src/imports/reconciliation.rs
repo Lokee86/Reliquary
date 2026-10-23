@@ -21,8 +21,8 @@ mod memory_envelope_tests;
 #[path = "reconciliation_resolution_delta_tests.rs"]
 mod resolution_delta_tests;
 use super::{ImportComplete, ImportEpochStatus, ImportStart};
-use crate::cva_reconcile::{CvaComparison, CvaReconcileResult};
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
+use crate::reconciliation_values::{CvaComparison, CvaReconcileResult};
 use crate::{Cva, CvaReconcileError};
 use std::{collections::BTreeMap, path::Path};
 
@@ -78,9 +78,13 @@ pub(crate) fn reconcile_import_epochs(
     let boundary = physical_boundary(&mut right, comparison.common_chunk_count)?;
     validate_replay_interval(&mut right, boundary)?;
     let left_boundary = physical_boundary(&mut left, comparison.common_chunk_count)?;
-    let left_graph = crate::cva_reconcile_graph::read_graph_tail(&mut left, left_boundary)?;
-    let right_graph = crate::cva_reconcile_graph::read_graph_tail(&mut right, boundary)?;
-    crate::cva_reconcile_graph::validate_graph_tails(&left_graph, &right_graph)?;
+    let left_graph =
+        super::reconciliation_interval::read_graph_range(&left, left_boundary, usize::MAX)?;
+    let right_graph =
+        super::reconciliation_interval::read_graph_range(&right, boundary, usize::MAX)?;
+    crate::graph_ordered_replay::replay_skips(&left_graph, &right_graph)
+        .map(|_| ())
+        .map_err(crate::owner_lifecycle::graph_ordered_replay::conflict_error)?;
     if left.rel_metadata() != right.rel_metadata()
         || left.freshness_policy() != right.freshness_policy()
     {
@@ -109,9 +113,6 @@ pub(crate) fn reconcile_import_epochs(
         right_epochs,
         boundary,
     );
-    if result.is_err() {
-        let _ = std::fs::remove_file(output_path);
-    }
     result.map(Some)
 }
 
@@ -239,37 +240,43 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
                 events.push(event);
             }
             if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
-                let normalized =
-                    if let Some(mut pass) = cva.materialized_dream_begin(chunk, &payload)? {
-                        pass.turn = 0;
-                        pass.graph_version_before = 0;
-                        let owner = cva
-                            .owner_uuid()
-                            .ok_or(crate::ContainerError::InvalidIdentity)?;
-                        normalized_dream
-                            .ingest_materialized_begin(owner, pass.clone())
-                            .map_err(crate::CvaError::Freshness)?;
-                        crate::freshness_dream_journal::begin_comparison_carrier(owner, &pass)
-                    } else {
-                        let bytes = crate::dream_replay_transport::rebase_payload(
-                            &normalized_dream,
-                            &payload,
-                            |_| Ok(0),
-                            |_| Ok(0),
-                            |mut proof| {
-                                proof.graph_version = 0;
-                                proof.community_generation = proof.community_generation.map(|_| 0);
-                                proof.community_graph_version =
-                                    proof.community_graph_version.map(|_| 0);
-                                Ok(proof)
-                            },
-                        )
+                let normalized = if let Some(mut pass) =
+                    crate::owner_lifecycle::dream_begin_transport::materialized_dream_begin(
+                        &cva.container,
+                        &cva.archive,
+                        &cva.memories,
+                        chunk,
+                        &payload,
+                    )? {
+                    pass.turn = 0;
+                    pass.graph_version_before = 0;
+                    let owner = cva
+                        .owner_uuid()
+                        .ok_or(crate::ContainerError::InvalidIdentity)?;
+                    normalized_dream
+                        .ingest_materialized_begin(owner, pass.clone())
                         .map_err(crate::CvaError::Freshness)?;
-                        normalized_dream
-                            .ingest(&bytes)
-                            .map_err(crate::CvaError::Freshness)?;
-                        bytes
-                    };
+                    crate::freshness_dream_journal::begin_comparison_carrier(owner, &pass)
+                } else {
+                    let bytes = crate::dream_replay_transport::rebase_payload(
+                        &normalized_dream,
+                        &payload,
+                        |_| Ok(0),
+                        |_| Ok(0),
+                        |mut proof| {
+                            proof.graph_version = 0;
+                            proof.community_generation = proof.community_generation.map(|_| 0);
+                            proof.community_graph_version =
+                                proof.community_graph_version.map(|_| 0);
+                            Ok(proof)
+                        },
+                    )
+                    .map_err(crate::CvaError::Freshness)?;
+                    normalized_dream
+                        .ingest(&bytes)
+                        .map_err(crate::CvaError::Freshness)?;
+                    bytes
+                };
                 if !normalized.is_empty() {
                     dream.push(normalized);
                 }
@@ -280,7 +287,7 @@ fn inventory(cva: &mut Cva) -> Result<BTreeMap<String, CompletedEpoch>, CvaRecon
             {
                 // Global coordinates and transaction serialization time belong
                 // to the source file, not to the accepted extraction identity.
-                cva.hydrate_grouped_import_completion_bodies(&mut completion)?;
+                crate::owner_lifecycle::grouped_import_replay::hydrate_grouped_import_completion_bodies(&mut cva.container,&cva.memories,&mut completion).map_err(crate::owner_lifecycle::OwnerError::from)?;
                 completion.bodies.sort_by_key(|body| body.id.0);
                 for (index, record) in completion.records.iter_mut().enumerate() {
                     let coordinate = u64::try_from(index)

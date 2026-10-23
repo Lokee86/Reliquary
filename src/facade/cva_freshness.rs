@@ -285,39 +285,19 @@ impl Cva {
     /// Starts decay at the first successful active Dream settlement. Repeated calls
     /// preserve the first accepted position.
     pub(crate) fn freshness_admit(&mut self, id: MemoryId, turn: u64) -> Result<bool, CvaError> {
-        self.require_freshness_memory(id)?;
-        if turn > self.archive.rel_turn_count() {
-            return Err(CvaError::Freshness(
-                "admission turn exceeds accepted owner REL activity".into(),
-            ));
-        }
-        if !self.freshness.records().contains_key(&id) {
-            return Err(CvaError::Freshness(
-                "Memory must be explicitly enrolled before admission".into(),
-            ));
-        }
-        let current = self.freshness.records()[&id];
-        let mut admitted = current;
-        if !admitted
-            .admit(turn)
-            .map_err(|error| CvaError::Freshness(error.to_string()))?
-        {
-            return Ok(false);
-        }
-        let owner = self.owner_uuid().ok_or_else(|| {
-            CvaError::Freshness("legacy owner requires explicit migration before admission".into())
-        })?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
-            .map_err(CvaError::Freshness)?;
-        let payload = self.freshness.encode_admit(owner, id, admitted);
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.freshness
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)?;
-        self.freshness_refresh_due([id], turn)?;
-        Ok(true)
+        let owner_uuid = self.owner_uuid();
+        let outcome = crate::owner_lifecycle::freshness_reconciliation::admit(
+            &mut self.container,
+            &self.archive,
+            &self.memories,
+            owner_uuid,
+            &mut self.freshness,
+            id,
+            turn,
+        )?;
+        let changed = outcome.is_some();
+        self.refresh_freshness_replay_due(outcome)?;
+        Ok(changed)
     }
 
     /// Applies a complete event's per-Memory positive candidate maxima as one durable
@@ -1023,35 +1003,21 @@ impl Cva {
         destination_turn: u64,
         admitted_at_birth: bool,
     ) -> Result<(), CvaError> {
-        self.require_freshness_memory(id)?;
-        if self.freshness.records().contains_key(&id) {
-            return Ok(());
-        }
-        if destination_turn > self.archive.rel_turn_count() {
-            return Err(CvaError::Freshness(
-                "replay initialization turn exceeds destination REL activity".into(),
-            ));
-        }
-        let owner = self.owner_uuid().ok_or_else(|| {
-            CvaError::Freshness("legacy owner cannot replay Freshness history".into())
-        })?;
-        self.freshness
-            .persist_policy_if_needed(&mut self.container, owner)
-            .map_err(CvaError::Freshness)?;
-        let mut record = FreshnessRecord::created();
-        if admitted_at_birth {
-            record
-                .admit(destination_turn)
-                .map_err(|error| CvaError::Freshness(error.to_string()))?;
-        }
-        let payload = self
-            .freshness
-            .encode_initialize(owner, id, destination_turn, record);
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.freshness
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)
+        let owner_uuid = self.owner_uuid();
+        let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
+            &mut self.container,
+            &self.archive,
+            &self.memories,
+            owner_uuid,
+            &mut self.freshness,
+            crate::freshness_storage::FreshnessReplayEntry::Initialize {
+                memory_id: id,
+                source_turn: destination_turn,
+                admitted_at_birth,
+            },
+            destination_turn,
+        )?;
+        self.refresh_freshness_replay_due(outcome)
     }
 
     pub(crate) fn freshness_replay_admit(
@@ -1059,8 +1025,20 @@ impl Cva {
         id: MemoryId,
         destination_turn: u64,
     ) -> Result<(), CvaError> {
-        let _ = self.freshness_admit(id, destination_turn)?;
-        Ok(())
+        let owner_uuid = self.owner_uuid();
+        let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
+            &mut self.container,
+            &self.archive,
+            &self.memories,
+            owner_uuid,
+            &mut self.freshness,
+            crate::freshness_storage::FreshnessReplayEntry::Admit {
+                memory_id: id,
+                source_turn: destination_turn,
+            },
+            destination_turn,
+        )?;
+        self.refresh_freshness_replay_due(outcome)
     }
 
     pub(crate) fn freshness_replay_event(
@@ -1071,74 +1049,24 @@ impl Cva {
         effects: BTreeMap<MemoryId, i16>,
         provenance: Option<crate::freshness_storage::FreshnessEventProvenance>,
     ) -> Result<(), CvaError> {
-        if destination_turn > self.archive.rel_turn_count() {
-            return Err(CvaError::Freshness(
-                "replay event turn exceeds destination REL activity".into(),
-            ));
-        }
-        if self
-            .freshness
-            .contains_event(&event_id)
-            .map_err(CvaError::Freshness)?
-        {
-            return if self
-                .freshness
-                .event_matches_with_provenance(
-                    &event_id,
-                    destination_turn,
-                    proof,
-                    &effects,
-                    provenance.as_ref(),
-                )
-                .map_err(CvaError::Freshness)?
-            {
-                Ok(())
-            } else {
-                Err(CvaError::Freshness(
-                    "replayed event identity collides with different payload".into(),
-                ))
-            };
-        }
-        let owner = self.owner_uuid().ok_or_else(|| {
-            CvaError::Freshness("legacy owner cannot replay Freshness history".into())
-        })?;
-        for (id, amount) in &effects {
-            self.require_freshness_memory(*id)?;
-            if *amount <= 0 || *amount > self.freshness.policy().linkage_principal {
-                return Err(CvaError::Freshness(
-                    "replayed event effect exceeds principal bound".into(),
-                ));
-            }
-            let _ = self.freshness.records().get(id).ok_or_else(|| {
-                CvaError::Freshness(format!("Memory {:?} has no Freshness enrollment", id))
-            })?;
-        }
-        let postimages = self
-            .freshness
-            .prepare_event_postimages_for(&event_id, destination_turn, &effects)
-            .map_err(CvaError::Freshness)?;
-        self.freshness
-            .validate_event_payload(&event_id, destination_turn, proof, &effects, &postimages)
-            .map_err(CvaError::Freshness)?;
-        let payload = self
-            .freshness
-            .encode_event_with_provenance(
-                owner,
+        let owner_uuid = self.owner_uuid();
+        let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
+            &mut self.container,
+            &self.archive,
+            &self.memories,
+            owner_uuid,
+            &mut self.freshness,
+            crate::freshness_storage::FreshnessReplayEntry::Event {
                 event_id,
-                destination_turn,
+                source_turn: destination_turn,
+                effects,
                 proof,
-                effects.clone(),
-                postimages,
                 provenance,
-            )
-            .map_err(CvaError::Freshness)?;
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.freshness
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)?;
-        self.freshness_refresh_due(effects.keys().copied(), destination_turn)?;
-        Ok(())
+                semantic: None,
+            },
+            destination_turn,
+        )?;
+        self.refresh_freshness_replay_due(outcome)
     }
 
     pub(crate) fn freshness_replay_accepted_use_receipt(
@@ -1148,29 +1076,63 @@ impl Cva {
         sources: Vec<MemoryId>,
         policy_version: u64,
     ) -> Result<(), CvaError> {
-        if self
-            .freshness
-            .resolve_accepted_use(&use_id, turn, &sources)
-            .map_err(CvaError::Freshness)?
-            .is_some()
-        {
-            return Ok(());
-        }
-        let owner = self
-            .owner_uuid()
-            .ok_or_else(|| CvaError::Freshness("accepted-use replay lacks owner".into()))?;
-        let payload = self.freshness.encode_accepted_use_receipt(
-            owner,
-            use_id,
+        let owner_uuid = self.owner_uuid();
+        let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
+            &mut self.container,
+            &self.archive,
+            &self.memories,
+            owner_uuid,
+            &mut self.freshness,
+            crate::freshness_storage::FreshnessReplayEntry::AcceptedUseReceipt {
+                use_id,
+                source_turn: turn,
+                sources,
+                policy_version,
+            },
             turn,
-            sources,
-            policy_version,
-        );
-        self.container.append(&payload)?;
-        self.container.sync()?;
-        self.freshness
-            .ingest_appended(&payload)
-            .map_err(CvaError::Freshness)
+        )?;
+        self.refresh_freshness_replay_due(outcome)
+    }
+
+    pub(crate) fn freshness_replay_semantic_event(
+        &mut self,
+        event_id: String,
+        evidence: crate::freshness_storage::SemanticEventEvidence,
+        effects: BTreeMap<MemoryId, i16>,
+    ) -> Result<(), CvaError> {
+        let destination_turn = evidence.accepted_turn;
+        let owner_uuid = self.owner_uuid();
+        let outcome = crate::owner_lifecycle::freshness_reconciliation::replay_entry(
+            &mut self.container,
+            &self.archive,
+            &self.memories,
+            owner_uuid,
+            &mut self.freshness,
+            crate::freshness_storage::FreshnessReplayEntry::Event {
+                event_id,
+                source_turn: destination_turn,
+                effects,
+                proof: FreshnessEventProof {
+                    graph_version: 0,
+                    community_generation: None,
+                    community_graph_version: None,
+                },
+                provenance: None,
+                semantic: Some(evidence),
+            },
+            destination_turn,
+        )?;
+        self.refresh_freshness_replay_due(outcome)
+    }
+
+    fn refresh_freshness_replay_due(
+        &mut self,
+        outcome: Option<crate::owner_lifecycle::freshness_reconciliation::RefreshDue>,
+    ) -> Result<(), CvaError> {
+        if let Some(outcome) = outcome {
+            self.freshness_refresh_due(outcome.memories, outcome.turn)?;
+        }
+        Ok(())
     }
 
     pub(crate) fn freshness_publication_birth_ids(&self) -> Vec<MemoryId> {

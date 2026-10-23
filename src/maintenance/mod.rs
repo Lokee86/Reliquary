@@ -27,4 +27,14 @@ pub(crate) use reliquary_prune::{ReliquaryPruneParts, prune_reliquary};
 
 pub(crate) mod rewrite;
 
-pub(crate) mod archive_replay_error;
+pub(crate) mod reconciliation_compare;
+
+pub(crate) mod reconciliation_copy;
+
+pub(crate) mod reconciliation_repack;
+
+pub(crate) mod reconciliation_owner_access;
+
+pub(crate) mod reconciliation_replay;
+
+pub(crate) mod freshness_reconciliation;

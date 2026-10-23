@@ -1,109 +1,37 @@
-use crate::cva_reconcile::with_replayed_transaction_time;
+use crate::graph_ordered_replay::{GraphKey, GraphTailReadError};
+pub(crate) use crate::graph_ordered_replay::{GraphReplayResult, GraphTail};
 use crate::{
     Cva, CvaReconcileConflict, CvaReconcileError, GraphRelationOrigin, SemanticGraphRelationChange,
-    SemanticGraphRelationKind, SemanticNodeRef,
+    SemanticGraphRelationKind,
 };
 use std::collections::HashMap;
-
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-struct GraphKey {
-    source: SemanticNodeRef,
-    target: SemanticNodeRef,
-    kind: SemanticGraphRelationKind,
-}
-
-#[derive(Clone, Debug)]
-struct GraphTailTransaction {
-    single: bool,
-    changes: Vec<SemanticGraphRelationChange>,
-    origin: GraphRelationOrigin,
-    transaction_time_ns: Option<i64>,
-}
-
-pub(crate) struct GraphTail {
-    transactions: Vec<GraphTailTransaction>,
-}
-
-#[cfg(test)]
-impl GraphTail {
-    pub(crate) fn for_test(transactions: Vec<Vec<crate::GraphRelationChange>>) -> Self {
-        Self {
-            transactions: transactions
-                .into_iter()
-                .map(|changes| GraphTailTransaction {
-                    single: changes.len() == 1,
-                    changes: changes.into_iter().map(memory_change).collect(),
-                    origin: GraphRelationOrigin::Dream,
-                    transaction_time_ns: None,
-                })
-                .collect(),
-        }
-    }
-}
-
-pub(crate) struct GraphReplayResult {
-    pub(crate) transactions: usize,
-    pub(crate) mutations: usize,
-    pub(crate) duplicate_mutations: usize,
-    /// True when the source interval contains a Memory relation mutation,
-    /// even if the destination already had the exact relation.
-    pub(crate) source_memory_graph_changed: bool,
-}
-
 #[cfg(test)]
 #[path = "graph_compact_reconcile_tests.rs"]
 mod compact_tests;
-
 pub(crate) fn read_graph_tail(
     cva: &mut Cva,
     start_chunk: usize,
 ) -> Result<GraphTail, CvaReconcileError> {
     read_graph_range(cva, start_chunk, usize::MAX)
 }
-
 pub(crate) fn read_graph_range(
     cva: &mut Cva,
     start_chunk: usize,
     end_chunk: usize,
 ) -> Result<GraphTail, CvaReconcileError> {
-    let chunks = cva.container.chunks()?;
-    let mut transactions = Vec::new();
-    for chunk in chunks.iter().take(end_chunk).skip(start_chunk) {
-        let payload = cva.container.read(*chunk)?;
-        let Some(version) = crate::graph_compact_codec::publication::version_at(*chunk, &payload)?
-        else {
-            continue;
-        };
-        let mutation_payload = cva.container.read(version.mutation)?;
-        let Some((single, mutations)) = cva.graph.decode_stored_transaction(&mutation_payload)?
-        else {
-            return Err(CvaReconcileError::InvalidGraphVersionRecord);
-        };
-        let origin = mutations
-            .first()
-            .map(|mutation| mutation.origin)
-            .ok_or(CvaReconcileError::InvalidGraphVersionRecord)?;
-        if mutations.iter().any(|mutation| mutation.origin != origin) {
-            return Err(CvaReconcileError::InvalidGraphVersionRecord);
+    crate::graph_ordered_replay::read_graph_range(
+        &cva.container,
+        &cva.graph,
+        start_chunk,
+        end_chunk,
+    )
+    .map_err(|error| match error {
+        GraphTailReadError::Graph(error) => error.into(),
+        GraphTailReadError::InvalidGraphVersionRecord => {
+            CvaReconcileError::InvalidGraphVersionRecord
         }
-        transactions.push(GraphTailTransaction {
-            single,
-            changes: mutations
-                .into_iter()
-                .map(|mutation| SemanticGraphRelationChange {
-                    source: mutation.source,
-                    target: mutation.target,
-                    kind: mutation.kind,
-                    active: mutation.active,
-                })
-                .collect(),
-            origin,
-            transaction_time_ns: cva.transaction_time_ns(version.global_version),
-        });
-    }
-    Ok(GraphTail { transactions })
+    })
 }
-
 pub(crate) fn replay_graph_tail(
     destination: &mut Cva,
     tail: &GraphTail,
@@ -146,160 +74,24 @@ fn replay_skips(
     left: &GraphTail,
     right: &GraphTail,
 ) -> Result<HashMap<GraphKey, usize>, CvaReconcileError> {
-    let left_sequences = sequences(left);
-    let right_sequences = sequences(right);
-    let mut skips = HashMap::new();
-    for (key, right_states) in right_sequences {
-        let Some(left_states) = left_sequences.get(&key) else {
-            continue;
-        };
-        let common = left_states
-            .iter()
-            .zip(&right_states)
-            .take_while(|(left, right)| left == right)
-            .count();
-        if common != left_states.len().min(right_states.len()) {
-            return Err(CvaReconcileError::Conflict(conflict_for(
-                key,
-                left_states,
-                &right_states,
-            )));
-        }
-        if common > 0 {
-            skips.insert(key, common);
-        }
-    }
-    Ok(skips)
+    crate::graph_ordered_replay::replay_skips(left, right)
+        .map_err(crate::owner_lifecycle::graph_ordered_replay::conflict_error)
 }
-
 fn replay_with_skips(
     destination: &mut Cva,
     tail: &GraphTail,
     skips: &HashMap<GraphKey, usize>,
     preserve_import_postimages: bool,
 ) -> Result<GraphReplayResult, CvaReconcileError> {
-    let mut seen = HashMap::<GraphKey, usize>::new();
-    let mut transactions = 0;
-    let mut mutations = 0;
-    let mut duplicate_mutations = 0;
-    let mut source_memory_graph_changed = false;
-    for transaction in &tail.transactions {
-        source_memory_graph_changed |= transaction
-            .changes
-            .iter()
-            .any(|change| matches!(change.kind, SemanticGraphRelationKind::Memory(_)));
-        let mut changes = Vec::with_capacity(transaction.changes.len());
-        for change in &transaction.changes {
-            let key = key(*change);
-            let occurrence = seen.entry(key).or_default();
-            let duplicate = *occurrence < skips.get(&key).copied().unwrap_or(0);
-            if duplicate {
-                duplicate_mutations += 1;
-            }
-            if preserve_import_postimages || !duplicate {
-                changes.push(*change);
-            }
-            *occurrence += 1;
-        }
-        if changes.is_empty() {
-            continue;
-        }
-        crate::graph_endpoint_admission::validate_semantic_changes(
-            &destination.memories,
-            &destination.entities,
-            &changes,
-            transaction.origin,
-        )?;
-        let graph_version = destination.graph_version();
-        let published = with_replayed_transaction_time(
-            destination,
-            transaction.transaction_time_ns,
-            |destination| {
-                if preserve_import_postimages {
-                    destination.graph.replay_import_semantic_transaction(
-                        &mut destination.container,
-                        &changes,
-                        transaction.origin,
-                        graph_version,
-                        transaction.single,
-                    )
-                } else {
-                    destination.graph.replay_semantic_transaction(
-                        &mut destination.container,
-                        &changes,
-                        transaction.origin,
-                        graph_version,
-                        transaction.single,
-                    )
-                }
-            },
-        )?;
-        duplicate_mutations += changes.len().saturating_sub(published.len());
-        if !published.is_empty() {
-            transactions += 1;
-            mutations += published.len();
-        }
-    }
-    Ok(GraphReplayResult {
-        transactions,
-        mutations,
-        duplicate_mutations,
-        source_memory_graph_changed,
-    })
-}
-
-fn sequences(tail: &GraphTail) -> HashMap<GraphKey, Vec<(bool, GraphRelationOrigin)>> {
-    let mut sequences = HashMap::<GraphKey, Vec<(bool, GraphRelationOrigin)>>::new();
-    for transaction in &tail.transactions {
-        for change in &transaction.changes {
-            sequences
-                .entry(key(*change))
-                .or_default()
-                .push((change.active, transaction.origin));
-        }
-    }
-    sequences
-}
-
-fn key(change: SemanticGraphRelationChange) -> GraphKey {
-    GraphKey {
-        source: change.source,
-        target: change.target,
-        kind: change.kind,
-    }
-}
-
-#[cfg(test)]
-fn memory_change(change: crate::GraphRelationChange) -> SemanticGraphRelationChange {
-    SemanticGraphRelationChange {
-        source: SemanticNodeRef::memory(change.source),
-        target: SemanticNodeRef::memory(change.target),
-        kind: SemanticGraphRelationKind::Memory(change.kind),
-        active: change.active,
-    }
-}
-
-fn conflict_for(
-    key: GraphKey,
-    left: &[(bool, GraphRelationOrigin)],
-    right: &[(bool, GraphRelationOrigin)],
-) -> CvaReconcileConflict {
-    if let (Some(source), Some(target), SemanticGraphRelationKind::Memory(relation_kind)) =
-        (key.source.as_memory(), key.target.as_memory(), key.kind)
-    {
-        return CvaReconcileConflict::GraphRelation {
-            source,
-            target,
-            relation_kind,
-            left_states: left.iter().map(|(active, _)| *active).collect(),
-            right_states: right.iter().map(|(active, _)| *active).collect(),
-        };
-    }
-    CvaReconcileConflict::SemanticGraphRelation {
-        source: key.source,
-        target: key.target,
-        relation_kind: key.kind,
-        left_states: left.iter().map(|(active, _)| *active).collect(),
-        right_states: right.iter().map(|(active, _)| *active).collect(),
-    }
+    crate::owner_lifecycle::graph_ordered_replay::replay_with_skips(
+        crate::owner_lifecycle::graph_ordered_replay::GraphReplayDestination {
+            container: &mut destination.container,
+            memories: &destination.memories,
+            entities: &destination.entities,
+            graph: &mut destination.graph,
+        },
+        tail,
+        skips,
+        preserve_import_postimages,
+    )
 }

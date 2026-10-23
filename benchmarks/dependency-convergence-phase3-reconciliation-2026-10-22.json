@@ -1,0 +1,208 @@
+{
+  "schema_version": 1,
+  "gate": "R3",
+  "date": "2026-10-22",
+  "status": "accepted_locally",
+  "source_base": "ccd949f",
+  "source_sha256": {
+    "src/facade/cva_dream_begin_transport.rs": "e8bfb20c7732f3034bf5ac77e7bdd750e4487759d5c30ad70255c0b8caab5fc4",
+    "src/facade/cva_freshness.rs": "85c9e9b4814f7ef526f20a4be56520ba0fd6f7a37c69e3f22b639bb04d46d31e",
+    "src/facade/cva_reconcile.rs": "4dd3c3185ac86c5beccbb87c87214b513d4603d4fda91f28219a5d583cb7b1fc",
+    "src/facade/cva_reconcile_archive.rs": "97bb4b46137d57aed0999e85e17badfcd466df8c6ec1ce483a082f6b7e89f47b",
+    "src/facade/cva_reconcile_conflict_map.rs": "4297bd126c04126aefad01708e45c4d1737c0f482c4721b7135459b120c3eadd",
+    "src/facade/cva_reconcile_entity.rs": "464820ff20b651c88068c25ecb51e0e684ca5f695799ca5a8475d19d01d859bd",
+    "src/facade/cva_reconcile_freshness.rs": "45aeef7c273fe9f9130a08defe052431e016a3e94a514d6530c9727f5898c9fb",
+    "src/facade/cva_reconcile_graph.rs": "0c193a0d91ad3dd2115ef1a6cde626ca51c01b68e65362c0031c90b7797566c6",
+    "src/facade/cva_reconcile_interaction.rs": "10bdc878aaa0d3686e7e5ca35849fab55382a83e74be5f93fef61403932a90e8",
+    "src/facade/cva_reconcile_memory.rs": "0c4e94335e286a6f52365b9a0d144f9f68bb0de19b520eeb44ef7d7822c0dd0c",
+    "src/facade/cva_reconcile_promote.rs": "39c74bab1d3e58981d6dd43f4d748bb6882f119fb94ad5dd60a48dcb3ce7a452",
+    "src/facade/cva_reconcile_relationship.rs": "348f9871a2cee22d288321d1830eaa6f40902bc12e2e7221d95ee0e074b89eef",
+    "src/facade/cva_reconcile_repack.rs": "e345a9171bd4a593895b7f39509a09ae718db059a5f3587e79821a85e7a72e22",
+    "src/facade/cva_semantic_source.rs": "0d7de5a4a783b377da073a2e3dba13b46e6e300f9811951060b86d397b7e4b14",
+    "src/freshness/mod.rs": "3e81e468bd21edfed2c265bcef0575dfe2b21b41f7e0207726287c5f46e413c4",
+    "src/freshness/semantic_policy.rs": "6b0e29b39aa0577708a878a8ee736fff982d55bad5fe24b5dcd2c43216ec970c",
+    "src/history/mod.rs": "63780bd01d75dc905926026185fe70066a8864bfd94029c588b8957c7cce136e",
+    "src/imports/mod.rs": "0b8fc6d156a24f3cf1bc5a283eee4ac355a19e65763a11dbe6b0786baa47cf17",
+    "src/imports/reconciliation.rs": "a7e265ff1cb5517806dc1dd5aac2a739511d2082921fb2956b5b25ad67156abc",
+    "src/imports/reconciliation_interval.rs": "0b192377e5a1603485fad0f7ac923bb54ad24b337d5d05ffed729a63133864f3",
+    "src/imports/reconciliation_replay.rs": "a8714f3e2a001d0c660efc0e415349d5eee57036e23aa960c7a68b09e3843776",
+    "src/lib.rs": "bb391df49b3f9a0c82387b90c11ebcc688edcc62ed3a919476eb243793f687fa",
+    "src/maintenance/mod.rs": "e9471ef4c4084208e634aa1b550f600413f0b3516ce4a1660f6f02cff8069b0d",
+    "src/maintenance/rewrite/archive_emit.rs": "d9f599b871ae8fd0046aeadf50892a21f1f4a18abcafa9a0e5e50d18acc9683a",
+    "src/owner_lifecycle.rs": "eff8a9509e93cac21ac51445acbdb2bcdc8d5e02e8147c1f00a8b6a779052cb3",
+    "src/runtime_inference/insomnia/processor/application.rs": "8458b089fa205c8110306c08e1a4a8064fe36ff88e529b643b235ef3dea79315",
+    "tools/pitlord/owner-boundaries.json": "c1fbf5877763662cc01548f217b6d115561a8fe0c074e911b0d8d11f031a75cf",
+    "scripts/measure_phase3_settlement.py": "c9d091c6a13d6dfbed56f7b444621dbf1314b71db5b05c02bf52ff16340056b1",
+    "src/archive/interaction_stream_reconciliation.rs": "5894c90e953400dfdfaa6279e366047068c24a7efcfb427b5ab67cd47d924074",
+    "src/facade/cva_native_import.rs": "7f9063444448dd270bc2cced216fe1e1b0870769fa8e9805df51ad60b1c0a757",
+    "src/freshness/reconciliation.rs": "7677a9224cfc83bd558ef695f05bedac3ad1929f44b85bb418d59401f3018e60",
+    "src/history/freshness_reconciliation.rs": "3a26e62d43900d5c9923b35a5c9ada6dd7a68e15d742328cff7d3a2fc683694c",
+    "src/imports/native_commit.rs": "d25ecb5b2890762c79e2b56723584611c4029c429e7513df0a12ca9d90124323",
+    "src/imports/reconciliation_copy.rs": "3a61f7b6d23114d29e586e0023cc6650dd197cadd407e1ff34cd06819118f364",
+    "src/imports/reconciliation_epoch_replay.rs": "4dee29b476a2a7ff7e529ebd805c4756f9ce57dd6d22efa27472f4eda3094142",
+    "src/maintenance/freshness_reconciliation.rs": "0e54ff4b41c8774ecd6af3286f7dc570682aa3fc44cd82c8cea27b11ebc705af",
+    "src/maintenance/reconciliation_compare.rs": "b1bcc4595f54dd76037b88276eb6906952108206f24af064561c391a6c467f86",
+    "src/maintenance/reconciliation_copy.rs": "645781c054343e05ca39c32ed3b6bc628fe9150247236c3a81f4a5ceb31fb70f",
+    "src/maintenance/reconciliation_owner_access.rs": "a2b3b7e66b39fe5301f9b89ac22e100102e518cc481cc385adf982bbb7361c24",
+    "src/maintenance/reconciliation_repack.rs": "6654707bafdb1f452d0b02da244b033b983ef105d44b8c16279caa089a859040",
+    "src/maintenance/reconciliation_replay.rs": "8669e8d58a4183faf94db0e3aade0197b16b5bc1a84eae4a4db5400813ed56ec",
+    "src/owner_lifecycle/archive_ordered_replay.rs": "5742bc6bb9bdbba003f3ed100c2932b2df37e828f775701e23636b7ae32a4158",
+    "src/owner_lifecycle/archive_replay_error.rs": "3575be980a2e86d4314877ae38e8ad763a1654702e56b953a0d2e3d2a64983a2",
+    "src/owner_lifecycle/atomic_publication.rs": "1d5767fcb096584f72f281321c4a146c4c20b8bcbe29bf1956528325f4b57b60",
+    "src/owner_lifecycle/cva_reconcile_conflict.rs": "2855832f586653eae32a594f7660e0b1c7dad6fbb7a05138974e074f08c8637e",
+    "src/owner_lifecycle/cva_reconcile_error.rs": "653a52070310855fa30a80bdd9cd31f1ae614b6f616f5f1eacb0cd39a0b7bc6b",
+    "src/owner_lifecycle/dream_begin_transport.rs": "3924a83426ec37723d37641e2afceb8308bdb7c526f9a8ac25506773d73a7017",
+    "src/owner_lifecycle/freshness_reconciliation.rs": "d0aff09f912d2a60f22551293543dc2bf86d9549b402a3852133fdcf48c3088d",
+    "src/owner_lifecycle/graph_ordered_replay.rs": "d49ea25d00a8e4b07f1d71d94030d06f0543e4fb93b49beaf32034743bce1da9",
+    "src/owner_lifecycle/grouped_import_replay.rs": "62617732a8621c44490b252cbf7fc1a84bc67f240095983188a72bc74629c699",
+    "src/owner_lifecycle/memory_ordered_replay.rs": "d70679356cfea469f1b7105abdb7ec1839e5cf52c6f0d12d5fb2769bf2764c27",
+    "src/owner_lifecycle/memory_publish.rs": "313db1431379fd467d7acbf0fc7962e78dd26f46899b415621d77e97d755d465",
+    "src/owner_lifecycle/native_import.rs": "5cb036f4ce0911ffb898ed3672656e7578b6e19fff19aab2f1694bf6f8c70aba",
+    "src/owner_lifecycle/physical_copy.rs": "002ed9b47d316c665d4c50760195fffcf96d89749672e4ba9265d9e3acd3e1f1",
+    "src/owner_lifecycle/reconciliation_values.rs": "fc1f3de284708582ab03412a303841270ca16134cd3881c6539d11903b8a6b21",
+    "src/perception/entity_ordered_replay.rs": "079a0a12ca772c9c4857852c2bed0e30a74aab6386f86c424edd276f5e0d13c4",
+    "src/perception/relationship_ordered_replay.rs": "334fda6b19aaa7ed63d251fee063929386f0b84ab32a9e3b3b665a7807fa422e",
+    "src/semantic_graph/ordered_replay.rs": "331778a5e63fad81132b264fe36e3bafe1f5f3e568eb604b6ba33bfdbd277445"
+  },
+  "closed_task_ids": [
+    "P3.6.01",
+    "P3.6.02",
+    "P3.6.03",
+    "P3.6.04",
+    "P3.6.05",
+    "P3.6.06",
+    "P3.6.07",
+    "P3.6.08"
+  ],
+  "accounting_on_acceptance": {
+    "original_accepted": 55,
+    "added_verified": 20,
+    "closed": 75,
+    "total": 119,
+    "active": 1,
+    "pending_original": 43
+  },
+  "verification": {
+    "bounded_library": {
+      "log": ".verification-tmp/phase3-r3-bounded-library.log",
+      "passed": 1975,
+      "failed": 0,
+      "ignored": 5,
+      "filtered": 4,
+      "seconds": 89.27,
+      "scope": "before final semantic replay turn/policy-order and native Import capability tightening"
+    },
+    "final_reconciliation": {
+      "log": ".verification-tmp/phase3-r3-final-reconcile-tests.log",
+      "passed": 86,
+      "failed": 0,
+      "seconds": 4.91
+    },
+    "final_import": {
+      "log": ".verification-tmp/phase3-r3-final-import-tests.log",
+      "passed": 90,
+      "failed": 0,
+      "seconds": 3.18
+    },
+    "owner_guard": ".verification-tmp/phase3-r3-owner-final.log",
+    "owner_negative_fixtures": ".verification-tmp/phase3-r3-owner-fixtures.log",
+    "history_guard": ".verification-tmp/phase3-r3-history-guard.log",
+    "history_negative_fixtures": ".verification-tmp/phase3-r3-history-fixtures.log",
+    "physical_guard": ".verification-tmp/phase3-r3-physical.log",
+    "cli_final": {
+      "workspace_job": "job_hPvtfvDh0lgpIazz8TM2S1d_",
+      "passed": 32,
+      "failed": 0
+    },
+    "documentation": {
+      "full_policy": ".verification-tmp/phase3-r3-docs.log",
+      "changed_policy": ".verification-tmp/phase3-r3-docs-changed.log",
+      "archivist": ".verification-tmp/phase3-r3-ddocs.log",
+      "status": "passed_for_continuation",
+      "final_changed_policy": ".verification-tmp/phase3-r3-docs-final.log"
+    },
+    "i3_grouped_dream_preparation": {
+      "compile": ".verification-tmp/phase3-i3-grouped-dream-check.log",
+      "tests": ".verification-tmp/phase3-i3-grouped-dream-tests.log",
+      "passed": 90,
+      "failed": 0,
+      "seconds": 3.5,
+      "owner_guard": ".verification-tmp/phase3-i3-owner.log",
+      "scope": "Lower Dream Begin and grouped Import replay; I3 remains open"
+    },
+    "i3_epoch_scope_compile": ".verification-tmp/phase3-r3-i3-scope-check.log"
+  },
+  "canonical_sources": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "bytes": 30742210
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "bytes": 675300
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "bytes": 76542131
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "bytes": 1507220
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "bytes": 18315280
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "bytes": 3180063
+    }
+  ],
+  "format_change": false,
+  "source_graph_refresh": false,
+  "known_limits": [
+    "I3 Cva epoch reconciliation and historical reconstruction callbacks remain explicitly active",
+    "Four long library tests and five ignored opt-in cases remain A3 obligations",
+    "Earlier H3 full-run StaleIdentity anomaly not resolved by bounded slices",
+    "S3 representation candidates are measurements only; no codec selected or corpus converted",
+    "Arcana/Pitlord docs tooling blocker deferred to stabilized D3; no graph recapture"
+  ],
+  "deletion_evidence": [
+    "Generic divergent coordinator removed from facade, retained supported outward adapter",
+    "Old per-producer facade replay bridges now cfg(test) only",
+    "cva_memory_publish canonical implementation moved to lifecycle cross-owner admission",
+    "Import interval Freshness proof callback removed; explicit History normalization then Import mapping",
+    "Import copy no longer routes through generic Maintenance adapter"
+  ],
+  "remaining_i3_consumers": [
+    "src/imports/reconciliation.rs",
+    "src/imports/reconciliation_interval.rs",
+    "src/imports/reconciliation_replay.rs",
+    "src/imports/reconciliation_copy.rs",
+    "src/facade/cva_historical_import.rs",
+    "src/facade/historical_reconstruction.rs"
+  ],
+  "review": {
+    "standards_architecture": {
+      "result": "R3 accepted locally",
+      "evidence": "Concrete producer parts; no service cross-edge; History read-only production/negative guards; exact physical cleanup ownership; supported facade signatures retained",
+      "known_gaps": "Existing Import ambient Cva/historical reconstruction routes remain explicit I3 scope, not waived"
+    },
+    "spec_contract": {
+      "result": "P3.6.01-.08 accepted; I3/S3/C3/D3/A3 pending",
+      "evidence": "Generic comparison/merge moved once; source clocks/conflicts/refusals retained; production old replay routes cfg(test) only; focused86 and Import90 tests; no format or corpus mutation",
+      "fixes_from_review": [
+        "Rebase semantic event accepted_turn to destination before producer admission",
+        "Restore Freshness policy persistence checkpoint/order",
+        "Use identity-owned output cleanup instead of path-only cleanup",
+        "Replace proof callback with explicit History normalization then Import remapping"
+      ]
+    }
+  }
+}

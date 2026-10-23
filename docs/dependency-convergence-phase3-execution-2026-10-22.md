@@ -32,7 +32,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | M3 | Accepted locally | Canonical explicit Maintenance operation boundary, validated lifecycle/History reconstruction, thin public dispatch and obsolete facade policy deletion; continuation matrix below. |
 | P3 | Accepted locally | REL/PHY selection, owner retention/marker proofs, exact retained raw history/clocks, source/output guards and prune/reclaim tests; continuation matrix below. |
 | W3 | Accepted locally | Immutable planning, concrete lifecycle execution, owner-local replay, selected semantic/vector emission and source-preserving publication; W3 receipt below. |
-| R3 | Pending | Generic reconciliation. |
+| R3 | Accepted locally | Generic Maintenance policy; lower producer replay; 86 final reconciliation and 90 Import tests; [receipt](../benchmarks/dependency-convergence-phase3-reconciliation-2026-10-22.json). |
 | I3 | Pending | Import coordination. |
 | S3 | Pending | Measured settlement alternatives and selected design. |
 | C3 | Pending | Format/corpus conversion, parity, promotion and deletion. |
@@ -41,7 +41,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 47/98 original accepted + 20/21 additional verified = 67/119 closed; one active and 51 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 55/98 original accepted + 20/21 additional verified = 75/119 closed; one active and 43 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -92,14 +92,14 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.5.06 | Accepted locally | Held source digest/identity and no-overwrite atomic publication retained; stale source and collision tests pass; W3 receipt |
 | P3.5.07 | Accepted locally | Controlled selection, retained revisions, profiles, imports, Ego and Graph verified by library and public rewrite matrix; W3 receipt |
 | P3.5.08 | Accepted locally | Old production rewrite planner/file/model and semantic policy routes removed; compatibility module is reexports/read adapters only; W3 receipt |
-| P3.6.01 | Pending | Awaiting prerequisite gate |
-| P3.6.02 | Pending | Awaiting prerequisite gate |
-| P3.6.03 | Pending | Awaiting prerequisite gate |
-| P3.6.04 | Pending | Awaiting prerequisite gate |
-| P3.6.05 | Pending | Awaiting prerequisite gate |
-| P3.6.06 | Pending | Awaiting prerequisite gate |
-| P3.6.07 | Pending | Awaiting prerequisite gate |
-| P3.6.08 | Pending | Awaiting prerequisite gate |
+| P3.6.01 | Accepted locally | Generic comparison and divergent policy in Maintenance; Import epoch policy stays separate; R3 receipt |
+| P3.6.02 | Accepted locally | Read-only common-prefix comparison and History copy authority checks; R3 receipt |
+| P3.6.03 | Accepted locally | UUID/generation/clocks/refusal parity through lower source reads and ordered replay; R3 receipt |
+| P3.6.04 | Accepted locally | Native Archive/Memory/Insomnia/Graph/Perception/Interaction contracts; Ego/external refusals preserved; R3 receipt |
+| P3.6.05 | Accepted locally | Import direct lower replay/copy; no Maintenance service callback in either direction; R3 receipt |
+| P3.6.06 | Accepted locally | 86 final reconciliation tests and 90 Import tests include compact/terminal/retry/source-tail cases; R3 receipt |
+| P3.6.07 | Accepted locally | Exact-created-output cleanup guard; retained leases and existing atomic promotion/restore contract; R3 receipt |
+| P3.6.08 | Accepted locally | Production facade producer bridges retired to cfg(test); remaining I3 callbacks enumerated; R3 receipt |
 | P3.7.01 | Pending | Awaiting prerequisite gate |
 | P3.7.02 | Pending | Awaiting prerequisite gate |
 | P3.7.03 | Pending | Awaiting prerequisite gate |
@@ -257,3 +257,22 @@ The [W3 receipt](../benchmarks/dependency-convergence-phase3-rewrite-2026-10-22.
 Maintenance now owns model/error, immutable planning, referential closure, selected semantic and vector emission, and physical file coordination. Public `rewrite` exports and lineage getters remain source-compatible. Concrete lifecycle owners replace production Cva/Phylactery execution inputs. Archive owns ordered local replay facts and publishers; the remaining generic reconciliation adapter uses that contract. The existing graph endpoint validator is under lower lifecycle. New error value ownership and exact immutable DTO/packed-codec contracts are explicit in the source manifest; the 34-node/163-edge logical authority is unchanged.
 
 The fresh rewrite writer validates the enrolled Freshness record transition without retaining a runtime notification cache; the final normal reopen still validates/rebuilds derived state. Existing public variants, error text, copy/clock behavior and refusal ordering are retained. Dead facade Archive rewrite policy and production `src/rewrite/{file,model,plan}.rs` implementations are removed. Earlier moved-test/compile failures remain non-passing attempts. Full A3 long/prefix/corpus acceptance remains pending.
+
+
+## R3 continuation and S3 measurement preparation
+
+Generic divergent reconciliation now lives in Maintenance over concrete lifecycle owners. Ordered Archive, Memory/Insomnia, Graph, Entity, Relationship and Interaction replay consumes explicit producer parts. Import interval replay calls those lower contracts directly, including read-only History Freshness normalization followed by Import-owned coordinate remapping and validated lifecycle publication. Shared immutable reconciliation results/errors live below both services. Maintenance never dispatches into Import, and Import's copy path uses the lower physical-copy primitive and its own History validation rather than Maintenance. Error cleanup retains the exact created output identity and removes only that output if it still owns the path. Public Cva signatures and physical leases remain unchanged.
+
+The first focused run passed **86 reconciliation tests**, zero failed, in **4.42s**. The subsequent bounded library run passed **1,975 tests**, zero failed, five ignored and the same four deferred long cases, in **89.27s**. Final source review then corrected semantic-event destination-turn rebasing and restored the original Freshness policy persistence order, and narrowed native Import commit's physical/queue access through its concrete lifecycle capability. Final focused verification passed **86 reconciliation tests** in **4.91s** and **90 Import tests** in **3.18s**, with zero failures; the bounded run is not attributed to those later changes. The native commit writer clears its scope on unwind, and the public adapter processes accepted activity notifications on success, failure or unwind. The production owner guard passed before the final capability tightening. R3 acceptance and progress accounting are recorded separately below; I3 remains active because completed-epoch orchestration and historical reconstruction still use Cva adapters.
+
+The read-only [settlement field audit](../benchmarks/dependency-convergence-phase3-settlement-field-audit-2026-10-22.json), generated by `scripts/measure_phase3_settlement.py`, validates all six frozen source hashes, physical framing and settlement checksums. Three REL settlements total **7,415,717 payload bytes**, or **7,415,741 bytes including chunk headers**. Event recipient sets occupy **4,759,100 bytes** and source-node identities **1,943,288 bytes**. The measured full-authority dictionary/prefix/delta/dedup candidate models **1,140,580 bytes**; the event-ID spine with retained postimages models **207,071 bytes**, conditional on framed-epoch reconstruction proofs. Initial unframed settlements have no receipt from which source-node authority can simply be reconstructed. Dropping exact postimages additionally requires a deterministic noncircular historical projection proof. These are candidate-layout measurements, not a selected codec or completed S3 gate. No runtime format or canonical corpus bytes have changed. S3/C3 must resolve those proof obligations before codec implementation, conversion or promotion.
+
+
+## R3 accepted checkpoint
+
+Current progress is **75/119 closed (63.0%)**: **55 original tasks accepted + 20 added tasks verified**, **I.03 active**, and **43 original tasks pending**. Gates **B0/B1/H3/M3/P3/W3/R3 are locally accepted (7/12)**. The final source passed the focused reconciliation/Import matrix and source guards; CLI verification passed **32 tests**. Full and changed-document policy checks and Archivist integrity passed for the continuation. The bounded full-library receipt remains attributed to its earlier source as explained above; A3 long/oracle obligations are unchanged. No graph refresh or format/corpus migration occurred.
+
+I3 continues with its remaining explicit Cva epoch/historical reconstruction adapters. An operation-specific epoch replay scope now clears the physical write bypass on unwind without accepting a general caller callback. Its last compiler check passed; later I3 extraction/verification remains distinct from R3 acceptance. No original task or added task is credited twice.
+
+
+Further I3 preparation moved grouped completion hydration/publication and Dream Begin transport into explicit lifecycle owner-part operations. Source and destination compact Dream population proofs still use their own exact bounded physical prefixes. Import callers consume these contracts directly; obsolete internal Cva methods are test-only adapters. The coherent follow-up check passed and **90 Import tests passed in 3.50s**, zero failed; the production owner guard passed. This is recorded as preparation in the R3 receipt without closing I3 or any additional task. Historical reconstruction and completed-epoch ambient Cva access remain the next extraction work.

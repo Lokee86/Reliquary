@@ -12,6 +12,17 @@ use sha2::{Digest, Sha256};
 
 use crate::MemoryId;
 
+pub(crate) fn freshness_policy_digest(policy: crate::freshness::FreshnessPolicy) -> [u8; 32] {
+    let mut digest = Sha256::new();
+    digest.update(b"reliquary:freshness-policy:v1\0");
+    digest.update(policy.decay_turns_per_point.to_le_bytes());
+    digest.update(policy.access_principal.to_le_bytes());
+    digest.update(policy.linkage_principal.to_le_bytes());
+    digest.update(policy.local_hop_cost.to_le_bytes());
+    digest.update(policy.outside_hop_cost.to_le_bytes());
+    digest.finalize().into()
+}
+
 pub const SEMANTIC_POLICY_VERSION: u16 = 1;
 pub const SEMANTIC_NUMERICAL_REVISION: u16 = 1;
 pub const SEMANTIC_ELIGIBILITY_REVISION: u16 = 1;

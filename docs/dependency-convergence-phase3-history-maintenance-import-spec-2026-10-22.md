@@ -1,7 +1,7 @@
 # Dependency Convergence — Phase 3: History, Maintenance, Import and Reconciliation
 
 Date: 2026-10-22
-Status: **Correction-only execution specification; 67/119 tasks closed locally, gates B0/B1/H3/M3/P3/W3 accepted; R3 onward pending**
+Status: **Correction-only execution specification; 75/119 tasks closed locally, gates B0/B1/H3/M3/P3/W3/R3 accepted; I3 onward pending**
 Parent: [Dependency convergence architecture refactor](dependency-convergence-architecture-refactor-2026-10-21.md)
 Authoritative DAG: [Accepted logical component DAG](dependency-convergence-target-dag-2026-10-21.md) and [machine allowlist](../tools/pitlord/convergence-component-dag.json)
 Predecessor: [Phase 2 accepted local execution record](dependency-convergence-phase2-execution-2026-10-22.md) and [Phase 3 owner-contract handoff](dependency-convergence-phase3-handoff-2026-10-22.md)
@@ -289,3 +289,5 @@ Choose a **staged hard cut**, not perpetual expand-contract. Before each subsyst
 ## Notes
 
 This is a specification only. It does not certify an in-flight Phase 2 worktree, run long historical tests, modify the development corpus or authorize new inference. The accepted DAG JSON, current owner contracts and previous correction/feature exclusions govern any ambiguity.
+
+R3 continuation verification and the remaining I3 consumer inventory are recorded in the [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md) and [reconciliation receipt](../benchmarks/dependency-convergence-phase3-reconciliation-2026-10-22.json). The [settlement field audit](../benchmarks/dependency-convergence-phase3-settlement-field-audit-2026-10-22.json) is preparatory measurement only; P3.8's reconstruction, selection and freeze obligations remain unchanged.

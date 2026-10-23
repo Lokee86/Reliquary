@@ -31,3 +31,5 @@ pub use score::{
 pub(crate) fn initial_dream_pass_identity(owner: [u8; 16], source: crate::MemoryId) -> String {
     crate::dream_pass_identity::initial_pass_id(owner, source)
 }
+
+pub(crate) mod reconciliation;
