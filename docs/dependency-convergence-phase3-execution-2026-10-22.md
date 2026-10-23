@@ -41,7 +41,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 63/98 original accepted + 21/21 additional verified = 84/119 closed; 35 original pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 65/98 original accepted + 21/21 additional verified = 86/119 closed; 33 original pending or active.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -108,9 +108,9 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.7.06 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
 | P3.7.07 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
 | P3.7.08 | Accepted locally | Canonical native Import evidence, scope/retry/refusal and deletion evidence in I3 receipt |
-| P3.8.01 | Pending | Awaiting prerequisite gate |
-| P3.8.02 | Pending | Awaiting prerequisite gate |
-| P3.8.03 | Pending | Awaiting prerequisite gate |
+| P3.8.01 | Accepted locally | I3 prerequisite accepted; six frozen hashes/current CVAFRS06 codec and exact per-file baseline retained; field audit and dictionary control receipt |
+| P3.8.02 | Accepted locally | Exact byte/authority accounting for every requested field; full-authority model round-trips all three frames exactly |
+| P3.8.03 | Active | Retained owner facts and causal reconstruction audited; native prefix regeneration still running |
 | P3.8.04 | Pending | Awaiting prerequisite gate |
 | P3.8.05 | Pending | Awaiting prerequisite gate |
 | P3.8.06 | Pending | Awaiting prerequisite gate |
@@ -311,3 +311,8 @@ The [dictionary control receipt](../benchmarks/dependency-convergence-phase3-set
 ## Deferred D3 tool preparation
 
 A repository-local offline build of the current sibling Arcana source at `.verification-tmp/arcana-current-build/release/arcana.exe` resolves the earlier `wrong field count` failure against the retained version-2, fifteen-field manifest. The existing `.verification-tmp/pitlord-current.exe` now completes the documentation ownership query with that executable. Its remaining result is **FAIL: 1,214/1,252 code paths mapped**, with 38 missing codemap entries including retired source paths from the old snapshot. This is a real stale-graph/mapping obligation, not a documentation pass. No Arcana/Lexicon refresh or baseline recapture was performed. D3 must use matching tools for its single stabilized refresh after C3 and reconcile actual ownership rather than retain obsolete paths.
+
+
+## S3 baseline and field audit task closure
+
+With I3 accepted, P3.8.01 and P3.8.02 close on the frozen six-file before-images, unchanged CVAFRS06 source, exact per-field measurements and independently executed dictionary control. These outcomes do not depend on selecting a representation. Current progress is **86/119 (72.3%) = 65 original accepted + 21 additional verified**; **33 original tasks remain pending or active**. The eight accepted gates are unchanged. P3.8.03 remains active because causal regeneration and retained-fact reconstruction are not yet fully verified; no S3 format freeze, codec implementation or corpus promotion is claimed.

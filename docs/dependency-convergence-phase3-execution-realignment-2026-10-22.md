@@ -151,3 +151,6 @@ Progress is **84/119 closed (70.6%) = 63 original accepted + 21 additional verif
 ## Deferred D3 tool preparation
 
 A repository-local offline build of the current sibling Arcana source at `.verification-tmp/arcana-current-build/release/arcana.exe` resolves the earlier `wrong field count` failure against the retained version-2, fifteen-field manifest. The existing `.verification-tmp/pitlord-current.exe` now completes the documentation ownership query with that executable. Its remaining result is **FAIL: 1,214/1,252 code paths mapped**, with 38 missing codemap entries including retired source paths from the old snapshot. This is a real stale-graph/mapping obligation, not a documentation pass. No Arcana/Lexicon refresh or baseline recapture was performed. D3 must use matching tools for its single stabilized refresh after C3 and reconcile actual ownership rather than retain obsolete paths.
+
+
+S3's independent frozen-byte and exact field-audit tasks P3.8.01–.02 are now accepted after I3, using the existing six-file baseline and executed dictionary control. Progress is **86/119 closed = 65 original accepted + 21 additional verified**, with **33 original tasks pending or active**. P3.8.03 is active; S3/C3/D3/A3 gates remain pending. No representation, format or corpus change is selected by this task credit.
