@@ -6,6 +6,7 @@ pub(crate) mod epoch_model;
 pub(crate) mod epoch_store;
 mod hermes;
 pub(crate) mod native_commit;
+pub(crate) mod owner_completion;
 mod prepare;
 mod providers;
 pub(crate) mod readiness;
