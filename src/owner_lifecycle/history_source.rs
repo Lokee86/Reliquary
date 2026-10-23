@@ -91,6 +91,14 @@ impl<'a> HistoryReadAccess<'a> {
         HistorySource::new(self.container)
     }
 
+    pub(crate) fn current_memory(
+        &self,
+        memories: &crate::memory_store::MemoryStore,
+        id: crate::MemoryId,
+    ) -> Result<crate::Memory, crate::MemoryError> {
+        memories.memory(self.container, id)
+    }
+
     pub(crate) fn memory_revision(
         &self,
         memories: &crate::memory_store::MemoryStore,

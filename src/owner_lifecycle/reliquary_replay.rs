@@ -31,8 +31,22 @@ use crate::rel_metadata_store::RelMetadataStore;
 use crate::relationship_rebuild::RelationshipOpenState;
 use crate::vector_generation_rebuild::VectorGenerationOpenState;
 
+/// Reconstructed owner state without the physical session. History can return
+/// these read/replay results, but cannot return or publish through a writer.
+pub(crate) struct ReliquaryReconstruction {
+    pub(crate) archive: crate::Archive,
+    pub(crate) memories: crate::memory_store::MemoryStore,
+    pub(crate) graph: crate::graph_store::GraphStore,
+    pub(crate) accepted: super::ReliquaryAcceptedReplay,
+    pub(crate) relations: super::ReliquaryRelations,
+    pub(crate) vectors: super::ReliquaryVectors,
+    pub(crate) conversation_compactions:
+        crate::conversation_compaction_store::ConversationCompactionStore,
+    pub(crate) freshness_due: crate::FreshnessDueDispatcher,
+}
+
 pub(crate) struct ReliquaryReplay {
-    pub(crate) container: Container,
+    container: Container,
     pub(crate) owner_maintenance: crate::owner_maintenance::OwnerMaintenanceStore,
     pub(crate) rewrite_lineage: crate::rewrite_lineage::RewriteLineageStore,
     pub(crate) archive_state: crate::archive_rebuild::ArchiveOpenState,
@@ -66,6 +80,205 @@ pub(crate) struct ReliquaryReplay {
 }
 
 impl ReliquaryReplay {
+    pub(crate) fn history_read_access(&self) -> super::history_source::HistoryReadAccess<'_> {
+        super::history_source::HistoryReadAccess::new(&self.container)
+    }
+
+    pub(crate) fn history_source(
+        &self,
+    ) -> Result<super::history_source::HistorySource<'_>, super::history_source::HistoryReadFailure>
+    {
+        self.history_read_access().snapshot()
+    }
+
+    pub(crate) fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.container.owner_uuid()
+    }
+
+    pub(crate) fn latest_global_version(&self) -> u64 {
+        self.container.latest_version()
+    }
+
+    /// Finish Archive and its immediate accepted references. The separate
+    /// History retention proof remains at the facade's original checkpoint.
+    pub(crate) fn finish_archive(&mut self) -> Result<crate::Archive, OwnerError> {
+        let state = std::mem::replace(&mut self.archive_state, ArchiveOpenState::new());
+        super::finish_reliquary_archive(state, &self.project_files)
+    }
+
+    /// Finish Memory using the held physical owner read capability.
+    pub(crate) fn finish_memory(&mut self) -> Result<crate::memory_store::MemoryStore, OwnerError> {
+        let state = std::mem::replace(&mut self.memory_state, MemoryOpenState::new());
+        Ok(state.finish(&mut self.container)?)
+    }
+
+    /// Finish Entity and Relationship together with their original adjacent
+    /// accepted-reference validations.
+    pub(crate) fn finish_relations(
+        &mut self,
+        memories: &crate::memory_store::MemoryStore,
+        archive: &crate::Archive,
+    ) -> Result<super::ReliquaryRelations, OwnerError> {
+        let entities = std::mem::replace(&mut self.entity_state, EntityOpenState::new());
+        let relationships =
+            std::mem::replace(&mut self.relationship_state, RelationshipOpenState::new());
+        super::finish_reliquary_relations(
+            &self.container,
+            entities,
+            relationships,
+            memories,
+            &self.ego,
+            archive,
+            &self.processing_epochs,
+            &self.dream_pairs,
+        )
+    }
+
+    /// Finish Graph and its accepted Memory/Entity references. History proof
+    /// and rewrite-baseline validation stay at their interleaved checkpoints.
+    pub(crate) fn finish_graph(
+        &mut self,
+        memories: &crate::memory_store::MemoryStore,
+        entities: &crate::entity_store::EntityStore,
+    ) -> Result<crate::graph_store::GraphStore, OwnerError> {
+        let state = std::mem::replace(&mut self.graph_state, GraphOpenState::new());
+        super::finish_reliquary_graph(state, memories, entities)
+    }
+
+    /// Finish Community, Insomnia, Dream replay and Freshness replay at their
+    /// original checkpoint following Graph/history validation.
+    pub(crate) fn finish_accepted(
+        &mut self,
+        graph: &crate::graph_store::GraphStore,
+        archive: &crate::Archive,
+        memories: &crate::memory_store::MemoryStore,
+    ) -> Result<super::ReliquaryAcceptedReplay, OwnerError> {
+        let communities = std::mem::replace(&mut self.community_state, CommunityOpenState::new());
+        let insomnia = std::mem::replace(&mut self.insomnia_state, InsomniaOpenState::new());
+        super::finish_reliquary_accepted_replay(
+            &self.container,
+            communities,
+            graph,
+            insomnia,
+            archive,
+            memories,
+            self.defer_dream_replay,
+            &mut self.dream_freshness,
+            &mut self.freshness,
+        )
+    }
+
+    /// Rebuild the disposable due cache at the historical accepted-state
+    /// checkpoint. Its fallible projection is not deferred past later checks.
+    pub(crate) fn rebuild_due(
+        &self,
+        archive: &crate::Archive,
+    ) -> Result<crate::FreshnessDueDispatcher, OwnerError> {
+        let mut due = crate::FreshnessDueDispatcher::default();
+        due.rebuild(
+            self.freshness
+                .records()
+                .iter()
+                .map(|(id, record)| (*id, *record)),
+            archive.rel_turn_count(),
+            &self.freshness.policy(),
+        )
+        .map_err(|error| OwnerError::Freshness(error.to_string()))?;
+        due.configure_initial_decay_carries(self.freshness.initial_decay_carries())
+            .map_err(|error| OwnerError::Freshness(error.to_string()))?;
+        Ok(due)
+    }
+
+    /// Finish vector stores in accepted order, including disposable External
+    /// Index backing validation between profile and bound-vector reconstruction.
+    pub(crate) fn finish_vectors(
+        &mut self,
+        memories: &crate::memory_store::MemoryStore,
+        archive: &crate::Archive,
+    ) -> Result<super::ReliquaryVectors, OwnerError> {
+        let packed = std::mem::replace(&mut self.packed_state, PackedVectorOpenState::new());
+        let profiles = std::mem::replace(
+            &mut self.profile_state,
+            CompatibilityProfileOpenState::new(),
+        );
+        let memory = std::mem::replace(&mut self.memory_vector_state, MemoryVectorOpenState::new());
+        let archive_vectors = std::mem::replace(
+            &mut self.archive_vector_state,
+            ArchiveVectorOpenState::new(),
+        );
+        let generations =
+            std::mem::replace(&mut self.generation_state, VectorGenerationOpenState::new());
+        super::finish_reliquary_vectors(
+            packed,
+            profiles,
+            memory,
+            archive_vectors,
+            generations,
+            &mut self.external_index,
+            memories,
+            archive,
+        )
+    }
+
+    pub(crate) fn finish_compactions(
+        &mut self,
+    ) -> Result<crate::conversation_compaction_store::ConversationCompactionStore, OwnerError> {
+        let state = std::mem::take(&mut self.compaction_state);
+        state.finish_unrecovered().map_err(Into::into)
+    }
+
+    /// Assemble the finished owner constituents while returning the derived
+    /// due projection to the facade at its separate runtime field boundary.
+    pub(crate) fn into_owner(
+        self,
+        reconstruction: ReliquaryReconstruction,
+    ) -> (super::ReliquaryOwner, crate::FreshnessDueDispatcher) {
+        let ReliquaryReconstruction {
+            archive,
+            memories,
+            graph,
+            accepted,
+            relations,
+            vectors,
+            conversation_compactions,
+            freshness_due,
+        } = reconstruction;
+        (
+            super::ReliquaryOwner {
+                owner_maintenance: self.owner_maintenance,
+                rewrite_lineage: self.rewrite_lineage,
+                external_index: self.external_index,
+                container: self.container,
+                archive,
+                memories,
+                graph,
+                communities: accepted.communities,
+                processing_epochs: self.processing_epochs,
+                dream_pairs: self.dream_pairs,
+                insomnia: accepted.insomnia,
+                import_epochs: self.import_epochs,
+                packed_vectors: vectors.packed,
+                memory_vectors: vectors.memory,
+                archive_vectors: vectors.archive,
+                compatibility_profiles: vectors.profiles,
+                vector_generations: vectors.generations,
+                conversation_compactions,
+                interaction_streams: self.interaction_streams,
+                echo: self.echo,
+                ego: self.ego,
+                entities: relations.entities,
+                entity_resolutions: self.entity_resolutions,
+                relationships: relations.relationships,
+                project_history: self.project_history,
+                project_files: self.project_files,
+                rel_metadata: self.rel_metadata,
+                freshness: self.freshness,
+                dream_freshness: self.dream_freshness,
+            },
+            freshness_due,
+        )
+    }
+
     pub(crate) fn read(mut container: Container) -> Result<Self, OwnerError> {
         if container.owner_uuid().is_none() {
             return Err(crate::ContainerError::InvalidIdentity.into());
@@ -312,5 +525,27 @@ impl ReliquaryReplay {
             dream_pairs,
             external_index,
         })
+    }
+}
+
+impl super::ReliquaryOwner {
+    /// Expose the immutable historical view without exposing the owner file.
+    pub(crate) fn history_read_access(&self) -> super::history_source::HistoryReadAccess<'_> {
+        super::history_source::HistoryReadAccess::new(&self.container)
+    }
+
+    pub(crate) fn history_source(
+        &self,
+    ) -> Result<super::history_source::HistorySource<'_>, super::history_source::HistoryReadFailure>
+    {
+        self.history_read_access().snapshot()
+    }
+
+    pub(crate) fn owner_uuid(&self) -> Option<[u8; 16]> {
+        self.container.owner_uuid()
+    }
+
+    pub(crate) fn latest_global_version(&self) -> u64 {
+        self.container.latest_version()
     }
 }

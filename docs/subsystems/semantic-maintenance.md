@@ -28,6 +28,8 @@ Freshness import settlements are ordered, sparse, and scoped to accepted semanti
 
 Multiple sequential imports across live activity and reopen are supported. Zero-result epochs can settle without inventing Memory admission or score effects.
 
+Concrete REL/PHY prune, reclaim, tail repair, EntityResolution repair and compaction operations live under `src/maintenance/`. Public facade entrypoints gather owner borrows and dispatch. Domain stores retain local retention/publication authority; immutable History helpers validate accepted evidence and lifecycle owns physical reconstruction and frozen-copy mechanics.
+
 ## Pruning and reclaim
 
 Pruning is explicit and owner-specific. Domain owners prove retention eligibility before a transformed copy omits historical payload.

@@ -28,7 +28,7 @@ pub(crate) mod open_route;
 
 #[path = "owner_lifecycle/reliquary_replay.rs"]
 mod reliquary_replay;
-pub(crate) use reliquary_replay::ReliquaryReplay;
+pub(crate) use reliquary_replay::{ReliquaryReconstruction, ReliquaryReplay};
 
 #[path = "owner_lifecycle/phylactery_error.rs"]
 mod phylactery_error;

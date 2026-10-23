@@ -286,7 +286,7 @@ impl MemoryStore {
 
     pub(crate) fn memory(
         &self,
-        container: &mut Container,
+        container: &Container,
         id: MemoryId,
     ) -> Result<Memory, MemoryError> {
         let index = self.current.get(&id).ok_or(MemoryError::MissingMemory)?;
@@ -693,6 +693,21 @@ impl MemoryStore {
 
     pub(crate) fn contains_historical_memory(&self, id: MemoryId) -> bool {
         self.revisions.contains_key(&id)
+    }
+
+    pub(crate) fn entity_mention_keys_for_memory(
+        &self,
+        memory_id: MemoryId,
+    ) -> Vec<MemoryEntityMentionKey> {
+        self.routing_metadata(memory_id)
+            .map(|metadata| {
+                metadata
+                    .entity_mentions
+                    .iter()
+                    .map(|mention| MemoryEntityMentionKey::new(memory_id, mention))
+                    .collect()
+            })
+            .unwrap_or_default()
     }
 
     pub(crate) fn routing_metadata(&self, id: MemoryId) -> Option<&MemoryRoutingMetadata> {

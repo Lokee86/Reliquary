@@ -1848,3 +1848,13 @@ mod dream_pass_identity;
 
 #[path = "retrieval/compatibility_profile_validation.rs"]
 mod compatibility_profile_validation;
+
+#[path = "facade/cva_import_readiness.rs"]
+mod cva_import_readiness;
+#[path = "runtime_inference/dream_readiness.rs"]
+pub(crate) mod dream_readiness;
+#[path = "perception/import_readiness.rs"]
+pub(crate) mod perception_import_readiness;
+
+#[path = "facade/cva_import_completion.rs"]
+mod cva_import_completion;

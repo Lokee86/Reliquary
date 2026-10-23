@@ -5,38 +5,26 @@ impl Cva {
     /// Physical maintenance may relocate objects, but must retain the accepted
     /// import and every later receipt/proof, even if score saturation hides a loss.
     pub(crate) fn validate_historical_import_copy(&self, copy: &Self) -> Result<(), CvaError> {
-        if self.freshness.import_settlements().is_empty()
-            && copy.freshness.import_settlements().is_empty()
-        {
-            return Ok(());
-        }
-        if self.freshness.import_settlements() != copy.freshness.import_settlements()
-            || self.import_epoch_statuses() != copy.import_epoch_statuses()
-            || self.freshness_policy() != copy.freshness_policy()
-            || self.rel_turn_count() != copy.rel_turn_count()
-            || self.latest_global_version() != copy.latest_global_version()
-            || self.archive_version() != copy.archive_version()
-            || self.graph_version() != copy.graph_version()
-            || self.memory_graph_version() != copy.memory_graph_version()
-            || self
-                .freshness
-                .records_at(self.rel_turn_count())
-                .map_err(CvaError::Freshness)?
-                != copy
-                    .freshness
-                    .records_at(copy.rel_turn_count())
-                    .map_err(CvaError::Freshness)?
-            || crate::history::historical_owner_evidence_digest(
-                &crate::owner_lifecycle::HistorySource::new(&self.container)
-                    .map_err(|error| CvaError::Container(error.0))?,
-            )
-            .map_err(|error| CvaError::Container(error.0))?
-                != crate::history::historical_owner_evidence_digest(
-                    &crate::owner_lifecycle::HistorySource::new(&copy.container)
-                        .map_err(|error| CvaError::Container(error.0))?,
-                )
-                .map_err(|error| CvaError::Container(error.0))?
-        {
+        let source_access = crate::owner_lifecycle::HistoryReadAccess::new(&self.container);
+        let copy_access = crate::owner_lifecycle::HistoryReadAccess::new(&copy.container);
+        if !crate::history::historical_copy_preserves_import_authority(
+            crate::history::HistoricalCopyView {
+                archive: &self.archive,
+                graph: &self.graph,
+                freshness: &self.freshness,
+                import_epochs: &self.import_epochs,
+                read_access: &source_access,
+                accepted_global_head: self.latest_global_version(),
+            },
+            crate::history::HistoricalCopyView {
+                archive: &copy.archive,
+                graph: &copy.graph,
+                freshness: &copy.freshness,
+                import_epochs: &copy.import_epochs,
+                read_access: &copy_access,
+                accepted_global_head: copy.latest_global_version(),
+            },
+        )? {
             return Err(CvaError::Repack(
                 "physical transformation changed historical checkpoint scoring or receipt/proof authority".into(),
             ));

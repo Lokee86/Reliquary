@@ -24,6 +24,29 @@ impl<'a> ImportSession<'a> {
         Ok(Self { container })
     }
 
+    /// Provide bounded read access through this same exclusive owner session.
+    /// The borrow ends before publication mutates the physical owner file.
+    pub(crate) fn history_access(&self) -> crate::owner_lifecycle::HistoryReadAccess<'_> {
+        crate::owner_lifecycle::HistoryReadAccess::new(self.container)
+    }
+
+    /// Persist the admission fence once the recovered open epoch is accepted.
+    pub(crate) fn hold_open_import_fence(&mut self) {
+        self.container.set_write_admission_closed(true);
+    }
+
+    /// A recovered completion retry synchronizes first, then restores the
+    /// fence from accepted epoch state.
+    pub(crate) fn sync_completed_retry(
+        &mut self,
+        epochs: &ImportEpochStore,
+    ) -> Result<(), OwnerError> {
+        self.container.sync()?;
+        self.container
+            .set_write_admission_closed(epochs.open().is_some());
+        Ok(())
+    }
+
     /// Append, synchronize, and only then release the staged completed epoch
     /// and its write fence. An append/sync error leaves admission closed.
     pub(crate) fn publish_completion(

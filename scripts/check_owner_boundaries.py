@@ -211,7 +211,10 @@ def export_resolver(modules: dict[str, str]):
         parts = path.split("::")
         for count in range(len(parts), 0, -1):
             prefix = "::".join(parts[:count])
-            if prefix in aliases:
+            # A suffix selects the module namespace, while a bare name may
+            # select a reexported value with the same name (imports::prepare).
+            # Resolve the value once, without expanding its module prefix.
+            if prefix in aliases and not (count < len(parts) and prefix in lexical_modules):
                 target = "::".join([aliases[prefix], *parts[count:]])
                 if target != path:
                     return resolve(target, seen | {path})
@@ -508,6 +511,23 @@ def production_path_fixture_check() -> None:
             (ROOT / "src/service.rs").write_text("pub struct Cva; pub fn service_work() {}", encoding="utf-8")
             (ROOT / "src/unknown.rs").write_text("pub fn run() {}", encoding="utf-8")
             (ROOT / "src/bridge.rs").write_text("pub use crate::service::service_work as Work; pub use crate::memory::MemoryId as Id; pub use crate::service::*; mod inner { pub use crate::service::service_work as Imported; pub use crate::memory::MemoryId as Value; } pub use inner::Imported as Nested; pub use inner::Value as NestedId;", encoding="utf-8")
+            # Module/value namespace overlap must terminate and preserve the
+            # producer module for calls through either public spelling.
+            with (ROOT / "src/lib.rs").open("a", encoding="utf-8") as library:
+                library.write("mod prepare; pub use prepare::prepare;\n")
+            (ROOT / "src/prepare.rs").write_text("pub fn prepare() {}", encoding="utf-8")
+            resolve, _ = export_resolver({"prepare": "src/prepare.rs"})
+            assert resolve("prepare") == "prepare::prepare"
+            assert resolve("prepare::prepare") == "prepare::prepare"
+            library_path = ROOT / "src/lib.rs"
+            original_library = library_path.read_text(encoding="utf-8")
+            library_path.write_text(original_library.replace(
+                "pub use prepare::prepare;", "pub use service::service_work as prepare;"
+            ), encoding="utf-8")
+            resolve, _ = export_resolver({"prepare": "src/prepare.rs", "service": "src/service.rs"})
+            assert resolve("prepare") == "service::service_work"
+            assert resolve("prepare::prepare") == "prepare::prepare"
+            library_path.write_text(original_library, encoding="utf-8")
             manifest = {
                 "version": 1, "dag": "convergence-component-dag.json",
                 "owner_files": [{"path": "src/owner.rs", "component": "archive-store", "classification": "production"}],

@@ -57,3 +57,9 @@ pub(crate) use publication_cohorts::{publication_birth_cohort, same_publication_
 
 mod settlement_scope;
 pub(crate) use settlement_scope::validate_historical_settlement;
+
+mod reliquary_open;
+pub(crate) use reliquary_open::reconstruct_reliquary;
+
+mod transformed_copy;
+pub(crate) use transformed_copy::{HistoricalCopyView, historical_copy_preserves_import_authority};

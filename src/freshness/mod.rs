@@ -26,3 +26,8 @@ pub use score::{
     FreshnessBoundaryIndex, FreshnessError, FreshnessRecord, FreshnessState, next_state_boundary,
     next_state_boundary_with_policy,
 };
+
+/// Stable Freshness event identity for an accepted initial Dream pass.
+pub(crate) fn initial_dream_pass_identity(owner: [u8; 16], source: crate::MemoryId) -> String {
+    crate::dream_pass_identity::initial_pass_id(owner, source)
+}

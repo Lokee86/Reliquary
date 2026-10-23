@@ -1527,6 +1527,56 @@
       "path": "src/historical_timeline.rs",
       "component": "pure-codec",
       "classification": "production"
+    },
+    {
+      "path": "src/history/reliquary_open.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness_due.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/readiness.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/dream_readiness.rs",
+      "component": "dream",
+      "classification": "production"
+    },
+    {
+      "path": "src/perception/import_readiness.rs",
+      "component": "perception",
+      "classification": "production"
+    },
+    {
+      "path": "src/runtime_inference/insomnia/import_readiness.rs",
+      "component": "insomnia",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/transformed_copy.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/mod.rs",
+      "component": "freshness",
+      "classification": "production"
+    },
+    {
+      "path": "src/imports/completion_coordinator.rs",
+      "component": "import",
+      "classification": "production"
+    },
+    {
+      "path": "src/maintenance/reliquary_prune.rs",
+      "component": "maintenance",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -1549,10 +1599,6 @@
     {
       "module": "entity_identity_guard",
       "component": "perception-store"
-    },
-    {
-      "module": "imports::epoch_store::completion",
-      "component": "import"
     },
     {
       "module": "container",
@@ -1669,6 +1715,46 @@
     {
       "module": "historical_timeline",
       "component": "pure-codec"
+    },
+    {
+      "module": "history::reliquary_open",
+      "component": "history"
+    },
+    {
+      "module": "freshness_due",
+      "component": "freshness-store"
+    },
+    {
+      "module": "imports::readiness",
+      "component": "import"
+    },
+    {
+      "module": "dream_readiness",
+      "component": "dream"
+    },
+    {
+      "module": "perception_import_readiness",
+      "component": "perception"
+    },
+    {
+      "module": "insomnia::import_readiness",
+      "component": "insomnia"
+    },
+    {
+      "module": "history::transformed_copy",
+      "component": "history"
+    },
+    {
+      "module": "freshness",
+      "component": "freshness"
+    },
+    {
+      "module": "imports::completion_coordinator",
+      "component": "import"
+    },
+    {
+      "module": "maintenance::reliquary_prune",
+      "component": "maintenance"
     }
   ],
   "producer_value_contracts": [
@@ -2241,6 +2327,36 @@
       "owner": "pure-codec",
       "symbol": "SourceKey",
       "reason": "Immutable source coordinate used in the existing Import planning DTO; no owner capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "perception-store",
+      "symbol": "MemoryEntityMentionKey",
+      "reason": "Immutable mention identity returned by the Perception readiness service; no resolution-store access."
+    },
+    {
+      "consumer": "import",
+      "owner": "perception-store",
+      "symbol": "MemoryEntityResolutionStatus",
+      "reason": "Immutable terminal/pending resolution status returned by the Perception readiness service; no persistence capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "HistoricalImportFreshnessSettlement",
+      "reason": "Immutable accepted settlement evidence consumed by Import readiness and binding; Freshness remains the publication authority."
+    },
+    {
+      "consumer": "import",
+      "owner": "insomnia-store",
+      "symbol": "InsomniaWorkState",
+      "reason": "Immutable accepted work status returned by the Insomnia readiness service; no queue-store capability."
+    },
+    {
+      "consumer": "maintenance",
+      "owner": "pure-codec",
+      "symbol": "PayloadUnavailable",
+      "reason": "Immutable owner-local pruned-payload outcome used by transformed-copy verification; no lifecycle writer authority."
     }
   ],
   "forbidden_symbols": [

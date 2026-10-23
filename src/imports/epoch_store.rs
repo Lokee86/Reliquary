@@ -240,8 +240,3 @@ pub(crate) fn hash_file_prefix(path: &std::path::Path, len: u64) -> Result<Strin
     }
     Ok(format!("{:x}", hasher.finalize()))
 }
-
-// The coordinator is higher-level code. Nesting gives it access to the private
-// publication operation without a store dependency on a service-owned token.
-#[path = "completion.rs"]
-pub(super) mod completion;

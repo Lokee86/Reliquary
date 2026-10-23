@@ -1,6 +1,6 @@
 //! Versioned native historical import. Adapters normalize; Archive remains authoritative.
 mod commit;
-use epoch_store::completion;
+pub(crate) mod completion_coordinator;
 mod contract;
 pub(crate) mod epoch_codec;
 pub(crate) mod epoch_model;
@@ -9,7 +9,7 @@ pub(crate) mod epoch_store;
 mod hermes;
 mod prepare;
 mod providers;
-mod readiness;
+pub(crate) mod readiness;
 mod reconciliation;
 mod reconciliation_interval;
 mod reconciliation_replay;

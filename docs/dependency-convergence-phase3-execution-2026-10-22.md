@@ -12,9 +12,9 @@ Execution starts at `b113bcf` on `main`; accepted Phase 2 source is `1380d0b`. P
 
 The [baseline](dependency-convergence-phase3-baseline-2026-10-22.md) and [current baseline receipt](../benchmarks/dependency-convergence-phase3-baseline-2026-10-22.json) pin 1,134 source hashes with zero mismatches and six canonical hashes independently verified against Phase 2. Immutable local before-images are held under `.verification-tmp/phase3-before/`. Earlier Phase 2 test/oracle passes remain prior receipts, not new Phase 3 passes.
 
-## Execution accounting realignment (documentation snapshot, 2026-10-22)
+## Execution accounting realignment (historical planning snapshot, 2026-10-22)
 
-The [execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md) promotes previously untracked REL/PHY lifecycle, read-only History, Maintenance and Import preparation into **21 additional, independently scoped execution tasks**, rather than leaving them as invisible prerequisites inside P3.3. **Current task progress is 35/119 (29.4%)**: 23 accepted original tasks plus 12 verified new extraction tasks, each closed only at its documented source/test scope. **Formal gate acceptance is still B0/B1/H3 (3 of 12); M3 is not accepted.** Do not award original integration/deletion task credit a second time when a new scoped extraction task is closed.
+The [execution realignment](dependency-convergence-phase3-execution-realignment-2026-10-22.md) promotes previously untracked REL/PHY lifecycle, read-only History, Maintenance and Import preparation into **21 additional, independently scoped execution tasks**, rather than leaving them as invisible prerequisites inside P3.3. **Planning-snapshot task progress was 35/119 (29.4%)**: 23 accepted original tasks plus 12 verified new extraction tasks, each closed only at its documented source/test scope. **That snapshot accepted B0/B1/H3 only (3 of 12); the continuation below supersedes it.** Do not award original integration/deletion task credit a second time when a new scoped extraction task is closed.
 
 The revised task breakdown comprises **98 original tasks** (23 accepted, 75 pending) and **21 added tasks** (12 verified/closed at scoped acceptance, 7 active/unverified, 2 pending): **35 complete or verified, 7 active, 77 pending = 119 total**. The [21-task register](dependency-convergence-phase3-execution-realignment-2026-10-22.md#added-execution-tasks--21-unique-bounded-outcomes-part-of-the-119-task-denominator) is part of the actual denominator, not an optional metrics overlay. "Verified (scoped)" is a completed new bounded task at an earlier committed source checkpoint; it does not establish greenness of the current dirty tree or acceptance of the original P3.3/P3.4/P3.7 integration and deletion tasks. Maintain unique IDs and acceptance proofs for both populations; never silently increase the denominator without increasing the completion register.
 
@@ -29,8 +29,8 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | B0 | Accepted locally | Source/hash verification, bounded operation inventory and starting guards in baseline. |
 | B1 | Accepted locally (design) | [Concrete contracts](dependency-convergence-phase3-contracts-2026-10-22.md), reviewed against exact DAG; implementation proofs remain pending. |
 | H3 | Accepted locally (source cut) | One read-only proof path; final targeted 23 History + source-order regression passed. Full-run identity anomaly is retained below for A3. |
-| M3 | In progress | Lower REL/PHY lifecycle and shared frozen copy extracted; REL Maintenance authorization/prune/reclaim integration active and current dirty cut fails compilation. Independent P3 prune/reclaim gate remains pending. |
-| P3 | Pending | Prune and reclaim. |
+| M3 | Accepted locally | Canonical explicit Maintenance operation boundary, validated lifecycle/History reconstruction, thin public dispatch and obsolete facade policy deletion; continuation matrix below. |
+| P3 | Accepted locally | REL/PHY selection, owner retention/marker proofs, exact retained raw history/clocks, source/output guards and prune/reclaim tests; continuation matrix below. |
 | W3 | Pending | Rewrite. |
 | R3 | Pending | Generic reconciliation. |
 | I3 | Pending | Import coordination. |
@@ -41,7 +41,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Totals: 23/98 original accepted + 12/21 additional verified = 35/119 closed or verified; 7 active and 77 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 39/98 original accepted + 20/21 additional verified = 59/119 closed; one active and 59 pending.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -68,22 +68,22 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.2.06 | Accepted | Ephemeral historical base replay; publication remains outside History |
 | P3.2.07 | Accepted | Byte/mtime/clock snapshots and live Freshness record/receipt assertions |
 | P3.2.08 | Accepted | Old digest/frontier/encoding files deleted; integrated REL/PHY checks pending |
-| P3.3.01 | Pending | Awaiting prerequisite gate |
-| P3.3.02 | Pending | Awaiting prerequisite gate |
-| P3.3.03 | Pending | Awaiting prerequisite gate |
-| P3.3.04 | Pending | Awaiting prerequisite gate |
-| P3.3.05 | Pending | Awaiting prerequisite gate |
-| P3.3.06 | Pending | Awaiting prerequisite gate |
-| P3.3.07 | Pending | Awaiting prerequisite gate |
-| P3.3.08 | Pending | Awaiting prerequisite gate |
-| P3.4.01 | Pending | Awaiting prerequisite gate |
-| P3.4.02 | Pending | Awaiting prerequisite gate |
-| P3.4.03 | Pending | Awaiting prerequisite gate |
-| P3.4.04 | Pending | Awaiting prerequisite gate |
-| P3.4.05 | Pending | Awaiting prerequisite gate |
-| P3.4.06 | Pending | Awaiting prerequisite gate |
-| P3.4.07 | Pending | Awaiting prerequisite gate |
-| P3.4.08 | Pending | Awaiting prerequisite gate |
+| P3.3.01 | Accepted locally | Existing owner maintenance store composed by Maintenance; no second manifest authority; continuation receipt |
+| P3.3.02 | Accepted locally | Explicit operation authorization uses owner retention proofs and preserves invalid-reference refusals; continuation receipt |
+| P3.3.03 | Accepted locally | History composes immutable accepted source/manifest/import authority; no service backreach; continuation receipt |
+| P3.3.04 | Accepted locally | REL Archive support remains separate from PHY owner-domain selection; continuation receipt |
+| P3.3.05 | Accepted locally | Held lifecycle sources and prune freeze guards enforce identity/head/extent before copy and success; continuation receipt |
+| P3.3.06 | Accepted locally | Explicit REL/PHY tail, EntityResolution and compaction operations retain writer/repair guards; continuation receipt |
+| P3.3.07 | Accepted locally | Public prune/reclaim/repair adapters gather owner facts and dispatch; CLI 32 passed; continuation receipt |
+| P3.3.08 | Accepted locally | Facade REL prune/reclaim/tail policy bodies deleted; canonical Maintenance operations and source guards pass; continuation receipt |
+| P3.4.01 | Accepted locally | Canonical REL/PHY Maintenance prune selection matches original supported domains; continuation receipt |
+| P3.4.02 | Accepted locally | Domain retention proofs feed Maintenance; Container owns only mechanics; continuation receipt |
+| P3.4.03 | Accepted locally | Original marker identity/revision/digest/order and typed payload-unavailable evidence retained; continuation receipt |
+| P3.4.04 | Accepted locally | Conservative liveness reclaim remains separate from pruning and tombstones; continuation receipt |
+| P3.4.05 | Accepted locally | History retained-evidence comparison and raw-copy checks preserve accepted semantic state/clocks; continuation receipt |
+| P3.4.06 | Accepted locally | Retired profile/vector, compact body and description tests pass in continuation matrix; continuation receipt |
+| P3.4.07 | Accepted locally | Frozen source, writer lease, destination collision and identity-guarded cleanup preserved; continuation receipt |
+| P3.4.08 | Accepted locally | Old facade policy routes removed; REL/PHY prune/reclaim and production source/DAG guards pass; continuation receipt |
 | P3.5.01 | Pending | Awaiting prerequisite gate |
 | P3.5.02 | Pending | Awaiting prerequisite gate |
 | P3.5.03 | Pending | Awaiting prerequisite gate |
@@ -146,7 +146,7 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 
 ## New execution tasks (21 additional IDs; counted, not merely notes)
 
-The complete [L.01–L.06, H.01–H.05, M.01–M.06 and I.01–I.04 task register](dependency-convergence-phase3-execution-realignment-2026-10-22.md) supplies the 21 independently credited scopes and evidence. These are separate execution tasks with **12 verified (scoped)**, **7 active/unverified** and **2 pending**. Each is individually credited once. Original integration/gate tasks are accepted only when their broader distinct obligations pass; a new verified extraction does not prematurely complete M3, P3 or I3.
+The complete [L.01–L.06, H.01–H.05, M.01–M.06 and I.01–I.04 task register](dependency-convergence-phase3-execution-realignment-2026-10-22.md) supplies the 21 independently credited scopes and evidence. These are separate execution tasks with **20 verified (scoped)**, **one active/unverified (I.03)** and **none pending** at the continuation checkpoint. Each is individually credited once. Original integration/gate tasks are accepted only when their broader distinct obligations pass; a new verified extraction does not prematurely complete M3, P3 or I3.
 
 ## History source cut evidence
 
@@ -236,3 +236,14 @@ Historical settlement validation now composes one History implementation for own
 Completion publication consumes an opaque Import-authored value through the concrete lifecycle `ImportSession`. Appends restore the closed admission fence before sync; staged epoch state is installed only after successful durability. The former Cva callback is removed from this completion write path. Compilation and production owner/History guards pass; the combined bounded regression batch is in progress. No M3, Import, settlement-design or format gate is accepted by this continuation.
 
 The [settlement/session receipt](../benchmarks/dependency-convergence-phase3-settlement-session-preparation-2026-10-22.json) records **1,974 passed, zero failed, five ignored and the same four long cases filtered**, in 119.56 seconds. This validates the complete read-only settlement proof and completion-session changes before the next reconstruction/readiness integration. Documentation checks for the combined continuation remain pending.
+## REL Maintenance and Import resumed checkpoint
+
+Current progress: **59/119 closed (49.6%)**, **one active**, **59 pending**. M3/P3 close their original distinct integration/deletion obligations here; W3/R3/I3/S3/C3/D3/A3 remain pending. The detailed scope attribution, deferred tests, final source order and next W3 handoff are in the [realignment continuation](dependency-convergence-phase3-execution-realignment-2026-10-22.md#verified-source-continuation-after-ceaa5b8).
+
+The [REL Maintenance/Import continuation receipt](../benchmarks/dependency-convergence-phase3-rel-maintenance-import-resume-2026-10-22.json) contains source hashes and exact passing-test names grouped into a nonadditive verification matrix. The bounded library run passed **1,975 tests**, zero failed, five ignored and four filtered in **72.04s**. Final Import policy extraction then passed **90 Import tests** in **4.09s**; The final source passed the locked CLI check and **32 CLI tests**. Production owner/History, physical and logical DAG guards pass, including negative fixtures. All six canonical hashes remain unchanged. An earlier restricted run was terminated after filesystem/transport fixture failures; it is not counted as success. No full A3 pass or corpus migration is claimed.
+
+History takes a borrowed replay and returns session-free reconstructed state. The lower lifecycle assembles the physical session into its concrete owner only outside History. Maintenance owns the existing explicit operations; the original facade policy bodies are removed. The added task counts do not substitute for original integration/deletion checks: those are independently enumerated in the P3.3/P3.4 rows and matrix.
+
+Pitlord documentation ownership remains blocked by the existing Arcana manifest error; D3 refresh has not been performed. Documentation and public integration results are recorded in the continuation receipt after their final runs.
+
+Final public integration after the package-only cache rebuild passed **25 suites: 163 tests, zero failed and one ignored**. The first integration build failed before runtime on missing cached linkable dependencies; it is not a pass. Locked final-source CLI check and all **32 CLI tests** passed. Full and changed-document policy checks passed after the realignment schema repair; final Archivist integrity is recorded in the receipt.

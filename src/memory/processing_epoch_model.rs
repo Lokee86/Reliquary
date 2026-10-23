@@ -7,3 +7,6 @@ pub(crate) struct ProcessingEpochState {
     pub(crate) cadence_version: u32,
     pub(crate) checkpoint_at_ns: Option<i64>,
 }
+
+/// Persisted lane identity for accepted Dream processing checkpoints.
+pub(crate) const DREAM_PROCESSING_LANE: ProcessingLaneId = ProcessingLaneId(1);

@@ -21,3 +21,6 @@ pub(crate) mod entity_resolution;
 pub(crate) mod tail_repair;
 
 pub(crate) mod compactions;
+
+mod reliquary_prune;
+pub(crate) use reliquary_prune::{ReliquaryPruneParts, prune_reliquary};

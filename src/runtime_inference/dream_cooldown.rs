@@ -7,7 +7,7 @@ use crate::processing_epoch_model::{ProcessingEpochState, ProcessingLaneId};
 use crate::{Cva, Memory, MemoryError, MemoryId, Phylactery};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub(crate) const DREAM_PROCESSING_LANE: ProcessingLaneId = ProcessingLaneId(1);
+pub(crate) use crate::processing_epoch_model::DREAM_PROCESSING_LANE;
 pub(crate) const DREAM_CADENCE_VERSION: u32 = 1;
 pub const DEFAULT_DREAM_REPROCESS_COOLDOWN_NS: i64 = 30 * 24 * 60 * 60 * 1_000_000_000;
 

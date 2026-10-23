@@ -31,6 +31,11 @@ FILE_WRITE = re.compile(
     r"|\b(?:File|OpenOptions)::(?:create|options|new)\s*\("
 )
 CALLBACK_DECL = re.compile(r"\b(?:EmbeddingEndpoint|Fn|FnMut|FnOnce)\b")
+WRITER_CAPABILITY = re.compile(
+    r"\b(?:ReliquaryOwner|PhylacteryOwner|ImportSession|into_owner|"
+    r"initialize_reliquary|initialize_phylactery|open_phylactery_from_container)\b"
+    r"|(?<!:):(?!:)\s*(?:[A-Za-z_]\w*::)*ReliquaryReplay\b"
+)
 
 
 def production_files() -> list[Path]:
@@ -59,6 +64,10 @@ def violations(path: Path, source: str) -> list[str]:
     for match in CALLBACK_DECL.finditer(code):
         findings.append(
             f"{path.relative_to(ROOT).as_posix()}:{match.start()}: provider/callback capability `{match.group(0)}` in production History"
+        )
+    for match in WRITER_CAPABILITY.finditer(code):
+        findings.append(
+            f"{path.relative_to(ROOT).as_posix()}:{match.start()}: writer-bearing lifecycle capability `{match.group(0)}` in production History"
         )
     return findings
 
@@ -90,12 +99,16 @@ def self_test() -> list[str]:
         "prune writer": 'fn bad(s: &mut Store) { s.prune_tombstoned_history(p); }',
         "local read builder": 'fn ok(v: &mut Vec<u8>) { v.push(1); v.extend([2]); }',
         "callback trait": "fn bad(f: impl FnMut()) {}",
+        "owned replay": "fn bad(replay: crate::owner_lifecycle::ReliquaryReplay) {}",
+        "writer aggregate": "use crate::owner_lifecycle::ReliquaryOwner as ReadView;",
+        "writer handoff": "fn bad(replay: Replay) { replay.into_owner(state); }",
+        "borrowed replay": "fn ok(replay: &mut ReliquaryReplay) -> ReliquaryReconstruction {}",
         "comment/string masking": '// store.append(x);\nlet s = "container.sync()"; fn ok() {}',
     }
     errors = []
     for name, fixture in fixtures.items():
         found = violations(ROOT / "src/history/fixture.rs", fixture)
-        if name in {"comment/string masking", "local read builder", "pruned evidence getters"}:
+        if name in {"comment/string masking", "local read builder", "pruned evidence getters", "borrowed replay"}:
             if found:
                 errors.append(f"self-test {name}: false positive {found}")
         elif not found:

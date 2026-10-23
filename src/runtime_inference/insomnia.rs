@@ -155,3 +155,6 @@ mod worker_vector_tests;
 #[cfg(test)]
 #[path = "insomnia/completion_compact_tests.rs"]
 mod completion_compact_tests;
+
+#[path = "insomnia/import_readiness.rs"]
+pub(crate) mod import_readiness;
