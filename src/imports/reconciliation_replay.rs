@@ -2,20 +2,34 @@
 use super::reconciliation::{CompletedEpoch, unsupported};
 use super::reconciliation_copy::copy_import_source;
 use super::reconciliation_epoch_replay::EpochReplay;
+use crate::CvaReconcileError;
+use crate::owner_lifecycle::ReliquaryOwner;
 use crate::reconciliation_values::{CvaComparison, CvaReconcileResult};
-use crate::{Cva, CvaReconcileError};
 use std::{collections::BTreeMap, path::Path};
 
+fn import_watermarks(owner: &ReliquaryOwner) -> crate::imports::ImportWatermarks {
+    crate::imports::ImportWatermarks {
+        global_version: owner.latest_global_version(),
+        archive_version: owner.archive.archive_version(),
+        memory_version: owner.memories.memory_version(),
+        entity_version: owner.entities.entity_version(),
+        relationship_version: owner.relationships.relationship_version(),
+        graph_version: owner.graph.graph_version(),
+        memory_graph_version: owner.graph.memory_graph_version(),
+        vector_version: owner.vector_generations.vector_version(),
+    }
+}
+
 pub(super) fn replay(
-    left: &mut Cva,
-    right: &mut Cva,
+    left: &mut ReliquaryOwner,
+    right: &mut ReliquaryOwner,
     left_path: &Path,
     output_path: &Path,
     comparison: CvaComparison,
     known: BTreeMap<String, CompletedEpoch>,
     epochs: BTreeMap<String, CompletedEpoch>,
     boundary: usize,
-) -> Result<(CvaReconcileResult, Cva), CvaReconcileError> {
+) -> Result<(CvaReconcileResult, ReliquaryOwner), CvaReconcileError> {
     let mut output = copy_import_source(left_path, output_path)?;
     let created_output =
         crate::owner_lifecycle::import_epoch_transport::hold_created_output_identity(
@@ -24,7 +38,7 @@ pub(super) fn replay(
     let replay_result = (|| {
         let mut cursor = boundary;
         let mut coordinates = super::reconciliation_interval::Coordinates::shared(right, boundary)?;
-        let before_archive = output.archive_version();
+        let before_archive = output.archive.archive_version();
         let mut completions = 0;
         let mut changed = false;
         for (id, epoch) in &epochs {
@@ -52,7 +66,7 @@ pub(super) fn replay(
                 continue;
             }
             let mut start = epoch.start;
-            start.pre = output.import_watermarks();
+            start.pre = import_watermarks(&output);
             crate::owner_lifecycle::import_epoch_transport::append_import_start(
                 &mut output.container,
                 &mut output.import_epochs,
@@ -68,10 +82,13 @@ pub(super) fn replay(
             // Native reconstruction freezes the destination input and derives its
             // start binding, byte-prefix digest and canonical pre-start base. Source
             // coordinates or source replacement bytes never authorize publication.
-            output
-                .reconstruct_historical_freshness(Default::default())
+            crate::imports::owner_historical::reconstruct(&mut output)
                 .map_err(|error| crate::CvaError::Freshness(error.to_string()))?;
-            match output.complete_native_import(&start.import_id, epoch.complete.completed_at_ns)? {
+            match crate::imports::owner_completion::complete(
+                &mut output,
+                &start.import_id,
+                epoch.complete.completed_at_ns,
+            )? {
                 super::ImportCompletionOutcome::Completed { .. } => {}
                 super::ImportCompletionOutcome::Pending(_) => {
                     return Err(unsupported("replayed import is not ready for completion"));
@@ -81,7 +98,7 @@ pub(super) fn replay(
             cursor = epoch.end;
         }
         completions += replay_interval(right, &mut output, cursor, usize::MAX, &mut coordinates)?;
-        changed |= output.archive_version() != before_archive
+        changed |= output.archive.archive_version() != before_archive
             || completions != 0
             || coordinates.memory_revisions != 0
             || coordinates.entity_revisions != 0
@@ -89,7 +106,7 @@ pub(super) fn replay(
             || coordinates.graph_transactions != 0;
         crate::owner_lifecycle::import_epoch_transport::sync(&output.container)?;
         let expected_archive = output.archive;
-        let reopened = Cva::open_from_container(output.container)?;
+        let reopened = super::reconciliation_copy::open_from_container(output.container)?;
         if !expected_archive.activity_history_matches(&reopened.archive)
             || !reopened
                 .archive
@@ -98,7 +115,7 @@ pub(super) fn replay(
             return Err(unsupported("reconciled import activity order changed"));
         }
         for id in known.keys() {
-            if reopened.import_epoch_status(id) != left.import_epoch_status(id) {
+            if reopened.import_epochs.status(id) != left.import_epochs.status(id) {
                 return Err(unsupported(
                     "reconciliation changed a retained left import epoch",
                 ));
@@ -106,8 +123,10 @@ pub(super) fn replay(
         }
         let result = CvaReconcileResult {
             comparison,
-            replayed_archive_records: reopened.archive_version().saturating_sub(before_archive)
-                as usize,
+            replayed_archive_records: reopened
+                .archive
+                .archive_version()
+                .saturating_sub(before_archive) as usize,
             replayed_memory_revisions: coordinates.memory_revisions,
             duplicate_memory_revisions: coordinates.duplicate_memory_revisions,
             replayed_entity_revisions: coordinates.entity_revisions,
@@ -121,9 +140,9 @@ pub(super) fn replay(
             replayed_file_memory_links: coordinates.file_memory_links,
             canonical_change_required: changed,
             vector_rebuild_required: changed
-                && (left.archive_vector_stats().objects > 0
-                    || left.packed_vector_stats().objects > 0
-                    || left.memory_vector_stats().objects > 0),
+                && (left.archive_vectors.stats().objects > 0
+                    || left.packed_vectors.stats().objects > 0
+                    || left.memory_vectors.stats().objects > 0),
         };
         Ok((result, reopened))
     })();
@@ -137,16 +156,20 @@ pub(super) fn replay(
 }
 
 pub(super) fn replay_interval(
-    source: &mut Cva,
-    output: &mut Cva,
+    source: &mut ReliquaryOwner,
+    output: &mut ReliquaryOwner,
     first: usize,
     end: usize,
     coordinates: &mut super::reconciliation_interval::Coordinates,
 ) -> Result<usize, CvaReconcileError> {
-    let chunks = source.container.chunks()?;
+    let chunks = super::reconciliation_interval::physical_objects(source)?;
     let mut completions = 0;
     for (index, chunk) in chunks.into_iter().enumerate().take(end).skip(first) {
-        let payload = source.container.read(chunk)?;
+        let payload = crate::owner_lifecycle::HistoryReadAccess::new(&source.container)
+            .snapshot()
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?
+            .read_object(chunk)
+            .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
         let known_episodes: std::collections::HashSet<_> = output
             .archive
             .episodes
@@ -170,16 +193,18 @@ pub(super) fn replay_interval(
             .cloned()
             .collect();
         for episode in episodes {
-            if output.insomnia_work(episode.id).is_none() {
-                output.queue_insomnia_episode(
-                    episode.id,
+            if output.insomnia.work(episode.id).is_none() {
+                let source = crate::insomnia_admission::episode_source(
+                    &episode,
                     if episode.origin == crate::EpisodeOrigin::Import {
                         crate::InsomniaPriority::Import
                     } else {
                         crate::InsomniaPriority::Live
                     },
-                    episode.finalized_at_ns,
-                )?;
+                );
+                output
+                    .insomnia
+                    .queue(&mut output.container, &source, episode.finalized_at_ns)?;
             }
         }
     }

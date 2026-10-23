@@ -1,7 +1,27 @@
 //! Ordered owner replay within an accepted import interval.
 use super::reconciliation::unsupported;
-use crate::{Cva, CvaError, CvaReconcileError, FreshnessEventProof};
+use crate::owner_lifecycle::ReliquaryOwner;
+use crate::{CvaError, CvaReconcileError, FreshnessEventProof};
 use std::collections::BTreeMap;
+
+pub(super) fn physical_objects(
+    owner: &ReliquaryOwner,
+) -> Result<Vec<crate::container::ObjectRef>, CvaReconcileError> {
+    let source = crate::owner_lifecycle::HistoryReadAccess::new(&owner.container)
+        .snapshot()
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+    let mut cursor = source
+        .cursor()
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+    let mut objects = Vec::new();
+    while let Some(frame) = cursor
+        .next_frame()
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?
+    {
+        objects.push(frame.object);
+    }
+    Ok(objects)
+}
 
 #[derive(Default)]
 pub(super) struct Coordinates {
@@ -22,7 +42,10 @@ pub(super) struct Coordinates {
     community: BTreeMap<u64, u64>,
 }
 impl Coordinates {
-    pub(super) fn shared(source: &mut Cva, end: usize) -> Result<Self, CvaReconcileError> {
+    pub(super) fn shared(
+        source: &mut ReliquaryOwner,
+        end: usize,
+    ) -> Result<Self, CvaReconcileError> {
         let mut result = Self::default();
         result.resolutions =
             crate::entity_resolution_store::EntityResolutionStore::materialized_changes(
@@ -30,7 +53,7 @@ impl Coordinates {
             )?;
         result.graph.insert(0, 0);
         result.memory_graph.insert(0, 0);
-        for chunk in source.container.chunks()?.into_iter().take(end) {
+        for chunk in physical_objects(source)?.into_iter().take(end) {
             let payload = source.container.read(chunk)?;
             if let Some(v) = crate::graph_compact_codec::publication::version_at(chunk, &payload)? {
                 result.graph.insert(v.graph_version, v.graph_version);
@@ -55,19 +78,19 @@ impl Coordinates {
     }
     pub(super) fn retained_epoch(
         &mut self,
-        source: &mut Cva,
-        destination: &mut Cva,
+        source: &mut ReliquaryOwner,
+        destination: &mut ReliquaryOwner,
         source_epoch: &super::reconciliation::CompletedEpoch,
         destination_epoch: &super::reconciliation::CompletedEpoch,
     ) -> Result<(), CvaReconcileError> {
         fn cuts(
-            cva: &mut Cva,
+            cva: &mut ReliquaryOwner,
             first: usize,
             end: usize,
         ) -> Result<(Vec<(u64, bool)>, Vec<u64>), CvaReconcileError> {
             let mut graphs = Vec::new();
             let mut communities = Vec::new();
-            for chunk in cva.container.chunks()?.into_iter().take(end).skip(first) {
+            for chunk in physical_objects(cva)?.into_iter().take(end).skip(first) {
                 let payload = cva.container.read(chunk)?;
                 if let Some(version) =
                     crate::graph_compact_codec::publication::version_at(chunk, &payload)?
@@ -139,7 +162,11 @@ impl Coordinates {
     }
 }
 
-pub(super) fn turn(source: &Cva, output: &Cva, cut: u64) -> Result<u64, String> {
+pub(super) fn turn(
+    source: &ReliquaryOwner,
+    output: &ReliquaryOwner,
+    cut: u64,
+) -> Result<u64, String> {
     if cut == 0 {
         return Ok(0);
     }
@@ -148,17 +175,21 @@ pub(super) fn turn(source: &Cva, output: &Cva, cut: u64) -> Result<u64, String> 
         .nodes
         .iter()
         .find(|node| {
-            source.activity_position_for_turn(&node.conversation_id, &node.id) == Some(cut)
+            source
+                .archive
+                .activity_position_for_turn(&node.conversation_id, &node.id)
+                == Some(cut)
         })
         .ok_or("source cut has no accepted activity")?;
     output
+        .archive
         .activity_position_for_turn(&node.conversation_id, &node.id)
         .ok_or_else(|| "destination lacks accepted activity".into())
 }
 
 pub(super) fn replay_frame(
-    source: &mut Cva,
-    output: &mut Cva,
+    source: &mut ReliquaryOwner,
+    output: &mut ReliquaryOwner,
     index: usize,
     payload: &[u8],
     coordinates: &mut Coordinates,
@@ -215,8 +246,12 @@ pub(super) fn replay_frame(
             if completion.records.iter().any(|record| record.id == *id) {
                 continue;
             }
-            let mut incoming = source.memory_revision(*id, 1)?;
-            let mut existing = output.memory_revision(*id, 1)?;
+            let mut incoming = source
+                .memories
+                .memory_revision(&mut source.container, *id, 1)?;
+            let mut existing = output
+                .memories
+                .memory_revision(&mut output.container, *id, 1)?;
             incoming.global_version = 0;
             incoming.memory_version = 0;
             existing.global_version = 0;
@@ -298,7 +333,7 @@ pub(super) fn replay_frame(
     if let Some((_, graph_version)) = crate::graph_compact_codec::publication::coordinates(payload)?
     {
         let graph = read_graph_range(source, index, index + 1)?;
-        let preserve_import_postimages = output.open_import_epoch().is_some();
+        let preserve_import_postimages = output.import_epochs.open().is_some();
         let result = crate::owner_lifecycle::graph_ordered_replay::replay_with_skips(
             crate::owner_lifecycle::graph_ordered_replay::GraphReplayDestination {
                 container: &mut output.container,
@@ -315,11 +350,11 @@ pub(super) fn replay_frame(
         coordinates.duplicate_graph_mutations += result.duplicate_mutations;
         coordinates
             .graph
-            .insert(graph_version, output.graph_version());
+            .insert(graph_version, output.graph.graph_version());
         if result.source_memory_graph_changed {
             coordinates
                 .memory_graph
-                .insert(graph_version, output.memory_graph_version());
+                .insert(graph_version, output.graph.memory_graph_version());
         }
     }
     if let Some(mut snapshot) =
@@ -370,13 +405,13 @@ pub(super) fn replay_frame(
             entry,
             rebased.destination_turn,
         )? {
-            output.freshness_refresh_due(outcome.memories, outcome.turn)?;
+            // The native owner returned by reconciliation is reopened before it
+            // reaches the facade, which rebuilds the disposable due projection.
+            let _ = outcome;
         }
     }
     if payload.starts_with(b"CVDREAM1") || payload.starts_with(b"CVDREAM2") {
-        let chunk = *source
-            .container
-            .chunks()?
+        let chunk = *physical_objects(source)?
             .get(index)
             .ok_or_else(|| unsupported("Dream source physical frame is absent"))?;
         if let Some(mut pass) =
@@ -468,9 +503,7 @@ pub(super) fn replay_frame(
         }
     }
     if crate::entity_resolution_codec::delta::is_current(payload) {
-        let object = *source
-            .container
-            .chunks()?
+        let object = *physical_objects(source)?
             .get(index)
             .ok_or_else(|| unsupported("resolution source frame unavailable"))?;
         // Tests/direct callers may construct empty Coordinates; resolve against
@@ -494,7 +527,7 @@ pub(super) fn replay_frame(
 }
 
 pub(super) fn read_graph_range(
-    source: &Cva,
+    source: &ReliquaryOwner,
     start_chunk: usize,
     end_chunk: usize,
 ) -> Result<crate::graph_ordered_replay::GraphTail, CvaReconcileError> {
