@@ -1,0 +1,80 @@
+{
+  "audit": "phase3-d3-reverse-consumer-deletion",
+  "source_commit": "cde6182aa2ed18827a175ba869b78b0ca57f3cfd",
+  "checkout": "C:\\!bin\\workspace\\Reliquary",
+  "scope": "read-only source/API/tool reverse-consumer audit; no source edits, Cargo, or architecture refresh",
+  "supported_historical_api": [
+    {
+      "path": "src/facade/historical_reconstruction.rs",
+      "symbols": ["Cva::reconstruct_historical_freshness", "Cva::reconstruct_historical_freshness_with_endpoint"],
+      "status": "public supported operations; exclusive/offline reconstruction and optional bounded endpoint fill"
+    },
+    {
+      "path": "src/runtime_inference/configured_runtime_historical.rs",
+      "symbols": ["ConfiguredRuntime::reconstruct_historical_freshness"],
+      "status": "public runtime wrapper delegates to the Cva operation"
+    },
+    {
+      "path": "src/lib.rs",
+      "symbols": ["HistoricalReconstructionError", "HistoricalReconstructionOptions", "HistoricalReconstructionReport", "HistoricalEmbeddingLimits", "HistoricalEmbeddingReport"],
+      "status": "public type reexports"
+    },
+    {
+      "path": "src/facade/cva_historical_import.rs",
+      "symbols": ["Cva::freeze_historical_import", "Cva::freeze_historical_import_with_fill", "Cva::commit_historical_import"],
+      "status": "private coordinator primitives; not public compatibility APIs"
+    }
+  ],
+  "obsolete_adapter_commit": {
+    "commit": "cde6182aa2ed18827a175ba869b78b0ca57f3cfd",
+    "removed_symbols": [
+      {"path": "src/facade/cva_historical_import.rs", "symbol": "Cva::validate_historical_import_settlements"},
+      {"path": "src/facade/cva_import_scope.rs", "symbol": "Cva::validate_import_settlement_scope"},
+      {"path": "src/facade/historical_import_input.rs", "symbol": "validate_settlement"},
+      {"path": "src/history/import_epoch_scope.rs", "symbol": "validate_import_settlement_scope"},
+      {"path": "src/history/mod.rs", "symbol": "validate_import_settlement_scope reexport"}
+    ],
+    "reverse_search": {
+      "searched_symbols": ["validate_historical_import_settlements", "validate_import_settlement_scope", "validate_settlement", "normalize_import_settlements", "migrate_legacy_import_framing"],
+      "remaining_production_consumer_matches": 0,
+      "replacement_paths": [
+        {"path": "src/history/reliquary_open.rs", "symbol": "validate_historical_settlement", "evidence": "reopen validates every retained settlement through canonical History validation"},
+        {"path": "src/history/import_epoch_scope.rs", "symbol": "read_import_epoch_scope", "evidence": "current epoch scope reader remains; no legacy ImportEventScope validator consumer"}
+      ]
+    },
+    "behavior_risk": "No live consumer of the removed adapters found. The retained canonical reopen validator and current epoch-scope reader cover the live paths."
+  },
+  "retired_codec_and_tool_search": {
+    "current_settlement_magic": {"path": "src/freshness/compact_settlement.rs", "symbol": "MAGIC", "value": "CVAFRS07"},
+    "retired_CVAFRS06_matches": [
+      {"path": "src/freshness/compact_settlement_tests.rs", "line": 158, "symbol": "production_owner_refuses_previous_settlement_format_without_installing_records", "classification": "negative refusal test; asserts explicit-migration error and verifies no records are installed"},
+      {"path": "scripts/history_writer_inventory.py", "line": 57, "symbol": "FAMILIES.freshness_import_settlement", "classification": "audit inventory input; CVAFRS06 is removed from active families by RETIRED_IDENTITIES before scanning"},
+      {"path": "scripts/history_writer_inventory.py", "line": 98, "symbol": "RETIRED_IDENTITIES", "classification": "intentional retired-format denylist; production reappearance is an audit failure"}
+    ],
+    "retired_CVAFRS06_runtime_decoder_or_writer_matches": 0,
+    "legacy_epoch_refusal": [
+      {"path": "src/imports/epoch_codec.rs", "line": 29, "symbol": "decode", "match": "payload.starts_with(b\"CVAILEG\")", "classification": "intentional fail-closed rejection of retired physical import evidence"},
+      {"path": "scripts/history_writer_inventory.py", "lines": [61, 99], "symbol": "import_legacy_epoch / RETIRED_IDENTITIES", "classification": "audit inventory plus denylist, not a runtime compatibility route"}
+    ],
+    "current_event_stream_refusal": [
+      {"path": "src/freshness_storage.rs", "symbol": "FreshnessStore::ingest", "classification": "routes CVAFRS07 semantic settlements; other non-current CVAFRS payloads fail closed"},
+      {"path": "src/freshness/freshness_storage_stream.rs", "symbol": "current event stream scanner", "classification": "skips current semantic-settlement records and rejects unsupported legacy CVAFRS records"}
+    ],
+    "tool_reverse_search": {
+      "retired_normalizer_or_migration_cli_matches": 0,
+      "current_fixture_acceptance": {"path": "scripts/agentic_memory_fixture_acceptance.py", "lines": [43, 105, 157], "classification": "accepts/promotes CVAFRS07 only; no CVAFRS06 conversion path"}
+    }
+  },
+  "retained_historical_evidence": [
+    {"path": "docs/architecture.md", "lines": [44, 50], "classification": "states runtime is CVAFRS07-only and CVAFRS06 is historical conversion evidence"},
+    {"path": "docs/behavioral-contracts.md", "line": 59, "classification": "CVAFRS06 before-image description for pending conversion/oracle work"},
+    {"path": "docs/storage-format.md", "lines": [91, 95, 1244, 1329, 1349, 1353, 1400], "classification": "historical migration and before-image evidence; old runtime decoder/temporary translator described as deleted"},
+    {"path": "docs/maintainer-map.md", "line": 23, "classification": "records CVAFRS06 as historical conversion before-image and names current CVAFRS07 ownership"}
+  ],
+  "verification": {
+    "method": "rg source/script reverse searches, targeted source reads, and git show of source commit",
+    "refresh_or_build_run": false,
+    "source_files_modified": false,
+    "report_file_only": true
+  }
+}

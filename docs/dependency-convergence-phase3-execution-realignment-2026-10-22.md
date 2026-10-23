@@ -1,7 +1,7 @@
 # Phase 3 execution realignment — owner lifecycle, Maintenance and Import
 
 Date: 2026-10-22
-Status: **Phase 3 executable work breakdown v2 — 119 unique tasks; source continuation verified at bounded scope**
+Status: **Phase 3 accepted locally — 119/119 unique tasks and 12/12 formal gates; Phase 4 handoff ready**
 Parent specification: [Phase 3 correction-only specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md)
 Progress register: [Phase 3 execution ledger](dependency-convergence-phase3-execution-2026-10-22.md)
 Immutable authority: [34-component target DAG](dependency-convergence-target-dag-2026-10-21.md), [allowlist](../tools/pitlord/convergence-component-dag.json) and [Phase 3 frozen baseline](dependency-convergence-phase3-baseline-2026-10-22.md)
@@ -174,4 +174,8 @@ Progress is **99/119 (83.2%) = 78 original accepted + 21 additional verified**, 
 
 The [corpus conversion receipt](../benchmarks/dependency-convergence-phase3-corpus-conversion-2026-10-23.json) records the six-file semantic oracle passing with zero mismatches and preserved source bytes/mtime. Fixture promotion is committed as `1ec88cc896531db99c17b672bfdedc22193a5474`, with root acceptance and prototype retirement in `3c7e8fe`. The promoted boundary reopened all six files, and the production-owner, History read-only, and writer-inventory checks passed. The frozen test codec and conversion prototypes are retired. P3.9.08–.11 and gate C3 are accepted locally.
 
-The current register is **103/119 closed: 82/98 original tasks accepted plus 21/21 added tasks verified**, with one original task active and 15 pending. **D3 remains open for P3.10.01–.08**; its single stabilized graph refresh and final source checks are active under P3.10.05, with source reconciliation and enforcement still to accept. **A3 remains open for P3.11.01–.08**, including full integration, final historical verification, documentation checks and Phase 4 handoff. Earlier 99/119 and pending-C3 entries above are preserved as their original checkpoints; no D3/A3 acceptance is inferred.
+The former current register snapshot of 103/119 and its pending D3/A3 status are preserved above as historical evidence. Final acceptance is recorded in the continuation below; earlier checkpoints are not rewritten.
+
+## Final Phase 3 acceptance and Phase 4 handoff — 2026-10-23
+
+The final register is **119/119 closed: 98/98 original tasks accepted plus 21/21 added tasks verified**, with **12/12 formal gates accepted locally**. D3's single stabilized refresh and source enforcement are recorded in the [source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json). A3's final integration, history/oracle, corpus and documentation/handoff evidence are in the [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json). CVAFRS07 is the current-only settlement format. The [Phase 3 to Phase 4 handoff](dependency-convergence-phase3-phase4-handoff-2026-10-23.md) is ready; Phases 4–7 remain pending.

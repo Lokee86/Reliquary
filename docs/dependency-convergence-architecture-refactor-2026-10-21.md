@@ -1,7 +1,7 @@
 # Dependency Convergence Architecture Refactor
 
 Date: 2026-10-21
-Status: Phases 0–1 implemented and accepted locally; Phases 2–7 remain proposed
+Status: Phases 0–3 accepted locally; Phases 4–7 remain pending
 Parent: [Roadmap](roadmap.md)
 
 ## Overview
@@ -50,7 +50,7 @@ The goal is not merely to produce an acyclic graph. The refactor must increase l
 
 The full logical component DAG has now been designed and adopted: [Target Component DAG](dependency-convergence-target-dag-2026-10-21.md), with the canonical [34-component edge allowlist](../tools/pitlord/convergence-component-dag.json). **Every permitted edge is explicitly identified and justified.** The target requires no cycles, no upward/ancestral backreach even where acyclic, no unlisted sibling dependencies, owner-local encapsulation, and downward shortcuts only where explicitly permitted. This is the permanent project architecture target, not optional design guidance. The current 19-area source capture is a migration/evidence view, not a conflicting target.
 
-The completed logical design is separate from the **locally verified Phase 0 source-baseline gate**: all captured findings have been classified and the existing 19-area ratchet passed. Code mapping and finer 34-component source enforcement remain distinct acceptance work for the migration phases. Later phases must transform the current implementation to the DAG without adding future roadmap features.
+The completed logical design is separate from the **locally verified Phase 0 source-baseline gate**: all captured findings have been classified and the existing 19-area ratchet passed. Phase 3 completed and accepted the source mapping and finer 34-component enforcement against the unchanged component DAG; the [source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json) records this check. Later phases must preserve the DAG without adding future roadmap features.
 
 ## Target dependency direction
 
@@ -341,7 +341,7 @@ Exit condition:
 
 ### Phase 2 — Owner-local semantic boundaries
 
-Detailed execution specification: [Phase 2 owner-local boundary plan](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks with per-owner, physical-preservation, privacy, ratchet and corpus gates. The accepted DAG is authoritative; Phase 2 is specified, **not implemented**.
+Detailed execution specification: [Phase 2 owner-local boundary plan](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks with per-owner, physical-preservation, privacy, ratchet and corpus gates. The accepted DAG is authoritative; Phase 2 is accepted locally in its [execution record](dependency-convergence-phase2-execution-2026-10-22.md).
 
 Purpose: make each durable semantic owner independently usable through a narrow, owner-correct interface.
 
@@ -383,7 +383,7 @@ Exit condition:
 
 ### Phase 3 — Historical, maintenance, import, and reconciliation composition
 
-Detailed correction-only execution spec: [Phase 3 History/Maintenance/Import convergence](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md). It defines 98 bounded tasks with hard-cut gates, the accepted Phase 2 owner proof seams, read-only History, explicit Maintenance/Import coordination, and the preapproved CVAFRS06 semantic-settlement minimization. The spec **does not** alter the accepted DAG or implement the phase.
+Detailed correction-only execution spec: [Phase 3 History/Maintenance/Import convergence](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md), tracked by the 119-task [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md). The accepted phase preserves the existing DAG and implements read-only History, explicit Maintenance/Import coordination, and the preapproved current-only CVAFRS07 semantic-settlement cut. The [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) records the C3/D3/A3 evidence.
 
 Purpose: move cross-owner historical/maintenance behavior into explicit domain services above owner stores instead of allowing the facade to become the integration layer.
 

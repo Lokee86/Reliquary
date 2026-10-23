@@ -75,7 +75,10 @@
       "staleness",
       "native-import",
       "external-source",
-      "history-rewrite"
+      "history-rewrite",
+      "history",
+      "maintenance",
+      "owner-lifecycle"
     ],
     "config-security": [
       "config-security",
@@ -101,7 +104,10 @@
       "staleness",
       "native-import",
       "external-source",
-      "history-rewrite"
+      "history-rewrite",
+      "history",
+      "maintenance",
+      "owner-lifecycle"
     ],
     "context-engine": [
       "context-engine",
@@ -114,7 +120,8 @@
       "project-environment",
       "archive",
       "compact-codec",
-      "staleness"
+      "staleness",
+      "owner-lifecycle"
     ],
     "staleness": [
       "staleness"
@@ -133,7 +140,9 @@
       "chronos",
       "project-environment",
       "compact-codec",
-      "staleness"
+      "staleness",
+      "history",
+      "owner-lifecycle"
     ],
     "external-source": [
       "external-source",
@@ -156,6 +165,52 @@
       "project-environment",
       "compact-codec",
       "staleness"
+    ],
+    "history": [
+      "history",
+      "owner-lifecycle",
+      "archive",
+      "memory",
+      "semantic-graph",
+      "perception",
+      "ego",
+      "freshness",
+      "retrieval",
+      "runtime-inference",
+      "native-import",
+      "external-source",
+      "maintenance"
+    ],
+    "maintenance": [
+      "maintenance",
+      "history",
+      "owner-lifecycle",
+      "container",
+      "archive",
+      "memory",
+      "semantic-graph",
+      "perception",
+      "ego",
+      "freshness",
+      "retrieval",
+      "runtime-inference",
+      "native-import",
+      "external-source"
+    ],
+    "owner-lifecycle": [
+      "owner-lifecycle",
+      "container",
+      "archive",
+      "memory",
+      "semantic-graph",
+      "perception",
+      "ego",
+      "freshness",
+      "retrieval",
+      "runtime-inference",
+      "native-import",
+      "external-source",
+      "maintenance"
     ]
   }
 }

@@ -5,7 +5,8 @@
       "id": "compact-codec",
       "description": "Pure field-change and known-mask value mechanics; no semantic owner, clock, persistence or publication authority",
       "paths": [
-        "src/compact_delta.rs"
+        "src/compact_delta.rs",
+        "src/historical_timeline.rs"
       ]
     },
     {
@@ -95,9 +96,7 @@
       "paths": [
         "src/facade",
         "src/lib.rs",
-        "src/owner_lifecycle.rs",
         "src/tombstone_import_history_characterization_tests.rs",
-        "src/maintenance",
         "src/source_identity.rs"
       ]
     },
@@ -138,7 +137,8 @@
       "id": "external-source",
       "description": "Host canonical reference contracts and derived index; external semantic publication composes MemoryStore without creating Archive source history",
       "paths": [
-        "src/external_source"
+        "src/external_source",
+        "src/external_index"
       ]
     },
     {
@@ -148,6 +148,28 @@
         "src/rewrite.rs",
         "src/rewrite",
         "src/rewrite_lineage.rs"
+      ]
+    },
+    {
+      "id": "history",
+      "description": "Read-only reconstruction and proof of validated historical owner state; no semantic writes or policy coordination",
+      "paths": [
+        "src/history"
+      ]
+    },
+    {
+      "id": "maintenance",
+      "description": "Explicit owner maintenance policy for pruning, reclamation, repair, reconciliation, copy and rewrite",
+      "paths": [
+        "src/maintenance"
+      ]
+    },
+    {
+      "id": "owner-lifecycle",
+      "description": "Physical owner open, replay, validation, publication and narrow lifecycle transport capabilities",
+      "paths": [
+        "src/owner_lifecycle.rs",
+        "src/owner_lifecycle"
       ]
     }
   ],
@@ -296,7 +318,10 @@
         "src/external_source",
         "src/rewrite.rs",
         "src/rewrite",
-        "src/rewrite_lineage.rs"
+        "src/rewrite_lineage.rs",
+        "src/history",
+        "src/maintenance",
+        "src/owner_lifecycle"
       ],
       "relations": [
         "imports",
@@ -351,7 +376,10 @@
         "src/external_source",
         "src/rewrite.rs",
         "src/rewrite",
-        "src/rewrite_lineage.rs"
+        "src/rewrite_lineage.rs",
+        "src/history",
+        "src/maintenance",
+        "src/owner_lifecycle"
       ],
       "to_exclude_paths": [
         "src/archive/archive_codec.rs",

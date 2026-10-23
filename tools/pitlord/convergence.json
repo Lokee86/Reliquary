@@ -5,7 +5,8 @@
       "id": "compact-codec",
       "description": "Pure field-change and known-mask value mechanics; no semantic owner, clock, persistence or publication authority",
       "paths": [
-        "src/compact_delta.rs"
+        "src/compact_delta.rs",
+        "src/historical_timeline.rs"
       ]
     },
     {
@@ -95,9 +96,7 @@
       "paths": [
         "src/facade",
         "src/lib.rs",
-        "src/owner_lifecycle.rs",
         "src/tombstone_import_history_characterization_tests.rs",
-        "src/maintenance",
         "src/source_identity.rs"
       ]
     },
@@ -138,7 +137,8 @@
       "id": "external-source",
       "description": "Host canonical reference contracts and derived index; external semantic publication composes MemoryStore without creating Archive source history",
       "paths": [
-        "src/external_source"
+        "src/external_source",
+        "src/external_index"
       ]
     },
     {
@@ -148,6 +148,28 @@
         "src/rewrite.rs",
         "src/rewrite",
         "src/rewrite_lineage.rs"
+      ]
+    },
+    {
+      "id": "history",
+      "description": "Read-only reconstruction and proof of validated historical owner state; no semantic writes or policy coordination",
+      "paths": [
+        "src/history"
+      ]
+    },
+    {
+      "id": "maintenance",
+      "description": "Explicit owner maintenance policy for pruning, reclamation, repair, reconciliation, copy and rewrite",
+      "paths": [
+        "src/maintenance"
+      ]
+    },
+    {
+      "id": "owner-lifecycle",
+      "description": "Physical owner open, replay, validation, publication and narrow lifecycle transport capabilities",
+      "paths": [
+        "src/owner_lifecycle.rs",
+        "src/owner_lifecycle"
       ]
     }
   ],
@@ -176,7 +198,10 @@
         "staleness",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -208,7 +233,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -241,7 +269,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -273,7 +304,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -305,7 +339,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -337,7 +374,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -369,7 +409,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -401,7 +444,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -434,7 +480,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -466,7 +515,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -517,7 +569,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -548,7 +603,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -580,7 +638,9 @@
         "context-engine",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance"
       ],
       "relations": [
         "imports",
@@ -615,7 +675,10 @@
         "project-environment",
         "native-import",
         "external-source",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -637,7 +700,8 @@
         "config-security",
         "facade",
         "context-engine",
-        "history-rewrite"
+        "history-rewrite",
+        "maintenance"
       ],
       "relations": [
         "imports",
@@ -669,7 +733,10 @@
         "context-engine",
         "project-environment",
         "native-import",
-        "history-rewrite"
+        "history-rewrite",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -691,7 +758,10 @@
         "config-security",
         "facade",
         "context-engine",
-        "native-import"
+        "native-import",
+        "history",
+        "maintenance",
+        "owner-lifecycle"
       ],
       "relations": [
         "imports",
@@ -701,6 +771,83 @@
         "implements"
       ],
       "message": "Dependency convergence: relocate contracts to their owner or move coordination above stores; see docs/architecture.md and the Phase 0 inventory."
+    },
+    {
+      "id": "convergence-history-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "history"
+      ],
+      "to_areas": [
+        "compact-codec",
+        "container",
+        "chronos",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "staleness",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: keep this owner within its strict component-DAG dependencies; use narrow owner read/proof or lifecycle contracts, and keep policy coordination above stores."
+    },
+    {
+      "id": "convergence-maintenance-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "maintenance"
+      ],
+      "to_areas": [
+        "compact-codec",
+        "chronos",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "staleness",
+        "history-rewrite"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: keep this owner within its strict component-DAG dependencies; use narrow owner read/proof or lifecycle contracts, and keep policy coordination above stores."
+    },
+    {
+      "id": "convergence-owner-lifecycle-direction",
+      "type": "forbid_dependency",
+      "from_areas": [
+        "owner-lifecycle"
+      ],
+      "to_areas": [
+        "compact-codec",
+        "chronos",
+        "config-security",
+        "facade",
+        "context-engine",
+        "project-environment",
+        "staleness",
+        "history-rewrite",
+        "history"
+      ],
+      "relations": [
+        "imports",
+        "depends-on",
+        "calls",
+        "references",
+        "implements"
+      ],
+      "message": "Dependency convergence: keep this owner within its strict component-DAG dependencies; use narrow owner read/proof or lifecycle contracts, and keep policy coordination above stores."
     }
   ]
 }

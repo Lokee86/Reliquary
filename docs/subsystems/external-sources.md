@@ -72,6 +72,7 @@ External Message/Chunk reference values live in the neutral `source_identity.rs`
 ## Code Map
 
 - `src/external_source/**`
+- `src/external_index/**`
 - `src/runtime_inference/runtime_host_gateway_external*`
 - `src/memory/**`
 

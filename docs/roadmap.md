@@ -8,17 +8,17 @@ Own future Reliquary implementation work. Completed behavior belongs in current 
 
 ## Overview
 
-The dependency-convergence architecture refactor is the current structural priority. It is limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) and its [permanent, explicitly allowlisted target component DAG](dependency-convergence-target-dag-2026-10-21.md). No cycle, upward/ancestral backreach (even if acyclic), unauthorized sibling coupling or unlisted direct dependency is permitted after convergence.
+The dependency-convergence architecture refactor has completed Phases 0–3 and is accepted locally. Phases 4–7 remain pending; the Phase 4 Project Environment handoff is ready in the [handoff record](dependency-convergence-phase3-phase4-handoff-2026-10-23.md). The campaign remains limited to dependency convergence, existing architectural corrections/retirements, and documentation catch-up for touched surfaces; it does not absorb new feature work from this roadmap. See [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) and its [permanent, explicitly allowlisted target component DAG](dependency-convergence-target-dag-2026-10-21.md). No cycle, upward/ancestral backreach (even if acyclic), unauthorized sibling coupling or unlisted direct dependency is permitted after convergence.
 
 Phase 1's physical storage boundary is implemented and accepted locally on
 Windows; its verification record documents platform limits. Its [execution specification](dependency-convergence-phase1-storage-foundation-spec-2026-10-21.md)
 and [file lease contract](dependency-convergence-phase1-lock-contract-2026-10-21.md)
 record the cursor, explicit repairs and writer/source publication rules. Later
-owner and domain convergence remains separate work. Phase 2 owner-local convergence is tracked in the [91-task Phase 2 specification](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) and locally accepted [execution record](dependency-convergence-phase2-execution-2026-10-22.md). The active [119-task Phase 3 History/Maintenance/Import specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) preserves current owner authority and Phase 1 storage while completing boundary extraction and the CVAFRS07 settlement cut. It does not implement new Perception, Ego, Context or Warlock features.
+owner and domain convergence remains separate work. Phase 2 owner-local convergence is tracked in the [91-task Phase 2 specification](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) and locally accepted [execution record](dependency-convergence-phase2-execution-2026-10-22.md). Phase 3 History/Maintenance/Import convergence is accepted at 119/119 tasks and 12/12 gates, with the CVAFRS07 settlement cut complete; the [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md) and [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) record the evidence. It does not implement new Perception, Ego, Context or Warlock features.
 
-The active work is now concentrated in a small number of tracks:
+Later work is now concentrated in a small number of tracks:
 
-1. complete D3 source-graph enforcement and A3 full integration, oracle, documentation and handoff acceptance after the accepted CVAFRS07 C3 migration;
+1. continue the Phase 4 Project Environment handoff and later campaign work under their separate acceptance plans;
 2. complete Perception Observations, then Ego semantic synthesis and Context Engine final assembly;
 3. finish explicit Insomnia commit semantics;
 4. finish Warlock/Hermes consumer/release work around the implemented Gateway runtime;
@@ -28,11 +28,11 @@ The active work is now concentrated in a small number of tracks:
 
 Completed Freshness, Dream, decision-routing, tombstone/import/rewrite, external-source-core, and Gateway implementation sequences are not roadmap items.
 
-## Active storage/history track
+## Completed storage/history track
 
 The earlier CVAFRS06 settlement measured 395,533 bytes before normalization and 7,415,741 bytes across six canonical fixtures afterward. Those figures are historical measurements of the prior self-contained proof. The selected current-only CVAFRS07 design retains exact semantic scope and accepted-event journal references, stores a chronological causal numeric basis and sparse irreducible score corrections, and omits copied per-event recipient sets and complete derived output postimages. Its expanded UTF-8 budget is 64 MiB.
 
-The six-file CVAFRS07 conversion, semantic/clock/source-byte/mtime oracles and promotion have passed C3. D3 source-graph enforcement and A3 full integration/documentation acceptance remain open in the [Phase 3 execution ledger](dependency-convergence-phase3-execution-2026-10-22.md). The prior 5.235% whole-file result remains historical measurement of the completed earlier hard cut, not a result for this settlement format.
+The six-file CVAFRS07 conversion, semantic/clock/source-byte/mtime oracles, promotion, D3 source enforcement and A3 integration/documentation gates are accepted. The final result is recorded in the [Phase 3 execution ledger](dependency-convergence-phase3-execution-2026-10-22.md), [source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json) and [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json). The prior 5.235% whole-file result remains historical measurement of the completed earlier hard cut, not a result for this settlement format.
 
 Authoritative planning:
 

@@ -129,8 +129,9 @@
     "original_settlement_payload_bytes": 7415717,
     "new_settlement_payload_bytes": 1118112,
     "settlement_reduction_percent": 84.92240197407749,
-    "compression_used": false,
-    "phy_files_unchanged": 3
+    "phy_files_unchanged": 3,
+    "external_compression_used": false,
+    "wire_prefix_and_delta_encoding_used": true
   },
   "fixture_promotion_commit": "1ec88cc896531db99c17b672bfdedc22193a5474",
   "retired_temporary_source_paths": [

@@ -27,8 +27,8 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | Gate | State | Evidence / remaining obligation |
 | --- | --- | --- |
 | B0 | Accepted locally | Source/hash verification, bounded operation inventory and starting guards in baseline. |
-| B1 | Accepted locally (design) | [Concrete contracts](dependency-convergence-phase3-contracts-2026-10-22.md), reviewed against exact DAG; implementation proofs remain pending. |
-| H3 | Accepted locally (source cut) | One read-only proof path; final targeted 23 History + source-order regression passed. Full-run identity anomaly is retained below for A3. |
+| B1 | Accepted locally | [Concrete contracts](dependency-convergence-phase3-contracts-2026-10-22.md) and final gate evidence in the [acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json). |
+| H3 | Accepted locally | One read-only proof path; final targeted History and source-order regressions passed. The previously recorded full-run identity anomaly's disposition is documented in the [A3 receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json). |
 | M3 | Accepted locally | Canonical explicit Maintenance operation boundary, validated lifecycle/History reconstruction, thin public dispatch and obsolete facade policy deletion; continuation matrix below. |
 | P3 | Accepted locally | REL/PHY selection, owner retention/marker proofs, exact retained raw history/clocks, source/output guards and prune/reclaim tests; continuation matrix below. |
 | W3 | Accepted locally | Immutable planning, concrete lifecycle execution, owner-local replay, selected semantic/vector emission and source-preserving publication; W3 receipt below. |
@@ -36,12 +36,12 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | I3 | Accepted locally | Native historical preparation, one completion sequence, epoch reconciliation, exact guards and bounded integration; [receipt](../benchmarks/dependency-convergence-phase3-import-2026-10-23.json). |
 | S3 | Accepted locally | Exact causal reconstruction, measured authority corrections, two executable alternatives and selected CVAFRS07 design receipt. |
 | C3 | Accepted locally | Six-file CVAFRS07 conversion and semantic oracle pass; corpus promoted, old runtime/test codec and temporary prototypes retired; post-cut accounting and promoted-boundary checks pass. See the 2026-10-23 corpus conversion receipt. |
-| D3 | Pending | Stabilized graph refresh and source enforcement. |
-| A3 | Pending | Full integration, corpus and documentation acceptance. |
+| D3 | Accepted locally | Single stabilized source-graph refresh and enforcement; [source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json). |
+| A3 | Accepted locally | Final integrated acceptance and documentation handoff; [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json). |
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 82/98 original accepted + 21/21 additional verified = 103/119 closed; 16 original D3/A3 tasks remain open.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Final totals: 98/98 original tasks accepted + 21/21 additional tasks verified = 119/119 closed; all 12/12 formal gates are accepted locally.** The original P3.x rows retain their distinct integration and deletion evidence; accepted child-extraction tasks are not double-counted. The [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) records final integration and handoff evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -127,22 +127,22 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.9.09 | Accepted locally | Verified canonical REL/PHY corpus promoted; fixture commit `1ec88cc`; root acceptance commit `3c7e8fe` |
 | P3.9.10 | Accepted locally | CVAFRS06 runtime route and temporary conversion/prototype paths retired; frozen test codec removed in `acac280` |
 | P3.9.11 | Accepted locally | Post-cut settlement and whole-file byte accounting recorded in corpus-conversion receipt |
-| P3.10.01 | Pending | Awaiting prerequisite gate |
-| P3.10.02 | Pending | Awaiting prerequisite gate |
-| P3.10.03 | Pending | Awaiting prerequisite gate |
-| P3.10.04 | Pending | Awaiting prerequisite gate |
-| P3.10.05 | Active | One stabilized source-graph refresh and final source checks are underway; D3 acceptance remains pending |
-| P3.10.06 | Pending | Awaiting prerequisite gate |
-| P3.10.07 | Pending | Awaiting prerequisite gate |
-| P3.10.08 | Pending | Awaiting prerequisite gate |
-| P3.11.01 | Pending | Awaiting prerequisite gate |
-| P3.11.02 | Pending | Awaiting prerequisite gate |
-| P3.11.03 | Pending | Awaiting prerequisite gate |
-| P3.11.04 | Pending | Awaiting prerequisite gate |
-| P3.11.05 | Pending | Awaiting prerequisite gate |
-| P3.11.06 | Pending | Awaiting prerequisite gate |
-| P3.11.07 | Pending | Awaiting prerequisite gate |
-| P3.11.08 | Pending | Awaiting prerequisite gate |
+| P3.10.01 | Accepted locally | D3 source-enforcement receipt |
+| P3.10.02 | Accepted locally | D3 source-enforcement receipt |
+| P3.10.03 | Accepted locally | D3 source-enforcement receipt |
+| P3.10.04 | Accepted locally | D3 source-enforcement receipt |
+| P3.10.05 | Accepted locally | Single stabilized refresh and source checks; [D3 receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json) |
+| P3.10.06 | Accepted locally | D3 source-enforcement receipt |
+| P3.10.07 | Accepted locally | D3 source-enforcement receipt |
+| P3.10.08 | Accepted locally | D3 source-enforcement receipt |
+| P3.11.01 | Accepted locally | Final integrated acceptance receipt |
+| P3.11.02 | Accepted locally | Final integrated acceptance receipt |
+| P3.11.03 | Accepted locally | Final integrated acceptance receipt |
+| P3.11.04 | Accepted locally | Final integrated acceptance receipt |
+| P3.11.05 | Accepted locally | Final integrated acceptance receipt |
+| P3.11.06 | Accepted locally | Final integrated acceptance receipt |
+| P3.11.07 | Accepted locally | Documentation and handoff checks; [A3 receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) |
+| P3.11.08 | Accepted locally | Final integrated acceptance receipt |
 
 ## New execution tasks (21 additional IDs; counted, not merely notes)
 
@@ -344,3 +344,7 @@ Progress is **99/119 (83.2%) = 78 original accepted + 21 additional verified**, 
 The [corpus conversion receipt](../benchmarks/dependency-convergence-phase3-corpus-conversion-2026-10-23.json) records a passing feature-enabled semantic oracle across all six canonical REL/PHY files, zero semantic mismatches, and unchanged source bytes/mtime. The converted corpus was promoted in fixture repository commit `1ec88cc896531db99c17b672bfdedc22193a5474`; root accepted the promotion and retired conversion prototypes in `3c7e8fe`. The promoted boundary reopened all six files successfully; codec adversarial probes, production-owner guard, History read-only guard and writer inventory passed. The old test codec was removed in `acac280`. Post-cut accounting records 1,118,112 settlement payload bytes and 124,664,599 bytes across the six promoted files, down from 130,962,204 bytes without compression.
 
 P3.9.08–.11 are accepted locally and **C3 is accepted locally (10/12 gates)**. Current progress is **103/119 closed = 82 original tasks accepted + 21/21 added tasks verified**, with **one active and 15 pending original tasks**. D3 remains open across **P3.10.01–.08**; the single stabilized source-graph refresh is active under P3.10.05, with ownership reconciliation and enforcement still to accept. A3 remains open across **P3.11.01–.08** for integrated Rust/CLI, history/clock/oracle, documentation and handoff acceptance. The prior 99/119 checkpoint and all earlier failures remain historical snapshots; no D3 or A3 pass is inferred from C3 evidence.
+
+## Final Phase 3 acceptance — 2026-10-23
+
+Phase 3 is accepted at **119/119 tasks (98 original + 21 added) and 12/12 formal gates**. D3's single stabilized source-graph refresh and source enforcement are recorded in the [source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json); integrated Rust/CLI, historical/oracle, corpus and documentation/handoff acceptance are recorded in the [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json). The six-file current-only CVAFRS07 conversion and promotion are accepted under C3. The [Phase 4 handoff](dependency-convergence-phase3-phase4-handoff-2026-10-23.md) is ready. Phases 4–7 remain pending; acceptance of this phase does not pre-accept later work.

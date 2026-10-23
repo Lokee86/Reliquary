@@ -111,7 +111,7 @@ The retained implementation uses bounded grouped propagation, conservative batch
 
 ## Owner-local proof vocabulary
 
-`freshness/event_proof.rs` owns the immutable `FreshnessEventProof` and `FreshnessEventCut` values used by the journal and its callers. Their crate-root public exports and fields are unchanged. Graph/Community availability and Archive birth/source composition remain in the admitting callers. Current runtime settlement storage is CVAFRS07-only: the record carries exact scope, retained journal-leaf identity/digest/turn, chronological causal basis and sparse irreducible score corrections. It does not copy full postimages or per-event recipient sets. The expanded UTF-8 payload is bounded at 64 MiB. CVAFRS06 remains a historical corpus before-image for conversion and oracle work; it is not a runtime compatibility input.
+`freshness/event_proof.rs` owns the immutable `FreshnessEventProof` and `FreshnessEventCut` values used by the journal and its callers. Their crate-root public exports and fields are unchanged. Graph/Community availability and Archive birth/source composition remain in the admitting callers. Current runtime settlement storage is CVAFRS07-only: the record carries exact scope, retained journal-leaf identity/digest/turn, chronological causal basis and sparse irreducible score corrections. It does not copy full postimages or per-event recipient sets. The expanded UTF-8 payload is bounded at 64 MiB. CVAFRS06 remains a historical corpus before-image for conversion and oracle work; it is not a runtime compatibility input. Phase 3 acceptance is complete; see the [final receipt](../../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json).
 
 ## Code Map
 

@@ -1,0 +1,109 @@
+{
+  "worktree": "C:\\!bin\\workspace\\Reliquary-phase3-docs-final",
+  "capturedAt": "2026-10-23T16:02:58.8586328Z",
+  "checks": [
+    {
+      "name": "docs-policy-full",
+      "command": "python C:\\!bin\\workspace\\engineering-standards\\tools\\docs_policy\\check.py --repo .",
+      "exitCode": 0,
+      "log": "C:\\!bin\\workspace\\Reliquary-phase3-docs-final\\.verification-tmp\\phase3-docs-policy-full.log",
+      "logSha256": "1468d53729f43616f4e08b89a66f3a37b641e5a765ff5a012d72351adbbbc6ba"
+    },
+    {
+      "name": "docs-policy-changed-from-origin-main",
+      "command": "python C:\\!bin\\workspace\\engineering-standards\\tools\\docs_policy\\check.py --repo . --changed-from origin/main",
+      "exitCode": 0,
+      "log": "C:\\!bin\\workspace\\Reliquary-phase3-docs-final\\.verification-tmp\\phase3-docs-policy-changed-from-origin-main.log",
+      "logSha256": "1468d53729f43616f4e08b89a66f3a37b641e5a765ff5a012d72351adbbbc6ba"
+    },
+    {
+      "name": "ddocs-indexes-links",
+      "command": "ddocs check --indexes --links",
+      "exitCode": 0,
+      "log": "C:\\!bin\\workspace\\Reliquary-phase3-docs-final\\.verification-tmp\\phase3-ddocs-indexes-links.log",
+      "logSha256": "6ed1454e5f568529276d2883a4dd85042b97ca017068fe7e40bde69b7fab6d91"
+    }
+  ],
+  "conditionalPatch": {
+    "path": "C:\\!bin\\workspace\\Reliquary-phase3-docs-final\\.verification-tmp\\phase3-final-acceptance.patch",
+    "sha256": "62fdb76e167e88035b278dbd350cffbf82b772b340b22dc122f34c939fdb89bb"
+  },
+  "modifiedDocs": [
+    {
+      "path": "docs/INDEX.md",
+      "sha256": "0d714ecfd3f15cc26c580a63a631731e3185e6a01223f71d5a6f35b6a418c262"
+    },
+    {
+      "path": "docs/architecture.md",
+      "sha256": "091aa5b74f8c9b3afb0d193ecc65bd479294a42b8f562d9ed5acff94634d81b0"
+    },
+    {
+      "path": "docs/behavioral-contracts.md",
+      "sha256": "83a96d4698a33418258a57204bc064de08ce3b048f50f0e27f8e67ec19f8f4be"
+    },
+    {
+      "path": "docs/current-limitations.md",
+      "sha256": "cae8bd690f7c642cfe90cd900e2752ce2afc5f45e47fda7c7ba26bd700295b5b"
+    },
+    {
+      "path": "docs/dependency-convergence-architecture-refactor-2026-10-21.md",
+      "sha256": "dcd7a33931586434522bfd1735ae2fb05db08ac3f59cd83aebc7b0c7dfed1ee7"
+    },
+    {
+      "path": "docs/dependency-convergence-phase3-execution-2026-10-22.md",
+      "sha256": "d9dabdaee1103519c2c142c491069c797ae71274ba1fc202263220f2b9e06e0d"
+    },
+    {
+      "path": "docs/dependency-convergence-phase3-execution-realignment-2026-10-22.md",
+      "sha256": "0f487854a97d09b1d10955b1d80888f6aabc878557c68a4cfa41b52d00e5e1a0"
+    },
+    {
+      "path": "docs/dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md",
+      "sha256": "586dd6679f821dd84ab4fc08e7fd4ebff7d73835a4636b47bc6145b42f1ec38d"
+    },
+    {
+      "path": "docs/dependency-convergence-phase3-phase4-handoff-2026-10-23.md",
+      "sha256": "beb73ae0cc304198d9fd9cc95f69032415aa0a853802b018d6400aa8a0fe493b"
+    },
+    {
+      "path": "docs/development.md",
+      "sha256": "50c5645ded271580d8282458cbe077e0db9d0ee2ca20d7685e70a8f75283d226"
+    },
+    {
+      "path": "docs/documentation-coverage.md",
+      "sha256": "b08e1bc3ee02a1e01a6fedc2220a0de0026513a1fd5447796ce3fa1d2f81b4f2"
+    },
+    {
+      "path": "docs/invariants.md",
+      "sha256": "26d782f00a0f263da56d626cb828686bbc72cc606e4b480509321212939b76ca"
+    },
+    {
+      "path": "docs/maintainer-map.md",
+      "sha256": "8d9d29fd9c203250f2057432c6f9e0b0dad233c9437c274a8e6a81b608cd4969"
+    },
+    {
+      "path": "docs/native-import.md",
+      "sha256": "0d6bcfaef34a01c4b3939adf4eea6419ef50aa41943775294b8ce693a15a750e"
+    },
+    {
+      "path": "docs/roadmap.md",
+      "sha256": "0f447129c5931a8a48032b14e3b9b3b39aad121aab6535e1582da4626124796a"
+    },
+    {
+      "path": "docs/storage-format.md",
+      "sha256": "7208824e80a3e9602b59ba699ddd09c7ad33d2bcef361bf038419db59a1c76e5"
+    },
+    {
+      "path": "docs/subsystems/external-sources.md",
+      "sha256": "f61aadf2e609e24b867c2a2e1f09166aff466b94ec0c062f2410f59fae50f945"
+    },
+    {
+      "path": "docs/subsystems/freshness.md",
+      "sha256": "4e565db51adaa37bd6de5306185a6e774762156eb7711bd78dceb70a6122ac9d"
+    },
+    {
+      "path": "docs/subsystems/semantic-maintenance.md",
+      "sha256": "206f52679b44ec6c6cf6a38f3bb9a9ff8c6cd6ea995bceedfda29ac56ac3d185"
+    }
+  ]
+}

@@ -35,7 +35,7 @@ behavior on untested operating systems.
 
 ## Native import contracts
 
-`historical_import_attribution_tests.rs` exercises native owner preparation with a live pre-start accepted-use base, actual imported Insomnia births, unrelated post-start Memory/Graph/Community state, import-only fragment proofs and empty imports. A provisional semantic effect adds an existing recipient to the result without classifying it as a birth; its initial record remains the pre-start base. The selected CVAFRS07 settlement retains exact accepted journal references and the causal numeric basis with sparse score corrections, preserving legitimate interval accepted use and byte-neutral retry. CVAFRS07 conversion, six-file oracle parity and promotion are accepted locally under C3; D3 and A3 remain pending.
+`historical_import_attribution_tests.rs` exercises native owner preparation with a live pre-start accepted-use base, actual imported Insomnia births, unrelated post-start Memory/Graph/Community state, import-only fragment proofs and empty imports. A provisional semantic effect adds an existing recipient to the result without classifying it as a birth; its initial record remains the pre-start base. The selected CVAFRS07 settlement retains exact accepted journal references and the causal numeric basis with sparse score corrections, preserving legitimate interval accepted use and byte-neutral retry. CVAFRS07 conversion, six-file oracle parity and promotion are accepted under C3; all twelve Phase 3 gates are accepted. See the [final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json).
 
 The tombstoned-prestart fixture verifies authenticated exclusion, accepted empty result attribution and terminal lifecycle after reopen while retained revision payload stays readable. `historical_import_accepted_use_tests.rs` independently verifies pre-start accepted use below score saturation, omission of unaffected live records from sparse replacements, exact retry and reopen preservation.
 
@@ -56,7 +56,7 @@ Epoch attribution coverage in `src/imports/epoch_scope_tests.rs` exercises exact
 
 ## Semantic import settlement codec gate
 
-The CVAFRS07 codec contract covers empty and zero-cut scope, exact retained-event binding, causal numeric recomposition, sparse corrections, canonical dictionary/index ordering, corruption/truncation/trailing rejection and the 64 MiB expanded UTF-8 bound. CVAFRS06 payloads remain historical before-images and are not the current format. Six-file conversion, frozen-corpus oracles and C3 acceptance are recorded as complete in the Phase 3 execution ledger; D3/A3 acceptance remains pending; the linked 2026 execution evidence records earlier CVAFRS06 behavior only.
+The CVAFRS07 codec contract covers empty and zero-cut scope, exact retained-event binding, causal numeric recomposition, sparse corrections, canonical dictionary/index ordering, corruption/truncation/trailing rejection and the 64 MiB expanded UTF-8 bound. CVAFRS06 payloads remain historical before-images and are not the current format. Six-file conversion, frozen-corpus oracles and C3 acceptance are recorded as complete in the Phase 3 execution ledger; Phase 3 acceptance is complete; the linked 2026 execution evidence records earlier CVAFRS06 behavior only.
 
 ## Fresh-history rewrite contracts
 
@@ -66,7 +66,7 @@ The CVAFRS07 codec contract covers empty and zero-cut scope, exact retained-even
 
 | Invariant | Focused evidence |
 | --- | --- |
-| CVAFRS07 binds retained journal event leaves and recomposes accepted numeric authority without copied recipient sets or full output postimages | Phase 3 execution ledger; C3 accepted locally, D3/A3 pending |
+| CVAFRS07 binds retained journal event leaves and recomposes accepted numeric authority without copied recipient sets or full output postimages | Phase 3 execution ledger; 12/12 gates accepted |
 | Imported payload may be pruned when domain retention proof succeeds; import position alone does not protect it | `history_prune_tests::semantic_import_allows_eligible_payload_before_and_after_settlement` |
 | REL pruning preserves topology and rejects live/shared/unbound payload | `history_prune_tests::{explicit_prune_removes_only_tombstoned_body_and_preserves_structure, shared_live_body_and_nonterminal_targets_are_rejected_before_output, memory_body_prune_retains_revision_topology_and_rejects_unbound_marker, entity_relationship_descriptions_prune_with_topology_and_references_intact}` |
 | PHY pruning requires authenticated owner-maintenance evidence and preserves terminal structure | `memory_lifecycle_tests::{phy_prune_writes_authenticated_copy_and_preserves_terminal_structure, phy_open_rejects_malformed_manifest_and_unbound_prune_marker, phy_open_rejects_checksummed_but_unauthorized_prune_manifest_marker}`, `relationship_lifecycle_tests::phy_prunes_terminal_entity_and_relationship_descriptions_with_memory_copy` |

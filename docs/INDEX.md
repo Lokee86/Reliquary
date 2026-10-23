@@ -1,7 +1,10 @@
 # Reliquary Memory v2 Documentation
 
-- [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 119 correction-only execution tasks (98 original plus 21 counted lifecycle/History/Maintenance/Import tasks), retaining the approved semantic settlement hard cut.
-- [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — 21 additional counted L/H/M/I execution tasks, evidence-backed execution and native-owner handoffs; original 98 IDs and twelve gates retained.
+- [Phase 3 historical/Maintenance/Import convergence — execution spec](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) — 119 correction-only execution tasks; the final ledger records 119/119 tasks and 12/12 gates accepted.
+- [Phase 3 execution realignment — lower lifecycle and evidence checkpoints](dependency-convergence-phase3-execution-realignment-2026-10-22.md) — accepted 21 additional counted L/H/M/I tasks and the Phase 4 handoff.
+- [Phase 3 final acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) — final integration and gate evidence.
+- [Phase 3 source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json) — stabilized source-graph and ownership enforcement evidence for D3.
+- [Phase 3 source SCC comparison](../benchmarks/dependency-convergence-phase3-d3-scc-comparison-2026-10-23.json) — comparable mixed-source Arcana evidence and explicit earlier-phase closure audit required before Phase 4.
 - [Phase 2 owner-local boundaries — execution spec](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) — 91 bounded tasks to isolate durable semantic ownership without new roadmap work.
 - [Phase 2 baseline inventory](dependency-convergence-phase2-baseline-2026-10-22.md) — owner, edge, replay, consumer, test, and retained corpus before-image for B0.
 - [Phase 2 baseline verification](dependency-convergence-phase2-baseline-verification-2026-10-22.md) — exact baseline commands, results, timings, oracle hashes, and pending gates.
@@ -12,7 +15,7 @@
 
 
 - [Accepted target component DAG](dependency-convergence-target-dag-2026-10-21.md) — permanent no-cycle/no-upward dependency invariants and the complete logical allowlist for the correction-only refactor.
-- [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — correction-only high-level architecture campaign to eliminate the core dependency knot, retire obsolete ownership surfaces, absorb directly related architectural corrections, and keep touched documentation current without implementing new roadmap features.
+- [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — Phases 0–3 accepted; Phases 4–7 pending.
 - [Semantic import-settlement minimization follow-up](semantic-import-settlement-minimization-plan-2026-10-21.md) — original correction proposal for the measured `CVAFRS06` proof-size regression; selected current implementation is tracked by Phase 3 S3/C3.
 - [Context Engine compaction refinement](context-engine-compaction-refinement-plan-2026-10-21.md) — unfinished deterministic trace stripping, bounded protected tail, structured validated retrieval mapping, reduction/consolidation, and current-turn pressure handling under the existing compaction ownership contract.
 - [Canonical migration results](canonical-history-migration-results-2026-10-21.md) - six disposable conversions, exact resolution history and full raw-byte accounting.
@@ -152,7 +155,7 @@
 - [context-engine-compaction-refinement-plan-2026-10-21.md](context-engine-compaction-refinement-plan-2026-10-21.md) - Context Engine Compaction Refinement Plan 2026 10 21 documentation.
 - [conversation-index-integration-plan.md](conversation-index-integration-plan.md) - Conversation Index Integration Plan documentation.
 - [current-limitations.md](current-limitations.md) - Current Limitations documentation.
-- [dependency-convergence-architecture-refactor-2026-10-21.md](dependency-convergence-architecture-refactor-2026-10-21.md) - Dependency Convergence Architecture Refactor 2026 10 21 documentation.
+- [dependency-convergence-architecture-refactor-2026-10-21.md](dependency-convergence-architecture-refactor-2026-10-21.md) - Dependency Convergence Architecture Refactor; Phases 0–3 accepted, Phases 4–7 pending.
 - [dependency-convergence-phase0-2026-10-21.md](dependency-convergence-phase0-2026-10-21.md) - Dependency Convergence Phase0 2026 10 21 documentation.
 - [dependency-convergence-phase1-lock-contract-2026-10-21.md](dependency-convergence-phase1-lock-contract-2026-10-21.md) - Dependency Convergence Phase1 Lock Contract 2026 10 21 documentation.
 - [dependency-convergence-phase1-ratchet-2026-10-22.md](dependency-convergence-phase1-ratchet-2026-10-22.md) - Dependency Convergence Phase1 Ratchet 2026 10 22 documentation.
@@ -165,10 +168,12 @@
 - [dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md](dependency-convergence-phase2-owner-local-boundaries-spec-2026-10-22.md) - Dependency Convergence Phase2 Owner Local Boundaries Spec 2026 10 22 documentation.
 - [dependency-convergence-phase3-baseline-2026-10-22.md](dependency-convergence-phase3-baseline-2026-10-22.md) - Dependency Convergence Phase3 Baseline 2026 10 22 documentation.
 - [dependency-convergence-phase3-contracts-2026-10-22.md](dependency-convergence-phase3-contracts-2026-10-22.md) - Dependency Convergence Phase3 Contracts 2026 10 22 documentation.
-- [dependency-convergence-phase3-execution-2026-10-22.md](dependency-convergence-phase3-execution-2026-10-22.md) - Dependency Convergence Phase3 Execution 2026 10 22 documentation.
-- [dependency-convergence-phase3-execution-realignment-2026-10-22.md](dependency-convergence-phase3-execution-realignment-2026-10-22.md) - Phase 3 execution realignment and owner-lifecycle checkpoint evidence.
+- [dependency-convergence-phase3-execution-2026-10-22.md](dependency-convergence-phase3-execution-2026-10-22.md) - Phase 3 final ledger: 119/119 tasks, 12/12 gates accepted.
+- [dependency-convergence-phase3-execution-realignment-2026-10-22.md](dependency-convergence-phase3-execution-realignment-2026-10-22.md) - Phase 3 execution realignment, final acceptance and Phase 4 handoff.
 - [dependency-convergence-phase3-handoff-2026-10-22.md](dependency-convergence-phase3-handoff-2026-10-22.md) - Dependency Convergence Phase3 Handoff 2026 10 22 documentation.
 - [dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) - Dependency Convergence Phase3 History Maintenance Import Spec 2026 10 22 documentation.
+- [dependency-convergence-phase3-phase4-handoff-2026-10-23.md](dependency-convergence-phase3-phase4-handoff-2026-10-23.md) - Dependency Convergence Phase3 Phase4 Handoff 2026 10 23 documentation.
+- [dependency-convergence-phase3-settlement-format-2026-10-23.md](dependency-convergence-phase3-settlement-format-2026-10-23.md) - Dependency Convergence Phase3 Settlement Format 2026 10 23 documentation.
 - [dependency-convergence-target-dag-2026-10-21.md](dependency-convergence-target-dag-2026-10-21.md) - Dependency Convergence Target Dag 2026 10 21 documentation.
 - [derived-semantic-nodes-exploration.md](derived-semantic-nodes-exploration.md) - Derived Semantic Nodes Exploration documentation.
 - [development-format-compatibility-retirement-audit-2026-10-19.md](development-format-compatibility-retirement-audit-2026-10-19.md) - Development Format Compatibility Retirement Audit 2026 10 19 documentation.
@@ -274,4 +279,4 @@
 - [Phase 2 execution and acceptance ledger](dependency-convergence-phase2-execution-2026-10-22.md)
 - [Phase 3 compact settlement format selection](dependency-convergence-phase3-settlement-format-2026-10-23.md)
 
-- [Phase 3 to Phase 4 Project Environment handoff](dependency-convergence-phase3-phase4-handoff-2026-10-23.md)
+- [Phase 3 to Phase 4 Project Environment handoff — ready](dependency-convergence-phase3-phase4-handoff-2026-10-23.md)

@@ -1,7 +1,7 @@
 # Phase 3 to Phase 4 Project Environment handoff
 
 Date: 2026-10-23
-Status: Prepared; final Phase 3 C3/D3/A3 acceptance pending.
+Status: Ready; Phase 3 accepted at 119/119 tasks and 12/12 gates.
 
 ## Purpose
 
@@ -43,11 +43,17 @@ Previously accepted numeric scores cannot be silently regenerated as replacement
 - Keep inspection byte- and modification-time pure. Publish only through the existing checked append/sync sequence, and validate source identity again where the existing operation requires it.
 - Keep fixture before-images and format conversion receipts distinct from semantic oracles. A current-format corpus runner may opt into a verified conversion receipt; it may not replace historical gold or older frozen pins.
 
-The final Phase 3 acceptance receipt and stabilized source graph are the starting evidence for Phase 4. Until their gates close in the ledger, this document is a prepared handoff rather than an authorization to implement new features.
+The [final Phase 3 acceptance receipt](../benchmarks/dependency-convergence-phase3-final-acceptance-2026-10-23.json) and [source-enforcement receipt](../benchmarks/dependency-convergence-phase3-source-enforcement-2026-10-23.json) provide the starting evidence for Phase 4. This handoff is ready for the Project Environment phase; it does not accept Phase 4 implementation or authorize work beyond its own plan.
 
 ## Exclusions
 
 This handoff adds no sync protocol, Observations, Ego/Context behavior, Gateway operation or repository VCS feature. Real-model inference and unrelated calibration fixtures are not Phase 3 acceptance requirements. Project Environment convergence needs its own bounded implementation and verification plan.
+
+## Prerequisite audit before Phase 4 implementation
+
+Phase 3's own D3 and A3 gates are locally accepted, but **that does not prove Phases 1–2 met their SCC-shrink exit criteria**. The direct mixed-source comparison in [Phase 3 SCC evidence](../benchmarks/dependency-convergence-phase3-d3-scc-comparison-2026-10-23.json) measures 15→19 areas (imports/depends-on) and 16→19 areas (all dependency relations) in the largest coarse SCC. It includes cfg(test) and analyzer bindings and therefore does **not** determine production coupling alone.
+
+Before Phase 4 implementation, inspect the actual production-only target-component SCC and annotate residual Phase 1/2/3 contract violations versus Phase 4–7 deferred cuts. Do not re-open accepted feature/format work or silently change the immutable initial graph. The Phase 3 fingerprint-ratchet pass means all *currently reported* forbidden findings are classified and no new unreviewed fingerprint passes; it is not a claim that the original knot is gone. The accepted logical 34-component DAG remains the target, not measured source completion.
 
 ## Related docs
 
