@@ -16,6 +16,7 @@
 
 - [Accepted target component DAG](dependency-convergence-target-dag-2026-10-21.md) — permanent no-cycle/no-upward dependency invariants and the complete logical allowlist for the correction-only refactor.
 - [Phase 4 Project Environment dependency specification](dependency-convergence-phase4-project-environment-spec-2026-10-23.md) — correction-only plan, awaiting C-01–C-04 source-conformance evidence and implementation.
+- [Phase 5 runtime/orchestration dependency specification](dependency-convergence-phase5-runtime-orchestration-spec-2026-10-23.md) — preserve Gateway/Instance/ConfiguredRuntime separation; bound runtime hard cuts, source conformance and integration acceptance.
 - [Phase 3 parallel-worktree audit](reliquary-phase3-worktree-audit-2026-10-23.md) — integration-branch and detached-worktree findings with preservation and cleanup order.
 - [Phase 1–3 production-source closure audit](dependency-convergence-phase1-3-closure-audit-2026-10-23.md) — compared frozen and current dependency evidence, separated owner-store contracts from service cycles, and defined bounded closure prerequisites before Phase 4.
 - [Dependency Convergence Architecture Refactor](dependency-convergence-architecture-refactor-2026-10-21.md) — Phases 0–3 accepted; Phases 4–7 pending.
