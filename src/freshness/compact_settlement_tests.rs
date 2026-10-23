@@ -278,3 +278,56 @@ fn frozen_compact_settlements_match_exact_original_scope_and_records() {
     )
     .unwrap();
 }
+
+#[test]
+fn production_owner_refuses_previous_settlement_format_without_installing_records() {
+    let mut store = super::super::FreshnessStore::default();
+    assert!(
+        store
+            .ingest(b"CVAFRS06")
+            .unwrap_err()
+            .contains("explicit migration")
+    );
+    assert!(store.records().is_empty());
+    assert!(store.import_settlements().is_empty());
+}
+
+#[test]
+fn text_reference_expansion_budget_refuses_before_large_copy() {
+    let mut budget = TextBudget { remaining: 7 };
+    budget.charge(4).unwrap();
+    assert!(
+        budget
+            .charge(4)
+            .unwrap_err()
+            .contains("expanded text limit")
+    );
+    let (value, basis) = fixture();
+    let mut settlement = super::super::HistoricalImportFreshnessSettlement::from_semantic(value);
+    assert!(settlement.try_encode().is_err());
+    settlement.causal = Some(basis);
+    settlement.records.get_mut(&id(1)).unwrap().score += 1;
+    assert!(settlement.try_encode().is_err());
+    assert!(settlement.validate().is_err());
+}
+
+#[test]
+fn policy_preflight_precedes_missing_retained_leaf_and_installs_nothing() {
+    let (value, basis) = fixture();
+    let payload = encode(&value, &basis).unwrap();
+    let mut store = super::super::FreshnessStore::default();
+    store.owner_uuid = Some(value.scope.owner);
+    // Missing retained leaves must not mask absent pinned-policy evidence.
+    assert_eq!(
+        store.ingest_import_settlement(&payload).unwrap_err(),
+        "import settlement owner/base policy mismatch"
+    );
+    store.policy_persisted = true;
+    store.policy.decay_turns_per_point = 11;
+    assert_eq!(
+        store.ingest_import_settlement(&payload).unwrap_err(),
+        "import settlement owner/base policy mismatch"
+    );
+    assert!(store.records().is_empty());
+    assert!(store.import_settlements().is_empty());
+}

@@ -118,6 +118,7 @@ fn completed_epoch(
             historical_freshness_settlement_digest: String::new(),
         },
         settlement: HistoricalImportFreshnessSettlement {
+            causal: None,
             epoch: None,
             semantic: Some(semantic),
             epoch_prefix_digest: [0; 32],

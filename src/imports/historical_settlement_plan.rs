@@ -1,7 +1,7 @@
 //! Pure historical settlement scoring over authenticated owner facts.
 use super::historical_event_plan::NativeHistoricalEvents;
 use crate::MemoryId;
-use crate::freshness::historical_scorer::{HistoricalScoreEvent, score_historical_records};
+use crate::freshness::historical_scorer::{HistoricalScoreEvent, prepare_import_numeric_authority};
 use crate::freshness::{FreshnessPolicy, FreshnessRecord};
 use crate::freshness_storage::HistoricalImportFreshnessSettlement;
 use crate::owner_lifecycle::OwnerError;
@@ -138,17 +138,8 @@ impl FrozenHistoricalImport {
             }
         }
         let mut settlement = self.settlement.clone();
-        settlement.records = if self.epoch && self.initial.is_empty() && events.is_empty() {
-            BTreeMap::new()
-        } else {
-            score_historical_records(
-                &self.initial,
-                events,
-                settlement.settlement_cut,
-                &FreshnessPolicy::default_v1(),
-            )
-            .map_err(|e| OwnerError::Freshness(e.to_string()))?
-        };
+        prepare_import_numeric_authority(&mut settlement, &self.initial, events)
+            .map_err(OwnerError::Freshness)?;
         settlement.validate().map_err(OwnerError::Freshness)?;
         Ok(PreparedHistoricalImport {
             source_bytes: self.source_bytes,

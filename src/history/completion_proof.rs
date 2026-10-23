@@ -54,22 +54,22 @@ pub(crate) fn completion_epochs(
         .map_err(|error| OwnerError::Container(error.0))?
     {
         let payload = frame.payload.as_slice();
-        if payload.starts_with(b"CVAFRS06") {
-            let settlement = HistoricalImportFreshnessSettlement::decode(payload)
+        if payload.starts_with(b"CVAFRS07") {
+            let settlement = HistoricalImportFreshnessSettlement::decode_binding(payload)
                 .map_err(OwnerError::Freshness)?;
             let id = id_text(&settlement.import_id);
             let start = match epochs.status(&id) {
                 Some(ImportEpochStatus::Open(start))
                 | Some(ImportEpochStatus::Completed { start, .. }) => Some(start),
-                None if settlement.semantic.is_some() => continue,
-                None => {
-                    return Err(
-                        ImportError::Epoch("scoped settlement lacks its import start").into(),
-                    );
-                }
+                None => continue,
             };
             if let Some(start) = start {
-                validate_import_binding(&start, &settlement)?;
+                validate_binding_fields(
+                    &start,
+                    settlement.owner,
+                    settlement.import_id,
+                    settlement.start_evidence_digest,
+                )?;
                 let evidence = AcceptedSettlement {
                     digest: format!("{:x}", Sha256::digest(payload)),
                     global: settlement.global_version,
@@ -114,4 +114,22 @@ pub(crate) fn completion_epochs(
 
 fn id_text(id: &[u8; 32]) -> String {
     id.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
+fn validate_binding_fields(
+    start: &ImportStart,
+    owner: [u8; 16],
+    import_id: [u8; 32],
+    start_evidence_digest: [u8; 32],
+) -> Result<(), ImportError> {
+    let digest: [u8; 32] = Sha256::digest(epoch_codec::encode_start(start)?).into();
+    if owner != start.owner_uuid
+        || id_text(&import_id) != start.import_id
+        || start_evidence_digest != digest
+    {
+        return Err(ImportError::Epoch(
+            "completion settlement/start binding mismatch",
+        ));
+    }
+    Ok(())
 }

@@ -8,7 +8,7 @@ use crate::{
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
-pub(crate) const SEMANTIC_SETTLEMENT_MAGIC: &[u8; 8] = b"CVAFRS06";
+pub(crate) const SEMANTIC_SETTLEMENT_MAGIC: &[u8; 8] = b"CVAFRS07";
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct AcceptedImportEventEvidence {
@@ -203,10 +203,11 @@ impl SemanticImportFreshnessSettlement {
         Ok(())
     }
 
+    #[cfg(test)]
     pub(crate) fn encode(&self) -> Result<Vec<u8>, String> {
         self.validate()?;
         let s = &self.scope;
-        let mut out = SEMANTIC_SETTLEMENT_MAGIC.to_vec();
+        let mut out = b"CVAFRS06".to_vec();
         out.extend(s.owner);
         for digest in [
             s.import_id,
@@ -261,8 +262,9 @@ impl SemanticImportFreshnessSettlement {
         Ok(out)
     }
 
+    #[cfg(test)]
     pub(crate) fn decode(payload: &[u8]) -> Result<Self, String> {
-        if payload.len() < 40 || !payload.starts_with(SEMANTIC_SETTLEMENT_MAGIC) {
+        if payload.len() < 40 || !payload.starts_with(b"CVAFRS06") {
             return Err("invalid semantic import settlement framing".into());
         }
         let end = payload.len() - 32;

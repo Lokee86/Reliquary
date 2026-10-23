@@ -12,6 +12,27 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(super) const MAGIC: &[u8; 8] = b"CVAFRS07";
 const DOMAIN: &[u8] = b"reliquary-semantic-import-settlement-v7";
 
+// Prefix dictionaries and repeated text references must not amplify a small
+// frame into unbounded owned UTF-8 allocations. Count exact semantic copies.
+const MAX_EXPANDED_TEXT_BYTES: usize = 64 * 1024 * 1024;
+struct TextBudget {
+    remaining: usize,
+}
+impl TextBudget {
+    fn new() -> Self {
+        Self {
+            remaining: MAX_EXPANDED_TEXT_BYTES,
+        }
+    }
+    fn charge(&mut self, bytes: usize) -> Result<(), String> {
+        self.remaining = self
+            .remaining
+            .checked_sub(bytes)
+            .ok_or("compact expanded text limit exceeded")?;
+        Ok(())
+    }
+}
+
 fn put_set(
     out: &mut Vec<u8>,
     values: &BTreeSet<MemoryId>,
@@ -58,6 +79,21 @@ pub(super) fn encode(
         .flat_map(|(c, n)| [c.as_str(), n.as_str()])
         .chain(s.accepted_events.keys().map(String::as_str))
         .collect();
+    let mut text_budget = TextBudget::new();
+    for text in &texts {
+        text_budget.charge(text.len())?;
+    }
+    for (conversation, node) in &s.source_nodes {
+        text_budget.charge(conversation.len())?;
+        text_budget.charge(node.len())?;
+    }
+    for id in s.accepted_events.keys() {
+        text_budget.charge(id.len())?;
+        text_budget.charge(id.len())?;
+    }
+    for id in &s.superseded {
+        text_budget.charge(id.len())?;
+    }
     let text_indexes: BTreeMap<_, _> = texts
         .iter()
         .enumerate()
@@ -204,9 +240,23 @@ pub(super) fn encode(
 pub(super) struct PendingSettlement {
     value: SemanticImportFreshnessSettlement,
     basis: HistoricalCausalBasis,
-    raw: Vec<u8>,
 }
 impl PendingSettlement {
+    pub(super) fn event_references(&self) -> &BTreeMap<String, AcceptedImportEventEvidence> {
+        &self.value.scope.accepted_events
+    }
+    pub(super) fn binding(&self) -> super::import_settlement_storage::SettlementBinding {
+        super::import_settlement_storage::SettlementBinding {
+            owner: self.value.scope.owner,
+            import_id: self.value.scope.import_id,
+            start_evidence_digest: self.value.scope.start_evidence_digest,
+            global_version: self.value.global_version,
+            archive_version: self.value.archive_version,
+            graph_version: self.value.graph_version,
+            memory_graph_version: self.value.memory_graph_version,
+        }
+    }
+
     pub(super) fn resolve(
         mut self,
         leaves: &BTreeMap<String, AcceptedImportEventEvidence>,
@@ -224,9 +274,6 @@ impl PendingSettlement {
             event.affected_recipients = leaf.affected_recipients.clone();
         }
         self.value.validate()?;
-        if encode(&self.value, &self.basis)? != self.raw {
-            return Err("noncanonical compact settlement representation".into());
-        }
         Ok((self.value, self.basis))
     }
 }

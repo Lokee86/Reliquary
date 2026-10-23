@@ -75,6 +75,7 @@ pub(super) fn entry_value(entry: &FreshnessReplayEntry) -> (String, Vec<u8>, Val
 
 pub(super) fn settlement_value(settlement: &HistoricalImportFreshnessSettlement) -> Value {
     let HistoricalImportFreshnessSettlement {
+        causal: _, // Numeric representation is excluded; exact reconstructed records are fingerprinted.
         epoch,
         semantic,
         epoch_prefix_digest: _, // Physical frozen-prefix evidence is excluded by the semantic fingerprint schema.

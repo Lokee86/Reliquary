@@ -472,7 +472,10 @@ fn historical_transform_unverified_corpus_owner_or_policy_cannot_transplant_nume
             // Keep valid framing/checksum while selecting an unsupported H policy.
             payload[8 + 16 + 5 * 32] ^= 1;
             let end = payload.len() - 32;
-            let checksum = Sha256::digest(&payload[..end]);
+            let mut hasher = Sha256::new();
+            hasher.update(b"reliquary-semantic-import-settlement-v7");
+            hasher.update(&payload[..end]);
+            let checksum = hasher.finalize();
             payload[end..].copy_from_slice(&checksum);
         }
         candidate.container.append(&payload).unwrap();

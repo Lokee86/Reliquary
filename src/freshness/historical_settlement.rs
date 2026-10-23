@@ -25,7 +25,9 @@ pub(crate) fn stage_settlement(
     source_bytes: u64,
     epoch: bool,
 ) -> Result<SettlementPublication, SettlementPublicationError> {
-    let payload = settlement.encode();
+    let payload = settlement
+        .try_encode()
+        .map_err(SettlementPublicationError::Freshness)?;
     let mut staged = freshness.clone();
     if epoch {
         staged

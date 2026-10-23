@@ -121,6 +121,7 @@ fn epoch(first: usize, end: usize) -> super::CompletedEpoch {
         historical_freshness_settlement_digest: String::new(),
     };
     let settlement = HistoricalImportFreshnessSettlement {
+        causal: None,
         epoch: None,
         semantic: None,
         epoch_prefix_digest: [0; 32],

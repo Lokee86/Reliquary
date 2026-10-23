@@ -6,6 +6,19 @@ use crate::{
 };
 use std::collections::{BTreeMap, BTreeSet};
 
+/// Immutable structurally validated binding facts; this is not an accepted
+/// settlement and cannot install records or replace independent event checking.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct SettlementBinding {
+    pub owner: [u8; 16],
+    pub import_id: [u8; 32],
+    pub start_evidence_digest: [u8; 32],
+    pub global_version: u64,
+    pub archive_version: u64,
+    pub graph_version: u64,
+    pub memory_graph_version: u64,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct HistoricalImportFreshnessScope {
     pub owner: [u8; 16],
@@ -26,6 +39,7 @@ pub(crate) struct ImportScopeIdentity {
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct HistoricalImportFreshnessSettlement {
+    pub causal: Option<crate::freshness::historical_causal_basis::HistoricalCausalBasis>,
     /// Transient construction scope; accepted on-disk authority is semantic only.
     pub epoch: Option<super::ImportEventScope>,
     pub semantic: Option<super::semantic_settlement::ImportSemanticScope>,
@@ -50,17 +64,30 @@ pub(crate) struct HistoricalImportFreshnessSettlement {
 
 impl HistoricalImportFreshnessSettlement {
     pub(crate) fn encode(&self) -> Vec<u8> {
+        self.try_encode().expect("validated semantic settlement")
+    }
+    pub(crate) fn try_encode(&self) -> Result<Vec<u8>, String> {
         let scope = self
             .semantic
             .as_ref()
-            .expect("accepted settlement has semantic authority");
-        self.as_semantic(scope.clone())
-            .encode()
-            .expect("validated semantic settlement")
+            .ok_or("accepted settlement lacks semantic authority")?;
+        let basis = self
+            .causal
+            .as_ref()
+            .ok_or("accepted settlement lacks causal numeric authority")?;
+        super::compact_settlement::encode(&self.as_semantic(scope.clone()), basis)
     }
-    pub(crate) fn decode(payload: &[u8]) -> Result<Self, String> {
-        let value = super::semantic_settlement::SemanticImportFreshnessSettlement::decode(payload)?;
-        Ok(Self::from_semantic(value))
+    pub(crate) fn decode(
+        payload: &[u8],
+        leaves: &BTreeMap<String, super::AcceptedImportEventEvidence>,
+    ) -> Result<Self, String> {
+        let (value, basis) = super::compact_settlement::decode(payload)?.resolve(leaves)?;
+        let mut settlement = Self::from_semantic(value);
+        settlement.causal = Some(basis);
+        Ok(settlement)
+    }
+    pub(crate) fn decode_binding(payload: &[u8]) -> Result<SettlementBinding, String> {
+        Ok(super::compact_settlement::decode(payload)?.binding())
     }
 
     pub(crate) fn as_semantic(
@@ -85,6 +112,7 @@ impl HistoricalImportFreshnessSettlement {
     ) -> Self {
         let scope = value.scope;
         Self {
+            causal: None,
             owner: scope.owner,
             import_id: scope.import_id,
             start_evidence_digest: scope.start_evidence_digest,
@@ -147,6 +175,7 @@ impl HistoricalImportFreshnessSettlement {
         superseded: BTreeSet<String>,
     ) -> Self {
         Self {
+            causal: None,
             epoch: None,
             semantic: None,
             epoch_prefix_digest: [0; 32],
@@ -185,7 +214,13 @@ impl HistoricalImportFreshnessSettlement {
                     "semantic settlement contains conflicting compatibility evidence".into(),
                 );
             }
-            return self.as_semantic(scope.clone()).validate();
+            self.as_semantic(scope.clone()).validate()?;
+            if let Some(basis) = &self.causal
+                && basis.reconstruct(self.settlement_cut)? != self.records
+            {
+                return Err("causal basis does not reproduce accepted settlement".into());
+            }
+            return Ok(());
         }
         if (self.epoch.is_none()
             && (self.settlement_cut == 0
@@ -319,13 +354,35 @@ impl FreshnessStore {
         Ok(ids)
     }
     pub(crate) fn ingest_import_settlement(&mut self, payload: &[u8]) -> Result<(), String> {
-        let settlement = HistoricalImportFreshnessSettlement::decode(payload)?;
-        if self.owner_uuid != Some(settlement.owner)
+        let pending = super::compact_settlement::decode(payload)?;
+        let binding = pending.binding();
+        if self.owner_uuid != Some(binding.owner)
             || self.policy != FreshnessPolicy::default_v1()
             || !self.policy_persisted
         {
             return Err("import settlement owner/base policy mismatch".into());
         }
+        let mut leaves = BTreeMap::new();
+        self.scan_entries(|entry| {
+            for_each_event(&entry, &mut |event| {
+                if let JournalEntry::Event { event_id, .. } = event
+                    && pending.event_references().contains_key(event_id)
+                {
+                    let leaf =
+                        super::AcceptedImportEventEvidence::from_event(binding.owner, event)?;
+                    if leaves
+                        .insert(event_id.clone(), leaf.clone())
+                        .is_some_and(|old| old != leaf)
+                    {
+                        return Err("conflicting retained settlement event leaves".into());
+                    }
+                }
+                Ok(())
+            })
+        })?;
+        let (value, basis) = pending.resolve(&leaves)?;
+        let mut settlement = HistoricalImportFreshnessSettlement::from_semantic(value);
+        settlement.causal = Some(basis);
         if let Some(scope) = &settlement.semantic {
             self.validate_semantic_import_evidence(scope)?;
         }

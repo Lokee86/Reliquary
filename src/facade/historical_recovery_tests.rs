@@ -52,7 +52,7 @@ fn historical_native_checkpoint_every_container_byte_prefix_reopens_and_retries(
         let accepted_due = cva.freshness_due.clone();
         drop(cva);
         let complete = fs::read(&path).unwrap();
-        let append_len = assert_one_frame(&before, &complete, b"CVAFRS06");
+        let append_len = assert_one_frame(&before, &complete, b"CVAFRS07");
         let crashed_path = path.with_file_name("checkpoint-prefix.rel");
 
         // Zero bytes, all 1..7-byte frame headers, the complete header,
@@ -345,7 +345,7 @@ fn historical_native_v6_with_preexisting_vectors_can_prune_and_reclaim() {
             .latest_import_settlement()
             .unwrap()
             .encode()
-            .starts_with(b"CVAFRS06")
+            .starts_with(b"CVAFRS07")
     );
     drop(reopened);
     fs::remove_file(&path).unwrap();

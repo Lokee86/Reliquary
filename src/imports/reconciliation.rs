@@ -339,8 +339,8 @@ fn validate_replay_interval(
             }
             continue;
         }
-        if payload.starts_with(b"CVAFRS06") {
-            HistoricalImportFreshnessSettlement::decode(&payload)
+        if payload.starts_with(b"CVAFRS07") {
+            crate::freshness::historical_scorer::validate_encoded_settlement_structure(&payload)
                 .map_err(crate::CvaError::Freshness)?;
             continue;
         }

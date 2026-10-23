@@ -51,7 +51,7 @@ pub(crate) fn decode(payload: &[u8]) -> Result<PendingSettlement, String> {
                 .digest()
                 .map_err(|e| e.to_string())?
     {
-        return Err("unsupported compact settlement policy".into());
+        return Err("unsupported semantic import policy".into());
     }
     let base_cut = r.u64()?;
     let settlement_cut = r.u64()?;
@@ -68,6 +68,7 @@ pub(crate) fn decode(payload: &[u8]) -> Result<PendingSettlement, String> {
         ordered(&ids, &id)?;
         ids.push(id);
     }
+    let mut text_budget = TextBudget::new();
     let mut texts = Vec::<String>::new();
     for _ in 0..r.count(2)? {
         let prefix = usize::try_from(r.var()?).map_err(|_| "compact text prefix overflow")?;
@@ -80,6 +81,12 @@ pub(crate) fn decode(payload: &[u8]) -> Result<PendingSettlement, String> {
         if prefix < previous.len() && suffix.first().is_some_and(|b| *b == previous[prefix]) {
             return Err("nonmaximal compact text prefix".into());
         }
+        text_budget.charge(
+            prefix_bytes
+                .len()
+                .checked_add(suffix.len())
+                .ok_or("compact expanded text extent overflow")?,
+        )?;
         let mut text = prefix_bytes.to_vec();
         text.extend(suffix);
         let text = String::from_utf8(text).map_err(|_| "invalid compact UTF-8")?;
@@ -101,10 +108,11 @@ pub(crate) fn decode(payload: &[u8]) -> Result<PendingSettlement, String> {
     let affected_recipients = sets[r.index(sets.len())?].clone();
     let mut source_nodes = BTreeSet::new();
     for _ in 0..r.count(2)? {
-        let pair = (
-            texts[r.index(texts.len())?].clone(),
-            texts[r.index(texts.len())?].clone(),
-        );
+        let conversation = r.index(texts.len())?;
+        let node = r.index(texts.len())?;
+        text_budget.charge(texts[conversation].len())?;
+        text_budget.charge(texts[node].len())?;
+        let pair = (texts[conversation].clone(), texts[node].clone());
         if source_nodes.last().is_some_and(|old| old >= &pair) {
             return Err("unordered compact source identities".into());
         }
@@ -112,7 +120,10 @@ pub(crate) fn decode(payload: &[u8]) -> Result<PendingSettlement, String> {
     }
     let mut accepted_events = BTreeMap::new();
     for _ in 0..r.count(41)? {
-        let event_id = texts[r.index(texts.len())?].clone();
+        let index = r.index(texts.len())?;
+        text_budget.charge(texts[index].len())?;
+        text_budget.charge(texts[index].len())?;
+        let event_id = texts[index].clone();
         if accepted_events
             .last_key_value()
             .is_some_and(|(old, _)| old >= &event_id)
@@ -132,12 +143,13 @@ pub(crate) fn decode(payload: &[u8]) -> Result<PendingSettlement, String> {
     if count % 8 != 0 && bits.last().is_some_and(|b| *b >> (count % 8) != 0) {
         return Err("nonzero compact bitmap padding".into());
     }
-    let superseded = accepted_events
-        .keys()
-        .enumerate()
-        .filter(|(i, _)| bits[i / 8] & (1 << (i % 8)) != 0)
-        .map(|(_, id)| id.clone())
-        .collect();
+    let mut superseded = BTreeSet::new();
+    for (i, id) in accepted_events.keys().enumerate() {
+        if bits[i / 8] & (1 << (i % 8)) != 0 {
+            text_budget.charge(id.len())?;
+            superseded.insert(id.clone());
+        }
+    }
     let cohort = sets[r.index(sets.len())?].clone();
     let record_keys = sets[r.index(sets.len())?].clone();
     let mut anchors = Vec::new();
@@ -207,9 +219,8 @@ pub(crate) fn decode(payload: &[u8]) -> Result<PendingSettlement, String> {
         records,
     };
     value.validate()?;
-    Ok(PendingSettlement {
-        value,
-        basis,
-        raw: payload.to_vec(),
-    })
+    if encode(&value, &basis)? != payload {
+        return Err("noncanonical compact settlement representation".into());
+    }
+    Ok(PendingSettlement { value, basis })
 }

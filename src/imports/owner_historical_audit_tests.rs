@@ -234,9 +234,9 @@ fn explicit_phase3_s3_regenerates_frozen_settlements_from_pre_settlement_prefixe
         // The frozen source's whole-owner history acceptance is a separate
         // corpus oracle. Decode the exact authenticated frame here instead of
         // repeating an unrelated whole-file open before every prefix audit.
-        let expected =
-            crate::freshness_storage::HistoricalImportFreshnessSettlement::decode(original_payload)
-                .unwrap();
+        let expected = crate::freshness_storage::HistoricalImportFreshnessSettlement::from_semantic(
+            crate::freshness_storage::decode_phase3_frozen_settlement(original_payload).unwrap(),
+        );
         let mut prefix_material = Sha256::new();
         prefix_material.update(std::process::id().to_le_bytes());
         prefix_material.update(fixture.as_bytes());

@@ -41,7 +41,7 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 71/98 original accepted + 21/21 additional verified = 92/119 closed; 27 original pending or active.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 78/98 original accepted + 21/21 additional verified = 99/119 closed; 20 original pending or active.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -116,14 +116,14 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.8.06 | Accepted locally | CVAFRS07 canonical grammar, v7 domain, exact original scope digests and completion raw-payload binding frozen |
 | P3.8.07 | Accepted locally | Per-corpus executable Python time/peak allocation and Rust evidence audit recorded; no persistent cache or inference |
 | P3.8.08 | Accepted locally | Root-selected current-only CVAFRS07 design, bounded canonical conversion/deletion and runtime test obligations frozen |
-| P3.9.01 | Pending | Awaiting prerequisite gate |
-| P3.9.02 | Pending | Awaiting prerequisite gate |
-| P3.9.03 | Pending | Awaiting prerequisite gate |
-| P3.9.04 | Pending | Awaiting prerequisite gate |
-| P3.9.05 | Pending | Awaiting prerequisite gate |
-| P3.9.06 | Pending | Awaiting prerequisite gate |
-| P3.9.07 | Pending | Awaiting prerequisite gate |
-| P3.9.08 | Pending | Awaiting prerequisite gate |
+| P3.9.01 | Accepted locally | Freshness-owned CVAFRS07 codec and immutable causal model active; runtime refuses prior settlement formats |
+| P3.9.02 | Accepted locally | Native preparation uses accepted owner inputs and the single canonical scorer; no full final postimages or copied event-recipient sets on wire |
+| P3.9.03 | Accepted locally | Batch retained-leaf hydration and canonical malformed/missing/changed evidence refusal; exact frozen records and scope round-trip all three fixtures |
+| P3.9.04 | Accepted locally | Existing append/sync and completion raw-payload binding use canonical CVAFRS07; empty import, exact retry and refusal tests pass |
+| P3.9.05 | Accepted locally | Completed-epoch and source-only replay use new structural service evidence and native owner validation; reconciliation regression suite passes |
+| P3.9.06 | Accepted locally | Existing native prune/reclaim/repack/rewrite and payload-removal acceptance cases pass in the 1,986-test runtime batch |
+| P3.9.07 | Accepted locally | Bounded offline converter executed on hash-pinned before-images only; exact prefix/tail retention and independent Rust payload hashes verified |
+| P3.9.08 | Active | All six disposable conversions exist; feature-enabled frozen six-file historical oracle is running |
 | P3.9.09 | Pending | Awaiting prerequisite gate |
 | P3.9.10 | Pending | Awaiting prerequisite gate |
 | P3.9.11 | Pending | Awaiting prerequisite gate |
@@ -330,3 +330,10 @@ Progress is **92/119 (77.3%) = 71 original accepted + 21 additional verified**, 
 The [Rust codec measurement](../benchmarks/dependency-convergence-phase3-rust-compact-codec-2026-10-23.json) independently reproduces all three frozen original settlements and causal bases exactly at the selected 1,118,112-byte payload total. Six compact wire/codec tests, four causal-basis tests and five existing scorer tests pass, as does the explicit frozen-corpus codec test. Production owner and read-only History guards pass. The pure scorer has one storage-owned implementation behind the unchanged public service adapter. The new decoder keeps unresolved event references private until independently retained journal leaves match, and rejects nonminimal integers, out-of-range dictionaries, invalid corrections, duplicate/order violations, checksum changes and trailing bytes.
 
 This is C3 preparation: the old runtime codec remains active while the new implementation is independently tested. The activation checkpoint must replace it completely, update completion/interval binding reads and native preparation, convert disposable corpus copies and preserve the frozen semantic oracle before promotion. No additional task or C3 gate is accepted here. Progress remains 92/119. Documentation policy reports only the five previously recorded findings in the unrelated untracked Phase 4 document; that file remains untouched.
+
+
+## C3 current-format runtime checkpoint
+
+P3.9.01–.07 close on the [current runtime receipt](../benchmarks/dependency-convergence-phase3-current-format-runtime-2026-10-23.json). The source runtime accepts CVAFRS07 only. Native Import prepares immutable causal authority through the Freshness service; Freshness independently hydrates retained journal leaves in a bounded batch, preserves exact preflight/refusal order and validates supersession. History consumes structurally validated binding facts, and completion remains bound to the exact canonical payload digest and existing atomic append/sync order. Nine latest feature-enabled codec checks pass, including typed missing/mismatched basis refusal, 64 MiB text expansion bounds and pinned-policy-before-leaf refusal. The preceding broad runtime batch passes 1,986 library tests and 32 CLI tests; its exact scope relative to the small subsequent hardening is explicit in the receipt. Native transformation and reconciliation cases are included. Independent local Luna review found the preflight-order issue, now fixed with a passing regression.
+
+Progress is **99/119 (83.2%) = 78 original accepted + 21 additional verified**, with **20 original tasks pending or active**. Nine gates remain accepted; **C3/D3/A3 are still open**. All six disposable converted files have exact recorded hashes, and their new payload hashes match the independent Rust codec measurement. P3.9.08 is active: the six-file oracle is running with `history-oracle-fixtures`; the earlier default-feature zero-test attempt is not acceptance. No authoritative corpus promotion, old test-codec deletion or source graph refresh is claimed by this checkpoint.

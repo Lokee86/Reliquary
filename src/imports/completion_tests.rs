@@ -157,7 +157,7 @@ fn empty_receipt_completes_only_with_real_freshness_settlement_and_exact_retry()
         .expect("accepted scoped freshness settlement");
     assert!(settlement.semantic.is_some());
     let settlement_bytes = settlement.encode();
-    assert!(settlement_bytes.starts_with(b"CVAFRS06"));
+    assert!(settlement_bytes.starts_with(b"CVAFRS07"));
     let settlement_digest = Sha256::digest(&settlement_bytes)
         .iter()
         .map(|byte| format!("{byte:02x}"))
@@ -471,7 +471,7 @@ fn reopen_rejects_completion_physically_before_its_settlement() {
                 let object = frame.object;
                 let payload = frame.payload.as_slice();
                 {
-                    if payload.starts_with(b"CVAFRS06") {
+                    if payload.starts_with(b"CVAFRS07") {
                         settlement_offset = Some(u64::from_le_bytes(
                             object.legacy_bytes()[..8].try_into().unwrap(),
                         ));

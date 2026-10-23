@@ -195,7 +195,7 @@ fn standalone_sparse_settlement_roundtrips() {
     {
         let settlement = fixture();
         let bytes = settlement.encode().unwrap();
-        assert!(bytes.starts_with(SEMANTIC_SETTLEMENT_MAGIC));
+        assert!(bytes.starts_with(b"CVAFRS06"));
         assert_eq!(
             SemanticImportFreshnessSettlement::decode(&bytes).unwrap(),
             settlement

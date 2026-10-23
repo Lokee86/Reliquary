@@ -167,7 +167,7 @@ fn commit_scoped_settlement(cva: &mut Cva) -> crate::HistoricalReconstructionRep
         .import_settlement(report.import_id)
         .expect("accepted import settlement");
     assert!(settlement.semantic.is_some());
-    assert!(settlement.encode().starts_with(b"CVAFRS06"));
+    assert!(settlement.encode().starts_with(b"CVAFRS07"));
     report
 }
 

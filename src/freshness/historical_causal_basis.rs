@@ -112,8 +112,14 @@ impl HistoricalCausalBasis {
                 });
             }
         }
-        let mut records = if cut == 0 && self.initial.is_empty() && rows.is_empty() {
-            BTreeMap::new()
+        let mut records = if cut == 0 && rows.is_empty() {
+            let mut records = self.initial.clone();
+            for record in records.values_mut() {
+                record
+                    .settle_with_policy(0, &FreshnessPolicy::default_v1())
+                    .map_err(|e| e.to_string())?;
+            }
+            records
         } else {
             score_historical_records(&self.initial, &rows, cut, &FreshnessPolicy::default_v1())
                 .map_err(|e| e.to_string())?

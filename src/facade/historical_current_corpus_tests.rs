@@ -372,6 +372,16 @@ fn canonical_current_corpus_matches_frozen_history_oracle() {
     let root = std::env::var_os("RELIQUARY_CURRENT_CORPUS_ROOT")
         .map(PathBuf::from)
         .unwrap_or_else(|| repo.join("../reliquary-fixtures/local/authoritative"));
+    // The semantic oracle is immutable. A hash-pinned format conversion changes
+    // only the expected physical hash, and must identify its exact before-image.
+    let migration = std::env::var_os("RELIQUARY_CURRENT_CORPUS_MIGRATION_RECEIPT")
+        .map(PathBuf::from)
+        .or_else(|| {
+            let path = repo
+                .join("benchmarks/dependency-convergence-phase3-corpus-conversion-2026-10-23.json");
+            path.exists().then_some(path)
+        })
+        .map(|path| serde_json::from_slice::<Value>(&fs::read(path).unwrap()).unwrap());
     let fixtures = report["fixtures"].as_array().unwrap();
     assert_eq!(fixtures.len(), 6);
     for row in fixtures {
@@ -379,9 +389,25 @@ fn canonical_current_corpus_matches_frozen_history_oracle() {
         let path = root.join(key);
         let original = fs::read(&path).unwrap();
         let modified = fs::metadata(&path).unwrap().modified().unwrap();
+        let expected_hash = if let Some(migration) = &migration {
+            assert_eq!(migration["format"], "CVAFRS07");
+            let converted = migration["fixtures"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|f| f["fixture"] == key)
+                .expect("missing conversion fixture");
+            assert_eq!(
+                converted["original_sha256"], row["canonical_sha256"],
+                "conversion before-image differs from frozen oracle"
+            );
+            converted["converted_sha256"].as_str().unwrap()
+        } else {
+            row["canonical_sha256"].as_str().unwrap()
+        };
         assert_eq!(
             hex(&Sha256::digest(&original)),
-            row["canonical_sha256"].as_str().unwrap(),
+            expected_hash,
             "unpromoted or changed fixture {key}"
         );
         let expected = &row["oracle"];

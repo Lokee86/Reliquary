@@ -1,7 +1,7 @@
 # Phase 3 compact semantic settlement format selection
 
 Date: 2026-10-23
-Status: Design selected for S3; runtime implementation and C3 acceptance pending.
+Status: S3 accepted; current-only runtime implemented; conversion oracle, promotion and C3 acceptance pending.
 Parent: [Phase 3 specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md)
 
 ## Purpose
@@ -34,7 +34,7 @@ Native contribution hashes serve only uniqueness and deterministic same-turn sco
 
 ## Canonical wire grammar
 
-All counts and indexes are minimal unsigned LEB128; signed amounts/corrections use canonical zigzag LEB128. Every count is checked against remaining input before allocation, every index is range checked, and trailing bytes are rejected.
+All counts and indexes are minimal unsigned LEB128; signed amounts/corrections use canonical zigzag LEB128. Every count is checked against remaining input before allocation, every index is range checked, and trailing bytes are rejected. A 64 MiB expanded UTF-8 budget includes the unique text dictionary and every owned source-pair, accepted-event identity and superseded-identity copy. Both encoder and decoder enforce this bound; prefix/reference reuse cannot cause unbounded string allocation.
 
 1. Eight-byte `CVAFRS07` magic, owner UUID, the seven existing 32-byte digests, the six existing little-endian u64 cuts, and the existing zero reserved tag.
 2. Strictly sorted unique 32-byte Memory-ID dictionary.

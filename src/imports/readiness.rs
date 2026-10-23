@@ -266,7 +266,7 @@ pub(crate) fn derive_import_readiness(
         }
     }
 
-    // The scoped CVAFRS06 settlement is the semantic work receipt. Its
+    // The scoped CVAFRS07 settlement is the semantic work receipt. Its
     // authenticated source/cohort scope and store validator bind import
     // events, exact source identities and sparse affected recipients.
     // Settlement.cohort intentionally may also include existing affected

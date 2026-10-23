@@ -275,7 +275,7 @@ fn historical_native_operation_publishes_multi_recipient_projection_and_reopens(
         fs::read(&path)
             .unwrap()
             .windows(8)
-            .any(|w| w == b"CVAFRS06")
+            .any(|w| w == b"CVAFRS07")
     );
     assert_ne!(fs::read(&path).unwrap(), before);
     for id in &ids {

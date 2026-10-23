@@ -144,7 +144,7 @@ pub(crate) fn finish_current_import(cva: &mut Cva, now_ns: i64) {
             .import_settlement(report.import_id)
             .expect("current import's accepted settlement");
         assert!(settlement.semantic.is_some());
-        assert!(settlement.encode().starts_with(b"CVAFRS06"));
+        assert!(settlement.encode().starts_with(b"CVAFRS07"));
         assert!(matches!(
             cva.complete_native_import(&start.import_id, now_ns + 2)
                 .unwrap(),
@@ -921,7 +921,7 @@ fn completion_for(
     receipt: &ImportReceipt,
     completed_at_ns: i64,
 ) -> ImportComplete {
-    // Production completion now requires an accepted scoped CVAFRS06
+    // Production completion now requires an accepted scoped CVAFRS07
     // settlement. Accept durable zero-output Insomnia completions,
     // then derive that settlement through the public owner operation.
     // These low-level store tests do not establish nonempty import readiness.

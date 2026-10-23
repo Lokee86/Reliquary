@@ -458,7 +458,7 @@ fn scoped_admission_keeps_prestart_recipient_and_only_import_births_in_cohort() 
     assert!(!cva.import_epoch_scope().unwrap().cohort.contains(&old));
     let untouched = cva.freshness_record(unrelated).unwrap();
     let prepared = affected.prepare_native().unwrap();
-    assert!(prepared.settlement.encode().starts_with(b"CVAFRS06"));
+    assert!(prepared.settlement.encode().starts_with(b"CVAFRS07"));
     let mut expected_old = base[&old];
     expected_old
         .reinforce_with_policy(
@@ -583,16 +583,18 @@ fn zero_result_import_has_empty_scoped_birth_and_source_sets() {
     assert_eq!(std::fs::read(&path).unwrap(), before);
     let encoded = prepared.settlement.encode();
     assert_eq!(
-        HistoricalImportFreshnessSettlement::decode(&encoded).unwrap(),
+        HistoricalImportFreshnessSettlement::decode(&encoded, &BTreeMap::new()).unwrap(),
         prepared.settlement
     );
     for end in 0..encoded.len() {
-        assert!(HistoricalImportFreshnessSettlement::decode(&encoded[..end]).is_err());
+        assert!(
+            HistoricalImportFreshnessSettlement::decode(&encoded[..end], &BTreeMap::new()).is_err()
+        );
     }
     for at in [0, 8, encoded.len() / 2, encoded.len() - 1] {
         let mut corrupt = encoded.clone();
         corrupt[at] ^= 1;
-        assert!(HistoricalImportFreshnessSettlement::decode(&corrupt).is_err());
+        assert!(HistoricalImportFreshnessSettlement::decode(&corrupt, &BTreeMap::new()).is_err());
     }
 
     assert!(cva.commit_historical_import(&prepared).unwrap());

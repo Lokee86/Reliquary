@@ -1,0 +1,47 @@
+{
+  "status": "runtime_cut_verified_conversion_oracle_pending",
+  "format": "CVAFRS07",
+  "runtime_format_branches": 1,
+  "source_files_sha256": {
+    "src/freshness/compact_settlement.rs": "c823592e6810275506f42bdd8ecd59604b8e43a4f7b468f3dac6e45397e3c696",
+    "src/freshness/compact_settlement_decode.rs": "39857e69186e7cc8c155f74b7225b48f782d087e7c751ce755b0307d0ceb4aac",
+    "src/freshness/compact_settlement_wire.rs": "81f4a30c42afeb991bd9a2e63f83dd3a2497ad9c7941ff91260064f87a7f80c8",
+    "src/freshness/historical_causal_basis.rs": "63a9858bc6af78742fe3c41b939d311a415cd3c1f0d21ed60d34135ac0675f4d",
+    "src/freshness/historical_record_scoring.rs": "d331bbab52b0afcafc8c104b8ea3d19e44a95ef68bdaebd616a9d9a7ae1fd596",
+    "src/freshness/historical_scorer.rs": "1ea3a178cbda14700bd3a17740521cfa34d19961ee90ba90a5b9fbd271e1c2e4",
+    "src/freshness/freshness_import_settlement.rs": "d11ac10aead57e4553b349c907c818287695faf90eb85a3abd61a0a828a4858c",
+    "src/imports/historical_settlement_plan.rs": "a840ab908d3f9348193d7a877d15d98cf837b9c899f88dca32f7cb9aff5233af",
+    "src/history/completion_proof.rs": "2f232ed7dd15f31b2f0330a0d7ce9a0dafe494026f9faff156023b1ee3bd7c8c",
+    "src/freshness/historical_settlement.rs": "c8e5b6d8958519ba6092918f826c2fd53a4b7d08363c8290746aa9ec8c313ec2"
+  },
+  "validation": {
+    "bounded_library": {
+      "passed": 1986,
+      "failed": 0,
+      "ignored": 7,
+      "filtered": 4,
+      "seconds": 107.43,
+      "scope": "runtime_cut_before_typed_error_utf8_budget_and_policy_preflight_hardening"
+    },
+    "cli": {
+      "passed": 32,
+      "failed": 0,
+      "seconds": 0.7
+    },
+    "latest_feature_enabled_compact_checks": {
+      "passed": 9,
+      "failed": 0,
+      "ignored": 1,
+      "includes_policy_preflight_and_expansion_bound": true
+    },
+    "independent_luna_review": "one_refusal_order_issue_fixed_and_regression_test_passed",
+    "owner_guard": "passed",
+    "history_guard": "passed",
+    "owner_negative_fixtures": "passed",
+    "physical_guard": "passed_13_fixtures",
+    "component_dag": "unchanged_34_components_163_edges_negative_fixtures_passed"
+  },
+  "conversion": "all_six_disposable_files_generated_and_new_payload_hashes_match_independent_rust_receipt",
+  "historical_oracle": "active_feature_enabled_six_file_run_not_yet_accepted",
+  "legacy_code": "test_only_frozen_audit_reader_writer_pending_mandatory_deletion_after_promotion"
+}
