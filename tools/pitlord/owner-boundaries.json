@@ -1124,6 +1124,31 @@
       "classification": "production"
     },
     {
+      "path": "src/freshness/compact_settlement.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/compact_settlement_decode.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/compact_settlement_wire.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_causal_basis.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
+      "path": "src/freshness/historical_record_scoring.rs",
+      "component": "freshness-store",
+      "classification": "production"
+    },
+    {
       "path": "src/freshness/historical_contract.rs",
       "component": "freshness-store",
       "classification": "production"

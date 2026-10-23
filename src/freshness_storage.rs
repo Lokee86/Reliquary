@@ -248,6 +248,10 @@ mod activation;
 #[path = "freshness/freshness_import_events.rs"]
 mod import_events_storage;
 pub(crate) use import_events_storage::{ImportEventEvidence, ImportEventScope};
+#[path = "freshness/compact_settlement.rs"]
+mod compact_settlement;
+#[path = "freshness/compact_settlement_wire.rs"]
+mod compact_settlement_wire;
 #[path = "freshness/freshness_import_settlement.rs"]
 mod import_settlement_storage;
 #[path = "freshness/freshness_semantic_settlement.rs"]

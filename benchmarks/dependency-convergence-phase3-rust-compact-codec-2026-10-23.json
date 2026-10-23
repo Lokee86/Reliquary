@@ -1,0 +1,54 @@
+{
+  "basis_audit_sha256": "346d700ad2b20ef77023811632758642ac54fb04ba75bc5ef0f6ac7c8586c31c",
+  "fixtures": [
+    {
+      "compact_payload_bytes": 310786,
+      "decode_ns": 158140000,
+      "encode_ns": 68784800,
+      "exact_basis_roundtrip": true,
+      "exact_original_payload_roundtrip": true,
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "new_payload_sha256": "bb6d93a98d262cc2df725a71e21ddfadb5958b9ec7d8686b303587b870604a25",
+      "original_payload_bytes": 1830473
+    },
+    {
+      "compact_payload_bytes": 693922,
+      "decode_ns": 336903600,
+      "encode_ns": 128384500,
+      "exact_basis_roundtrip": true,
+      "exact_original_payload_roundtrip": true,
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "new_payload_sha256": "e2bd4d3e94680da40f3320f9a3c35687eb9d255e92fa0c6fb74bb314e1e5b14e",
+      "original_payload_bytes": 4330845
+    },
+    {
+      "compact_payload_bytes": 113404,
+      "decode_ns": 239344900,
+      "encode_ns": 91978000,
+      "exact_basis_roundtrip": true,
+      "exact_original_payload_roundtrip": true,
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "new_payload_sha256": "3a0084e06a6dfedc45f400b25373db827618aad5ba6f02016abf24cc4c9dd598",
+      "original_payload_bytes": 1254399
+    }
+  ],
+  "status": "rust_codec_prototype_not_runtime_or_conversion_acceptance",
+  "source_files_sha256": {
+    "src/freshness/compact_settlement.rs": "e44c88bcc938bded6db14f79b419aa2db69890a07f7060100fa71cf702235c78",
+    "src/freshness/compact_settlement_decode.rs": "38d8f297ed1821f28c45f6ad3712951e3e097afdc85bc5fbabe0ddc4dd76b356",
+    "src/freshness/compact_settlement_wire.rs": "81f4a30c42afeb991bd9a2e63f83dd3a2497ad9c7941ff91260064f87a7f80c8",
+    "src/freshness/historical_causal_basis.rs": "a65b5e87c507c33d6a415bc2ea54ba67c2b2e42bdc2edf2cc8b46fc5c3d2234a",
+    "src/freshness/historical_record_scoring.rs": "d331bbab52b0afcafc8c104b8ea3d19e44a95ef68bdaebd616a9d9a7ae1fd596"
+  },
+  "validation": {
+    "compact_codec_focused_tests": 6,
+    "causal_basis_tests": 4,
+    "existing_scorer_tests": 5,
+    "frozen_corpus_tests": 1,
+    "failures": 0,
+    "production_owner_guard": "passed",
+    "history_read_only_guard": "passed",
+    "runtime_activation": "pending",
+    "corpus_conversion": "pending"
+  }
+}

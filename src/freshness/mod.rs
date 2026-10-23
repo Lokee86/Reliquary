@@ -1,8 +1,10 @@
 //! Deterministic owner-local Memory Freshness policy.
+pub(crate) mod historical_causal_basis;
 pub(crate) mod historical_contract;
 pub mod historical_dream;
 pub mod historical_planner;
 pub mod historical_propagation;
+pub(crate) mod historical_record_scoring;
 pub mod historical_scorer;
 pub mod historical_semantic;
 mod policy;
