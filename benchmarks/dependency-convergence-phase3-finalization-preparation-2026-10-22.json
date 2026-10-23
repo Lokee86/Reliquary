@@ -1,0 +1,61 @@
+{
+  "base_commit": "0654564",
+  "gate": "M3",
+  "state": "in-progress-not-accepted",
+  "format_changed": false,
+  "library": {
+    "passed": 1974,
+    "failed": 0,
+    "ignored": 5,
+    "filtered": 4,
+    "seconds": 100.94
+  },
+  "tombstone_regression": {
+    "passed": 1,
+    "failed": 0
+  },
+  "compilation": "cargo check --tests -j 2 passed",
+  "canonical_sources": [
+    {
+      "fixture": "chatgpt-first14d/project.prj.rel",
+      "sha256": "7e452de7aadff26f5a891538bd8923fe7b499e680d0491499cba2ea187b4fd8d",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first14d/user.phy",
+      "sha256": "7e690b4853afe0936702dc023f511dd7c78ffaae3e18e8e66f6ab1c6891a6c63",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first28d/project.prj.rel",
+      "sha256": "1381fa663a41ebff3c69cb0418ff3f2369294195d10e36096bbec01cec82cf92",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "chatgpt-first28d/user.phy",
+      "sha256": "32970f3975bfcd6de0fcdb78df9c80c78b76787832f528c1b09fd75dfa4f501d",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/project.prj.rel",
+      "sha256": "dd7f0f0cf675901d456495a5ee93eb6c8884d793b4b9dd8b563a1ad4746043ab",
+      "matches_baseline": true
+    },
+    {
+      "fixture": "rhelm-david-r-ellis-pre-relationship/user.phy",
+      "sha256": "58ac7872215e126749f024fc742828abc9a8a8f84775b39c0706d638392ce9e0",
+      "matches_baseline": true
+    }
+  ],
+  "review": "Luna reviews preserved scope replay and accepted replay order. Corrected legacy Episode lookup to retain conversation tombstone filtering; focused before/after regression passed.",
+  "known_gaps": [
+    "Complete lower REL validated reopen and remaining REL Maintenance entrypoints",
+    "Final full integration and exhaustive oracle remain pending",
+    "Pitlord docs unavailable: Arcana existing manifest wrong field count; source refresh reserved D3"
+  ],
+  "interrupted_build": "Initial bounded batch did not reach runtime: Windows generated object files held (os error 32); corrected-source rerun passed.",
+  "cli": {
+    "passed": 32,
+    "failed": 0
+  }
+}

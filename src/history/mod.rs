@@ -42,3 +42,12 @@ pub(crate) use epoch_scope_proof::{
     PreparedSemanticImportScope, episode_matches_source, prepare_semantic_import_scope,
     validate_semantic_import_births,
 };
+
+mod import_epoch_scope;
+pub(crate) use import_epoch_scope::{
+    ImportEpochScope, import_source_nodes, replay_import_epoch_scope,
+    validate_import_settlement_scope,
+};
+
+mod settlement_births;
+pub(crate) use settlement_births::legacy_import_births;

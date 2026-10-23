@@ -204,8 +204,8 @@ impl Cva {
             dream_pairs,
             mut external_index,
         } = crate::owner_lifecycle::ReliquaryReplay::read(container)?;
-        let archive = archive_state.finish()?;
-        archive.validate_references(project_files.accepted_facts())?;
+        let archive =
+            crate::owner_lifecycle::finish_reliquary_archive(archive_state, &project_files)?;
         crate::archive_prune_admission::validate(
             &archive,
             &crate::owner_lifecycle::HistorySource::new(&container).map_err(|error| error.0)?,
@@ -213,26 +213,21 @@ impl Cva {
         )?;
         let memories = memory_state.finish(&mut container)?;
         crate::memory_prune_admission::validate(&memories, &owner_maintenance)?;
-        let entities = entity_state.finish(&container)?;
-        let relationships = relationship_state.finish(&container)?;
-        crate::owner_lifecycle::validate_current_relationship_references(
-            container.owner_id().as_deref(),
+        let crate::owner_lifecycle::ReliquaryRelations {
+            entities,
+            relationships,
+        } = crate::owner_lifecycle::finish_reliquary_relations(
+            &container,
+            entity_state,
+            relationship_state,
             &memories,
-            &entities,
-            &relationships.current(),
+            &ego,
+            &archive,
+            &processing_epochs,
+            &dream_pairs,
         )?;
-
-        ego.validate_memory_version(memories.memory_version())?;
-        crate::memory_provenance_admission::validate(&memories, &archive)?;
-        processing_epochs.validate(&memories)?;
-        crate::owner_lifecycle::validate_dream_pairs(&dream_pairs, &memories)?;
-        for link in archive.file_memory_link_records() {
-            if !memories.contains_historical_memory(link.memory_id) {
-                return Err(crate::ArchiveError::MissingFileMemoryTarget.into());
-            }
-        }
-        let mut graph = graph_state.finish()?;
-        crate::owner_lifecycle::validate_rebuilt_graph(&mut graph, &memories, &entities)?;
+        let graph =
+            crate::owner_lifecycle::finish_reliquary_graph(graph_state, &memories, &entities)?;
         crate::history::validate_source_history(
             &owner_maintenance,
             &crate::owner_lifecycle::HistorySource::new(&container)
@@ -242,25 +237,19 @@ impl Cva {
         .map_err(CvaError::Repack)?;
         graph
             .validate_rewrite_baseline(container.owner_uuid(), rewrite_lineage.rewrite_genesis())?;
-        let communities = community_state.finish(&graph, container.owner_uuid())?;
-        let mut insomnia = insomnia_state.finish()?;
-        crate::insomnia_admission::validate_references(&insomnia, &archive, &memories)?;
-        crate::insomnia_admission::rebuild_schedule(&mut insomnia, &archive)?;
-        if defer_dream_replay {
-            dream_freshness = DreamFreshnessJournal::new(container.owner_uuid());
-            crate::owner_lifecycle::dream_replay::replay_with_population(
-                &mut container,
-                &archive,
-                &memories,
-                &mut dream_freshness,
-            )?;
-        }
-        crate::owner_lifecycle::rebuild_freshness_from_replay(
+        let crate::owner_lifecycle::ReliquaryAcceptedReplay {
+            communities,
+            insomnia,
+        } = crate::owner_lifecycle::finish_reliquary_accepted_replay(
             &container,
+            community_state,
+            &graph,
+            insomnia_state,
             &archive,
             &memories,
-            &mut freshness,
+            defer_dream_replay,
             &mut dream_freshness,
+            &mut freshness,
         )?;
         let mut freshness_due = crate::FreshnessDueDispatcher::default();
         freshness_due
@@ -277,36 +266,21 @@ impl Cva {
             .configure_initial_decay_carries(freshness.initial_decay_carries())
             .map_err(|error| CvaError::Freshness(error.to_string()))?;
         let lexical_index = LexicalIndex::default();
-        let packed_vectors = packed_state.finish()?;
-        let compatibility_profiles = profile_state.finish()?;
-        crate::owner_lifecycle::validate_external_index_backing(
+        let crate::owner_lifecycle::ReliquaryVectors {
+            packed: packed_vectors,
+            memory: memory_vectors,
+            archive: archive_vectors,
+            profiles: compatibility_profiles,
+            generations: vector_generations,
+        } = crate::owner_lifecycle::finish_reliquary_vectors(
+            packed_state,
+            profile_state,
+            memory_vector_state,
+            archive_vector_state,
+            generation_state,
             &mut external_index,
-            &packed_vectors,
-            &compatibility_profiles,
-        );
-        let accepted_bodies = memory_vector_state
-            .referenced_body_ids()
-            .filter(|body| memories.contains_body(*body))
-            .collect();
-        let memory_vectors = memory_vector_state.finish(
-            &accepted_bodies,
-            &compatibility_profiles,
-            &packed_vectors,
-        )?;
-        let fragment_versions = archive_vector_state
-            .referenced_fragment_ids()
-            .filter_map(|id| {
-                archive
-                    .fragment_archive_version(id)
-                    .map(|version| (id, version))
-            })
-            .collect();
-        let archive_vectors = archive_vector_state.finish(&packed_vectors, &fragment_versions)?;
-        let vector_generations = generation_state.finish(
-            archive.archive_version(),
-            &packed_vectors,
-            &archive_vectors,
-            &compatibility_profiles,
+            &memories,
+            &archive,
         )?;
         validate_semantic_global_versions(
             &archive,

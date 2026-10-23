@@ -501,51 +501,15 @@ pub(super) fn validate_settlement(
             "import checkpoint cohort differs from its accepted Memory prefix",
         ));
     }
-    let mut births = BTreeSet::new();
-    let scan = &cva.container;
-    {
-        let mut ingest_frame = |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
-            let payload = frame.payload.as_slice();
-            {
-                if let Some(completion) =
-                    crate::insomnia::completion::decode_completion(payload).map_err(|e| fail(e))?
-                {
-                    for id in completion.freshness_birth_memory_ids {
-                        if !cp.cohort.contains(&id) {
-                            continue;
-                        }
-                        let record = completion
-                            .records
-                            .iter()
-                            .find(|r| r.id == id && r.revision == 1)
-                            .ok_or_else(|| {
-                                fail("import checkpoint lacks first-publication proof")
-                            })?;
-                        let episode = cva
-                            .episode(completion.episode_id)
-                            .ok_or_else(|| fail("import checkpoint Episode is unavailable"))?;
-                        if record.global_version > cp.global_version
-                            || record.source_episode_id != Some(episode.id)
-                            || episode.origin != EpisodeOrigin::Import
-                            || cva.memories.first_mutation_id(id)
-                                != Some(record.mutation_id.as_str())
-                        {
-                            return Err(fail("import checkpoint native birth proof conflicts"));
-                        }
-                        births.insert(id);
-                    }
-                }
-                Ok(())
-            }
-        };
-        let mut cursor = scan.physical_cursor()?;
-        (|| {
-            while let Some(frame) = cursor.next_frame()? {
-                ingest_frame(frame)?;
-            }
-            Ok::<(), CvaError>(())
-        })()
-    }?;
+    let source = crate::owner_lifecycle::HistorySource::new(&cva.container)
+        .map_err(|error| crate::owner_lifecycle::OwnerError::Container(error.0))?;
+    let births = crate::history::legacy_import_births(
+        &source,
+        &cva.archive,
+        &cva.memories,
+        cp.global_version,
+        &cp.cohort,
+    )?;
     for id in cp.cohort.difference(&births) {
         let first = cva.memory_revision(*id, 1)?;
         if first.global_version > cp.global_version

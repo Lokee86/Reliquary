@@ -22,7 +22,7 @@ mod reconcile_tests;
 mod sequential_completion_tests;
 #[cfg(test)]
 pub(crate) mod tests;
-pub(crate) use epoch_scope::ImportEpochScope;
+pub(crate) use crate::history::ImportEpochScope;
 pub(crate) use epoch_store::ImportEpochStore;
 pub(crate) use prepare::prepare;
 mod chatgpt;

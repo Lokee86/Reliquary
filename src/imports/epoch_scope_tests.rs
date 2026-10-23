@@ -1,6 +1,6 @@
 use super::*;
 use crate::imports::{ImportBranch, ImportConversation, ImportMessage, NativeImport};
-use crate::{Cva, MemoryDraft};
+use crate::{Cva, EpisodeOrigin, MemoryDraft};
 use std::{collections::BTreeSet, fs, path::PathBuf};
 
 struct Fixture(PathBuf);

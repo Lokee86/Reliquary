@@ -472,3 +472,41 @@ fn historical_native_reconstruction_uses_accepted_clock_despite_timestamp_regres
         .unwrap();
     assert_eq!(std::fs::read(&path).unwrap(), bytes);
 }
+
+#[test]
+fn legacy_birth_proof_rejects_episode_in_tombstoned_conversation() {
+    let (path, mut cva, id) = historical_import_fixture("legacy_birth_tombstone");
+    let cohort = std::collections::BTreeSet::from([id]);
+    let episode = cva.memory(id).unwrap().source_episode_id.unwrap();
+    let conversation = cva.episode(episode).unwrap().conversation_id.clone();
+    {
+        let source = crate::owner_lifecycle::HistorySource::new(&cva.container).unwrap();
+        assert_eq!(
+            crate::history::legacy_import_births(
+                &source,
+                &cva.archive,
+                &cva.memories,
+                cva.latest_global_version(),
+                &cohort,
+            )
+            .unwrap(),
+            cohort
+        );
+    }
+    cva.tombstone_conversation(&conversation).unwrap();
+    let source = crate::owner_lifecycle::HistorySource::new(&cva.container).unwrap();
+    let error = crate::history::legacy_import_births(
+        &source,
+        &cva.archive,
+        &cva.memories,
+        cva.latest_global_version(),
+        &cohort,
+    )
+    .unwrap_err();
+    assert!(
+        matches!(error, CvaError::Freshness(message) if message == "import checkpoint Episode is unavailable")
+    );
+    drop(source);
+    drop(cva);
+    let _ = fs::remove_file(path);
+}

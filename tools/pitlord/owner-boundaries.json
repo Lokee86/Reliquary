@@ -1472,6 +1472,41 @@
       "path": "src/history/epoch_scope_proof.rs",
       "component": "history",
       "classification": "production"
+    },
+    {
+      "path": "src/history/import_epoch_scope.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_relations.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_vectors.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_archive.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_graph.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/owner_lifecycle/reliquary_accepted_replay.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
+      "path": "src/history/settlement_births.rs",
+      "component": "history",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -1594,6 +1629,14 @@
     {
       "module": "imports::epoch_codec",
       "component": "import-store"
+    },
+    {
+      "module": "history::import_epoch_scope",
+      "component": "history"
+    },
+    {
+      "module": "history::settlement_births",
+      "component": "history"
     }
   ],
   "producer_value_contracts": [
@@ -2112,6 +2155,30 @@
       "owner": "archive-store",
       "symbol": "EpisodeOrigin",
       "reason": "Immutable Episode origin tag used to identify import publications."
+    },
+    {
+      "consumer": "history",
+      "owner": "freshness-store",
+      "symbol": "ImportEventScope",
+      "reason": "Immutable accepted physical and semantic settlement boundary used for owner-history verification."
+    },
+    {
+      "consumer": "history",
+      "owner": "archive-store",
+      "symbol": "ArchiveRecordVersion",
+      "reason": "Immutable Archive publication coordinate used to select a record from the accepted physical prefix."
+    },
+    {
+      "consumer": "history",
+      "owner": "memory-store",
+      "symbol": "MemoryRecord",
+      "reason": "Immutable Insomnia publication record retained as proof output."
+    },
+    {
+      "consumer": "history",
+      "owner": "memory-store",
+      "symbol": "MemoryRef",
+      "reason": "Immutable external-memory reference retained in accepted Insomnia output evidence."
     }
   ],
   "forbidden_symbols": [

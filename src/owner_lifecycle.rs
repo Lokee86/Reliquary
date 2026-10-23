@@ -90,3 +90,24 @@ pub(crate) use reliquary::{ReliquaryOwner, initialize_reliquary};
 #[path = "owner_lifecycle/freshness_replay.rs"]
 mod freshness_replay;
 pub(crate) use freshness_replay::rebuild_freshness_from_replay;
+
+#[path = "owner_lifecycle/reliquary_relations.rs"]
+mod reliquary_relations;
+pub(crate) use reliquary_relations::{ReliquaryRelations, finish_reliquary_relations};
+#[path = "owner_lifecycle/reliquary_vectors.rs"]
+mod reliquary_vectors;
+pub(crate) use reliquary_vectors::{ReliquaryVectors, finish_reliquary_vectors};
+
+#[path = "owner_lifecycle/reliquary_archive.rs"]
+mod reliquary_archive;
+pub(crate) use reliquary_archive::finish_reliquary_archive;
+
+#[path = "owner_lifecycle/reliquary_graph.rs"]
+mod reliquary_graph;
+pub(crate) use reliquary_graph::finish_reliquary_graph;
+
+#[path = "owner_lifecycle/reliquary_accepted_replay.rs"]
+mod reliquary_accepted_replay;
+pub(crate) use reliquary_accepted_replay::{
+    ReliquaryAcceptedReplay, finish_reliquary_accepted_replay,
+};

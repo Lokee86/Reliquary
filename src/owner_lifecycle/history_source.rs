@@ -170,10 +170,25 @@ impl<'a> HistorySource<'a> {
         archive: &crate::Archive,
         version: crate::ArchiveRecordVersion,
     ) -> Result<crate::archive_codec::ArchiveRecord, crate::ArchiveError> {
-        self.validate().map_err(|error| error.0)?;
-        archive
-            .read_publication(self.container, version)
+        self.archive_publication_with_version(archive, version)
             .map(|(record, _)| record)
+    }
+
+    /// Owner-local Archive interpretation together with the accepted applying
+    /// version, for proofs that must compare publication coordinates.
+    pub(crate) fn archive_publication_with_version(
+        &self,
+        archive: &crate::Archive,
+        version: crate::ArchiveRecordVersion,
+    ) -> Result<
+        (
+            crate::archive_codec::ArchiveRecord,
+            crate::ArchiveRecordVersion,
+        ),
+        crate::ArchiveError,
+    > {
+        self.validate().map_err(|error| error.0)?;
+        archive.read_publication(self.container, version)
     }
 
     pub(crate) fn archive_retention_proof(
