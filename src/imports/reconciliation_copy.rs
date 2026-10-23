@@ -3,7 +3,8 @@ use crate::{Cva, CvaReconcileError};
 use std::path::Path;
 pub(super) fn copy_import_source(source: &Path, output: &Path) -> Result<Cva, CvaReconcileError> {
     let destination = crate::owner_lifecycle::physical_copy::copy(source, output)?;
-    let owned = destination.read_source()?;
+    let owned =
+        crate::owner_lifecycle::import_epoch_transport::hold_created_output_identity(&destination)?;
     let result = (|| {
         let source = Cva::open_read_only(source)?;
         let reopened = Cva::open_from_container(destination)?;
@@ -15,8 +16,10 @@ pub(super) fn copy_import_source(source: &Path, output: &Path) -> Result<Cva, Cv
         }
         Ok(reopened)
     })();
-    if result.is_err() && owned.validate_path_identity().is_ok() {
-        let _ = std::fs::remove_file(output);
+    if result.is_err() {
+        crate::owner_lifecycle::import_epoch_transport::cleanup_created_output_after_failure(
+            owned, output,
+        );
     }
     result
 }

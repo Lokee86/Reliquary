@@ -1519,6 +1519,11 @@
       "classification": "production"
     },
     {
+      "path": "src/owner_lifecycle/import_epoch_transport.rs",
+      "component": "owner-lifecycle",
+      "classification": "production"
+    },
+    {
       "path": "src/history/settlement_scope.rs",
       "component": "history",
       "classification": "production"
@@ -2169,6 +2174,10 @@
     },
     {
       "module": "owner_lifecycle::physical_copy",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::import_epoch_transport",
       "component": "owner-lifecycle"
     },
     {

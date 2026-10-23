@@ -17,7 +17,10 @@ pub(super) fn replay(
     boundary: usize,
 ) -> Result<(CvaReconcileResult, Cva), CvaReconcileError> {
     let mut output = copy_import_source(left_path, output_path)?;
-    let created_output = output.container.read_source()?;
+    let created_output =
+        crate::owner_lifecycle::import_epoch_transport::hold_created_output_identity(
+            &output.container,
+        )?;
     let replay_result = (|| {
         let mut cursor = boundary;
         let mut coordinates = super::reconciliation_interval::Coordinates::shared(right, boundary)?;
@@ -50,10 +53,12 @@ pub(super) fn replay(
             }
             let mut start = epoch.start;
             start.pre = output.import_watermarks();
-            output
-                .import_epochs
-                .append_start(&mut output.container, start.clone())
-                .map_err(crate::CvaError::Import)?;
+            crate::owner_lifecycle::import_epoch_transport::append_import_start(
+                &mut output.container,
+                &mut output.import_epochs,
+                start.clone(),
+            )
+            .map_err(crate::CvaError::Import)?;
             completions += EpochReplay::new(&mut output).replay(
                 right,
                 epoch.first + 1,
@@ -82,7 +87,7 @@ pub(super) fn replay(
             || coordinates.entity_revisions != 0
             || coordinates.relationship_revisions != 0
             || coordinates.graph_transactions != 0;
-        output.sync()?;
+        crate::owner_lifecycle::import_epoch_transport::sync(&output.container)?;
         let expected_archive = output.archive;
         let reopened = Cva::open_from_container(output.container)?;
         if !expected_archive.activity_history_matches(&reopened.archive)
@@ -122,8 +127,11 @@ pub(super) fn replay(
         };
         Ok((result, reopened))
     })();
-    if replay_result.is_err() && created_output.validate_path_identity().is_ok() {
-        let _ = std::fs::remove_file(output_path);
+    if replay_result.is_err() {
+        crate::owner_lifecycle::import_epoch_transport::cleanup_created_output_after_failure(
+            created_output,
+            output_path,
+        );
     }
     replay_result
 }

@@ -5,7 +5,9 @@ pub(super) struct EpochReplay<'a> {
 }
 impl<'a> EpochReplay<'a> {
     pub(super) fn new(destination: &'a mut Cva) -> Self {
-        destination.container.set_owner_write_scope(true);
+        crate::owner_lifecycle::import_epoch_transport::enter_epoch_write_scope(
+            &mut destination.container,
+        );
         Self { destination }
     }
     pub(super) fn replay(
@@ -26,6 +28,8 @@ impl<'a> EpochReplay<'a> {
 }
 impl Drop for EpochReplay<'_> {
     fn drop(&mut self) {
-        self.destination.container.set_owner_write_scope(false);
+        crate::owner_lifecycle::import_epoch_transport::leave_epoch_write_scope(
+            &mut self.destination.container,
+        );
     }
 }

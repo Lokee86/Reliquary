@@ -165,11 +165,17 @@ pub(super) fn replay_frame(
 ) -> Result<usize, CvaReconcileError> {
     if crate::entity_resolution_codec::retained::is_source(payload) {
         let bytes = crate::entity_resolution_codec::retained::encode(payload)?;
-        output.container.append(&bytes)?;
+        crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
+            &mut output.container,
+            &bytes,
+        )?;
         return Ok(0);
     }
     if crate::entity_resolution_codec::retained::decode(payload)?.is_some() {
-        output.container.append(payload)?;
+        crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
+            &mut output.container,
+            payload,
+        )?;
         return Ok(0);
     }
     let archive = crate::archive_ordered_replay::read_archive_range(
@@ -400,7 +406,10 @@ pub(super) fn replay_frame(
                         &output.memories,
                         &pass,
                     )?;
-                output.container.append(&current)?;
+                crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
+                    &mut output.container,
+                    &current,
+                )?;
                 output
                     .dream_freshness
                     .ingest_materialized_begin(owner, pass)
@@ -416,7 +425,10 @@ pub(super) fn replay_frame(
             )
             .map_err(CvaError::Freshness)?;
             if !rebased.is_empty() {
-                output.container.append(&rebased)?;
+                crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
+                    &mut output.container,
+                    &rebased,
+                )?;
                 output
                     .dream_freshness
                     .ingest(&rebased)
@@ -440,11 +452,17 @@ pub(super) fn replay_frame(
         // failures and lease transitions in their accepted physical order.
         match record {
             crate::insomnia::codec::InsomniaRecord::Work(work) => {
-                output.container.append(payload)?;
+                crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
+                    &mut output.container,
+                    payload,
+                )?;
                 output.insomnia.apply_work(work);
             }
             crate::insomnia::codec::InsomniaRecord::Attempt(attempt) => {
-                output.container.append(payload)?;
+                crate::owner_lifecycle::import_epoch_transport::append_replay_payload(
+                    &mut output.container,
+                    payload,
+                )?;
                 output.insomnia.apply_attempt(attempt);
             }
         }

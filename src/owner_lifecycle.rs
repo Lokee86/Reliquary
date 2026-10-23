@@ -118,6 +118,9 @@ pub(crate) use reliquary_accepted_replay::{
 mod import_session;
 pub(crate) use import_session::ImportSession;
 
+#[path = "owner_lifecycle/import_epoch_transport.rs"]
+pub(crate) mod import_epoch_transport;
+
 #[path = "owner_lifecycle/graph_ordered_replay.rs"]
 pub(crate) mod graph_ordered_replay;
 
