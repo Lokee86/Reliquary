@@ -67,6 +67,9 @@ pub(crate) use transformed_copy::{HistoricalCopyView, historical_copy_preserves_
 pub(crate) mod freshness_reconciliation;
 pub(crate) mod reconciliation_inventory;
 
+mod settlement_completion_evidence;
+pub(crate) use settlement_completion_evidence::SettlementCompletionEvidence;
+
 pub(crate) mod dream_evidence;
 
 pub(crate) mod dream_representative;

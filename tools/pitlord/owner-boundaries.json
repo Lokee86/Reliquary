@@ -1474,6 +1474,11 @@
       "classification": "production"
     },
     {
+      "path": "src/history/settlement_completion_evidence.rs",
+      "component": "history",
+      "classification": "production"
+    },
+    {
       "path": "src/history/epoch_scope_proof.rs",
       "component": "history",
       "classification": "production"

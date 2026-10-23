@@ -13,12 +13,22 @@ impl Cva {
         let views = crate::imports::owner_completion::CompletionReadViews {
             archive: &self.archive,
             memories: &self.memories,
-            graph: &self.graph,
-            freshness: &self.freshness,
-            dream_freshness: &self.dream_freshness,
-            insomnia: &self.insomnia,
-            processing_epochs: &self.processing_epochs,
-            entity_resolutions: &self.entity_resolutions,
+            settlement: crate::history::SettlementCompletionEvidence::new(
+                &self.archive,
+                &self.memories,
+                &self.graph,
+                &self.freshness,
+                &self.dream_freshness,
+            ),
+            insomnia: crate::insomnia::import_readiness::ImportReadiness::new(&self.insomnia),
+            dream: crate::dream_readiness::DreamReadiness::new(
+                &self.dream_freshness,
+                &self.processing_epochs,
+            ),
+            perception: crate::perception_import_readiness::ImportReadiness::new(
+                &self.memories,
+                &self.entity_resolutions,
+            ),
             watermarks: self.import_watermarks(),
             turn: self.archive.rel_turn_count(),
         };
