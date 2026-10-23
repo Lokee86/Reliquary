@@ -14,9 +14,9 @@ This document owns repository workflow, layout, verification commands, corpus sm
 
 ### Development storage-format lifecycle
 
-Development persistence has one canonical normal-runtime format. A format change requires a temporary offline converter, migration and full semantic verification of the retained development corpus, separate source/corpus commits, then removal of obsolete readers and converter APIs/CLI. Normal runtime must ultimately reject old formats with a typed unsupported-format error. Exceptions require a named consumer, supported version, owner and explicit sunset; none is approved for V1 or CVAFRS03/04/05/CVAILEG1/2. Live embedding/profile compatibility is a separate semantic contract.
+Development persistence has one canonical normal-runtime format. A format change requires a temporary offline converter, migration and full semantic verification of the retained development corpus, separate source/corpus commits, then removal of obsolete readers and converter APIs/CLI. Normal runtime rejects retired formats with a typed unsupported-format error. The current source runtime reads and writes CVAFRS07 only; CVAFRS06 is retained solely as a historical corpus before-image for conversion and oracle work, and CVAFRS03/04/05/CVAILEG1/2 are not runtime compatibility inputs. Frozen-corpus conversion/oracles, promotion and C3 acceptance remain pending. Live embedding/profile compatibility is a separate semantic contract.
 
-The [format-policy amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) orders this transition. Current V1/legacy readers are temporary dependencies while canonical V2 owner converters are unfinished; do not delete them before verified corpus promotion. The [interruption evidence](development-format-interruption-execution-2026-10-19.md) records caller ownership, retained corpus and current-only test design. Existing repair/rewrite workflows below describe present behavior and do not grant permanent old-format runtime support.
+The [format-policy amendment](minimal-lossless-history-storage-format-policy-amendment-2026-10-19.md) records the transition policy. The current source cut has removed runtime V1/legacy readers and uses CVAFRS07 settlement records; historical CVAFRS06 evidence remains only for pending frozen-corpus conversion and oracle comparison. Corpus promotion and C3 acceptance have not yet been accepted. The [interruption evidence](development-format-interruption-execution-2026-10-19.md) records earlier caller ownership, retained corpus and current-only test design. Existing repair/rewrite workflows below describe present behavior and do not grant old-format runtime support.
 
 Development uses deterministic local tests plus optional live provider execution. Model-switchboard routing, encrypted credential persistence, auth-header attachment, direct OpenAI-ready embedding/General HTTP transport, ChatGPT/Codex device-code acquisition, and provider-native Codex Responses execution are implemented. Codex OAuth token refresh remains outside the current slice. A separate repo-local CLI exposes current bring-up operations without installation.
 
@@ -40,8 +40,12 @@ src/perception/                    durable Entity state + candidate/admission/re
 src/chronos/                       shared temporal semantics
 src/ego/                           Identity/Personality/Anchor/synthesis persistence
 src/runtime_inference/             Insomnia, Dream, providers, RuntimeHost, interaction orchestration
+src/history/                       immutable owner facts and read-only historical proofs/inventory
+src/imports/                       native import and reconciliation policy/coordinators
+src/owner_lifecycle/               concrete cross-owner replay, publication and copy admission
+src/maintenance/                   maintenance policy and concrete reconciliation/rewrite operations
 src/config_security/               local config, credentials, encryption, master-key persistence
-src/facade/                        public Cva/Reliquary/Phylactery composition, migration, reconciliation
+src/facade/                        public Cva/Reliquary/Phylactery adapters and API composition
 src/lib.rs                         crate-root module declarations + public exports
 examples/archive_roundtrip.rs        prepared Archive corpus smoke
 examples/vector_generation_smoke.rs  two-profile vector + retrieval smoke

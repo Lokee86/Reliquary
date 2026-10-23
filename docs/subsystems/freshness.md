@@ -111,16 +111,17 @@ The retained implementation uses bounded grouped propagation, conservative batch
 
 ## Owner-local proof vocabulary
 
-`freshness/event_proof.rs` owns the immutable `FreshnessEventProof` and `FreshnessEventCut` values used by the journal and its callers. Their crate-root public exports and fields are unchanged. Graph/Community availability and Archive birth/source composition remain in the existing admitting callers. Freshness storage decodes its own journal and settlement records only; proof reads do not reinforce scores. CVAFRS06 fields, event identity and settlement authority remain unchanged.
+`freshness/event_proof.rs` owns the immutable `FreshnessEventProof` and `FreshnessEventCut` values used by the journal and its callers. Their crate-root public exports and fields are unchanged. Graph/Community availability and Archive birth/source composition remain in the admitting callers. Current runtime settlement storage is CVAFRS07-only: the record carries exact scope, retained journal-leaf identity/digest/turn, chronological causal basis and sparse irreducible score corrections. It does not copy full postimages or per-event recipient sets. The expanded UTF-8 payload is bounded at 64 MiB. CVAFRS06 remains a historical corpus before-image for conversion and oracle work; it is not a runtime compatibility input.
 
 ## Code Map
 
-- `src/freshness/**`
+- `src/freshness/**` (including the CVAFRS07 settlement codec/model in `compact_settlement.rs`, `compact_settlement_decode.rs` and `freshness_import_settlement.rs`)
 - `src/freshness_storage.rs`
 - `src/freshness_due.rs`
 - `src/freshness_dream_journal.rs`
 - `src/runtime_inference/freshness_access.rs`
-- `src/facade/*freshness*`
+- `src/owner_lifecycle/historical_settlement.rs` (scoped append and synchronization)
+- `src/facade/*freshness*` (public adapters)
 
 ## Related docs
 
