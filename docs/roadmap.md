@@ -18,7 +18,7 @@ owner and domain convergence remains separate work. Phase 2 owner-local converge
 
 The active work is now concentrated in a small number of tracks:
 
-1. complete the Phase 3 CVAFRS07 frozen-corpus conversion, oracles, promotion and C3 acceptance;
+1. complete D3 source-graph enforcement and A3 full integration, oracle, documentation and handoff acceptance after the accepted CVAFRS07 C3 migration;
 2. complete Perception Observations, then Ego semantic synthesis and Context Engine final assembly;
 3. finish explicit Insomnia commit semantics;
 4. finish Warlock/Hermes consumer/release work around the implemented Gateway runtime;
@@ -32,7 +32,7 @@ Completed Freshness, Dream, decision-routing, tombstone/import/rewrite, external
 
 The earlier CVAFRS06 settlement measured 395,533 bytes before normalization and 7,415,741 bytes across six canonical fixtures afterward. Those figures are historical measurements of the prior self-contained proof. The selected current-only CVAFRS07 design retains exact semantic scope and accepted-event journal references, stores a chronological causal numeric basis and sparse irreducible score corrections, and omits copied per-event recipient sets and complete derived output postimages. Its expanded UTF-8 budget is 64 MiB.
 
-The six-file CVAFRS07 corpus conversion, semantic/clock/source-byte/mtime oracles, promotion and C3 acceptance remain pending in the [Phase 3 specification](dependency-convergence-phase3-history-maintenance-import-spec-2026-10-22.md) and [execution ledger](dependency-convergence-phase3-execution-2026-10-22.md). The prior 5.235% whole-file result remains historical measurement of the completed earlier hard cut, not a result for this settlement format.
+The six-file CVAFRS07 conversion, semantic/clock/source-byte/mtime oracles and promotion have passed C3. D3 source-graph enforcement and A3 full integration/documentation acceptance remain open in the [Phase 3 execution ledger](dependency-convergence-phase3-execution-2026-10-22.md). The prior 5.235% whole-file result remains historical measurement of the completed earlier hard cut, not a result for this settlement format.
 
 Authoritative planning:
 

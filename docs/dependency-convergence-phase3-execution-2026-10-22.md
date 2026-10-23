@@ -35,13 +35,13 @@ M3 now closes only the Maintenance mutation-authorization/service boundary and i
 | R3 | Accepted locally | Generic Maintenance policy; lower producer replay; 86 final reconciliation and 90 Import tests; [receipt](../benchmarks/dependency-convergence-phase3-reconciliation-2026-10-22.json). |
 | I3 | Accepted locally | Native historical preparation, one completion sequence, epoch reconciliation, exact guards and bounded integration; [receipt](../benchmarks/dependency-convergence-phase3-import-2026-10-23.json). |
 | S3 | Accepted locally | Exact causal reconstruction, measured authority corrections, two executable alternatives and selected CVAFRS07 design receipt. |
-| C3 | Pending | Format/corpus conversion, parity, promotion and deletion. |
+| C3 | Accepted locally | Six-file CVAFRS07 conversion and semantic oracle pass; corpus promoted, old runtime/test codec and temporary prototypes retired; post-cut accounting and promoted-boundary checks pass. See the 2026-10-23 corpus conversion receipt. |
 | D3 | Pending | Stabilized graph refresh and source enforcement. |
 | A3 | Pending | Full integration, corpus and documentation acceptance. |
 
 ## Task register — 119 total
 
-The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 78/98 original accepted + 21/21 additional verified = 99/119 closed; 20 original pending or active.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
+The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task rows](dependency-convergence-phase3-execution-realignment-2026-10-22.md) carry separate, bounded extraction or verification outcomes. **Current totals: 82/98 original accepted + 21/21 additional verified = 103/119 closed; 16 original D3/A3 tasks remain open.** The original P3.x rows remain pending where the whole original authorization, cross-owner integration, parity or deletion obligation remains; their accepted child-extraction evidence must not be reimplemented or double-counted as original task completion. Evidence for the baseline tasks is in the baseline document and its receipt. Later entries are updated only when their own source/test/deletion obligations have evidence.
 
 | Task | State | Owner / evidence |
 | --- | --- | --- |
@@ -123,15 +123,15 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 | P3.9.05 | Accepted locally | Completed-epoch and source-only replay use new structural service evidence and native owner validation; reconciliation regression suite passes |
 | P3.9.06 | Accepted locally | Existing native prune/reclaim/repack/rewrite and payload-removal acceptance cases pass in the 1,986-test runtime batch |
 | P3.9.07 | Accepted locally | Bounded offline converter executed on hash-pinned before-images only; exact prefix/tail retention and independent Rust payload hashes verified |
-| P3.9.08 | Active | All six disposable conversions exist; feature-enabled frozen six-file historical oracle is running |
-| P3.9.09 | Pending | Awaiting prerequisite gate |
-| P3.9.10 | Pending | Awaiting prerequisite gate |
-| P3.9.11 | Pending | Awaiting prerequisite gate |
+| P3.9.08 | Accepted locally | Feature-enabled frozen semantic oracle passed on all six converted files with zero mismatches and unchanged source bytes/mtime; corpus-conversion receipt |
+| P3.9.09 | Accepted locally | Verified canonical REL/PHY corpus promoted; fixture commit `1ec88cc`; root acceptance commit `3c7e8fe` |
+| P3.9.10 | Accepted locally | CVAFRS06 runtime route and temporary conversion/prototype paths retired; frozen test codec removed in `acac280` |
+| P3.9.11 | Accepted locally | Post-cut settlement and whole-file byte accounting recorded in corpus-conversion receipt |
 | P3.10.01 | Pending | Awaiting prerequisite gate |
 | P3.10.02 | Pending | Awaiting prerequisite gate |
 | P3.10.03 | Pending | Awaiting prerequisite gate |
 | P3.10.04 | Pending | Awaiting prerequisite gate |
-| P3.10.05 | Pending | Awaiting prerequisite gate |
+| P3.10.05 | Active | One stabilized source-graph refresh and final source checks are underway; D3 acceptance remains pending |
 | P3.10.06 | Pending | Awaiting prerequisite gate |
 | P3.10.07 | Pending | Awaiting prerequisite gate |
 | P3.10.08 | Pending | Awaiting prerequisite gate |
@@ -146,7 +146,7 @@ The original 98 P3.x task rows follow. The [21 additional counted L/H/M/I task r
 
 ## New execution tasks (21 additional IDs; counted, not merely notes)
 
-The complete [L.01–L.06, H.01–H.05, M.01–M.06 and I.01–I.04 task register](dependency-convergence-phase3-execution-realignment-2026-10-22.md) supplies the 21 independently credited scopes and evidence. These are separate execution tasks with **20 verified (scoped)**, **one active/unverified (I.03)** and **none pending** at the continuation checkpoint. Each is individually credited once. Original integration/gate tasks are accepted only when their broader distinct obligations pass; a new verified extraction does not prematurely complete M3, P3 or I3.
+The complete [L.01–L.06, H.01–H.05, M.01–M.06 and I.01–I.04 task register](dependency-convergence-phase3-execution-realignment-2026-10-22.md) supplies the 21 independently credited scopes and evidence. **All 21 added execution tasks are verified (scoped), with none active or pending.** Each is individually credited once. Original integration/gate tasks are accepted only when their broader distinct obligations pass; a new verified extraction does not prematurely complete a formal gate.
 
 ## History source cut evidence
 
@@ -337,3 +337,10 @@ This is C3 preparation: the old runtime codec remains active while the new imple
 P3.9.01–.07 close on the [current runtime receipt](../benchmarks/dependency-convergence-phase3-current-format-runtime-2026-10-23.json). The source runtime accepts CVAFRS07 only. Native Import prepares immutable causal authority through the Freshness service; Freshness independently hydrates retained journal leaves in a bounded batch, preserves exact preflight/refusal order and validates supersession. History consumes structurally validated binding facts, and completion remains bound to the exact canonical payload digest and existing atomic append/sync order. Nine latest feature-enabled codec checks pass, including typed missing/mismatched basis refusal, 64 MiB text expansion bounds and pinned-policy-before-leaf refusal. The preceding broad runtime batch passes 1,986 library tests and 32 CLI tests; its exact scope relative to the small subsequent hardening is explicit in the receipt. Native transformation and reconciliation cases are included. Independent local Luna review found the preflight-order issue, now fixed with a passing regression.
 
 Progress is **99/119 (83.2%) = 78 original accepted + 21 additional verified**, with **20 original tasks pending or active**. Nine gates remain accepted; **C3/D3/A3 are still open**. All six disposable converted files have exact recorded hashes, and their new payload hashes match the independent Rust codec measurement. P3.9.08 is active: the six-file oracle is running with `history-oracle-fixtures`; the earlier default-feature zero-test attempt is not acceptance. No authoritative corpus promotion, old test-codec deletion or source graph refresh is claimed by this checkpoint.
+
+
+## C3 accepted local continuation — 2026-10-23
+
+The [corpus conversion receipt](../benchmarks/dependency-convergence-phase3-corpus-conversion-2026-10-23.json) records a passing feature-enabled semantic oracle across all six canonical REL/PHY files, zero semantic mismatches, and unchanged source bytes/mtime. The converted corpus was promoted in fixture repository commit `1ec88cc896531db99c17b672bfdedc22193a5474`; root accepted the promotion and retired conversion prototypes in `3c7e8fe`. The promoted boundary reopened all six files successfully; codec adversarial probes, production-owner guard, History read-only guard and writer inventory passed. The old test codec was removed in `acac280`. Post-cut accounting records 1,118,112 settlement payload bytes and 124,664,599 bytes across the six promoted files, down from 130,962,204 bytes without compression.
+
+P3.9.08–.11 are accepted locally and **C3 is accepted locally (10/12 gates)**. Current progress is **103/119 closed = 82 original tasks accepted + 21/21 added tasks verified**, with **one active and 15 pending original tasks**. D3 remains open across **P3.10.01–.08**; the single stabilized source-graph refresh is active under P3.10.05, with ownership reconciliation and enforcement still to accept. A3 remains open across **P3.11.01–.08** for integrated Rust/CLI, history/clock/oracle, documentation and handoff acceptance. The prior 99/119 checkpoint and all earlier failures remain historical snapshots; no D3 or A3 pass is inferred from C3 evidence.
