@@ -1507,6 +1507,11 @@
       "path": "src/history/settlement_births.rs",
       "component": "history",
       "classification": "production"
+    },
+    {
+      "path": "src/history/publication_cohorts.rs",
+      "component": "history",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -1636,6 +1641,10 @@
     },
     {
       "module": "history::settlement_births",
+      "component": "history"
+    },
+    {
+      "module": "history::publication_cohorts",
       "component": "history"
     }
   ],

@@ -695,40 +695,9 @@ impl Cva {
         &self,
         source: MemoryId,
     ) -> Result<std::collections::BTreeSet<MemoryId>, CvaError> {
-        let mut scan = self.container.read_source()?;
-        let mut cohort = std::collections::BTreeSet::from([source]);
-        {
-            let mut ingest_frame =
-                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
-                    let payload = frame.payload.as_slice();
-                    {
-                        if let Some(publication) =
-                            crate::memory_external_publication::decode(payload)?
-                            && publication.birth_turn.is_some()
-                            && publication.records.iter().any(|r| r.id == source)
-                        {
-                            cohort.extend(publication.records.iter().map(|r| r.id));
-                        }
-                        if let Some(completion) =
-                            crate::insomnia::completion::decode_completion(payload)
-                                .map_err(|message| CvaError::Freshness(message.into()))?
-                            && completion.freshness_birth_turn.is_some()
-                            && completion.freshness_birth_memory_ids.contains(&source)
-                        {
-                            cohort.extend(completion.freshness_birth_memory_ids);
-                        }
-                        Ok(())
-                    }
-                };
-            let mut cursor = scan.physical_cursor()?;
-            (|| {
-                while let Some(frame) = cursor.next_frame()? {
-                    ingest_frame(frame)?;
-                }
-                Ok::<(), CvaError>(())
-            })()
-        }?;
-        Ok(cohort)
+        let history = crate::owner_lifecycle::HistorySource::new(&self.container)
+            .map_err(|error| CvaError::Container(error.0))?;
+        crate::history::publication_birth_cohort(&history, source)
     }
 
     pub(crate) fn freshness_same_publication_cohort(
@@ -736,40 +705,9 @@ impl Cva {
         a: MemoryId,
         b: MemoryId,
     ) -> Result<bool, CvaError> {
-        let mut scan = self.container.read_source()?;
-        let mut same = false;
-        {
-            let mut ingest_frame =
-                |frame: crate::container::PhysicalFrame| -> Result<(), CvaError> {
-                    let payload = frame.payload.as_slice();
-                    {
-                        if let Some(publication) =
-                            crate::memory_external_publication::decode(payload)?
-                        {
-                            same |= publication.birth_turn.is_some()
-                                && publication.records.iter().any(|r| r.id == a)
-                                && publication.records.iter().any(|r| r.id == b);
-                        }
-                        if let Some(completion) =
-                            crate::insomnia::completion::decode_completion(payload)
-                                .map_err(|message| CvaError::Freshness(message.into()))?
-                        {
-                            same |= completion.freshness_birth_turn.is_some()
-                                && completion.freshness_birth_memory_ids.contains(&a)
-                                && completion.freshness_birth_memory_ids.contains(&b);
-                        }
-                        Ok(())
-                    }
-                };
-            let mut cursor = scan.physical_cursor()?;
-            (|| {
-                while let Some(frame) = cursor.next_frame()? {
-                    ingest_frame(frame)?;
-                }
-                Ok::<(), CvaError>(())
-            })()
-        }?;
-        Ok(same)
+        let history = crate::owner_lifecycle::HistorySource::new(&self.container)
+            .map_err(|error| CvaError::Container(error.0))?;
+        crate::history::same_publication_birth_cohort(&history, a, b)
     }
 
     pub(crate) fn initial_dream_graph_snapshot(

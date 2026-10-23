@@ -51,3 +51,6 @@ pub(crate) use import_epoch_scope::{
 
 mod settlement_births;
 pub(crate) use settlement_births::legacy_import_births;
+
+mod publication_cohorts;
+pub(crate) use publication_cohorts::{publication_birth_cohort, same_publication_birth_cohort};
