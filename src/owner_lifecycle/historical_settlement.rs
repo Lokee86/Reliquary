@@ -33,13 +33,14 @@ fn publish_validated(
     epoch: bool,
 ) -> Result<(FreshnessStore, FreshnessDueDispatcher), OwnerError> {
     container.set_owner_write_scope(epoch);
+    let scope = SettlementWriteScope(container);
     let append_result = (|| {
-        publication.persist_policy(container).map_err(map_error)?;
-        container.append(publication.payload())?;
-        container.sync()?;
+        publication.persist_policy(scope.0).map_err(map_error)?;
+        scope.0.append(publication.payload())?;
+        scope.0.sync()?;
         Ok::<(), OwnerError>(())
     })();
-    container.set_owner_write_scope(false);
+    drop(scope);
     append_result?;
     publication.acknowledge().map_err(map_error)
 }
@@ -89,5 +90,13 @@ impl HistoricalSettlementPublicationResult {
     pub(crate) fn install(self, freshness: &mut FreshnessStore) -> FreshnessDueDispatcher {
         *freshness = self.staged;
         self.due
+    }
+}
+
+/// Clear only this bounded physical bypass on error or unwind.
+struct SettlementWriteScope<'a>(&'a mut Container);
+impl Drop for SettlementWriteScope<'_> {
+    fn drop(&mut self) {
+        self.0.set_owner_write_scope(false);
     }
 }

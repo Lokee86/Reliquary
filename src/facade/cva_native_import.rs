@@ -37,6 +37,7 @@ impl Cva {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn with_import_write_scope<T>(
         &mut self,
         operation: impl FnOnce(&mut Self) -> T,

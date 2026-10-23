@@ -349,3 +349,22 @@ pub(super) fn owner_error(
         HistoricalEmbeddingFailure { report, message },
     ))
 }
+
+/// Only the explicit offline embedding operation may use this temporary bypass.
+/// Provider transport remains at the authorized endpoint adapter.
+pub(super) fn fill_open_epoch<E: EmbeddingEndpoint>(
+    cva: &mut Cva,
+    endpoint: &E,
+    limits: HistoricalEmbeddingLimits,
+    cancel: &AtomicBool,
+) -> Result<HistoricalEmbeddingReport, HistoricalEmbeddingFailure> {
+    cva.container.set_owner_write_scope(true);
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        fill(cva, endpoint, limits, cancel)
+    }));
+    cva.container.set_owner_write_scope(false);
+    match result {
+        Ok(result) => result,
+        Err(payload) => std::panic::resume_unwind(payload),
+    }
+}

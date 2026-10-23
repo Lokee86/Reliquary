@@ -17,6 +17,7 @@ mod embedding;
 mod embedding_model;
 #[path = "historical_embedding_plan.rs"]
 mod embedding_plan;
+#[cfg(test)]
 #[path = "historical_events.rs"]
 mod events;
 pub use embedding_model::{
@@ -27,6 +28,7 @@ pub use embedding_model::{
 mod historical_base;
 #[path = "historical_import_input.rs"]
 mod input;
+#[cfg(test)]
 #[path = "historical_manifest.rs"]
 mod manifest;
 #[path = "historical_import_transform.rs"]
@@ -56,66 +58,70 @@ impl Cva {
         &mut self,
         requested_complete: bool,
     ) -> Result<FrozenHistoricalImport, CvaError> {
-        // An earlier import's settlement is not a retry of the open epoch.
-        // Resolve the durable epoch identity before considering accepted evidence.
-        let accepted =
+        let history = crate::owner_lifecycle::HistoryReadAccess::new(&self.container);
+        let admission = crate::history::import_admission::ImportAdmissionReadParts {
+            access: crate::owner_lifecycle::HistoryReadAccess::new(&self.container),
+            archive: &self.archive,
+            memories: &self.memories,
+            freshness: &self.freshness,
+            dream: &self.dream_freshness,
+        };
+        let freshness =
             crate::owner_lifecycle::historical_freshness_read::HistoricalFreshnessReadAccess::new(
                 &self.container,
                 &self.freshness,
-            )
-            .accepted_settlement(
-                self.open_import_epoch()
-                    .as_ref()
-                    .map(|start| start.import_id.as_str()),
             );
-        if let Some(settlement) = accepted {
-            if self.open_import_epoch().is_some()
-                && self.import_epoch_scope()?.start_digest != settlement.start_evidence_digest
-            {
-                return Err(fail("import settlement start evidence mismatch"));
-            }
-            return crate::imports::historical_freeze::accepted_retry(settlement);
-        }
-        let manifest = manifest::build_with_fill(self, requested_complete)?;
-        let owner = self
-            .owner_uuid()
-            .ok_or_else(|| fail("historical import requires a durable REL owner"))?;
-        let events = events::build(self, &manifest)?;
-        self.container.sync()?;
-        let mut frozen = crate::imports::historical_freeze::from_manifest(
-            manifest,
-            events,
-            crate::imports::historical_freeze::HistoricalOwnerCut {
-                owner,
-                activity: self.rel_turn_count(),
-                global: self.latest_global_version(),
-                archive: self.archive_version(),
-                graph: self.graph_version(),
-                memory_graph: self.memory_graph_version(),
-            },
+        let dream = crate::history::dream_evidence::DreamEvidenceReadAccess::new(
+            &history,
+            &self.graph,
+            &self.dream_freshness,
         );
-        if frozen.epoch {
-            crate::imports::historical_freeze::bind_result_cohort(&mut frozen)?;
-            let scope = self.import_epoch_scope()?;
-            let replay = crate::imports::historical_freeze::framed_scope(&frozen, scope);
-            crate::imports::historical_freeze::attach_semantic_evidence(
-                &mut frozen,
-                &crate::owner_lifecycle::historical_freshness_read::HistoricalFreshnessReadAccess::new(&self.container, &self.freshness),
-                &replay,
-            )?;
-        } else {
-            let source_nodes = input::required_nodes(&self.archive, frozen.cut())?
-                .into_keys()
-                .collect();
-            let replay = crate::imports::historical_freeze::unframed_scope(&frozen, source_nodes);
-            crate::imports::historical_freeze::attach_semantic_evidence(
-                &mut frozen,
-                &crate::owner_lifecycle::historical_freshness_read::HistoricalFreshnessReadAccess::new(&self.container, &self.freshness),
-                &replay,
-            )?;
+        let vectors = crate::owner_lifecycle::semantic_source::HistoricalVectorReadAccess::new(
+            crate::owner_lifecycle::semantic_source::SemanticSourceReadParts {
+                container: &self.container,
+                archive: &self.archive,
+                freshness: &self.freshness,
+                generations: &self.vector_generations,
+                compatibility_profiles: &self.compatibility_profiles,
+                archive_vectors: &self.archive_vectors,
+                packed_vectors: &self.packed_vectors,
+            },
+            &self.memory_vectors,
+        );
+        #[cfg(feature = "freshness-performance-trace")]
+        let mut traces = Vec::new();
+        let result = crate::imports::historical_prepare::prepare(
+            crate::imports::historical_manifest::HistoricalManifestReadViews {
+                history: &history,
+                archive: &self.archive,
+                memories: &self.memories,
+                admission: &admission,
+                freshness: &freshness,
+                dream: &dream,
+                vectors: &vectors,
+                cut: crate::imports::historical_manifest::ManifestOwnerCut {
+                    owner_uuid: history.owner_uuid(),
+                    global_version: self.latest_global_version(),
+                    archive_version: self.archive_version(),
+                    activity_cut: self.rel_turn_count(),
+                    memory_version: self.memory_version(),
+                    graph_version: self.graph_version(),
+                    memory_graph_version: self.memory_graph_version(),
+                    vector_version: self.vector_version(),
+                    community_snapshot: self.community_snapshot(),
+                    insomnia: self.insomnia_stats(),
+                },
+            },
+            self.open_import_epoch(),
+            requested_complete,
+            #[cfg(feature = "freshness-performance-trace")]
+            &mut traces,
+        );
+        #[cfg(feature = "freshness-performance-trace")]
+        for trace in traces {
+            crate::cva_freshness::record_dream_evidence_trace(trace);
         }
-        frozen.settlement.input_bytes = 0;
-        Ok(frozen)
+        result
     }
     /// Atomically replace provisional scoring. Exact accepted retries resolve before
     /// input drift checks and never erase legitimate post-checkpoint live events.

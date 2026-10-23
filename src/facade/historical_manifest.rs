@@ -52,7 +52,6 @@ pub(super) fn build_with_fill(
     let mut traces = Vec::new();
     let result = crate::imports::historical_manifest::build(
         crate::imports::historical_manifest::HistoricalManifestReadViews {
-            scope,
             history: &history,
             archive: &cva.archive,
             memories: &cva.memories,
@@ -73,6 +72,7 @@ pub(super) fn build_with_fill(
                 insomnia: cva.insomnia_stats(),
             },
         },
+        scope,
         requested_complete,
         #[cfg(feature = "freshness-performance-trace")]
         &mut traces,

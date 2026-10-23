@@ -121,15 +121,3 @@ pub(crate) fn copy_and_validate(source: &Path, output: &Path) -> Result<Cva, Cva
     let owner = crate::maintenance::reconciliation_copy::copy_and_validate(source, output)?;
     Cva::open_from_container(owner.container).map_err(Into::into)
 }
-
-pub(crate) fn with_replayed_transaction_time<T, E>(
-    cva: &mut Cva,
-    transaction_time_ns: Option<i64>,
-    operation: impl FnOnce(&mut Cva) -> Result<T, E>,
-) -> Result<T, E> {
-    cva.container
-        .set_next_transaction_time_override(transaction_time_ns);
-    let result = operation(cva);
-    cva.container.clear_next_transaction_time_override();
-    result
-}

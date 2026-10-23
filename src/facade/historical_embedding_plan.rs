@@ -182,10 +182,12 @@ pub(super) fn prepare(
     let timeline = cva.historical_freshness_timeline().map_err(unsupported)?;
     report.sources = timeline.activity_order.len();
     report.fragments = cva.archive.fragments.len();
-    report.import_id = Some(super::manifest::historical_import_id(
-        report.owner_uuid.unwrap(),
-        input::corpus_digest(cva, cva.rel_turn_count()).map_err(unsupported)?,
-    ));
+    report.import_id = Some(
+        crate::imports::historical_manifest_plan::historical_import_id(
+            report.owner_uuid.unwrap(),
+            input::corpus_digest(cva, cva.rel_turn_count()).map_err(unsupported)?,
+        ),
+    );
 
     let mut rows = BTreeMap::new();
     if let Some(g) = generation {

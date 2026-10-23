@@ -24,7 +24,6 @@ pub(crate) struct ManifestOwnerCut {
 }
 
 pub(crate) struct HistoricalManifestReadViews<'a> {
-    pub(crate) scope: Option<crate::imports::ImportEpochScope>,
     pub(crate) history: &'a HistoryReadAccess<'a>,
     pub(crate) archive: &'a Archive,
     pub(crate) memories: &'a crate::memory_store::MemoryStore,
@@ -42,12 +41,12 @@ fn fail(message: &str) -> OwnerError {
 
 pub(crate) fn build(
     views: HistoricalManifestReadViews<'_>,
+    scope: Option<crate::imports::ImportEpochScope>,
     requested_complete: bool,
     #[cfg(feature = "freshness-performance-trace")] traces: &mut Vec<
         crate::history::dream_evidence::DreamEvidenceTrace,
     >,
 ) -> Result<Manifest, OwnerError> {
-    let scope = views.scope;
     let owner = if let Some(scope) = &scope {
         let owner = super::historical_manifest_plan::validate_epoch_owner(
             views.cut.owner_uuid,
@@ -103,7 +102,7 @@ pub(crate) fn build(
         let settled = publication_birth
             && views
                 .dream
-                .initial_pass_settled(&crate::dream_pass_identity::initial_pass_id(owner, id));
+                .initial_pass_settled(&crate::freshness::initial_dream_pass_identity(owner, id));
         super::historical_manifest_plan::validate_settled_birth(publication_birth, settled)?;
     }
     super::historical_manifest_plan::validate_supported_cohort(
@@ -172,9 +171,9 @@ pub(crate) fn build(
         &born_ids,
         scope.is_some(),
     );
-    let (graph, adjacency) = graph_proof.result?;
     #[cfg(feature = "freshness-performance-trace")]
     traces.extend(graph_proof.traces);
+    let (graph, adjacency) = graph_proof.result?;
 
     let snapshot = views.cut.community_snapshot.clone();
     let scoped_snapshot = if scope.is_some() {

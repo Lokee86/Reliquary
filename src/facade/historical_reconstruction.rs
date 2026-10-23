@@ -78,7 +78,7 @@ impl Cva {
         // This is the explicit exclusive historical owner operation. Scope only
         // its bounded publication work; ordinary live mutation remains fenced.
         let report = if self.open_import_epoch().is_some() {
-            self.with_import_write_scope(|owner| embedding::fill(owner, endpoint, limits, cancel))
+            embedding::fill_open_epoch(self, endpoint, limits, cancel)
         } else {
             embedding::fill(self, endpoint, limits, cancel)
         }

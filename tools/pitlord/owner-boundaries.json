@@ -1882,6 +1882,11 @@
       "path": "src/imports/historical_commit.rs",
       "component": "import",
       "classification": "production"
+    },
+    {
+      "path": "src/imports/historical_prepare.rs",
+      "component": "import",
+      "classification": "production"
     }
   ],
   "module_components": [
@@ -2982,6 +2987,24 @@
       "owner": "vector-store",
       "symbol": "VectorGenerationId",
       "reason": "Immutable accepted vector profile or generation identity reported by the historical embedding operation; no vector store or writer authority."
+    },
+    {
+      "consumer": "import",
+      "owner": "graph-store",
+      "symbol": "CommunitySnapshot",
+      "reason": "Immutable accepted snapshot, readiness counters, canonical pass identity or frozen policy commitment used by historical preparation; no owner store or publication capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "insomnia-store",
+      "symbol": "InsomniaStats",
+      "reason": "Immutable accepted snapshot, readiness counters, canonical pass identity or frozen policy commitment used by historical preparation; no owner store or publication capability."
+    },
+    {
+      "consumer": "import",
+      "owner": "freshness-store",
+      "symbol": "HISTORICAL_POLICY_DIGEST",
+      "reason": "Immutable accepted snapshot, readiness counters, canonical pass identity or frozen policy commitment used by historical preparation; no owner store or publication capability."
     }
   ],
   "forbidden_symbols": [
