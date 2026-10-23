@@ -32,6 +32,11 @@ pub(crate) fn leave_epoch_write_scope(container: &mut Container) {
     container.set_owner_write_scope(false);
 }
 
+/// Open a physical REL container for read-only owner reconstruction.
+pub(crate) fn open_read_only_container(path: &Path) -> Result<Container, ContainerError> {
+    Container::open_read_only(path)
+}
+
 /// Identity retained for one output path created by physical copy.
 pub(crate) struct CreatedOutputIdentity(crate::container::PhysicalReadSource);
 
