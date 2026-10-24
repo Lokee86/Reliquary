@@ -22,6 +22,10 @@ CONTAINER_FREE_READS = {
     "src/external_source/mod.rs",
     "src/retrieval/conversation_search.rs", "src/retrieval/lexical_search.rs",
     "src/retrieval/semantic_search.rs", "src/retrieval/lexical_index.rs",
+    "src/retrieval/memory_retrieval_vectors.rs",
+    "src/retrieval/memory_candidate_collection.rs",
+    "src/runtime_inference/runtime_vector_step.rs",
+    "src/runtime_inference/insomnia_runtime_execution.rs",
 }
 VALUE_VARIANTS = {
     "src/container/container.rs": "Phylactery,",
@@ -46,6 +50,15 @@ def violations(path: str, source: str, component: str | None, facts: set[str]) -
                      or path == "src/runtime_inference/agentic_memory_grading.rs")
     if native_access and re.search(r"\b(?:" + PRODUCT_TYPES + r")\b|\bFn(?:Mut|Once)?\b", view):
         errors.append(f"{path}: native owner access receives product binding or callback")
+    if path.startswith("src/runtime_inference/runtime_host"):
+        obsolete = (r"collect_memory_candidate_pool|dream_eligible_epoch|mark_dream_processed|"
+                    r"claim_runtime_insomnia|hydrate_runtime_insomnia_evidence|prepare_runtime_insomnia_application|"
+                    r"commit_runtime_insomnia_verified|fail_runtime_insomnia|external_index_state|external_profile|"
+                    r"external_search|external_install|publish_external_window|accept_runtime_compatibility_profile|"
+                    r"prepare_runtime_memory_vector_batch|commit_runtime_memory_vector_batch|"
+                    r"prepare_semantic_archive_batch|commit_semantic_archive_batch")
+        if re.search(r"\b(?:cva|phy|owner)\s*\.\s*(?:" + obsolete + r")\s*\(", view):
+            errors.append(f"{path}: mounted execution invokes retired private facade operation")
     if path in MOUNTED_PERCEPTION:
         for hit in re.finditer(
             r"\b(?:cva|phy)\s*\.\s*(?:resolve_principal_entity_mention|prepare_entity_resolution|commit_entity_resolution|prepare_entity_reconciliation|commit_entity_reconciliation)\s*\(", view
@@ -113,7 +126,10 @@ def self_test() -> None:
     assert violations("src/runtime_inference/perception_publication_resolution.rs", "fn apply(owner: &mut Cva) {}", "runtime-gateway", facts)
     assert violations("src/runtime_inference/agentic_memory_grading.rs", "fn read(f: impl Fn(MemoryId) -> i16) {}", "runtime-gateway", facts)
     assert not violations("src/runtime_inference/perception_publication_resolution.rs", "fn apply(store: &mut EntityStore, container: &mut Container) {}", "runtime-gateway", facts)
-    print("Facade boundary fixtures passed (31 cases).")
+    assert violations("src/runtime_inference/runtime_host_rel_vectors.rs", "runtime.cva.prepare_semantic_archive_batch(id)", "runtime-gateway", facts)
+    assert violations("src/runtime_inference/runtime_host_gateway_external.rs", "r.cva.external_profile(state)", "runtime-gateway", facts)
+    assert not violations("src/runtime_inference/runtime_host_gateway_external.rs", "native::install(&mut owner.store, plan)", "runtime-gateway", facts)
+    print("Facade boundary fixtures passed (34 cases).")
 
 
 def main() -> int:

@@ -2,7 +2,7 @@ use crate::compatibility_profile_store::CompatibilityProfileStore;
 use crate::external_index::store::{ExternalIndexStore, SourceState};
 use crate::external_source::index::PreparedIndex;
 use crate::external_source::processing::PreparedExternalMemory;
-use crate::external_source::{self, ExternalIndexStatus, ExternalSourceError};
+use crate::external_source::{ExternalIndexStatus, ExternalSourceError};
 use crate::freshness_dream_journal::DreamFreshnessJournal;
 use crate::freshness_storage::FreshnessStore;
 use crate::memory_store::MemoryStore;
@@ -83,7 +83,7 @@ pub(crate) fn publish_window(
                 .map_err(MemoryError::Freshness)?;
         }
     }
-    let results = external_source::publication::publish(
+    let results = crate::external_source::publication::publish(
         container,
         memories,
         window,

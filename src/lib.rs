@@ -1978,3 +1978,6 @@ mod semantic_archive_batch;
 
 #[path = "retrieval/memory_candidate_collection.rs"]
 mod memory_candidate_collection;
+
+#[path = "freshness/ego_grades.rs"]
+mod ego_grade_read;

@@ -2560,10 +2560,6 @@
       "component": "retrieval"
     },
     {
-      "module": "insomnia::processor::result",
-      "component": "insomnia"
-    },
-    {
       "module": "insomnia::worker::model",
       "component": "insomnia"
     },
@@ -2596,11 +2592,59 @@
       "component": "owner-lifecycle"
     },
     {
-      "module": "insomnia::processor::prepared",
+      "module": "insomnia::contract",
       "component": "insomnia"
     },
     {
-      "module": "insomnia::contract",
+      "module": "owner_lifecycle::entity_publication_admission",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::entity_resolution_admission",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::insomnia_runtime",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::perception_publication_merge",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::perception_publication_resolution",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::personal_memory_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::semantic_archive_read",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "owner_lifecycle::vector_publication",
+      "component": "owner-lifecycle"
+    },
+    {
+      "module": "insomnia::native_processor",
+      "component": "insomnia"
+    },
+    {
+      "module": "insomnia::native_processor::application",
+      "component": "insomnia"
+    },
+    {
+      "module": "insomnia::native_processor::prepared",
+      "component": "insomnia"
+    },
+    {
+      "module": "insomnia::native_processor::result",
+      "component": "insomnia"
+    },
+    {
+      "module": "insomnia::native_processor::source_validation",
       "component": "insomnia"
     }
   ],
@@ -3576,6 +3620,102 @@
       "owner": "public-consumers",
       "symbol": "MemoryProvenance",
       "reason": "Exact immutable public cross-owner provenance result defined in memory_provenance_model.rs; fields are owned Memory/Episode/ResolvedTurn values and vectors, with no executable facade capability. Runtime returns this supported API value; not a callback/service exception."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "PrincipalResolutionPlan",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityResolutionCommitPlan",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityResolutionCommitOperation",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityResolverError",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityMergePlan",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityMergePublicationPlan",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "insomnia",
+      "symbol": "PreparedUserMemory",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "external-sources",
+      "symbol": "PreparedIndex",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "external-sources",
+      "symbol": "PreparedExternalMemory",
+      "reason": "Phase 6 exact passive producer instruction/result/error; concrete native owner admission and ordered publication consume data only, never invoke a semantic service or provider. Source: owner_lifecycle native publication modules."
+    },
+    {
+      "consumer": "external-sources",
+      "owner": "pure-codec",
+      "symbol": "ExternalChunkRef",
+      "reason": "Phase 6 exact value contract: Immutable external-source identity coordinates reexported from source_identity; no capability or source hydration."
+    },
+    {
+      "consumer": "external-sources",
+      "owner": "pure-codec",
+      "symbol": "ExternalMessageRef",
+      "reason": "Phase 6 exact value contract: Immutable external-source identity coordinates reexported from source_identity; no capability or source hydration."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityResolutionDecision",
+      "reason": "Phase 6 exact value contract: Passive native publication instruction/outcome values; no inference/service functions."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityResolutionOutcome",
+      "reason": "Phase 6 exact value contract: Passive native publication instruction/outcome values; no inference/service functions."
+    },
+    {
+      "consumer": "owner-lifecycle",
+      "owner": "perception",
+      "symbol": "EntityMergeRelationshipWrite",
+      "reason": "Phase 6 exact value contract: Passive native publication instruction/outcome values; no inference/service functions."
+    },
+    {
+      "consumer": "retrieval",
+      "owner": "config-security",
+      "symbol": "RetrievalConfig",
+      "reason": "Phase 6 exact value contract: Immutable validated retrieval limits/weights used by unchanged lower ranking and selection policy."
+    },
+    {
+      "consumer": "runtime-gateway",
+      "owner": "pure-codec",
+      "symbol": "PhylacteryProfile",
+      "reason": "Phase 6 exact value contract: Immutable principal profile input preserved by native publication planning; no store or facade capability."
     }
   ],
   "forbidden_symbols": [
@@ -3656,6 +3796,11 @@
       "consumer": "vectors",
       "path": "lodestone_packed::VectorSchema",
       "reason": "Phase 6 source-reviewed external codec tag/schema/payload value reexport; no public facade, provider or mutable owner capability. Witness: src/runtime_inference/runtime_vector_step.rs:2."
+    },
+    {
+      "consumer": "vector-store",
+      "path": "lodestone_packed::PackedVectors",
+      "reason": "Immutable packed-vector payload stored in the concrete publication plan and returned by owner-qualified readers; no inference provider."
     }
   ],
   "project_environment_scope_contract": {

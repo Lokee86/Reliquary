@@ -212,37 +212,19 @@ impl Cva {
         memory_ids: &[MemoryId],
         as_of_turn: u64,
     ) -> Result<Vec<EgoMemoryFreshness>, crate::CvaError> {
-        if as_of_turn > self.rel_turn_count() {
-            return Err(crate::CvaError::Freshness(
-                "Ego Freshness cut is beyond the REL activity head".into(),
-            ));
-        }
-        let policy = self.freshness_policy();
-        let mut output = Vec::new();
-        let mut seen = BTreeSet::new();
-        for memory_id in memory_ids {
-            if !seen.insert(*memory_id) {
-                continue;
-            }
-            let record = if as_of_turn == self.rel_turn_count() {
-                self.freshness_record(*memory_id)
-            } else {
-                self.freshness_record_at(*memory_id, as_of_turn)?
-            };
-            let Some(record) = record else {
-                continue;
-            };
-            output.push(EgoMemoryFreshness {
-                memory_id: *memory_id,
-                score: record
-                    .score_at_with_policy(as_of_turn, &policy)
-                    .map_err(|error| crate::CvaError::Freshness(error.to_string()))?,
-                state: record
-                    .state_at_with_policy(as_of_turn, &policy)
-                    .map_err(|error| crate::CvaError::Freshness(error.to_string()))?,
-            });
-        }
-        Ok(output)
+        crate::ego_grade_read::EgoGradeRead::new(&self.freshness)
+            .grades(memory_ids, as_of_turn, self.rel_turn_count())
+            .map_err(crate::CvaError::Freshness)
+            .map(|grades| {
+                grades
+                    .into_iter()
+                    .map(|(memory_id, score, state)| EgoMemoryFreshness {
+                        memory_id,
+                        score,
+                        state,
+                    })
+                    .collect()
+            })
     }
 
     /// Choose routine context under a token budget. Hard-keeps survive even if
