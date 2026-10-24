@@ -36,6 +36,8 @@ mod ledger;
 mod metadata;
 #[path = "insomnia/model.rs"]
 mod model;
+#[path = "insomnia/native_processor.rs"]
+pub(crate) mod native_processor;
 #[path = "insomnia/ownership.rs"]
 mod ownership;
 #[path = "../facade/insomnia_processor.rs"]
@@ -44,7 +46,7 @@ mod processor;
 mod progress;
 #[path = "insomnia/rebuild.rs"]
 pub(crate) mod rebuild;
-#[path = "../facade/insomnia_runtime_step.rs"]
+#[path = "insomnia/runtime_step.rs"]
 pub(crate) mod runtime_step;
 #[path = "insomnia/store.rs"]
 pub(crate) mod store;
@@ -73,11 +75,11 @@ pub use model::{
     EpisodeSchedulingResult, InsomniaAttempt, InsomniaLeaseToken, InsomniaPriority, InsomniaStats,
     InsomniaWork, InsomniaWorkState,
 };
-pub use ownership::{INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, InsomniaOwnership};
-pub use processor::{InsomniaProcessError, InsomniaProcessResult};
-pub(crate) use processor::{
+pub use native_processor::{InsomniaProcessError, InsomniaProcessResult};
+pub(crate) use native_processor::{
     PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication,
 };
+pub use ownership::{INSOMNIA_OWNERSHIP_SYSTEM_PROMPT, InsomniaOwnership};
 pub use progress::{
     DEFAULT_INSOMNIA_PROGRESS_INTERVAL_SECS, InsomniaProgressEvent, InsomniaProgressReporter,
     InsomniaSemanticStage,

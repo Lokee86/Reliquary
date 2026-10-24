@@ -112,17 +112,30 @@ fn runtime_backpressure_ignores_normal_attempt_budget() {
         max_attempts: 1,
         ..Default::default()
     };
-    let claim = cva
-        .claim_runtime_insomnia("runtime", &config)
-        .unwrap()
-        .unwrap();
+    let cva = &mut cva;
+    let claim = crate::insomnia::runtime_step::claim_runtime_insomnia(
+        &mut cva.container,
+        &cva.archive,
+        &mut cva.insomnia,
+        "runtime",
+        &config,
+    )
+    .unwrap()
+    .unwrap();
     assert_eq!(claim.work.attempt_count, config.max_attempts);
 
     let error = InsomniaExtractionError::Endpoint(GeneralEndpointError::backpressure(
         "HTTP 429 Too Many Requests",
         Some(Duration::from_secs(120)),
     ));
-    cva.fail_runtime_insomnia(&claim, &error, &config).unwrap();
+    crate::insomnia::runtime_step::fail_runtime_insomnia(
+        &mut cva.container,
+        &mut cva.insomnia,
+        &claim,
+        &error,
+        &config,
+    )
+    .unwrap();
 
     let stats = cva.insomnia_stats();
     assert_eq!(stats.failed, 1);

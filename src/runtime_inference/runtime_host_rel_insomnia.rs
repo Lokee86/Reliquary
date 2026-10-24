@@ -86,10 +86,15 @@ pub(super) fn worker_loop(
             shared.mutate(
                 super::super::mutation_events::RelMutationFamily::Processing,
                 |runtime| {
-                    let claim = runtime
-                        .cva
-                        .claim_runtime_insomnia(&worker_id, &shared.config)
-                        .map_err(operation)?;
+                    let cva = &mut runtime.cva;
+                    let claim = crate::insomnia::runtime_step::claim_runtime_insomnia(
+                        &mut cva.container,
+                        &cva.archive,
+                        &mut cva.insomnia,
+                        &worker_id,
+                        &shared.config,
+                    )
+                    .map_err(operation)?;
                     Ok((claim, false, vec![]))
                 },
             )?
@@ -141,9 +146,16 @@ fn process_claim(
             shared.mutate(
                 super::super::mutation_events::RelMutationFamily::Processing,
                 |runtime| {
-                    let value = runtime
-                        .cva
-                        .prepare_runtime_insomnia_application(&claim, extraction, &shared.config)
+                    let cva = &mut runtime.cva;
+                    let value =
+                        crate::insomnia::runtime_step::prepare_runtime_insomnia_application(
+                            &mut cva.container,
+                            &cva.archive,
+                            &mut cva.insomnia,
+                            &claim,
+                            extraction,
+                            &shared.config,
+                        )
                         .map_err(operation)?;
                     // Lease renewal has no additional instance-visible state.
                     Ok((value, false, vec![]))
@@ -176,10 +188,20 @@ fn process_claim(
         shared.mutate(
             super::super::mutation_events::RelMutationFamily::Background,
             |runtime| {
-                runtime
-                    .cva
-                    .commit_runtime_insomnia_verified(&claim, prepared, publication, &shared.config)
-                    .map_err(operation)?;
+                let cva = &mut runtime.cva;
+                crate::insomnia::runtime_step::commit_runtime_insomnia_verified(
+                    &mut cva.container,
+                    &cva.archive,
+                    &mut cva.memories,
+                    &mut cva.insomnia,
+                    &mut cva.freshness,
+                    &mut cva.dream_freshness,
+                    &claim,
+                    prepared,
+                    publication,
+                    &shared.config,
+                )
+                .map_err(operation)?;
                 if !shared.publication.verify_receipt(runtime, &plan)? {
                     return Err(operation("REL completion receipt is absent after commit"));
                 }
@@ -210,9 +232,10 @@ fn retry_publication(
         super::super::mutation_events::RelMutationFamily::Processing,
         |runtime| {
             let now = crate::insomnia::runtime_step::now_ns();
-            runtime
-                .cva
-                .fail_insomnia_episode(
+            let cva = &mut runtime.cva;
+            cva.insomnia
+                .fail(
+                    &mut cva.container,
                     claim.work.episode_id,
                     claim
                         .work
@@ -282,10 +305,15 @@ fn fail_claim(
     shared.mutate(
         super::super::mutation_events::RelMutationFamily::Processing,
         |runtime| {
-            runtime
-                .cva
-                .fail_runtime_insomnia(claim, error, &shared.config)
-                .map_err(operation)?;
+            let cva = &mut runtime.cva;
+            crate::insomnia::runtime_step::fail_runtime_insomnia(
+                &mut cva.container,
+                &mut cva.insomnia,
+                claim,
+                error,
+                &shared.config,
+            )
+            .map_err(operation)?;
             Ok(((), true, vec![]))
         },
     )
@@ -307,9 +335,14 @@ fn finish_evidence(
         let mut runtime = shared.runtime.lock().map_err(|_| {
             crate::InsomniaExtractionError::InvalidOutput("runtime lock poisoned".into())
         })?;
-        runtime
-            .cva
-            .hydrate_runtime_insomnia_evidence(claim, &round)?
+        let cva = &mut runtime.cva;
+        crate::insomnia::runtime_step::hydrate_runtime_insomnia_evidence(
+            &cva.archive,
+            &mut cva.lexical_index,
+            &mut cva.container,
+            claim,
+            &round,
+        )?
     };
     extractor.finish_evidence(&claim.episode, &claim.turns, round, results, evidence_turns)
 }

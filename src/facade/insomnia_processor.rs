@@ -1,23 +1,8 @@
-use crate::{
-    Archive, Container, Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor,
-    InsomniaWork, InsomniaWorkState,
-};
+use crate::{Cva, GeneralEndpoint, InsomniaExtractionError, InsomniaExtractor, InsomniaWork};
 
-#[path = "../runtime_inference/insomnia/processor/application.rs"]
-mod application;
-#[path = "../runtime_inference/insomnia/processor/prepared.rs"]
-mod prepared;
-#[path = "../runtime_inference/insomnia/processor/result.rs"]
-mod result;
-#[path = "../runtime_inference/insomnia/processor/source_validation.rs"]
-mod source_validation;
-
+pub use crate::insomnia::native_processor::{InsomniaProcessError, InsomniaProcessResult};
+use crate::insomnia::native_processor::{prepare_application, publish_user_application};
 pub(crate) use crate::owner_lifecycle::insomnia_application::commit_application;
-pub(crate) use application::{prepare_application, publish_user_application};
-pub(crate) use prepared::{
-    PreparedApplication, PreparedMemory, PreparedUserMemory, UserPublication,
-};
-pub use result::{InsomniaProcessError, InsomniaProcessResult};
 
 impl Cva {
     pub fn process_claimed_insomnia_episode<E: GeneralEndpoint>(
@@ -107,7 +92,12 @@ impl Cva {
         claim: &InsomniaWork,
         scope: &str,
     ) -> Result<(crate::Episode, Vec<crate::ResolvedTurn>), InsomniaProcessError> {
-        claimed_episode_input_parts(&self.archive, &mut self.container, claim, scope)
+        crate::insomnia::native_processor::claimed_episode_input_parts(
+            &self.archive,
+            &mut self.container,
+            claim,
+            scope,
+        )
     }
 }
 
@@ -131,47 +121,6 @@ pub(super) fn extract_with_evidence<E: GeneralEndpoint>(
             )?;
             extractor.finish_evidence(episode, turns, round, results, evidence_turns)
         }
-    }
-}
-
-pub(crate) fn claimed_episode_input_parts(
-    archive: &Archive,
-    container: &mut Container,
-    claim: &InsomniaWork,
-    scope: &str,
-) -> Result<(crate::Episode, Vec<crate::ResolvedTurn>), InsomniaProcessError> {
-    validate_claim(claim, scope)?;
-    let episode = archive
-        .episode(claim.episode_id)
-        .cloned()
-        .ok_or(InsomniaProcessError::MissingEpisode)?;
-    let turns = archive.episode_turns(container, claim.episode_id)?;
-    Ok((episode, turns))
-}
-
-fn validate_claim(claim: &InsomniaWork, scope: &str) -> Result<(), InsomniaProcessError> {
-    if claim.state != InsomniaWorkState::Processing
-        || claim.lease_token.is_none()
-        || scope.trim().is_empty()
-    {
-        Err(InsomniaProcessError::InvalidClaim)
-    } else {
-        Ok(())
-    }
-}
-
-impl super::evidence::EvidenceSearch for crate::lexical_index::LexicalIndex {
-    fn ensure_current(
-        &mut self,
-        archive: &crate::archive::ArchiveReadView<'_>,
-    ) -> Result<(), crate::ArchiveError> {
-        crate::lexical_index::LexicalIndex::ensure_current(self, archive)
-    }
-    fn search_fragments(&self, query: &str, limit: usize) -> Vec<crate::Fragment> {
-        self.search(&crate::lexical_contract::lexical_terms(query), limit)
-            .into_iter()
-            .map(|hit| hit.fragment)
-            .collect()
     }
 }
 

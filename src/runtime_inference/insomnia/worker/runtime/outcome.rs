@@ -1,9 +1,8 @@
 use super::progress::{elapsed_ms_between, report_retry};
 use super::{DrainCounters, DrainShared, now_ns};
 use crate::insomnia::backpressure;
-use crate::insomnia::processor::{
-    commit_application, prepare_application, publish_user_application,
-};
+use crate::insomnia::native_processor::{prepare_application, publish_user_application};
+use crate::owner_lifecycle::insomnia_application::commit_application;
 use crate::{
     GeneralEndpointError, InsomniaError, InsomniaExtractionError, InsomniaProgressEvent,
     InsomniaWork,

@@ -1,4 +1,4 @@
-use crate::insomnia::processor::PreparedApplication;
+use crate::insomnia::PreparedApplication;
 use crate::{
     GeneralEndpoint, InsomniaExtractionError, MemoryDraft, TemporalAssessment, TemporalInferencer,
 };
@@ -24,7 +24,7 @@ pub(crate) fn infer_prepared(
 
 pub(crate) fn infer_memory<E: GeneralEndpoint>(
     inferencer: &TemporalInferencer<E>,
-    prepared: &mut crate::insomnia::processor::PreparedMemory,
+    prepared: &mut crate::insomnia::PreparedMemory,
 ) -> Result<usize, InsomniaExtractionError> {
     if !prepared.temporal.resolution.needs_inference() {
         return Ok(0);
