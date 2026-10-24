@@ -78,8 +78,7 @@ impl GatewayRuntime {
         crate::external_index::model::identifier(&namespace)?;
         let state = self
             .with_rel(&token, |r| {
-                r.cva
-                    .external_index_state(&namespace)
+                crate::external_owner_access::read_state(&r.cva.external_index, &namespace)
                     .map_err(operation)?
                     .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))
             })
@@ -234,10 +233,19 @@ impl GatewayRuntime {
                 {
                     return Err(operation(ExternalSourceError::Conflict));
                 }
-                let memories = r
-                    .cva
-                    .publish_external_window(window, &prepared.project)
-                    .map_err(operation)?;
+                let owner_uuid = r.cva.container.owner_uuid();
+                let turn = r.cva.archive.rel_turn_count();
+                let memories = crate::external_owner_access::publish_window(
+                    &mut r.cva.container,
+                    &mut r.cva.memories,
+                    &mut r.cva.freshness,
+                    &mut r.cva.dream_freshness,
+                    owner_uuid,
+                    turn,
+                    window,
+                    &prepared.project,
+                )
+                .map_err(operation)?;
                 Ok((memories, true, Vec::new()))
             })
             .map_err(|_| ExternalSourceError::Conflict)?;

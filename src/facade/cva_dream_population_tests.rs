@@ -295,15 +295,15 @@ fn physical_external_birth_receipt_excludes_its_cohort_siblings() {
         .0
         .id;
     let window = [73; 32];
-    let created = owner
-        .publish_external_window(
-            window,
-            &[
-                super::external_birth_prefix_tests::prepared(window, 1),
-                super::external_birth_prefix_tests::prepared(window, 2),
-            ],
-        )
-        .unwrap();
+    let created = crate::external_source::tests::test_support::publish_window(
+        &mut owner,
+        window,
+        &[
+            super::external_birth_prefix_tests::prepared(window, 1),
+            super::external_birth_prefix_tests::prepared(window, 2),
+        ],
+    )
+    .unwrap();
     let source = created[0].id;
     let grouped_end = owner
         .container

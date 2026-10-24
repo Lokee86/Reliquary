@@ -1,3 +1,4 @@
+use super::test_support::{external_index_state, publish_window};
 use super::*;
 use crate::external_index::codec::Record;
 use crate::external_index::{codec, store};
@@ -100,10 +101,7 @@ fn compact_external_index_reclaim_keeps_latest_lookup_and_memory_proof() {
     let window = [31; 32];
     let mut prepared = prepared_memory(window, "An independent semantic decision.");
     prepared.evidence.authority.message = host.refs()[0].clone();
-    let memory = rel
-        .publish_external_window(window, &[prepared])
-        .unwrap()
-        .remove(0);
+    let memory = publish_window(&mut rel, window, &[prepared]).remove(0);
     let evidence = rel.external_memory_evidence(memory.id).unwrap();
     let expected_hits = hits(&mut rel);
     let latest = rel.external_index.sources["host:test"].clone();
@@ -119,8 +117,7 @@ fn compact_external_index_reclaim_keeps_latest_lookup_and_memory_proof() {
     let mut reopened = Cva::open(&output).unwrap();
     assert_eq!(reopened.latest_global_version(), head);
     assert_eq!(
-        reopened
-            .external_index_state("host:test")
+        external_index_state(&reopened, "host:test")
             .unwrap()
             .unwrap()
             .status(),
@@ -188,7 +185,7 @@ fn compact_external_index_reclaim_preserves_global_damage_and_multiple_namespace
     let reopened = Cva::open(&output).unwrap();
     assert!(reopened.external_index.damaged);
     assert_eq!(
-        reopened.external_index_state("y"),
+        external_index_state(&reopened, "y"),
         Err(ExternalSourceError::RebuildRequired)
     );
     let mut owner = store::ExternalIndexStore::default();

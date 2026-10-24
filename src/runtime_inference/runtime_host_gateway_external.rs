@@ -21,12 +21,13 @@ impl GatewayRuntime {
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         let (state, profile) = self
             .with_rel(&token, |r| {
-                let state = r
-                    .cva
-                    .external_index_state(namespace)
-                    .map_err(operation)?
-                    .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))?;
-                let profile = r.cva.external_profile(&state).map_err(operation)?;
+                let state =
+                    crate::external_owner_access::read_state(&r.cva.external_index, namespace)
+                        .map_err(operation)?
+                        .ok_or_else(|| operation(ExternalSourceError::RebuildRequired))?;
+                let profile =
+                    crate::external_owner_access::profile(&r.cva.compatibility_profiles, &state)
+                        .map_err(operation)?;
                 Ok((state, profile))
             })
             .map_err(|_| ExternalSourceError::RebuildRequired)?;
@@ -82,8 +83,11 @@ impl GatewayRuntime {
             })
             .map_err(|_| ExternalSourceError::Unauthorized)?;
         let profile = if let Some(old) = &old {
-            self.with_rel(&token, |r| r.cva.external_profile(old).map_err(operation))
-                .map_err(|_| ExternalSourceError::RebuildRequired)?
+            self.with_rel(&token, |r| {
+                crate::external_owner_access::profile(&r.cva.compatibility_profiles, old)
+                    .map_err(operation)
+            })
+            .map_err(|_| ExternalSourceError::RebuildRequired)?
         } else {
             crate::compatibility_profile_probe::profile_from_endpoint(endpoint)
                 .map_err(|_| ExternalSourceError::Unavailable)?
@@ -105,7 +109,14 @@ impl GatewayRuntime {
     ) -> Result<ExternalIndexStatus, ExternalSourceError> {
         let before = prepared.expected_revision;
         self.with_rel_mutation(token, RelMutationFamily::Retrieval, |r| {
-            let status = r.cva.external_install(prepared).map_err(operation)?;
+            let status = crate::external_owner_access::install(
+                &mut r.cva.container,
+                &mut r.cva.external_index,
+                &mut r.cva.compatibility_profiles,
+                &mut r.cva.packed_vectors,
+                prepared,
+            )
+            .map_err(operation)?;
             let changed = before != Some(status.revision);
             Ok((status, changed, Vec::new()))
         })
@@ -132,9 +143,15 @@ impl GatewayRuntime {
                 if r.cva.external_index.sources.get(&state.namespace) != Some(&state) {
                     return Err(operation(ExternalSourceError::Conflict));
                 }
-                r.cva
-                    .external_search(&state, Some(&vector), query, limit)
-                    .map_err(operation)
+                crate::external_owner_access::search(
+                    &r.cva.container,
+                    &r.cva.packed_vectors,
+                    &state,
+                    Some(&vector),
+                    query,
+                    limit,
+                )
+                .map_err(operation)
             })
             .map_err(|_| ExternalSourceError::Conflict)?;
         validate_external_evidence(
@@ -170,9 +187,15 @@ impl GatewayRuntime {
                 if r.cva.external_index.sources.get(&state.namespace) != Some(&state) {
                     return Err(operation(ExternalSourceError::Conflict));
                 }
-                r.cva
-                    .external_search(&state, None, query, limit)
-                    .map_err(operation)
+                crate::external_owner_access::search(
+                    &r.cva.container,
+                    &r.cva.packed_vectors,
+                    &state,
+                    None,
+                    query,
+                    limit,
+                )
+                .map_err(operation)
             })
             .map_err(|_| ExternalSourceError::Unavailable)?;
         validate_external_evidence(

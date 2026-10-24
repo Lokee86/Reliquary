@@ -20,8 +20,7 @@ pub use processing::{ExternalProcessingResult, PreparedExternalProcessing};
 pub(crate) mod tests;
 
 use crate::external_index::store::ExternalIndexStore;
-use crate::packed_vector_store::PackedVectorStore;
-use crate::{Container, PackedVectorId};
+use crate::external_vector_reader::ExternalVectorReader;
 use store::SourceState;
 
 pub(crate) fn read_state(
@@ -39,8 +38,7 @@ pub(crate) fn read_state(
 }
 
 pub(crate) fn search(
-    container: &Container,
-    packed_vectors: &PackedVectorStore,
+    vectors: &mut ExternalVectorReader<'_>,
     state: &SourceState,
     vector: Option<&[f32]>,
     query: &str,
@@ -57,7 +55,6 @@ pub(crate) fn search(
         index::validate_vector(vector, state.dimensions)?;
     }
 
-    let mut matrices = std::collections::BTreeMap::new();
     let mut hits = Vec::new();
     for chunk in state
         .messages
@@ -66,40 +63,12 @@ pub(crate) fn search(
         .flat_map(|m| &m.chunks)
     {
         let score = if let Some(vector) = vector {
-            if !matrices.contains_key(&chunk.matrix) {
-                let packed = packed_vectors
-                    .get(container, PackedVectorId(chunk.matrix))
-                    .map_err(|_| ExternalSourceError::RebuildRequired)?;
-                matrices.insert(chunk.matrix, packed);
-            }
-            let packed = &matrices[&chunk.matrix];
-            let stride = state.dimensions as usize * 4;
-            let start = chunk.row as usize * stride;
-            let bytes = packed
-                .bytes()
-                .get(start..start + stride)
-                .ok_or(ExternalSourceError::RebuildRequired)?;
-            let row: Vec<f32> = bytes
-                .chunks_exact(4)
-                .map(|b| f32::from_le_bytes(b.try_into().unwrap()))
-                .collect();
+            let (row, score) = vectors
+                .cosine_row(chunk.matrix, chunk.row, state.dimensions, vector)
+                .map_err(|_| ExternalSourceError::RebuildRequired)?;
+            // Keep the External contract check here, after lazy matrix hydration.
             index::validate_vector(&row, state.dimensions)?;
-            let dot = row
-                .iter()
-                .zip(vector)
-                .map(|(a, b)| f64::from(*a) * f64::from(*b))
-                .sum::<f64>();
-            let norm = row
-                .iter()
-                .map(|v| f64::from(*v).powi(2))
-                .sum::<f64>()
-                .sqrt()
-                * vector
-                    .iter()
-                    .map(|v| f64::from(*v).powi(2))
-                    .sum::<f64>()
-                    .sqrt();
-            dot / norm
+            score
         } else {
             if terms.is_empty() {
                 return Err(ExternalSourceError::Bounds);

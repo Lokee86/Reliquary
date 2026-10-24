@@ -962,6 +962,8 @@ pub use multiplexing_journal::{
 mod cva_description_prune;
 #[path = "facade/cva_history_prune.rs"]
 mod cva_history_prune;
+#[path = "retrieval/external_vector_reader.rs"]
+mod external_vector_reader;
 #[path = "runtime_inference/openai_codex_device_auth.rs"]
 mod openai_codex_device_auth;
 #[path = "runtime_inference/openai_codex_general.rs"]
@@ -1016,6 +1018,8 @@ mod phylactery_packed_vectors;
 
 #[path = "facade/cva_project_environment.rs"]
 mod cva_project_environment;
+#[path = "runtime_inference/external_owner_access.rs"]
+mod external_owner_access;
 #[path = "memory/processing_epoch_model.rs"]
 mod processing_epoch_model;
 #[path = "memory/processing_epoch_store.rs"]

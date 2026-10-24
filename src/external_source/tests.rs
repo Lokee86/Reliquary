@@ -1,6 +1,77 @@
 use super::*;
 use crate::{Cva, EmbeddingEndpoint, EmbeddingEndpointError, EmbeddingMode, VectorNormalization};
+
+pub(crate) mod test_support {
+    use super::*;
+
+    pub(crate) fn external_index_state(
+        cva: &Cva,
+        namespace: &str,
+    ) -> Result<Option<crate::external_index::store::SourceState>, ExternalSourceError> {
+        crate::external_source::read_state(&cva.external_index, namespace)
+    }
+
+    pub(crate) fn external_profile(
+        cva: &Cva,
+        state: &crate::external_index::store::SourceState,
+    ) -> Result<crate::CompatibilityProfile, ExternalSourceError> {
+        crate::external_owner_access::profile(&cva.compatibility_profiles, state)
+    }
+
+    pub(crate) fn external_install(
+        cva: &mut Cva,
+        prepared: index::PreparedIndex,
+    ) -> Result<ExternalIndexStatus, ExternalSourceError> {
+        crate::external_owner_access::install(
+            &mut cva.container,
+            &mut cva.external_index,
+            &mut cva.compatibility_profiles,
+            &mut cva.packed_vectors,
+            prepared,
+        )
+    }
+
+    pub(crate) fn external_search(
+        cva: &Cva,
+        state: &crate::external_index::store::SourceState,
+        vector: Option<&[f32]>,
+        query: &str,
+        limit: usize,
+    ) -> Result<Vec<ExternalSearchHit>, ExternalSourceError> {
+        crate::external_owner_access::search(
+            &cva.container,
+            &cva.packed_vectors,
+            state,
+            vector,
+            query,
+            limit,
+        )
+    }
+
+    pub(crate) fn publish_window(
+        cva: &mut Cva,
+        window: [u8; 32],
+        prepared: &[crate::external_source::processing::PreparedExternalMemory],
+    ) -> Result<Vec<crate::Memory>, crate::MemoryError> {
+        let owner_uuid = cva.container.owner_uuid();
+        let turn = cva.archive.rel_turn_count();
+        crate::external_owner_access::publish_window(
+            &mut cva.container,
+            &mut cva.memories,
+            &mut cva.freshness,
+            &mut cva.dream_freshness,
+            owner_uuid,
+            turn,
+            window,
+            prepared,
+        )
+    }
+}
+
 use std::sync::Mutex;
+use test_support::{
+    external_index_state, external_install, external_profile, external_search, publish_window,
+};
 
 #[path = "compact_tests.rs"]
 mod compact_tests;
@@ -138,18 +209,19 @@ fn rebuild(cva: &mut Cva, host: &Host) -> ExternalIndexStatus {
         .get(host.source_namespace())
         .cloned();
     let prepared = index::prepare_rebuild(host, "alice", &Endpoint, profile, old.as_ref()).unwrap();
-    cva.external_install(prepared).unwrap()
+    external_install(cva, prepared).unwrap()
 }
 fn update(cva: &mut Cva, host: &Host) -> Result<ExternalIndexStatus, ExternalSourceError> {
-    let old = cva.external_index_state(host.source_namespace())?.unwrap();
-    let profile = cva.external_profile(&old)?;
-    cva.external_install(index::prepare_incremental(
-        host, "alice", &Endpoint, profile, old,
-    )?)
+    let old = external_index_state(cva, host.source_namespace())?.unwrap();
+    let profile = external_profile(cva, &old)?;
+    external_install(
+        cva,
+        index::prepare_incremental(host, "alice", &Endpoint, profile, old)?,
+    )
 }
 fn hits(cva: &mut Cva) -> Vec<ExternalSearchHit> {
-    let state = cva.external_index_state("host:test").unwrap().unwrap();
-    cva.external_search(&state, None, "secret", 10).unwrap()
+    let state = external_index_state(cva, "host:test").unwrap().unwrap();
+    external_search(cva, &state, None, "secret", 10).unwrap()
 }
 
 #[test]
@@ -173,7 +245,7 @@ fn reference_index_reopens_replays_and_never_persists_host_body() {
     );
     let mut cva = Cva::open(&path).unwrap();
     assert_eq!(
-        cva.external_index_state("host:test")
+        external_index_state(&cva, "host:test")
             .unwrap()
             .unwrap()
             .status(),
@@ -245,8 +317,7 @@ fn forged_hash_bad_namespace_and_noncontiguous_feed_leave_cursor_unchanged() {
             &host,
             "alice",
             &Endpoint,
-            cva.external_profile(&cva.external_index.sources["host:test"])
-                .unwrap(),
+            external_profile(&cva, &cva.external_index.sources["host:test"]).unwrap(),
             None
         )
         .is_err()
@@ -281,11 +352,11 @@ fn snapshot_corruption_is_rebuild_required_and_stale_preparation_cannot_overwrit
     let mut cva = Cva::create(path()).unwrap();
     rebuild(&mut cva, &host);
     let old = cva.external_index.sources["host:test"].clone();
-    let profile = cva.external_profile(&old).unwrap();
+    let profile = external_profile(&cva, &old).unwrap();
     let prepared = index::prepare_rebuild(&host, "alice", &Endpoint, profile, Some(&old)).unwrap();
     rebuild(&mut cva, &host);
     assert_eq!(
-        cva.external_install(prepared),
+        external_install(&mut cva, prepared),
         Err(ExternalSourceError::Conflict)
     );
     let mut bytes = store::encode(&old).unwrap();
@@ -347,7 +418,7 @@ fn external_publication_receipt_provenance_and_global_clock_reopen_atomically() 
         window,
         "A distinct derived semantic proposition.",
     )];
-    let memories = cva.publish_external_window(window, &prepared).unwrap();
+    let memories = publish_window(&mut cva, window, &prepared).unwrap();
     let id = memories[0].id;
     assert!(memories[0].source_episode_id.is_none());
     assert!(memories[0].source_node_id.is_none());
@@ -360,7 +431,7 @@ fn external_publication_receipt_provenance_and_global_clock_reopen_atomically() 
         "A retried model produced different wording.",
     )];
     assert_eq!(
-        cva.publish_external_window(window, &different).unwrap()[0].content,
+        publish_window(&mut cva, window, &different).unwrap()[0].content,
         memories[0].content
     );
     assert_eq!(before, cva.container.latest_version());
@@ -382,8 +453,7 @@ fn external_publication_receipt_provenance_and_global_clock_reopen_atomically() 
         Some(evidence)
     );
     assert_eq!(
-        reopened
-            .publish_external_window(window, &different)
+        publish_window(&mut reopened, window, &different)
             .unwrap()
             .len(),
         1
@@ -396,7 +466,7 @@ fn corrupt_publication_does_not_claim_embedded_versions_and_empty_receipt_reopen
     let path = path();
     let mut cva = Cva::create(&path).unwrap();
     let before = cva.container.latest_version();
-    cva.publish_external_window([9; 32], &[]).unwrap();
+    publish_window(&mut cva, [9; 32], &[]).unwrap();
     assert_eq!(cva.container.latest_version(), before);
     drop(cva);
     let mut cva = Cva::open(&path).unwrap();
@@ -504,9 +574,7 @@ fn shared_insomnia_derives_project_and_user_memories_from_transient_evidence() {
     assert_eq!(prepared.project.len(), 1);
     assert_eq!(prepared.user.len(), 1);
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 3);
-    let project = cva
-        .publish_external_window(prepared.window, &prepared.project)
-        .unwrap();
+    let project = publish_window(&mut cva, prepared.window, &prepared.project).unwrap();
     let phy_path = std::env::temp_dir().join(format!("external-{}.phy", uuid::Uuid::new_v4()));
     let mut phy = crate::Phylactery::create(&phy_path).unwrap();
     let user = publication::publish(
@@ -567,9 +635,7 @@ fn corrupt_logical_index_reopens_without_losing_semantics_and_rebuild_persists()
     let window = [19; 32];
     let mut prepared = prepared_memory(window, "An independent semantic decision.");
     prepared.evidence.authority.message = host.refs()[0].clone();
-    let memory = cva
-        .publish_external_window(window, &[prepared])
-        .unwrap()
+    let memory = publish_window(&mut cva, window, &[prepared])
         .into_iter()
         .next()
         .unwrap();
@@ -583,7 +649,7 @@ fn corrupt_logical_index_reopens_without_losing_semantics_and_rebuild_persists()
     drop(cva);
     let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(
-        reopened.external_index_state("host:test"),
+        external_index_state(&reopened, "host:test"),
         Err(ExternalSourceError::RebuildRequired)
     );
     assert_eq!(reopened.memory(memory.id).unwrap().content, memory.content);
@@ -598,9 +664,7 @@ fn corrupt_logical_index_reopens_without_losing_semantics_and_rebuild_persists()
     drop(reopened);
     let mut reopened = Cva::open(&path).unwrap();
     assert_eq!(
-        reopened
-            .external_index_state("host:test")
-            .unwrap()
+        external_index_state(&reopened, "host:test")
             .unwrap()
             .status(),
         rebuilt
@@ -619,7 +683,7 @@ fn interrupted_preparation_reopens_old_cursor_and_retries_exactly_once() {
     host.state.lock().unwrap().messages = vec![edited.clone()];
     host.change(ExternalChangeKind::Upsert(edited.descriptor));
     let old = cva.external_index.sources["host:test"].clone();
-    let profile = cva.external_profile(&old).unwrap();
+    let profile = external_profile(&cva, &old).unwrap();
     let prepared = index::prepare_incremental(&host, "alice", &Endpoint, profile, old).unwrap();
     assert_eq!(prepared.state.cursor, 2);
     assert_eq!(cva.external_index.sources["host:test"].status(), original);

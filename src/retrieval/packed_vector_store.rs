@@ -11,6 +11,23 @@ pub(crate) struct PackedVectorStore {
     objects: HashMap<PackedVectorId, PackedVectorEntry>,
 }
 
+/// Lazy read access to packed vectors. The owner keeps its physical carrier
+/// private while a consumer performs a bounded, owner-qualified read.
+pub(crate) struct PackedVectorReadView<'a> {
+    store: &'a PackedVectorStore,
+    container: &'a Container,
+}
+
+impl<'a> PackedVectorReadView<'a> {
+    pub(crate) fn new(store: &'a PackedVectorStore, container: &'a Container) -> Self {
+        Self { store, container }
+    }
+
+    pub(crate) fn get(&self, id: PackedVectorId) -> Result<PackedVectors, PackedVectorError> {
+        self.store.get(self.container, id)
+    }
+}
+
 #[derive(Clone, Copy)]
 struct PackedVectorEntry {
     info: PackedVectorInfo,

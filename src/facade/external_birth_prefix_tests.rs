@@ -121,9 +121,12 @@ fn external_birth_prefix_accepts_both_formats_and_filters_members_by_memory_cut(
     let path = path("external-birth-prefix");
     let mut rel = Cva::create(&path).unwrap();
     let window = [31; 32];
-    let memories = rel
-        .publish_external_window(window, &[prepared(window, 1), prepared(window, 2)])
-        .unwrap();
+    let memories = crate::external_source::tests::test_support::publish_window(
+        &mut rel,
+        window,
+        &[prepared(window, 1), prepared(window, 2)],
+    )
+    .unwrap();
     assert_eq!(memories.len(), 2);
     let v2 = rel
         .container
