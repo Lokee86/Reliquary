@@ -73,3 +73,5 @@ The architecture entrypoint passed its local source guards and retained-snapshot
 ## Notes
 
 This dated receipt does not replace current API or architecture documentation. Final verification and the task ledger distinguish source facts, behavior acceptance and the inherited graph-proof gap.
+
+P6.2.4-AGENTIC-FRESHNESS is recorded before the final runtime caller correction. The private grading helper still accepts Cva and calls its freshness facade. Replace that runtime path with concrete Freshness store reads and immutable owner/activity facts, preserve owner-ID-before-cut validation and grading/error behavior, and delete the facade helper/registration after its callers migrate. Public freshness APIs remain supported.
