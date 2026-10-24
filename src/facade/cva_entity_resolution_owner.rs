@@ -1,73 +1,11 @@
-use crate::entity_resolution_owner::{
-    ResolutionReadContext, ResolutionWriteContext, ResolutionWritePlan,
+use crate::entity_resolution_owner::{ResolutionReadContext, ResolutionWriteContext};
+use crate::perception_publication_resolution::{
+    ResolutionWriteResult, apply_resolution_write_plan,
 };
 use crate::{
     Cva, EntityId, EntityResolutionCompaction, EntityResolutionReason, MemoryEntityMentionKey,
     MemoryEntityResolution, MemoryEntityResolutionStatus, MemoryError, MemoryId, Phylactery,
 };
-
-fn apply_write_plan(
-    container: &mut crate::Container,
-    resolutions: &mut crate::entity_resolution_store::EntityResolutionStore,
-    plan: ResolutionWritePlan,
-) -> Result<WriteResult, MemoryError> {
-    match plan {
-        ResolutionWritePlan::Resolved {
-            key,
-            expected_revision,
-            entity_id,
-            reason,
-            now_ns,
-        } => resolutions
-            .put_resolved(container, key, expected_revision, entity_id, reason, now_ns)
-            .map(WriteResult::Changed),
-        ResolutionWritePlan::Rejected {
-            key,
-            expected_revision,
-            reason,
-            now_ns,
-        } => resolutions
-            .put_rejected(container, key, expected_revision, reason, now_ns)
-            .map(WriteResult::Changed),
-        ResolutionWritePlan::Unresolved {
-            key,
-            expected_revision,
-            candidate_entity_ids,
-            reason,
-            candidate_set_fingerprint,
-            context_fingerprint,
-            now_ns,
-        } => resolutions
-            .put_unresolved(
-                container,
-                key,
-                expected_revision,
-                candidate_entity_ids,
-                reason,
-                candidate_set_fingerprint,
-                context_fingerprint,
-                now_ns,
-            )
-            .map(WriteResult::Changed),
-        ResolutionWritePlan::Reset { key, now_ns } => resolutions
-            .tombstone(container, key, now_ns)
-            .map(WriteResult::Changed),
-        ResolutionWritePlan::Compact {
-            inactive_memory_ids,
-            now_ns,
-        } => resolutions
-            .compact(container, &inactive_memory_ids, now_ns)
-            .map(WriteResult::Compacted),
-        ResolutionWritePlan::Import(value) => resolutions
-            .import_current(container, value)
-            .map(|()| WriteResult::Imported),
-    }
-}
-enum WriteResult {
-    Changed(bool),
-    Compacted(EntityResolutionCompaction),
-    Imported,
-}
 
 macro_rules! impl_owner {
     ($owner:ty) => {
@@ -158,8 +96,12 @@ macro_rules! impl_owner {
                     entity_resolutions: &self.entity_resolutions,
                 }
                 .put_entity_resolved(key, expected_revision, entity_id, reason, now_ns)?;
-                match apply_write_plan(&mut self.container, &mut self.entity_resolutions, plan)? {
-                    WriteResult::Changed(value) => Ok(value),
+                match apply_resolution_write_plan(
+                    &mut self.container,
+                    &mut self.entity_resolutions,
+                    plan,
+                )? {
+                    ResolutionWriteResult::Changed(value) => Ok(value),
                     _ => unreachable!(),
                 }
             }
@@ -176,8 +118,12 @@ macro_rules! impl_owner {
                     entity_resolutions: &self.entity_resolutions,
                 }
                 .put_entity_rejected(key, expected_revision, reason, now_ns)?;
-                match apply_write_plan(&mut self.container, &mut self.entity_resolutions, plan)? {
-                    WriteResult::Changed(value) => Ok(value),
+                match apply_resolution_write_plan(
+                    &mut self.container,
+                    &mut self.entity_resolutions,
+                    plan,
+                )? {
+                    ResolutionWriteResult::Changed(value) => Ok(value),
                     _ => unreachable!(),
                 }
             }
@@ -205,8 +151,12 @@ macro_rules! impl_owner {
                     context_fingerprint,
                     now_ns,
                 )?;
-                match apply_write_plan(&mut self.container, &mut self.entity_resolutions, plan)? {
-                    WriteResult::Changed(value) => Ok(value),
+                match apply_resolution_write_plan(
+                    &mut self.container,
+                    &mut self.entity_resolutions,
+                    plan,
+                )? {
+                    ResolutionWriteResult::Changed(value) => Ok(value),
                     _ => unreachable!(),
                 }
             }
@@ -221,8 +171,12 @@ macro_rules! impl_owner {
                     entity_resolutions: &self.entity_resolutions,
                 }
                 .reset_entity_resolution(key, now_ns)?;
-                match apply_write_plan(&mut self.container, &mut self.entity_resolutions, plan)? {
-                    WriteResult::Changed(value) => Ok(value),
+                match apply_resolution_write_plan(
+                    &mut self.container,
+                    &mut self.entity_resolutions,
+                    plan,
+                )? {
+                    ResolutionWriteResult::Changed(value) => Ok(value),
                     _ => unreachable!(),
                 }
             }
@@ -236,8 +190,12 @@ macro_rules! impl_owner {
                     entity_resolutions: &self.entity_resolutions,
                 }
                 .compact_entity_resolutions(now_ns)?;
-                match apply_write_plan(&mut self.container, &mut self.entity_resolutions, plan)? {
-                    WriteResult::Compacted(value) => Ok(value),
+                match apply_resolution_write_plan(
+                    &mut self.container,
+                    &mut self.entity_resolutions,
+                    plan,
+                )? {
+                    ResolutionWriteResult::Compacted(value) => Ok(value),
                     _ => unreachable!(),
                 }
             }
@@ -265,8 +223,12 @@ macro_rules! impl_owner {
                     entity_resolutions: &self.entity_resolutions,
                 }
                 .import_entity_resolution(value)?;
-                match apply_write_plan(&mut self.container, &mut self.entity_resolutions, plan)? {
-                    WriteResult::Imported => Ok(()),
+                match apply_resolution_write_plan(
+                    &mut self.container,
+                    &mut self.entity_resolutions,
+                    plan,
+                )? {
+                    ResolutionWriteResult::Imported => Ok(()),
                     _ => unreachable!(),
                 }
             }

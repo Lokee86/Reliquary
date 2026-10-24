@@ -3,10 +3,15 @@ use super::{
     stopped, wait_for_work_timeout,
 };
 use crate::entity_reconciliation_staged::evaluate_reconciliation;
+use crate::entity_resolution_commit::{
+    EntityResolutionCommitContext, plan_entity_resolution_commit,
+};
+use crate::entity_resolution_engine::EntityResolutionEngineCore;
+use crate::entity_resolution_owner::ResolutionReadContext;
 use crate::{
-    EntityCandidateConfig, EntityReconciliationError, EntityResolutionEngine,
-    EntityResolutionEvaluation, EntityResolutionPreparation, EntityResolutionPrepared,
-    EntityResolverError, GeneralEndpoint, GeneralEndpointError, MemoryEntityMentionKey,
+    EntityCandidateConfig, EntityReconciliationError, EntityResolutionEvaluation,
+    EntityResolutionPreparation, EntityResolutionPrepared, EntityResolverError, GeneralEndpoint,
+    GeneralEndpointError, MemoryEntityMentionKey,
 };
 use serde_json::Value;
 use std::collections::{HashSet, VecDeque};
@@ -92,15 +97,30 @@ fn startup(shared: &RelShared) -> Result<(), ReliquaryRuntimeHostError> {
             .runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        let ids = runtime.cva.memory_ids();
+        let ids = runtime.cva.memories.current_ids();
         let mut keys = Vec::new();
         for id in ids {
-            if !runtime.cva.dream_was_processed(id) {
+            if !runtime
+                .cva
+                .processing_epochs
+                .state(id, crate::dream_cooldown::DREAM_PROCESSING_LANE)
+                .is_some_and(|state| state.checkpoint_at_ns.is_some())
+            {
                 continue;
             }
-            let m = runtime.cva.memory(id).map_err(operation)?;
+            let m = runtime
+                .cva
+                .memories
+                .memory(&runtime.cva.container, id)
+                .map_err(operation)?;
             if !m.archived && m.superseded_by.is_none() {
-                keys.extend(runtime.cva.schedulable_entity_mentions_for_memory(id));
+                keys.extend(
+                    ResolutionReadContext {
+                        memories: &runtime.cva.memories,
+                        entity_resolutions: &runtime.cva.entity_resolutions,
+                    }
+                    .schedulable_entity_mentions_for_memory(id),
+                );
             }
         }
         keys
@@ -122,10 +142,34 @@ fn prepare(
     let complete = shared.mutate(
         super::super::mutation_events::RelMutationFamily::Background,
         |runtime| {
-            let outcome = runtime
-                .cva
-                .resolve_principal_entity_mention(key, now_ns())
+            let now_ns = now_ns();
+            let outcome = {
+                let cva = &mut runtime.cva;
+                let plan = crate::perception_publication_resolution::plan_rel_principal_resolution(
+                    &cva.container,
+                    &cva.memories,
+                    &cva.entities,
+                    &cva.entity_resolutions,
+                    &cva.graph,
+                    &cva.archive,
+                    key,
+                    now_ns,
+                )
                 .map_err(operation)?;
+                plan.map(|plan| {
+                    crate::perception_publication_resolution::apply_principal_resolution_plan(
+                        &mut cva.container,
+                        &cva.memories,
+                        &mut cva.entities,
+                        &mut cva.entity_resolutions,
+                        &mut cva.graph,
+                        plan,
+                        now_ns,
+                    )
+                    .map_err(operation)
+                })
+                .transpose()?
+            };
             let changed = outcome.is_some();
             Ok((
                 outcome.map(EntityResolutionPreparation::Complete),
@@ -141,11 +185,20 @@ fn prepare(
         .runtime
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-    runtime
-        .cva
-        .prepare_entity_resolution(key, EntityCandidateConfig::default())
-        .map(Some)
-        .map_err(operation)
+    let cva = &mut runtime.cva;
+    crate::perception_publication_resolution::prepare_entity_resolution(
+        &cva.container,
+        &cva.memories,
+        &mut cva.lexical_index,
+        &cva.entities,
+        &cva.graph,
+        &cva.entity_resolutions,
+        key,
+        EntityCandidateConfig::default(),
+        cva.container.owner_id(),
+    )
+    .map(Some)
+    .map_err(operation)
 }
 fn commit(
     shared: &RelShared,
@@ -159,22 +212,48 @@ fn commit(
     shared.mutate(
         super::super::mutation_events::RelMutationFamily::Background,
         |runtime| {
-            let Some(outcome) = runtime
-                .cva
-                .commit_entity_resolution(prepared, evaluation, now_ns())
+            let now_ns = now_ns();
+            let cva = &mut runtime.cva;
+            let context = EntityResolutionCommitContext {
+                owner_id: cva.container.owner_id(),
+                memories: &cva.memories,
+                entities: &cva.entities,
+                graph: &cva.graph,
+                resolutions: &cva.entity_resolutions,
+            };
+            let Some(plan) = plan_entity_resolution_commit(&context, prepared, evaluation, now_ns)
                 .map_err(operation)?
             else {
                 return Ok((None, false, vec![]));
             };
-            let mut wakes = runtime
-                .cva
-                .pending_entity_mentions_for_surface(&surface)
-                .into_iter()
-                .filter(|k| *k != outcome.key)
-                .collect::<Vec<_>>();
+            let outcome =
+                crate::perception_publication_resolution::apply_entity_resolution_commit_plan(
+                    &mut cva.container,
+                    &cva.memories,
+                    &mut cva.entities,
+                    &mut cva.entity_resolutions,
+                    &mut cva.graph,
+                    plan,
+                    false,
+                )
+                .map_err(operation)?;
+            let mut wakes = ResolutionReadContext {
+                memories: &runtime.cva.memories,
+                entity_resolutions: &runtime.cva.entity_resolutions,
+            }
+            .pending_entity_mentions_for_surface(&surface)
+            .into_iter()
+            .filter(|k| *k != outcome.key)
+            .collect::<Vec<_>>();
             if outcome.entity_created || outcome.association_changed {
                 if let Some(id) = outcome.entity_id {
-                    wakes.extend(runtime.cva.pending_entity_mentions_for_candidate(id));
+                    wakes.extend(
+                        ResolutionReadContext {
+                            memories: &runtime.cva.memories,
+                            entity_resolutions: &runtime.cva.entity_resolutions,
+                        }
+                        .pending_entity_mentions_for_candidate(id),
+                    );
                 }
             }
             wakes.retain(|k| *k != outcome.key);
@@ -196,9 +275,9 @@ fn versions(shared: &RelShared) -> Result<(u64, u64, u64), ReliquaryRuntimeHostE
         .lock()
         .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
     Ok((
-        r.cva.entity_version(),
-        r.cva.graph_version(),
-        r.cva.memory_version(),
+        r.cva.entities.entity_version(),
+        r.cva.graph.graph_version(),
+        r.cva.memories.memory_version(),
     ))
 }
 fn reconcile(
@@ -224,7 +303,14 @@ fn reconcile(
             .runtime
             .lock()
             .map_err(|_| ReliquaryRuntimeHostError::LockPoisoned)?;
-        r.cva.prepare_entity_reconciliation().map_err(operation)?
+        crate::perception_publication_reconciliation::prepare_entity_reconciliation(
+            &r.cva.container,
+            &r.cva.memories,
+            &r.cva.entities,
+            &r.cva.graph,
+            &r.cva.entity_resolutions,
+        )
+        .map_err(operation)?
     };
     let endpoint = SharedEndpoint(endpoint);
     let evaluation = match evaluate_reconciliation(&endpoint, &prepared) {
@@ -238,9 +324,20 @@ fn reconcile(
     let result = shared.mutate(
         super::super::mutation_events::RelMutationFamily::Background,
         |r| {
-            let result = r
-                .cva
-                .commit_entity_reconciliation(prepared, evaluation, now_ns())
+            let result =
+                crate::perception_publication_reconciliation::commit_entity_reconciliation::<
+                    crate::CvaError,
+                >(
+                    &mut r.cva.container,
+                    &r.cva.memories,
+                    &mut r.cva.entities,
+                    &mut r.cva.entity_resolutions,
+                    &mut r.cva.graph,
+                    &mut r.cva.relationships,
+                    prepared,
+                    evaluation,
+                    now_ns(),
+                )
                 .map_err(operation)?;
             let changed = result.as_ref().is_some_and(|v| v.report.changed());
             Ok((result, changed, vec![]))
@@ -327,9 +424,9 @@ pub(super) fn worker_loop(shared: Arc<RelShared>) -> Result<(), ReliquaryRuntime
             }
             EntityResolutionPreparation::Ready(v) => v,
         };
-        let engine =
-            EntityResolutionEngine::new(SharedEndpoint(endpoint)).with_decision_endpoint(decision);
-        let evaluation = match engine.core.evaluate_prepared(&prepared) {
+        let engine = EntityResolutionEngineCore::new(SharedEndpoint(endpoint))
+            .with_decision_endpoint(decision);
+        let evaluation = match engine.evaluate_prepared(&prepared) {
             Ok(v) => v,
             Err(EntityResolverError::Endpoint(_)) => {
                 let mut q = shared

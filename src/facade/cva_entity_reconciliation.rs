@@ -2,10 +2,6 @@ use crate::entity_reconciliation::{
     ReconciliationCandidateAction, ReconciliationRoundOutcome, evaluate_reconciliation_candidate,
     plan_reconciliation_round,
 };
-use crate::entity_reconciliation_commit::{
-    ReconciliationCommitContext, plan_entity_reconciliation_commit, plan_late_rejection_wake,
-    plan_reconciliation_merge,
-};
 use crate::entity_reconciliation_model::{
     EntityReconciliationEvaluation, EntityReconciliationPrepared, EntityReconciliationReport,
 };
@@ -106,14 +102,13 @@ macro_rules! impl_reconciliation {
             pub(crate) fn prepare_entity_reconciliation(
                 &self,
             ) -> Result<EntityReconciliationPrepared, EntityReconciliationError> {
-                let memories = MemoryReadView::new(&self.memories, &self.container);
-                let context = crate::entity_reconciliation_prepare::ReconciliationPrepareContext {
-                    entities: &self.entities,
-                    graph: &self.graph,
-                    memories: &memories,
-                    resolutions: &self.entity_resolutions,
-                };
-                crate::entity_reconciliation_prepare::prepare_entity_reconciliation(&context)
+                crate::perception_publication_reconciliation::prepare_entity_reconciliation(
+                    &self.container,
+                    &self.memories,
+                    &self.entities,
+                    &self.graph,
+                    &self.entity_resolutions,
+                )
             }
 
             pub(crate) fn commit_entity_reconciliation(
@@ -125,103 +120,19 @@ macro_rules! impl_reconciliation {
                 Option<crate::entity_reconciliation_model::EntityReconciliationCommit>,
                 EntityReconciliationError,
             > {
-                let memories = MemoryReadView::new(&self.memories, &self.container);
-                let context = ReconciliationCommitContext {
-                    memories: &memories,
-                    entities: &self.entities,
-                    graph: &self.graph,
-                    resolutions: &self.entity_resolutions,
-                };
-                let Some(plan) = plan_entity_reconciliation_commit(&context, prepared, evaluation)
-                else {
-                    return Ok(None);
-                };
-
-                let mut timestamp = now_ns;
-                let mut deterministic_merges = 0usize;
-                let mut model_merges = 0usize;
-                for decision in &plan.decisions {
-                    let planned = {
-                        let memories = MemoryReadView::new(&self.memories, &self.container);
-                        let context = ReconciliationCommitContext {
-                            memories: &memories,
-                            entities: &self.entities,
-                            graph: &self.graph,
-                            resolutions: &self.entity_resolutions,
-                        };
-                        plan_reconciliation_merge(&context, &plan, decision, timestamp)?
-                    };
-                    let Some((merge_plan, deterministic)) = planned else {
-                        continue;
-                    };
-                    timestamp = timestamp.saturating_add(1);
-                    let outcome = crate::cva_entity_merge::apply_entity_merge_plan::<$merge_error>(
-                        merge_plan,
-                        &mut self.container,
-                        &self.memories,
-                        &mut self.entities,
-                        &mut self.entity_resolutions,
-                        &mut self.graph,
-                        &mut self.relationships,
-                    )
-                    .map_err(|error| EntityReconciliationError::Operation(error.to_string()))?;
-                    if outcome.changed {
-                        if deterministic {
-                            deterministic_merges += 1;
-                        } else {
-                            model_merges += 1;
-                        }
-                    }
-                }
-
-                let mut wake_keys = Vec::new();
-                for key in plan.late_rejected.iter().copied() {
-                    let wake = {
-                        let memories = MemoryReadView::new(&self.memories, &self.container);
-                        let context = ReconciliationCommitContext {
-                            memories: &memories,
-                            entities: &self.entities,
-                            graph: &self.graph,
-                            resolutions: &self.entity_resolutions,
-                        };
-                        plan_late_rejection_wake(&context, key)
-                    };
-                    let Some(wake) = wake else {
-                        continue;
-                    };
-                    timestamp = timestamp.saturating_add(1);
-                    self.reset_entity_resolution(wake.key, timestamp)
-                        .map_err(|error| EntityReconciliationError::Operation(error.to_string()))?;
-                    wake_keys.push(wake.key);
-                }
-
-                self.container
-                    .sync()
-                    .map_err(|error| EntityReconciliationError::Operation(error.to_string()))?;
-                let report = EntityReconciliationReport {
-                    rounds: 1,
-                    candidate_pairs: plan.candidate_pairs,
-                    deterministic_merges,
-                    model_merges,
-                    rejected_mentions_reconsidered: wake_keys.len(),
-                    unresolved_pairs: plan
-                        .candidate_pairs
-                        .saturating_sub(deterministic_merges + model_merges),
-                    final_audit: crate::entity_audit::audit_owner(
-                        &crate::entity_audit::EntityAuditContext {
-                            entities: &self.entities,
-                            memories: &self.memories,
-                            graph: &self.graph,
-                            resolutions: &self.entity_resolutions,
-                        },
-                    ),
-                };
-                Ok(Some(
-                    crate::entity_reconciliation_model::EntityReconciliationCommit {
-                        report,
-                        wake_keys,
-                    },
-                ))
+                crate::perception_publication_reconciliation::commit_entity_reconciliation::<
+                    $merge_error,
+                >(
+                    &mut self.container,
+                    &self.memories,
+                    &mut self.entities,
+                    &mut self.entity_resolutions,
+                    &mut self.graph,
+                    &mut self.relationships,
+                    prepared,
+                    evaluation,
+                    now_ns,
+                )
             }
         }
     };

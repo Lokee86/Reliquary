@@ -1,9 +1,14 @@
 use super::{WorkerShared, operation};
 use crate::entity_reconciliation_staged::evaluate_reconciliation;
+use crate::entity_resolution_commit::{
+    EntityResolutionCommitContext, plan_entity_resolution_commit,
+};
+use crate::entity_resolution_engine::EntityResolutionEngineCore;
+use crate::entity_resolution_owner::ResolutionReadContext;
 use crate::{
-    EntityCandidateConfig, EntityReconciliationError, EntityResolutionEngine,
-    EntityResolutionPreparation, EntityResolutionPrepared, EntityResolverError, GeneralEndpoint,
-    GeneralEndpointError, MemoryEntityMentionKey,
+    EntityCandidateConfig, EntityReconciliationError, EntityResolutionPreparation,
+    EntityResolutionPrepared, EntityResolverError, GeneralEndpoint, GeneralEndpointError,
+    MemoryEntityMentionKey,
 };
 use serde_json::Value;
 use std::sync::Arc;
@@ -32,13 +37,23 @@ pub(super) fn seed(shared: &WorkerShared) -> Result<(), super::ReliquaryRuntimeH
         .lock()
         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
     let mut keys = Vec::new();
-    for id in phy.memory_ids() {
-        if !phy.dream_was_processed(id) {
+    for id in phy.memories.current_ids() {
+        if !phy
+            .processing_epochs
+            .state(id, crate::dream_cooldown::DREAM_PROCESSING_LANE)
+            .is_some_and(|state| state.checkpoint_at_ns.is_some())
+        {
             continue;
         }
-        let memory = phy.memory(id).map_err(operation)?;
+        let memory = phy.memories.memory(&phy.container, id).map_err(operation)?;
         if !memory.archived && memory.superseded_by.is_none() {
-            keys.extend(phy.schedulable_entity_mentions_for_memory(id));
+            keys.extend(
+                ResolutionReadContext {
+                    memories: &phy.memories,
+                    entity_resolutions: &phy.entity_resolutions,
+                }
+                .schedulable_entity_mentions_for_memory(id),
+            );
         }
     }
     drop(phy);
@@ -72,17 +87,43 @@ fn prepare(
         .owner
         .lock()
         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-    if phy
-        .resolve_principal_entity_mention(key, now_ns())
-        .map_err(operation)?
-        .is_some()
-    {
-        phy.sync().map_err(operation)?;
+    let now_ns = now_ns();
+    let plan = crate::perception_publication_resolution::plan_phy_principal_resolution(
+        &phy.container,
+        &phy.memories,
+        &phy.entities,
+        &phy.entity_resolutions,
+        &phy.graph,
+        key,
+        now_ns,
+    )
+    .map_err(operation)?;
+    if let Some(plan) = plan {
+        crate::perception_publication_resolution::apply_principal_resolution_plan(
+            &mut phy.container,
+            &phy.memories,
+            &mut phy.entities,
+            &mut phy.entity_resolutions,
+            &mut phy.graph,
+            plan,
+            now_ns,
+        )
+        .map_err(operation)?;
+        phy.container.sync().map_err(operation)?;
         return Ok(PreparedWork::Complete);
     }
-    match phy
-        .prepare_entity_resolution(key, EntityCandidateConfig::default())
-        .map_err(operation)?
+    match crate::perception_publication_resolution::prepare_entity_resolution(
+        &phy.container,
+        &phy.memories,
+        &mut phy.lexical_index,
+        &phy.entities,
+        &phy.graph,
+        &phy.entity_resolutions,
+        key,
+        EntityCandidateConfig::default(),
+        phy.container.owner_id(),
+    )
+    .map_err(operation)?
     {
         EntityResolutionPreparation::Complete(_) => Ok(PreparedWork::Complete),
         EntityResolutionPreparation::Ready(p) => Ok(PreparedWork::Ready(p)),
@@ -105,21 +146,47 @@ fn commit(
         .owner
         .lock()
         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-    let Some(outcome) = phy
-        .commit_entity_resolution(prepared, evaluation, now_ns())
-        .map_err(operation)?
+    let now_ns = now_ns();
+    let context = EntityResolutionCommitContext {
+        owner_id: phy.container.owner_id(),
+        memories: &phy.memories,
+        entities: &phy.entities,
+        graph: &phy.graph,
+        resolutions: &phy.entity_resolutions,
+    };
+    let Some(plan) =
+        plan_entity_resolution_commit(&context, prepared, evaluation, now_ns).map_err(operation)?
     else {
         return Ok(None);
     };
-    phy.sync().map_err(operation)?;
-    let mut wakes = phy
-        .pending_entity_mentions_for_surface(&surface)
-        .into_iter()
-        .filter(|k| *k != outcome.key)
-        .collect::<Vec<_>>();
+    let outcome = crate::perception_publication_resolution::apply_entity_resolution_commit_plan(
+        &mut phy.container,
+        &phy.memories,
+        &mut phy.entities,
+        &mut phy.entity_resolutions,
+        &mut phy.graph,
+        plan,
+        true,
+    )
+    .map_err(operation)?;
+    phy.container.sync().map_err(operation)?;
+    let mut wakes = ResolutionReadContext {
+        memories: &phy.memories,
+        entity_resolutions: &phy.entity_resolutions,
+    }
+    .pending_entity_mentions_for_surface(&surface)
+    .into_iter()
+    .filter(|k| *k != outcome.key)
+    .collect::<Vec<_>>();
     if outcome.entity_created || outcome.association_changed {
         if let Some(id) = outcome.entity_id {
-            wakes.extend(phy.pending_entity_mentions_for_candidate(id));
+            wakes.extend(
+                ResolutionReadContext {
+                    memories: &phy.memories,
+                    entity_resolutions: &phy.entity_resolutions,
+                }
+                .pending_entity_mentions_for_candidate(id),
+            );
         }
     }
     wakes.retain(|key| *key != outcome.key);
@@ -157,16 +224,23 @@ fn reconcile(
             .lock()
             .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
         let versions = (
-            phy.entity_version(),
-            phy.graph_version(),
-            phy.memory_version(),
+            phy.entities.entity_version(),
+            phy.graph.graph_version(),
+            phy.memories.memory_version(),
         );
         if *last == Some(versions) {
             return Ok(false);
         }
         (
             versions,
-            phy.prepare_entity_reconciliation().map_err(operation)?,
+            crate::perception_publication_reconciliation::prepare_entity_reconciliation(
+                &phy.container,
+                &phy.memories,
+                &phy.entities,
+                &phy.graph,
+                &phy.entity_resolutions,
+            )
+            .map_err(operation)?,
         )
     };
     let evaluated = match evaluate_reconciliation(&SharedEndpoint(endpoint), &prepared.1) {
@@ -184,13 +258,25 @@ fn reconcile(
         .owner
         .lock()
         .map_err(|_| super::ReliquaryRuntimeHostError::LockPoisoned)?;
-    let Some(commit) = phy
-        .commit_entity_reconciliation(prepared.1, evaluated, now_ns())
+    let Some(commit) =
+        crate::perception_publication_reconciliation::commit_entity_reconciliation::<
+            crate::PhylacteryError,
+        >(
+            &mut phy.container,
+            &phy.memories,
+            &mut phy.entities,
+            &mut phy.entity_resolutions,
+            &mut phy.graph,
+            &mut phy.relationships,
+            prepared.1,
+            evaluated,
+            now_ns(),
+        )
         .map_err(operation)?
     else {
         return Ok(false);
     };
-    phy.sync().map_err(operation)?;
+    phy.container.sync().map_err(operation)?;
     if commit.report.changed() {
         drop(phy);
         seed(shared)?;
@@ -198,9 +284,9 @@ fn reconcile(
         return Ok(true);
     }
     *last = Some((
-        phy.entity_version(),
-        phy.graph_version(),
-        phy.memory_version(),
+        phy.entities.entity_version(),
+        phy.graph.graph_version(),
+        phy.memories.memory_version(),
     ));
     Ok(false)
 }
@@ -273,9 +359,9 @@ pub(super) fn worker_loop(
             }
             PreparedWork::Ready(prepared) => prepared,
         };
-        let engine = EntityResolutionEngine::new(SharedEndpoint(endpoint))
+        let engine = EntityResolutionEngineCore::new(SharedEndpoint(endpoint))
             .with_decision_endpoint(decision_endpoint);
-        let evaluation = match engine.core.evaluate_prepared(&prepared) {
+        let evaluation = match engine.evaluate_prepared(&prepared) {
             Ok(value) => value,
             Err(EntityResolverError::Endpoint(_)) => {
                 let mut queue = shared
