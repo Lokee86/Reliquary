@@ -26,6 +26,9 @@ CONTAINER_FREE_READS = {
     "src/retrieval/memory_candidate_collection.rs",
     "src/runtime_inference/runtime_vector_step.rs",
     "src/runtime_inference/insomnia_runtime_execution.rs",
+    "src/runtime_inference/insomnia/native_processor.rs",
+    "src/runtime_inference/insomnia/processor/application.rs",
+    "src/runtime_inference/insomnia/processor/source_validation.rs",
 }
 VALUE_VARIANTS = {
     "src/container/container.rs": "Phylactery,",
@@ -45,6 +48,8 @@ def unresolved_reverse(row: dict, source: str | None, target: str | None,
 def violations(path: str, source: str, component: str | None, facts: set[str]) -> list[str]:
     view = masked(strip_inactive_cfg(source, facts))
     errors = []
+    if path == "src/runtime_inference/insomnia/native_processor.rs" and re.search(r"\bLexicalIndex\b", view):
+        errors.append(f"{path}: producer read-adapter implementation belongs to runtime composition")
     native_access = (path.startswith("src/runtime_inference/perception_publication")
                      or path.startswith("src/runtime_inference/external_owner_access")
                      or path == "src/runtime_inference/agentic_memory_grading.rs")
@@ -129,7 +134,9 @@ def self_test() -> None:
     assert violations("src/runtime_inference/runtime_host_rel_vectors.rs", "runtime.cva.prepare_semantic_archive_batch(id)", "runtime-gateway", facts)
     assert violations("src/runtime_inference/runtime_host_gateway_external.rs", "r.cva.external_profile(state)", "runtime-gateway", facts)
     assert not violations("src/runtime_inference/runtime_host_gateway_external.rs", "native::install(&mut owner.store, plan)", "runtime-gateway", facts)
-    print("Facade boundary fixtures passed (34 cases).")
+    assert violations("src/runtime_inference/insomnia/native_processor.rs", "impl EvidenceSearch for LexicalIndex {}", "insomnia", facts)
+    assert not violations("src/runtime_inference/insomnia_runtime_execution.rs", "impl EvidenceSearch for LexicalIndex {}", "runtime-gateway", facts)
+    print("Facade boundary fixtures passed (36 cases).")
 
 
 def main() -> int:

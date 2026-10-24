@@ -3,7 +3,7 @@
   "baseline_commit": "17514f007e48e81d5ea1ec7f41088564de9e7411",
   "baseline_source_root": "C:\\!bin\\workspace\\Reliquary\\.verification-tmp\\phase6-before-src\\src",
   "mapping_path": "tools\\pitlord\\production-components.json",
-  "mapping_sha256": "1ec939ab7a1cb6bc9e5f55d54688481d37de352e18e25bd3fc1b17e4189a3359",
+  "mapping_sha256": "71121751c26f13aa0b014c82fe68c55484e44b704846ecdefb4bf8296f357eae",
   "cfg_profile": {
     "target": "Windows x86_64 MSVC",
     "features": [],

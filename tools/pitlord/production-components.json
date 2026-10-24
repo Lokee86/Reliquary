@@ -16407,7 +16407,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Mounted execution coordinates lower domain plans with concrete native owner publication; no product binding, physical handle parameter or provider callback.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "dfaf6d26258d460da67b41e1db848d1f668a558f4634797563244903d90e56ca",
+      "source_sha256": "8b2564584704d6610a442c4754f00c19af74df5e9d30552c34d6cb418ed3bfce",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -35702,7 +35702,6 @@
       "src/runtime_inference/insomnia/worker/runtime.rs"
     ],
     "added_reachable_paths": [
-      "src/freshness/ego_grades.rs",
       "src/runtime_inference/insomnia/native_processor.rs"
     ],
     "compiler_inventory_refreshed": false,

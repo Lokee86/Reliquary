@@ -4,267 +4,481 @@
     {
       "source": "archive/archive_search.rs",
       "signature": "pubfnsearch_archive(&self,query:&str,limit:usize)->Result<Vec<ArchiveSearchHit>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search_archive(\n        &mut self,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<ArchiveSearchHit>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/conversation_search.rs",
       "signature": "pubfnsearch_conversation_branch(&self,conversation_id:&str,leaf_node_id:&str,query:&str,limit:usize)->Result<Vec<ConversationSearchHit>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search_conversation_branch(\n        &mut self,\n        conversation_id: &str,\n        leaf_node_id: &str,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<ConversationSearchHit>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/lexical_search.rs",
       "signature": "pubfnsearch_files(&self,query:&str,limit:usize)->Result<Vec<FileSearchHit>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search_files(\n        &mut self,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<FileSearchHit>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/memory_search.rs",
       "signature": "pubfnsearch_memories(&self,query:&str,limit:usize)->Result<Vec<MemoryLexicalSearchHit>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search_memories(\n        &mut self,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError>",
+        "pub fn search_memories(\n        &mut self,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/memory_search.rs",
       "signature": "pubfnsearch_memories(&self,query:&str,limit:usize)->Result<Vec<MemoryLexicalSearchHit>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search_memories(\n        &mut self,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError>",
+        "pub fn search_memories(\n        &mut self,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<MemoryLexicalSearchHit>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/semantic_search.rs",
       "signature": "pubfnsemantic_search(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str,limit:usize)->Result<Vec<SemanticSearchHit>,SemanticSearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn semantic_search(\n        &mut self,\n        compatibility_profile_id: CompatibilityProfileId,\n        endpoint: &impl EmbeddingEndpoint,\n        query: &str,\n        limit: usize,\n    ) -> Result<Vec<SemanticSearchHit>, SemanticSearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/search.rs",
       "signature": "pubfnsearch(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str)->Result<Vec<SearchCandidate>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search(\n        &mut self,\n        compatibility_profile_id: CompatibilityProfileId,\n        endpoint: &impl EmbeddingEndpoint,\n        query: &str,\n    ) -> Result<Vec<SearchCandidate>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/search.rs",
       "signature": "pubfnsearch_with_result_limit(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str,result_limit:usize)->Result<Vec<SearchCandidate>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search_with_result_limit(\n        &mut self,\n        compatibility_profile_id: CompatibilityProfileId,\n        endpoint: &impl EmbeddingEndpoint,\n        query: &str,\n        result_limit: usize,\n    ) -> Result<Vec<SearchCandidate>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "retrieval/search.rs",
       "signature": "pubfnsearch_with_config(&self,compatibility_profile_id:CompatibilityProfileId,endpoint:&implEmbeddingEndpoint,query:&str,config:RetrievalConfig)->Result<Vec<SearchCandidate>,SearchError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn search_with_config(\n        &mut self,\n        compatibility_profile_id: CompatibilityProfileId,\n        endpoint: &impl EmbeddingEndpoint,\n        query: &str,\n        config: RetrievalConfig,\n    ) -> Result<Vec<SearchCandidate>, SearchError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_audit.rs",
       "signature": "pubfnaudit_entities(&self)->EntityAuditReport",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn audit_entities(&self) -> EntityAuditReport"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_candidates.rs",
       "signature": "pubfnentity_candidates_for_mention(&self,key:MemoryEntityMentionKey,config:EntityCandidateConfig)->Result<EntityCandidateSet,EntityCandidateError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_candidates_for_mention(\n                &mut self,\n                key: MemoryEntityMentionKey,\n                config: EntityCandidateConfig,\n            ) -> Result<EntityCandidateSet, EntityCandidateError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_reconciliation.rs",
       "signature": "pubfnreconcile_entities<E:GeneralEndpoint>(&self,endpoint:&E,now_ns:i64)->Result<EntityReconciliationReport,EntityReconciliationError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn reconcile_entities<E: GeneralEndpoint>(\n                &mut self,\n                endpoint: &E,\n                now_ns: i64,\n            ) -> Result<EntityReconciliationReport, EntityReconciliationError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_batch.rs",
       "signature": "pubfnresolve_entity_mentions_with_engine_parallel<E:GeneralEndpoint>(&self,engine:&EntityResolutionEngine<E>,keys:&[MemoryEntityMentionKey],config:EntityCandidateConfig,now_ns:i64,workers:usize)->Result<EntityResolutionBatchOutcome,EntityResolverError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn resolve_entity_mentions_with_engine_parallel<E: GeneralEndpoint>(\n                &mut self,\n                engine: &EntityResolutionEngine<E>,\n                keys: &[MemoryEntityMentionKey],\n                config: EntityCandidateConfig,\n                now_ns: i64,\n                workers: usize,\n            ) -> Result<EntityResolutionBatchOutcome, EntityResolverError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_processor.rs",
       "signature": "pubfnresolve_entity_mention<E:GeneralEndpoint>(&self,resolver:&EntityResolver<E>,key:MemoryEntityMentionKey,config:EntityCandidateConfig,now_ns:i64)->Result<EntityResolutionOutcome,EntityResolverError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn resolve_entity_mention<E: GeneralEndpoint>(\n                &mut self,\n                resolver: &EntityResolver<E>,\n                key: MemoryEntityMentionKey,\n                config: EntityCandidateConfig,\n                now_ns: i64,\n            ) -> Result<EntityResolutionOutcome, EntityResolverError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_processor.rs",
       "signature": "pubfnresolve_entity_mention_with_engine<E:GeneralEndpoint>(&self,engine:&EntityResolutionEngine<E>,key:MemoryEntityMentionKey,config:EntityCandidateConfig,now_ns:i64)->Result<EntityResolutionOutcome,EntityResolverError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn resolve_entity_mention_with_engine<E: GeneralEndpoint>(\n                &mut self,\n                engine: &EntityResolutionEngine<E>,\n                key: MemoryEntityMentionKey,\n                config: EntityCandidateConfig,\n                now_ns: i64,\n            ) -> Result<EntityResolutionOutcome, EntityResolverError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnentity_resolution(&self,key:MemoryEntityMentionKey)->Option<&MemoryEntityResolution>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_resolution(\n                &self,\n                key: MemoryEntityMentionKey,\n            ) -> Option<&MemoryEntityResolution>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnentity_resolutions_for_memory(&self,memory_id:MemoryId)->Vec<MemoryEntityResolution>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_resolutions_for_memory(\n                &self,\n                memory_id: MemoryId,\n            ) -> Vec<MemoryEntityResolution>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnentity_resolution_retry_needed(&self,key:MemoryEntityMentionKey,candidate_set_fingerprint:[u8",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_resolution_retry_needed(\n                &self,\n                key: MemoryEntityMentionKey,\n                candidate_set_fingerprint: [u8; 32],\n                context_fingerprint: [u8; 32],\n            ) -> bool"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnput_entity_resolved(&self,key:MemoryEntityMentionKey,expected_revision:u32,entity_id:EntityId,reason:EntityResolutionReason,now_ns:i64)->Result<bool,MemoryError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn put_entity_resolved(\n                &mut self,\n                key: MemoryEntityMentionKey,\n                expected_revision: u32,\n                entity_id: EntityId,\n                reason: EntityResolutionReason,\n                now_ns: i64,\n            ) -> Result<bool, MemoryError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnput_entity_rejected(&self,key:MemoryEntityMentionKey,expected_revision:u32,reason:EntityResolutionReason,now_ns:i64)->Result<bool,MemoryError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn put_entity_rejected(\n                &mut self,\n                key: MemoryEntityMentionKey,\n                expected_revision: u32,\n                reason: EntityResolutionReason,\n                now_ns: i64,\n            ) -> Result<bool, MemoryError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnput_entity_unresolved(&self,key:MemoryEntityMentionKey,expected_revision:u32,candidate_entity_ids:Vec<EntityId>,reason:EntityResolutionReason,candidate_set_fingerprint:[u8",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn put_entity_unresolved(\n                &mut self,\n                key: MemoryEntityMentionKey,\n                expected_revision: u32,\n                mut candidate_entity_ids: Vec<EntityId>,\n                reason: EntityResolutionReason,\n                candidate_set_fingerprint: [u8; 32],\n                context_fingerprint: [u8; 32],\n                now_ns: i64,\n            ) -> Result<bool, MemoryError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnreset_entity_resolution(&self,key:MemoryEntityMentionKey,now_ns:i64)->Result<bool,MemoryError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn reset_entity_resolution(\n                &mut self,\n                key: MemoryEntityMentionKey,\n                now_ns: i64,\n            ) -> Result<bool, MemoryError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfncompact_entity_resolutions(&self,now_ns:i64)->Result<EntityResolutionCompaction,MemoryError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn compact_entity_resolutions(\n                &mut self,\n                now_ns: i64,\n            ) -> Result<EntityResolutionCompaction, MemoryError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnentity_resolutions(&self)->Vec<MemoryEntityResolution>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_resolutions(&self) -> Vec<MemoryEntityResolution>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_resolution_owner.rs",
       "signature": "pubfnimport_entity_resolution(&self,value:MemoryEntityResolution)->Result<(),MemoryError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn import_entity_resolution(\n                &mut self,\n                value: MemoryEntityResolution,\n            ) -> Result<(), MemoryError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnpublish_entity(&self,id:Option<EntityId>,expected_revision:u64,draft:EntityDraft)->Result<(Entity,bool),EntityError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn publish_entity(\n                &mut self,\n                id: Option<EntityId>,\n                expected_revision: u64,\n                draft: EntityDraft,\n            ) -> Result<(Entity, bool), EntityError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnbackfill_entity_global_ids(&self)->Result<usize,EntityError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn backfill_entity_global_ids(&mut self) -> Result<usize, EntityError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity(&self,id:EntityId)->Result<Entity,EntityError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity(&self, id: EntityId) -> Result<Entity, EntityError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfntombstone_entity(&self,id:EntityId,expected_revision:u64)->Result<crate::owner_lifecycle::TombstoneOutcome,EntityError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn tombstone_entity(\n                &mut self,\n                id: EntityId,\n                expected_revision: u64,\n            ) -> Result<crate::owner_lifecycle::TombstoneOutcome, EntityError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_retention_descriptor(&self,id:EntityId)->Result<crate::EntityRetentionDescriptor,EntityError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_retention_descriptor(\n                &self,\n                id: EntityId,\n            ) -> Result<crate::EntityRetentionDescriptor, EntityError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnhistorical_entity_revision(&self,id:EntityId,revision:u64)->Result<crate::owner_lifecycle::HistoricalPayload<Entity,crate::EntityRetainedRevision>,EntityError,>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn historical_entity_revision(\n                &self,\n                id: EntityId,\n                revision: u64,\n            ) -> Result<\n                crate::owner_lifecycle::HistoricalPayload<Entity, crate::EntityRetainedRevision>,\n                EntityError,\n            >"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_lifecycle_state(&self,id:EntityId)->Result<crate::owner_lifecycle::LifecycleState,EntityError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_lifecycle_state(\n                &self,\n                id: EntityId,\n            ) -> Result<crate::owner_lifecycle::LifecycleState, EntityError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_revision(&self,id:EntityId,revision:u64)->Result<Entity,EntityError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_revision(\n                &self,\n                id: EntityId,\n                revision: u64,\n            ) -> Result<Entity, EntityError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentities(&self)->Vec<Entity>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entities(&self) -> Vec<Entity>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_candidates_for_surface(&self,surface:&str,limit:usize)->Vec<Entity>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_candidates_for_surface(\n                &self,\n                surface: &str,\n                limit: usize,\n            ) -> Vec<Entity>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_candidates_for_normalized_surface(&self,surface:&str,limit:usize)->Vec<Entity>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_candidates_for_normalized_surface(\n                &self,\n                surface: &str,\n                limit: usize,\n            ) -> Vec<Entity>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_candidates_for_alias_surface(&self,surface:&str,limit:usize)->Vec<Entity>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_candidates_for_alias_surface(\n                &self,\n                surface: &str,\n                limit: usize,\n            ) -> Vec<Entity>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnretired_entity_replacement(&self,id:EntityId)->Option<EntityId>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn retired_entity_replacement(&self, id: EntityId) -> Option<EntityId>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_version(&self)->u64",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_version(&self) -> u64"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_owner.rs",
       "signature": "pubfnentity_stats(&self)->EntityStats",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn entity_stats(&self) -> EntityStats"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_merge.rs",
       "signature": "pubfnmerge_entities(&self,survivor_id:EntityId,retired_id:EntityId,now_ns:i64)->Result<EntityMergeOutcome,$error>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn merge_entities(\n                &mut self,\n                survivor_id: EntityId,\n                retired_id: EntityId,\n                now_ns: i64,\n            ) -> Result<EntityMergeOutcome, $error>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/entity_merge.rs",
       "signature": "pubfnretarget_entity_resolution(&self,key:MemoryEntityMentionKey,from:EntityId,to:EntityId,now_ns:i64)->Result<bool,$error>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn retarget_entity_resolution(\n                &mut self,\n                key: MemoryEntityMentionKey,\n                from: EntityId,\n                to: EntityId,\n                now_ns: i64,\n            ) -> Result<bool, $error>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnpublish_relationship(&self,id:Option<RelationshipId>,expected_revision:u64,draft:RelationshipDraft)->Result<(Relationship,bool),RelationshipError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn publish_relationship(\n                &mut self,\n                id: Option<RelationshipId>,\n                expected_revision: u64,\n                mut draft: RelationshipDraft,\n            ) -> Result<(Relationship, bool), RelationshipError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationship(&self,id:RelationshipId)->Result<Relationship,RelationshipError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationship(\n                &self,\n                id: RelationshipId,\n            ) -> Result<Relationship, RelationshipError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfntombstone_relationship(&self,id:RelationshipId,expected_revision:u64)->Result<crate::owner_lifecycle::TombstoneOutcome,RelationshipError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn tombstone_relationship(\n                &mut self,\n                id: RelationshipId,\n                expected_revision: u64,\n            ) -> Result<crate::owner_lifecycle::TombstoneOutcome, RelationshipError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationship_retention_descriptor(&self,id:RelationshipId)->Result<crate::RelationshipRetentionDescriptor,RelationshipError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationship_retention_descriptor(\n                &self,\n                id: RelationshipId,\n            ) -> Result<crate::RelationshipRetentionDescriptor, RelationshipError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnhistorical_relationship_revision(&self,id:RelationshipId,revision:u64)->Result<crate::owner_lifecycle::HistoricalPayload<Relationship,crate::RelationshipRetainedRevision,>,RelationshipError,>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn historical_relationship_revision(\n                &self,\n                id: RelationshipId,\n                revision: u64,\n            ) -> Result<\n                crate::owner_lifecycle::HistoricalPayload<\n                    Relationship,\n                    crate::RelationshipRetainedRevision,\n                >,\n                RelationshipError,\n            >"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationship_lifecycle_state(&self,id:RelationshipId)->Result<crate::owner_lifecycle::LifecycleState,RelationshipError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationship_lifecycle_state(\n                &self,\n                id: RelationshipId,\n            ) -> Result<crate::owner_lifecycle::LifecycleState, RelationshipError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationship_revision(&self,id:RelationshipId,revision:u64)->Result<Relationship,RelationshipError>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationship_revision(\n                &self,\n                id: RelationshipId,\n                revision: u64,\n            ) -> Result<Relationship, RelationshipError>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationships(&self)->Vec<Relationship>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationships(&self) -> Vec<Relationship>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationships_for_entity(&self,entity:&EntityRef)->Vec<Relationship>",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationships_for_entity(&self, entity: &EntityRef) -> Vec<Relationship>"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationship_version(&self)->u64",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationship_version(&self) -> u64"
+      ],
+      "exact_signature_preserved": true
     },
     {
       "source": "perception/relationship_owner.rs",
       "signature": "pubfnrelationship_stats(&self)->RelationshipStats",
-      "preserved_in_facade": true
+      "preserved_in_facade": true,
+      "exact_baseline_signature_witnesses": [
+        "pub fn relationship_stats(&self) -> RelationshipStats"
+      ],
+      "exact_signature_preserved": true
     }
   ],
   "missing": [],
@@ -307,5 +521,12 @@
   "explicit_signature_count": 53,
   "binding_method_count": 7,
   "validation": "53 normalized named-family signature witnesses found in final facade sources after removing whitespace, mut bindings and optional trailing commas; 7 public binding methods preserved. Macro expansions and full API consumers are checked by Rust/CLI compilation.",
-  "current_missing_signature_witnesses": []
+  "current_missing_signature_witnesses": [],
+  "exact_signature_comparison": {
+    "baseline": "17514f007e48e81d5ea1ec7f41088564de9e7411",
+    "checkpoint": "aa0700b",
+    "normalization": "Whitespace, optional trailing commas and local parameter mut bindings only; receiver &mut/& self distinctions, bounds and full return types are preserved.",
+    "rows": 53,
+    "missing": []
+  }
 }

@@ -13,22 +13,6 @@ pub(crate) use prepared::{
 };
 pub use result::{InsomniaProcessError, InsomniaProcessResult};
 
-impl super::evidence::EvidenceSearch for crate::lexical_index::LexicalIndex {
-    fn ensure_current(
-        &mut self,
-        archive: &crate::archive::ArchiveReadView<'_>,
-    ) -> Result<(), crate::ArchiveError> {
-        crate::lexical_index::LexicalIndex::ensure_current(self, archive)
-    }
-
-    fn search_fragments(&self, query: &str, limit: usize) -> Vec<crate::Fragment> {
-        self.search(&crate::lexical_contract::lexical_terms(query), limit)
-            .into_iter()
-            .map(|hit| hit.fragment)
-            .collect()
-    }
-}
-
 fn validate_claim(claim: &crate::InsomniaWork, scope: &str) -> Result<(), InsomniaProcessError> {
     if claim.state != crate::InsomniaWorkState::Processing
         || claim.lease_token.is_none()

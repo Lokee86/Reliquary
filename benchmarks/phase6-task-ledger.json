@@ -324,13 +324,13 @@
   ],
   "source_digest": {
     "algorithm": "sha256 sorted path+NUL+LF-normalized Rust source+NUL",
-    "value": "536469fe56907763562c045cfd9808c86b403667e65ad50207589940347035e5",
+    "value": "d3549a92696fa9189534e845ed2d916ef612c1e5bf954382745be912055646b7",
     "scope": "all src/**/*.rs, including tests and detached source files (conservative superset of compiled files)"
   },
   "gates": {
     "B6": "passed: integrated baseline and frozen source census",
-    "F6": "implemented: 49 original binding/import cuts + 33 immutable values; source guard finalization pending",
-    "C6": "implemented: public signatures preserved; private mounted callbacks hard-cut; final behavior gates pending",
+    "F6": "passed: 49 original binding/import cuts + 33 exact immutable values; 36-case/859-file source ratchet passed",
+    "C6": "passed: 53 exact named-family signatures plus 7 binding methods preserved; 32 CLI tests passed; no private mounted facade callbacks",
     "D6": "source implemented, final integrated regression in progress",
     "A6": "final integrated receipt pending"
   },
@@ -343,5 +343,12 @@
     "cargo_full_test": "cancelled, not passed; output stalled after two previously long tests reported success; no final summary, seven-minute run",
     "documented_limit": "No claim of A6 completion or full architecture refresh"
   },
-  "source_checkpoint": "aa0700bc20bcbd968bea644615ba0e7065f02e3d"
+  "source_checkpoint": "final placement pending commit",
+  "behavior_verification_source_digest": "536469fe56907763562c045cfd9808c86b403667e65ad50207589940347035e5",
+  "verification_reuse": {
+    "operation": "placement only; identical implementation text and logical module parent",
+    "from": "insomnia::native_processor",
+    "to": "insomnia::runtime_step",
+    "body_sha256": "1f2e7144c5ddf94ef66ea5ca7a8dbd77ff81042618d7b7e0900d5522c4739df7"
+  }
 }

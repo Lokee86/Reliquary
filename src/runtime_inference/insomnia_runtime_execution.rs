@@ -155,3 +155,19 @@ pub(crate) fn now_ns() -> i64 {
         .as_nanos();
     i64::try_from(nanos).unwrap_or(i64::MAX)
 }
+
+impl super::evidence::EvidenceSearch for crate::lexical_index::LexicalIndex {
+    fn ensure_current(
+        &mut self,
+        archive: &crate::archive::ArchiveReadView<'_>,
+    ) -> Result<(), crate::ArchiveError> {
+        crate::lexical_index::LexicalIndex::ensure_current(self, archive)
+    }
+
+    fn search_fragments(&self, query: &str, limit: usize) -> Vec<crate::Fragment> {
+        self.search(&crate::lexical_contract::lexical_terms(query), limit)
+            .into_iter()
+            .map(|hit| hit.fragment)
+            .collect()
+    }
+}
