@@ -5,15 +5,6 @@ use crate::{
 use std::collections::HashSet;
 
 impl Cva {
-    #[cfg(test)]
-    pub(crate) fn diversify_candidates(
-        &self,
-        candidates: Vec<SearchCandidate>,
-        limit: usize,
-    ) -> Result<Vec<SearchCandidate>, SearchError> {
-        crate::search_rank::diversify_candidates(&self.archive, candidates, limit)
-    }
-
     pub fn search(
         &mut self,
         compatibility_profile_id: CompatibilityProfileId,

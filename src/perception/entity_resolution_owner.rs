@@ -75,12 +75,6 @@ impl ResolutionReadContext<'_> {
             })
             .collect()
     }
-    pub fn entity_resolution(
-        &self,
-        key: MemoryEntityMentionKey,
-    ) -> Option<&MemoryEntityResolution> {
-        self.entity_resolutions.get(key)
-    }
     pub fn entity_resolutions_for_memory(
         &self,
         memory_id: MemoryId,

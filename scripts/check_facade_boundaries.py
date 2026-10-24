@@ -39,6 +39,8 @@ def violations(path: str, source: str, component: str | None, facts: set[str]) -
                 continue
             errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: lower facade dependency: {hit.group()}")
     if not path.startswith("src/facade/"):
+        if re.search(r"\bimpl\s+ConfiguredRuntime\b", view) and re.search(r"\b(?:Cva|Phylactery)\b", view):
+            errors.append(f"{path}: offline public ConfiguredRuntime composition outside facade")
         for hit in re.finditer(r"\bimpl\s+(?:crate\s*::\s*)?(?:Cva|Phylactery)\b|\bimpl_\w+\s*!\s*\(\s*(?:Cva|Phylactery)\b|\bimpl\s+\w+\s+for\s+(?:Cva|Phylactery)\b", view):
             errors.append(f"{path}:{view.count(chr(10), 0, hit.start()) + 1}: public extension outside facade")
     return errors
@@ -63,7 +65,8 @@ def self_test() -> None:
     assert violations("src/perception/entity_audit.rs", "fn audit<F: FnMut(MemoryId) -> Vec<EntityId>>(f: F) {}", "perception", facts)
     assert violations("src/external_source/mod.rs", "fn search(read: impl Fn(PackedVectorId) -> PackedVectors) {}", "external-sources", facts)
     assert not violations("src/perception/entity_audit.rs", "fn audit(owner: &EntityAuditContext) {}", "perception", facts)
-    print("Facade boundary fixtures passed (17 cases).")
+    assert violations("src/runtime_inference/offline.rs", "impl ConfiguredRuntime { fn run(owner: &mut Cva) {} }", "runtime-gateway", facts)
+    print("Facade boundary fixtures passed (18 cases).")
 
 
 def main() -> int:

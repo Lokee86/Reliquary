@@ -1,35 +1,13 @@
-use super::{ConfiguredRuntime, ConfiguredRuntimeError, operation};
+use super::{
+    ConfiguredInsomniaOptions, ConfiguredInsomniaReport, ConfiguredRuntime, ConfiguredRuntimeError,
+    InsomniaTerminalFailure, operation,
+};
 use crate::{
-    ConfiguredGeneralEndpoint, Cva, EpisodeConfig, EpisodeId, InsomniaDrainResult,
-    InsomniaExtractor, InsomniaProgressReporter, InsomniaStats, InsomniaWorkState,
-    InsomniaWorkerConfig, OpenAiReadyEmbeddingEndpoint, Phylactery,
+    ConfiguredGeneralEndpoint, Cva, EpisodeConfig, InsomniaExtractor, InsomniaProgressReporter,
+    InsomniaWorkState, InsomniaWorkerConfig, OpenAiReadyEmbeddingEndpoint, Phylactery,
 };
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-#[derive(Clone, Debug)]
-pub struct ConfiguredInsomniaOptions {
-    pub workers: usize,
-    pub scope: String,
-    pub embedding_batch_size: usize,
-    pub embedding_concurrency: usize,
-    pub existing_queue_only: bool,
-}
-
-#[derive(Clone, Debug)]
-pub struct InsomniaTerminalFailure {
-    pub episode_id: EpisodeId,
-    pub error: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct ConfiguredInsomniaReport {
-    pub before: InsomniaStats,
-    pub queued: InsomniaStats,
-    pub final_stats: InsomniaStats,
-    pub drain: InsomniaDrainResult,
-    pub terminal_failures: Vec<InsomniaTerminalFailure>,
-}
 
 impl ConfiguredRuntime {
     pub fn run_insomnia_files(

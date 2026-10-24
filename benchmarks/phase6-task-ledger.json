@@ -1,7 +1,7 @@
 {
   "baseline_named_tickets": 35,
-  "added_bounded_children": 15,
-  "tracked_parent_and_child_obligations": 50,
+  "added_bounded_children": 16,
+  "tracked_parent_and_child_obligations": 51,
   "counting_note": "Original parents remain tracked; this counts named parent plus child obligations, not independent leaf migrations or tests.",
   "base_tickets": [
     {
@@ -255,11 +255,16 @@
       "id": "P6.1.10a",
       "source_status": "implemented",
       "acceptance_status": "verification-pending"
+    },
+    {
+      "id": "P6.2.4-OFFLINE-CONFIGURED",
+      "source_status": "implemented",
+      "acceptance_status": "verification-pending"
     }
   ],
   "source_digest": {
     "algorithm": "sha256 sorted path+NUL+LF-normalized Rust source+NUL",
-    "value": "7b8f762511dbe7891552f9c52bf29ac413deef5723a40fb07fbc0d0ffb548b0e",
+    "value": "a8a18600c0ee0214cbaa1475edb27e65807680590e643c0ffecb14680769e336",
     "scope": "all src/**/*.rs, including tests and detached source files (conservative superset of compiled files)"
   },
   "gates": {

@@ -60,6 +60,8 @@ def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
         return "retrieval", "Retrieval policy/implementation remains Retrieval-owned; public Cva/Phylactery adapters reside in facade."
     if path == "src/runtime_inference/runtime_vector_step.rs":
         return "vectors", "Owner-qualified vector batch and prepare/validate/commit mechanics; façade owner adapters live under src/facade."
+    if path in {"src/runtime_inference/configured_runtime_insomnia_model.rs", "src/runtime_inference/configured_runtime_vectors_model.rs"}:
+        return "runtime-gateway", "ConfiguredRuntime-owned immutable offline options/reports; no public product handles or provider execution."
     if path == "src/perception/entity_resolution_owner.rs":
         return "perception", "Cross-owner Entity/Memory admission remains visibly Perception service policy; it is not relabeled owner-lifecycle because its current imports expose those dependencies."
     if path.startswith("src/perception/"):

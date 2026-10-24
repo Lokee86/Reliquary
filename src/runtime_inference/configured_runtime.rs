@@ -7,15 +7,21 @@ use std::sync::Arc;
 
 #[path = "configured_runtime_decision.rs"]
 mod decision;
-#[path = "configured_runtime_historical.rs"]
+#[path = "../facade/configured_runtime_historical.rs"]
 mod historical;
-#[path = "configured_runtime_insomnia.rs"]
+#[path = "../facade/configured_runtime_insomnia.rs"]
 mod insomnia;
-#[path = "configured_runtime_vectors.rs"]
+#[path = "configured_runtime_insomnia_model.rs"]
+mod insomnia_model;
+#[path = "../facade/configured_runtime_vectors.rs"]
 mod vectors;
+#[path = "configured_runtime_vectors_model.rs"]
+mod vectors_model;
 
-pub use insomnia::{ConfiguredInsomniaOptions, ConfiguredInsomniaReport, InsomniaTerminalFailure};
-pub use vectors::{ArchiveVectorBuildReport, EmbeddingProbeReport};
+pub use insomnia_model::{
+    ConfiguredInsomniaOptions, ConfiguredInsomniaReport, InsomniaTerminalFailure,
+};
+pub use vectors_model::{ArchiveVectorBuildReport, EmbeddingProbeReport};
 
 #[derive(Debug)]
 pub struct ConfiguredRuntimeError(String);

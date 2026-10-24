@@ -31,6 +31,18 @@
       "cut": "Move public owner extension glue to facade; preserve VectorNormalization and vector-owned prepare/embed/commit policy below.",
       "evidence": "New cfg-aware facade guard identifies production public Cva/Phylactery extension.",
       "status": "recorded-before-execution"
+    },
+    {
+      "files": [
+        "src/runtime_inference/configured_runtime_historical.rs",
+        "src/runtime_inference/configured_runtime_insomnia.rs",
+        "src/runtime_inference/configured_runtime_vectors.rs",
+        "src/runtime_inference/configured_runtime.rs"
+      ],
+      "id": "P6.2.4-OFFLINE-CONFIGURED",
+      "evidence": "Phase 6 P6.2.4 review found three offline Cva/Cva+Phylactery methods in modules classified as public composition; no mounted Gateway call site owns these operations. Direct scan found no file!/include macro or path-sensitive inline test in the three method files.",
+      "status": "recorded-before-execution",
+      "cut": "Move only supported ConfiguredRuntime offline Cva/Phylactery method implementations to src/facade while preserving the configured_runtime logical child modules and public API. Keep report/options DTO definitions in lower configured-runtime model modules and retain runtime_routes construction in runtime-gateway."
     }
   ],
   "note": "Child scope recorded before execution as required; these do not expand into subsystem rewrites.",
@@ -114,6 +126,40 @@
       "cut": "Supported DreamProcessor offline composition moved to upper facade; Dream owner policy remains lower.",
       "owner": "root",
       "status": "integrated source move"
+    },
+    {
+      "source_hashes": {
+        "historical": "1a9208b4f1f07218694692a52751fb79f4a88a7b809c76f131973e8feaaba278",
+        "insomnia_impl": "e39e0d3cff30538f40df0806fa61dfc52584d10720353ddc969a6814940a2cd4",
+        "method_bodies": "Normalized LF SHA-256 of historical module and impl bodies matches HEAD before source placement.",
+        "vectors_impl": "72914a1a5e72d013c71678e3022995233b22da2253de5171256c8311ec9824db"
+      },
+      "lower_model_files": [
+        "src/runtime_inference/configured_runtime_insomnia_model.rs",
+        "src/runtime_inference/configured_runtime_vectors_model.rs"
+      ],
+      "ticket": "P6.2.4-OFFLINE-CONFIGURED",
+      "cut": "ConfiguredRuntime offline Cva/Phylactery extension methods now reside in facade; unchanged options/report DTO definitions remain in lower configured-runtime model children. Mounted runtime_routes composition remains in the configured runtime parent.",
+      "status": "source cut complete; no build/analyzer run by this agent",
+      "moved_to": [
+        "src/facade/configured_runtime_historical.rs",
+        "src/facade/configured_runtime_insomnia.rs",
+        "src/facade/configured_runtime_vectors.rs"
+      ],
+      "module_wiring": "src/runtime_inference/configured_runtime.rs retains configured_runtime parent and logical historical/insomnia/vectors child IDs; insomnia_model/vectors_model carry DTO definitions and parent reexports.",
+      "path_sensitive_review": "No file!/include!/module_path! macros or path-sensitive inline tests in the moved method files.",
+      "retired_sources": [
+        "src/runtime_inference/configured_runtime_historical.rs",
+        "src/runtime_inference/configured_runtime_insomnia.rs",
+        "src/runtime_inference/configured_runtime_vectors.rs"
+      ],
+      "public_methods_preserved": [
+        "ConfiguredRuntime::reconstruct_historical_freshness",
+        "ConfiguredRuntime::run_insomnia_files",
+        "ConfiguredRuntime::run_insomnia_files_with_progress",
+        "ConfiguredRuntime::probe_embedding",
+        "ConfiguredRuntime::build_archive_vectors"
+      ]
     }
   ],
   "integration": {
@@ -123,6 +169,9 @@
       "lib.rs repaths dream_freshness, dream_lifecycle, freshness_access, runtime_vector_step",
       "runtime_inference/insomnia.rs repaths cva, processor, runtime_step, worker",
       "lib.rs registers runtime_vector_step_owner as lower helper module"
+    ],
+    "completed_by_census": [
+      "configured_runtime.rs repaths historical/insomnia/vectors method children to src/facade and retains DTO model child modules; no src/lib.rs registration change."
     ]
   },
   "verification": {
@@ -134,6 +183,13 @@
     "builds": "not run per task",
     "architecture_guard": "not run, root owns integrated gate",
     "construction": "Production constructor scan found Cva/Phylactery opens in runtime-gateway configured/offline and Gateway/reconciliation modules only; no lower owner constructor callback witnessed.",
-    "callback_review": "lower Dream canonical/policy helpers remain independent; moved Freshness adapter internals were presentation/composition routines taking &mut Cva. Runtime host callback-looking usage occurs in runtime-gateway upper modules. History/Import owner-qualified DTO/error references remain value contracts."
+    "callback_review": "lower Dream canonical/policy helpers remain independent; moved Freshness adapter internals were presentation/composition routines taking &mut Cva. Runtime host callback-looking usage occurs in runtime-gateway upper modules. History/Import owner-qualified DTO/error references remain value contracts.",
+    "offline_configured_body_hashes": {
+      "historical": "1a9208b4f1f07218694692a52751fb79f4a88a7b809c76f131973e8feaaba278",
+      "insomnia_impl": "e39e0d3cff30538f40df0806fa61dfc52584d10720353ddc969a6814940a2cd4",
+      "method_bodies": "Normalized LF SHA-256 of historical module and impl bodies matches HEAD before source placement.",
+      "vectors_impl": "72914a1a5e72d013c71678e3022995233b22da2253de5171256c8311ec9824db"
+    },
+    "offline_configured_tests": "Not run; root owns integrated verification."
   }
 }
