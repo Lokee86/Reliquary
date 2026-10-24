@@ -89,6 +89,22 @@
     "finding": "The new lower reconsideration expression initially let ? propagate before rejection restoration, and recomputed the entity snapshot per record.",
     "correction": "Native resolution is evaluated inside an operation-local Result-returning closure; every resolver-stage error reaches the original restoration branch. Entity selection uses one pre-loop snapshot.",
     "protecting_test": "entity_reconciliation_tests::failed_reconsideration_restores_rejected_mention_after_reopen",
-    "test_state": "pending final library run"
+    "test_state": "Passed in owner-contract library checkpoint (2003 passed); final integrated rerun pending."
+  },
+  "final_root_review": {
+    "checkpoint": "aa0700b",
+    "scope": [
+      "mounted private facade invocation inventory",
+      "native Perception/Insomnia/Vector/External publication direction",
+      "owner-qualified read access and API preservation"
+    ],
+    "findings_fixed": [
+      "Mounted Perception, vector, Insomnia, External and candidate/grading paths still dispatched private facade methods; hard-cut to concrete canonical owner contracts.",
+      "Initial native placement exposed Container in runtime-gateway; split actual physical admission/publication into owner-lifecycle, with passive producer plans and domain planning above.",
+      "Insomnia UserMemoryOwner callback invoked Phylactery; replaced by concrete native personal Memory publication and preserved exact-owner fencing.",
+      "Native error result/order and mutable MutexGuard field borrowing corrected during integrated compilation."
+    ],
+    "ordering_review": "Merge publication remains alias -> resolution retarget -> graph admission/write -> missing owner check -> ordered relationship validation/publication -> reread retired revision -> tombstone. Deferred relationship result values preserve error stage and partial effects. Resolution and principal admission/write ordering remain canonical.",
+    "limits": "Luna performed independent source reviews and delivered bounded source cuts. Its usage limit prevented another independent final root-integration review; final integration, compilation and regression acceptance are root-owned. No complete compiler call-graph proof is claimed."
   }
 }

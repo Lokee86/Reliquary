@@ -1,265 +1,265 @@
 {
   "baseline_named_tickets": 35,
-  "added_bounded_children": 23,
-  "tracked_parent_and_child_obligations": 58,
+  "added_bounded_children": 28,
+  "tracked_parent_and_child_obligations": 63,
   "counting_note": "Original parents remain tracked; this counts named parent plus child obligations, not independent leaf migrations or tests.",
   "base_tickets": [
     {
       "id": "P6.0.1",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.0.2",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.0.3",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.0.4",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.01",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.02",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.03",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.04",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.05",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.06",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.07",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.08",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.09",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.10",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.11",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.12",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.13",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.14",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.15",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.17",
       "source_status": "implemented",
-      "acceptance_status": "public-downward-service-contracts-classified-source-witnessed"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.2.1",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.2.2",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.2.3",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.2.4",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.2.5",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.2.6",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.3.1",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.3.2",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.3.3",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.3.4",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.3.5",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.4.1",
-      "source_status": "integration-verification-pending",
-      "acceptance_status": "verification-pending"
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.4.2",
-      "source_status": "integration-verification-pending",
-      "acceptance_status": "verification-pending"
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.4.3",
-      "source_status": "integration-verification-pending",
-      "acceptance_status": "verification-pending"
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
     }
   ],
   "children": [
     {
       "id": "P6.1.16-DREAM",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-EXTERNAL-SOURCE",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-REWRITE-LINEAGE",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-RETRIEVAL-PRIVATE-HELPER",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-RETRIEVAL-RUNTIME-CALLERS",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-ENTITY-RELATIONSHIP-ADAPTER",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-FRESHNESS-ACCESS",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-INSOMNIA-ADAPTERS",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-VECTOR-STEP",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-AGENTIC-GRADING",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.16-DREAM-FRONTIER",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.03a",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.06a",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.06b",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.1.10a",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.2.4-OFFLINE-CONFIGURED",
       "source_status": "implemented",
-      "acceptance_status": "verification-pending"
+      "acceptance_status": "final-integrated-verification-pending"
     },
     {
       "id": "P6.3.2-OWNER-READ-CONTRACTS",
@@ -283,7 +283,7 @@
     },
     {
       "id": "P6.2.4-NATIVE-PERCEPTION",
-      "source_status": "in-progress",
+      "source_status": "implemented",
       "acceptance_status": "final-integrated-verification-pending"
     },
     {
@@ -293,21 +293,46 @@
     },
     {
       "id": "P6.2.4-EXTERNAL-OWNER-ACCESS",
-      "source_status": "in-progress",
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
+    },
+    {
+      "id": "P6.2.4-NATIVE-VECTORS",
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
+    },
+    {
+      "id": "P6.2.4-NATIVE-INSOMNIA",
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
+    },
+    {
+      "id": "P6.3.2-NATIVE-PUBLICATION-OWNERSHIP",
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
+    },
+    {
+      "id": "P6.2.4-DREAM-EPOCH",
+      "source_status": "implemented",
+      "acceptance_status": "final-integrated-verification-pending"
+    },
+    {
+      "id": "P6.2.4-PHY-PUBLICATION",
+      "source_status": "implemented",
       "acceptance_status": "final-integrated-verification-pending"
     }
   ],
   "source_digest": {
     "algorithm": "sha256 sorted path+NUL+LF-normalized Rust source+NUL",
-    "value": "a8a18600c0ee0214cbaa1475edb27e65807680590e643c0ffecb14680769e336",
+    "value": "536469fe56907763562c045cfd9808c86b403667e65ad50207589940347035e5",
     "scope": "all src/**/*.rs, including tests and detached source files (conservative superset of compiled files)"
   },
   "gates": {
-    "B6": "source-census-passed",
-    "F6": "49 import/binding cuts + 33 immutable values; mounted correction in progress",
-    "C6": "public signatures preserved; final consumer checks in progress",
-    "D6": "latest owner-contract lib: 2003 passed, 5 ignored; final mounted correction pending",
-    "A6": "final-integrated-verification-pending"
+    "B6": "passed: integrated baseline and frozen source census",
+    "F6": "implemented: 49 original binding/import cuts + 33 immutable values; source guard finalization pending",
+    "C6": "implemented: public signatures preserved; private mounted callbacks hard-cut; final behavior gates pending",
+    "D6": "source implemented, final integrated regression in progress",
+    "A6": "final integrated receipt pending"
   },
   "spec_procedure_deviation": "Agentic grading child was recorded immediately after its edit; all other discovered children have pre-execution source registers.",
   "historical_final_attempt_2026_10_23": {
@@ -317,5 +342,6 @@
     "perception_dispositions_json": "valid",
     "cargo_full_test": "cancelled, not passed; output stalled after two previously long tests reported success; no final summary, seven-minute run",
     "documented_limit": "No claim of A6 completion or full architecture refresh"
-  }
+  },
+  "source_checkpoint": "aa0700bc20bcbd968bea644615ba0e7065f02e3d"
 }

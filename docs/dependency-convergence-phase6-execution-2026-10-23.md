@@ -12,7 +12,7 @@ Supported public extensions now live in `src/facade/`. Perception owns determini
 
 ## Bounded task accounting
 
-The [task ledger](../benchmarks/phase6-task-ledger.json) retains all 35 original named tickets. Twenty-three explicit supporting children bring the tracked parent-plus-child denominator to 58; this is not a count of independent leaves or tests. The original residual families cover Dream, External Sources, Rewrite lineage, Retrieval collection/runtime callers, Entity/Relationship adapters, Freshness, Insomnia, vectors, agentic grading, Dream frontier and offline ConfiguredRuntime placement. Four children cover principal policy, evidence hydration, resolution owner admission and candidate graph routing.
+The [task ledger](../benchmarks/phase6-task-ledger.json) retains all 35 original named tickets. Twenty-eight explicit supporting children bring the tracked parent-plus-child denominator to 63; this is not a count of independent leaves or tests. The original residual families cover Dream, External Sources, Rewrite lineage, Retrieval collection/runtime callers, Entity/Relationship adapters, Freshness, Insomnia, vectors, agentic grading, Dream frontier and offline ConfiguredRuntime placement. Four children cover principal policy, evidence hydration, resolution owner admission and candidate graph routing.
 
 The final conformance children are P6.3.2-OWNER-READ-CONTRACTS, P6.3.2-RESOLUTION-PLANS, P6.3.2-RECONCILIATION-PLANS and P6.1.17-PUBLIC-RESOLVER-BINDINGS. They remove newly exposed physical Container imports and preserve public service parameters through real binding ownership. P6.2.4-NATIVE-PERCEPTION removes mounted private facade-through-runtime execution. These children were recorded before implementation. The earlier agentic grading child was recorded immediately after its edit; that procedural deviation is retained explicitly.
 
@@ -26,7 +26,7 @@ The [API preservation manifest](../benchmarks/phase6-api-preservation.json) reco
 
 ## Mounted owner execution
 
-P6.2.4-NATIVE-PERCEPTION was recorded before implementation after independent review found REL/PHY workers invoking private facade principal, preparation, resolution-commit and reconciliation-commit helpers. Workers must construct owner-qualified preparation contexts directly and share concrete native publication functions with public adapters. These functions belong to existing runtime-gateway composition, accept concrete stores and Container, and accept no Cva/Phylactery, callbacks or provider endpoints. Selection and reconciliation planning remain in Perception. No generic service, additional runtime or duplicate owner store is introduced.
+P6.2.4-NATIVE-PERCEPTION was recorded before implementation after independent review found REL/PHY workers invoking private facade principal, preparation, resolution-commit and reconciliation-commit helpers. Workers must construct owner-qualified preparation contexts directly and share concrete native publication functions with public adapters. Final native functions belong to owner-lifecycle, accept concrete stores and Container, and accept no Cva/Phylactery, callbacks or provider endpoints. Runtime coordination binds existing owner readers and invokes Perception planning above those native functions. Selection and reconciliation policy remain in Perception. No generic service, additional runtime or duplicate owner store is introduced.
 
 ## Behavioral review
 
@@ -42,7 +42,7 @@ The subsequent owner-contract checkpoint `e2d1045` passed 2,003 library tests, z
 
 ## Gate state
 
-Final acceptance is pending completion of the bounded mounted-execution correction and its integrated verification. B6 source census is complete. F6, C6 and D6 require the final source guard, consumer checks and behavior runs. A6 is not implied by source relocation or an acyclic target DAG.
+The bounded mounted-execution corrections are integrated. Final acceptance is pending their integrated verification and documentation receipt. B6 source census is complete. F6, C6 and D6 require the final source guard, consumer checks and behavior runs. A6 is not implied by source relocation or an acyclic target DAG.
 
 The architecture entrypoint passed its local source guards and retained-snapshot Pitlord policy check, then failed convergence freshness because changed Rust differs from the old indexed graph. The specification forbids repeating the stalled Phase 5 refresh and explicitly carries that full graph-proof obligation into Phase 7 A7. No refreshed compiler/symbol inventory or architecture snapshot is claimed. The inherited broad deferred-edge register is not repinned to authorize current debt; the reconciled historical 82-row register no longer defers live imports.
 
@@ -85,3 +85,23 @@ P6.2.4-NATIVE-INSOMNIA is recorded before implementation. Mounted claim/evidence
 P6.3.2-NATIVE-PUBLICATION-OWNERSHIP records a final dependency-direction correction before execution. Runtime-gateway is permitted to invoke owner-lifecycle but not physical Container or most durable stores directly. Native publication mechanics therefore belong to concrete owner-lifecycle modules, with Perception/External/Vector orchestration above them. Move actual native store admission/publication responsibility, not just metadata; lower native code may consume exact passive producer plans/results but must not call semantic service functions. Capture pure plans above native publication and defer any planned errors to their original publication stage. The target DAG remains unchanged, and source-level inference limits remain explicit.
 
 P6.2.4-DREAM-EPOCH and P6.2.4-PHY-PUBLICATION are recorded before implementation. Mounted Dream eligibility/checkpoint methods still call private facade policy, and the exact-owner personal publication journal invokes a private Phylactery publication forwarder. Bind Dream reads to existing owner views and cooldown policy, write processing checkpoints through native owner admission, and publish the personal Memory through its canonical store under the unchanged exact-owner fence. Preserve source-time fallback, cadence errors, Memory-presence-before-checkpoint checks, lease scope and partial-write/retry verification. Supported public Memory APIs and direct one-store aggregate stream operations remain unchanged; this does not authorize a broader runtime redesign.
+
+
+## Final native integration checkpoint
+
+The source correction is integrated at `aa0700b`, after native integration `e5d62b7`. An account usage limit interrupted the Luna agents after their committed cuts; root completed integration from their saved changes using local tools. No connector was used. The final source no longer routes the named private Perception, vector batch, Insomnia, External Sources, Dream epoch, candidate collection or personal Memory publication operations through public owner facade helpers. Supported public owner APIs and nominal composition types remain.
+
+Perception prepares passive merge publication actions before native execution. Relationship validation failures travel as ordered result values and are raised only at the original relationship publication stage, after alias/resolution/graph effects. Native admission owns revision/reference validation. Native publication never invokes Perception selection or inference functions. The target DAG is unchanged; exact producer-value contracts cover only passive instructions, identities, results and errors.
+
+The final read boundary adds canonical `MemoryVectorReadView`, packed-vector hydration and Vectors-owned matrix caching/row scoring; External Sources never receives Container or a facade closure. Insomnia preparation/source validation reads `ArchiveReadView`; routed personal publication uses a concrete native Memory publisher, replacing the lower callback trait. Freshness grade policy is shared by the public Ego query and mounted agentic grading through `EgoGradeRead`.
+
+The final conservative normalized Rust digest is `536469fe56907763562c045cfd9808c86b403667e65ad50207589940347035e5`. The task ledger pins this checkpoint and the complete 63-obligation denominator. Test-only fixture bindings for candidate collection and semantic Archive batches call the canonical implementations; their obsolete production helpers are absent.
+
+
+## Source graph handoff
+
+The final same-map/cfg comparison projects the baseline through the final explicit 34-component ownership map: 3,305 baseline and 3,584 current cross-component import rows, with 269 exact rows removed and 548 added. These differ from the frozen raw 3,376-row baseline because both sides now use the same reviewed final map. None of these relocation/import deltas alone is counted as proven semantic dependency elimination.
+
+There are 96 baseline and 97 current uncertain import witnesses. The one added uncertainty is the known `lodestone_packed::PackedVectors` reexport in the Vectors row cache, covered by its exact external codec value contract. Unknown possible lower-to-public imports still fail closed. There are no new unapproved component dependency pairs after the exact passive value contracts.
+
+The remaining strict component SCC is exactly `public-consumers` / `runtime-gateway`. Its five runtime-to-public import witnesses are the existing Cva/Phylactery aggregate composition and supported offline/API boundaries in `interaction_runtime.rs`, `runtime_host_gateway.rs`, `runtime_host_gateway_project_lifecycle.rs`, `runtime_host_phy_execution.rs` and `runtime_host_reconciliation.rs`. They preserve public construction/mount/unmount, Project Environment administration and offline reconciliation. They are not the removed private Perception/Vector/Insomnia/External/agentic helper callbacks. The original C-05 aggregate composition cycle and full symbol/call proof remain named Phase 7 A7 obligations; no Phase 6 implementation cut is assigned to Phase 7.

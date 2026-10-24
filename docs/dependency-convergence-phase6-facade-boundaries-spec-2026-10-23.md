@@ -127,7 +127,7 @@ Each ticket owns one public-method family or tightly coupled macro family, its c
 
 ## Exact preserved public service contracts
 
-The original 82-row Perception register has 46 eliminated implementation imports, 33 owner-qualified immutable value references and **three preserved public method-parameter references** (two `EntityResolutionEngine`, one `EntityResolver`). These three are permitted **facade → Perception** public API dependencies, not exemptions from the forbidden **Perception → facade** direction. Preserve the existing method signatures at `src/facade/cva_entity_resolution_batch.rs` and `src/facade/cva_entity_resolution_processor.rs`. The exact source witnesses are recorded in `benchmarks/phase6-perception-dispositions.json`. No blanket domain-service exemption or source-edge elimination claim is authorized.
+The original 82-row Perception register now has 49 implementation/binding import cuts and 33 owner-qualified immutable value references. Three formerly retained public method-parameter references (two `EntityResolutionEngine`, one `EntityResolver`) retain their signatures while their concrete public binding types now belong to the facade and own private lower inference cores. This is a source ownership cut, not an immutable-value reclassification or domain-service waiver. Preserve the supported signatures at `src/facade/cva_entity_resolution_batch.rs` and `src/facade/cva_entity_resolution_processor.rs`. Exact original and current witnesses remain in `benchmarks/phase6-perception-dispositions.json`; no blanket exception or complete call-graph claim is authorized.
 
 ## Verification budget and stop conditions
 

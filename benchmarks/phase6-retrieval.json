@@ -2,7 +2,16 @@
   "schema": "dependency-convergence-phase6-retrieval-source-cut.v1",
   "captured_at": "2026-10-23",
   "baseline": "benchmarks/phase6-baseline.json",
-  "ticket_scope": ["P6.1.11", "P6.1.12", "P6.1.13", "P6.1.14", "P6.1.15", "P6.1.16-RETRIEVAL-PRIVATE-HELPER", "P6.1.16-RETRIEVAL-RUNTIME-CALLERS", "P6.1.16-ENTITY-RELATIONSHIP-ADAPTER"],
+  "ticket_scope": [
+    "P6.1.11",
+    "P6.1.12",
+    "P6.1.13",
+    "P6.1.14",
+    "P6.1.15",
+    "P6.1.16-RETRIEVAL-PRIVATE-HELPER",
+    "P6.1.16-RETRIEVAL-RUNTIME-CALLERS",
+    "P6.1.16-ENTITY-RELATIONSHIP-ADAPTER"
+  ],
   "claim": "source-edge evidence only; no performance benchmark was run",
   "before": {
     "lower_files_with_cva_or_phylactery_extension": 7,
@@ -86,7 +95,11 @@
     "status": "registered-before-execution"
   },
   "bounded_child_P6.1.16_ENTITY_RELATIONSHIP_ADAPTER": {
-    "source": ["src/perception/entity_owner.rs", "src/perception/entity_merge.rs", "src/perception/relationship_owner.rs"],
+    "source": [
+      "src/perception/entity_owner.rs",
+      "src/perception/entity_merge.rs",
+      "src/perception/relationship_owner.rs"
+    ],
     "cut": "Move Cva/Phylactery public extension registrations into facade; keep relationship reference validation and Entity merge/retarget coordination below as explicit concrete-store operations.",
     "evidence": "Before edit census confirmed macro-generated Cva/Phylactery methods in all three lower files; retain method signature and test callers.",
     "lower_contracts": [
@@ -96,5 +109,13 @@
       "entity_owner::validate_entity_publication(&EntityDraft, reject_principal)"
     ],
     "status": "implemented; compile verification not run by this slice"
+  },
+  "historical_worker_checkpoint_note": "Earlier status and cut descriptions below are retained slice evidence, superseded by integrated_source_receipt; they do not describe final acceptance.",
+  "integrated_source_receipt": {
+    "checkpoint": "aa0700b",
+    "status": "source-integrated; final behavior and documentation verification pending",
+    "receipt": "docs/dependency-convergence-phase6-execution-2026-10-23.md",
+    "ownership": "Domain selection/read policy consumes concrete owner readers; native admission and publication live in owner-lifecycle. Mounted execution invokes canonical contracts without private Cva/Phylactery forwarding.",
+    "graph_limit": "Lexical imports and bounded source review only; inherited full analyzer proof belongs to Phase 7 A7."
   }
 }

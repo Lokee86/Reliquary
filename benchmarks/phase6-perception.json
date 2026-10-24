@@ -1399,7 +1399,7 @@
       "alias": null
     }
   ],
-  "status": "in-progress; after evidence not yet captured; source changes unverified",
+  "status": "source-integrated; original 82 rows reconciled; final acceptance pending",
   "notes": [
     "Rows are retained as frozen original witnesses and not counted as eliminated by source-path relocation.",
     "Relocated fa\u00e7ade imports may preserve the logical public-consumer-to-perception dependency; root reconciliation must distinguish authorized owner contract from inherited allowlist.",
@@ -1421,11 +1421,21 @@
     "P6.1.17": "original witness register frozen; after-source reconciliation not yet captured"
   },
   "after_source_evidence": {
-    "status": "source inventory reports original-witness rows retained; final 82-row disposition awaiting audit review",
-    "eliminated_original_rows": 0,
-    "retained_owner_contract_rows": null,
-    "still_violating_rows": null,
-    "uncertain_rows": null,
-    "note": "No import row is claimed eliminated based on relocation. The root/census audit reports 82 original rows retained and 81 current same-path target-symbol witnesses; exact row-by-row disposition remains pending review and target/allowlist reconciliation."
+    "status": "final row-by-row source disposition complete",
+    "original_rows": 82,
+    "implementation_and_binding_import_cuts": 49,
+    "retained_immutable_value_rows": 33,
+    "unclassified_rows": 0,
+    "service_signature_exceptions": 0,
+    "witnesses": "benchmarks/phase6-perception-dispositions.json",
+    "proof_limit": "Source dispositions and independent callsite review, not complete compiler call-edge proof."
+  },
+  "historical_worker_checkpoint_note": "Earlier status and cut descriptions below are retained slice evidence, superseded by integrated_source_receipt; they do not describe final acceptance.",
+  "integrated_source_receipt": {
+    "checkpoint": "aa0700b",
+    "status": "source-integrated; final behavior and documentation verification pending",
+    "receipt": "docs/dependency-convergence-phase6-execution-2026-10-23.md",
+    "ownership": "Domain selection/read policy consumes concrete owner readers; native admission and publication live in owner-lifecycle. Mounted execution invokes canonical contracts without private Cva/Phylactery forwarding.",
+    "graph_limit": "Lexical imports and bounded source review only; inherited full analyzer proof belongs to Phase 7 A7."
   }
 }

@@ -52,6 +52,8 @@ def source_changes(base: str) -> tuple[set[str], set[str], set[str]]:
 
 
 def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
+    if path == "src/freshness/ego_grades.rs":
+        return "freshness", "Canonical read-only Freshness grading policy over the existing Freshness store; both public Ego read and mounted agentic retrieval consume this concrete reader."
     if path in {"src/runtime_inference/insomnia_runtime_execution.rs", "src/runtime_inference/vector_publication.rs", "src/runtime_inference/semantic_archive_batch.rs"}:
         return "runtime-gateway", "Mounted execution coordinates lower domain plans with concrete native owner publication; no product binding, physical handle parameter or provider callback."
     if path.startswith("src/owner_lifecycle/"):
@@ -79,7 +81,7 @@ def role(path: str, previous: str | None) -> tuple[str | None, str | None]:
     if path in {"src/runtime_inference/configured_runtime_insomnia_model.rs", "src/runtime_inference/configured_runtime_vectors_model.rs"}:
         return "runtime-gateway", "ConfiguredRuntime-owned immutable offline options/reports; no public product handles or provider execution."
     if path == "src/perception/entity_resolution_owner.rs":
-        return "perception", "Cross-owner Entity/Memory admission remains visibly Perception service policy; it is not relabeled owner-lifecycle because its current imports expose those dependencies."
+        return "perception", "Resolution scheduling/read selection over canonical stores; native revision/reference admission and write intents were physically extracted to owner-lifecycle."
     if path.startswith("src/perception/"):
         name = Path(path).name
         if name.endswith(("_model.rs", "_error.rs")) or name in {"entity_store.rs", "entity_codec.rs"}:

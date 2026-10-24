@@ -302,5 +302,10 @@
       }
     ],
     "status": "Public method-parameter signatures remain preserved; service bindings are now facade-owned and lower Perception consumers use Core types. Source evidence only."
-  }
+  },
+  "validation_checkpoint": "aa0700b",
+  "explicit_signature_count": 53,
+  "binding_method_count": 7,
+  "validation": "53 normalized named-family signature witnesses found in final facade sources after removing whitespace, mut bindings and optional trailing commas; 7 public binding methods preserved. Macro expansions and full API consumers are checked by Rust/CLI compilation.",
+  "current_missing_signature_witnesses": []
 }

@@ -802,6 +802,7 @@
         "review-clocks"
       ],
       "current_production_source_files": [
+        "src/freshness/ego_grades.rs",
         "src/freshness/historical_dream.rs",
         "src/freshness/historical_planner.rs",
         "src/freshness/historical_propagation.rs",
@@ -9766,7 +9767,7 @@
       "component": "perception",
       "classification": "production",
       "reachability": "reachable-profile-module",
-      "evidence": "Cross-owner Entity/Memory admission remains visibly Perception service policy; it is not relabeled owner-lifecycle because its current imports expose those dependencies.",
+      "evidence": "Resolution scheduling/read selection over canonical stores; native revision/reference admission and write intents were physically extracted to owner-lifecycle.",
       "certainty": "reviewed-explicit",
       "source_sha256": "eafd33ad96e4ab679877500d28210630f22adffcd0f4f026148344ae62c876dd",
       "compiler_inventory_match": false,
@@ -13467,7 +13468,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_graph`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "05baf91d3d6298fb18d87af9cd71c2429f259c679519a13755f4489f3d32be8e",
+      "source_sha256": "f79de5fcef1171807eea1a6f0527cb339e361eb68f7789313efb017f978c3c69",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -13509,7 +13510,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "source declarations/imports inspected for `runtime_host_gateway_agentic_memory_query`; responsibility assigned to `runtime-gateway` in target DAG",
       "certainty": "reviewed-explicit",
-      "source_sha256": "779c1f355a38b416f85d6e4f03e9b523808a2eb65445028e9fcd6799e3441471",
+      "source_sha256": "325451c72a2147c52d55e34a54cb60a68a2cbe483c9b85b8f1eb94aa2583e08b",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16022,7 +16023,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Phase 6 public extension or composition source; placed above owner/domain implementation.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "dcabf00951e25f20f38878a00e5192780f7966d133357a80d5e03669d843460d",
+      "source_sha256": "bfe3180e4ced23b7c0e4770f8a5ae02f35bbe93b73b9478ea5c8bef4eed84495",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16226,7 +16227,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Concrete mounted owner access over existing owner stores and immutable identity/activity facts; no public product dependency.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "dc0879b5e43a567698e12d76c55c417c8dcac7aeb227f80a53960d66b5603b29",
+      "source_sha256": "3156ccb3496eab12b9eb72a6ec506e239862529a385a4dc967215848fe99d73b",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16286,7 +16287,7 @@
       "reachability": "reachable-profile-module",
       "evidence": "Concrete native owner admission, reads or ordered publication; domain planning stays above and enters as passive producer values.",
       "certainty": "reviewed-explicit",
-      "source_sha256": "098400941e9775baf9f46be2468bfcde018e8cefd562c60a73571aacf96db20a",
+      "source_sha256": "6dd913251ffec4df3d786885c5286f1c7600435d7bd59c4de91685beaf2c95c0",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -16431,6 +16432,18 @@
       "evidence": "Mounted execution coordinates lower domain plans with concrete native owner publication; no product binding, physical handle parameter or provider callback.",
       "certainty": "reviewed-explicit",
       "source_sha256": "1b84c1b0bbc75f8eb8eb88fb7a9d5b95f965150d2b61de5e2180439fc06880dc",
+      "compiler_inventory_match": false,
+      "compiler_item_count": null,
+      "symbol_spans_sha256": null
+    },
+    {
+      "path": "src/freshness/ego_grades.rs",
+      "component": "freshness",
+      "classification": "production",
+      "reachability": "reachable-profile-module",
+      "evidence": "Canonical read-only Freshness grading policy over the existing Freshness store; both public Ego read and mounted agentic retrieval consume this concrete reader.",
+      "certainty": "reviewed-explicit",
+      "source_sha256": "d0363e9e86b95f1140b17fc7f28c6d3be434515f0be26a26455be2b626f16a07",
       "compiler_inventory_match": false,
       "compiler_item_count": null,
       "symbol_spans_sha256": null
@@ -35580,6 +35593,7 @@
       "src/facade/insomnia_worker.rs",
       "src/facade/insomnia_worker_runtime.rs",
       "src/facade/rewrite_lineage_extensions.rs",
+      "src/freshness/ego_grades.rs",
       "src/memory/memory_store.rs",
       "src/memory/processing_epoch_store.rs",
       "src/owner_lifecycle.rs",
@@ -35688,22 +35702,8 @@
       "src/runtime_inference/insomnia/worker/runtime.rs"
     ],
     "added_reachable_paths": [
-      "src/owner_lifecycle/entity_publication_admission.rs",
-      "src/owner_lifecycle/entity_resolution_admission.rs",
-      "src/owner_lifecycle/external_owner_access.rs",
-      "src/owner_lifecycle/external_publication.rs",
-      "src/owner_lifecycle/insomnia_runtime.rs",
-      "src/owner_lifecycle/perception_publication_merge.rs",
-      "src/owner_lifecycle/perception_publication_resolution.rs",
-      "src/owner_lifecycle/personal_memory_publication.rs",
-      "src/owner_lifecycle/semantic_archive_read.rs",
-      "src/owner_lifecycle/vector_publication.rs",
-      "src/retrieval/external_vector_reader.rs",
-      "src/retrieval/memory_candidate_collection.rs",
-      "src/runtime_inference/insomnia/native_processor.rs",
-      "src/runtime_inference/insomnia_runtime_execution.rs",
-      "src/runtime_inference/semantic_archive_batch.rs",
-      "src/runtime_inference/vector_publication.rs"
+      "src/freshness/ego_grades.rs",
+      "src/runtime_inference/insomnia/native_processor.rs"
     ],
     "compiler_inventory_refreshed": false,
     "note": "Source hashes and explicit ownership rows only; compiler and symbol inventories require their separate acceptance refresh."

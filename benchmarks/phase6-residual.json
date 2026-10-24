@@ -107,7 +107,7 @@
         "src/facade/insomnia_worker.rs",
         "src/facade/insomnia_worker_runtime.rs"
       ],
-      "cut": "Whole owner extension modules copied under façade source while retaining insomnia logical module context and helper module paths.",
+      "cut": "Whole owner extension modules copied under fa\u00e7ade source while retaining insomnia logical module context and helper module paths.",
       "status": "source cut complete; root repaths confirmed; no compile by census agent"
     },
     {
@@ -191,5 +191,13 @@
       "vectors_impl": "72914a1a5e72d013c71678e3022995233b22da2253de5171256c8311ec9824db"
     },
     "offline_configured_tests": "Not run; root owns integrated verification."
+  },
+  "historical_worker_checkpoint_note": "Earlier status and cut descriptions below are retained slice evidence, superseded by integrated_source_receipt; they do not describe final acceptance.",
+  "integrated_source_receipt": {
+    "checkpoint": "aa0700b",
+    "status": "source-integrated; final behavior and documentation verification pending",
+    "receipt": "docs/dependency-convergence-phase6-execution-2026-10-23.md",
+    "ownership": "Domain selection/read policy consumes concrete owner readers; native admission and publication live in owner-lifecycle. Mounted execution invokes canonical contracts without private Cva/Phylactery forwarding.",
+    "graph_limit": "Lexical imports and bounded source review only; inherited full analyzer proof belongs to Phase 7 A7."
   }
 }
